@@ -86,16 +86,22 @@ Netlify is configured to auto-deploy on push to `main`. CI runs in parallel on t
 
 ## §8. Release ritual
 
-Every release, however small:
+Every release, however small, has automated gates and ritual gates.
+
+**Automated gates (CI, blocking):**
 
 1. PR opened with a one-line summary.
-2. CI green (all 5 stages above).
-3. **Operator runs local PII audit.** See `audits/LOCAL_PII_AUDIT.md`. The public CI cannot see the operator's personal data — the local audit closes that gap. Skipping the local audit is the failure mode, so it's a checklist item, not a vibe.
-4. Reviewer (you) reads the diff. Asks: any new line cross §4? Any new path cross §5?
-5. **Cross-model audit on doctrine or content changes.** See §10. Solo authority IS the failure mode. Doctrine and content changes go through ChatGPT or Codex before merge. Mechanical edits do not.
-6. Merge.
-7. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
-8. Confirm Netlify auto-deployed. Open the live URL. Shake it. If the roast lands, ship the next one.
+2. CI green (5 stages — calc / engine / content / PII / single-file).
+3. **Doctrine/content change requires journal entry.** PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. Enforced in `.github/workflows/ci.yml`.
+
+**Ritual gates (operator/reviewer responsibility):**
+
+4. Operator runs local PII audit (`audits/run_local_audit.sh`). The public CI cannot see the operator's personal data; the local audit closes that gap. Skipping it is the failure mode, so it's a checklist item, not a vibe.
+5. Reviewer reads the diff. Asks: any new line cross §4? Any new path cross §5?
+6. Cross-model audit on doctrine or content changes. See §10. Solo authority IS the failure mode. Doctrine and content changes go through Codex (or ChatGPT for content batches) before merge. Mechanical edits do not.
+7. Merge.
+8. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
+9. Confirm Netlify auto-deployed. Open the live URL. Shake it.
 
 ## §9. The SIRR boundary
 
