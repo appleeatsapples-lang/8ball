@@ -338,8 +338,6 @@ export const TRAITS_LP = {
     'older than your age and tired of being told'
   ],
   11: [
-    'a mystic with anxiety',
-    'astral-projecting to avoid eye contact',
     'feeling everyone mood in a four-block radius',
     'a visionary who has not slept',
     'someone whose intuition is correct and unprovable',

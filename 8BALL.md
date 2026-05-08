@@ -30,7 +30,7 @@ Mirrors the shape of `~/dev/SIRR/SIRR.md` deliberately. Same discipline. Smaller
 
 ## 1. What 8ball is
 
-A magic 8-ball that knows you. Public-facing surface is a toy: enter name + DOB once, shake or ask, get a roast. Underneath, the roast is informed by the user's sun sign, Chinese zodiac animal, and numerology life path. The depth is the trick; the trick is hidden by design.
+A magic 8-ball that knows you. Public-facing surface is a toy: enter name + DOB once, shake or ask, get a roast. Underneath, the roast is informed by the user's sun sign, Chinese zodiac animal, and numerology life path.
 
 **SIRR is the engine; 8-Ball is the deniability layer.** SIRR (sacred, private, personal) and 8ball (materialistic, public, commercial) are sibling repos. They share NOTHING in code. They share calculation rigor by example, not by import. (See `DOCTRINE.md §9`.)
 
