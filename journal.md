@@ -33,8 +33,8 @@ Full session distillate: `~/Desktop/8ball/sessions/session_distillate_2026-05-08
 
 ## Open items / next session queue
 
-1. Connect Netlify to GitHub repo for auto-deploy (operator action).
-2. Pick + reserve subdomain (operator action).
+1. ~~Connect Netlify to GitHub repo for auto-deploy~~ ✅ done 2026-05-08 16:17. Live at `https://the-eight-ball.netlify.app`.
+2. ~~Pick + reserve subdomain~~ ✅ reserved `the-eight-ball`.
 3. Operator: create `audits/local_personal_data.txt` per `audits/LOCAL_PII_AUDIT.md`.
 4. Operator: add `8ball` row to `~/MUHAB.md` §6 bootstrap table (operator-personal file).
 5. Trait pool v2 — ChatGPT lane drafts; doctrine §4 review gates.

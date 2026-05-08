@@ -34,7 +34,7 @@ A magic 8-ball that knows you. Public-facing surface is a toy: enter name + DOB 
 
 **SIRR is the engine; 8-Ball is the deniability layer.** SIRR (sacred, private, personal) and 8ball (materialistic, public, commercial) are sibling repos. They share NOTHING in code. They share calculation rigor by example, not by import. (See `DOCTRINE.md §9`.)
 
-**Production:** netlify.app subdomain (TBD; subdomain pending).
+**Production:** `https://the-eight-ball.netlify.app` (Netlify free tier, GitHub-connected, auto-deploys on push to main).
 **Repo:** `github.com/appleeatsapples-lang/8ball` (public from day 1).
 **Stack:** static HTML/CSS/ES-modules. No build step. Vitest for tests. GitHub Actions for CI. Netlify for hosting.
 
@@ -64,7 +64,7 @@ Layered source:
 | # | Decision | Locked value |
 |---|---|---|
 | 1 | Repo visibility | Public from day 1 |
-| 2 | Domain | netlify.app subdomain only until traction |
+| 2 | Domain | netlify.app subdomain `the-eight-ball.netlify.app` (live as of 2026-05-08) |
 | 3 | Product display name | `8 ball` (lowercase, space). Folder & repo: `8ball`. |
 | 4 | License | MIT |
 | 5 | Stack | Static + ES modules; no build step |
@@ -169,18 +169,16 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 ## 10. Current state (as of 2026-05-08)
 
-**v0.1.0 SHIPPED** (initial commit). Repo bootstrapped. CI configured. 30 tests passing (22 calc + engine + content; 8 PII scan).
+**v0.1.0 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Single clean commit `6e97b60` on `main`. CI green. Netlify GitHub-connected; auto-deploys on push.
 
-**v0.1.1 in flight** (this session): doctrine extended with §10 lanes, §11 PII rule, §13 refresh discipline. PII scanner added. Local audit infrastructure added. PII leak in v0.1.0 fixtures fixed. Desktop folder structure established.
-
-**Open subdomain:** `8 ball` is not yet deployed at any specific Netlify subdomain. v0 may have been drag-dropped from old `8ball-app/` folder; new connection from this `8ball/` repo via Netlify GitHub integration is pending operator action.
+History note: an earlier sequence of commits (since rewritten) shipped a labeled-DOB leak in fixtures and a discipline patch on top. Force-rewrite collapsed both into the single clean commit now on main. Lessons captured in `journal.md` and `~/Desktop/8ball/sessions/session_distillate_2026-05-08.md`.
 
 ---
 
 ## 11. Open items / next session queue
 
-1. **Connect Netlify to GitHub repo** for auto-deploy on push. Operator action; ~2 minutes via Netlify dashboard.
-2. **Pick + reserve Netlify subdomain.** Candidates: `8ball`, `the-eight-ball`, `8ball-knows`. Operator picks; first-come-first-served on Netlify.
+1. **~~Connect Netlify to GitHub repo~~** ✅ done 2026-05-08. `the-eight-ball.netlify.app` live, auto-deploys on push.
+2. **~~Pick + reserve Netlify subdomain.~~** ✅ done. Reserved `the-eight-ball`.
 3. **Trait pool v2.** Current pool is the seed. Doubling each axis pool reduces flavor-repetition complaints. ChatGPT lane handles drafting; doctrine §4 review gates it.
 4. **Question classifier rework.** v1 is regex-grade. v2: distinguish regret vs choice vs future vs identity question shapes.
 5. **Live-fire testing.** Open the deployed URL. Shake 30+ times with real DOB. Note any flavor-repeats or weak lines for v1.x.
