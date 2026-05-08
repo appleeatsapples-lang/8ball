@@ -3,6 +3,57 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-08 · v0.1.3 — Phase-2B doctrine consolidation shipped
+=====
+
+## What shipped
+
+- **PR #2 squash-merged** as `708735d` on main. Three feature-branch HEADs collapsed into one commit (`b74ef70` Phase-2B substance + `875596b` corrective + `32c8995` corrective #2). Live at `https://the-eight-ball.netlify.app/` with HTTP 200 and `<title>8 ball</title>` confirmed.
+- **§1, §2, §9 substance rewritten.** §1 reframed from surface-narration ("interior never named") to positive-shape product description (deck product tied to name+DOB; cards openly reference symbol systems). §2 second bullet drops "no mention of zodiac/numerology/astrology" sub-clause. §9 narrowed to SIRR-boundary code corollary, heading renamed "The SIRR boundary," wording amended to cite `DOCTRINE_ALLOW` allow-list as the actual enforcement.
+- **§4 restructured for post-pivot content.** New bullets: no medical/diagnostic framing, cultural-symbol respect, universal floor. "Versioned, not edited" generalized from "trait pools and templates" to "shipped content batches." Heuristic line generalized to format-agnostic "if a line lands but you can't tell..." Voice-register bullet was authored, audited as cards-vs-existing-pool FAIL, then surgically removed in corrective #2 (Phase-2F will restore it with the cards-specific register decided at design time).
+- **§4 carve-out cuts.** Six lines cut from existing pool: `templates.v1.js` lost "the chart agrees" / "the universe says" (§2 mystical) and "today diagnosis" / "symptoms detected" (§4 diagnostic); `traits.v1.js` lp11 lost "a mystic with anxiety" / "astral-projecting to avoid eye contact" (§2 mystical). `TEMPLATES_NO_QUESTION` 18→15, `TEMPLATES_MAYBE` 8→7, `lp11` 6→4. No replacements; Phase-2F authors the new content layer.
+- **`audits/run_local_audit.sh` POSIX fix.** `mapfile` (bash 4+) replaced with `while IFS= read -r ... done` loop. Verified clean exit 0 under macOS bash 3.2.57. §8 and §11 enforcement surfaces now actually fire.
+- **Inbound cleanup.** `README.md:5` trailing "(see DOCTRINE.md §9)" stripped; `8BALL.md:33` trailing "depth is the trick; the trick is hidden by design" stripped; `tests/pii_scan.test.js:69` comment updated to "SIRR boundary rule."
+- **Tests:** 32/32 green at `708735d`. Local audit clean (21 files scanned).
+
+## Cross-model audit
+
+Five-audit Phase-2 sequence completed:
+
+- Audit 1 at `2876385` — 1 PASS / 6 CONCERN / 6 FAIL (baseline; doctrine confirmed aspirational).
+- Audit 2 at `3e6d71a` — 4 PASS / 6 CONCERN / 3 FAIL (Phase-2A patch; §4/§7/§11 closed).
+- Audit 3 at `b74ef70` — 2 PASS / 5 CONCERN / 6 FAIL (Phase-2B substance; three regressions: §4/§8/§11. Doctrine ahead of code surfaced.)
+- Audit 4 at `875596b` — 4 PASS / 7 CONCERN / 2 FAIL (corrective; §2/§8/§9/§11 closed; §4 still FAIL on cards-vs-existing-pool tension).
+- Audit 5 at `32c8995` — **5 PASS / 7 CONCERN / 1 FAIL** (corrective #2; §4 closed via voice-register-bullet drop; merge gate cleared).
+
+Cleanest baseline regression check vs `3e6d71a`: §2 IMPROVED, §9 IMPROVED, all others UNCHANGED. The remaining FAIL is §1 (doctrine says deck, engine ships roast) — known-tradeoff bound to Phase-2F. Closure condition: 2F engine flip.
+
+## Lessons
+
+**L16 — Doctrine ahead of code is the inverse failure of aspirational doctrine; both produce the same audit verdict.** L10 named "aspirational doctrine — rules whose enforcement doesn't exist" as the most expensive doctrinal debt. Phase-2B initially produced its mirror image: rules whose code-implementation doesn't exist *yet*. The verdict shape is identical (rule-says-X-but-code-does-Y), but the disposition differs: aspirational drift has no firing condition; doctrine-bound-to-queued-phase does. The §1 FAIL is the latter — bound to Phase-2F's engine flip. The §4 voice-register FAIL initially looked like the former and was surgically removed; what survived is the constraint-shaped substance that applies to any content layer.
+
+**L17 — §-numbering preservation under substance rewrite is a doctrine virtue, not laziness.** The Phase-2B brief decision to keep §1/§2/§9 numbers and replace substance saved ~6 cross-reference edits across `8BALL.md`, internal `DOCTRINE.md` references, and `tests/pii_scan.test.js`. Numbering stability lets people hold §-numbers in muscle memory across sessions; substance is editable, numbers shouldn't be unless retiring entirely.
+
+**L18 — Audit-binds-to-HEAD with dual-baseline delta lines is the structural fix for multi-cycle work.** Five audits in series, each binding to a specific HEAD, with verdicts compared both to the immediate prior (`b74ef70` was a regressed state) AND to the cleanest baseline (`3e6d71a`). The merge gate ("zero regressions vs cleanest baseline") gives a stable reference point even when the immediate-prior state is regressed. Without dual-baseline tracking, the b74ef70 → 875596b transition would have looked like "improvement" because b74ef70 was so bad — but vs `3e6d71a` it had a fresh §4 regression that needed closing. The discipline correctly identified and required closing the regression before merge.
+
+## Open items / next session queue
+
+1. ~~Phase-2A v0.1.2 patch~~ ✅ shipped at `f52345f`.
+2. ~~Phase-2B doctrine consolidation~~ ✅ shipped at `708735d` (this entry).
+3. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle + GitHub required-check.
+4. **Phase-2D — CONCERN dispositions** for §3 (no 33 fixture), §5 (no static gate against new storage/fetch), §8 (release ritual operator-only), §10 (lanes procedural not enforced), §12 (out-of-scope partial enforcement), §13 (Friday rule-kill not yet fired). Each gets enforcement-added or rule-amended-to-match-reality or rule-killed.
+5. **Phase-2E — card system design.** Aesthetic concentration. Locked constraint: monochrome / grayscale, no color hues. Open question: strict two-tone vs grayscale-permitted (default grayscale-permitted). Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`.
+6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Closes the §1 FAIL. CC lane.
+7. **Cleanup: shadow Netlify project.** Two Netlify deploys connected to the repo (`the-eight-ball` ✓ canonical; `enchanting-bonbon-2b5064` ✗ shadow). 8BALL.md §2 says one. One-click delete in Netlify dashboard. Add to 2D dispositions.
+8. ~~Bash-3.2 fix for `audits/run_local_audit.sh`~~ ✅ shipped this PR (`875596b`).
+9. **Live-fire testing on the post-corrective pool.** Optional — likely retired by 2F's content-layer flip. Worth one round if the operator wants to see what survived the cuts.
+10. **Branch cleanup.** `v0.1.3-phase2b-doctrine-consolidation` still on origin and local. Decision deferred to operator: keep as audit-trail or `git push origin --delete` (audits already preserve the three HEADs, so deletion is safe).
+
+=====
+End of 2026-05-08 · v0.1.3 entry.
+=====
+
+=====
 2026-05-08 · v0.1.2 — §4/§7/§11 patch shipped
 =====
 
