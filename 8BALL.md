@@ -179,13 +179,14 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 ## 10. Current state (as of 2026-05-08)
 
-**v0.1.3 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `708735d` (squash-merge of Phase-2B doctrine consolidation + two correctives). CI green (32/32). Netlify auto-deploys on push; CI gating queued for Phase-2C.
+**v0.1.4 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `4aaf2d3` (squash-merge of Phase-2D · CONCERN dispositions, eight feature-branch commits collapsed). CI green (32 → **69**). Netlify auto-deploys on push; CI deploy-gating still queued for Phase-2C.
 
 Prior milestones:
 - v0.1.0 SHIPPED 2026-05-08 at `6e97b60` — initial public site.
 - v0.1.1 SHIPPED 2026-05-08 at `2876385` — hex-overflow fix + multi-model lanes activated (first real Codex/ChatGPT relay).
 - v0.1.2 SHIPPED 2026-05-08 at `f52345f` — §4 violations cut, §7 reality alignment, §11 PII tightening. First two-audit cycle (Codex pre-patch and post-patch) completed.
-- v0.1.3 SHIPPED 2026-05-08 at `708735d` — Phase-2B doctrine consolidation: §1/§2/§4/§9 substance rewritten for post-pivot product; six §4 carve-out content cuts; §9 wording amended to match scanner; `run_local_audit.sh` bash-3.2 fix. Five-audit cycle (`2876385 → 3e6d71a → b74ef70 → 875596b → 32c8995`) cleared at 5/7/1 with §1 the only remaining FAIL (bound to Phase-2F engine flip).
+- v0.1.3 SHIPPED 2026-05-08 at `708735d` — Phase-2B doctrine consolidation: §1/§2/§4/§9 substance rewritten for post-pivot product; six §4 carve-out content cuts; §9 wording amended to match scanner; `run_local_audit.sh` bash-3.2 fix. Five-audit cycle cleared at 5/7/1 with §1 the only remaining FAIL.
+- v0.1.4 SHIPPED 2026-05-08 at `4aaf2d3` — Phase-2D CONCERN dispositions: §2 banned-voice-register scan + doctrine split, §3 LP=33 fixture, §5 privacy scan, §8 journal-touch CI gate + automated/ritual doctrine split, §10 PR template, §12 dependency discipline test, §13 Friday-rule firing condition + immutability defer. Three-audit cycle (`c99a641 → 0073189 → 4aaf2d3`) cleared at **9/3/1** with §1 the only remaining FAIL (Phase-2F-bound).
 
 History note: an earlier sequence of commits (since rewritten) shipped a labeled-DOB leak in fixtures and a discipline patch on top. Force-rewrite collapsed both into a single clean v0.1.0 commit, then the v0.1.2 patch sanitized the journal description of that leak so the shape is no longer reproduced in tracked content. Full provenance in `journal.md` and `~/Desktop/8ball/sessions/session_distillate_2026-05-08.md`.
 
@@ -197,23 +198,26 @@ Phase-2 structure (per `journal.md` 2026-05-08 doctrine-triage entry):
 
 1. **Phase-2A — v0.1.2 patch.** ✅ shipped 2026-05-08 at `f52345f`. §4/§7/§11 FAILs closed; Codex re-audit clean.
 2. **Phase-2B — doctrine consolidation.** ✅ shipped 2026-05-08 at `708735d`. §1/§2/§4/§9 substance rewritten; six §4 carve-out content cuts; §9 wording matches scanner. Five-audit cycle cleared at 5/7/1; §1 the only remaining FAIL (bound to Phase-2F).
-3. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle.
-4. **Phase-2D — CONCERN dispositions** for §3 (no 33 fixture), §5 (no static gate against new storage/fetch), §8 (release ritual operator-only), §10 (lanes procedural not enforced), §12 (out-of-scope partial enforcement), §13 (Friday rule-kill not yet fired). Each gets enforcement-added or rule-amended-to-match-reality or rule-killed.
+3. **Phase-2D — CONCERN dispositions.** ✅ shipped 2026-05-08 at `4aaf2d3`. Seven CONCERN dispositions landed (§2/§3/§5/§8 enforce, §10 enforce, §12 enforce, §13 amend+defer). Three-audit cycle (`c99a641 → 0073189 → 4aaf2d3`) cleared at **9/3/1**. The 3 residual CONCERNs (§10/§12/§13) are calibrated dispositions, not drift.
+4. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle + GitHub required-check. Could fold the doctrine-version bump (v0.2 → v0.3) into this work.
 5. **Phase-2E — card system design.** Aesthetic concentration. **Locked constraint:** monochrome / grayscale, no color hues. Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`. Independent of doctrine work; can run parallel.
-6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Fixtures update. CC lane.
+6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Fixtures update. Closes §1 FAIL. Closes the live-observed hex-overflow defect (operator's screenshots in the v0.1.4 session showed long roast outputs still clipping the hexagon despite the v0.1.1 soft-cap fix). CC lane.
 
 Independent / housekeeping:
 
-7. **Bash-3.2 fix for `audits/run_local_audit.sh`** — ✅ shipped 2026-05-08 at `875596b` (in v0.1.3). `mapfile` replaced with POSIX `while read` loop; verified clean exit 0 under macOS bash 3.2.57.
-8. **Live-fire testing** — shake the deployed URL repeatedly to surface flavor-repeats or weak lines. Likely retired by 2F pivot, but worth one round on the current pool while it's still live.
-9. **Cleanup: shadow Netlify project.** Two Netlify deploys connected to the repo (`the-eight-ball` ✓ canonical; `enchanting-bonbon-2b5064` ✗ shadow). 8BALL.md §2 says one. One-click delete in Netlify dashboard. Add to Phase-2D dispositions or handle as standalone housekeeping.
-10. **Operator-personal:** create `audits/local_personal_data.txt` if not present (pattern file is gitignored; this Claude can already read it via Desktop Commander, so the operator-vigilance gap §11 names is partly closed by orchestrator-side tooling).
-11. **Operator-personal:** add `8ball` row to `~/MUHAB.md` §6 bootstrap table. Operator-only edit.
+7. **Cleanup: shadow Netlify project.** Two Netlify deploys connected to the repo (`the-eight-ball` ✓ canonical; `enchanting-bonbon-2b5064` ✗ shadow). 8BALL.md §2 says one. One-click delete in Netlify dashboard.
+8. **Cleanup: branch deletion.** `v0.1.4-phase2d-concern-dispositions` should be deleted from origin and local post-merge (CC has a pinned task for the local side).
+9. **`audits/RELEASE_CHECKLIST.md` staleness.** Codex flagged in cross-rule finding 2 of the post-polish audit at `0073189` — the file says it's pulled "directly from §8" but is more abbreviated. Sync in next housekeeping pass.
+10. **Doctrine-version bump.** DOCTRINE.md still says `v0.2` despite Phase-2B/2D substance edits. Bump to `v0.3` next housekeeping cycle, or fold into Phase-2C.
+11. **Live-fire testing** — shake the deployed URL repeatedly to surface flavor-repeats or weak lines. Likely retired by 2F pivot, but worth one round on the current pool while it's still live.
+12. **Operator-personal:** add `8ball` row to `~/MUHAB.md` §6 bootstrap table (operator-only edit).
 
 Paused / retired:
 
 - ~~Trait pool v2 expansion (ChatGPT lane)~~ — paused indefinitely; pivot retires trait pools.
 - ~~Question classifier rework~~ — likely retired by 2F card system; revisit only if pivot reverses.
+- ~~Bash-3.2 fix for `audits/run_local_audit.sh`~~ — ✅ shipped at `875596b` (in v0.1.3).
+- ~~`audits/local_personal_data.txt`~~ — ✅ present (operator created during v0.1.1/v0.1.2 cycle).
 
 ---
 

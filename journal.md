@@ -3,33 +3,60 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
-2026-05-08 · v0.1.4 in-flight — Phase-2D dispositions
+2026-05-08 · v0.1.4 — Phase-2D · CONCERN dispositions shipped
 =====
 
-In-flight notes captured during the Phase-2D branch (`v0.1.4-phase2d-concern-dispositions`). Pre-merge artifact; chat authors the full v0.1.4 release entry post-merge and may supersede this block.
+## What shipped
 
-## §2 banned-voice-register — calibration fix landed
+- **PR #3 squash-merged** as `4aaf2d3` on main. Eight feature-branch commits collapsed into one squash-merge plus this journal-entry follow-up. Live at `https://the-eight-ball.netlify.app/` with HTTP 200, `age: 0` (fresh deploy), `<title>8 ball</title>` confirmed within ~60 sec of merge.
+- **Seven CONCERN dispositions landed** per the post-Phase-2B audit's open queue. Net verdict shift: 5 PASS / 7 CONCERN / 1 FAIL → **9 PASS / 3 CONCERN / 1 FAIL**.
+- **§2 — enforce + amend.** New `BANNED_VOICE_REGISTER` constant + scan in `tests/profile.test.js` (23 terms, 23 cases). Word-boundary calibration (`\b<term>` start-anchored, case-insensitive). DOCTRINE.md §2 substance split into "Currently enforced (CI gates)" and "Review-discipline (no current code surface to scan)" sections. Pre-scan flagged 3 lines in `content/traits.v1.js`: 1 true positive cut (`lp33` "tired in a way that sounds spiritual"), 2 false positives surfaced for operator review and restored after calibration (`taurus`/`libra` "restaurant" lines — `aura` was substring-matching inside `restaurant`). Net pool changes vs pre-Phase-2D: `lp33` 6→5; `taurus`/`libra` unchanged.
+- **§3 — enforce.** New fixture in `tests/fixtures.json`: `1989-12-12` → Sagittarius / Snake / LP=33 / nameNumber=1. Synthetic per §11. Sole coverage point for the master-number-33 preservation path in `core/profile.js`.
+- **§5 — enforce.** New `tests/privacy_scan.test.js` (159 lines, 10 cases). Scans `core/`, `content/`, `index.html` for forbidden API surfaces (`sessionStorage`, `indexedDB`, `fetch(`, `XMLHttpRequest`, `navigator.sendBeacon`, `gtag(`, `dataLayer`, `analytics.`) and enforces a `localStorage.setItem` allow-list of `['eight_ball_profile_v1']` (the actual STORAGE_KEY).
+- **§8 — enforce + amend.** New CI stage in `.github/workflows/ci.yml`: PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. `actions/checkout` bumped to `fetch-depth: 0` so the diff is computable. Doctrine §8 substance split into "Automated gates (CI, blocking)" (CI 5-stage + journal-touch) and "Ritual gates (operator/reviewer responsibility)" (PR title, local audit, diff review, cross-model audit, merge, journal append, live verify). The new gate fired live on this PR's own diff and passed.
+- **§10 — enforce.** New `.github/pull_request_template.md` with lane-tag fields (Lane of author, Doctrine change → Codex audit checkbox, Content change → ChatGPT review checkbox, ≥3 files / `core/` → CC-authored check). Behavioral nudge by design; the §8 journal-touch gate is the hard CI surface for doctrine changes.
+- **§12 — enforce.** New `tests/dependency_discipline.test.js` (3 assertions): (1) `package.json.dependencies` empty/absent, (2) `package.json.scripts.build` absent, (3) `package.json.devDependencies.length ≤ 5`. Locks the no-build-step contract structurally.
+- **§13 — amend + defer.** Doctrine §13 paragraph appended clarifying the Friday rule-kill firing condition: first review = first Friday after the doctrine has aged 7 days. Immutability hash check on `content/traits.v1.js` and `content/templates.v1.js` explicitly deferred to post-Phase-2F (those files retire when `cards.v1.js` ships).
+- **Polish pass on top.** §8 textual defect ("PR opened" listed under Automated gates without CI enforcement) moved to Ritual gates with parenthetical. `8BALL.md §7` (Content rules summary) synced to post-Phase-2B §4 substance. `8BALL.md §8` (Workflow) split into Automated/Ritual matching DOCTRINE.md.
+- **Tests:** 32 → 69 green at `4aaf2d3`. Local audit clean (24 files scanned).
 
-Initial substring scanner (commit 1cad9de) flagged three lines; review showed two false positives where the locked term `aura` matched inside `restaurant`:
+## Cross-model audit
 
-- `taurus`: "someone who takes 20 minutes to leave a restaurant" — false positive, **restored**.
-- `libra`: "unable to choose a restaurant or a stance" — false positive, **restored**.
-- `lp33`: "tired in a way that sounds spiritual" — true positive (voice-register adoption), **cut stands**.
+Three-audit Phase-2D sequence completed:
 
-Scanner amended to start-anchored word-boundary regex (`\b<term>`, case-insensitive) — preserves inflections at end (`auras`, `manifesting`, `sacredness`, `channels`) while preventing leading-substring collisions inside unrelated English words. Locked word list unchanged.
+- Audit 1 at `c99a641` — **8 PASS / 4 CONCERN / 1 FAIL**. §2/§3/§5 RESOLVED CONCERN→PASS. §8/§10/§12/§13 remained CONCERN with improvement noted; §1 unchanged FAIL (Phase-2F-bound). Codex flagged a §8 textual defect (PR-opened-as-automated-gate, drift mode rule-says-X-but-code-does-Y) and noted `8BALL.md §7/§8` summaries were stale relative to post-Phase-2B doctrine.
+- Audit 2 at `0073189` — **9 PASS / 3 CONCERN / 1 FAIL**. Polish pass cleared §8 CONCERN→PASS and dissolved the stale-summary cross-rule finding. Zero regressions vs `c99a641`. Merge-gate cleared.
 
-Net pool changes vs `060cc0f` baseline: `taurus` 10→10, `libra` 10→10, `lp33` 6→5.
+Cleanest baseline regression check: from pre-Phase-2D `32c8995` (5/7/1) through `c99a641` (8/4/1) to merge HEAD `0073189` (9/3/1) — zero regressions across the chain.
 
-## §13 immutability hash check — deferred
+The 3 residual CONCERNs at merge are calibrated dispositions, not drift:
+- §10 — PR template is behavioral nudge by design; CI lane-validation deferred to first multi-author PR friction.
+- §12 — three structural assertions don't fully cover the literal §12 list (email capture, sharing UI, horoscope copy); static enforcement of the full list is brittle, review-discipline is the realistic ceiling.
+- §13 — immutability hash explicitly deferred to post-Phase-2F (those files are retired by 2F's content-layer flip).
 
-§13 immutability hash check on `content/traits.v1.js` and `content/templates.v1.js` deferred to post-Phase-2F. Phase-2F retires both files in favor of `content/cards.v1.js`. Auditing files about to be retired is wasted work.
+## Lessons
 
-## §8 wording polish + 8BALL.md §7/§8 sync
+**L19 — Spec-locked rules need execution-time calibration.** The §2 banned-word list was operator-locked at brief-author time; the scanner spec was locked at brief-author time too. CC's pre-scan surfaced two false positives where `aura` substring-matched inside `restaurant` — a collision invisible at spec-time. The right discipline: CC pre-scans, surfaces all flags, operator-decides per-line. Calibration becomes an at-execution-time decision, not a spec-time prediction. Future enforcement-pattern briefs should explicitly tag flagged content as "operator-decision required" rather than "auto-cut."
 
-Codex audit at `c99a641` caught one §8 textual defect: "PR opened with a one-line summary" was listed under "Automated gates (CI, blocking)" though no CI gate validates PR title presence/quality. Moved to "Ritual gates" with explanatory parenthetical. 8BALL.md §7 (Content rules summary) and §8 (Workflow & gate sequence) brought in line with current DOCTRINE.md — §7 reflects the post-Phase-2B §4 substance (no medical/diagnostic framing, cultural-symbol respect, universal floor, safety-patch carve-out, plus pointer to §2 voice-register scan); §8 reflects the Phase-2D automated/ritual split with the journal-touch gate. No code, no tests. Test count stays at 69.
+**L20 — Polish-before-merge has a high ratio when the residuals are textual.** Path B (polish + re-audit + merge) cost ~15 min and improved verdict 8/4/1 → 9/3/1, dissolving 1 CONCERN and 1 cross-rule finding. The signal: if the audit-flagged residuals are textual / state-summary alignment, polish; if structural (test surface, doctrine substance), accept-and-defer. The §8 wording fix and `8BALL.md` sync were textual; the §10/§12/§13 residuals were structural — the path correctly polished the former and deferred the latter.
+
+**L5 confirmation in fresh evidence.** The chat orchestrator authored the §8 doctrine substance with "PR opened with a one-line summary" listed under Automated gates — a defect chat could not have caught alone. Codex caught it in the first audit cycle; the polish pass closed it. The dual-author pattern (chat drafts + Codex audits) found a flaw the chat could not have surfaced introspectively. L5 ("solo authority IS the failure mode") fired again, in a different shape, and was caught at the structural enforcement point.
+
+## Open items / next session queue
+
+1. ~~Phase-2A v0.1.2 patch~~ ✅ shipped at `f52345f`.
+2. ~~Phase-2B doctrine consolidation~~ ✅ shipped at `708735d`.
+3. ~~Phase-2D CONCERN dispositions~~ ✅ shipped at `4aaf2d3` (this entry).
+4. **Phase-2C — §7 deploy-gate wiring.** Doctrine-correct ("not gated, acknowledged"); flip when traction warrants. One Netlify console toggle + GitHub required-check. Could fold a doctrine-version bump (currently still at v0.2 despite Phase-2B/2D substance edits) into this work.
+5. **Phase-2E — card system design.** Aesthetic concentration. Locked constraint: monochrome / grayscale, no color hues. Open question: strict two-tone vs grayscale-permitted (default grayscale-permitted). Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`.
+6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Closes the §1 FAIL. Closes the live-observed hex-overflow defect (operator's screenshots in this session showed long roast outputs still clipping the hexagon despite the v0.1.1 soft-cap fix). CC lane.
+7. **Housekeeping: shadow Netlify project.** `enchanting-bonbon-2b5064` still connected to the repo; `the-eight-ball` is canonical. One-click delete in Netlify dashboard.
+8. **Housekeeping: branch cleanup.** `v0.1.4-phase2d-concern-dispositions` should be deleted from origin and local post-merge. CC has a pinned task for the local side.
+9. **Housekeeping: `audits/RELEASE_CHECKLIST.md` staleness.** Codex flagged in cross-rule finding 2 of the post-polish audit — file says it's pulled "directly from §8" but is more abbreviated. Sync in next housekeeping pass.
+10. **Housekeeping: doctrine-version bump.** DOCTRINE.md still says `v0.2` despite Phase-2B/2D substance edits. Bump to `v0.3` next housekeeping cycle, or fold into Phase-2C.
 
 =====
-End of 2026-05-08 · v0.1.4 in-flight notes.
+End of 2026-05-08 · v0.1.4 entry.
 =====
 
 =====
