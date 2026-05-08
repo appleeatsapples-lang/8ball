@@ -24,6 +24,10 @@ Net pool changes vs `060cc0f` baseline: `taurus` 10→10, `libra` 10→10, `lp33
 
 §13 immutability hash check on `content/traits.v1.js` and `content/templates.v1.js` deferred to post-Phase-2F. Phase-2F retires both files in favor of `content/cards.v1.js`. Auditing files about to be retired is wasted work.
 
+## §8 wording polish + 8BALL.md §7/§8 sync
+
+Codex audit at `c99a641` caught one §8 textual defect: "PR opened with a one-line summary" was listed under "Automated gates (CI, blocking)" though no CI gate validates PR title presence/quality. Moved to "Ritual gates" with explanatory parenthetical. 8BALL.md §7 (Content rules summary) and §8 (Workflow & gate sequence) brought in line with current DOCTRINE.md — §7 reflects the post-Phase-2B §4 substance (no medical/diagnostic framing, cultural-symbol respect, universal floor, safety-patch carve-out, plus pointer to §2 voice-register scan); §8 reflects the Phase-2D automated/ritual split with the journal-touch gate. No code, no tests. Test count stays at 69.
+
 =====
 End of 2026-05-08 · v0.1.4 in-flight notes.
 =====

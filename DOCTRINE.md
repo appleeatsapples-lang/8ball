@@ -90,12 +90,12 @@ Every release, however small, has automated gates and ritual gates.
 
 **Automated gates (CI, blocking):**
 
-1. PR opened with a one-line summary.
-2. CI green (5 stages — calc / engine / content / PII / single-file).
-3. **Doctrine/content change requires journal entry.** PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. Enforced in `.github/workflows/ci.yml`.
+1. CI green (5 stages — calc / engine / content / PII / single-file).
+2. **Doctrine/content change requires journal entry.** PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. Enforced in `.github/workflows/ci.yml`.
 
 **Ritual gates (operator/reviewer responsibility):**
 
+3. PR opened with a one-line summary. (PR title discipline; CI doesn't validate title quality.)
 4. Operator runs local PII audit (`audits/run_local_audit.sh`). The public CI cannot see the operator's personal data; the local audit closes that gap. Skipping it is the failure mode, so it's a checklist item, not a vibe.
 5. Reviewer reads the diff. Asks: any new line cross §4? Any new path cross §5?
 6. Cross-model audit on doctrine or content changes. See §10. Solo authority IS the failure mode. Doctrine and content changes go through Codex (or ChatGPT for content batches) before merge. Mechanical edits do not.
