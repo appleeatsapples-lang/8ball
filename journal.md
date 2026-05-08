@@ -3,6 +3,32 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-08 · v0.1.4 in-flight — Phase-2D dispositions
+=====
+
+In-flight notes captured during the Phase-2D branch (`v0.1.4-phase2d-concern-dispositions`). Pre-merge artifact; chat authors the full v0.1.4 release entry post-merge and may supersede this block.
+
+## §2 banned-voice-register cuts
+
+Three lines cut from `content/traits.v1.js` to land the new §2 substring scan green:
+
+- `taurus`: "someone who takes 20 minutes to leave a restaurant" — flagged on substring "aura" in "restaurant".
+- `libra`: "unable to choose a restaurant or a stance" — flagged on substring "aura" in "restaurant".
+- `lp33`: "tired in a way that sounds spiritual" — flagged on substring "spiritual".
+
+The lp33 cut is the rule's intended target (voice-register adoption, even when observational). The two `restaurant` cuts are happenstance substring collisions of the locked term "aura" in neutral English — flagged here for operator review. If the intent is to keep the restaurant lines, the locked list can be amended (substring → word-boundary regex) in a follow-up; doctrine (§2 substance) and enforcement (BANNED_VOICE_REGISTER scan) stay as-is.
+
+Net pool changes: `taurus` 10→9, `libra` 10→9, `lp33` 6→5.
+
+## §13 immutability hash check — deferred
+
+§13 immutability hash check on `content/traits.v1.js` and `content/templates.v1.js` deferred to post-Phase-2F. Phase-2F retires both files in favor of `content/cards.v1.js`. Auditing files about to be retired is wasted work.
+
+=====
+End of 2026-05-08 · v0.1.4 in-flight notes.
+=====
+
+=====
 2026-05-08 · v0.1.3 — Phase-2B doctrine consolidation shipped
 =====
 

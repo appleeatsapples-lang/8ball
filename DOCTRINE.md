@@ -12,11 +12,16 @@ The voice is declarative-observational, framed in strengths and weaknesses. Card
 
 ## §2. What this is NOT
 
-- Not a horoscope app. Not a numerology calculator. Not a guidance product.
-- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented.
-- Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.)
+**Currently enforced (CI gates, see §7):**
+
+- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented. Banned-voice-register scan in `tests/profile.test.js` enforces this against shipped content pools.
+- Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.) Enforced by `tests/pii_scan.test.js`.
+- Not an analytics product. No tracking, no telemetry, no third-party network calls beyond Google Fonts CSS. Enforced by `tests/privacy_scan.test.js` (see §5).
+
+**Review-discipline (no current code surface to scan; rule fires when a feature is proposed):**
+
+- Not a horoscope app. Not a numerology calculator. Not a guidance product. (Voice register; partly captured by the banned-list above.)
 - Not a logged-in product. No accounts, no signup, no "save your reading."
-- Not an analytics product. No tracking, no telemetry, no third-party scripts beyond Google Fonts.
 - Not a payments product. No paywall, no premium tier, no in-app purchase. Revisit only with a real reason.
 
 ## §3. The calculation contract

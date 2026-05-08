@@ -27,7 +27,6 @@ export const TRAITS_SUN = {
     'someone whose hill to die on is a snack',
     'the slowest to anger and the longest to forgive',
     'married to your routine in ways your partner should worry about',
-    'someone who takes 20 minutes to leave a restaurant',
     'genuinely offended by surprise gifts',
     'building a personal brand around comfort',
     'on a first-name basis with three couches',
@@ -82,7 +81,6 @@ export const TRAITS_SUN = {
     'noticing the typo before the love letter'
   ],
   libra: [
-    'unable to choose a restaurant or a stance',
     'someone who weighs every option until the options expire',
     'allergic to disagreement and addicted to tension',
     'aesthetically driven, logistically vague',
@@ -356,7 +354,6 @@ export const TRAITS_LP = {
     'a savior complex but slightly accurate',
     'a counselor in a body, refunds unavailable',
     'capable of holding everyone mood at once and resenting it',
-    'someone whose love is a public utility',
-    'tired in a way that sounds spiritual'
+    'someone whose love is a public utility'
   ]
 };

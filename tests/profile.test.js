@@ -14,9 +14,25 @@ import { dirname, join } from 'node:path';
 
 import { buildProfile, getNameNumber, getSunSign, getAnimal, getLifePath } from '../core/profile.js';
 import { generateAnswer, classifyQuestion } from '../core/engine.js';
+import { TRAITS_SUN, TRAITS_ANIMAL, TRAITS_LP } from '../content/traits.v1.js';
+import {
+  TEMPLATES_NO_QUESTION, TEMPLATES_YES, TEMPLATES_NO, TEMPLATES_MAYBE
+} from '../content/templates.v1.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
+
+// Banned voice-register substrings — DOCTRINE.md §2.
+// Bans the voice register, not the symbol-system nouns: "Aries", "rat",
+// "life path 7", "Pythagorean" all stay legal; "the universe says",
+// "your stars guide you", "destined for greatness" do not.
+// Case-insensitive substring match per the brief's locked spec.
+const BANNED_VOICE_REGISTER = [
+  'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
+  'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
+  'channel', 'channeling', 'aura', 'karma', 'manifest', 'manifestation',
+  'third eye', 'soul mate', 'your guides', 'divine', 'sacred'
+];
 
 describe('calculation contract', () => {
   for (const c of fixtures.cases) {
@@ -118,4 +134,33 @@ describe('content rules — automated subset', () => {
       if (recent.length > 24) recent.shift();
     }
   });
+});
+
+describe('content rules — banned voice register (DOCTRINE.md §2)', () => {
+  function* allEntries() {
+    for (const [bucket, arr] of Object.entries(TRAITS_SUN)) {
+      for (const s of arr) yield { source: `TRAITS_SUN.${bucket}`, s };
+    }
+    for (const [bucket, arr] of Object.entries(TRAITS_ANIMAL)) {
+      for (const s of arr) yield { source: `TRAITS_ANIMAL.${bucket}`, s };
+    }
+    for (const [bucket, arr] of Object.entries(TRAITS_LP)) {
+      for (const s of arr) yield { source: `TRAITS_LP.${bucket}`, s };
+    }
+    const tpls = { TEMPLATES_NO_QUESTION, TEMPLATES_YES, TEMPLATES_NO, TEMPLATES_MAYBE };
+    for (const [name, arr] of Object.entries(tpls)) {
+      for (const s of arr) yield { source: name, s };
+    }
+  }
+
+  for (const term of BANNED_VOICE_REGISTER) {
+    it(`no pool entry contains "${term}"`, () => {
+      const needle = term.toLowerCase();
+      const hits = [];
+      for (const { source, s } of allEntries()) {
+        if (s.toLowerCase().includes(needle)) hits.push(`${source}: ${s}`);
+      }
+      expect(hits, `Banned voice-register term "${term}" found:\n${hits.join('\n')}`).toEqual([]);
+    });
+  }
 });
