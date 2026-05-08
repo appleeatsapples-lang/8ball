@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>8 ball</title>
+<meta name="description" content="It already knows. You just have to ask.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #08070a;
+    --bg-2: #0f0e12;
+    --gold: #d4af37;
+    --gold-soft: #b89b3e;
+    --gold-dim: rgba(212, 175, 55, 0.35);
+    --ink: #e8e4d8;
+    --ink-dim: rgba(232, 228, 216, 0.55);
+    --ball: radial-gradient(circle at 30% 25%, #2a2a2e 0%, #131316 35%, #050507 80%);
+    --window: radial-gradient(circle at 35% 30%, #1d2942 0%, #0a1428 60%, #050a18 100%);
+  }
+  html, body {
+    height: 100%;
+    width: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .screen {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.6s ease-out;
+  }
+  .screen.hidden { display: none; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    color: var(--gold);
+    font-size: 28px;
+    letter-spacing: 0.32em;
+    text-transform: lowercase;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .subtitle {
+    color: var(--ink-dim);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: 36px;
+    max-width: 320px;
+    line-height: 1.6;
+  }
+  .field { width: 100%; margin-bottom: 16px; }
+  .field label {
+    display: block;
+    color: var(--gold-soft);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--gold-dim);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 18px;
+    padding: 8px 2px;
+    transition: border-color 0.2s;
+  }
+  .field input:focus { outline: none; border-bottom-color: var(--gold); }
+  .field input::placeholder { color: rgba(232,228,216,0.25); }
+  .field input[type="date"] { color-scheme: dark; }
+  .btn {
+    margin-top: 12px;
+    width: 100%;
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 14px;
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    font-size: 13px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn:hover, .btn:focus {
+    background: var(--gold);
+    color: #08070a;
+    outline: none;
+  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn:disabled:hover { background: transparent; color: var(--gold); }
+  .legal {
+    margin-top: 20px;
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-align: center;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .ball-wrap {
+    width: min(80vw, 320px);
+    aspect-ratio: 1;
+    position: relative;
+    margin: 8px 0 20px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ball {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--ball);
+    box-shadow:
+      inset -20px -30px 40px rgba(0,0,0,0.85),
+      inset 20px 20px 30px rgba(255,255,255,0.04),
+      0 30px 60px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(212,175,55,0.15);
+    position: relative;
+    transition: transform 0.15s ease;
+  }
+  .ball::after {
+    content: '';
+    position: absolute;
+    top: 12%;
+    left: 18%;
+    width: 28%;
+    height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.18) 0%, transparent 70%);
+    filter: blur(4px);
+    pointer-events: none;
+  }
+  .number-wrap {
+    position: absolute;
+    top: 18%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #f5f3ec;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .number-wrap span {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    color: #08070a;
+    font-size: clamp(28px, 9vw, 42px);
+  }
+  .window {
+    position: absolute;
+    bottom: 18%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 56%;
+    aspect-ratio: 1;
+    background: var(--window);
+    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16% 12%;
+    overflow: hidden;
+  }
+  .answer {
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: clamp(11px, 2.6vw, 14px);
+    text-align: center;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .answer.visible { opacity: 1; }
+  .answer.empty {
+    color: var(--ink-dim);
+    font-style: italic;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    opacity: 0.5;
+  }
+  @keyframes shakeIt {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    8%  { transform: translate(-12px, -4px) rotate(-3deg); }
+    16% { transform: translate(10px, 6px) rotate(2.5deg); }
+    24% { transform: translate(-8px, 4px) rotate(-2deg); }
+    32% { transform: translate(11px, -5px) rotate(3deg); }
+    40% { transform: translate(-9px, 3px) rotate(-2.5deg); }
+    48% { transform: translate(7px, -3px) rotate(1.5deg); }
+    56% { transform: translate(-6px, 2px) rotate(-1deg); }
+    64% { transform: translate(4px, -2px) rotate(0.8deg); }
+    72% { transform: translate(-3px, 1px) rotate(-0.4deg); }
+  }
+  .ball.shaking { animation: shakeIt 0.9s ease-out; }
+  .ball.shaking .answer { opacity: 0; transition: opacity 0.1s; }
+  .question-wrap { width: 100%; margin-bottom: 14px; }
+  .question-wrap input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--gold-dim);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 10px 4px;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .question-wrap input::placeholder {
+    color: rgba(232,228,216,0.28);
+    font-style: italic;
+  }
+  .question-wrap input:focus { outline: none; border-bottom-color: var(--gold); }
+  .actions { width: 100%; display: flex; gap: 10px; margin-top: 4px; }
+  .actions .btn { margin-top: 0; flex: 1; }
+  .footer {
+    margin-top: 28px;
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .footer a, .footer button {
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    padding: 4px 0;
+    transition: color 0.2s;
+  }
+  .footer a:hover, .footer button:hover { color: var(--gold); }
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,5,8,0.85);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-bg.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--bg-2);
+    border: 1px solid var(--gold-dim);
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.7;
+    position: relative;
+  }
+  .modal h2 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .modal p { margin-bottom: 12px; color: var(--ink-dim); }
+  .modal .close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--gold-soft);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  @media (max-height: 680px) {
+    .title { margin-bottom: 6px; font-size: 22px; }
+    .subtitle { margin-bottom: 22px; }
+    .ball-wrap { margin: 0 0 14px; }
+    .footer { margin-top: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="onboarding" class="screen">
+  <div class="title">8 ball</div>
+  <div class="subtitle">it already knows. you just have to ask. first — who's asking?</div>
+  <form id="profile-form" autocomplete="off">
+    <div class="field">
+      <label for="name-input">your name</label>
+      <input id="name-input" type="text" placeholder="what you go by" required maxlength="60">
+    </div>
+    <div class="field">
+      <label for="dob-input">date of birth</label>
+      <input id="dob-input" type="date" required>
+    </div>
+    <button type="submit" class="btn" id="enter-btn">begin</button>
+  </form>
+  <div class="legal">stored only on this device. nothing transmitted.<br>entertainment, not advice.</div>
+</div>
+
+<div id="main" class="screen hidden">
+  <div class="ball-wrap" id="ball-wrap" tabindex="0" aria-label="tap or shake the ball">
+    <div class="ball" id="ball">
+      <div class="number-wrap"><span>8</span></div>
+      <div class="window">
+        <div class="answer empty" id="answer">tap to shake</div>
+      </div>
+    </div>
+  </div>
+  <div class="question-wrap">
+    <input id="question" type="text" placeholder="ask, or just shake" maxlength="160">
+  </div>
+  <div class="actions">
+    <button class="btn" id="shake-btn">shake</button>
+  </div>
+  <div class="footer">
+    <button id="about-btn" type="button">about</button>
+    <button id="reset-btn" type="button">forget me</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="about-modal">
+  <div class="modal">
+    <button class="close" id="about-close" aria-label="close">×</button>
+    <h2>what is this</h2>
+    <p>a toy. you shake it, it says something about you. the something is loosely informed by the date you were born and a couple of derived numbers. don't think about it too hard.</p>
+    <p>it's a roast more than a reading. don't take any of it seriously. or do — your call.</p>
+    <p>nothing leaves your device. forget me wipes everything.</p>
+  </div>
+</div>
+
+<script type="module">
+import { buildProfile } from './core/profile.js';
+import { generateAnswer } from './core/engine.js';
+
+const STORAGE_KEY = 'eight_ball_profile_v1';
+const RECENT_MAX = 24;
+const recent = [];
+
+const $ = id => document.getElementById(id);
+const onboard = $('onboarding');
+const main = $('main');
+const ball = $('ball');
+const ballWrap = $('ball-wrap');
+const answerEl = $('answer');
+const questionEl = $('question');
+const shakeBtn = $('shake-btn');
+const profileForm = $('profile-form');
+const nameInput = $('name-input');
+const dobInput = $('dob-input');
+const resetBtn = $('reset-btn');
+const aboutBtn = $('about-btn');
+const aboutModal = $('about-modal');
+const aboutClose = $('about-close');
+
+let currentProfile = null;
+let shakeLocked = false;
+
+function showMain(profile) {
+  currentProfile = profile;
+  onboard.classList.add('hidden');
+  main.classList.remove('hidden');
+  answerEl.textContent = 'tap to shake';
+  answerEl.classList.add('empty');
+  answerEl.classList.remove('visible');
+}
+
+function showOnboard() {
+  main.classList.add('hidden');
+  onboard.classList.remove('hidden');
+  nameInput.value = '';
+  dobInput.value = '';
+  currentProfile = null;
+}
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (obj && obj.name && obj.dob) return buildProfile(obj.name, obj.dob);
+  } catch (e) {}
+  return null;
+}
+
+function saveProfile(name, dob) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, dob })); }
+  catch (e) {}
+}
+
+function clearProfile() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
+function doShake() {
+  if (shakeLocked || !currentProfile) return;
+  shakeLocked = true;
+  ball.classList.add('shaking');
+  answerEl.classList.remove('visible');
+  setTimeout(() => {
+    const ans = generateAnswer(currentProfile, questionEl.value, recent);
+    recent.push(ans);
+    if (recent.length > RECENT_MAX) recent.shift();
+    answerEl.textContent = ans;
+    answerEl.classList.remove('empty');
+    requestAnimationFrame(() => answerEl.classList.add('visible'));
+  }, 700);
+  setTimeout(() => {
+    ball.classList.remove('shaking');
+    shakeLocked = false;
+  }, 950);
+}
+
+profileForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  const dob = dobInput.value;
+  if (!name || !dob) return;
+  const [y] = dob.split('-').map(Number);
+  if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) return;
+  try {
+    const profile = buildProfile(name, dob);
+    saveProfile(name, dob);
+    showMain(profile);
+  } catch (err) {
+    // silent — the form already validates input
+  }
+});
+
+shakeBtn.addEventListener('click', doShake);
+ballWrap.addEventListener('click', doShake);
+ballWrap.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doShake(); }
+});
+questionEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); doShake(); }
+});
+
+resetBtn.addEventListener('click', () => {
+  if (confirm('forget your name and birth date from this device?')) {
+    clearProfile();
+    showOnboard();
+  }
+});
+
+aboutBtn.addEventListener('click', () => aboutModal.classList.add('open'));
+aboutClose.addEventListener('click', () => aboutModal.classList.remove('open'));
+aboutModal.addEventListener('click', e => {
+  if (e.target === aboutModal) aboutModal.classList.remove('open');
+});
+
+let lastShake = 0;
+const SHAKE_THRESHOLD = 18;
+let lastX = 0, lastY = 0, lastZ = 0;
+function onMotion(e) {
+  if (!currentProfile) return;
+  const a = e.accelerationIncludingGravity || e.acceleration;
+  if (!a) return;
+  const dx = (a.x || 0) - lastX;
+  const dy = (a.y || 0) - lastY;
+  const dz = (a.z || 0) - lastZ;
+  const delta = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  lastX = a.x || 0; lastY = a.y || 0; lastZ = a.z || 0;
+  if (delta > SHAKE_THRESHOLD && Date.now() - lastShake > 1200) {
+    lastShake = Date.now();
+    doShake();
+  }
+}
+function enableMotion() {
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(state => {
+      if (state === 'granted') window.addEventListener('devicemotion', onMotion);
+    }).catch(() => {});
+  } else if ('ondevicemotion' in window) {
+    window.addEventListener('devicemotion', onMotion);
+  }
+}
+ballWrap.addEventListener('click', enableMotion, { once: true });
+
+const existing = loadProfile();
+if (existing) showMain(existing);
+</script>
+</body>
+</html>

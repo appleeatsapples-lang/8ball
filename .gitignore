@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# build output (none yet, but reserved)
+dist/
+build/
+
+# netlify local
+.netlify/
+.env
+.env.local
+.env.*.local
+
+# vitest / coverage
+coverage/
+.vitest-cache/
+
+# user-specific runtime
+*.log
+.cache/
+
+# explicit barrier — never check anything from the SIRR tree into this repo
+**/SIRR/
+**/sirr/
+**/PRIVATE/
+**/_ARCHIVE/
+
+# operator's local-only PII pattern file (audited locally, never tracked)
+audits/local_personal_data.txt

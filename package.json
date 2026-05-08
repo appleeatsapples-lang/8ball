@@ -1,0 +1,21 @@
+{
+  "name": "8ball",
+  "version": "0.1.0",
+  "description": "Magic 8-ball that knows you",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "npx --yes serve . -l 5173",
+    "check": "npm run test"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/appleeatsapples-lang/8ball"
+  }
+}

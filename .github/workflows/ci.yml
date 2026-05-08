@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: test + content scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Run tests
+        run: npm test
+      - name: Verify single-file rule
+        run: |
+          lines=$(wc -l < index.html)
+          echo "index.html: $lines lines"
+          if [ "$lines" -gt 1500 ]; then
+            echo "::error::index.html exceeds 1500 lines (DOCTRINE.md §6). Split into ui/ modules."
+            exit 1
+          fi

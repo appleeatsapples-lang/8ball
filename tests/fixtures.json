@@ -1,0 +1,72 @@
+{
+  "_comment": "Calculation contract fixtures. Every value here was hand-verified against core/profile.js on the date this file was written. CHANGES TO THIS FILE GATE THE RELEASE — if a fixture changes, that's an algorithm change, which means a doctrine review (see DOCTRINE.md §3).",
+  "_pii_rule": "Fixture DOBs MUST be synthetic — chosen for the calc path they exercise, not anchored to any real person. See DOCTRINE.md §11.",
+  "cases": [
+    {
+      "label": "Aries Rat LP3",
+      "dob": "1996-04-01",
+      "expected": { "sunSign": "aries", "animal": "rat", "lifePath": 3 }
+    },
+    {
+      "label": "Capricorn cusp Dec 22 — first day of Cap",
+      "dob": "1985-12-22",
+      "expected": { "sunSign": "capricorn", "animal": "ox", "lifePath": 3 }
+    },
+    {
+      "label": "Capricorn last day Jan 19",
+      "dob": "1990-01-19",
+      "expected": { "sunSign": "capricorn", "lifePath": 3 }
+    },
+    {
+      "label": "Aquarius first day Jan 20",
+      "dob": "1990-01-20",
+      "expected": { "sunSign": "aquarius", "lifePath": 22 }
+    },
+    {
+      "label": "Pre-CNY-cutoff Feb 3 → previous year animal",
+      "dob": "2021-02-03",
+      "expected": { "animal": "rat" }
+    },
+    {
+      "label": "CNY cutoff exactly Feb 4 → current year animal",
+      "dob": "2021-02-04",
+      "expected": { "animal": "ox" }
+    },
+    {
+      "label": "Synthetic Gemini Horse LP4 (mid-month, mid-sign)",
+      "dob": "2002-06-15",
+      "expected": { "sunSign": "gemini", "animal": "horse", "lifePath": 7 }
+    },
+    {
+      "label": "Master number 11 preserved (Scorpio Snake)",
+      "dob": "1989-11-09",
+      "expected": { "sunSign": "scorpio", "animal": "snake", "lifePath": 11 }
+    },
+    {
+      "label": "Master number 22 preserved (Capricorn Snake)",
+      "dob": "1990-01-02",
+      "expected": { "sunSign": "capricorn", "animal": "snake", "lifePath": 22 }
+    },
+    {
+      "label": "Sagittarius Snake LP4",
+      "dob": "1989-12-01",
+      "expected": { "sunSign": "sagittarius", "animal": "snake", "lifePath": 4 }
+    },
+    {
+      "label": "Cancer Tiger LP8",
+      "dob": "1986-07-04",
+      "expected": { "sunSign": "cancer", "animal": "tiger", "lifePath": 8 }
+    },
+    {
+      "label": "Year-edge Jan 1 → previous lunar year animal",
+      "dob": "2024-01-01",
+      "expected": { "animal": "rabbit" }
+    }
+  ],
+  "name_number": [
+    { "name": "Generic", "expected": 7 },
+    { "name": "Ada", "expected": 6 },
+    { "name": "Sam", "expected": 6 },
+    { "name": "", "expected": 0 }
+  ]
+}
