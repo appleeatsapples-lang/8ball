@@ -26,7 +26,10 @@ const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-
 // Bans the voice register, not the symbol-system nouns: "Aries", "rat",
 // "life path 7", "Pythagorean" all stay legal; "the universe says",
 // "your stars guide you", "destined for greatness" do not.
-// Case-insensitive substring match per the brief's locked spec.
+// Case-insensitive start-anchored word-boundary match — preserves
+// inflections at end ("auras", "manifesting") while preventing
+// leading-substring collisions inside unrelated English words
+// (e.g. "aura" inside "restaurant").
 const BANNED_VOICE_REGISTER = [
   'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
   'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
@@ -155,10 +158,11 @@ describe('content rules — banned voice register (DOCTRINE.md §2)', () => {
 
   for (const term of BANNED_VOICE_REGISTER) {
     it(`no pool entry contains "${term}"`, () => {
-      const needle = term.toLowerCase();
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}`, 'i');
       const hits = [];
       for (const { source, s } of allEntries()) {
-        if (s.toLowerCase().includes(needle)) hits.push(`${source}: ${s}`);
+        if (regex.test(s)) hits.push(`${source}: ${s}`);
       }
       expect(hits, `Banned voice-register term "${term}" found:\n${hits.join('\n')}`).toEqual([]);
     });

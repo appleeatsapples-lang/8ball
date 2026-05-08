@@ -8,17 +8,17 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 In-flight notes captured during the Phase-2D branch (`v0.1.4-phase2d-concern-dispositions`). Pre-merge artifact; chat authors the full v0.1.4 release entry post-merge and may supersede this block.
 
-## §2 banned-voice-register cuts
+## §2 banned-voice-register — calibration fix landed
 
-Three lines cut from `content/traits.v1.js` to land the new §2 substring scan green:
+Initial substring scanner (commit 1cad9de) flagged three lines; review showed two false positives where the locked term `aura` matched inside `restaurant`:
 
-- `taurus`: "someone who takes 20 minutes to leave a restaurant" — flagged on substring "aura" in "restaurant".
-- `libra`: "unable to choose a restaurant or a stance" — flagged on substring "aura" in "restaurant".
-- `lp33`: "tired in a way that sounds spiritual" — flagged on substring "spiritual".
+- `taurus`: "someone who takes 20 minutes to leave a restaurant" — false positive, **restored**.
+- `libra`: "unable to choose a restaurant or a stance" — false positive, **restored**.
+- `lp33`: "tired in a way that sounds spiritual" — true positive (voice-register adoption), **cut stands**.
 
-The lp33 cut is the rule's intended target (voice-register adoption, even when observational). The two `restaurant` cuts are happenstance substring collisions of the locked term "aura" in neutral English — flagged here for operator review. If the intent is to keep the restaurant lines, the locked list can be amended (substring → word-boundary regex) in a follow-up; doctrine (§2 substance) and enforcement (BANNED_VOICE_REGISTER scan) stay as-is.
+Scanner amended to start-anchored word-boundary regex (`\b<term>`, case-insensitive) — preserves inflections at end (`auras`, `manifesting`, `sacredness`, `channels`) while preventing leading-substring collisions inside unrelated English words. Locked word list unchanged.
 
-Net pool changes: `taurus` 10→9, `libra` 10→9, `lp33` 6→5.
+Net pool changes vs `060cc0f` baseline: `taurus` 10→10, `libra` 10→10, `lp33` 6→5.
 
 ## §13 immutability hash check — deferred
 
