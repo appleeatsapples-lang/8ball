@@ -22,7 +22,10 @@ fi
 # Build the list of files to scan: tracked content excluding the audit data file
 # itself and the audit doc. Include untracked-but-not-ignored files too so a
 # half-built leak is caught before commit.
-mapfile -t FILES < <(git ls-files --cached --others --exclude-standard \
+FILES=()
+while IFS= read -r line; do
+  FILES+=("$line")
+done < <(git ls-files --cached --others --exclude-standard \
   | grep -vE '^(audits/local_personal_data\.txt|audits/LOCAL_PII_AUDIT\.md|audits/run_local_audit\.sh|node_modules/|\.git/)')
 
 if [ ${#FILES[@]} -eq 0 ]; then

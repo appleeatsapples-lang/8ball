@@ -15,10 +15,8 @@
 export const TEMPLATES_NO_QUESTION = [
   'truth: you are {trait_any}.',
   '{name}, you are {trait_any}. allegedly.',
-  '{trait_any}. the chart agrees.',
   '{trait_any}. do not shoot the messenger.',
   'you are {trait_any}. and it is on brand.',
-  'the universe says: {trait_any}. your group chat already knew.',
   'you are {trait_any}, and it is probably your most consistent feature.',
   '{name}, you keep being {trait_any}. it is working, sort of.',
   'classic {sun}: {trait_any}.',
@@ -26,7 +24,6 @@ export const TEMPLATES_NO_QUESTION = [
   'this is your {animal} energy showing: {trait_any}.',
   'remember when you decided to be {trait_any}? me neither, it is genetic.',
   'plot twist, except not: you are {trait_any}.',
-  'today diagnosis: {trait_any}. tomorrow too.',
   'someone has to be {trait_any}. lucky you.',
   'you are {trait_any}, and the people in your life are doing fine. probably.',
   '{trait_any}, with notes of {trait_any_alt}.',
@@ -60,6 +57,5 @@ export const TEMPLATES_MAYBE = [
   'unclear. ask when you are less {trait_any}.',
   'split — half yes, half {trait_any}.',
   'tbd. the {animal} in you wants one thing, the {sun} another.',
-  'ask again later. preferably after the {trait_any} part subsides.',
-  'reply hazy. classic {sun} symptoms detected.'
+  'ask again later. preferably after the {trait_any} part subsides.'
 ];

@@ -66,7 +66,7 @@ const BANNED = [
   { pattern: /\bakif\b/i, label: 'operator surname', allow: [...DOCTRINE_ALLOW, ...CONFIG_ALLOW] },
   { pattern: /appleeatsapples/i, label: 'GitHub username', allow: [...DOCTRINE_ALLOW, ...CONFIG_ALLOW] },
 
-  // SIRR cross-references — DOCTRINE.md §9 deniability rule.
+  // SIRR cross-references — DOCTRINE.md §9 SIRR boundary rule.
   { pattern: /\bSIRR\b/, label: 'SIRR cross-reference', allow: [...DOCTRINE_ALLOW, '.gitignore'] },
   { pattern: /\bsirr\.studio\b/i, label: 'SIRR domain', allow: [...DOCTRINE_ALLOW] },
   { pattern: /\babjad\b/i, label: 'SIRR vocabulary', allow: [...DOCTRINE_ALLOW] },

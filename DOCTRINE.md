@@ -6,14 +6,14 @@ This document is the constitution of `8ball`. The codebase obeys it. PRs that co
 
 ## §1. What this is
 
-A magic 8-ball that knows you. Enter your name and date of birth once. Shake or ask. The answer is a roast.
+A fixed designed deck that knows you. Enter your name and date of birth once. Shake or ask. The product returns a card from the deck, selected by a calculation tied to (name, DOB).
 
-The roast's surface is a joke. Its interior is informed by your sun sign, your Chinese zodiac animal, and a numerology life path computed from your DOB. The interior is never named in the product. The user is told exactly enough to play with it.
+The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese zodiac animal, numerology life path — and name them as such.
 
 ## §2. What this is NOT
 
 - Not a horoscope app. Not a numerology calculator. Not a guidance product.
-- Not a "spiritual" product. No mention of zodiac, numerology, or astrology in user-facing copy.
+- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented.
 - Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.)
 - Not a logged-in product. No accounts, no signup, no "save your reading."
 - Not an analytics product. No tracking, no telemetry, no third-party scripts beyond Google Fonts.
@@ -36,16 +36,17 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 
 ## §4. Content rules — copy & traits
 
-- **Roast, not insult.** Pointed at universal traits, never at protected classes.
 - **No slurs.** Banned-pattern check runs in `tests/profile.test.js`.
+- **No medical/diagnostic framing.** Cards do not adopt clinical or diagnostic vocabulary, including ironic adoption (e.g., "diagnosis," "syndrome," "disorder").
+- **Cultural-symbol respect.** If the deck draws from any tradition (tarot, I Ching, runes, zodiac, etc.), cards respect that tradition's lineage. No syncretic flattening, no caricature of source traditions.
 - **No targeting minors.** Copy assumes adult user. UI does not pander to children.
 - **No real-person targets.** No "you're like [public figure]" lines.
-- **Self-applied only.** Every line should land equally on a person who picked their own DOB.
-- **Versioned, not edited.** Shipped trait pools and templates are immutable. New release = new file (`traits.v2.js`). Diff lives in `journal.md`.
+- **Universal floor.** Cards should land equally on a person who picked their own DOB.
+- **Versioned, not edited.** Shipped content batches are immutable. New release = new file (e.g. `traits.v2.js`, `cards.v2.js`). Diff lives in `journal.md`.
 
-If a line is funny but you can't tell whether it crosses any of the above, it crosses. Cut it.
+If a line lands but you can't tell whether it crosses any of the above, it crosses. Cut it.
 
-**Safety-patch carve-out.** Locked-decision #9 (immutable v1 pools) protects against silent flavor drift. It does NOT protect a doctrine-rule violation caught post-ship. If a shipped trait or template line violates §4, it is cut in a patch release; the journal records the cut and the diff carries the doctrine note. Immutability is for taste discipline, not error preservation.
+**Safety-patch carve-out.** Locked-decision #9 (immutable v1 pools) protects against silent flavor drift. It does NOT protect a doctrine-rule violation caught post-ship. If a shipped trait, template, or card line violates §4, it is cut in a patch release; the journal records the cut and the diff carries the doctrine note. Immutability is for taste discipline, not error preservation.
 
 ## §5. Privacy primitive
 
@@ -91,11 +92,9 @@ Every release, however small:
 7. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
 8. Confirm Netlify auto-deployed. Open the live URL. Shake it. If the roast lands, ship the next one.
 
-## §9. The deniability rule
+## §9. The SIRR boundary
 
-If anyone asks what `8ball` is, the answer is: a magic 8-ball that knows you. If they push, the answer is: it uses your birthday. That is the entire surface. SIRR is not mentioned. The depth of the underlying calculations is not advertised. The product's strength is the gap between the joke surface and the accurate interior — narrating the trick destroys it.
-
-This rule has a code-level corollary: tracked content of this repo MAY NOT contain the string "SIRR" (case-sensitive) or any SIRR-domain vocabulary (`sirr.studio`, `abjad`, `hebrew_gematria`, etc.) outside of doctrine documentation that explicitly names the boundary. Enforced by `tests/pii_scan.test.js`.
+Tracked content of this repo MAY NOT contain the string "SIRR" (case-sensitive) or any SIRR-domain vocabulary (`sirr.studio`, `abjad`, `hebrew_gematria`, etc.) outside the boundary-naming files allow-listed in `tests/pii_scan.test.js` (`DOCTRINE_ALLOW`). SIRR is a sibling project, not a parent or child of `8ball`; the two repos share no code and no imports. Enforced by `tests/pii_scan.test.js`.
 
 ## §10. Multi-model lane system
 
