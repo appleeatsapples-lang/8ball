@@ -42,7 +42,7 @@ describe('calculation contract', () => {
 });
 
 describe('engine — token leakage', () => {
-  const profile = buildProfile('Tester', '1990-06-15');
+  const profile = buildProfile('Tester', '2000-01-01');
   const recent = [];
 
   it('never emits raw template tokens', () => {
@@ -106,7 +106,7 @@ describe('content rules — automated subset', () => {
     /\b(faggot|tranny)\b/i,
     /\bn[i1]gg[ae]r/i
   ];
-  const profile = buildProfile('Tester', '1990-06-15');
+  const profile = buildProfile('Tester', '2000-01-01');
   it('200 sample answers contain none of the banned patterns', () => {
     const recent = [];
     for (let i = 0; i < 200; i++) {

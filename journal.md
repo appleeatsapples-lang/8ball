@@ -3,6 +3,101 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-08 · doctrine audit triage + product pivot — Phase-2 scoped
+=====
+
+Not a version bump. No code shipped. State changes captured for provenance.
+
+## What happened
+
+First execution of §10 multi-model lanes. Two artifacts saved to `~/Desktop/8ball/audits/`:
+
+- `codex_doctrine_audit_2026-05-08.md` — full Codex response. **1 PASS / 6 CONCERN / 6 FAIL** out of 13 numbered rules. Brief expected 9–11 PASS, 0–1 FAIL on first audit. We are dramatically off that mark. Per the brief's own acceptance criteria: *"If FAIL count is higher than 1, the doctrine was written aspirationally; tighten or kill the failing rules before adding more."*
+- `chatgpt_v2_brief_meta_review_2026-05-08.md` — ChatGPT response. NOT what queue item #4 specified. ChatGPT returned brief-design meta-review instead of v2 trait pool draft. Likely cause: brief's step 5 ("paste traits.v1.js after the prompt") was skipped at relay time, leaving ChatGPT no source content to audit. Useful as brief feedback; not the artifact intended.
+
+## Codex FAILs — disposition
+
+**§1 / §2 / §9 (surface-narration cluster) → retire via product pivot.** Doctrine says the calculation interior must never be named in the product. README:5 explicitly names "sun sign, Chinese zodiac animal, and numerology life path" in the same sentence that links to §9. About modal in `index.html` says "loosely informed by the date you were born and a couple of derived numbers." The doctrine and the violation lived in the same paragraph — characteristic aspirational-rule shape. Pivot decision (see below) makes these rules obsolete rather than amends them.
+
+**§4 → fix-now patch (v0.1.2) + safety-patch carve-out.** `content/traits.v1.js` `ox` array contains "someone whose stubborn is technically a personality disorder" — invokes mental-health framing as roast target. Adjacent finding (Codex pool-scan missed; orchestrator caught while verifying the §4 evidence): `sagittarius` array contains "someone whose honesty is technically assault" — uses sexual-assault framing as roast mechanic. Both fail the doctrine's literal "if you can't tell, it crosses" test. Both lines cut. Stress-tests locked-decision #9 (immutable v1 pools). Disposition: add a §4 safety-patch carve-out — *immutability protects against silent flavor drift, not against doctrine-rule violations caught post-ship.*
+
+**§7 (CI doesn't actually block deploy) → fix-now or amend-doctrine.** Doctrine claims CI green is required to deploy. Reality: Netlify publishes `.` on every push to main with no GitHub Actions status check. Either configure Netlify GitHub-Actions-required-check (operator setting; no code change), or soften §7 to "CI is green before merge to main; deploy auto-runs on main." Pick one.
+
+**§11 (PII rule) → fix-now (both halves), v0.1.2.** Two issues: (a) the v0.1.0 entry below in this same journal describes the leak by quoting the labeled-DOB shape it removed, and the PII scanner allow-lists `journal.md`, so the leak survives in tracked content under the scanner's nose; (b) the labeled-DOB regex only catches label-before-date shapes with no alphabetic text between them, missing JSON-shaped occurrences. Fixes: rewrite the v0.1.0 entry to describe the leak class without reproducing the shape, tighten the regex, narrow the `journal.md` allow-list.
+
+## Codex CONCERNs — logged
+
+- **§3:** master numbers 11 and 22 in fixtures, 33 missing. Regression dropping 33 preservation would pass current gate. → add 33 fixture in next refresh.
+- **§5:** no automated gate against new localStorage keys, fetch() calls, or analytics injections. → add static scan for forbidden API surfaces.
+- **§8:** release ritual is operator vigilance only, no hard pre-merge gate. → known structural property; defer until friction shows real cost.
+- **§10:** lanes documented, no automated enforcement that doctrine amendments pass through Codex. → consider PR template requiring lane-tag.
+- **§12:** out-of-scope items have no automated gate. → static scan covers some (fetch presence); full coverage requires PR-level review discipline.
+- **§13:** Friday rule-kill review has not fired (rule was created today). → first review scheduled at first Friday post-creation.
+
+Per brief acceptance criteria: CONCERNs that recur in next audit escalate to FAIL.
+
+## Product pivot: roast → designed deck
+
+Triggered by §1/§2/§9 cluster being structurally unfixable as written. Operator decision: shake → truth tied to (name, DOB) lands as a card from a **fixed designed deck**. Declarative-observational voice, strengths-and-weaknesses framing, explicitly materialistic-aesthetic in essence by design. Roast voice retires. The trick is no longer hidden; the calculation IS the product.
+
+This dissolves §1/§2/§9 cleanly (nothing left to deny) and transforms §4 (the violating prose lines die when format changes; §4 needs a successor for card content). §7 and §11 are independent of the pivot and still need fixing.
+
+Pivot is decided, not implemented. Implementation is Phase-2.
+
+## Phase-2 scope
+
+Brief's own rule binds: when FAIL > 1, tighten or kill failing rules before adding more. So:
+
+- **2A. v0.1.2 patch.** §4 safety-patch carve-out + cut both violating trait lines + §11 PII regex tightening + journal v0.1.0 rewrite + journal allow-list narrow. Multi-file → CC lane.
+- **2B. Doctrine consolidation.** Retire §1/§2/§9; rewrite §4 for card content (no medical/diagnostic framing; cultural-symbol respect if cards draw from any tradition); revisit §10's "v1 immutable" rule given format pivot. Codex re-audit before merge. Target: 9+ PASS, FAIL ≤ 1.
+- **2C. §7 deploy-gate alignment.** Wire Netlify required-check, or amend doctrine. Operator decision.
+- **2D. Rule-without-enforcement CONCERNs (§5, §8, §10, §12).** Each gets one of: enforcement surface added, rule amended to match reality, or rule killed. Friday rule-kill review per §13 is the natural moment.
+- **2E. Card system design.** Schema, sample cards, full deck. Where "aesthetic and taste" lives. Independent of doctrine work; can run parallel.
+- **2F. Card system implementation.** Engine + UI rewrite. Retire `content/traits.v1.js` and `content/templates.v1.js`. Add `content/cards.v1.js` + `assets/cards/`. Fixtures update. CC lane.
+
+ChatGPT v2 trait expansion is **paused indefinitely** — pivot retires trait pools.
+
+## Tooling provisioned this session
+
+- `CLAUDE.md` at repo root — CC entry point, lane discipline, command list, don't-do rules. CC v2.1.42 verified (predates auto-memory v2.1.59+; static-CLAUDE.md path matches project's append-only discipline anyway).
+- `AGENTS.md` at repo root — cross-tool role-routing gate (the open-standard format auto-read by Codex / Cursor / Aider / Windsurf / Zed). Tells any agentic tool that lands here to identify role per §10 before modifying anything.
+- Both untracked, pending clean commit alongside this journal entry.
+
+No `.claude/` or `.codex/` subdirectories scaffolded. Per Anthropic and OpenAI docs, "small and stable, add modular config when friction shows real cost." Not adding empty config files preemptively.
+
+## Lessons
+
+**L10 — A doctrine that fails its own first adversarial audit at FAIL=6 is honest but unfit-for-purpose.** §10 lanes did exactly what they were built to do: a different model with a different bias profile read the doctrine literally and found drift the authoring instance could not see. The lesson is not that the doctrine is broken. The lesson is that aspirational rules masquerading as enforced rules are the most expensive kind of doctrinal debt — cheap to write, hard to retire, structurally invisible until something forces a literal read.
+
+**L11 — Lane-relay completeness is the soft failure mode.** The ChatGPT v2-traits brief failed-soft because a paste step was skipped at relay. The model defaulted to brief-critique rather than refusing or asking for the missing input. The lane existed; the relay didn't carry. Brief should be amended to require source-content paste before any output, or relay step should include a checklist confirming all paste-targets are filled before send.
+
+**L12 — Live-fire of the discipline beats hypothetical critique of it.** While provisioning `CLAUDE.md` this session, the PII scanner caught a home-directory file path that contains operator first name as a word. The right move was visible immediately: fix the new file rather than widen the allow-list — exactly the drift pattern Codex flagged in §11. Same scanner, same allow-list, same drift surface, fired on a fresh case and resolved correctly. The discipline working in real time on a real artifact is worth more than ten audits of how the discipline *should* work.
+
+## Open items / next session queue
+
+1. ~~Connect Netlify to GitHub repo~~ ✅
+2. ~~Pick + reserve subdomain~~ ✅
+3. ~~Hex-overflow fix~~ ✅
+4. ~~Codex doctrine audit~~ ✅ done; triaged in this entry.
+5. **ChatGPT v2 trait audit — PAUSED INDEFINITELY** (pivot retires trait pools).
+6. Operator: create `audits/local_personal_data.txt` per `audits/LOCAL_PII_AUDIT.md`.
+7. Operator: bootstrap-table update in personal preferences file (carried from v0.1.1 queue).
+8. **Phase-2A: v0.1.2 patch** — §4 carve-out + violating trait lines cut + §11 PII fixes + journal v0.1.0 rewrite. Single PR. CC lane.
+9. **Phase-2B: doctrine consolidation** — retire §1/§2/§9; rewrite §4 for card content; revisit §10 immutability rule under pivot. Codex re-audit before merge.
+10. **Phase-2C: §7 deploy-gate alignment** — wire Netlify required-check, or amend doctrine.
+11. **Phase-2D: rule-without-enforcement CONCERNs** — enforcement, amend, or kill for §5, §8, §10, §12.
+12. **Phase-2E: card system design** — schema, sample cards, full deck. Aesthetic concentration.
+13. **Phase-2F: card system implementation** — engine + UI rewrite, content layer pivot.
+14. Codex re-audit on consolidated doctrine. Target FAIL ≤ 1.
+15. Question classifier rework — independent, can run anytime (likely retired by pivot).
+16. Brief amendment: require source-content paste verification at send-time (or kill if pivot retires the whole brief).
+17. Candidate fifth lane: Grok. Provisioned on operator's machine. Role TBD post-pivot — possible cold-reading-sniff auditor for card content. Provision when card content exists for it to review.
+
+=====
+End of 2026-05-08 · doctrine audit triage entry.
+=====
+
+=====
 2026-05-08 · v0.1.1 — hex-overflow fix + multi-model lanes activated
 =====
 
@@ -43,9 +138,11 @@ End of 2026-05-08 · v0.1.1 entry.
 =====
 2026-05-08 · v0.1.0 build session — PII leak found mid-build, patched, discipline added pre-ship
 =====
+> **Sanitization note (v0.1.2):** the "What shipped" bullet describing the labeled-DOB leak was rewritten to describe the leak class without reproducing the label or the date. Original draft preserved no useful information beyond the shape it claimed to fix. See journal entry for v0.1.2.
+
 ## What shipped
 
-- **Critical:** v0.1.0 fixture leak fixed. `tests/fixtures.json` had a fixture labeled `"Gemini Horse LP4 (canonical Muhab test)"` with `dob: "1990-06-15"` — a labeled tie between operator name and a real-shape DOB in a public repo. Same leak in `journal.md`. Fix: shifted synthetic DOB by 12 years (preserves animal + LP mod-9), removed all operator-name labels.
+- **Critical:** v0.1.0 fixture leak fixed. `tests/fixtures.json` contained a calculation fixture whose label tied the operator's first name to a real-shape DOB — a labeled-DOB leak in a public repo. The same leak shape appeared in this journal's prior draft. Fix: synthetic DOB shifted by 12 years (preserves Chinese zodiac animal and life path mod-9 distribution while breaking the real-DOB anchor); all operator-name labels removed from fixtures and journal.
 - **Public PII scanner** at `tests/pii_scan.test.js` — 9 cases covering operator-name leakage, SIRR cross-references, GitHub-username leakage, labeled-DOB shapes. Doctrine and config files allow-listed (their job is naming the boundary).
 - **Local PII audit infrastructure** at `audits/LOCAL_PII_AUDIT.md` + `audits/run_local_audit.sh`. Operator's personal-data file is gitignored; script greps tracked content against the patterns.
 - **Release checklist** at `audits/RELEASE_CHECKLIST.md` — operational form of DOCTRINE.md §8 gates.

@@ -18,10 +18,10 @@ A file at `audits/local_personal_data.txt` containing patterns to grep for. **Th
 Example contents (illustrative — yours will differ):
 
 ```
-# DOBs
-1990-06-15
-1990/06/15
-06/15/1990
+# DOBs (your real DOB in any format you might write it)
+[YYYY-MM-DD]
+[YYYY/MM/DD]
+[MM/DD/YYYY]
 
 # Names
 [your full real name]

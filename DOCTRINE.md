@@ -45,6 +45,8 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 
 If a line is funny but you can't tell whether it crosses any of the above, it crosses. Cut it.
 
+**Safety-patch carve-out.** Locked-decision #9 (immutable v1 pools) protects against silent flavor drift. It does NOT protect a doctrine-rule violation caught post-ship. If a shipped trait or template line violates §4, it is cut in a patch release; the journal records the cut and the diff carries the doctrine note. Immutability is for taste discipline, not error preservation.
+
 ## §5. Privacy primitive
 
 The product persists exactly two pieces of user data, in `localStorage` only, on the user's own device:
@@ -74,7 +76,7 @@ If a future feature requires storing or transmitting more, that feature requires
 4. **PII scan** — `tests/pii_scan.test.js` must pass. (Operator name leakage, SIRR cross-reference leakage, labeled-DOB leakage.)
 5. **Single-file rule** — `index.html` ≤ 1500 lines.
 
-Netlify is configured to deploy on push to `main`. CI is wired so a failed gate blocks the deploy.
+Netlify is configured to auto-deploy on push to `main`. CI runs in parallel on the same push. Failed CI does not currently block the auto-deploy itself — this gap is acknowledged and acceptable while traffic is operator-only. Wiring a Netlify required-check on the GitHub Actions status is queued for the first traction milestone (see `journal.md`); at that point, this paragraph gets re-tightened to "a failed gate blocks the deploy."
 
 ## §8. Release ritual
 
