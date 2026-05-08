@@ -138,9 +138,11 @@ End of 2026-05-08 · v0.1.1 entry.
 =====
 2026-05-08 · v0.1.0 build session — PII leak found mid-build, patched, discipline added pre-ship
 =====
+> **Sanitization note (v0.1.2):** the "What shipped" bullet describing the labeled-DOB leak was rewritten to describe the leak class without reproducing the label or the date. Original draft preserved no useful information beyond the shape it claimed to fix. See journal entry for v0.1.2.
+
 ## What shipped
 
-- **Critical:** v0.1.0 fixture leak fixed. `tests/fixtures.json` had a fixture labeled `"Gemini Horse LP4 (canonical Muhab test)"` with `dob: "1990-06-15"` — a labeled tie between operator name and a real-shape DOB in a public repo. Same leak in `journal.md`. Fix: shifted synthetic DOB by 12 years (preserves animal + LP mod-9), removed all operator-name labels.
+- **Critical:** v0.1.0 fixture leak fixed. `tests/fixtures.json` contained a calculation fixture whose label tied the operator's first name to a real-shape DOB — a labeled-DOB leak in a public repo. The same leak shape appeared in this journal's prior draft. Fix: synthetic DOB shifted by 12 years (preserves Chinese zodiac animal and life path mod-9 distribution while breaking the real-DOB anchor); all operator-name labels removed from fixtures and journal.
 - **Public PII scanner** at `tests/pii_scan.test.js` — 9 cases covering operator-name leakage, SIRR cross-references, GitHub-username leakage, labeled-DOB shapes. Doctrine and config files allow-listed (their job is naming the boundary).
 - **Local PII audit infrastructure** at `audits/LOCAL_PII_AUDIT.md` + `audits/run_local_audit.sh`. Operator's personal-data file is gitignored; script greps tracked content against the patterns.
 - **Release checklist** at `audits/RELEASE_CHECKLIST.md` — operational form of DOCTRINE.md §8 gates.

@@ -37,6 +37,16 @@ const CONFIG_ALLOW = new Set([
   'LICENSE'
 ]);
 
+// Narrower allow-list for the labeled-DOB rule specifically.
+// Doctrine docs need to NAME this leak class; they do not need to REPRODUCE
+// example shapes inline. journal.md, 8BALL.md, and README.md are excluded
+// here even though they're in DOCTRINE_ALLOW for other rules.
+const LABELED_DOB_ALLOW = new Set([
+  'DOCTRINE.md',
+  'audits/LOCAL_PII_AUDIT.md',
+  'audits/RELEASE_CHECKLIST.md'
+]);
+
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
     if (SKIP_DIRS.has(entry) || SKIP_FILES.has(entry)) continue;
@@ -68,9 +78,13 @@ const BANNED = [
   // real-shape DOB. Doctrine files don't need this exception because they
   // shouldn't be embedding labeled DOBs either.
   {
-    pattern: /(muhab|akif|operator|owner|founder|me)\b[^a-z]{0,40}\d{4}-\d{2}-\d{2}/i,
+    // Tightened from [^a-z] to . — the original missed JSON-shaped occurrences
+    // where alphabetic text sits between the label and the date (e.g.
+    // `Muhab test)" with \`dob: "YYYY-MM-DD`). Same 40-char window keeps it
+    // line-local and prevents false positives across distant tokens.
+    pattern: /(muhab|akif|operator|owner|founder|me)\b.{0,40}\d{4}-\d{2}-\d{2}/i,
     label: 'labeled-DOB leak',
-    allow: [...DOCTRINE_ALLOW]
+    allow: [...LABELED_DOB_ALLOW]
   }
 ];
 

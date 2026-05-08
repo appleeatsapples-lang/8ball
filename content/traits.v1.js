@@ -106,7 +106,6 @@ export const TRAITS_SUN = {
     'stalking yourself in old photos at 2am'
   ],
   sagittarius: [
-    'someone whose honesty is technically assault',
     'making 4am plans that cost a paycheck',
     'allergic to follow-through and addicted to airport energy',
     'turning every dinner into a TED talk you did not book',
@@ -170,7 +169,6 @@ export const TRAITS_ANIMAL = {
     'capable of grudging across four presidential terms',
     'a human bulldozer in slow gear',
     'a one-person freight train, weather permitting',
-    'someone whose stubborn is technically a personality disorder',
     'reliable in the way concrete is reliable',
     'capable of outlasting the entire conversation point'
   ],
