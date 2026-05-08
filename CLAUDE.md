@@ -1,0 +1,65 @@
+# CLAUDE.md — Claude Code entry point for 8ball
+
+Loaded automatically at session start. Short and stable. For canonical
+project context, follow the reading order below before doing anything.
+
+## Read first, in this order
+
+1. `~/dev/8ball/8BALL.md` — canonical 8ball context, source of truth (names any operator-personal files to read alongside)
+2. `~/dev/8ball/DOCTRINE.md` — project constitution
+3. `~/dev/8ball/journal.md` — newest entry on top, read at least the latest entry for current state
+
+After those, this file's only job is to name what's specific to working
+through Claude Code as a lane.
+
+## Lane discipline (DOCTRINE.md §10)
+
+Claude Code owns the filesystem and git lane. It's the right tool for:
+
+- Changes touching ≥3 files in one logical change
+- Any modification to `core/` (calculation, engine)
+- Test runs, audit script runs, git operations
+- Multi-file refactors
+
+For 1–2 file edits that don't touch `core/`, the Claude chat lane is preferred.
+Don't pull work into CC just because CC is open.
+
+## Commands
+
+    npm run dev                       # static server on :5173
+    npm test                          # vitest
+    bash audits/run_local_audit.sh    # PII audit before any push
+    git status / git diff / git log   # before any commit
+
+No build step. Netlify auto-deploys on push to `main`.
+
+## Don't-do list
+
+- Don't `git push` without explicit operator confirmation in the same session
+- Don't merge anything that touches `DOCTRINE.md` without cross-model audit per §10
+- Don't edit shipped immutable content files (`content/*.v1.js`) — new version
+  means new file (`content/*.v2.js`). Exception: documented safety-patch carve-outs.
+- Don't edit `tests/fixtures.json` without updating `core/profile.js` in lockstep per §3
+- Don't add runtime dependencies, `fetch()` calls, analytics, or new
+  `localStorage` keys (§5, §12)
+- Don't widen the PII scanner allow-list (`tests/pii_scan.test.js`) without
+  journal note explaining why
+
+## Repository shape
+
+    core/         pure functions — calc, engine
+    content/      versioned trait + template pools (immutable per version)
+    tests/        vitest + PII scanner + fixtures
+    audits/       release checklist + PII audit script + cross-model briefs
+    .github/      CI workflow (5 stages)
+    index.html    single-file UI, ≤1500 lines
+    DOCTRINE.md   constitution
+    8BALL.md      canonical context, AI-readable
+    journal.md    append-only release log, newest at top
+
+## Current state
+
+State changes; this file shouldn't. For what's current — including any
+in-flight pivot, paused work, or open queue — read the newest entry of
+`journal.md` and the §10/§11 sections of `8BALL.md`. Don't treat this
+file as a state record.
