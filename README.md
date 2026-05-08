@@ -2,7 +2,7 @@
 
 > it already knows. you just have to ask.
 
-A magic 8-ball that knows you. Enter your name and DOB once. Shake or ask. The answer is a roast — surface jokey, internally based on your sun sign, Chinese zodiac animal, and numerology life path. The depth is hidden by design (see [`DOCTRINE.md §9`](./DOCTRINE.md)).
+A magic 8-ball that knows you. Enter your name and DOB once. Shake or ask. The answer is a roast — surface jokey, internally based on your sun sign, Chinese zodiac animal, and numerology life path.
 
 ## Run locally
 
