@@ -48,6 +48,11 @@
       "expected": { "sunSign": "capricorn", "animal": "snake", "lifePath": 22 }
     },
     {
+      "label": "Master number 33 preserved (Sagittarius Snake)",
+      "dob": "1989-12-12",
+      "expected": { "sunSign": "sagittarius", "animal": "snake", "lifePath": 33, "nameNumber": 1 }
+    },
+    {
       "label": "Sagittarius Snake LP4",
       "dob": "1989-12-01",
       "expected": { "sunSign": "sagittarius", "animal": "snake", "lifePath": 4 }
