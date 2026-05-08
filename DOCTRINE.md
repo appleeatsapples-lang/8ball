@@ -36,7 +36,6 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 
 ## §4. Content rules — copy & traits
 
-- **Voice register.** Declarative-observational, strengths-and-weaknesses framing. Cards name what they are.
 - **No slurs.** Banned-pattern check runs in `tests/profile.test.js`.
 - **No medical/diagnostic framing.** Cards do not adopt clinical or diagnostic vocabulary, including ironic adoption (e.g., "diagnosis," "syndrome," "disorder").
 - **Cultural-symbol respect.** If the deck draws from any tradition (tarot, I Ching, runes, zodiac, etc.), cards respect that tradition's lineage. No syncretic flattening, no caricature of source traditions.
@@ -45,7 +44,7 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 - **Universal floor.** Cards should land equally on a person who picked their own DOB.
 - **Versioned, not edited.** Shipped content batches are immutable. New release = new file (e.g. `traits.v2.js`, `cards.v2.js`). Diff lives in `journal.md`.
 
-If a card's content is striking but you can't tell whether it crosses any of the above, it crosses. Cut it.
+If a line lands but you can't tell whether it crosses any of the above, it crosses. Cut it.
 
 **Safety-patch carve-out.** Locked-decision #9 (immutable v1 pools) protects against silent flavor drift. It does NOT protect a doctrine-rule violation caught post-ship. If a shipped trait, template, or card line violates §4, it is cut in a patch release; the journal records the cut and the diff carries the doctrine note. Immutability is for taste discipline, not error preservation.
 
