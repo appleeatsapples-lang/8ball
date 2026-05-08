@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -28,3 +30,18 @@ jobs:
             echo "::error::index.html exceeds 1500 lines (DOCTRINE.md §6). Split into ui/ modules."
             exit 1
           fi
+      - name: Doctrine/content changes require journal entry
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.event.pull_request.base.ref }}"
+          git fetch --no-tags --prune origin "${{ github.event.pull_request.base.ref }}"
+          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          echo "Changed files in PR:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(DOCTRINE\.md|content/[^/]+\.js)$'; then
+            if ! echo "$CHANGED" | grep -qE '^journal\.md$'; then
+              echo "::error::PR touches DOCTRINE.md or content/*.js without touching journal.md (DOCTRINE.md §8)."
+              exit 1
+            fi
+          fi
+          echo "journal-touch gate: pass"

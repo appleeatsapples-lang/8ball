@@ -356,7 +356,6 @@ export const TRAITS_LP = {
     'a savior complex but slightly accurate',
     'a counselor in a body, refunds unavailable',
     'capable of holding everyone mood at once and resenting it',
-    'someone whose love is a public utility',
-    'tired in a way that sounds spiritual'
+    'someone whose love is a public utility'
   ]
 };

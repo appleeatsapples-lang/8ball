@@ -124,12 +124,17 @@ The repo is public. Operator personal data is NEVER tracked content. Two-layer a
 
 ## 7. Content rules (DOCTRINE.md §4)
 
-- Roast, not insult.
-- No slurs. No protected classes. No real-person targets. No minor-targeting.
-- Self-applied universal traits only.
-- Versioned, not edited. Shipped pools are immutable; new release = new file (`traits.v2.js`).
+- No slurs. Banned-pattern check in `tests/profile.test.js`.
+- No medical/diagnostic framing (no "diagnosis", "syndrome", "disorder"; ironic adoption included).
+- Cultural-symbol respect when drawing from any tradition (tarot, I Ching, runes, zodiac, etc.).
+- No targeting minors. No real-person targets.
+- Universal floor — cards land equally on a person who picked their own DOB.
+- Versioned, not edited. Shipped content batches are immutable; new release = new file (e.g. `traits.v2.js`, `cards.v2.js`).
+- Safety-patch carve-out: immutability protects taste discipline, not post-ship doctrine violations.
 
-If a line is funny but might cross any rule, it crosses. Cut it.
+§2 voice register (no mystical / spiritual / guidance language) is enforced separately by `BANNED_VOICE_REGISTER` scan in the same test file.
+
+If a line lands but you can't tell whether it crosses any of the above, it crosses. Cut it.
 
 ---
 
@@ -137,11 +142,16 @@ If a line is funny but might cross any rule, it crosses. Cut it.
 
 Pre-merge (DOCTRINE.md §8 + audits/RELEASE_CHECKLIST.md):
 
+**Automated (CI, blocking):**
 1. CI green (5 stages: calc, engine, content, PII, single-file).
-2. Local PII audit clean.
-3. Diff review against §4 / §5 / §9 / §11.
-4. Cross-model audit on doctrine or content changes.
-5. Operator approval.
+2. Doctrine/content change requires journal entry (`.github/workflows/ci.yml` journal-touch gate).
+
+**Ritual (operator/reviewer):**
+3. PR opened with one-line summary.
+4. Local PII audit clean.
+5. Diff review against §4 / §5 / §9 / §11.
+6. Cross-model audit on doctrine or content changes.
+7. Operator approval.
 
 Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update `8BALL.md` if state changed.
 

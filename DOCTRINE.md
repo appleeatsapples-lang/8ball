@@ -12,11 +12,16 @@ The voice is declarative-observational, framed in strengths and weaknesses. Card
 
 ## §2. What this is NOT
 
-- Not a horoscope app. Not a numerology calculator. Not a guidance product.
-- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented.
-- Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.)
+**Currently enforced (CI gates, see §7):**
+
+- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented. Banned-voice-register scan in `tests/profile.test.js` enforces this against shipped content pools.
+- Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.) Enforced by `tests/pii_scan.test.js`.
+- Not an analytics product. No tracking, no telemetry, no third-party network calls beyond Google Fonts CSS. Enforced by `tests/privacy_scan.test.js` (see §5).
+
+**Review-discipline (no current code surface to scan; rule fires when a feature is proposed):**
+
+- Not a horoscope app. Not a numerology calculator. Not a guidance product. (Voice register; partly captured by the banned-list above.)
 - Not a logged-in product. No accounts, no signup, no "save your reading."
-- Not an analytics product. No tracking, no telemetry, no third-party scripts beyond Google Fonts.
 - Not a payments product. No paywall, no premium tier, no in-app purchase. Revisit only with a real reason.
 
 ## §3. The calculation contract
@@ -81,16 +86,22 @@ Netlify is configured to auto-deploy on push to `main`. CI runs in parallel on t
 
 ## §8. Release ritual
 
-Every release, however small:
+Every release, however small, has automated gates and ritual gates.
 
-1. PR opened with a one-line summary.
-2. CI green (all 5 stages above).
-3. **Operator runs local PII audit.** See `audits/LOCAL_PII_AUDIT.md`. The public CI cannot see the operator's personal data — the local audit closes that gap. Skipping the local audit is the failure mode, so it's a checklist item, not a vibe.
-4. Reviewer (you) reads the diff. Asks: any new line cross §4? Any new path cross §5?
-5. **Cross-model audit on doctrine or content changes.** See §10. Solo authority IS the failure mode. Doctrine and content changes go through ChatGPT or Codex before merge. Mechanical edits do not.
-6. Merge.
-7. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
-8. Confirm Netlify auto-deployed. Open the live URL. Shake it. If the roast lands, ship the next one.
+**Automated gates (CI, blocking):**
+
+1. CI green (5 stages — calc / engine / content / PII / single-file).
+2. **Doctrine/content change requires journal entry.** PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. Enforced in `.github/workflows/ci.yml`.
+
+**Ritual gates (operator/reviewer responsibility):**
+
+3. PR opened with a one-line summary. (PR title discipline; CI doesn't validate title quality.)
+4. Operator runs local PII audit (`audits/run_local_audit.sh`). The public CI cannot see the operator's personal data; the local audit closes that gap. Skipping it is the failure mode, so it's a checklist item, not a vibe.
+5. Reviewer reads the diff. Asks: any new line cross §4? Any new path cross §5?
+6. Cross-model audit on doctrine or content changes. See §10. Solo authority IS the failure mode. Doctrine and content changes go through Codex (or ChatGPT for content batches) before merge. Mechanical edits do not.
+7. Merge.
+8. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
+9. Confirm Netlify auto-deployed. Open the live URL. Shake it.
 
 ## §9. The SIRR boundary
 
@@ -157,6 +168,8 @@ This file is **maintained by hand**, not generated. Update it when:
 - A new tool/relay is automated (kill the old manual entry)
 
 **Friday rule-kill review:** every locked rule that hasn't fired in 30 days → archive. Doctrine that doesn't breathe accumulates cost without producing safety. 15 min/week.
+
+First Friday rule-kill review fires the first Friday after the doctrine has aged 7 days. Until then, the rule is dormant by design — a doctrine days old has no firing surface to evaluate against.
 
 If you find yourself adding more locked rules than you're killing on Fridays, that's the recursion firing through the orchestrator. Stop drafting and ship something.
 
