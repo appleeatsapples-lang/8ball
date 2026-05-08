@@ -169,6 +169,8 @@ This file is **maintained by hand**, not generated. Update it when:
 
 **Friday rule-kill review:** every locked rule that hasn't fired in 30 days → archive. Doctrine that doesn't breathe accumulates cost without producing safety. 15 min/week.
 
+First Friday rule-kill review fires the first Friday after the doctrine has aged 7 days. Until then, the rule is dormant by design — a doctrine days old has no firing surface to evaluate against.
+
 If you find yourself adding more locked rules than you're killing on Fridays, that's the recursion firing through the orchestrator. Stop drafting and ship something.
 
 ---
