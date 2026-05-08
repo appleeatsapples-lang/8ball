@@ -3,6 +3,58 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-08 · v0.1.2 — §4/§7/§11 patch shipped
+=====
+
+## What shipped
+
+- **PR #1 squash-merged** as `f52345f`. Single commit on `main` collapsing the prior agentic-tooling change (`58e5ffa`, never pushed to origin/main as a separate commit) with the Phase-2A patch (`3e6d71a`). Live at `https://the-eight-ball.netlify.app/` within ~70 seconds of merge per Netlify's `cache-status: fwd=miss` + `age: 0` on first post-merge fetch.
+- **§4 — two violating trait lines cut** from `content/traits.v1.js`: a Sagittarius line invoking sexual-assault framing and an Ox line invoking mental-health-diagnostic framing. Both failed §4's literal "if you can't tell, it crosses" test; both lived in production between v0.1.0 and v0.1.2.
+- **§4 safety-patch carve-out added.** Locked-decision #9 (immutable v1 pools) protects against silent flavor drift, NOT against doctrine-rule violations caught post-ship. Codex loophole-check confirmed the carve-out wording does not admit taste-cuts ("constrained to actual §4 violations and requires journal/diff doctrine notes").
+- **§7 reality alignment.** Doctrine previously claimed CI gates the deploy; in fact Netlify auto-deploys on push to `main` while CI runs in parallel. §7 now describes that gap explicitly and queues required-check wiring for the first-traction milestone.
+- **§11 PII regex tightened** from `[^a-z]{0,40}` to `.{0,40}` — JSON-shaped occurrences (label + alphabetic text + `YYYY-MM-DD`) now caught.
+- **§11 narrower allow-list** (`LABELED_DOB_ALLOW`) for the labeled-DOB rule specifically: excludes `journal.md`, `8BALL.md`, `README.md`. Doctrine docs can NAME the leak class without REPRODUCING example shapes.
+- **Journal v0.1.0 entry sanitized.** Bullet describing the labeled-DOB leak rewritten to describe the leak class without reproducing the label string or the date. Sanitization note added at the top of the v0.1.0 entry.
+- **`audits/LOCAL_PII_AUDIT.md` placeholder-ized.** Illustrative DOB block now uses bracketed placeholders matching the convention already used for names and identifiers in the same block.
+- **Test DOBs shifted.** `tests/profile.test.js` engine and banned-pattern tests now use `2000-01-01`. Codex confirmed `2000-01-01` produces a valid synthetic profile (Capricorn, Rabbit, LP4) and the changed tests still exercise their original engine/content code paths.
+- **Tests:** 32/32 green at HEAD `3e6d71a` (pre-merge); same at `f52345f` post-merge.
+
+## Cross-model audit
+
+Codex re-audit of HEAD `3e6d71a` returned **4 PASS / 6 CONCERN / 3 FAIL**, deltas from prior `2876385` audit:
+
+- §4 FAIL → PASS (RESOLVED)
+- §7 FAIL → PASS (RESOLVED)
+- §11 FAIL → PASS (RESOLVED)
+- §1, §2, §9 FAILs unchanged (intentionally untouched in 2A; retiring in Phase-2B via product pivot)
+- All CONCERNs unchanged
+- Zero regressions
+
+Full re-audit at `~/Desktop/8ball/audits/codex_reaudit_2A_2026-05-08.md`. Brief that produced it pinned to HEAD `3e6d71a` per the audits-bind-to-a-specific-HEAD principle locked at start of session.
+
+## Lessons
+
+**L13 — Audits bind to a specific HEAD.** The Codex audit at `2876385` remained valid for `58e5ffa` because `58e5ffa` didn't touch any audited path. The next HEAD (`3e6d71a`) DID, so a re-audit was structurally required. Verifying the equivalence (or non-equivalence) is a 2-second `git diff --stat` that protects against weeks of drift. Treat this as a default discipline before reusing any audit verdict past its pin.
+
+**L14 — Office work is a real failure mode and the orchestrator is the right place to absorb it.** Three new operator-side defaults landed this session: (a) auto-pbcopy briefs to clipboard, (b) Claude saves tool outputs to disk while the operator only pastes content into chat, (c) Claude reformulates terse/typo'd operator directives into self-briefs before acting. Each one removed a friction point that previously generated drift. The principle generalizes: any procedural step the orchestrator can do via tools, the orchestrator should do.
+
+**L15 — The two-audit cycle works exactly as designed.** First audit at `2876385` returned 6 FAILs, exposing aspirational doctrine. Patch authored, second audit at `3e6d71a` returned 3 FAILs, all in the cluster intentionally retired in the next phase. The structure correctly distinguished "tighten what fails" from "retire what doesn't fit," and gave a structural diff (verdicts changed vs. unchanged) as the merge gate, not operator vibes.
+
+## Open items / next session queue
+
+1. **Phase-2B** — doctrine consolidation. Retire §1/§2/§9 (the surface-narration cluster being dissolved by the roast→deck product pivot). Rewrite §4 for card content (no medical/diagnostic framing; cultural-symbol respect if cards draw from any tradition). Revisit §10's "v1 immutable" rule under format pivot. Codex re-audit before merge. Target: 9+ PASS, FAIL ≤ 1.
+2. **Phase-2C** — §7 deploy-gate wiring. Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle.
+3. **Phase-2D** — CONCERN dispositions for §3, §5, §8, §10, §12, §13. Each gets enforcement-added or rule-amended-to-match-reality or rule-killed. Friday rule-kill review per §13 is the natural moment.
+4. **Phase-2E** — card system design. Aesthetic concentration. **Locked constraint:** monochrome / grayscale, no color hues. Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`. Open question still: strict two-tone vs. grayscale-permitted (default is grayscale-permitted unless operator says "strict").
+5. **Phase-2F** — card system implementation. Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. CC lane.
+6. **Bash-3.2 fix for `audits/run_local_audit.sh`.** Script uses `mapfile` (bash 4+); breaks on macOS default bash 3.2. Run-around: this session executed the audit logic inline via Desktop Commander, so the §8 ritual local-audit gate was effectively run against `3e6d71a` and returned 0 hits. Fix: rewrite the `mapfile` line to a POSIX `while read` loop. Single-file shell-script edit, chat-lane authority. Land in next housekeeping PR.
+7. **`8BALL.md §10`** updated this session to reflect v0.1.2 SHIPPED state. Done as part of this entry's commit.
+
+=====
+End of 2026-05-08 · v0.1.2 entry.
+=====
+
+=====
 2026-05-08 · doctrine audit triage + product pivot — Phase-2 scoped
 =====
 

@@ -169,21 +169,39 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 ## 10. Current state (as of 2026-05-08)
 
-**v0.1.0 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Single clean commit `6e97b60` on `main`. CI green. Netlify GitHub-connected; auto-deploys on push.
+**v0.1.2 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `f52345f` (squash-merge of doctrine-triage + agentic tooling + Phase-2A patch). CI green (32/32). Netlify auto-deploys on push; CI gating is queued for the first-traction milestone (see DOCTRINE.md §7).
 
-History note: an earlier sequence of commits (since rewritten) shipped a labeled-DOB leak in fixtures and a discipline patch on top. Force-rewrite collapsed both into the single clean commit now on main. Lessons captured in `journal.md` and `~/Desktop/8ball/sessions/session_distillate_2026-05-08.md`.
+Prior milestones:
+- v0.1.0 SHIPPED 2026-05-08 at `6e97b60` — initial public site.
+- v0.1.1 SHIPPED 2026-05-08 at `2876385` — hex-overflow fix + multi-model lanes activated (first real Codex/ChatGPT relay).
+- v0.1.2 SHIPPED 2026-05-08 at `f52345f` — §4 violations cut, §7 reality alignment, §11 PII tightening. First two-audit cycle (Codex pre-patch and post-patch) completed.
+
+History note: an earlier sequence of commits (since rewritten) shipped a labeled-DOB leak in fixtures and a discipline patch on top. Force-rewrite collapsed both into a single clean v0.1.0 commit, then the v0.1.2 patch sanitized the journal description of that leak so the shape is no longer reproduced in tracked content. Full provenance in `journal.md` and `~/Desktop/8ball/sessions/session_distillate_2026-05-08.md`.
 
 ---
 
 ## 11. Open items / next session queue
 
-1. **~~Connect Netlify to GitHub repo~~** ✅ done 2026-05-08. `the-eight-ball.netlify.app` live, auto-deploys on push.
-2. **~~Pick + reserve Netlify subdomain.~~** ✅ done. Reserved `the-eight-ball`.
-3. **Trait pool v2.** Current pool is the seed. Doubling each axis pool reduces flavor-repetition complaints. ChatGPT lane handles drafting; doctrine §4 review gates it.
-4. **Question classifier rework.** v1 is regex-grade. v2: distinguish regret vs choice vs future vs identity question shapes.
-5. **Live-fire testing.** Open the deployed URL. Shake 30+ times with real DOB. Note any flavor-repeats or weak lines for v1.x.
-6. **iOS wrap.** Capacitor or PWA install prompt. Only after web shows pulse.
-7. **MUHAB.md §6 bootstrap table entry.** Add `8ball` scope row pointing to `~/dev/8ball/8BALL.md`. Operator-only edit (this file is operator-personal).
+Phase-2 structure (per `journal.md` 2026-05-08 doctrine-triage entry):
+
+1. **Phase-2A — v0.1.2 patch.** ✅ shipped 2026-05-08 at `f52345f`. §4/§7/§11 FAILs closed; Codex re-audit clean.
+2. **Phase-2B — doctrine consolidation.** Retire §1/§2/§9 (the surface-narration cluster being dissolved by the roast→deck product pivot). Rewrite §4 for card content (no medical/diagnostic framing; cultural-symbol respect if cards draw from any tradition). Revisit §10's "v1 immutable" rule under format pivot. Codex re-audit before merge. Target: 9+ PASS, FAIL ≤ 1.
+3. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle.
+4. **Phase-2D — CONCERN dispositions** for §3 (no 33 fixture), §5 (no static gate against new storage/fetch), §8 (release ritual operator-only), §10 (lanes procedural not enforced), §12 (out-of-scope partial enforcement), §13 (Friday rule-kill not yet fired). Each gets enforcement-added or rule-amended-to-match-reality or rule-killed.
+5. **Phase-2E — card system design.** Aesthetic concentration. **Locked constraint:** monochrome / grayscale, no color hues. Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`. Independent of doctrine work; can run parallel.
+6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Fixtures update. CC lane.
+
+Independent / housekeeping:
+
+7. **Bash-3.2 fix for `audits/run_local_audit.sh`** — script uses `mapfile` (bash 4+); breaks on macOS default shell. Rewrite to POSIX `while read` loop. Single-file shell-script edit, chat-lane authority.
+8. **Live-fire testing** — shake the deployed URL repeatedly to surface flavor-repeats or weak lines. Likely retired by 2F pivot, but worth one round on the current pool while it's still live.
+9. **Operator-personal:** create `audits/local_personal_data.txt` if not present (pattern file is gitignored; this Claude can already read it via Desktop Commander, so the operator-vigilance gap §11 names is partly closed by orchestrator-side tooling).
+10. **Operator-personal:** add `8ball` row to `~/MUHAB.md` §6 bootstrap table. Operator-only edit.
+
+Paused / retired:
+
+- ~~Trait pool v2 expansion (ChatGPT lane)~~ — paused indefinitely; pivot retires trait pools.
+- ~~Question classifier rework~~ — likely retired by 2F card system; revisit only if pivot reverses.
 
 ---
 
