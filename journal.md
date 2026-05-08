@@ -3,9 +3,46 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
-2026-05-08 · v0.1.1 — PII leak found and patched, discipline pass
+2026-05-08 · v0.1.1 — hex-overflow fix + multi-model lanes activated
 =====
 
+## What shipped
+
+- **Hex-window overflow fix.** Live screenshots from the operator showed long answers clipping the hexagonal display (top, sides, bottom — "PLOT TWIST" cut off, "...HEN YO DECIDED" cut off). Two-layer fix:
+  - Engine: `generateAnswer()` now soft-caps at 120 chars. Re-rolls up to 12 times to find a fitting candidate; returns a length-clean fallback if 12 fail.
+  - UI: dynamic font-size scaling on `.answer` based on text length (default / `size-medium` for 60+ / `size-small` for 90+). Default size lowered slightly to give a baseline buffer.
+- **Test added** for the soft cap: 1000 generations must produce <5% over-cap. Currently passing comfortably.
+- **Multi-model lanes activated** — first real handoff briefs written and saved to `~/Desktop/8ball/audits/`:
+  - `chatgpt_brief_v2_traits.md` — paste-ready prompt for ChatGPT to (a) audit v1 trait pool against §4, (b) flag flavor-repeats, (c) propose ~168 v2 expansion phrases.
+  - `codex_brief_doctrine_audit.md` — paste-ready prompt for Codex to audit DOCTRINE.md §1–§13 against the actual code, with PASS/CONCERN/FAIL verdicts per rule and 9 named scrutiny points.
+- **Tests:** 32/32 green.
+
+## Lessons
+
+**L8 (new) — The doctrine that documents lanes but doesn't activate them is doctrine that doesn't fire.** v0.1.0 documented §10 lanes. v0.1.1 actually used them. Documenting without activating is exactly the recursion-fires-through-orchestrator failure mode §13 names.
+
+**L9 (new) — Live screenshots beat synthetic test cases.** The hex-overflow bug was invisible in unit tests because no test checked rendered visual integrity. Operator's real-use screenshots surfaced it in one minute. Add to release checklist: shake live URL N times before declaring v.x done.
+
+## Open items / next session queue
+
+1. ~~Connect Netlify to GitHub repo for auto-deploy~~ ✅ done 2026-05-08 16:17. Live at `https://the-eight-ball.netlify.app`.
+2. ~~Pick + reserve subdomain~~ ✅ reserved `the-eight-ball`.
+3. ~~Hex-overflow fix~~ ✅ v0.1.1 ships in this commit.
+4. Operator: paste `~/Desktop/8ball/audits/chatgpt_brief_v2_traits.md` into ChatGPT.app. Save response back to `~/Desktop/8ball/audits/chatgpt_v2_trait_review_<date>.md`.
+5. Operator: paste `~/Desktop/8ball/audits/codex_brief_doctrine_audit.md` into Codex.app. Save response back to `~/Desktop/8ball/audits/codex_doctrine_audit_<date>.md`.
+6. Operator: create `audits/local_personal_data.txt` per `audits/LOCAL_PII_AUDIT.md`.
+7. Operator: add `8ball` row to `~/MUHAB.md` §6 bootstrap table (operator-personal file).
+8. Trait pool v2 — incorporate ChatGPT review per item 4.
+9. Doctrine fix-ups — incorporate Codex audit per item 5.
+10. Question classifier rework.
+
+=====
+End of 2026-05-08 · v0.1.1 entry.
+=====
+
+=====
+2026-05-08 · v0.1.0 build session — PII leak found mid-build, patched, discipline added pre-ship
+=====
 ## What shipped
 
 - **Critical:** v0.1.0 fixture leak fixed. `tests/fixtures.json` had a fixture labeled `"Gemini Horse LP4 (canonical Muhab test)"` with `dob: "1990-06-15"` — a labeled tie between operator name and a real-shape DOB in a public repo. Same leak in `journal.md`. Fix: shifted synthetic DOB by 12 years (preserves animal + LP mod-9), removed all operator-name labels.

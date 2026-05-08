@@ -78,6 +78,22 @@ describe('engine — token leakage', () => {
     expect(classifyQuestion('')).toBe('none');
     expect(classifyQuestion('  ')).toBe('none');
   });
+
+  it('respects the 120-char hex-window soft cap on >95% of answers', () => {
+    const recent = [];
+    let overCap = 0;
+    const N = 1000;
+    for (let i = 0; i < N; i++) {
+      const ans = generateAnswer(profile, '', recent);
+      if (ans.length > 120) overCap++;
+      recent.push(ans);
+      if (recent.length > 24) recent.shift();
+    }
+    // Engine re-rolls up to 12 times; some pathological combinations may
+    // still exceed if every candidate exceeds. Empirically this should be
+    // well under 5%.
+    expect(overCap / N).toBeLessThan(0.05);
+  });
 });
 
 describe('content rules — automated subset', () => {

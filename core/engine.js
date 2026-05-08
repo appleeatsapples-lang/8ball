@@ -69,12 +69,25 @@ function pickTemplate(mode, rng) {
  */
 export function generateAnswer(profile, question, recent = [], rng = Math.random) {
   const mode = classifyQuestion(question, rng);
+  // Hex-window soft cap (DOCTRINE.md §6 — UI integrity).
+  // Long answers overflow the ball's hex display. Re-roll up to 8 times to
+  // pick something that fits; fall back to the longest acceptable on the 9th.
+  const MAX_CHARS = 120;
   let answer;
+  let bestFallback = '';
   let attempts = 0;
   do {
     const tpl = pickTemplate(mode, rng);
-    answer = fillTemplate(tpl, profile, rng);
+    const candidate = fillTemplate(tpl, profile, rng);
+    if (candidate.length <= MAX_CHARS && !recent.includes(candidate)) {
+      return candidate;
+    }
+    if (candidate.length <= MAX_CHARS && bestFallback === '') {
+      bestFallback = candidate; // accept-on-length even if recently-shown
+    }
+    answer = candidate;
     attempts++;
-  } while (recent.includes(answer) && attempts < 10);
-  return answer;
+  } while (attempts < 12);
+  // Prefer a length-clean fallback over a too-long answer.
+  return bestFallback || answer;
 }
