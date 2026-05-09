@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="Seven calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
+<meta name="description" content="Ten calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -126,6 +126,30 @@
     text-align: center;
     letter-spacing: -0.005em;
     white-space: pre-line;
+  }
+  .card .hexagon {
+    width: clamp(140px, 38vw, 180px);
+    aspect-ratio: 1;
+    margin: 4px auto 0;
+  }
+  .card .hexagon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+  .card .hexagon polygon {
+    fill: none;
+    stroke: var(--label);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .card .hexagon text {
+    fill: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
   }
 
   /* ── card back (shake state) ─────────────────────────────────── */
@@ -487,6 +511,7 @@
           <article class="card" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
             <div class="coordinates" id="card-coordinates" aria-label="profile coordinates">—</div>
+            <div class="hexagon" id="card-hexagon" aria-hidden="true"></div>
           </article>
         </div>
 
@@ -510,7 +535,7 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing is stored off-device.</p>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate ten calibrated coordinates: chinese five-element, sun sign, public animal, private animal, life path, expression, personality, maturity, soul urge, and birthday. when birth time and place are provided, an eleventh coordinate — rising sign — is added. these are your symbols. nothing is stored off-device.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -562,9 +587,13 @@ const aboutClose = $('about-close');
 
 const cardCatalog = $('card-catalog');
 const cardCoordinates = $('card-coordinates');
+const cardHexagon = $('card-hexagon');
 
 let currentProfile = null;
 let flipLocked = false;
+
+const HEXAGON_POLYGON_POINTS = '50,12 82.9,31 82.9,69 50,88 17.1,69 17.1,31';
+const HEXAGON_LABEL_POINTS = [[50, 0], [93.3, 25], [93.3, 75], [50, 100], [6.7, 75], [6.7, 25]];
 
 for (const c of COUNTRIES) {
   const opt = document.createElement('option');
@@ -629,14 +658,13 @@ function clearProfile() {
 
 // ── render card face from profile ─────────────────────────────────
 //
-// v0.2.0 surface (Phase-2F-3): renders four visual lines covering
-// seven calibrated coordinates, plus optional rising sign in v0.2.1:
+// v0.2.2 surface: renders three text lines plus a numerology hexagon:
 //   1. chinese five-element
 //   2. sun sign, or sun ↑ rising when birth time/place are provided
 //   3. (public-animal ⇌ private-animal) — paired via equilibrium arrow
-//   4. (life path · name number · soul urge) — reduced numerology
-//      triplet, concatenated when all single-digit (e.g. "777"),
-//      space-separated when any master 11/22/33 present (e.g. "3 11 3")
+//   4. inline SVG hexagon carrying six reduced numerology coordinates:
+//      life path · expression · personality · maturity · soul urge · birthday,
+//      clockwise from top.
 // Plus the catalog index of the resolved card.
 //
 // Product principle: free surface = calibrated symbols only. No
@@ -645,18 +673,6 @@ function clearProfile() {
 // private card-content source). Per DOCTRINE §4 cards are
 // versioned-not-edited.
 
-function formatNumbers(profile) {
-  // Three reduced numerology numbers on one line. When all three are
-  // single digits, concatenate so triplets read naturally (e.g. 7-7-7
-  // appears as "777", 3-6-9 as "369"). When any is a master (11/22/33),
-  // space-separate to disambiguate (e.g. "3 11 3" never reads as
-  // "3113"). The unreduced sums are still exported by core/profile.js
-  // for potential surfacing in the future paid interpretation layer.
-  const nums = [profile.lifePath, profile.nameNumber, profile.soulUrge];
-  const hasMaster = nums.some(n => n > 9);
-  return hasMaster ? nums.join(' ') : nums.join('');
-}
-
 function formatCoordinates(profile) {
   const sunLine = profile.risingSign
     ? `${profile.sunSign} ↑ ${profile.risingSign}`
@@ -664,13 +680,29 @@ function formatCoordinates(profile) {
   return [
     profile.chineseElement,
     sunLine,
-    `${profile.animal} ⇌ ${profile.innerAnimal}`,
-    formatNumbers(profile)
+    `${profile.animal} ⇌ ${profile.innerAnimal}`
   ].join('\n');
+}
+
+function formatHexagonSVG(profile) {
+  const values = [
+    profile.lifePath,
+    profile.nameNumber,
+    profile.personality,
+    profile.maturity,
+    profile.soulUrge,
+    profile.birthday
+  ];
+  const texts = values.map((value, i) => {
+    const [x, y] = HEXAGON_LABEL_POINTS[i];
+    return `<text x="${x}" y="${y}">${value}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 100 100" focusable="false" role="img"><polygon points="${HEXAGON_POLYGON_POINTS}"></polygon>${texts}</svg>`;
 }
 
 function renderCard(profile) {
   cardCoordinates.textContent = formatCoordinates(profile);
+  cardHexagon.innerHTML = formatHexagonSVG(profile);
   try {
     const card = getCard(profile);
     cardCatalog.textContent = `no. ${card.catalog}`;
