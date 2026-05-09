@@ -30,12 +30,12 @@ Mirrors the shape of `~/dev/SIRR/SIRR.md` deliberately. Same discipline. Smaller
 
 ## 1. What 8ball is
 
-A magic 8-ball that knows you. Public-facing surface is a toy: enter name + DOB once, shake or ask, get a roast. Underneath, the roast is informed by the user's sun sign, Chinese zodiac animal, and numerology life path.
+A magic 8-ball that knows you. Public-facing surface for v0.2.0 is minimal: enter name + DOB once, shake, see your seven calibrated coordinates — sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all single-digit, e.g. `777`; space-separated when any master 11/22/33, e.g. `3 11 3`). Underneath, the (sun sign, public animal) pair drives a 144-card catalog index — computed positionally by `core/engine.js` (sun-row × 12 + animal-col + 1, roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell, not the catalog index. The catalog index is the only card-derived value surfaced. The card content itself (name, type, habit, note per cell) is private and lives outside this repo at `~/dev/8ball-private/`; the future paid interpretation layer will surface it.
 
 **SIRR is the engine; 8-Ball is the deniability layer.** SIRR (sacred, private, personal) and 8ball (materialistic, public, commercial) are sibling repos. They share NOTHING in code. They share calculation rigor by example, not by import. (See `DOCTRINE.md §9`.)
 
 **Production:** `https://the-eight-ball.netlify.app` (Netlify free tier, GitHub-connected, auto-deploys on push to main).
-**Repo:** `github.com/appleeatsapples-lang/8ball` (public from day 1).
+**Repo:** `github.com/appleeatsapples-lang/8ball` (PRIVATE as of v0.2.0 — was public through v0.1.4; flipped private to protect the future paid card-content layer).
 **Stack:** static HTML/CSS/ES-modules. No build step. Vitest for tests. GitHub Actions for CI. Netlify for hosting.
 
 ---
@@ -48,8 +48,8 @@ Layered source:
 
 | Folder | Contents |
 |---|---|
-| `core/`           | `profile.js` (calculation), `engine.js` (response generation) — pure functions, no DOM |
-| `content/`        | `traits.v1.js`, `templates.v1.js` — versioned, immutable once shipped |
+| `core/`           | `profile.js` (calculation), `engine.js` (card lookup) — pure functions, no DOM |
+| `content/`        | (empty in public repo as of v0.2.0; was `cards.v1.js`. Card content moved to `~/dev/8ball-private/cards.v1.full.js` — future paid layer.) |
 | `tests/`          | `fixtures.json` (calc contract), `profile.test.js` (engine + content), `pii_scan.test.js` (public banned-pattern audit) |
 | `audits/`         | `LOCAL_PII_AUDIT.md`, `run_local_audit.sh`, `RELEASE_CHECKLIST.md` |
 | `.github/workflows/` | `ci.yml` |
@@ -63,7 +63,7 @@ Layered source:
 
 | # | Decision | Locked value |
 |---|---|---|
-| 1 | Repo visibility | Public from day 1 |
+| 1 | Repo visibility | Private as of v0.2.0 (was public through v0.1.4; flipped to protect the future paid card-content layer) |
 | 2 | Domain | netlify.app subdomain `the-eight-ball.netlify.app` (live as of 2026-05-08) |
 | 3 | Product display name | `8 ball` (lowercase, space). Folder & repo: `8ball`. |
 | 4 | License | MIT |
@@ -71,7 +71,7 @@ Layered source:
 | 6 | Persistence | localStorage only — name + DOB; nothing else, ever |
 | 7 | Telemetry | None. Permanently. |
 | 8 | Calc version | v1 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; Feb 4 CNY approximation |
-| 9 | Content version | v1 — ~115 sun + ~85 animal + ~70 LP traits · 39 templates |
+| 9 | Content version | v0.2.0-public (catalog-only; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
 | 12 | Multi-model lanes | DOCTRINE.md §10 (mirrors SIRR §7 pattern at smaller scale) |
@@ -100,7 +100,7 @@ The product persists exactly two pieces of user data: `name` (string) and `dob` 
 
 **PII rule (DOCTRINE.md §11):**
 
-The repo is public. Operator personal data is NEVER tracked content. Two-layer audit:
+Operator personal data is NEVER tracked content. The repo is private as of v0.2.0, but the rule is independent of repo visibility — tracked content is the durable boundary, not the current ACL state. Two-layer audit:
 
 1. **Public CI scan** (`tests/pii_scan.test.js`) — operator name, SIRR cross-references, labeled-DOB shapes.
 2. **Local audit** (`audits/run_local_audit.sh`) — operator's personal-data file (gitignored), grepped against tracked content before push.
@@ -161,7 +161,7 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 **Canonical paths:**
 
-- Repo: `~/dev/8ball/` (public)
+- Repo: `~/dev/8ball/` (private as of v0.2.0)
 - Desktop materializations: `~/Desktop/8ball/` (sessions, audits, demos — separate from code; mirrors `~/Desktop/SIRR/` pattern)
 - This file: `~/dev/8ball/8BALL.md`
 
@@ -177,7 +177,9 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 ---
 
-## 10. Current state (as of 2026-05-08)
+## 10. Current state (as of 2026-05-09)
+
+**v0.2.0 SHIPPED 2026-05-09** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `<post-merge sha>` (squash-merge of Phase-2F card system + 2F-3 minimal surface strip + calc additions + secret strip). CI green. The public repo + runtime ships only seven calibrated coordinates and a positionally-computed catalog index — zero card content (name/type/habit/note) in any public file. Card content moved to private location `~/dev/8ball-private/cards.v1.full.js` for the future paid interpretation layer. Repo flipped from public to private as of this release. Animals pair on a line via `⇌`; numerology collapses to a reduced triplet. `traits.v1.js`, `templates.v1.js`, and `cards.v1.js` retired from public repo. Doctrine v0.2 → v0.3 (live-fire) → v0.4 (minimal surface) → v0.5 (six coordinates) → v0.6 (additive-vs-breaking) → v0.7 (seven coordinates) → v0.8 (presentation tightening) → v0.9 (cards privatized + positional engine).
 
 **v0.1.4 SHIPPED 2026-05-08** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `4aaf2d3` (squash-merge of Phase-2D · CONCERN dispositions, eight feature-branch commits collapsed). CI green (32 → **69**). Netlify auto-deploys on push; CI deploy-gating still queued for Phase-2C.
 
@@ -199,17 +201,17 @@ Phase-2 structure (per `journal.md` 2026-05-08 doctrine-triage entry):
 1. **Phase-2A — v0.1.2 patch.** ✅ shipped 2026-05-08 at `f52345f`. §4/§7/§11 FAILs closed; Codex re-audit clean.
 2. **Phase-2B — doctrine consolidation.** ✅ shipped 2026-05-08 at `708735d`. §1/§2/§4/§9 substance rewritten; six §4 carve-out content cuts; §9 wording matches scanner. Five-audit cycle cleared at 5/7/1; §1 the only remaining FAIL (bound to Phase-2F).
 3. **Phase-2D — CONCERN dispositions.** ✅ shipped 2026-05-08 at `4aaf2d3`. Seven CONCERN dispositions landed (§2/§3/§5/§8 enforce, §10 enforce, §12 enforce, §13 amend+defer). Three-audit cycle (`c99a641 → 0073189 → 4aaf2d3`) cleared at **9/3/1**. The 3 residual CONCERNs (§10/§12/§13) are calibrated dispositions, not drift.
-4. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle + GitHub required-check. Could fold the doctrine-version bump (v0.2 → v0.3) into this work.
+4. **Phase-2C — §7 deploy-gate wiring.** Currently doctrine-correct ("not gated, acknowledged"); flip to actually-gated when traction warrants. One Netlify console toggle + GitHub required-check.
 5. **Phase-2E — card system design.** Aesthetic concentration. **Locked constraint:** monochrome / grayscale, no color hues. Captured at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`. Independent of doctrine work; can run parallel.
-6. **Phase-2F — card system implementation.** Engine + UI rewrite, content layer pivot. Retires `content/traits.v1.js` and `content/templates.v1.js`. Adds `content/cards.v1.js` + `assets/cards/`. Fixtures update. Closes §1 FAIL. Closes the live-observed hex-overflow defect (operator's screenshots in the v0.1.4 session showed long roast outputs still clipping the hexagon despite the v0.1.1 soft-cap fix). CC lane.
+6. ~~Phase-2F — card system implementation.~~ ✅ shipped 2026-05-09 as v0.2.0 (Phase-2F-1 engine + UI flip + Aries sample row; Phase-2F-2 full 132-card deck integration; Phase-2F-3 minimal-surface pivot to seven coordinates + symbols-only presentation, then secret strip — `content/cards.v1.js` moved to `~/dev/8ball-private/cards.v1.full.js`, public engine computes catalog positionally with no content import). `content/traits.v1.js` and `content/templates.v1.js` retired and deleted in 2F-2; `content/cards.v1.js` retired from the public repo in 2F-3. §1 FAIL closed. Hex-overflow defect retired by specimen-aesthetic UI rewrite.
 
 Independent / housekeeping:
 
 7. **Cleanup: shadow Netlify project.** Two Netlify deploys connected to the repo (`the-eight-ball` ✓ canonical; `enchanting-bonbon-2b5064` ✗ shadow). 8BALL.md §2 says one. One-click delete in Netlify dashboard.
 8. **Cleanup: branch deletion.** `v0.1.4-phase2d-concern-dispositions` should be deleted from origin and local post-merge (CC has a pinned task for the local side).
 9. **`audits/RELEASE_CHECKLIST.md` staleness.** Codex flagged in cross-rule finding 2 of the post-polish audit at `0073189` — the file says it's pulled "directly from §8" but is more abbreviated. Sync in next housekeeping pass.
-10. **Doctrine-version bump.** DOCTRINE.md still says `v0.2` despite Phase-2B/2D substance edits. Bump to `v0.3` next housekeeping cycle, or fold into Phase-2C.
-11. **Live-fire testing** — shake the deployed URL repeatedly to surface flavor-repeats or weak lines. Likely retired by 2F pivot, but worth one round on the current pool while it's still live.
+10. ~~Doctrine-version bump.~~ ✅ shipped 2026-05-09 in Phase-2F-2 as part of the §8 live-fire ritual-gate amendment. DOCTRINE.md now reads v0.3.
+11. **Live-fire testing** — shake the deployed URL across all 12 sun rows post-2F-2 to confirm card variety reads cleanly. Now codified as a §8 ritual-gate sub-rule (per doctrine v0.3).
 12. **Operator-personal:** add `8ball` row to `~/MUHAB.md` §6 bootstrap table (operator-only edit).
 
 Paused / retired:

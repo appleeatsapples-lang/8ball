@@ -6,17 +6,21 @@ This document is the constitution of `8ball`. The codebase obeys it. PRs that co
 
 ## §1. What this is
 
-A fixed designed deck that knows you. Enter your name and date of birth once. Shake or ask. The product returns a card from the deck, selected by a calculation tied to (name, DOB).
+A fixed designed deck that knows you. Enter your name and date of birth once. Shake.
 
-The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese zodiac animal, numerology life path — and name them as such.
+The product calculates seven calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all are single-digit, space-separated when any is a master 11/22/33). The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
+
+As of v0.2.0 only the seven coordinates and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
+
+The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese five-element, Chinese zodiac animals (year and month pillars), numerology life path, name number, soul urge — and name them as such.
 
 ## §2. What this is NOT
 
 **Currently enforced (CI gates, see §7):**
 
-- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented. Banned-voice-register scan in `tests/profile.test.js` enforces this against shipped content pools.
+- Not a "spiritual" product. The voice is declarative-observational and materialistic, not mystical or guidance-oriented. Banned-voice-register scan ran on `cards.v1.js` content in v0.1.x; as of v0.2.0 the card content is private (paid layer) and that scan runs on the private content-authoring pipeline, not in the public test suite. The regex policy itself is preserved in `tests/profile.test.js` as the canonical rule reference.
 - Not a SIRR product. Never references SIRR. Never imports from SIRR. The two repos are siblings, not parent/child. (See §9.) Enforced by `tests/pii_scan.test.js`.
-- Not an analytics product. No tracking, no telemetry, no third-party network calls beyond Google Fonts CSS. Enforced by `tests/privacy_scan.test.js` (see §5).
+- Not an analytics product. No tracking, no telemetry, no network calls of any kind. Enforced by `tests/privacy_scan.test.js` (see §5). The page uses system fonts only — no Google Fonts, no third-party CSS, zero network requests after page load.
 
 **Review-discipline (no current code surface to scan; rule fires when a feature is proposed):**
 
@@ -26,16 +30,25 @@ The voice is declarative-observational, framed in strengths and weaknesses. Card
 
 ## §3. The calculation contract
 
-`core/profile.js` is the calculation core. The contract for any change to it:
+`core/profile.js` is the calculation core. Changes fall into two categories:
+
+**Breaking changes** — modify existing outputs (sunSign, animal, lifePath, nameNumber, chineseElement, soulUrge for any input). The contract:
 
 1. Add or update fixtures in `tests/fixtures.json` reflecting the intended new behavior.
 2. Update the algorithm.
 3. Run `npm test`. All cases must pass.
 4. Bump the calc-version note at the bottom of this file.
 
+**Additive changes** — add new outputs without modifying existing ones (e.g. new functions exported, new fields on the `buildProfile` return value). The contract:
+
+1. Add direct unit tests for the new outputs in `tests/profile.test.js`.
+2. Run `npm test`. All cases must pass, including the new tests.
+3. Existing `tests/fixtures.json` cases must remain byte-identical (no silent drift).
+4. Calc-version stays the same major (additive doesn't break v1 consumers).
+
 Algorithm versions documented:
 
-- **calc v1** (initial) — Pythagorean life path with master numbers 11/22/33 preserved at the final reduce. Western tropical sun signs at standard cusps. Chinese zodiac with Feb 4 cutoff approximation (lunar tables = future work).
+- **calc v1** (initial) — Pythagorean life path with master numbers 11/22/33 preserved at the final reduce. Western tropical sun signs at standard cusps. Chinese zodiac with Feb 4 cutoff approximation (lunar tables = future work). Additively extended at v0.2.0 with: chinese five-element (2-year cycle, 1924 anchor), public/private animal split (year-pillar already present at `animal`; month-pillar added as `innerAnimal` via solar-term cutoff approximations), soul urge (vowel-only Pythagorean, masters preserved), and unreduced sums (lifePathSum, nameNumberSum, soulUrgeSum) exported for potential future surfacing. All additions covered by direct unit tests in `tests/profile.test.js`; existing fixtures unchanged.
 
 If a fixture changes silently, the test gate catches it. If a test changes silently, code review catches it. If both change in the same commit without a doctrine note, the reviewer rejects.
 
@@ -47,6 +60,7 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 - **No targeting minors.** Copy assumes adult user. UI does not pander to children.
 - **No real-person targets.** No "you're like [public figure]" lines.
 - **Universal floor.** Cards should land equally on a person who picked their own DOB.
+- **No card-content strings in tracked files.** As of v0.2.0 the card content (cell `name`, `type`, `habit`, `note` bodies) lives privately at `~/dev/8ball-private/cards.v1.full.js`. No public-repo tracked file (source, tests, fixtures, `journal.md`, audit notes, this doctrine) may contain a card-content string. Audit dispositions and content-batch logs reference cells by coordinate path (e.g. `aries.rabbit.note.mid`); before/after strings are stored with the private deck. Forward-looking from doctrine v0.11; pre-v0.11 trait-pool / template-pool excerpts in journal entries (retired `traits.v1.js` / `templates.v1.js` system, deleted from repo in 2F-2) are out of scope.
 - **Versioned, not edited.** Shipped content batches are immutable. New release = new file (e.g. `traits.v2.js`, `cards.v2.js`). Diff lives in `journal.md`.
 
 If a line lands but you can't tell whether it crosses any of the above, it crosses. Cut it.
@@ -60,27 +74,29 @@ The product persists exactly two pieces of user data, in `localStorage` only, on
 - `name` (string)
 - `dob` (ISO date YYYY-MM-DD)
 
-Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No remote endpoints. No third-party scripts beyond the Google Fonts CSS.
+Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No remote endpoints. No third-party scripts. System fonts only — zero network requests after page load.
 
 If a future feature requires storing or transmitting more, that feature requires a doctrine amendment to §5 and a privacy-policy update before merge.
 
 ## §6. Architecture
 
-- Single repo, public on GitHub.
+- Single repo, private on GitHub as of v0.2.0 (was public through v0.1.4; flipped private to protect the future paid card-content layer at `~/dev/8ball-private/`).
 - Static site. Deployed on Netlify free tier from `main` branch.
 - ES modules in the browser. No build step.
-- Three-folder source layout: `core/` (logic), `content/` (data), `tests/` (gates). Plus `index.html` and config.
+- Three-folder source layout: `core/` (logic), `content/` (data — empty in the public repo as of v0.2.0; full deck lives privately), `tests/` (gates). Plus `index.html` and config.
 - The single-file rule: `index.html` may not exceed 1500 lines. If it would, split into `ui/*.js` modules. Not before.
 
 ## §7. CI gate
 
 `.github/workflows/ci.yml` runs on every push and PR to main. The gate has these stages:
 
-1. **Calculation contract** — `tests/profile.test.js` calc cases must pass.
-2. **Engine integrity** — token-leakage and recent-buffer dedup tests must pass.
-3. **Content scan** — banned-pattern subset of test suite must pass.
-4. **PII scan** — `tests/pii_scan.test.js` must pass. (Operator name leakage, SIRR cross-reference leakage, labeled-DOB leakage.)
+1. **Calculation contract + engine pipeline** — `tests/profile.test.js` must pass (calc cases against `tests/fixtures.json`, `getCard` pipeline across the 144 positional catalog cells, `resolveBracket` cases).
+2. **Privacy scan** — `tests/privacy_scan.test.js` must pass (no network calls, no third-party fonts/scripts, system fonts only).
+3. **PII scan** — `tests/pii_scan.test.js` must pass (operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage).
+4. **Dependency discipline** — `tests/dependency_discipline.test.js` must pass (no card-content imports in the public engine).
 5. **Single-file rule** — `index.html` ≤ 1500 lines.
+
+(Content scan against `cards.v*.js` was retired in v0.2.0 when the deck moved to `~/dev/8ball-private/`. The banned-pattern + banned-voice-register policy is preserved in `tests/profile.test.js` as the canonical rule reference; it now runs on the private content-authoring pipeline, not in the public CI.)
 
 Netlify is configured to auto-deploy on push to `main`. CI runs in parallel on the same push. Failed CI does not currently block the auto-deploy itself — this gap is acknowledged and acceptable while traffic is operator-only. Wiring a Netlify required-check on the GitHub Actions status is queued for the first traction milestone (see `journal.md`); at that point, this paragraph gets re-tightened to "a failed gate blocks the deploy."
 
@@ -90,7 +106,7 @@ Every release, however small, has automated gates and ritual gates.
 
 **Automated gates (CI, blocking):**
 
-1. CI green (5 stages — calc / engine / content / PII / single-file).
+1. CI green (5 stages — calc+pipeline / privacy / PII / dependency / single-file). See §7 for the per-stage breakdown.
 2. **Doctrine/content change requires journal entry.** PRs touching `DOCTRINE.md` or `content/*.js` must also touch `journal.md`. Enforced in `.github/workflows/ci.yml`.
 
 **Ritual gates (operator/reviewer responsibility):**
@@ -101,7 +117,8 @@ Every release, however small, has automated gates and ritual gates.
 6. Cross-model audit on doctrine or content changes. See §10. Solo authority IS the failure mode. Doctrine and content changes go through Codex (or ChatGPT for content batches) before merge. Mechanical edits do not.
 7. Merge.
 8. Append to `journal.md` with the `===== YYYY-MM-DD · Title =====` shape: what shipped, what was rejected, what's deferred.
-9. Confirm Netlify auto-deployed. Open the live URL. Shake it.
+9. **Live-fire on local deploy preview.** Static audit cannot simulate DOM/CSS or engine runtime. Releases touching `index.html`, `core/engine.js`, or content batches require an operator-run local-server pass against the changed surface before merge. Phase-2F-1 made this load-bearing — the flip-state inversion bug was invisible to Codex's static audit and only surfaced when the operator shook the deploy preview.
+10. Confirm Netlify auto-deployed. Open the live URL. Shake it.
 
 ## §9. The SIRR boundary
 
@@ -132,7 +149,7 @@ For SIRR-specific lane discipline, see `~/dev/SIRR/SIRR.md` §7.
 
 ## §11. PII rule
 
-The repo is public. Personal data of the operator, family, friends, or any other identifiable person is NEVER tracked content.
+Personal data of the operator, family, friends, or any other identifiable person is NEVER tracked content. The repo is private as of v0.2.0, but this rule is independent of repo visibility — tracked content is the durable boundary, not the current ACL state. Repos can flip; the rule survives the flip.
 
 Specifically forbidden in any tracked file:
 
@@ -176,5 +193,5 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v1 (~115 sun + ~85 animal + ~70 LP traits · 39 templates)
-**doctrine version:** 2026-05-08 · v0.2 (added §10 lanes, §11 PII rule, §13 refresh discipline; renumbered out-of-scope to §12)
+**content version:** v0.2.0-public (catalog-only; engine computes positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
+**doctrine version:** 2026-05-09 · v0.12 (audit-4 dispositions — §11 PII-rule premise rewritten to be independent of repo visibility — the rule survives the public→private flip; §8.1 CI stage list aligned with §7 v0.10+ stages; stale-public residues swept across 8BALL.md / ci.yml / RELEASE_CHECKLIST.md; current-system card-content leak at journal:245 (`virgo.dragon.note.low`) scrubbed per §4 v0.11 clause)

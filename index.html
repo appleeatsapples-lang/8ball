@@ -5,30 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="It already knows. You just have to ask.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="description" content="Seven calibrated coordinates from name and date of birth. Stored only on your device.">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #08070a;
-    --bg-2: #0f0e12;
-    --gold: #d4af37;
-    --gold-soft: #b89b3e;
-    --gold-dim: rgba(212, 175, 55, 0.35);
-    --ink: #e8e4d8;
-    --ink-dim: rgba(232, 228, 216, 0.55);
-    --ball: radial-gradient(circle at 30% 25%, #2a2a2e 0%, #131316 35%, #050507 80%);
-    --window: radial-gradient(circle at 35% 30%, #1d2942 0%, #0a1428 60%, #050a18 100%);
+    --paper: #ebe5d4;
+    --ink: #1a1812;
+    --rule: #8a8472;
+    --label: #5a5444;
+    --page-bg: #0a0a0a;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
+
   html, body {
     height: 100%;
-    width: 100%;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 300;
+    background: var(--page-bg);
+    color: var(--rule);
+    font-family: var(--font-mono);
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     overscroll-behavior: none;
@@ -38,59 +32,188 @@
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    padding-top: 56px;
+  }
+
+  /* ── top bar ─────────────────────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--page-bg);
+    z-index: 10;
+  }
+  .wordmark {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    color: var(--rule);
+    text-transform: lowercase;
+  }
+  .info-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--rule);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px 20px;
-    position: relative;
+    transition: border-color 0.15s, color 0.15s, border-width 0.15s;
+    line-height: 1;
   }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
+  .info-icon:hover, .info-icon:focus {
+    color: var(--paper);
+    border-color: var(--paper);
+    outline: none;
   }
-  .screen {
-    position: relative;
-    z-index: 1;
+  .info-icon:focus-visible {
+    outline: 1px solid var(--rule);
+    outline-offset: 2px;
+  }
+
+  /* ── screens ─────────────────────────────────────────────────── */
+  .stage {
+    flex: 1;
     width: 100%;
-    max-width: 420px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: fadeIn 0.6s ease-out;
+    justify-content: center;
+    padding: 24px 20px 48px;
   }
+  .screen { width: 100%; max-width: 380px; }
   .screen.hidden { display: none; }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+
+  /* ── card (paper specimen) ───────────────────────────────────── */
+  .card {
+    background: var(--paper);
+    color: var(--ink);
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 5 / 8;
+    margin: 0 auto;
+    padding: clamp(20px, 6vw, 28px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.6);
   }
-  .title {
-    font-family: 'Cinzel', serif;
-    font-weight: 700;
-    color: var(--gold);
-    font-size: 28px;
-    letter-spacing: 0.32em;
+  .card .catalog {
+    position: absolute;
+    top: clamp(14px, 4vw, 18px);
+    right: clamp(16px, 5vw, 22px);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--label);
     text-transform: lowercase;
-    margin-bottom: 8px;
-    text-align: center;
   }
-  .subtitle {
-    color: var(--ink-dim);
-    font-size: 13px;
-    letter-spacing: 0.05em;
+  .card .coordinates {
+    font-size: clamp(20px, 5.6vw, 24px);
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 500;
+    text-transform: lowercase;
+    margin-top: clamp(20px, 6vw, 28px);
     text-align: center;
-    margin-bottom: 36px;
-    max-width: 320px;
-    line-height: 1.6;
+    letter-spacing: -0.005em;
+    white-space: pre-line;
   }
-  .field { width: 100%; margin-bottom: 16px; }
+
+  /* ── card back (shake state) ─────────────────────────────────── */
+  .card-back {
+    background: var(--paper);
+    color: var(--ink);
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 5 / 8;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.6);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-back .glyph {
+    font-size: clamp(72px, 22vw, 108px);
+    line-height: 1;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .card-back .glyph-label {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--label);
+    text-transform: lowercase;
+    margin-top: 18px;
+  }
+
+  /* ── flip animation ──────────────────────────────────────────── */
+  .flip-stage {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 5 / 8;
+    margin: 0 auto;
+    perspective: 1200px;
+    position: relative;
+  }
+  .flip-inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 300ms ease-in-out;
+  }
+  .flip-inner.face-up { transform: rotateY(180deg); }
+  .flip-side {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flip-side.front { transform: rotateY(0deg); }
+  .flip-side.back  { transform: rotateY(180deg); }
+  .flip-side .card,
+  .flip-side .card-back {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    max-width: none;
+  }
+  .reveal { animation: revealBack 300ms ease-out; }
+  @keyframes revealBack {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── welcome (specimen registry) ─────────────────────────────── */
+  .registry-header {
+    text-align: center;
+    margin-top: 32px;
+    margin-bottom: 32px;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: var(--label);
+    text-transform: lowercase;
+  }
+  .field {
+    margin-bottom: 22px;
+  }
   .field label {
     display: block;
-    color: var(--gold-soft);
-    font-size: 11px;
-    letter-spacing: 0.18em;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--label);
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -98,390 +221,398 @@
     width: 100%;
     background: transparent;
     border: none;
-    border-bottom: 1px solid var(--gold-dim);
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 18px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 15px;
     padding: 8px 2px;
-    transition: border-color 0.2s;
+    transition: border-bottom-width 0.15s;
   }
-  .field input:focus { outline: none; border-bottom-color: var(--gold); }
-  .field input::placeholder { color: rgba(232,228,216,0.25); }
+  .field input:focus {
+    outline: none;
+    border-bottom-width: 2px;
+    border-bottom-color: var(--paper);
+  }
+  .field input::placeholder { color: rgba(138,132,114,0.4); }
   .field input[type="date"] { color-scheme: dark; }
+
+  /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
-    margin-top: 12px;
-    width: 100%;
+    display: inline-block;
     background: transparent;
-    color: var(--gold);
-    border: 1px solid var(--gold);
-    padding: 14px;
-    font-family: 'Cinzel', serif;
-    font-weight: 500;
-    letter-spacing: 0.25em;
-    font-size: 13px;
+    color: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 12px 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, border-width 0.15s;
+    text-align: center;
   }
   .btn:hover, .btn:focus {
-    background: var(--gold);
-    color: #08070a;
+    border-color: var(--paper);
     outline: none;
   }
-  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .btn:disabled:hover { background: transparent; color: var(--gold); }
-  .legal {
-    margin-top: 20px;
-    font-size: 11px;
-    color: var(--ink-dim);
-    text-align: center;
-    letter-spacing: 0.04em;
-    line-height: 1.6;
+  .btn:focus-visible {
+    outline: 1px solid var(--rule);
+    outline-offset: 2px;
   }
-  .ball-wrap {
-    width: min(80vw, 320px);
-    aspect-ratio: 1;
-    position: relative;
-    margin: 8px 0 20px;
-    cursor: pointer;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .ball {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: var(--ball);
-    box-shadow:
-      inset -20px -30px 40px rgba(0,0,0,0.85),
-      inset 20px 20px 30px rgba(255,255,255,0.04),
-      0 30px 60px rgba(0,0,0,0.6),
-      0 0 0 1px rgba(212,175,55,0.15);
-    position: relative;
-    transition: transform 0.15s ease;
-  }
-  .ball::after {
-    content: '';
-    position: absolute;
-    top: 12%;
-    left: 18%;
-    width: 28%;
-    height: 22%;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(255,255,255,0.18) 0%, transparent 70%);
-    filter: blur(4px);
-    pointer-events: none;
-  }
-  .number-wrap {
-    position: absolute;
-    top: 18%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 32%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: #f5f3ec;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-  }
-  .number-wrap span {
-    font-family: 'Cinzel', serif;
-    font-weight: 700;
-    color: #08070a;
-    font-size: clamp(28px, 9vw, 42px);
-  }
-  .window {
-    position: absolute;
-    bottom: 18%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 56%;
-    aspect-ratio: 1;
-    background: var(--window);
-    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16% 12%;
-    overflow: hidden;
-  }
-  .answer {
-    color: var(--gold);
-    font-family: 'Cinzel', serif;
-    font-weight: 500;
-    font-size: clamp(10px, 2.4vw, 13px);
-    text-align: center;
-    line-height: 1.3;
-    letter-spacing: 0.04em;
-    opacity: 0;
-    transition: opacity 0.5s ease, font-size 0.2s ease;
-  }
-  .answer.size-medium {
-    font-size: clamp(9px, 2.1vw, 12px);
-    line-height: 1.25;
-  }
-  .answer.size-small {
-    font-size: clamp(8px, 1.9vw, 11px);
-    line-height: 1.2;
-  }
-  .answer.visible { opacity: 1; }
-  .answer.empty {
-    color: var(--ink-dim);
-    font-style: italic;
-    font-family: 'Inter', sans-serif;
-    font-weight: 300;
-    letter-spacing: 0.08em;
-    opacity: 0.5;
-  }
-  @keyframes shakeIt {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    8%  { transform: translate(-12px, -4px) rotate(-3deg); }
-    16% { transform: translate(10px, 6px) rotate(2.5deg); }
-    24% { transform: translate(-8px, 4px) rotate(-2deg); }
-    32% { transform: translate(11px, -5px) rotate(3deg); }
-    40% { transform: translate(-9px, 3px) rotate(-2.5deg); }
-    48% { transform: translate(7px, -3px) rotate(1.5deg); }
-    56% { transform: translate(-6px, 2px) rotate(-1deg); }
-    64% { transform: translate(4px, -2px) rotate(0.8deg); }
-    72% { transform: translate(-3px, 1px) rotate(-0.4deg); }
-  }
-  .ball.shaking { animation: shakeIt 0.9s ease-out; }
-  .ball.shaking .answer { opacity: 0; transition: opacity 0.1s; }
-  .question-wrap { width: 100%; margin-bottom: 14px; }
-  .question-wrap input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--gold-dim);
+  .btn.active,
+  .btn:active {
+    background: var(--paper);
     color: var(--ink);
-    font-family: inherit;
-    font-size: 15px;
-    padding: 10px 4px;
+    border-color: var(--paper);
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:disabled:hover { background: transparent; color: var(--paper); }
+  .btn-block { display: block; width: 100%; }
+  .btn-secondary {
+    border-color: var(--label);
+    color: var(--label);
+    letter-spacing: 0.20em;
+    margin-top: 10px;
+  }
+  .btn-secondary:hover, .btn-secondary:focus {
+    border-color: var(--paper);
+    color: var(--paper);
+  }
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  .btn-row .btn { flex: 1; }
+
+  /* ── disclaimer + footer chrome ──────────────────────────────── */
+  .disclaimer {
     text-align: center;
-    letter-spacing: 0.02em;
+    margin-top: 18px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--label);
+    text-transform: lowercase;
   }
-  .question-wrap input::placeholder {
-    color: rgba(232,228,216,0.28);
-    font-style: italic;
+  .footer-actions {
+    margin-top: 32px;
+    text-align: center;
   }
-  .question-wrap input:focus { outline: none; border-bottom-color: var(--gold); }
-  .actions { width: 100%; display: flex; gap: 10px; margin-top: 4px; }
-  .actions .btn { margin-top: 0; flex: 1; }
-  .footer {
-    margin-top: 28px;
-    display: flex;
-    gap: 18px;
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .footer a, .footer button {
+  .text-link {
     background: none;
     border: none;
-    color: var(--ink-dim);
+    color: var(--label);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
     cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    padding: 4px 0;
-    transition: color 0.2s;
+    padding: 6px 0;
+    transition: color 0.15s;
   }
-  .footer a:hover, .footer button:hover { color: var(--gold); }
+  .text-link:hover, .text-link:focus { color: var(--paper); outline: none; }
+
+  /* ── result screen ───────────────────────────────────────────── */
+  .result-controls {
+    margin-top: 24px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  /* ── modal ───────────────────────────────────────────────────── */
   .modal-bg {
     position: fixed;
     inset: 0;
-    background: rgba(5,5,8,0.85);
-    backdrop-filter: blur(6px);
-    z-index: 50;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 24px;
+    z-index: 50;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s;
   }
   .modal-bg.open { opacity: 1; pointer-events: auto; }
   .modal {
-    background: var(--bg-2);
-    border: 1px solid var(--gold-dim);
-    padding: 28px 24px;
-    max-width: 380px;
-    width: 100%;
+    background: var(--paper);
     color: var(--ink);
-    font-size: 13px;
-    line-height: 1.7;
+    width: 100%;
+    max-width: 360px;
+    padding: 26px 24px;
     position: relative;
   }
   .modal h2 {
-    font-family: 'Cinzel', serif;
-    color: var(--gold);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: lowercase;
+    color: var(--label);
     font-weight: 500;
-    font-size: 16px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
     margin-bottom: 14px;
-    text-align: center;
   }
-  .modal p { margin-bottom: 12px; color: var(--ink-dim); }
-  .modal .close {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    background: none;
-    border: none;
-    color: var(--gold-soft);
-    font-size: 22px;
-    cursor: pointer;
-    line-height: 1;
+  .modal .modal-rule {
+    height: 1px;
+    background: var(--rule);
+    margin: 14px 0 14px;
   }
-  @media (max-height: 680px) {
-    .title { margin-bottom: 6px; font-size: 22px; }
-    .subtitle { margin-bottom: 22px; }
-    .ball-wrap { margin: 0 0 14px; }
-    .footer { margin-top: 18px; }
+  .modal p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .modal p:last-of-type { margin-bottom: 0; }
+  .modal .modal-actions {
+    margin-top: 22px;
+    display: flex;
+    gap: 12px;
+  }
+  .modal .modal-actions .btn { flex: 1; color: var(--ink); border-color: var(--rule); }
+  .modal .modal-actions .btn:hover, .modal .modal-actions .btn:focus { border-color: var(--ink); }
+  .modal .modal-actions .btn:active,
+  .modal .modal-actions .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* ── narrow viewport adjustments ─────────────────────────────── */
+  @media (max-width: 380px) {
+    .stage { padding-left: 16px; padding-right: 16px; }
+    .topbar { padding: 0 16px; }
   }
 </style>
 </head>
 <body>
 
-<div id="onboarding" class="screen">
-  <div class="title">8 ball</div>
-  <div class="subtitle">it already knows. you just have to ask. first — who's asking?</div>
-  <form id="profile-form" autocomplete="off">
-    <div class="field">
-      <label for="name-input">your name</label>
-      <input id="name-input" type="text" placeholder="what you go by" required maxlength="60">
-    </div>
-    <div class="field">
-      <label for="dob-input">date of birth</label>
-      <input id="dob-input" type="date" required>
-    </div>
-    <button type="submit" class="btn" id="enter-btn">begin</button>
-  </form>
-  <div class="legal">stored only on this device. nothing transmitted.<br>entertainment, not advice.</div>
-</div>
+<!-- ── top bar ─────────────────────────────────────────────────── -->
+<header class="topbar">
+  <span class="wordmark">8 ball</span>
+  <button class="info-icon" id="about-btn" aria-label="about" type="button">i</button>
+</header>
 
-<div id="main" class="screen hidden">
-  <div class="ball-wrap" id="ball-wrap" tabindex="0" aria-label="tap or shake the ball">
-    <div class="ball" id="ball">
-      <div class="number-wrap"><span>8</span></div>
-      <div class="window">
-        <div class="answer empty" id="answer">tap to shake</div>
+<main class="stage">
+
+  <!-- ── welcome screen ──────────────────────────────────────────── -->
+  <section class="screen" id="onboarding">
+    <div class="registry-header">specimen registry · new entry</div>
+    <form id="profile-form" autocomplete="off">
+      <div class="field">
+        <label for="name-input">name</label>
+        <input id="name-input" type="text" placeholder="" required maxlength="60">
+      </div>
+      <div class="field">
+        <label for="dob-input">date of birth</label>
+        <input id="dob-input" type="date" required>
+      </div>
+      <button type="submit" class="btn btn-block" id="enter-btn">begin</button>
+    </form>
+    <div class="disclaimer">stored only on this device.</div>
+  </section>
+
+  <!-- ── result/shake screen ─────────────────────────────────────── -->
+  <section class="screen hidden" id="result">
+
+    <div class="flip-stage" id="flip-stage">
+      <div class="flip-inner" id="flip-inner">
+
+        <!-- back side (shake state) -->
+        <div class="flip-side back">
+          <div class="card-back" id="card-back" tabindex="0" aria-label="card back — tap to reveal">
+            <div class="glyph">8</div>
+            <div class="glyph-label">ball</div>
+          </div>
+        </div>
+
+        <!-- front side (card face) -->
+        <div class="flip-side front">
+          <article class="card" id="card-face" aria-live="polite">
+            <span class="catalog" id="card-catalog">no. —</span>
+            <div class="coordinates" id="card-coordinates" aria-label="profile coordinates">—</div>
+          </article>
+        </div>
+
       </div>
     </div>
-  </div>
-  <div class="question-wrap">
-    <input id="question" type="text" placeholder="ask, or just shake" maxlength="160">
-  </div>
-  <div class="actions">
-    <button class="btn" id="shake-btn">shake</button>
-  </div>
-  <div class="footer">
-    <button id="about-btn" type="button">about</button>
-    <button id="reset-btn" type="button">forget me</button>
+
+    <div class="result-controls">
+      <button class="btn btn-block" id="shake-again-btn">shake again</button>
+      <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
+      <div class="disclaimer">stored only on this device.</div>
+      <div class="footer-actions">
+        <button class="text-link" id="forget-btn" type="button">forget this device</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── about modal ─────────────────────────────────────────────── -->
+<div class="modal-bg" id="about-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="about-title">
+    <h2 id="about-title">the trick</h2>
+    <div class="modal-rule"></div>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. these are your symbols. nothing is stored off-device.</p>
+    <div class="modal-actions">
+      <button class="btn" id="about-close" type="button">got it</button>
+    </div>
   </div>
 </div>
 
-<div class="modal-bg" id="about-modal">
-  <div class="modal">
-    <button class="close" id="about-close" aria-label="close">×</button>
-    <h2>what is this</h2>
-    <p>a toy. you shake it, it says something about you. the something is loosely informed by the date you were born and a couple of derived numbers. don't think about it too hard.</p>
-    <p>it's a roast more than a reading. don't take any of it seriously. or do — your call.</p>
-    <p>nothing leaves your device. forget me wipes everything.</p>
+<!-- ── forget-me modal ─────────────────────────────────────────── -->
+<div class="modal-bg" id="forget-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="forget-title">
+    <h2 id="forget-title">erase the paperwork</h2>
+    <div class="modal-rule"></div>
+    <p>removes the saved name and date of birth from local storage on this device. no paperwork exists elsewhere.</p>
+    <div class="modal-actions">
+      <button class="btn" id="forget-cancel" type="button">leave it</button>
+      <button class="btn" id="forget-confirm" type="button">erase it</button>
+    </div>
   </div>
 </div>
 
 <script type="module">
 import { buildProfile } from './core/profile.js';
-import { generateAnswer } from './core/engine.js';
+import { getCard, MissingCardError } from './core/engine.js';
 
 const STORAGE_KEY = 'eight_ball_profile_v1';
-const RECENT_MAX = 24;
-const recent = [];
 
 const $ = id => document.getElementById(id);
-const onboard = $('onboarding');
-const main = $('main');
-const ball = $('ball');
-const ballWrap = $('ball-wrap');
-const answerEl = $('answer');
-const questionEl = $('question');
-const shakeBtn = $('shake-btn');
+const onboarding = $('onboarding');
+const result = $('result');
 const profileForm = $('profile-form');
 const nameInput = $('name-input');
 const dobInput = $('dob-input');
-const resetBtn = $('reset-btn');
+const flipInner = $('flip-inner');
+const cardBack = $('card-back');
+const shakeAgainBtn = $('shake-again-btn');
+const tryAnotherBtn = $('try-another-btn');
+const forgetBtn = $('forget-btn');
+const forgetModal = $('forget-modal');
+const forgetCancel = $('forget-cancel');
+const forgetConfirm = $('forget-confirm');
 const aboutBtn = $('about-btn');
 const aboutModal = $('about-modal');
 const aboutClose = $('about-close');
 
+const cardCatalog = $('card-catalog');
+const cardCoordinates = $('card-coordinates');
+
 let currentProfile = null;
-let shakeLocked = false;
+let flipLocked = false;
 
-function showMain(profile) {
-  currentProfile = profile;
-  onboard.classList.add('hidden');
-  main.classList.remove('hidden');
-  answerEl.textContent = 'tap to shake';
-  answerEl.classList.add('empty');
-  answerEl.classList.remove('visible');
-}
-
-function showOnboard() {
-  main.classList.add('hidden');
-  onboard.classList.remove('hidden');
-  nameInput.value = '';
-  dobInput.value = '';
-  currentProfile = null;
-}
-
+// ── profile persistence (DOCTRINE.md §5) ──────────────────────────
 function loadProfile() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (obj && obj.name && obj.dob) return buildProfile(obj.name, obj.dob);
-  } catch (e) {}
+  } catch (_) {}
   return null;
 }
-
 function saveProfile(name, dob) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, dob })); }
-  catch (e) {}
+  catch (_) {}
 }
-
 function clearProfile() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
 }
 
-function doShake() {
-  if (shakeLocked || !currentProfile) return;
-  shakeLocked = true;
-  ball.classList.add('shaking');
-  answerEl.classList.remove('visible');
-  setTimeout(() => {
-    const ans = generateAnswer(currentProfile, questionEl.value, recent);
-    recent.push(ans);
-    if (recent.length > RECENT_MAX) recent.shift();
-    // Dynamic sizing: long answers shrink so they fit the hex window.
-    answerEl.classList.remove('size-medium', 'size-small');
-    if (ans.length > 90) answerEl.classList.add('size-small');
-    else if (ans.length > 60) answerEl.classList.add('size-medium');
-    answerEl.textContent = ans;
-    answerEl.classList.remove('empty');
-    requestAnimationFrame(() => answerEl.classList.add('visible'));
-  }, 700);
-  setTimeout(() => {
-    ball.classList.remove('shaking');
-    shakeLocked = false;
-  }, 950);
+// ── render card face from profile ─────────────────────────────────
+//
+// v0.2.0 surface (Phase-2F-3): renders four visual lines covering
+// seven calibrated coordinates:
+//   1. chinese five-element
+//   2. sun sign
+//   3. (public-animal ⇌ private-animal) — paired via equilibrium arrow
+//   4. (life path · name number · soul urge) — reduced numerology
+//      triplet, concatenated when all single-digit (e.g. "777"),
+//      space-separated when any master 11/22/33 present (e.g. "3 11 3")
+// Plus the catalog index of the resolved card.
+//
+// Product principle: free surface = calibrated symbols only. No
+// interpretation, no per-symbol explanation. Interpretation is the
+// future paid layer (v0.3.0+ may introduce the meaning layer via
+// reveal interaction; the immutable card content in cards.v1.js
+// already carries that interpretation, preserved-but-not-rendered).
+// Per DOCTRINE §4 cards are versioned-not-edited.
+
+function formatNumbers(profile) {
+  // Three reduced numerology numbers on one line. When all three are
+  // single digits, concatenate so triplets read naturally (e.g. 7-7-7
+  // appears as "777", 3-6-9 as "369"). When any is a master (11/22/33),
+  // space-separate to disambiguate (e.g. "3 11 3" never reads as
+  // "3113"). The unreduced sums are still exported by core/profile.js
+  // for potential surfacing in the future paid interpretation layer.
+  const nums = [profile.lifePath, profile.nameNumber, profile.soulUrge];
+  const hasMaster = nums.some(n => n > 9);
+  return hasMaster ? nums.join(' ') : nums.join('');
 }
 
+function formatCoordinates(profile) {
+  return [
+    profile.chineseElement,
+    profile.sunSign,
+    `${profile.animal} ⇌ ${profile.innerAnimal}`,
+    formatNumbers(profile)
+  ].join('\n');
+}
+
+function renderCard(profile) {
+  cardCoordinates.textContent = formatCoordinates(profile);
+  try {
+    const card = getCard(profile);
+    cardCatalog.textContent = `no. ${card.catalog}`;
+  } catch (err) {
+    if (err instanceof MissingCardError) {
+      // Defensive: with the full 144-card deck this branch is unreachable
+      // in practice, but the engine export survives for future authoring
+      // gaps. If a profile somehow misses the deck, coordinates still
+      // render; the catalog falls back gracefully.
+      cardCatalog.textContent = 'no. —';
+    } else {
+      throw err;
+    }
+  }
+}
+
+// ── shake / flip control ──────────────────────────────────────────
+function showResult(profile) {
+  currentProfile = profile;
+  onboarding.classList.add('hidden');
+  result.classList.remove('hidden');
+  result.classList.add('reveal');
+  // Land on the back side first; card-back shows for ~300ms before flip.
+  flipInner.classList.add('face-up');
+  renderCard(profile);
+  setTimeout(() => {
+    flipInner.classList.remove('face-up');
+  }, 300);
+}
+
+function showOnboarding() {
+  result.classList.add('hidden');
+  onboarding.classList.remove('hidden');
+  onboarding.classList.add('reveal');
+  nameInput.value = '';
+  dobInput.value = '';
+  currentProfile = null;
+  // Move focus to the name field so keyboard and screen-reader users
+  // land on the next interactive element. Without this, focus can
+  // remain on the now-hidden 'try another' button after re-entry.
+  nameInput.focus();
+}
+
+function shakeAgain() {
+  if (flipLocked || !currentProfile) return;
+  flipLocked = true;
+  // Flip back to card-back, then re-flip to face after ~300ms.
+  flipInner.classList.add('face-up');
+  setTimeout(() => {
+    renderCard(currentProfile);
+    flipInner.classList.remove('face-up');
+    flipLocked = false;
+  }, 320);
+}
+
+// ── form submit ───────────────────────────────────────────────────
 profileForm.addEventListener('submit', e => {
   e.preventDefault();
   const name = nameInput.value.trim();
@@ -492,64 +623,69 @@ profileForm.addEventListener('submit', e => {
   try {
     const profile = buildProfile(name, dob);
     saveProfile(name, dob);
-    showMain(profile);
-  } catch (err) {
-    // silent — the form already validates input
+    showResult(profile);
+  } catch (_) {
+    // form already validates input shape; silent on edge cases.
   }
 });
 
-shakeBtn.addEventListener('click', doShake);
-ballWrap.addEventListener('click', doShake);
-ballWrap.addEventListener('keydown', e => {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doShake(); }
+// ── shake interactions ────────────────────────────────────────────
+shakeAgainBtn.addEventListener('click', shakeAgain);
+tryAnotherBtn.addEventListener('click', () => {
+  // Different intent from forget-this-device: user explicitly wants to
+  // try a new profile (e.g. friend's DOB on TikTok). Same underlying
+  // action — clear localStorage + return to onboarding — but no
+  // confirmation modal because the action is the explicit intent, not a
+  // privacy reset.
+  clearProfile();
+  showOnboarding();
 });
-questionEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); doShake(); }
-});
-
-resetBtn.addEventListener('click', () => {
-  if (confirm('forget your name and birth date from this device?')) {
-    clearProfile();
-    showOnboard();
-  }
-});
-
-aboutBtn.addEventListener('click', () => aboutModal.classList.add('open'));
-aboutClose.addEventListener('click', () => aboutModal.classList.remove('open'));
-aboutModal.addEventListener('click', e => {
-  if (e.target === aboutModal) aboutModal.classList.remove('open');
+cardBack.addEventListener('click', shakeAgain);
+cardBack.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
 });
 
-let lastShake = 0;
-const SHAKE_THRESHOLD = 18;
-let lastX = 0, lastY = 0, lastZ = 0;
-function onMotion(e) {
-  if (!currentProfile) return;
-  const a = e.accelerationIncludingGravity || e.acceleration;
-  if (!a) return;
-  const dx = (a.x || 0) - lastX;
-  const dy = (a.y || 0) - lastY;
-  const dz = (a.z || 0) - lastZ;
-  const delta = Math.sqrt(dx*dx + dy*dy + dz*dz);
-  lastX = a.x || 0; lastY = a.y || 0; lastZ = a.z || 0;
-  if (delta > SHAKE_THRESHOLD && Date.now() - lastShake > 1200) {
-    lastShake = Date.now();
-    doShake();
-  }
+// ── about modal ───────────────────────────────────────────────────
+function openAbout() {
+  aboutModal.classList.add('open');
+  aboutModal.setAttribute('aria-hidden', 'false');
 }
-function enableMotion() {
-  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    DeviceMotionEvent.requestPermission().then(state => {
-      if (state === 'granted') window.addEventListener('devicemotion', onMotion);
-    }).catch(() => {});
-  } else if ('ondevicemotion' in window) {
-    window.addEventListener('devicemotion', onMotion);
-  }
+function closeAbout() {
+  aboutModal.classList.remove('open');
+  aboutModal.setAttribute('aria-hidden', 'true');
 }
-ballWrap.addEventListener('click', enableMotion, { once: true });
+aboutBtn.addEventListener('click', openAbout);
+aboutClose.addEventListener('click', closeAbout);
+aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAbout(); });
 
+// ── forget-me modal ───────────────────────────────────────────────
+function openForget() {
+  forgetModal.classList.add('open');
+  forgetModal.setAttribute('aria-hidden', 'false');
+}
+function closeForget() {
+  forgetModal.classList.remove('open');
+  forgetModal.setAttribute('aria-hidden', 'true');
+}
+forgetBtn.addEventListener('click', openForget);
+forgetCancel.addEventListener('click', closeForget);
+forgetConfirm.addEventListener('click', () => {
+  clearProfile();
+  closeForget();
+  showOnboarding();
+});
+forgetModal.addEventListener('click', e => { if (e.target === forgetModal) closeForget(); });
+
+// ── escape closes any open modal ──────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (aboutModal.classList.contains('open')) closeAbout();
+  if (forgetModal.classList.contains('open')) closeForget();
+});
+
+// ── boot ──────────────────────────────────────────────────────────
 const existing = loadProfile();
-if (existing) showMain(existing);
+if (existing) showResult(existing);
 </script>
 </body>
 </html>

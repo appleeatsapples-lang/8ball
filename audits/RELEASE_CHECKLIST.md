@@ -6,10 +6,10 @@ Pulled directly from `DOCTRINE.md §8`. This is the operational form of the same
 
 ## Pre-merge
 
-- [ ] **CI green.** All five stages pass: calc contract, engine integrity, content scan, PII scan, single-file rule.
+- [ ] **CI green.** All five stages pass: calc+pipeline, privacy scan, PII scan, dependency discipline, single-file rule. (Stage list aligned with `DOCTRINE.md §7` v0.10+.)
 - [ ] **Local PII audit clean.** Run `bash audits/run_local_audit.sh` from repo root. Zero hits.
 - [ ] **Diff review.** Read every line. Ask:
-  - [ ] Any new line in `content/` cross §4 (slurs, protected classes, real-person targets, minor-targeting)?
+  - [ ] Any new private content batch cross §4 (slurs, protected classes, real-person targets, minor-targeting, card-content strings landing in tracked files)?
   - [ ] Any new path in `core/` cross §5 (storing or transmitting more than name + DOB)?
   - [ ] Any new tracked content cross §11 (operator personal data)?
   - [ ] Any new line cross §9 (SIRR cross-references, named depth)?
@@ -25,7 +25,7 @@ Pulled directly from `DOCTRINE.md §8`. This is the operational form of the same
 
 ## Post-merge
 
-- [ ] **Smoke test live.** Enter your real DOB. Shake 5 times. Verify no console errors. Verify the roast lands.
+- [ ] **Smoke test live.** Enter your real DOB. Shake 5 times. Verify no console errors. Verify the seven coordinates render correctly (element / sun sign / animal pair via `⇌` / numerology triplet) with the catalog corner in roman.
 - [ ] **Append to `journal.md`.** Use the `===== YYYY-MM-DD · Title =====` shape. Document:
   - what shipped
   - what was rejected
@@ -38,4 +38,4 @@ Pulled directly from `DOCTRINE.md §8`. This is the operational form of the same
 - CI red → fix the cause; do not bypass.
 - Local audit red → fix per `audits/LOCAL_PII_AUDIT.md` "what to do if you find a leak" section.
 - Live URL broken → roll back via Netlify dashboard (instant); diagnose offline.
-- Deploy works but roast lands wrong → file a v1.x note in `journal.md`; no rollback needed for content polish.
+- Deploy works but surface lands wrong → file a v0.2.x note in `journal.md`; no rollback needed for surface polish.

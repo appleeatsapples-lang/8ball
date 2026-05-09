@@ -3,6 +3,371 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-09 · Phase-2F-3 audit-4 dispositions — missed-spot polish + virgo.dragon leak scrub
+=====
+
+Codex audit-4 at `fd265c1` returned **FAIL** + 1 CONCERN + 2 PASS. The PASS findings (3.1 catalog driver consistent everywhere; 3.4 zero code regression vs `62ff5b8`) close cleanly. The other two were missed-spot disposals from audit-3 — the audit-3 cycle's sweep wasn't comprehensive enough on either lane. All disposed in commits below.
+
+## FAIL — current card-content string at `journal.md:245` (this commit, doctrine §4 v0.11 clause)
+
+Codex ran an exact-string scan against `9b7bafd:content/cards.v1.js` (the pre-strip deck) and surfaced one current-system card-content leak the audit-3 scrub missed: the 2F-1 prescan-resolution note for `virgo.dragon.note.low` quoted both ChatGPT's 7-word original and the 13-word orchestrator-refined replacement verbatim. Both are real card-`note.low` bodies for the cell.
+
+Fix: same pattern as the audit-3 CONCERN-3 scrubs — reference the cell by coordinate path only, point at the private deck for the strings. Word counts (7 → 13) and the rationale (adversarial-review comfort) preserved as procedural metadata. Doctrine §4 clause from v0.11 covers this — the violation was a missed-spot from the audit-3 sweep, not a doctrine gap.
+
+No code changes; one journal line edited.
+
+## CONCERN — stale-public/checklist residues (this commit, doctrine v0.11 → v0.12)
+
+Five spots Codex flagged plus one I caught while sweeping (`DOCTRINE.md §8.1`) plus two more in `RELEASE_CHECKLIST.md` (same drift, different lines). All cleared:
+
+- `DOCTRINE.md §11` (line 152): "The repo is public." → the rule is now stated independent of repo visibility. The PII rule survives the public→private flip; tracked content is the durable boundary, not the current ACL state. Repos can flip; the rule doesn't.
+- `DOCTRINE.md §8.1` (line 108): CI stage list updated from `calc / engine / content / PII / single-file` to `calc+pipeline / privacy / PII / dependency / single-file`, with explicit pointer to §7 for the per-stage breakdown. (Audit-3 missed this in the v0.10 polish; it's the same drift as the §7 fix.)
+- `8BALL.md` PII-rule restatement (line 103): same premise rewrite as `DOCTRINE.md §11`.
+- `8BALL.md §9` canonical-paths block (line 164): `(public)` → `(private as of v0.2.0)`.
+- `.github/workflows/ci.yml` (line 11): job name `test + content scan` → `test`. (The actual workflow steps never ran a separate content scan — the name was a leftover label from when `cards.v1.js` was scanned.)
+- `audits/RELEASE_CHECKLIST.md`: stage-list line aligned with §7 v0.10+ (calc+pipeline / privacy / PII / dependency / single-file). Plus two more lines I caught while in there — the diff-review checklist's "any new line in `content/`" question rephrased to "any new private content batch" (since the public repo's `content/` is now empty), and the post-merge smoke-test/rollback wording updated from "verify the roast lands" to "verify the seven coordinates render correctly."
+
+Doctrine version footer: v0.11 → v0.12.
+
+## State going into audit-5 (if needed)
+
+Tests: 102/102. Local PII audit: clean (22 files). Working tree: clean. Branch `phase-2f-1-card-engine` still unpushed.
+
+Live doctrine claims now consistent across every surface scanned: catalog driver is `(sun, animal)` pair; repo is private as of v0.2.0; CI stages are calc+pipeline / privacy / PII / dependency / single-file; §4 forbids card-content strings in tracked files; §11 PII rule is visibility-independent.
+
+Commit in cycle: `<this commit>`. Audit-5 (if requested) is a tighter sweep — verify the FAIL fix at `journal.md:245`, verify the CONCERN polish across the six locations, regression-check that no code changed since `62ff5b8` (which `fd265c1` already established was clean).
+
+=====
+2026-05-09 · Phase-2F-3 audit-3 dispositions — catalog-driver fix, doctrine polish v0.10, journal scrub v0.11
+=====
+
+Codex audit-3 at `62ff5b8` (post secret-strip) returned **FAIL pending one fix** + 2 CONCERNs + PASS on secret-strip mechanics and calc/UI/privacy. All three findings disposed on `phase-2f-1-card-engine` before any push to origin. The branch was never public, so all of this is pre-merge polish, not a post-ship correction.
+
+## FAIL — catalog driver misstated (commit `428cba5`)
+
+Codex caught a doctrine/runtime mismatch: `8BALL.md:33`, `DOCTRINE.md:11`, and `README.md:5` all claimed the `(sun sign, public animal, life path)` **triplet** drives the 144-card catalog index. Engine truth at `core/engine.js:81` is `sunIdx * 12 + animalIdx + 1` — 12 sun rows × 12 animals = 144, no slot for life path. Life path drives `resolveBracket` (low/mid/high) within a cell, separately from the catalog index.
+
+This was a doctrine-truthfulness drift introduced during the 2F-3 secret strip itself — the engine math has always been pair-based, but the docs accreted a triplet-driver claim across earlier doc-sync rounds without ever being checked against the code. Fixed in three files; no code changes; tests still 102/102.
+
+## CONCERN — stale public-deck/test language (commit `80011f1`, doctrine v0.9 → v0.10)
+
+Eight stale spots flagged, all newly contradictory after the secret strip:
+
+- `README.md`: vitest count 22 → 102; test-suite description rewritten to four current suites (`profile.test.js` / `privacy_scan.test.js` / `pii_scan.test.js` / `dependency_discipline.test.js`); structure block updated — `cards.v1.js` removed, `content/` noted empty in public, full deck pointer to `~/dev/8ball-private/`.
+- `DOCTRINE.md §5`: Google-Fonts-CSS exception removed; system fonts only, zero network requests after page load.
+- `DOCTRINE.md §6`: "Single repo, public on GitHub" → private as of v0.2.0 (was public through v0.1.4).
+- `DOCTRINE.md §7`: CI gate stages updated to actual current suites. Old step 2 (token-leakage + recent-buffer dedup) and step 3 (content scan against `cards.v*.js`) retired with explicit footnote — the banned-pattern + banned-voice-register policy is preserved in `tests/profile.test.js` as the canonical rule reference; the scan itself moved to the private content-authoring pipeline.
+- `8BALL.md:206`: Phase-2F historical entry amended to include 2F-3 secret strip; `cards.v1.js` noted as retired-from-public-repo.
+- `tests/profile.test.js:8`: header comment updated to match secret-strip reality.
+
+No code changes; mechanical text alignment with the v0.2.0-public state.
+
+## CONCERN — journal card-content residue (this commit, doctrine v0.10 → v0.11)
+
+Codex flagged that the journal contained card-content excerpts pre-dating the secret strip, making the doctrine claim "the public repo ships no card strings" technically false even if runtime stayed clean. Codex's framing was accept-and-defer-acceptable since the repo flips private — operator chose stronger disposition: **scrub now + add forward-looking clause**.
+
+Scrubs in this commit (current cards-system content only):
+
+- 2F-2 audit-disposition write-up (Phase-2F-2 dispositions section): five `§4 medical-vocab` swaps now reference cells by coordinate path only (`aries.rabbit.note.mid`, `scorpio.snake.name`, `scorpio.snake.note.low`, `scorpio.rooster.name`, `aquarius.monkey.note.high`); before/after strings dropped from journal, preserved with the private deck.
+- 2F-3 minimal-surface pivot rationale: two card names quoted as readability examples replaced with a non-quoting summary ("the interpretive card-name layer read as gibberish…").
+- Pre-scan note for the 2F-1 ChatGPT batch: trigger word at `aries.rabbit.note.mid` no longer named in line, only the cell coordinate.
+- 2F-1 content-swap log: 12 verbatim Aries card names dropped; replaced with a pointer to the private deck.
+- 2F-1 Grok cold-reading sniff (Aries row): two card names cited as a near-collision example now referenced by deck position (`v` and `x`) and archetype only (theatrical/commanding vs polished/critical).
+
+Forward-looking clause added to `DOCTRINE.md §4`: **No card-content strings in tracked files.** Cell name/type/habit/note bodies live privately at `~/dev/8ball-private/cards.v1.full.js`; no public-repo tracked file (source, tests, fixtures, `journal.md`, audit notes, this doctrine) may contain a card-content string. Audit dispositions reference cells by coordinate path; before/after strings stored privately.
+
+**Out of scope (retained as historical record):** trait-pool / template-pool excerpts from the retired `traits.v1.js` / `templates.v1.js` system (deleted from the repo in 2F-2). Codex audit-3 did not flag these, the system itself is gone, and the new §4 clause is explicitly forward-looking from v0.11.
+
+## State going into audit-4
+
+Tests: 102/102. Local PII audit: clean (22 files). Working tree: clean. Branch `phase-2f-1-card-engine` still unpushed.
+
+Doctrine version footer reads v0.11. Catalog-driver claim in `§1` now matches engine truth. §4 forbids card-content in tracked files; §5 system-fonts-only; §6 private-as-of-v0.2.0; §7 CI stages match the actual test suites.
+
+Commits in cycle: `428cba5` (FAIL fix) → `80011f1` (CONCERN polish) → this commit (journal scrub + §4 clause). Audit-4 brief targets the post-cycle HEAD; verifies (a) catalog-driver fix is consistent across all surfaces, (b) journal contains no current-system card-content strings, (c) §4 new clause reads cleanly, (d) no regression in secret-strip mechanics or calc/UI/privacy.
+
+=====
+2026-05-09 · Phase-2F-3 in-flight (cont.) — second-animal axis, triplet collapse, equilibrium arrow, centering, and secret strip
+=====
+
+Continuation of the 2F-3 cycle. Previous entry covered through commit `55e8f07` (post-audit-2 dispositions). This entry covers the additional architecture pivots that landed before audit-3.
+
+## Second-animal axis: month-pillar private animal (commits cb22297, 56760af, dd64e24)
+
+Operator decision: ship two Chinese animals — public (year-pillar, the one people commonly identify with) and private (month-pillar, the inner self). Standard Chinese astrology distinguishes 年柱 (year-pillar) from 月柱 (month-pillar); both are calibrated, year alone is incomplete tradition.
+
+`core/profile.js` adds:
+- `MONTH_ANIMAL_CUTOFFS` — 12 windows anchored at solar-term cutoffs (节气 jiéqì), fixed-date approximations consistent with the Feb 4 CNY approximation already in use
+- `getInnerAnimal(month, day)` — walks cutoffs in reverse, the most recent at-or-after wins; Jan 1-5 wraps to previous-year December rat
+- `buildProfile` returns `innerAnimal` between `animal` and `lifePath`
+
+Tests: 12 new unit tests covering each cutoff (boundary + in-window day) + buildProfile shape. Test count 118 → 130. Synthetic test data only (Alex Thomas + 1988-08-15 = leo · earth · dragon · monkey).
+
+Doc sync (8BALL §1+§10, DOCTRINE §1+§3 calc-v1 note, README line 5): four → seven calibrated coordinates with public/private animal split. Doctrine v0.6 → v0.7.
+
+## Equilibrium-arrow animal pair + symbols-only principle (commit 56c0cb5)
+
+Operator: "put 2 animal private public … just the symbols no explanation or interpretation. interpretation is paid for."
+
+`formatCoordinates` collapses the two animal lines onto one with the chemistry equilibrium arrow `⇌` (U+21CC):
+```
+rat ⇌ rooster
+```
+
+Modal "the trick" copy stripped of interpretive parentheticals (`(your year)` / `(your month)` removed); "these are your reading" → "these are your symbols". Implementation comment rewritten to record the product principle: free surface = calibrated symbols only; interpretation is the future paid layer.
+
+This principle becomes load-bearing for the secret strip later in the cycle.
+
+## Triplet collapse on numerology (commit b03cd79)
+
+Operator: "the numbers next to each other as well cleaner and if 777 apears it should be presented this way."
+
+The three numerology numbers (life path, name number, soul urge) collapse onto one line as a reduced triplet. `formatNumbers` helper:
+- All single-digit: concatenate (`777`, `369`, `123` — pattern recognition for triplets)
+- Any master 11/22/33: space-separate (`3 11 3` never reads as `3113`)
+
+Trail format (`39 → 3`) dropped from the surface. Sums still computed and exported for potential paid-layer surfacing.
+
+`formatTrail` removed (dead code).
+
+Surface goes 7 visual lines → 4 visual lines:
+```
+fire
+libra
+rat ⇌ rooster
+3 11 3
+```
+
+(Element moved to top in commit `0e690c0`; centering applied in `e5c504f` and `5dbaa7e`.)
+
+DOCTRINE §1 + 8BALL §1 + README line 5 updated for the triplet format. Symbols-only principle codified in DOCTRINE §1. Doctrine v0.7 → v0.8.
+
+## Page centering (commit 5dbaa7e)
+
+Stage flex container changes from `justify-content: flex-start` to `justify-content: center`. Card + result-controls center vertically on the page.
+
+## SECRET STRIP — cards moved out of public repo + runtime (commit dde1799)
+
+Operator: "ok we don't want to show the secret."
+
+Two leak vectors that the symbols-only principle made unacceptable:
+
+1. **Public GitHub repo.** `content/cards.v1.js` was 1645 lines of card interpretation sitting at a public URL. Any visitor could read all 144 cards.
+2. **Deployed JS bundle.** `core/engine.js` imported `CARDS` from `cards.v1.js`, so every page-load downloaded the full 1645 lines. Any visitor with DevTools could read them in Sources.
+
+Both closed in `dde1799`:
+
+- **Repo side:** `git rm content/cards.v1.js`. Full content saved to `~/dev/8ball-private/cards.v1.full.js` (outside the repo, untracked, 67KB). `.gitignore` blocks `content/cards.v*.js` to prevent accidental re-add.
+- **Runtime side:** `core/engine.js` refactored to compute the catalog index positionally — `(SUN_ORDER.indexOf(sun) × 12) + ANIMAL_ORDER.indexOf(animal) + 1`, then `toRoman()`. No `CARDS` import. `getCard` returns `{ name:'', type:'', habit:'', note:'', catalog }` — empty content fields preserve the API shape for forward compatibility with v0.3.0+ (paid layer will populate them from the private content).
+
+Verified: libra·rat profile produces catalog `lxxiii` (matches what the previous CARDS-driven engine produced for the same profile). Positional math is identical to the catalog ordering in `cards.v1.full.js`.
+
+Tests:
+- `tests/profile.test.js`: removed `CARDS` import + `allPoolEntries()` helper + the two content-rule describe blocks (banned-pattern + banned-voice-register scans). Those scans now run on the private side as part of the content-authoring pipeline. The `BANNED_PATTERNS` and `BANNED_VOICE_REGISTER` tables remain in profile.test.js as the canonical policy reference.
+- `tests/profile.test.js`: 'engine — getCard' tests assert empty content fields + correct positional catalog
+- `tests/fixtures.json`: stripped 23 `name` leaks from `expected` blocks (fixture metadata was leaking card names too)
+- Test count: 130 → 102
+
+Doctrine updates:
+- §1 — public repo + runtime ships catalog only; card content is private at `~/dev/8ball-private/`
+- §2 — banned-voice-register scan moved to private side; Google Fonts CSS exception removed (we use system fonts only — was a stale mention from earlier doctrine)
+- Footer: content version `v1` → `v0.2.0-public (catalog-only)`; doctrine v0.8 → v0.9
+
+8BALL §1 + §2 + §3 + §10 + README updated for the architecture change. Repo visibility (8BALL §3 row 1) flipped from "Public from day 1" to "Private as of v0.2.0".
+
+**Operator action pending:** flip the GitHub repo to private at github.com/appleeatsapples-lang/8ball/settings → Danger Zone. Branch was never pushed, so the secret was never on the public internet — caught before any leak.
+
+## State at end of in-flight (cont.)
+
+- HEAD `dde1799`. Branch 28 commits ahead of `7b9b99f`, 36 ahead of `origin/main` (`3f80c5e`).
+- Tests 102/102. Audit clean (22 files — was 23, `cards.v1.js` gone).
+- Doctrine v0.9. Content version v0.2.0-public.
+- Codex audit-3 pending at this HEAD.
+
+## Open at end of in-flight (cont.)
+
+- Codex audit-3 brief at `dde1799`
+- After clean audit-3: operator flips repo private; chat pushes branch; squash-merge to main as v0.2.0
+- Netlify auto-deploy
+- Update §10 SHIPPED entry with real merge SHA
+- Production live-fire on `https://the-eight-ball.netlify.app`
+- TikTok launch
+
+Phase-2H forget-link discoverability still queued (partly addressed by try-another CTA at `a351c46`). Open Graph tags + favicon for shareable link previews queued. Future paid layer (v0.3.0+) will surface `~/dev/8ball-private/cards.v1.full.js` content via reveal interaction; the engine API shape (returns empty content fields in v0.2.0) is forward-compatible.
+
+=====
+2026-05-09 · Phase-2F-3 in-flight — minimal-surface pivot + six-coordinate calc additions + audit polish
+=====
+In-flight notes captured during Phase-2F-3 on `phase-2f-1-card-engine`. Pre-merge artifact, deploy-preview-only territory until the post-polish Codex re-audit clears and operator approves push to main. v0.2.0 release entry is post-merge by chat orchestrator.
+## Phase-2F-2 audit dispositions (commits 827b87b, 77c1812, cc9a052)
+Codex audit at `67c8abf` returned 1 FAIL + 2 CONCERNs. All three disposed before the 2F-3 work began:
+- **FAIL §4 medical-vocab.** Codex flagged 4 cards; chat orchestrator caught a 5th in shipped 2F-1 Aries content at `aries.rabbit.note.mid` (everyday-English usage flagged on adversarial review). All 5 cut in `827b87b` per §4 Safety-patch carve-out. Cells touched: `aries.rabbit.note.mid`, `scorpio.snake.name`, `scorpio.snake.note.low`, `scorpio.rooster.name`, `aquarius.monkey.note.high`. Before/after strings preserved with the private deck at `~/dev/8ball-private/`; doctrine §4 forbids card-content strings in any tracked file as of v0.11 (audit-3 disposition).
+  
+  The Aries × 12 byte-identical fixtures property is now broken at the rabbit-note-mid cell. That property was load-bearing only for 2F-2 audit isolation, which has passed.
+- **CONCERN rooster count.** Journal entry corrected from "5/11 (6/12 with Aries)" to "7/12" with explicit list (aries, gemini, virgo, libra, sagittarius, aquarius, pisces). Disposed in `77c1812`.
+- **CONCERN stale 8BALL queue.** Lines 204 + 213 cleared. Doctrine v0.3 already shipped in 2F-2; queue references retired. Disposed in `cc9a052`.
+## Phase-2F-3 minimal-surface pivot (commits 7a81665, 57b15d9)
+Live-fire of `67c8abf` surfaced that the interpretive card-name layer read as gibberish to consumers without the underlying coordinates as antecedent. Original cards have no symbolic-recognition lineage in tarot/runes/I-Ching/etc.; they are interpretive language layered on top of the calibrated coordinates.
+Decision: ship v0.2.0 with the calibrated coordinates as user-facing surface, card body preserved-but-not-rendered. `cards.v1.js` stays immutable per §4. Engine still resolves to find catalog index. Future v0.3.0+ may surface card body via reveal interaction.
+What `7a81665` ships:
+- DOM: removed card-name, two horizontal rules, three field-rows (type/habit/note); replaced with single `.coordinates` div. Catalog corner kept per operator decision.
+- CSS: removed `.card .card-name`, `.card .rule`, `.field-row`, `.field-row .field-label`, `.field-row .field-value` (~39 lines); added `.card .coordinates` (~10 lines).
+- JS: `formatCoordinates()` helper introduced; `renderCard()` renders coordinates unconditionally + catalog defensively.
+- Copy: info modal "the trick" rewritten; `<meta description>` updated.
+Live-fire iteration in `57b15d9`:
+- Mid-cluster line-wrap on long sun signs (e.g. "sagittarius") created dangling-middot composition error.
+- Operator picked vertical-column over horizontal-tuple. `formatCoordinates` joins with `\n`; `.coordinates` CSS bumps `line-height` to 1.5 and adds `white-space: pre-line`.
+## Doc sync v0.4 round (commits 4b47d37, 4ceb263, 3c7183e)
+`8BALL.md §1` + `§10`, `DOCTRINE.md §1`, `README.md` line 5 reframed for the four-coordinate minimal surface. Doctrine v0.3 → v0.4 (§1 substance reframe).
+## Try-another CTA (commit a351c46)
+Live-fire surfaced that the existing "forget this device" link is buried in the result-controls footer. For TikTok virality (try yours, try a friend's), users need an obvious path to enter a different profile without going through privacy-framed confirmation.
+`a351c46` adds "try another" button below SHAKE AGAIN. Same action as forget-this-device underneath (clearProfile + showOnboarding) but skips the confirmation modal because the user's intent is explicit. The forget-this-device link survives in the footer for the privacy-framed reset path.
+## Calc additions: chinese element + soul urge + unreduced sums (commit 304ecbf)
+Operator decision mid-cycle: ship v0.2.0 with six calibrated coordinates instead of four. Reasoning: Chinese animal-without-element is incomplete tradition (canonical form is "fire rat" not just "rat"); adding a third numerology axis (soul urge) honors the inner-self/outer-expression distinction; showing unreduced sums (`39 → 3`) surfaces master numbers and lets users see the path to their final number.
+`core/profile.js` adds five exports + one constant:
+- `ELEMENTS = ['wood', 'fire', 'earth', 'metal', 'water']`
+- `getChineseElement(year, m, d)`: 5-element 2-year cycle anchored at 1924 = wood. Shares CNY-cutoff (Feb 4) adjustment with `getAnimal`. Verified: 1924=wood, 1996=fire, 2020=metal, 2024=wood.
+- `getLifePathSum(y, m, d)`, `getNameNumberSum(name)`: pre-reduction sums.
+- `getSoulUrgeSum(name)`, `getSoulUrge(name)`: vowel-only Pythagorean sum (A=1, E=5, I=9, O=6, U=3; Y excluded), reduced with master 11/22/33 preserved.
+`buildProfile` now returns: `name`, `firstName`, `sunSign`, `chineseElement`, `animal`, `lifePath`, `lifePathSum`, `nameNumber`, `nameNumberSum`, `soulUrge`, `soulUrgeSum`, `yyyy`, `mm`, `dd`. Existing keys unchanged — additions only.
+Tests: 14 new unit tests covering each new function, master number preservation (`Aida` → 11, `Aria Stone` → 22), CNY-cutoff edge cases, and full `buildProfile` shape via synthetic profile (`Alex Thomas` + `1988-08-15`). Operator personal data deliberately scrubbed per DOCTRINE §11; first draft leaked, PII scan caught it, fixed before commit landed. Test count: 104 → 118.
+## Six-line trail render (commit d362799)
+`formatCoordinates` returns 6 lines via `formatTrail(unreduced, reduced)` helper:
+- if `unreduced === reduced` → render reduced only (single digits, masters reached without reduction)
+- else → render `unreduced → reduced` (e.g. `39 → 3`, `56 → 11`)
+Surface order: date-derived first (sun, element, animal), then date-numerology (life path), then name-numerology (name number, soul urge).
+Live-fire confirmed: full legal name surfaces master 11 on the nameNumber axis (sum 56 → 11). Operator's profile renders `libra / fire / rat / 39 → 3 / 56 → 11 / 21 → 3` cleanly.
+## Doc sync v0.5 round (commits 0864beb, c14f720, 9b7bafd)
+`8BALL.md §1` + `§10`, `DOCTRINE.md §1`, `README.md` line 5 expanded for the six-coordinate surface. Doctrine v0.4 → v0.5 (§1 substance expansion).
+## Phase-2F-3 audit dispositions (commits 814b3f4, 55e8f07)
+Codex re-audit at `9b7bafd` returned 1 FAIL + 3 CONCERNs.
+- **FAIL copy mismatch.** index.html still described four coordinates in 3 places (meta description, info modal, implementation comment) while rendering six. The doc-sync v0.5 round updated 8BALL/DOCTRINE/README but missed the in-page surface. Fixed in `814b3f4`.
+- **CONCERN focus handoff.** try-another flow lacked focus management. After clearProfile + showOnboarding, keyboard/screen-reader focus could remain on the now-hidden try-another button. Fixed in `814b3f4`: `showOnboarding()` now calls `nameInput.focus()`.
+- **CONCERN calc-version contract ambiguity.** `core/profile.js` header + DOCTRINE §3 said "any change to profile.js requires fixture updates", but `304ecbf` added new exports + new buildProfile fields without fixture updates (covered by direct unit tests instead). Fixed in `55e8f07`: §3 formalizes additive-vs-breaking distinction. Calc v1 retroactively documents the v0.2.0 additive extensions. Doctrine v0.5 → v0.6.
+- **CONCERN journal staleness.** This entry. Resolves the audit-trail gap.
+
+## Open at end of 2F-3 cycle
+
+- Codex re-audit on the post-polish HEAD (`55e8f07` or its successor)
+- After clean re-audit: push + open PR + merge to main as v0.2.0
+- Netlify auto-deploy
+- Update `8BALL.md §10` SHIPPED entry with real merge SHA (currently `<post-merge sha>` placeholder)
+- Production live-fire on `https://the-eight-ball.netlify.app`
+- TikTok launch
+
+Phase-2H forget-link discoverability still queued (partly addressed by try-another CTA at `a351c46`; full discoverability work deferred). Open Graph tags + favicon for shareable link previews queued. Grok N=132 cold-reading sniff at card-content level deferred until cards resurface in v0.3.0+.
+
+=====
+2026-05-09 · Phase-2F-2 in-flight — full 132-card deck integration
+=====
+
+In-flight notes captured during Phase-2F-2 integration on `phase-2f-1-card-engine`.
+Pre-merge artifact, deploy-preview-only territory until Codex audit + Grok N=132
+sniff + operator live-fire all clear. v0.2.0 release entry is post-merge by chat.
+
+## What this commit ships
+
+- 132 cards integrated into `content/cards.v1.js` (catalog xiii–cxliv across 11 sun rows × 12 animals). Combined with the 12 Aries cards from 2F-1, the full 144-card deck is now in place.
+- `content/traits.v1.js` and `content/templates.v1.js` deleted. Engine never imported them post-2F-1; they survived only because the BANNED_VOICE_REGISTER and BANNED_PATTERNS scans walked them. Now they leave entirely.
+- `tests/profile.test.js` `allPoolEntries()` walks only `CARDS` now. Imports for `traits.v1.js` and `templates.v1.js` removed. `MissingCardError` test block dropped — all 144 cards present, no profile triggers the throw path. The export survives in `core/engine.js` as defensive code for future authoring gaps.
+- `tests/fixtures.json` — `missing_card` array dropped. 11 representative non-aries fixtures added (one per sun row), positive-case asserting `(sunSign, animal, catalog, bracket, name)`. The 12 Aries fixtures stay for regression coverage. Synthetic DOBs, DOCTRINE §11 sub-rule preserved.
+- `8BALL.md` §1 (deck-card framing), §2 (architecture row → `cards.v1.js` only), §3 row 9 (content version), §10 (v0.2.0 SHIPPED skeleton, doctrine v0.3 reference), §11 (Phase-2F resolved, live-fire codified) updated.
+- `README.md` line 5 (deck-card framing) + structure block (cards.v1.js only) updated.
+- `DOCTRINE.md` §8 ritual-gate amendment: new step 9 codifies live-fire on local deploy preview as load-bearing for releases touching `index.html`, `core/engine.js`, or content batches. Existing "confirm Netlify auto-deployed" renumbered 9 → 10. Content-version footer updated. Doctrine version v0.2 → v0.3.
+
+## Content-side notes from prescan resolution
+
+- 1 line orchestrator-refined at `virgo.dragon.note.low`: ChatGPT's 7-word original replaced with 13-word variant for adversarial-review comfort. Both versions preserved with the private deck at `~/dev/8ball-private/`; doctrine §4 forbids card-content strings in any tracked file as of v0.11 (audit-3 disposition).
+- Curly apostrophe in `sagittarius.rooster.habit` (U+2019) normalized to U+0027 globally during integration. `grep -P '\x{2019}' content/cards.v1.js` returns zero hits.
+- "corrects" verb appears in 7/12 Rooster habits (aries, gemini, virgo, libra, sagittarius, aquarius, pisces). Deferred to Grok cold-reading sniff at N=132 — same lane that ruled "studies X as Y" load-bearing texture for note.high in 2F-1. Initial in-flight count understated this as 6/12; Codex audit at 67c8abf caught the miscount and corrected here.
+- ChatGPT-delivered drafts used double-quoted JS strings; integration normalized to single-quoted to match the Aries-row file style. Only literal apostrophe (`everyone\'s`) is backslash-escaped.
+
+## DOB calibration
+
+Brief §2.C fixture table proposed synthetic DOBs that did not produce the listed `(sun, animal, LP)` tuples in 9 of 12 cases. Per §7.2, CC mentally ran each DOB against `core/profile.js` and corrected before committing. Final DOBs: `2020-05-01` (Taurus Rat LP=1), `2022-05-27` (Gemini Tiger LP=2), `1989-07-08` (Cancer Snake LP=6), `1988-08-15` (Leo Dragon LP=4), `1988-09-14` (Virgo Dragon LP=4), `1993-10-12` (Libra Rooster LP=8), `1989-11-15` (Scorpio Snake LP=8), `1989-12-12` (Sagittarius Snake LP=33 — already correct), `1994-12-24` (Capricorn Dog LP=5), `1990-02-04` (Aquarius Horse LP=7 — already correct), `1995-03-04` (Pisces Pig LP=4), `2002-04-04` (Aries Horse LP=3 — already correct). All synthetic per DOCTRINE §11.
+
+## Audit cycle queued
+
+- Codex audit at delivered HEAD: dual-baseline against `4aaf2d3` (cleanest baseline, v0.1.4 SHIPPED) and `7b9b99f` (immediate prior, end of 2F-1). L13 / L18 bind.
+- Grok cold-reading sniff at N=132 (mirror 2F-1 pilot brief shape, scaled).
+- Operator live-fire on local deploy preview — verify Aries row still works post-integration; spot-check 5–10 non-Aries DOBs across all 11 new rows. Now codified as §8 step 9 (doctrine v0.3).
+- Main-merge as v0.2.0 once all four (Codex / Grok / live-fire / operator approval) clear. Release entry written post-merge, not preemptively.
+
+## Test count delta
+
+95 (at `7b9b99f`, end of 2F-1) → **104** (at delivered HEAD): +9 from the 11 new positive-case card fixtures (each fires multiple assertions per card) minus the 2 retired `MissingCardError` tests.
+
+=====
+End of 2026-05-09 · Phase-2F-2 in-flight notes.
+=====
+
+=====
+2026-05-09 · Phase-2F-1 in-flight — card engine + Aries sample row
+=====
+
+In-flight notes captured during the Phase-2F-1 branch (`phase-2f-1-card-engine`, branched off `4aaf2d3`). Pre-merge artifact, deploy-preview-only territory; the branch does NOT merge to main until Phase-2F-2 lands the remaining 132 cards. Chat authors the full release entry at end-of-2F-2.
+
+## What this branch ships
+
+- **Engine flip — `core/engine.js` rewritten.** Roast generation pipeline retired (template-fill, trait-pick, question classifier, soft-cap re-roll, recent-buffer dedup). Replaced with deterministic card lookup: `getCard(profile)` → `{ name, type, habit, note, catalog }`. Plus `resolveBracket(lifePath)` (low / mid / high) and `MissingCardError` for non-Aries profiles in 2F-1.
+- **Content schema — `content/cards.v1.js` added.** 12 Aries × animal cards (catalog `i`–`xii`). Each card carries `name`, `type`, `habit`, `note.{low,mid,high}`, `catalog`. Voice register is declarative-observational; pre-scan against `BANNED_VOICE_REGISTER`, banned-pattern slurs, and §4 medical/diagnostic words came back clean.
+- **UI rewrite — `index.html` re-aestheticed.** Hex window + gold/blue palette retired; specimen aesthetic landed (cream paper on dark page, mono type, hairline borders, label-field grammar). Components: top bar with wordmark + info icon, welcome registry form, card-back shake state with big "8" + "ball", result variant B with name/type/habit/note label fields and catalog corner, custom forget-me modal (replacing native `window.confirm()`), about modal triggered from the info icon. CSS tokens flipped: `--gold-*` and `--blue-*` retired; `--paper`, `--ink`, `--rule`, `--label`, `--page-bg` added. Single-file rule preserved (684 lines, well under 1500).
+- **Tests rewritten — `tests/profile.test.js` + `tests/fixtures.json`.** Engine block flipped from `generateAnswer` sample-and-soft-cap pattern to card-system assertions: 12 fixtures covering all three LP brackets (low/mid/high, master numbers 11/22 represented), 12 direct `resolveBracket` cases, 2 `MissingCardError` cases (Sagittarius Snake LP=33 — TODO 2F-2 — and Taurus Rat). Banned-pattern slur scan rewritten to walk pools directly (was sampling generated answers; with no `generateAnswer` it had to flip). Both content scans now walk `traits.v1.js`, `templates.v1.js`, AND `cards.v1.js` automatically through the same `allPoolEntries` generator.
+- **Doctrine content-version note bumped.** "v1 (~115 sun + ~85 animal + ~70 LP traits · 39 templates)" → "v1 (cards.v1.js — 12 cards in 2F-1; full 144 in 2F-2)".
+- **Files retired-in-place (not deleted):** `content/traits.v1.js` and `content/templates.v1.js`. Engine no longer imports either. They stay in repo for two reasons: the BANNED_VOICE_REGISTER and banned-pattern scans still scan them (immutable shipped content) and Phase-2F-2 finalizes the deletion alongside the full 144-card content land.
+- **Calc core untouched.** `core/profile.js` and the calculation contract fixtures are byte-identical to `4aaf2d3` per DOCTRINE §3.
+
+## §1 status
+
+§1 FAIL closes once this branch merges (post-2F-2). Doctrine says "fixed designed deck"; the engine now returns a card from a deck. The 132 remaining cards are content authoring, not engine work.
+
+## Open items / 2F-2 prep
+
+1. Card content for Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces × 12 animals each (132 cards).
+2. Convert the LP=33 / Sagittarius Snake `MissingCardError` fixture (`1989-12-12`) to a positive-case assertion when its card lands.
+3. Final delete of `content/traits.v1.js` and `content/templates.v1.js`. Update `8BALL.md §2` architecture row to remove their mention.
+4. `8BALL.md §3` row 9 (content version) updates from "trait pools" to cards-shaped at the 2F-2 ship.
+
+## Content swap (post-`db0b510`)
+
+Card content and modal copy in `db0b510` came from an earlier ChatGPT batch. The Phase-2F-1 brief delivered to CC at `db0b510 + 1` carries a refined ChatGPT batch (pre-scan artifact `~/Desktop/8ball/audits/prescan_chatgpt_2F1_2026-05-09.md`: 0 coded hits; one cell at `aries.rabbit.note.mid` reviewed as everyday-English usage and kept — later cut in 2F-2 per Codex finding, see entry above). CC swap:
+
+- `content/cards.v1.js` — 12 Aries cards replaced verbatim per brief §2.B. New name strings preserved with the private deck at `~/dev/8ball-private/`; doctrine §4 forbids card-content strings in any tracked file as of v0.11 (audit-3 disposition).
+- `index.html` modal copy replaced verbatim per brief §2.C. About: title `the trick`, body single-paragraph, close button `got it`. Forget-me: title `erase the paperwork`, body single-paragraph, buttons `leave it` / `erase it`. Native `×` close icon retired in favor of bottom-aligned `got it` button on the about modal; dead `.modal .close` CSS removed.
+- `tests/fixtures.json` — 12 `cards` fixtures' `expected.name` strings updated to match the new batch. DOBs, catalogs, brackets unchanged.
+- Schema, scans, line counts: unchanged-in-shape. All 95 tests green; local PII audit clean (25 files); `index.html` now 669 lines.
+
+## Flip-state fix (post-`c1d281b`)
+
+Live-fire of HEAD `c1d281b` against local `python3 -m http.server` surfaced a UX bug invisible to static audit: form-submit landed on the result face for ~300ms then auto-flipped to the 8-ball card-back, leaving the user stranded on shake-state. Same inversion in `shakeAgain` — pressing the button took the user from result back to 8-ball as final state instead of theatrical-flip-then-result. User never got to read the card.
+
+Root cause: `.flip-inner.face-up { transform: rotateY(180deg); }` combined with `.flip-side.back { transform: rotateY(180deg); }` (preserve-3d) means the `face-up` class actually shows the 8-ball back-side, not the result front-side. The class is misnamed; the four `add`/`remove` calls in `showResult` and `shakeAgain` were inverted to compensate, in the wrong direction. The intent comment ("Land on the back side first; card-back shows for ~300ms before flip") was correct.
+
+Fix: 4-line swap in `index.html` — invert `add` ↔ `remove` in both `showResult` (lines 574, 577) and `shakeAgain` (lines 594, 597). Class name unchanged; swap is sufficient. 95/95 tests pass; local audit clean (25 files); `index.html` still 669 lines.
+
+This is the kind of bug Codex's static-code audit would not catch by design — audit reads code semantics, doesn't simulate DOM/CSS runtime. Live-fire is the gate the handoff anticipated before the Grok cold-reading pilot. Re-audit cycle at new HEAD before re-declaring 2F-1 cleared.
+
+## Grok pilot result (post-`4c2e890`)
+
+First Grok pass on the 12 Aries cards as a cold-reading / Barnum-effect sniff (lane pilot). Brief: `~/Desktop/8ball/audits/grok_brief_2F1_cold_reading_sniff.md`. Audit return: `~/Desktop/8ball/audits/grok_audit_2F1_cold_reading_sniff.md`.
+
+Verdict: **STRONG SIGNAL.** All 12 cards classified SPECIFIC; zero BORDERLINE, GENERIC, or DRIFTING. Bracket discipline (`note.{low, mid, high}`) holds uniformly across the row. Cross-deck pattern findings: differentiation is clean (12 distinct archetypes, low cluster risk); recurring fingerprints are load-bearing texture, not Barnum echo (every habit is a single vivid verb-phrase, `note.low` opens with motion verbs, `note.mid` uses "turns... into..." / "builds...", `note.high` uses "studies X as Y"); LP-bracket discipline escalates consistently (low = raw impulse, mid = leverage-building, high = analytical / meta). Recommended-cuts list: empty.
+
+Two production flags carried forward to 2F-2:
+
+1. **Near-collision (Dragon ↔ Rooster):** two cards in the row (positions `v` and `x`) both occupy commanding-room-presence space — one theatrical/commanding, one polished/critical. Splits cleanly in this row, but a flag for 2F-2 — when scaling to 132 more cards, watch for similar authority-cluster collisions in other sun rows (Leo × Dragon, Capricorn × Rooster, etc.).
+
+2. **`note.high` "studies X as Y" pattern:** the construction is load-bearing in this row but should be lightly varied across the full 144-card deck. Not a cut on the 12 Aries cards (the pattern is working); a 2F-2 ChatGPT-brief constraint to avoid uniform application across all 132 remaining cards.
+
+**Operator decision:** Grok lane scales to 2F-2 standing audit cycle. The cycle for 2F-2 becomes: ChatGPT (content authoring) → orchestrator pre-scan → CC integration → Codex (adversarial doctrine/content audit) → Grok (cold-reading sniff at N=132) → live-fire on deploy preview → main-merge.
+
+This sub-entry closes 2F-1 in-flight. Branch is cleared for 2F-2 brief authoring. The v0.2.0 release entry is post-2F-2-merge.
+
+=====
+End of 2026-05-09 · Phase-2F-1 in-flight notes.
+=====
+
+=====
 2026-05-08 · v0.1.4 — Phase-2D · CONCERN dispositions shipped
 =====
 

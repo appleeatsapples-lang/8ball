@@ -1,6 +1,9 @@
 // 8ball / core / profile.js
 // Pure functions. No DOM, no globals, no I/O.
-// Algorithm changes here MUST update tests/fixtures.json in lockstep.
+// Breaking algorithm changes (modifying existing outputs) MUST update
+// tests/fixtures.json in lockstep. Additive changes (new exports, new
+// buildProfile fields) require direct unit tests; existing fixtures
+// stay byte-identical.
 // See DOCTRINE.md §3 for the calculation contract.
 
 export const SUN_SIGNS = [
@@ -22,6 +25,11 @@ export const ANIMALS = [
   'rat','ox','tiger','rabbit','dragon','snake',
   'horse','goat','monkey','rooster','dog','pig'
 ];
+
+// Five-element cycle (wuxing). Each element holds for 2 consecutive
+// Chinese years; full cycle = 10 years; combined with 12 animals = 60-year sexagenary cycle.
+// Anchor: 1924 was wood-rat (start of the 60-year cycle).
+export const ELEMENTS = ['wood', 'fire', 'earth', 'metal', 'water'];
 
 // Approximation: Chinese New Year falls between Jan 21 and Feb 21.
 // We use Feb 4 as the cutoff. Accurate within ~2 weeks for any given year.
@@ -57,6 +65,66 @@ export function getAnimal(year, month, day) {
   return ANIMALS[idx];
 }
 
+export function getChineseElement(year, month, day) {
+  let y = year;
+  if (month === 1 || (month === CNY_CUTOFF_MONTH && day < CNY_CUTOFF_DAY)) {
+    y = year - 1;
+  }
+  // Anchor: 1924 = wood (start of 60-year sexagenary cycle).
+  // Each element holds for 2 consecutive years.
+  const idx = ((Math.floor((y - 1924) / 2) % 5) + 5) % 5;
+  return ELEMENTS[idx];
+}
+
+// Month-pillar animal (the "inner" or "private" animal in Chinese
+// astrology). Year-pillar animal is what people commonly identify
+// with publicly; month-pillar animal is the inner self, calculated
+// from the birth month via solar-term cutoffs (节气 jiéqì). Each
+// month-animal window starts at a specific solar term:
+//   tiger:   立春 lichun     ~Feb 4
+//   rabbit:  惊蛰 jingzhe    ~Mar 6
+//   dragon:  清明 qingming   ~Apr 5
+//   snake:   立夏 lixia      ~May 6
+//   horse:   芒种 mangzhong  ~Jun 6
+//   goat:    小暑 xiaoshu    ~Jul 7
+//   monkey:  立秋 liqiu      ~Aug 8
+//   rooster: 白露 bailu      ~Sep 8
+//   dog:     寒露 hanlu      ~Oct 8
+//   pig:     立冬 lidong     ~Nov 7
+//   rat:     大雪 daxue      ~Dec 7
+//   ox:      小寒 xiaohan    ~Jan 6
+// Real solar-term tables (which drift by ~1 day across decades) are
+// v2 work; v1 uses these fixed-date approximations consistent with
+// the Feb 4 CNY approximation in getAnimal/getChineseElement.
+const MONTH_ANIMAL_CUTOFFS = [
+  { from: [1, 6],   animal: 'ox' },
+  { from: [2, 4],   animal: 'tiger' },
+  { from: [3, 6],   animal: 'rabbit' },
+  { from: [4, 5],   animal: 'dragon' },
+  { from: [5, 6],   animal: 'snake' },
+  { from: [6, 6],   animal: 'horse' },
+  { from: [7, 7],   animal: 'goat' },
+  { from: [8, 8],   animal: 'monkey' },
+  { from: [9, 8],   animal: 'rooster' },
+  { from: [10, 8],  animal: 'dog' },
+  { from: [11, 7],  animal: 'pig' },
+  { from: [12, 7],  animal: 'rat' },
+];
+
+export function getInnerAnimal(month, day) {
+  const date = month * 100 + day;
+  // Walk cutoffs in reverse: the most recent cutoff that the date
+  // is at-or-after wins. Dates before Jan 6 fall into the previous
+  // year's December rat-window.
+  for (let i = MONTH_ANIMAL_CUTOFFS.length - 1; i >= 0; i--) {
+    const [m, d] = MONTH_ANIMAL_CUTOFFS[i].from;
+    const cutoff = m * 100 + d;
+    if (date >= cutoff) return MONTH_ANIMAL_CUTOFFS[i].animal;
+  }
+  // Jan 1 - Jan 5: previous year's Dec 7+ rat
+  return 'rat';
+}
+
 const sumDigits = n =>
   String(Math.abs(n)).split('').reduce((a, c) => a + parseInt(c, 10), 0);
 
@@ -67,12 +135,16 @@ const reduce = n => {
   return n;
 };
 
+export function getLifePathSum(year, month, day) {
+  return sumDigits(year) + sumDigits(month) + sumDigits(day);
+}
+
 export function getLifePath(year, month, day) {
-  return reduce(sumDigits(year) + sumDigits(month) + sumDigits(day));
+  return reduce(getLifePathSum(year, month, day));
 }
 
 // Pythagorean letter values: a=1..i=9, j=1..r=9, s=1..z=8
-export function getNameNumber(name) {
+export function getNameNumberSum(name) {
   if (!name) return 0;
   let total = 0;
   for (const c of name) {
@@ -80,7 +152,32 @@ export function getNameNumber(name) {
     if (code < 97 || code > 122) continue;
     total += ((code - 97) % 9) + 1;
   }
-  return reduce(total);
+  return total;
+}
+
+export function getNameNumber(name) {
+  return reduce(getNameNumberSum(name));
+}
+
+// Soul urge (heart's desire): sum of vowels only, Pythagorean values.
+// Standard numerology vowels: a, e, i, o, u. Y is variable in tradition;
+// excluded here for simplicity and reproducibility.
+const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
+
+export function getSoulUrgeSum(name) {
+  if (!name) return 0;
+  let total = 0;
+  for (const c of name) {
+    const lower = c.toLowerCase();
+    if (!VOWELS.has(lower)) continue;
+    const code = lower.charCodeAt(0);
+    total += ((code - 97) % 9) + 1;
+  }
+  return total;
+}
+
+export function getSoulUrge(name) {
+  return reduce(getSoulUrgeSum(name));
 }
 
 export function buildProfile(name, dobIso) {
@@ -96,9 +193,15 @@ export function buildProfile(name, dobIso) {
     name: cleanName,
     firstName: cleanName.split(/\s+/)[0] || '',
     sunSign: getSunSign(m, d),
+    chineseElement: getChineseElement(y, m, d),
     animal: getAnimal(y, m, d),
+    innerAnimal: getInnerAnimal(m, d),
     lifePath: getLifePath(y, m, d),
+    lifePathSum: getLifePathSum(y, m, d),
     nameNumber: getNameNumber(cleanName),
+    nameNumberSum: getNameNumberSum(cleanName),
+    soulUrge: getSoulUrge(cleanName),
+    soulUrgeSum: getSoulUrgeSum(cleanName),
     yyyy: y, mm: m, dd: d
   };
 }

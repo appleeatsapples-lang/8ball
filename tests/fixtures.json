@@ -5,73 +5,390 @@
     {
       "label": "Aries Rat LP3",
       "dob": "1996-04-01",
-      "expected": { "sunSign": "aries", "animal": "rat", "lifePath": 3 }
+      "expected": {
+        "sunSign": "aries",
+        "animal": "rat",
+        "lifePath": 3
+      }
     },
     {
       "label": "Capricorn cusp Dec 22 — first day of Cap",
       "dob": "1985-12-22",
-      "expected": { "sunSign": "capricorn", "animal": "ox", "lifePath": 3 }
+      "expected": {
+        "sunSign": "capricorn",
+        "animal": "ox",
+        "lifePath": 3
+      }
     },
     {
       "label": "Capricorn last day Jan 19",
       "dob": "1990-01-19",
-      "expected": { "sunSign": "capricorn", "lifePath": 3 }
+      "expected": {
+        "sunSign": "capricorn",
+        "lifePath": 3
+      }
     },
     {
       "label": "Aquarius first day Jan 20",
       "dob": "1990-01-20",
-      "expected": { "sunSign": "aquarius", "lifePath": 22 }
+      "expected": {
+        "sunSign": "aquarius",
+        "lifePath": 22
+      }
     },
     {
       "label": "Pre-CNY-cutoff Feb 3 → previous year animal",
       "dob": "2021-02-03",
-      "expected": { "animal": "rat" }
+      "expected": {
+        "animal": "rat"
+      }
     },
     {
       "label": "CNY cutoff exactly Feb 4 → current year animal",
       "dob": "2021-02-04",
-      "expected": { "animal": "ox" }
+      "expected": {
+        "animal": "ox"
+      }
     },
     {
       "label": "Synthetic Gemini Horse LP4 (mid-month, mid-sign)",
       "dob": "2002-06-15",
-      "expected": { "sunSign": "gemini", "animal": "horse", "lifePath": 7 }
+      "expected": {
+        "sunSign": "gemini",
+        "animal": "horse",
+        "lifePath": 7
+      }
     },
     {
       "label": "Master number 11 preserved (Scorpio Snake)",
       "dob": "1989-11-09",
-      "expected": { "sunSign": "scorpio", "animal": "snake", "lifePath": 11 }
+      "expected": {
+        "sunSign": "scorpio",
+        "animal": "snake",
+        "lifePath": 11
+      }
     },
     {
       "label": "Master number 22 preserved (Capricorn Snake)",
       "dob": "1990-01-02",
-      "expected": { "sunSign": "capricorn", "animal": "snake", "lifePath": 22 }
+      "expected": {
+        "sunSign": "capricorn",
+        "animal": "snake",
+        "lifePath": 22
+      }
     },
     {
       "label": "Master number 33 preserved (Sagittarius Snake)",
       "dob": "1989-12-12",
-      "expected": { "sunSign": "sagittarius", "animal": "snake", "lifePath": 33, "nameNumber": 1 }
+      "expected": {
+        "sunSign": "sagittarius",
+        "animal": "snake",
+        "lifePath": 33,
+        "nameNumber": 1
+      }
     },
     {
       "label": "Sagittarius Snake LP4",
       "dob": "1989-12-01",
-      "expected": { "sunSign": "sagittarius", "animal": "snake", "lifePath": 4 }
+      "expected": {
+        "sunSign": "sagittarius",
+        "animal": "snake",
+        "lifePath": 4
+      }
     },
     {
       "label": "Cancer Tiger LP8",
       "dob": "1986-07-04",
-      "expected": { "sunSign": "cancer", "animal": "tiger", "lifePath": 8 }
+      "expected": {
+        "sunSign": "cancer",
+        "animal": "tiger",
+        "lifePath": 8
+      }
     },
     {
       "label": "Year-edge Jan 1 → previous lunar year animal",
       "dob": "2024-01-01",
-      "expected": { "animal": "rabbit" }
+      "expected": {
+        "animal": "rabbit"
+      }
     }
   ],
   "name_number": [
-    { "name": "Generic", "expected": 7 },
-    { "name": "Ada", "expected": 6 },
-    { "name": "Sam", "expected": 6 },
-    { "name": "", "expected": 0 }
+    {
+      "name": "Generic",
+      "expected": 7
+    },
+    {
+      "name": "Ada",
+      "expected": 6
+    },
+    {
+      "name": "Sam",
+      "expected": 6
+    },
+    {
+      "name": "",
+      "expected": 0
+    }
+  ],
+  "_cards_comment": "Engine-output fixtures (Phase-2F-2). Aries × 12 animals (regression coverage from 2F-1) plus 11 representative non-aries fixtures, one per sun row. All three LP brackets are exercised: low (1/2/3), mid (4/5/6), high (7/8/9/11/22/33). DOBs synthetic per §11.",
+  "cards": [
+    {
+      "label": "Aries Rat low (LP=3)",
+      "dob": "1996-04-01",
+      "expected": {
+        "catalog": "i",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Aries Ox low (LP=1)",
+      "dob": "1985-04-01",
+      "expected": {
+        "catalog": "ii",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Aries Tiger low (LP=3)",
+      "dob": "1986-04-02",
+      "expected": {
+        "catalog": "iii",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Aries Rabbit low (LP=3)",
+      "dob": "2011-04-04",
+      "expected": {
+        "catalog": "iv",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Aries Snake mid (LP=5)",
+      "dob": "2013-04-04",
+      "expected": {
+        "catalog": "vi",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Aries Horse mid (LP=6)",
+      "dob": "2014-04-04",
+      "expected": {
+        "catalog": "vii",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Aries Goat mid (LP=4)",
+      "dob": "2003-04-04",
+      "expected": {
+        "catalog": "viii",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Aries Dog mid (LP=4)",
+      "dob": "1994-04-04",
+      "expected": {
+        "catalog": "xi",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Aries Dragon high (LP=22)",
+      "dob": "2024-04-19",
+      "expected": {
+        "catalog": "v",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Aries Monkey high (LP=11)",
+      "dob": "1992-04-04",
+      "expected": {
+        "catalog": "ix",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Aries Rooster high (LP=9)",
+      "dob": "1993-04-19",
+      "expected": {
+        "catalog": "x",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Aries Pig high (LP=11)",
+      "dob": "1995-04-19",
+      "expected": {
+        "catalog": "xii",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Taurus Rat low (LP=1)",
+      "dob": "2020-05-01",
+      "expected": {
+        "sunSign": "taurus",
+        "animal": "rat",
+        "catalog": "xiii",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Gemini Tiger low (LP=2)",
+      "dob": "2022-05-27",
+      "expected": {
+        "sunSign": "gemini",
+        "animal": "tiger",
+        "catalog": "xxvii",
+        "bracket": "low"
+      }
+    },
+    {
+      "label": "Cancer Snake mid (LP=6)",
+      "dob": "1989-07-08",
+      "expected": {
+        "sunSign": "cancer",
+        "animal": "snake",
+        "catalog": "xlii",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Leo Dragon mid (LP=4)",
+      "dob": "1988-08-15",
+      "expected": {
+        "sunSign": "leo",
+        "animal": "dragon",
+        "catalog": "liii",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Virgo Dragon mid (LP=4)",
+      "dob": "1988-09-14",
+      "expected": {
+        "sunSign": "virgo",
+        "animal": "dragon",
+        "catalog": "lxv",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Libra Rooster high (LP=8)",
+      "dob": "1993-10-12",
+      "expected": {
+        "sunSign": "libra",
+        "animal": "rooster",
+        "catalog": "lxxxii",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Scorpio Snake high (LP=8)",
+      "dob": "1989-11-15",
+      "expected": {
+        "sunSign": "scorpio",
+        "animal": "snake",
+        "catalog": "xc",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Sagittarius Snake high (LP=33)",
+      "dob": "1989-12-12",
+      "expected": {
+        "sunSign": "sagittarius",
+        "animal": "snake",
+        "catalog": "cii",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Capricorn Dog mid (LP=5)",
+      "dob": "1994-12-24",
+      "expected": {
+        "sunSign": "capricorn",
+        "animal": "dog",
+        "catalog": "cxix",
+        "bracket": "mid"
+      }
+    },
+    {
+      "label": "Aquarius Horse high (LP=7)",
+      "dob": "1990-02-04",
+      "expected": {
+        "sunSign": "aquarius",
+        "animal": "horse",
+        "catalog": "cxxvii",
+        "bracket": "high"
+      }
+    },
+    {
+      "label": "Pisces Pig mid (LP=4)",
+      "dob": "1995-03-04",
+      "expected": {
+        "sunSign": "pisces",
+        "animal": "pig",
+        "catalog": "cxliv",
+        "bracket": "mid"
+      }
+    }
+  ],
+  "_bracket_comment": "Direct resolveBracket(lp) cases for all 12 LP values (DOCTRINE §3 master numbers preserved at the final reduce).",
+  "brackets": [
+    {
+      "lp": 1,
+      "expected": "low"
+    },
+    {
+      "lp": 2,
+      "expected": "low"
+    },
+    {
+      "lp": 3,
+      "expected": "low"
+    },
+    {
+      "lp": 4,
+      "expected": "mid"
+    },
+    {
+      "lp": 5,
+      "expected": "mid"
+    },
+    {
+      "lp": 6,
+      "expected": "mid"
+    },
+    {
+      "lp": 7,
+      "expected": "high"
+    },
+    {
+      "lp": 8,
+      "expected": "high"
+    },
+    {
+      "lp": 9,
+      "expected": "high"
+    },
+    {
+      "lp": 11,
+      "expected": "high"
+    },
+    {
+      "lp": 22,
+      "expected": "high"
+    },
+    {
+      "lp": 33,
+      "expected": "high"
+    }
   ]
 }

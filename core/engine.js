@@ -1,93 +1,89 @@
 // 8ball / core / engine.js
-// Response generation. Pulls trait phrases from content/, fills templates.
-// Pure logic. Caller manages "recent" memory.
+// Catalog computation. Pure logic, no DOM.
+//
+// v0.2.0 surface (Phase-2F-3): the public free product surfaces only
+// the catalog index of the resolved card, not the card content itself.
+// The (sun, animal) → catalog mapping is positional (sun-row × 12 +
+// animal-col + 1), so the catalog can be computed without any card
+// content present in the runtime. The interpretation layer (card
+// content) is the future paid product and lives outside this repo.
+//
+// Pipeline (DOCTRINE §1):
+//   profile (from buildProfile) → getCard(profile) → { catalog }
+//   The card content fields (name, type, habit, note) are returned as
+//   empty strings in this build; they remain in the engine API for
+//   forward compatibility with v0.3.0+ which will populate them from
+//   the private content layer.
 
-import { TRAITS_SUN, TRAITS_ANIMAL, TRAITS_LP } from '../content/traits.v1.js';
-import {
-  TEMPLATES_NO_QUESTION,
-  TEMPLATES_YES,
-  TEMPLATES_NO,
-  TEMPLATES_MAYBE
-} from '../content/templates.v1.js';
+// Sun-row order in the 144-card catalog. Astrological year, starting
+// from Aries. This is positional only — no card content is loaded.
+const SUN_ORDER = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'
+];
 
-const lpFallback = n => {
-  if (TRAITS_LP[n]) return TRAITS_LP[n];
-  return TRAITS_LP[((n - 1) % 9) + 1] || TRAITS_LP[1];
-};
+// Animal-column order in the 144-card catalog. Standard Chinese
+// zodiac order, starting from Rat.
+const ANIMAL_ORDER = [
+  'rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake',
+  'horse', 'goat', 'monkey', 'rooster', 'dog', 'pig'
+];
 
-const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
-
-// Weighted axis selection: sun 40%, animal 35%, life path 25%.
-// Tweaked once empirically — keep here, not buried in the UI layer.
-function axisTrait(profile, rng) {
-  const r = rng();
-  if (r < 0.40) return pick(TRAITS_SUN[profile.sunSign] || TRAITS_SUN.aries, rng);
-  if (r < 0.75) return pick(TRAITS_ANIMAL[profile.animal] || TRAITS_ANIMAL.ox, rng);
-  return pick(lpFallback(profile.lifePath), rng);
-}
-
-export function classifyQuestion(q, rng = Math.random) {
-  if (!q || q.trim().length < 2) return 'none';
-  const text = q.trim().toLowerCase();
-  if (/^(should i|am i|will i ever|why do|why does|what if)\b/.test(text)) {
-    return pick(['yes', 'no', 'maybe', 'maybe', 'maybe'], rng);
+// Roman numeral conversion for catalog indices 1..144. Lowercase per
+// the existing catalog format ("i", "ii", ..., "cxliv").
+function toRoman(n) {
+  if (!Number.isInteger(n) || n < 1 || n > 3999) {
+    throw new Error(`toRoman: out of range integer ${n}`);
   }
-  if (/^(is|do|does|can|could|would|will|are|am)\b/.test(text)) {
-    return pick(['yes', 'no', 'maybe'], rng);
+  const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const numerals = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
+  let out = '';
+  let rem = n;
+  for (let i = 0; i < values.length; i++) {
+    while (rem >= values[i]) {
+      out += numerals[i];
+      rem -= values[i];
+    }
   }
-  return pick(['yes', 'no', 'maybe', 'maybe'], rng);
+  return out;
 }
 
-function fillTemplate(tpl, profile, rng) {
-  return tpl
-    .replace('{name}', profile.firstName || 'you')
-    .replace('{sun}', profile.sunSign)
-    .replace('{animal}', profile.animal)
-    .replace('{lp}', String(profile.lifePath))
-    .replace('{trait_sun}', pick(TRAITS_SUN[profile.sunSign] || TRAITS_SUN.aries, rng))
-    .replace('{trait_animal}', pick(TRAITS_ANIMAL[profile.animal] || TRAITS_ANIMAL.ox, rng))
-    .replace('{trait_lp}', pick(lpFallback(profile.lifePath), rng))
-    .replace('{trait_any_alt}', axisTrait(profile, rng))
-    .replace(/\{trait_any\}/g, () => axisTrait(profile, rng));
+export class MissingCardError extends Error {
+  constructor(sunSign, animal) {
+    super(
+      `No catalog defined for sun="${sunSign}" animal="${animal}". ` +
+      `Sun must be one of [${SUN_ORDER.join(', ')}]; animal must be one of [${ANIMAL_ORDER.join(', ')}].`
+    );
+    this.name = 'MissingCardError';
+    this.sunSign = sunSign;
+    this.animal = animal;
+  }
 }
 
-function pickTemplate(mode, rng) {
-  if (mode === 'none') return pick(TEMPLATES_NO_QUESTION, rng);
-  // Mix in a few "no question" lines to keep yes/no/maybe answers from feeling repetitive
-  if (mode === 'yes')   return pick(TEMPLATES_YES.concat(TEMPLATES_NO_QUESTION.slice(0, 4)), rng);
-  if (mode === 'no')    return pick(TEMPLATES_NO.concat(TEMPLATES_NO_QUESTION.slice(0, 4)), rng);
-  return pick(TEMPLATES_MAYBE.concat(TEMPLATES_NO_QUESTION.slice(0, 4)), rng);
+const LOW = new Set([1, 2, 3]);
+const MID = new Set([4, 5, 6]);
+const HIGH = new Set([7, 8, 9, 11, 22, 33]);
+
+export function resolveBracket(lifePath) {
+  if (LOW.has(lifePath)) return 'low';
+  if (MID.has(lifePath)) return 'mid';
+  if (HIGH.has(lifePath)) return 'high';
+  throw new Error(`Unknown life path value: ${lifePath}`);
 }
 
-/**
- * Generate one answer.
- * @param {object} profile - from buildProfile()
- * @param {string} question - user's question, or empty
- * @param {string[]} recent - array of recently shown answers (caller-managed)
- * @param {function} rng - optional rng for tests; defaults to Math.random
- * @returns {string}
- */
-export function generateAnswer(profile, question, recent = [], rng = Math.random) {
-  const mode = classifyQuestion(question, rng);
-  // Hex-window soft cap (DOCTRINE.md §6 — UI integrity).
-  // Long answers overflow the ball's hex display. Re-roll up to 8 times to
-  // pick something that fits; fall back to the longest acceptable on the 9th.
-  const MAX_CHARS = 120;
-  let answer;
-  let bestFallback = '';
-  let attempts = 0;
-  do {
-    const tpl = pickTemplate(mode, rng);
-    const candidate = fillTemplate(tpl, profile, rng);
-    if (candidate.length <= MAX_CHARS && !recent.includes(candidate)) {
-      return candidate;
-    }
-    if (candidate.length <= MAX_CHARS && bestFallback === '') {
-      bestFallback = candidate; // accept-on-length even if recently-shown
-    }
-    answer = candidate;
-    attempts++;
-  } while (attempts < 12);
-  // Prefer a length-clean fallback over a too-long answer.
-  return bestFallback || answer;
+export function getCard(profile) {
+  const { sunSign, animal } = profile;
+  const sunIdx = SUN_ORDER.indexOf(sunSign);
+  const animalIdx = ANIMAL_ORDER.indexOf(animal);
+  if (sunIdx < 0 || animalIdx < 0) {
+    throw new MissingCardError(sunSign, animal);
+  }
+  const catalogArabic = sunIdx * 12 + animalIdx + 1;
+  return {
+    name: '',
+    type: '',
+    habit: '',
+    note: '',
+    catalog: toRoman(catalogArabic)
+  };
 }
