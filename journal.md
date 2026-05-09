@@ -3,6 +3,108 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-09 · v0.2.1 SHIPPED — Phase-2G-1 rising sign + country auto-fill, squash-merged at `f3666cb`
+=====
+
+v0.2.1 lives at `https://the-eight-ball.netlify.app` on `main` at `f3666cb`. The Phase-2G-1 arc closed; two-audit Codex cycle cleared at audit-2 PASS clean.
+
+## What shipped
+
+An eighth surface coordinate: rising sign. When the user opens the optional `<details>` group and supplies birth time + country + lat + lng, line 2 of the surface renders as `${sun} ↑ ${rising}`. Without those inputs, line 2 stays a bare sun sign exactly as in v0.2.0. The other six coordinates and the catalog driver `(sun, animal)` are unchanged. Visual surface (full-opts path):
+
+```
+fire
+libra ↑ scorpio
+rat ⇌ rooster
+3 11 3
+```
+
+## Architecture: rising as surface-only
+
+DOCTRINE §1 stays exact: catalog driver remains `(sun, animal)`. New DOCTRINE §1.A "Rising sign — surface coordinate, not a driver" makes the boundary explicit — rising is rendered, not a deck dimension. Implementation matches:
+
+- `core/rising.js` (86 lines, zero deps): pure Meeus ascendant. Three reference cases anchor tests within 0.01° of astro.com.
+- `core/profile.js` extended additively: `buildProfile(name, dob, opts?)`. v0.2.0 callers produce byte-identical output; the new `risingSign` field is undefined unless full opts are present.
+- `core/countries.js` (276 entries): ISO 3166-1 sovereigns + multi-tz country zones (US-E/C/M/P/AK/HI; CA-NL/AT/E/C/M/P; RU 4 zones; AU 3; BR 3; MX 3; ID 3; KZ 2; MN 2; CL 2). Each entry: `{code, name, utcOffsetMinutes, defaultLat, defaultLng}`. Centroids 1-decimal from CIA World Factbook. UTC offsets fixed-per-entry; DST out of scope for v0.2.1 — codified in DOCTRINE §1.A extension.
+- `index.html` (820 lines, well under the 1500-line single-file gate): collapsible `<details>` rising-fields group; country `<select>` with onChange auto-fill; always-overwrite-on-country-change behavior; rehydrate-no-fire behavior; empty-country-preserves behavior.
+
+localStorage payload extended additively: `{name, dob}` → `{name, dob, time?, country?, lat?, lng?}`. Zero network calls preserved (DOCTRINE §5).
+
+## Tests + audit
+
+403 tests (was 102 at v0.2.0), +301:
+- `tests/rising.test.js` — 24 tests: 3 reference cases, math primitives (`julianDay`, `gmstDeg`, `obliquityDeg`, `ascendantDeg`), `buildProfile` integration, 12 edge cases (lat 0/±60/±89, lng ±179.99, dates 1924-2099).
+- `tests/countries.test.js` — 276 dynamically-generated data-quality tests (defaultLat/defaultLng range validation per entry).
+- `tests/profile.test.js` — additive regression test asserting `buildProfile`-without-opts has `risingSign === undefined` and 12 existing fields byte-identical to v0.2.0.
+- `tests/fixtures.json` — new top-level `rising_cases` array; existing `cases` array byte-identical.
+
+Local PII audit: 22 → 26 files (+4 = `rising.js`, `countries.js`, `rising.test.js`, `countries.test.js`).
+
+## Two-audit cycle (Phase-2G-1)
+
+```
+audit-1 at 3540e97  PASS w/ 1 CONCERN (README stale test count "102 cases as of v0.2.0")  disposed at f79f7a9
+audit-2 at c3b0e88  PASS / PASS / PASS — cycle closed
+```
+
+The auto-fill UX layer was added between audit-1 and audit-2 (extension brief at `~/Desktop/8ball/audits/codex_brief_2G1_extend_autofill_at_f79f7a9.md`). The 30 orchestrator-locked seed values in `core/countries.js` were verified at audit-2.
+
+## Branch hygiene note
+
+The implementing agent's first 2G-1 commit (`3540e97`) was committed directly to local main in violation of the brief's "do NOT amend main directly" instruction. Caught before any push to origin. Recovery: cut branch from work commit, reset main to `87dc494` (= origin/main), checkout branch. The auto-fill commit at `c3b0e88` followed branch discipline correctly. Worth pre-flagging more emphatically in future implementation briefs (e.g. "DO NOT commit to main; if your tooling auto-targets main, switch to the branch FIRST").
+
+## Squash-merge
+
+Squash to `main` produced one v0.2.1 commit at `f3666cb`. `phase-2g-1-rising-sign` deleted post-merge (local force-delete; never pushed to origin separately).
+
+## Netlify credit-cap incident
+
+Push to origin went through clean. Netlify silently skipped the deploy: `Skipped — Skipped due to account credit usage exceeded`. The team's free-tier credits had run out. Operator paid ~22:43 this session, upgraded to Personal plan ($9/mo, 1,000 credits/month + 30 add-on = 1,030 available, billing period May 9 – Jun 8). Netlify does NOT auto-retry skipped deploys after credit restoration — operator manually clicked Trigger deploy on the deploys dashboard, which fired the build of `main@f3666cb`.
+
+Prod-local parity at ship: 28,031 bytes byte-exact local↔prod; new etag `b50ba742…` (was `b40f6884…` at v0.2.0); all v0.2.1 strings present (`country-input`, `rising-fields`, `risingSign`, `↑`).
+
+Worth a calendar reminder to check Netlify credit balance before major ships in subsequent sessions.
+
+## State at ship
+
+- HEAD `main` at `f3666cb`, pushed to origin
+- Tests 403/403 (calc+pipeline, privacy, PII, dependency, rising, countries)
+- Local PII audit clean (26 files)
+- Repo: private
+- Doctrine: v0.14
+- Calc version: v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff · Meeus ascendant)
+- Content version: v0.2.1-public (catalog-only; engine computes positionally, no card strings in public runtime; full content lives privately at `~/dev/8ball-private/cards.v1.full.js`, unchanged in v0.2.1)
+
+## Post-ship live-fire (2026-05-09)
+
+Operator ran the 5-gate prod live-fire on `https://the-eight-ball.netlify.app`:
+
+1. No-opts path: 4 lines, line 2 bare sun sign, no `↑` glyph ✓
+2. Full-opts path: line 2 `${sun} ↑ ${rising}` ✓
+3. Auto-fill: country picks populate lat/lng with centroid; second pick overwrites; clear country preserves manual values ✓
+4. Rehydrate-no-fire: manual lat/lng overrides survive reload (auto-fill doesn't re-fire on hydrate) ✓
+5. Three reference cases vs astro.com (London/NYC/Riyadh): rising signs match (virgo/leo/capricorn) ✓ — math inherits from local live-fire which already cleared <0.01°.
+
+5/5 green.
+
+## Surface-density signal (orchestrator-flagged)
+
+The free-surface trajectory if all post-2G-2 candidates shipped: 7 (v0.2.0) → 8 (v0.2.1) → 11 (v0.2.2 hexagon) → 15 (2G-3+ moon/day-pillar/lunar/birth-card). 15 coordinates crowds the specimen-registry austere aesthetic. Surfaced mid-session; operator chose to stabilize at 11 post-hexagon and pivot to the interpretation/paid layer (v0.3.0) instead. The four 2G-3+ candidates are explicitly deferred behind v0.3.0; may not return. Worth ground-truthing the rendered hexagon surface against actual mobile rendering before greenlighting more free coords post-2G-2.
+
+## Carry-over (post-v0.2.1 queue)
+
+From 8BALL.md §11 open items, residual:
+
+- Phase-2G-2 hexagon polygon (locked decisions at `~/Desktop/8ball/sessions/queue_2G2_hexagon_polygon.md`); pickup on operator signal.
+- v0.3.0 paid interpretation layer (NEW priority signaled by operator this session — $5 toy-price tier). Architecture already reserved; needs design pass.
+- Deferred 2G-3+ candidates (locked decisions at `~/Desktop/8ball/sessions/queue_post_2G2_candidates.md`); held behind v0.3.0.
+- Phase-2C deploy-gate wiring (still doctrine-correct as "not gated, acknowledged").
+- Cleanup: shadow Netlify project (`enchanting-bonbon-2b5064`); both Netlify projects served the same stale v0.2.0 during the credit-cap incident.
+- Stale branch cleanup on origin (`v0.1.4-phase2d-concern-dispositions` may still exist; verify and prune).
+
+---
+
+=====
 2026-05-09 · v0.2.0 SHIPPED — Phase-2F card system + secret strip + symbols-only surface, squash-merged at `2b69944`
 =====
 
