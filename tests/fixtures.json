@@ -1,6 +1,7 @@
 {
   "_comment": "Calculation contract fixtures. Every value here was hand-verified against core/profile.js on the date this file was written. CHANGES TO THIS FILE GATE THE RELEASE — if a fixture changes, that's an algorithm change, which means a doctrine review (see DOCTRINE.md §3).",
   "_pii_rule": "Fixture DOBs MUST be synthetic — chosen for the calc path they exercise, not anchored to any real person. See DOCTRINE.md §11.",
+  "_rising_pii_rule": "Rising-sign fixture coordinates are major-city centroids and synthetic times — chosen for the algorithm path they exercise, not anchored to any real person's birthplace.",
   "cases": [
     {
       "label": "Aries Rat LP3",
@@ -110,6 +111,44 @@
       "dob": "2024-01-01",
       "expected": {
         "animal": "rabbit"
+      }
+    }
+  ],
+  "rising_cases": [
+    {
+      "label": "London noon BST 1990 — virgo rising",
+      "dob": "1990-06-15",
+      "time": "12:00",
+      "utcOffsetMinutes": 60,
+      "lat": 51.5074,
+      "lng": -0.1278,
+      "expected": {
+        "sunSign": "gemini",
+        "risingSign": "virgo"
+      }
+    },
+    {
+      "label": "NYC afternoon EST 1985 — leo rising",
+      "dob": "1985-03-15",
+      "time": "14:30",
+      "utcOffsetMinutes": -300,
+      "lat": 40.7128,
+      "lng": -74.006,
+      "expected": {
+        "sunSign": "pisces",
+        "risingSign": "leo"
+      }
+    },
+    {
+      "label": "Riyadh sunrise AST 2000-01-01 — capricorn rising",
+      "dob": "2000-01-01",
+      "time": "06:00",
+      "utcOffsetMinutes": 180,
+      "lat": 24.7136,
+      "lng": 46.6753,
+      "expected": {
+        "sunSign": "capricorn",
+        "risingSign": "capricorn"
       }
     }
   ],

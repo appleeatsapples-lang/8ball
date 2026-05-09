@@ -8,11 +8,21 @@ This document is the constitution of `8ball`. The codebase obeys it. PRs that co
 
 A fixed designed deck that knows you. Enter your name and date of birth once. Shake.
 
-The product calculates seven calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all are single-digit, space-separated when any is a master 11/22/33). The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
+The product calculates seven baseline calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all are single-digit, space-separated when any is a master 11/22/33). The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
 
-As of v0.2.0 only the seven coordinates and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
+As of v0.2.1 only the seven baseline coordinates, optional rising sign, and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
 
 The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese five-element, Chinese zodiac animals (year and month pillars), numerology life path, name number, soul urge — and name them as such.
+
+**§1.A. Rising sign — surface coordinate, not a driver.**
+
+As of v0.2.1 the result card surfaces an eighth coordinate when the operator provides birth time, country, latitude, and longitude: the rising sign (astronomical ascendant). Rising sign is computed from `(year, month, day, hour, minute, utcOffsetMinutes, lat, lng)` via standard ascendant math (Meeus); see `core/rising.js` for the exact algorithm. It is rendered on line 2 of the result card paired with the sun sign as `${sunSign} ↑ ${risingSign}`.
+
+Rising sign is **surface-only**: it does not enter `getCard`, `resolveBracket`, or any catalog computation. The catalog driver remains `(sunSign, animal)` per §1. Rising adds a coordinate to the visual surface; it does not branch the card layer.
+
+When any of (time, country, lat, lng) is missing, rising sign is `undefined` and line 2 falls back to the v0.2.0 bare-sun-sign render. Existing v0.2.0 profiles in localStorage continue to work without modification.
+
+UTC offsets in `core/countries.js` are fixed per entry (typically standard time, not DST). Lat/lng default to the selected country/zone's geographic centroid (1-decimal precision); user can override with birthplace-precise coordinates for greater accuracy. DST-aware computation, historical timezone changes, and pre-1970 date adjustments are out of scope for v0.2.1.
 
 ## §2. What this is NOT
 
@@ -48,7 +58,7 @@ The voice is declarative-observational, framed in strengths and weaknesses. Card
 
 Algorithm versions documented:
 
-- **calc v1** (initial) — Pythagorean life path with master numbers 11/22/33 preserved at the final reduce. Western tropical sun signs at standard cusps. Chinese zodiac with Feb 4 cutoff approximation (lunar tables = future work). Additively extended at v0.2.0 with: chinese five-element (2-year cycle, 1924 anchor), public/private animal split (year-pillar already present at `animal`; month-pillar added as `innerAnimal` via solar-term cutoff approximations), soul urge (vowel-only Pythagorean, masters preserved), and unreduced sums (lifePathSum, nameNumberSum, soulUrgeSum) exported for potential future surfacing. All additions covered by direct unit tests in `tests/profile.test.js`; existing fixtures unchanged.
+- **calc v1** (initial) — Pythagorean life path with master numbers 11/22/33 preserved at the final reduce. Western tropical sun signs at standard cusps. Chinese zodiac with Feb 4 cutoff approximation (lunar tables = future work). Additively extended at v0.2.0 with: chinese five-element (2-year cycle, 1924 anchor), public/private animal split (year-pillar already present at `animal`; month-pillar added as `innerAnimal` via solar-term cutoff approximations), soul urge (vowel-only Pythagorean, masters preserved), and unreduced sums (lifePathSum, nameNumberSum, soulUrgeSum) exported for potential future surfacing. Additively extended at v0.2.1 with optional rising sign (surface-only ascendant) when birth time + country + lat/lng are present. All additions covered by direct unit tests in `tests/profile.test.js` and `tests/rising.test.js`; existing fixtures unchanged.
 
 If a fixture changes silently, the test gate catches it. If a test changes silently, code review catches it. If both change in the same commit without a doctrine note, the reviewer rejects.
 
@@ -69,10 +79,14 @@ If a line lands but you can't tell whether it crosses any of the above, it cross
 
 ## §5. Privacy primitive
 
-The product persists exactly two pieces of user data, in `localStorage` only, on the user's own device:
+The product persists only user-entered profile fields, in `localStorage` only, on the user's own device:
 
 - `name` (string)
 - `dob` (ISO date YYYY-MM-DD)
+- optional `time` (HH:MM string, 24-hour)
+- optional `country` (country/zone entry code from `core/countries.js`)
+- optional `lat` (decimal latitude)
+- optional `lng` (decimal longitude)
 
 Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No remote endpoints. No third-party scripts. System fonts only — zero network requests after page load.
 
@@ -169,7 +183,7 @@ The `tests/pii_scan.test.js` enforces a public-banned subset. The local audit at
 - Push notifications
 - AI-generated trait phrases at runtime (latency, cost, repeatability all break)
 - Multi-language until v2 of the trait pool exists in any language
-- Astrology charts, planetary aspects, anything beyond sun sign
+- Astrology charts, planetary aspects, anything beyond sun sign + optional rising sign
 - Daily/weekly horoscopes ("today's reading")
 - Sharing/social-card export until a privacy review explicitly clears it
 - Anything touching the SIRR engine, codebase, or vocabulary
@@ -193,5 +207,5 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v0.2.0-public (catalog-only; engine computes positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-09 · v0.12 (audit-4 dispositions — §11 PII-rule premise rewritten to be independent of repo visibility — the rule survives the public→private flip; §8.1 CI stage list aligned with §7 v0.10+ stages; stale-public residues swept across 8BALL.md / ci.yml / RELEASE_CHECKLIST.md; current-system card-content leak at journal:245 (`virgo.dragon.note.low`) scrubbed per §4 v0.11 clause)
+**content version:** v0.2.1-public (catalog-only; optional rising-sign surface coordinate; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
+**doctrine version:** 2026-05-09 · v0.14 (§1.A extended: lat/lng auto-fill from country centroid, user-overridable; buildProfile opts remain additive; fixed UTC offsets documented, DST out of scope for v0.2.1)

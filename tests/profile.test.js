@@ -212,6 +212,44 @@ describe('calculation contract — 2F-3 additive fields', () => {
     expect(p.soulUrge).toBe(4);
     expect(p.soulUrgeSum).toBe(13);
   });
+
+  it('buildProfile without rising opts preserves existing output shape and omits risingSign', () => {
+    const p = buildProfile('Alex Thomas', '1988-08-15');
+    expect({
+      name: p.name,
+      firstName: p.firstName,
+      sunSign: p.sunSign,
+      chineseElement: p.chineseElement,
+      animal: p.animal,
+      innerAnimal: p.innerAnimal,
+      lifePath: p.lifePath,
+      lifePathSum: p.lifePathSum,
+      nameNumber: p.nameNumber,
+      nameNumberSum: p.nameNumberSum,
+      soulUrge: p.soulUrge,
+      soulUrgeSum: p.soulUrgeSum,
+      yyyy: p.yyyy,
+      mm: p.mm,
+      dd: p.dd
+    }).toEqual({
+      name: 'Alex Thomas',
+      firstName: 'Alex',
+      sunSign: 'leo',
+      chineseElement: 'earth',
+      animal: 'dragon',
+      innerAnimal: 'monkey',
+      lifePath: 4,
+      lifePathSum: 40,
+      nameNumber: 1,
+      nameNumberSum: 37,
+      soulUrge: 4,
+      soulUrgeSum: 13,
+      yyyy: 1988,
+      mm: 8,
+      dd: 15
+    });
+    expect(p.risingSign).toBeUndefined();
+  });
 });
 
 describe('engine — resolveBracket', () => {

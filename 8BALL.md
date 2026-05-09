@@ -30,7 +30,7 @@ Mirrors the shape of `~/dev/SIRR/SIRR.md` deliberately. Same discipline. Smaller
 
 ## 1. What 8ball is
 
-A magic 8-ball that knows you. Public-facing surface for v0.2.0 is minimal: enter name + DOB once, shake, see your seven calibrated coordinates — sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all single-digit, e.g. `777`; space-separated when any master 11/22/33, e.g. `3 11 3`). Underneath, the (sun sign, public animal) pair drives a 144-card catalog index — computed positionally by `core/engine.js` (sun-row × 12 + animal-col + 1, roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell, not the catalog index. The catalog index is the only card-derived value surfaced. The card content itself (name, type, habit, note per cell) is private and lives outside this repo at `~/dev/8ball-private/`; the future paid interpretation layer will surface it.
+A magic 8-ball that knows you. Public-facing surface for v0.2.1 is minimal: enter name + DOB once, optionally add birth time + country + lat/lng, shake, see your seven baseline calibrated coordinates — sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge — plus rising sign when computable. The two animals pair on a single line via an equilibrium arrow (`⇌`); sun and rising pair on line 2 via `↑`; the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all single-digit, e.g. `777`; space-separated when any master 11/22/33, e.g. `3 11 3`). Underneath, the (sun sign, public animal) pair drives a 144-card catalog index — computed positionally by `core/engine.js` (sun-row × 12 + animal-col + 1, roman numeral). Rising sign is surface-only and never enters the catalog driver. Life path drives bracket resolution (low/mid/high) within a card cell, not the catalog index. The catalog index is the only card-derived value surfaced. The card content itself (name, type, habit, note per cell) is private and lives outside this repo at `~/dev/8ball-private/`; the future paid interpretation layer will surface it.
 
 **SIRR is the engine; 8-Ball is the deniability layer.** SIRR (sacred, private, personal) and 8ball (materialistic, public, commercial) are sibling repos. They share NOTHING in code. They share calculation rigor by example, not by import. (See `DOCTRINE.md §9`.)
 
@@ -68,10 +68,10 @@ Layered source:
 | 3 | Product display name | `8 ball` (lowercase, space). Folder & repo: `8ball`. |
 | 4 | License | MIT |
 | 5 | Stack | Static + ES modules; no build step |
-| 6 | Persistence | localStorage only — name + DOB; nothing else, ever |
+| 6 | Persistence | localStorage only — name + DOB + optional rising inputs (`time`, `country`, `lat`, `lng`); no derived profile stored |
 | 7 | Telemetry | None. Permanently. |
 | 8 | Calc version | v1 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; Feb 4 CNY approximation |
-| 9 | Content version | v0.2.0-public (catalog-only; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`) |
+| 9 | Content version | v0.2.1-public (catalog-only; optional rising-sign surface coordinate; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
 | 12 | Multi-model lanes | DOCTRINE.md §10 (mirrors SIRR §7 pattern at smaller scale) |
@@ -96,7 +96,7 @@ Per `DOCTRINE.md §10`. Brief summary:
 
 **Privacy primitive (DOCTRINE.md §5):**
 
-The product persists exactly two pieces of user data: `name` (string) and `dob` (ISO date), in `localStorage` only, on the user's own device. Nothing else is stored or transmitted.
+The product persists only user-entered profile fields in `localStorage`, on the user's own device: `name`, `dob`, and optional rising-sign inputs (`time`, `country`, `lat`, `lng`). No derived profile is stored or transmitted.
 
 **PII rule (DOCTRINE.md §11):**
 

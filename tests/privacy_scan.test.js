@@ -103,7 +103,7 @@ describe('privacy primitive scan (DOCTRINE.md §5)', () => {
       }
       expect(
         hits,
-        `Forbidden token "${token}" found:\n${hits.join('\n')}\nDOCTRINE.md §5 forbids storage/network/analytics surfaces beyond localStorage(name+dob).`
+        `Forbidden token "${token}" found:\n${hits.join('\n')}\nDOCTRINE.md §5 forbids storage/network/analytics surfaces beyond the allow-listed localStorage profile payload.`
       ).toEqual([]);
     });
   }

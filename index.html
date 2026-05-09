@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="Seven calibrated coordinates from name and date of birth. Stored only on your device.">
+<meta name="description" content="Seven calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -217,7 +217,8 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
-  .field input {
+  .field input,
+  .field select {
     width: 100%;
     background: transparent;
     border: none;
@@ -228,13 +229,53 @@
     padding: 8px 2px;
     transition: border-bottom-width 0.15s;
   }
-  .field input:focus {
+  .field input:focus,
+  .field select:focus {
     outline: none;
     border-bottom-width: 2px;
     border-bottom-color: var(--paper);
   }
   .field input::placeholder { color: rgba(138,132,114,0.4); }
   .field input[type="date"] { color-scheme: dark; }
+  .field select {
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+  .field select option {
+    background: var(--page-bg);
+    color: var(--paper);
+  }
+  .field-group {
+    border: none;
+    margin: 2px 0 24px;
+  }
+  .field-group summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--label);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    padding: 6px 0;
+  }
+  .field-group summary::-webkit-details-marker { display: none; }
+  .field-group summary::before {
+    content: "+";
+    display: inline-block;
+    width: 16px;
+    color: var(--rule);
+  }
+  .field-group[open] summary::before { content: "-"; }
+  .field-group .hint {
+    font-size: 10px;
+    line-height: 1.45;
+    letter-spacing: 0.08em;
+    color: var(--label);
+    text-transform: lowercase;
+    margin-top: -4px;
+  }
 
   /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
@@ -400,6 +441,28 @@
         <label for="dob-input">date of birth</label>
         <input id="dob-input" type="date" required>
       </div>
+      <details class="field-group" id="rising-fields">
+        <summary>add rising sign (optional)</summary>
+        <div class="field">
+          <label for="time-input">birth time (24h)</label>
+          <input id="time-input" type="time" placeholder="">
+        </div>
+        <div class="field">
+          <label for="country-input">country / zone</label>
+          <select id="country-input">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lat-input">latitude (decimal, e.g. 24.7136)</label>
+          <input id="lat-input" type="number" step="0.0001" min="-90" max="90" placeholder="">
+        </div>
+        <div class="field">
+          <label for="lng-input">longitude (decimal, e.g. 46.6753)</label>
+          <input id="lng-input" type="number" step="0.0001" min="-180" max="180" placeholder="">
+        </div>
+        <p class="hint">picking a country auto-fills lat/lng to the country's centroid. edit them to use birthplace-precise coordinates. if any field is blank, rising sign is omitted. dst not adjusted in v0.2.1 — use standard time.</p>
+      </details>
       <button type="submit" class="btn btn-block" id="enter-btn">begin</button>
     </form>
     <div class="disclaimer">stored only on this device.</div>
@@ -447,7 +510,7 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. these are your symbols. nothing is stored off-device.</p>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing is stored off-device.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -468,6 +531,7 @@
 </div>
 
 <script type="module">
+import { COUNTRIES, getCountryByCode } from './core/countries.js';
 import { buildProfile } from './core/profile.js';
 import { getCard, MissingCardError } from './core/engine.js';
 
@@ -479,6 +543,11 @@ const result = $('result');
 const profileForm = $('profile-form');
 const nameInput = $('name-input');
 const dobInput = $('dob-input');
+const risingFields = $('rising-fields');
+const timeInput = $('time-input');
+const countrySelect = $('country-input');
+const latInput = $('lat-input');
+const lngInput = $('lng-input');
 const flipInner = $('flip-inner');
 const cardBack = $('card-back');
 const shakeAgainBtn = $('shake-again-btn');
@@ -497,18 +566,61 @@ const cardCoordinates = $('card-coordinates');
 let currentProfile = null;
 let flipLocked = false;
 
+for (const c of COUNTRIES) {
+  const opt = document.createElement('option');
+  opt.value = c.code;
+  opt.textContent = c.name;
+  countrySelect.appendChild(opt);
+}
+
+countrySelect.addEventListener('change', () => {
+  const code = countrySelect.value;
+  if (!code) return;
+  const entry = getCountryByCode(code);
+  if (!entry) return;
+  latInput.value = entry.defaultLat;
+  lngInput.value = entry.defaultLng;
+});
+
 // ── profile persistence (DOCTRINE.md §5) ──────────────────────────
-function loadProfile() {
+function loadSavedProfile() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (obj && obj.name && obj.dob) return buildProfile(obj.name, obj.dob);
+    if (obj && obj.name && obj.dob) return obj;
   } catch (_) {}
   return null;
 }
-function saveProfile(name, dob) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, dob })); }
+function optsFromPayload(obj) {
+  return {
+    time: obj.time,
+    country: obj.country,
+    lat: typeof obj.lat === 'number' ? obj.lat : undefined,
+    lng: typeof obj.lng === 'number' ? obj.lng : undefined
+  };
+}
+function profileFromPayload(obj) {
+  return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
+}
+function populateRisingFields(obj) {
+  timeInput.value = obj.time || '';
+  countrySelect.value = obj.country || '';
+  latInput.value = typeof obj.lat === 'number' ? String(obj.lat) : '';
+  lngInput.value = typeof obj.lng === 'number' ? String(obj.lng) : '';
+  if (obj.time || obj.country || typeof obj.lat === 'number' || typeof obj.lng === 'number') {
+    risingFields.setAttribute('open', '');
+  }
+}
+function saveProfile(name, dob, opts) {
+  const payload = { name, dob };
+  if (opts) {
+    if (opts.time) payload.time = opts.time;
+    if (opts.country) payload.country = opts.country;
+    if (typeof opts.lat === 'number' && !isNaN(opts.lat)) payload.lat = opts.lat;
+    if (typeof opts.lng === 'number' && !isNaN(opts.lng)) payload.lng = opts.lng;
+  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }
   catch (_) {}
 }
 function clearProfile() {
@@ -518,9 +630,9 @@ function clearProfile() {
 // ── render card face from profile ─────────────────────────────────
 //
 // v0.2.0 surface (Phase-2F-3): renders four visual lines covering
-// seven calibrated coordinates:
+// seven calibrated coordinates, plus optional rising sign in v0.2.1:
 //   1. chinese five-element
-//   2. sun sign
+//   2. sun sign, or sun ↑ rising when birth time/place are provided
 //   3. (public-animal ⇌ private-animal) — paired via equilibrium arrow
 //   4. (life path · name number · soul urge) — reduced numerology
 //      triplet, concatenated when all single-digit (e.g. "777"),
@@ -529,10 +641,9 @@ function clearProfile() {
 //
 // Product principle: free surface = calibrated symbols only. No
 // interpretation, no per-symbol explanation. Interpretation is the
-// future paid layer (v0.3.0+ may introduce the meaning layer via
-// reveal interaction; the immutable card content in cards.v1.js
-// already carries that interpretation, preserved-but-not-rendered).
-// Per DOCTRINE §4 cards are versioned-not-edited.
+// future paid layer (v0.3.0+ may introduce the meaning layer from the
+// private card-content source). Per DOCTRINE §4 cards are
+// versioned-not-edited.
 
 function formatNumbers(profile) {
   // Three reduced numerology numbers on one line. When all three are
@@ -547,9 +658,12 @@ function formatNumbers(profile) {
 }
 
 function formatCoordinates(profile) {
+  const sunLine = profile.risingSign
+    ? `${profile.sunSign} ↑ ${profile.risingSign}`
+    : profile.sunSign;
   return [
     profile.chineseElement,
-    profile.sunSign,
+    sunLine,
     `${profile.animal} ⇌ ${profile.innerAnimal}`,
     formatNumbers(profile)
   ].join('\n');
@@ -593,6 +707,11 @@ function showOnboarding() {
   onboarding.classList.add('reveal');
   nameInput.value = '';
   dobInput.value = '';
+  timeInput.value = '';
+  countrySelect.value = '';
+  latInput.value = '';
+  lngInput.value = '';
+  risingFields.removeAttribute('open');
   currentProfile = null;
   // Move focus to the name field so keyboard and screen-reader users
   // land on the next interactive element. Without this, focus can
@@ -620,9 +739,16 @@ profileForm.addEventListener('submit', e => {
   if (!name || !dob) return;
   const [y] = dob.split('-').map(Number);
   if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) return;
+  const time = timeInput.value || undefined;
+  const country = countrySelect.value || undefined;
+  const latStr = latInput.value;
+  const lngStr = lngInput.value;
+  const lat = latStr === '' ? undefined : parseFloat(latStr);
+  const lng = lngStr === '' ? undefined : parseFloat(lngStr);
+  const opts = { time, country, lat, lng };
   try {
-    const profile = buildProfile(name, dob);
-    saveProfile(name, dob);
+    const profile = buildProfile(name, dob, opts);
+    saveProfile(name, dob, opts);
     showResult(profile);
   } catch (_) {
     // form already validates input shape; silent on edge cases.
@@ -684,8 +810,11 @@ document.addEventListener('keydown', e => {
 });
 
 // ── boot ──────────────────────────────────────────────────────────
-const existing = loadProfile();
-if (existing) showResult(existing);
+const existing = loadSavedProfile();
+if (existing) {
+  populateRisingFields(existing);
+  showResult(profileFromPayload(existing));
+}
 </script>
 </body>
 </html>

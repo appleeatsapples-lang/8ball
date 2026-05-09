@@ -10,7 +10,7 @@ Pulled directly from `DOCTRINE.md §8`. This is the operational form of the same
 - [ ] **Local PII audit clean.** Run `bash audits/run_local_audit.sh` from repo root. Zero hits.
 - [ ] **Diff review.** Read every line. Ask:
   - [ ] Any new private content batch cross §4 (slurs, protected classes, real-person targets, minor-targeting, card-content strings landing in tracked files)?
-  - [ ] Any new path in `core/` cross §5 (storing or transmitting more than name + DOB)?
+  - [ ] Any new path in `core/` cross §5 (storing or transmitting more than allowed user-entered profile fields)?
   - [ ] Any new tracked content cross §11 (operator personal data)?
   - [ ] Any new line cross §9 (SIRR cross-references, named depth)?
 - [ ] **Cross-model audit (if applicable).** Doctrine changes or content batches go through ChatGPT or Codex per §10. Mechanical edits don't require it.
@@ -26,6 +26,7 @@ Pulled directly from `DOCTRINE.md §8`. This is the operational form of the same
 ## Post-merge
 
 - [ ] **Smoke test live.** Enter your real DOB. Shake 5 times. Verify no console errors. Verify the seven coordinates render correctly (element / sun sign / animal pair via `⇌` / numerology triplet) with the catalog corner in roman.
+- [ ] **Rising-sign path.** If rising-sign opts are provided, verify the eighth coordinate renders on line 2 as `${sun} ↑ ${rising}`; partial opts should fall back to bare sun sign.
 - [ ] **Append to `journal.md`.** Use the `===== YYYY-MM-DD · Title =====` shape. Document:
   - what shipped
   - what was rejected

@@ -6,6 +6,9 @@
 // stay byte-identical.
 // See DOCTRINE.md §3 for the calculation contract.
 
+import { getCountryByCode } from './countries.js';
+import { getRisingSign } from './rising.js';
+
 export const SUN_SIGNS = [
   { name: 'capricorn',   start: [12, 22], end: [1, 19]  },
   { name: 'aquarius',    start: [1, 20],  end: [2, 18]  },
@@ -180,7 +183,7 @@ export function getSoulUrge(name) {
   return reduce(getSoulUrgeSum(name));
 }
 
-export function buildProfile(name, dobIso) {
+export function buildProfile(name, dobIso, opts) {
   if (!dobIso || !/^\d{4}-\d{2}-\d{2}$/.test(dobIso)) {
     throw new Error('DOB must be YYYY-MM-DD');
   }
@@ -189,6 +192,26 @@ export function buildProfile(name, dobIso) {
     throw new Error('DOB out of range');
   }
   const cleanName = (name || '').trim();
+  let risingSign;
+  if (opts && opts.time && opts.country && typeof opts.lat === 'number' && typeof opts.lng === 'number') {
+    const tm = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
+    if (tm) {
+      const hour = parseInt(tm[1], 10);
+      const minute = parseInt(tm[2], 10);
+      const country = getCountryByCode(opts.country);
+      if (country
+          && hour >= 0 && hour <= 23
+          && minute >= 0 && minute <= 59
+          && opts.lat >= -90 && opts.lat <= 90
+          && opts.lng >= -180 && opts.lng <= 180) {
+        risingSign = getRisingSign(
+          y, m, d, hour, minute,
+          country.utcOffsetMinutes,
+          opts.lat, opts.lng
+        );
+      }
+    }
+  }
   return {
     name: cleanName,
     firstName: cleanName.split(/\s+/)[0] || '',
@@ -202,6 +225,7 @@ export function buildProfile(name, dobIso) {
     nameNumberSum: getNameNumberSum(cleanName),
     soulUrge: getSoulUrge(cleanName),
     soulUrgeSum: getSoulUrgeSum(cleanName),
-    yyyy: y, mm: m, dd: d
+    yyyy: y, mm: m, dd: d,
+    risingSign
   };
 }
