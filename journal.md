@@ -3,6 +3,87 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
+2026-05-09 · v0.2.0 SHIPPED — Phase-2F card system + secret strip + symbols-only surface, squash-merged at `2b69944`
+=====
+
+v0.2.0 lives at `https://the-eight-ball.netlify.app` on `main` at `2b69944`. The Phase-2F arc closed; five-audit Codex cycle cleared at audit-5 PASS/PASS/PASS.
+
+## What shipped
+
+Seven calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, soul urge. Animals pair on one line via the equilibrium arrow `⇌`. Numerology numbers collapse onto one line as a reduced triplet (concatenated when single-digit, e.g. `777`; space-separated when any master 11/22/33, e.g. `3 11 3`). The (sun sign, public animal) pair drives a 144-card catalog index (12 sun rows × 12 animals), rendered as roman numeral in the corner. Life path drives bracket resolution within a cell, separately from the catalog index. Final visual surface, centered on page:
+
+```
+fire
+libra
+rat ⇌ rooster
+3 11 3
+```
+
+## Architecture: secret strip
+
+Card content (cell `name`/`type`/`habit`/`note` bodies) is the future paid interpretation layer. It lives privately at `~/dev/8ball-private/cards.v1.full.js`. The public engine computes the catalog index positionally with no content import:
+
+```js
+const catalogArabic = sunIdx * 12 + animalIdx + 1;
+// getCard(profile) returns { name:'', type:'', habit:'', note:'', catalog }
+// — empty content fields preserve the API shape for v0.3.0+
+```
+
+`tests/dependency_discipline.test.js` guards against any future content import in the public engine.
+
+## Repo visibility flip + branch cleanup
+
+The repo flipped from public to private at this release. `phase-2f-1-card-engine` was deleted from origin + local post-merge — the cards-containing intermediate commits (`a4032b9` first-add through `7b9b99f` last pre-strip tip) are no longer reachable via any branch ref on origin. They survive in GitHub's GC pool for ~30-90 days, then drop.
+
+**Correction to a prior journal claim.** The 2F-3 "in-flight (cont.)" entry below stated "Branch was never pushed, so the secret was never on the public internet — caught before any leak." That was incorrect. `phase-2f-1-card-engine` had been pushed to origin during 2F-1 (when `cards.v1.js` was first integrated); the full 144-card deck was publicly visible at `github.com/appleeatsapples-lang/8ball/blob/phase-2f-1-card-engine/content/cards.v1.js` from 2F-1 first-push through this release's private flip. The exposure window was real. Going forward, the private flip + branch deletion + clean main bound the future surface; past exposure is sunk-cost. Logging the correction here as the audit record — the past entry is preserved as-written for journal append-only discipline.
+
+## Five-audit cycle (Phase-2F-3)
+
+```
+audit-1 at 67c8abf  FAIL §4 medical-vocab + 2 CONCERNs   disposed
+audit-2 at 9b7bafd  FAIL copy mismatch + 3 CONCERNs       disposed
+audit-3 at 62ff5b8  FAIL catalog driver + 2 CONCERNs      disposed
+audit-4 at fd265c1  FAIL virgo.dragon leak + 1 CONCERN    disposed
+audit-5 at c86970e  PASS / PASS / PASS — cycle closed
+```
+
+Dispositions across the cycle: doctrine v0.3 → v0.12. Card content moved private (v0.9). §4 new clause: card-content strings forbidden in any tracked file (v0.11). §11 PII rule rewritten as visibility-independent (v0.12). §1 catalog driver corrected to (sun, animal) pair to match engine truth (v0.10). §7 CI gate stages aligned with current suites (v0.10). All audit-disposition commits and journal scrubs captured in the audit-3 and audit-4 disposition entries below.
+
+Orchestrator's local card-content scan against the live private deck before audit-5: 864 distinct strings (≥ 8 chars) × 23 tracked files = zero hits. Live-public-claim sweep: zero hits.
+
+## Squash-merge
+
+The feature branch carried 34 commits beyond `7b9b99f` (the prior origin tip). The merge to `main` was squash, producing one v0.2.0 commit at `2b69944`. The 34-commit sequence is preserved in the audit history (Codex briefs at `~/Desktop/8ball/audits/codex_brief_2F3_reaudit_at_*.md`) and in the journal entries below. Squash captures: `traits.v1.js` and `templates.v1.js` deleted (retired in 2F-2); `cards.v1.js` deleted (secret strip in 2F-3); engine rewritten to compute positionally; profile.js extended with `getInnerAnimal` + month-pillar cutoffs; index.html flipped to symbols-only seven-coordinate surface; full doctrine arc; full audit-3+4 dispositions.
+
+Diff stats vs `3f80c5e` (prior `main`): 14 files changed, 1689 insertions, 1072 deletions.
+
+## State at ship
+
+- HEAD `main` at `2b69944`, pushed to origin
+- Tests 102/102 (calc+pipeline, privacy, PII, dependency)
+- Local PII audit clean (22 files)
+- Repo: private
+- Doctrine: v0.12
+- Calc version: v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
+- Content version: v0.2.0-public (catalog-only; engine computes positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
+
+## Post-ship gates (per §8)
+
+- Netlify auto-deploy fired on push to main
+- Operator live-fire on `https://the-eight-ball.netlify.app` — verify the seven coordinates render correctly (element / sun sign / animal pair via `⇌` / numerology triplet) with the catalog corner in roman
+- TikTok launch: operator-track
+
+## Carry-over (post-v0.2.0 queue)
+
+From 8BALL.md §11 open items, residual:
+
+- Phase-2C deploy-gate wiring (Netlify required-check on GitHub Actions status). Doctrine-correct as "not gated, acknowledged" until traction warrants.
+- Cleanup: shadow Netlify project (`enchanting-bonbon-2b5064`). One-click delete in Netlify dashboard.
+- Cleanup: stale branch `v0.1.4-phase2d-concern-dispositions` if still on origin.
+- Live-fire testing across all 12 sun rows on the deployed URL (now codified as a §8 ritual-gate sub-rule per doctrine v0.3).
+- Operator-personal: add `8ball` row to `~/MUHAB.md` §6 bootstrap table.
+
+=====
 2026-05-09 · Phase-2F-3 audit-4 dispositions — missed-spot polish + virgo.dragon leak scrub
 =====
 
