@@ -393,10 +393,16 @@ describe('calendar — lunar new year + solar-term tables (v2)', () => {
     });
   }
 
-  // Solar-term sanity locks (5 entries; brief §4.2). Animal-index 0..11
+  // Solar-term sanity locks (7 entries; brief §4.2). Animal-index 0..11
   // maps to lichun..xiaohan; index 11 returns a January date in `year`.
   it('monthAnimalSolarTerm(1985, 0) lichun → [2, 4] (tiger start)', () => {
     expect(monthAnimalSolarTerm(1985, 0)).toEqual([2, 4]);
+  });
+  it('monthAnimalSolarTerm(1990, 0) lichun → [2, 4] (tiger start)', () => {
+    expect(monthAnimalSolarTerm(1990, 0)).toEqual([2, 4]);
+  });
+  it('monthAnimalSolarTerm(2000, 0) lichun → [2, 4] (tiger start)', () => {
+    expect(monthAnimalSolarTerm(2000, 0)).toEqual([2, 4]);
   });
   it('monthAnimalSolarTerm(2024, 0) lichun → [2, 4] (tiger start)', () => {
     expect(monthAnimalSolarTerm(2024, 0)).toEqual([2, 4]);
