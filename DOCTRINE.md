@@ -100,6 +100,24 @@ Nothing else. No derived profile is stored — it's recomputed on each load. No 
 
 If a future feature requires storing or transmitting more, that feature requires a doctrine amendment to §5 and a privacy-policy update before merge.
 
+## §5.B — Feedback surface (added v0.2.5)
+
+The site permits exactly one user-initiated network call: submission of a feedback form to the Netlify Forms endpoint at the same origin. This is the only network call permitted in the product runtime; everything else in §5 stands.
+
+Constraints:
+
+- **User-initiated only.** The submission fires only on user click of the explicit submit button. No timer, no auto-fire, no submission on page load, on shake, on result-render, or on any other implicit trigger.
+- **User-authored content only.** The submitted payload contains exactly two fields: a free-text `message` and an optional free-text `contact`, both typed by the user inside the form. No localStorage profile data (`name`, `dob`, `time`, `country`, `lat`, `lng`) is included. No derived coordinates. No name, no DOB, no IP enrichment from the page, no analytics tags, no UTM params, no fingerprint. The form has no hidden field carrying user-data state.
+- **Single named endpoint.** The `<form>` action is the same-origin Netlify Forms handler (no `action` attribute or `action="/?sent=1"` for redirect after submit; Netlify intercepts the POST). No third-party form provider, no webhook fan-out, no secondary destination.
+- **Native form post, no JavaScript fetch.** The form uses HTML `<form method="POST" data-netlify="true">` semantics. No `fetch()`, no `XMLHttpRequest`, no `navigator.sendBeacon`. The privacy scan (`tests/privacy_scan.test.js`) is unchanged and remains the enforcement.
+- **Fail-silent.** On submission failure (offline, provider outage, network error), the browser handles the error natively. No retry queue, no remote error reporting, no telemetry of failure. If the user's browser is offline, the submit fails and the user can decide what to do.
+- **Submission visibility.** Submissions land in the Netlify dashboard under the Forms tab. The operator may configure email notifications per Netlify defaults. Submissions are not echoed back to the page or persisted in localStorage.
+- **No retention by 8ball.** 8ball-the-codebase does not retain submissions. Netlify-the-platform does (for as long as operator keeps them in the dashboard); that is operator's responsibility, not 8ball's runtime concern.
+
+The about-modal copy is updated to disclose this surface honestly. Disclosure is the load-bearing piece: anyone reading the modal must learn that a feedback form exists and what happens when they submit it.
+
+If a future feature would require a second endpoint, additional fields, or any non-user-initiated network behavior, that requires a further §5 amendment.
+
 ## §6. Architecture
 
 - Single repo, private on GitHub as of v0.2.0 (was public through v0.1.4; flipped private to protect the future paid card-content layer at `~/dev/8ball-private/`).
@@ -215,5 +233,6 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v0.2.3-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-10 · v0.16 (§1.B replaced: v0.2.3 reverts numerology surface to text triplet [life path, expression, soul urge]; personality/birthday/maturity calc fields reserved for v0.3.0+ paid surfacing; calc-version remains v1)
+**content version:** v0.2.5-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`; opt-in feedback surface §5.B)
+**doctrine version:** 2026-05-10 · v0.17 (§5.B added: feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent)
+- v0.17: §5.B added — feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent.

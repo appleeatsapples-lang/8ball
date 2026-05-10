@@ -379,6 +379,67 @@
     max-width: 360px;
   }
 
+  /* ── feedback (opt-in, §5.B) ────────────────────────────────── */
+  .feedback-details {
+    margin-top: 32px;
+    padding: 0 4px;
+    color: var(--rule);
+    font-size: 13px;
+  }
+  .feedback-details summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 8px 0;
+    color: var(--label);
+    text-transform: lowercase;
+    user-select: none;
+  }
+  .feedback-details summary::-webkit-details-marker { display: none; }
+  .feedback-details summary:hover,
+  .feedback-details summary:focus { color: var(--rule); }
+  .feedback-details[open] summary { color: var(--rule); margin-bottom: 12px; }
+  .feedback-form { display: flex; flex-direction: column; gap: 10px; }
+  .feedback-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--label);
+  }
+  .feedback-form textarea,
+  .feedback-form input[type="text"] {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    color: var(--rule);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 6px 0;
+    outline: none;
+    resize: vertical;
+    width: 100%;
+  }
+  .feedback-form textarea:focus,
+  .feedback-form input[type="text"]:focus {
+    border-bottom-color: var(--paper);
+    color: var(--paper);
+  }
+  .feedback-form .btn { margin-top: 8px; }
+  .feedback-honeypot { display: none; }
+  .feedback-fineprint {
+    font-size: 11px;
+    color: var(--label);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .feedback-sent {
+    margin-top: 32px;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    color: var(--rule);
+    text-align: center;
+    font-size: 13px;
+  }
+
   /* ── modal ───────────────────────────────────────────────────── */
   .modal-bg {
     position: fixed;
@@ -524,6 +585,21 @@
         <button class="text-link" id="forget-btn" type="button">forget this device</button>
       </div>
     </div>
+
+    <!-- ── feedback (opt-in, §5.B) ──────────────────────────────── -->
+    <details class="feedback-details">
+      <summary>→ tell me how this hit</summary>
+      <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="feedback-form">
+        <input type="hidden" name="form-name" value="feedback">
+        <p class="feedback-honeypot"><label>leave this empty: <input name="bot-field"></label></p>
+        <label class="feedback-label" for="feedback-message">what did you see / what would you have wanted more of</label>
+        <textarea id="feedback-message" name="message" rows="4" required></textarea>
+        <label class="feedback-label" for="feedback-contact">contact (optional — email, @handle, anything you want a reply to)</label>
+        <input type="text" id="feedback-contact" name="contact" autocomplete="off">
+        <button type="submit" class="btn btn-block">send</button>
+        <p class="feedback-fineprint">submits to the operator. nothing else leaves your device.</p>
+      </form>
+    </details>
   </section>
 
 </main>
@@ -533,7 +609,7 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing is stored off-device.</p>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -789,6 +865,21 @@ cardBack.addEventListener('click', shakeAgain);
 cardBack.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
 });
+
+// ── feedback sent-state (§5.B) ────────────────────────────────────
+// Netlify Forms redirects on success to the configured success page or
+// the same URL with a query string. We honor `?sent=1` as a signal to
+// show a small confirmation banner in place of the form. No persistent
+// state; reload without the query returns to the normal surface.
+if (window.location.search.includes('sent=1')) {
+  const detailsEl = document.querySelector('.feedback-details');
+  if (detailsEl) {
+    detailsEl.outerHTML = '<div class="feedback-sent">thanks. read.</div>';
+  }
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
 
 // ── about modal ───────────────────────────────────────────────────
 function openAbout() {
