@@ -2,6 +2,28 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.7 SHIPPED — labels-reveal toggle (§5 allow-list extension)
+
+Date stamp filled at squash-merge.
+
+Symbol-label visibility toggle below the result card. Default state (current behavior, unchanged): four lowercase symbol lines distributed across card. Revealed state (new): a small uppercase title sits above each symbol — `FIVE-ELEMENT`, `SUN ↑ RISING`, `PUBLIC ⇌ PRIVATE`, `LIFE · NAME · SOUL`. Toggle persists across reloads via new `eight_ball_labels_revealed_v1` localStorage flag.
+
+Why now: deferred from v0.2.6 when the 18+ gate took priority. Operator-pasted mockup at `~/Desktop/8ball/sessions/v026_card_layout_labels_reveal_distributed.html` with directive "like this exactly" — mockup is the canonical visual spec.
+
+DOCTRINE bumped v0.18 → v0.19: §5 allow-list extended with the new flag (third separate flag, parallel to age-ack). About-modal copy updated to disclose, matching §4.A / §5.B precedent.
+
+Two prior decisions retired by the mockup (documented in handoff): topbar toggle placement (3-NEW) and 9px/0.22em form-field-label-match typography. Mockup explicitly uses below-card toggle and 11px/0.1em uppercase title typography. Operator's pick stands.
+
+Hairline-rule prestige refinements 1-2 from prior handoff (rules between sections, rule below `no. lxxiii`) NOT shipped — mockup omits them and "like this exactly" supersedes the verbal carry-forward. Refinements 3-5 (leading, title-symbol gap, top-right index) absorbed by the mockup. Refinement 6 (page margin around card) deferred unless visual review surfaces a need.
+
+Test surface: 425 → 437 (+12). New `tests/labels_reveal.test.js` follows the existing markup-static pattern (mirrors `age_gate.test.js`). Codex's D10 advisory (DOM-behavior tests) remains tracked — adding jsdom infrastructure is a separate cycle. The new toggle's behavior path (click → class flip → localStorage write) is exactly the kind of thing D10 flagged; v0.2.7 covers markup invariants but not click-flow behavior.
+
+L30 (this session): pre-flight reads of touch-list files surfaced the mockup-vs-handoff hairline tension and the jsdom-not-installed reality before brief drafting. Surfacing both as pre-flight catches with defensible defaults (drop hairlines, markup-static labels test) let the brief draft land clean. L28 family continues to compound — pre-flight reads BEFORE briefing > pre-flight reads BEFORE implementation.
+
+Files: index.html, DOCTRINE.md, tests/privacy_scan.test.js, tests/labels_reveal.test.js, journal.md, 8BALL.md.
+Branch: v0.2.7-labels-reveal.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.6 SHIPPED — 18+ acknowledgment gate (§4.A doctrine departure)
 
 Date stamp filled at squash-merge.
