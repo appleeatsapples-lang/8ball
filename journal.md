@@ -2,6 +2,26 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.7.1.1 SHIPPED — modal copy tighten + labels title conditional fix
+
+Date stamp filled at squash-merge.
+
+Two coupled surface fixes shipped together. No calc touch (stays v2), no doctrine bump (stays v0.20), no `core/` touch.
+
+**Fix 1 — modal copy tightened to Option B.** The about-modal body collapsed from ~150 words to ~95 words. Voice opener "there is no mystery layer" preserved per operator pick. Two `<p>` paragraphs for visual break between the seven-coordinates intro and the privacy block. All four doctrine disclosures intact: §4.A 18+ ack ("first-visit 18+ tap is a click-through, not verification"), §5 privacy primitive ("nothing leaves your device on its own. inputs and the show-labels toggle are stored locally"), §5 allow-list including labels-toggle, §5.B feedback ("the feedback form below the card sends only what you type there, only when you press send").
+
+**Fix 2 — labels-reveal title conditional.** Operator caught a bug during v0.2.7.1 live-fire: the `<div class="coord-title">SUN ↑ RISING</div>` label was static, hardcoded, while `renderCard()` correctly renders the value as just `libra` (no rising) when birth time/place absent. Label promised what value didn't deliver — mismatch. Fix: added `id="coord-sun-title"` to the element; declared `coordSunTitle` DOM reference adjacent to `coordSunSymbol`; `renderCard()` now sets `coordSunTitle.textContent = profile.risingSign ? 'SUN ↑ RISING' : 'SUN'`. Default static text remains `SUN ↑ RISING` so the existing markup-static test (`locked title copy: SUN ↑ RISING`) still holds — JS replaces conditionally at render.
+
+Test surface: 468 → 470 (+2). New markup-static tests in `tests/labels_reveal.test.js`: (a) `coord-sun-title` id-presence assertion, (b) `renderCard` conditional-set JS pattern match. No jsdom — stays consistent with existing markup-static pattern. CC's D10 advisory (DOM-behavior tests with jsdom) remains tracked for a future cycle.
+
+Why ship both together: both surface-only, both touch `index.html`, both no-doctrine. Fold preserves clean concern separation from v0.2.7.1 (calc-only) while keeping the surface polish cycle as one PR.
+
+Operator-discipline carry-forward: I (the orchestrator) previously misclassified the static-label issue as "intentional per mockup" during a prior live-fire screenshot review. Operator correctly flagged it as a bug on the next live-fire pass. Lesson: when label and value half of a labeled coordinate diverge in promise vs delivery, that's a bug, not a static-mockup feature.
+
+Files: index.html, tests/labels_reveal.test.js, journal.md, 8BALL.md.
+Branch: v0.2.7.1.1-modal-and-labels.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.7.1 SHIPPED — lunar tables (calc v1 → v2)
 
 Date stamp filled at squash-merge.

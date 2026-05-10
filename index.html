@@ -598,7 +598,7 @@
               <div class="coord-symbol" id="coord-element-symbol">—</div>
             </div>
             <div class="coord-section">
-              <div class="coord-title">SUN ↑ RISING</div>
+              <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
               <div class="coord-symbol" id="coord-sun-symbol">—</div>
             </div>
             <div class="coord-section">
@@ -649,7 +649,8 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send. first visit on this device, you'll see a one-tap 18+ acknowledgment — it's a click-through, not verification, and is stored locally so you don't see it again. a small toggle below the card lets you show or hide the symbol names; that preference is stored locally too.</p>
+    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added.</p>
+    <p>nothing leaves your device on its own. inputs and the show-labels toggle are stored locally. first-visit 18+ tap is a click-through, not verification. the feedback form below the card sends only what you type there, only when you press send.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -720,6 +721,7 @@ const cardFace = $('card-face');
 const labelsToggle = $('labels-toggle');
 const coordElementSymbol = $('coord-element-symbol');
 const coordSunSymbol = $('coord-sun-symbol');
+const coordSunTitle = $('coord-sun-title');
 const coordAnimalSymbol = $('coord-animal-symbol');
 const coordNumerologySymbol = $('coord-numerology-symbol');
 
@@ -817,6 +819,7 @@ function renderCard(profile) {
   const sunLine = profile.risingSign
     ? `${profile.sunSign} ↑ ${profile.risingSign}`
     : profile.sunSign;
+  coordSunTitle.textContent = profile.risingSign ? 'SUN ↑ RISING' : 'SUN';
   coordElementSymbol.textContent = profile.chineseElement;
   coordSunSymbol.textContent = sunLine;
   coordAnimalSymbol.textContent = `${profile.animal} ⇌ ${profile.innerAnimal}`;
