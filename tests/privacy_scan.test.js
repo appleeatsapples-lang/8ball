@@ -68,7 +68,8 @@ const FORBIDDEN = [
 // New keys require doctrine amendment to §5.
 const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_profile_v1',
-  'eight_ball_age_ack_v1'
+  'eight_ball_age_ack_v1',
+  'eight_ball_labels_revealed_v1'
 ]);
 
 // Match: localStorage.setItem('key', ...) or localStorage.setItem("key", ...)

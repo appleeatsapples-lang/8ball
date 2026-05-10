@@ -140,17 +140,40 @@
     color: var(--label);
     text-transform: lowercase;
   }
-  .card .coordinates {
-    font-size: clamp(20px, 5.6vw, 24px);
+  .card { justify-content: space-evenly; }
+  .card .coord-section { text-align: center; }
+  .card .coord-section:first-of-type { padding-top: clamp(18px, 5vw, 24px); }
+  .card .coord-title {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--label);
+    text-transform: uppercase;
+    height: 15px;
+    line-height: 15px;
+    margin-bottom: 4px;
+    visibility: hidden;
+  }
+  .card.labels-revealed .coord-title { visibility: visible; }
+  .card .coord-symbol {
+    font-size: clamp(15px, 4vw, 18px);
     line-height: 1.5;
     color: var(--ink);
-    font-weight: 500;
     text-transform: lowercase;
-    margin-top: clamp(20px, 6vw, 28px);
-    text-align: center;
-    letter-spacing: -0.005em;
-    white-space: pre-line;
+    font-weight: 500;
   }
+  .labels-toggle {
+    display: block;
+    margin: 14px auto 0;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--rule);
+    cursor: pointer;
+  }
+  .labels-toggle:focus-visible { outline: 1px solid var(--rule); outline-offset: 4px; }
   /* ── card back (shake state) ─────────────────────────────────── */
   .card-back {
     background: var(--paper);
@@ -570,12 +593,29 @@
         <div class="flip-side front">
           <article class="card" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
-            <div class="coordinates" id="card-coordinates" aria-label="profile coordinates">—</div>
+            <div class="coord-section">
+              <div class="coord-title">FIVE-ELEMENT</div>
+              <div class="coord-symbol" id="coord-element-symbol">—</div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">SUN ↑ RISING</div>
+              <div class="coord-symbol" id="coord-sun-symbol">—</div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">PUBLIC ⇌ PRIVATE</div>
+              <div class="coord-symbol" id="coord-animal-symbol">—</div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">LIFE · NAME · SOUL</div>
+              <div class="coord-symbol" id="coord-numerology-symbol">—</div>
+            </div>
           </article>
         </div>
 
       </div>
     </div>
+
+    <button class="labels-toggle" id="labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>
 
     <div class="result-controls">
       <button class="btn btn-block" id="shake-again-btn">shake again</button>
@@ -609,7 +649,7 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send. first visit on this device, you'll see a one-tap 18+ acknowledgment — it's a click-through, not verification, and is stored locally so you don't see it again.</p>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send. first visit on this device, you'll see a one-tap 18+ acknowledgment — it's a click-through, not verification, and is stored locally so you don't see it again. a small toggle below the card lets you show or hide the symbol names; that preference is stored locally too.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -648,6 +688,7 @@ import { getCard, MissingCardError } from './core/engine.js';
 
 const STORAGE_KEY = 'eight_ball_profile_v1';
 const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
+const LABELS_KEY = 'eight_ball_labels_revealed_v1';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -675,7 +716,12 @@ const ageGateModal = $('age-gate-modal');
 const ageGateConfirm = $('age-gate-confirm');
 
 const cardCatalog = $('card-catalog');
-const cardCoordinates = $('card-coordinates');
+const cardFace = $('card-face');
+const labelsToggle = $('labels-toggle');
+const coordElementSymbol = $('coord-element-symbol');
+const coordSunSymbol = $('coord-sun-symbol');
+const coordAnimalSymbol = $('coord-animal-symbol');
+const coordNumerologySymbol = $('coord-numerology-symbol');
 
 let currentProfile = null;
 let flipLocked = false;
@@ -761,18 +807,6 @@ function clearProfile() {
 // private card-content source). Per DOCTRINE §4 cards are
 // versioned-not-edited.
 
-function formatCoordinates(profile) {
-  const sunLine = profile.risingSign
-    ? `${profile.sunSign} ↑ ${profile.risingSign}`
-    : profile.sunSign;
-  return [
-    profile.chineseElement,
-    sunLine,
-    `${profile.animal} ⇌ ${profile.innerAnimal}`,
-    formatNumbers(profile)
-  ].join('\n');
-}
-
 function formatNumbers(profile) {
   const nums = [profile.lifePath, profile.nameNumber, profile.soulUrge];
   const hasMaster = nums.some(n => n > 9);
@@ -780,7 +814,13 @@ function formatNumbers(profile) {
 }
 
 function renderCard(profile) {
-  cardCoordinates.textContent = formatCoordinates(profile);
+  const sunLine = profile.risingSign
+    ? `${profile.sunSign} ↑ ${profile.risingSign}`
+    : profile.sunSign;
+  coordElementSymbol.textContent = profile.chineseElement;
+  coordSunSymbol.textContent = sunLine;
+  coordAnimalSymbol.textContent = `${profile.animal} ⇌ ${profile.innerAnimal}`;
+  coordNumerologySymbol.textContent = formatNumbers(profile);
   try {
     const card = getCard(profile);
     cardCatalog.textContent = `no. ${card.catalog}`;
@@ -956,8 +996,32 @@ function showAgeGate() {
 
 ageGateConfirm.addEventListener('click', acknowledgeAge);
 
+// ── labels-reveal toggle (DOCTRINE.md §5) ─────────────────────────
+function isLabelsRevealed() {
+  try { return localStorage.getItem(LABELS_KEY) === 'true'; }
+  catch (_) { return false; }
+}
+
+function setLabelsRevealed(revealed) {
+  try { localStorage.setItem(LABELS_KEY, revealed ? 'true' : 'false'); }
+  catch (_) { /* localStorage unavailable; preference survives only this session */ }
+}
+
+function applyLabelsState(revealed) {
+  cardFace.classList.toggle('labels-revealed', revealed);
+  labelsToggle.textContent = revealed ? '→ hide labels' : '→ reveal labels';
+  labelsToggle.setAttribute('aria-pressed', revealed ? 'true' : 'false');
+}
+
+labelsToggle.addEventListener('click', () => {
+  const next = !cardFace.classList.contains('labels-revealed');
+  setLabelsRevealed(next);
+  applyLabelsState(next);
+});
+
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
+  applyLabelsState(isLabelsRevealed());
   const existing = loadSavedProfile();
   if (existing) {
     populateRisingFields(existing);
