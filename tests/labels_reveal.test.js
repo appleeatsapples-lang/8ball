@@ -46,6 +46,14 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/>SUN ↑ RISING</);
   });
 
+  it('coord-sun-title element has id for runtime conditional (v0.2.7.1.1)', () => {
+    expect(html).toMatch(/<div class="coord-title" id="coord-sun-title">/);
+  });
+
+  it('renderCard sets sun-title conditionally on risingSign (v0.2.7.1.1)', () => {
+    expect(html).toMatch(/coordSunTitle\.textContent\s*=\s*profile\.risingSign\s*\?\s*['"`]SUN ↑ RISING['"`]\s*:\s*['"`]SUN['"`]/);
+  });
+
   it('locked title copy: PUBLIC ⇌ PRIVATE', () => {
     expect(html).toMatch(/>PUBLIC ⇌ PRIVATE</);
   });
