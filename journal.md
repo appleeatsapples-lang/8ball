@@ -21,7 +21,7 @@ Reciprocation framing: this is the architectural answer to "the toy is a one-way
 
 Files: index.html, DOCTRINE.md, tests/feedback_surface.test.js, journal.md, 8BALL.md.
 Branch: v0.2.5-feedback-surface.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: a0a2023a057496fde09aaaf82f3097ffebf0df21.
 
 ## v0.2.4.1 SHIPPED — favicon.ico repair (Cat 3 disposition)
 
@@ -37,7 +37,7 @@ No code change, no doctrine change, no other asset change. v0.2.4 surface intact
 
 Files: assets/favicon.ico, journal.md, 8BALL.md.
 Branch: v0.2.4.1-favicon-ico-repair.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: 1f9d2a4.
 
 ## v0.2.4 SHIPPED — launch-prep meta polish (additive surface)
 
