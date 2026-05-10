@@ -248,7 +248,7 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 
 **calc version:** v2 (Pythagorean LP w/ 11/22/33 masters · tropical sun · real lunar new year tables · real solar-term tables · canonical Asia/Shanghai date-precision for cusps)
 **content version:** v0.2.7-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; symbol-label visibility toggle §5 allow-list; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`; opt-in feedback surface §5.B; 18+ acknowledgment gate §4.A)
-**doctrine version:** MERGE_DATE_TBD · v0.20 (§3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution)
+**doctrine version:** 2026-05-10 · v0.20 (§3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution)
 - v0.19: §5 allow-list extended with `eight_ball_labels_revealed_v1`.
 - v0.18: §4.A added — 18+ acknowledgment gate, click-through (no verification), one-time, persists via separate localStorage flag.
 - v0.17: §5.B added — feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent.

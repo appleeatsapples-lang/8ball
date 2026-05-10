@@ -24,7 +24,7 @@ L31 (this session): pre-flight question on data sourcing surfaced ambiguity betw
 
 Files: core/calendar.js (NEW), core/profile.js, tests/fixtures.json, tests/profile.test.js, DOCTRINE.md, journal.md, 8BALL.md.
 Branch: v0.2.7.1-lunar-tables.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: c0772c5.
 
 ## v0.2.7 SHIPPED — labels-reveal toggle (§5 allow-list extension)
 
