@@ -1,7 +1,7 @@
 # 8BALL.md — Canonical Context
 
 **Audience:** Claude (in any chat) and any other AI working on 8ball, in any role.
-**Last refreshed:** 2026-05-08.
+**Last refreshed:** 2026-05-10.
 **Companion (operator-personal):** `~/MUHAB.md` — read first for cross-project preferences.
 
 This file is the source-of-truth for 8ball project context. Read it at the start of any 8ball work session, after `~/MUHAB.md` §1–§8. Memory is index-only; this file is canonical.
@@ -71,7 +71,7 @@ Layered source:
 | 6 | Persistence | localStorage only — name + DOB + optional rising inputs (`time`, `country`, `lat`, `lng`); no derived profile stored |
 | 7 | Telemetry | None. Permanently. |
 | 8 | Calc version | v1 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; Feb 4 CNY approximation |
-| 9 | Content version | v0.2.3-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`) |
+| 9 | Content version | v0.2.4-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`; launch-prep meta + favicons + og:image at /assets/) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
 | 12 | Multi-model lanes | DOCTRINE.md §10 (mirrors SIRR §7 pattern at smaller scale) |
@@ -181,6 +181,8 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 ---
 
 ## 10. Current state (as of 2026-05-10)
+
+**v0.2.4 SHIPPED 2026-05-10** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `MERGE_SHA_TBD` (squash-merge of v0.2.4 launch-prep meta polish — additive surface only). CI green; tests 414/414 unchanged. Local PII audit clean. Added favicon set + OG/Twitter card meta tags + 1200×630 grayscale og:image at `/assets/`. Fixed stale "dst not adjusted in v0.2.1" hint-text reference to version-agnostic phrasing. No `core/` touch, no doctrine change. Aesthetic mono per Phase-2E.
 
 **v0.2.3 SHIPPED 2026-05-10** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `141da42` (squash-merge of v0.2.3 numerology revert — surface-only revert of v0.2.2 hexagon to text triplet). CI green; tests 414/414 unchanged. Local PII audit clean. Result card now renders four text lines (chinese five-element, sun [or sun ↑ rising], public-animal ⇌ private-animal, numerology triplet [life path, expression, soul urge]) plus catalog roman numeral. Conditional spacing on triplet: `3 11 3` when any master 11/22/33 present, `383` when all single-digit. Calc fields personality/birthday/maturity remain on `buildProfile` as data-only — reserved for v0.3.0+ paid surfacing. Doctrine v0.15 → v0.16 (§1.B replaced; calc-vs-surface separation rule).
 

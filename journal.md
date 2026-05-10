@@ -2,6 +2,31 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.4 SHIPPED — launch-prep meta polish (additive surface)
+
+Date stamp filled at squash-merge.
+
+Surface-additive patch. No calc change, no doctrine change, no core/ touch.
+
+Added:
+- favicon set: assets/favicon-16.png, favicon-32.png, favicon.ico, apple-touch-icon-180.png
+- Open Graph + Twitter card meta tags in <head>
+- og-image: 1200×630 PNG, monochrome paper-on-black, brand mark + tagline + URL
+- meta block referencing all of the above
+
+Fixed:
+- stale hint string "dst not adjusted in v0.2.1" → "dst not adjusted" (post-v0.2.3 version reference)
+
+Doctrine clean: §3 additive-only, §5 same-origin assets (zero new network surface for visitor browsers; unfurl crawlers are server-side and not the user's surface), §6 line count 815 → ~840 (under 1500), §11 og:image renders brand mark + tagline + URL only (no PII).
+
+Aesthetic: monochrome per Phase-2E lock. Asset generation reproducible via ~/Desktop/8ball/sessions/launch_prep_asset_gen.py.
+
+Files: index.html, assets/* (5 new), journal.md, 8BALL.md.
+Branch: v0.2.4-launch-prep-meta.
+Squash merge: MERGE_SHA_TBD.
+
+Reasoning to ship: bare URL is live on TikTok bio (no card-style polish meta). Every share between v0.2.3 and a later polish is a worse-quality unfurl than it could be. Single-cycle ~30 line patch closes that gap.
+
 ## 2026-05-10 · v0.2.3 numerology revert — SHIPPED at 141da42
 
 Surface-only revert of v0.2.2 hexagon polygon. Result-card line 4 returns to text triplet `[life path, expression, soul urge]` exactly as rendered at v0.2.1 (`f3666cb`). Format conditional: space-separated when any master number (11/22/33) is present (e.g. `3 11 3`), concatenated when all values are single-digit (e.g. `383`).
