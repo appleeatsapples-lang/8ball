@@ -2,7 +2,7 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-10 · v0.2.3 numerology revert — SHIPPED at MERGE_SHA_TBD
+## 2026-05-10 · v0.2.3 numerology revert — SHIPPED at 141da42
 
 Surface-only revert of v0.2.2 hexagon polygon. Result-card line 4 returns to text triplet `[life path, expression, soul urge]` exactly as rendered at v0.2.1 (`f3666cb`). Format conditional: space-separated when any master number (11/22/33) is present (e.g. `3 11 3`), concatenated when all values are single-digit (e.g. `383`).
 
@@ -14,7 +14,11 @@ Operator decision: hexagon polygon read as geometric/mystic and clashed with the
 
 Files touched: `index.html` (~-50 net lines), `DOCTRINE.md` (§1 body + §1.B replacement + version line), `8BALL.md` (§10 + §3 row 9 + §1 description), `journal.md`. No tests, no `core/`, no audit script changes.
 
-Branch: `v0.2.3-numerology-revert` → squash-merge to `main`. Codex audit cycle: TBD (single-cycle expected given small surgical scope).
+Branch: `v0.2.3-numerology-revert` → squash-merged to `main` at `141da42`.
+
+**Codex audit cycle:** single-cycle, OVERALL CONCERN with one non-blocking advisory on Dimension 5 (v0.2.1 surface faithfulness). Concern: post-revert `formatNumbers` lacks the v0.2.1 inline comment block; runtime behavior identical. **Disposition: accept-divergence.** The retired comment said `// for potential surfacing in the future paid interpretation layer.` — that principle is now formally locked in DOCTRINE §1.B with more precision (calc-vs-surface separation; personality/birthday/maturity explicitly reserved for v0.3.0+). Restoring a stale comment that §1.B supersedes is redundant; writing a fresh comment duplicates §1.B. Brief overclaimed "byte-equivalent" — accurate claim was "behavioral revert to v0.2.1," which Codex confirmed.
+
+**Lesson logged (L21):** when reverting to a prior surface state while keeping doctrine-coherent improvements, briefs should say "behavioral revert" not "byte-equivalent" to set the audit criterion at the right precision. "Byte-equivalent" implies source-level identity which is overconstrained when later doctrine has codified what the prior code only commented.
 
 =====
 2026-05-09 · v0.2.2 SHIPPED — Phase-2G-2 hexagon polygon, squash-merged at `fa552ca`
