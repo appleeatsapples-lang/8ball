@@ -962,6 +962,11 @@ function initAfterAck() {
   if (existing) {
     populateRisingFields(existing);
     showResult(profileFromPayload(existing));
+  } else {
+    // No saved profile. The gate path pre-emptively hides #onboarding so
+    // it doesn't leak behind the modal; un-hide here so the form is
+    // visible on a first-time user's first paint after they tap confirm.
+    onboarding.classList.remove('hidden');
   }
 }
 
