@@ -2,6 +2,20 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-10 · v0.2.3 numerology revert — SHIPPED at MERGE_SHA_TBD
+
+Surface-only revert of v0.2.2 hexagon polygon. Result-card line 4 returns to text triplet `[life path, expression, soul urge]` exactly as rendered at v0.2.1 (`f3666cb`). Format conditional: space-separated when any master number (11/22/33) is present (e.g. `3 11 3`), concatenated when all values are single-digit (e.g. `383`).
+
+Calc fields (`personality`, `birthday`, `maturity`) added in v0.2.2 are KEPT on `buildProfile` as data-only — reserved for v0.3.0+ paid surfacing. No `core/` touch. Tests stay 414/414 green.
+
+Doctrine v0.15 → v0.16: §1.B replaced (was: hexagon vertex-order lock; now: text-triplet surface + calc-vs-surface separation rule). §1 body updated to clarify the seven-coordinate surface and three-coordinate calc reserve.
+
+Operator decision: hexagon polygon read as geometric/mystic and clashed with the "no mystery layer" framing in the about modal. Text triplet preserves the calibrated-coordinate spirit without the geometric flourish; opens lower half of card as breathing room reserved for v0.3.0 paid interpretation surface.
+
+Files touched: `index.html` (~-50 net lines), `DOCTRINE.md` (§1 body + §1.B replacement + version line), `8BALL.md` (§10 + §3 row 9 + §1 description), `journal.md`. No tests, no `core/`, no audit script changes.
+
+Branch: `v0.2.3-numerology-revert` → squash-merge to `main`. Codex audit cycle: TBD (single-cycle expected given small surgical scope).
+
 =====
 2026-05-09 · v0.2.2 SHIPPED — Phase-2G-2 hexagon polygon, squash-merged at `fa552ca`
 =====

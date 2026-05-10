@@ -8,9 +8,9 @@ This document is the constitution of `8ball`. The codebase obeys it. PRs that co
 
 A fixed designed deck that knows you. Enter your name and date of birth once. Shake.
 
-The product calculates ten baseline calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, expression/name number, personality, maturity, soul urge, and birthday. The two animals pair on a single line via an equilibrium arrow (`⇌`); six numerology coordinates render as a line-art hexagon. The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
+The product calculates ten baseline calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, expression/name number, personality, maturity, soul urge, and birthday. The two animals pair on a single line via an equilibrium arrow (`⇌`); three of the numerology coordinates (life path, expression/name number, soul urge) render as a text triplet on line 4 of the result card. The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
 
-As of v0.2.2 only the ten baseline coordinates, optional rising sign, and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
+As of v0.2.3 the result card surfaces seven of the ten baseline coordinates (chinese five-element, sun, public animal, private animal, life path, expression/name number, soul urge), optional rising sign, and the catalog index. The remaining three baseline coordinates (personality, birthday, maturity) are computed on buildProfile but reserved for v0.3.0+ paid surfacing — see §1.B. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
 
 The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese five-element, Chinese zodiac animals (year and month pillars), numerology life path, name number, soul urge — and name them as such.
 
@@ -24,13 +24,13 @@ When any of (time, country, lat, lng) is missing, rising sign is `undefined` and
 
 UTC offsets in `core/countries.js` are fixed per entry (typically standard time, not DST). Lat/lng default to the selected country/zone's geographic centroid (1-decimal precision); user can override with birthplace-precise coordinates for greater accuracy. DST-aware computation, historical timezone changes, and pre-1970 date adjustments are out of scope for v0.2.1.
 
-**§1.B. Numerology hexagon — surface-breaking, data-additive.**
+**§1.B. Numerology surface — text triplet, calc reserved.**
 
-As of v0.2.2 three numerology coordinates are added as calc-contract fields: Personality (consonants only), Birthday (day-of-month reduced with master preservation), and Maturity (life-path sum plus expression/name-number sum, reduced with master preservation). Existing outputs remain byte-identical and calc-version stays v1.
+As of v0.2.3 the result-card numerology surface renders as a three-number text line: life path, expression/name number, soul urge. Single-digit values concatenate (e.g. `383`); when any value is a master number (11/22/33), values are space-separated for readability (e.g. `3 11 3`).
 
-v0.2.2 changes the fourth result-card surface from a text numerology triplet to an inline-SVG hexagon polygon. This is breaking-on-surface but additive-on-data: consumers of `buildProfile` gain fields, while the browser card no longer exposes line 4 as plain text.
+The additional calc fields personality (consonants only), birthday (day-of-month reduced with master preservation), and maturity (life-path sum plus expression/name-number sum, reduced with master preservation) remain on `buildProfile` as data-only — computed but not surfaced. They are reserved for v0.3.0+ paid surfacing per §1.
 
-The hexagon vertex assignment is locked clockwise from top: Life Path · Expression · Personality · Maturity · Soul Urge · Birthday. Re-ordering these vertices is a surface-breaking change.
+Catalog driver (§1) and rising semantics (§1.A) are unchanged. v0.2.3 reverts the v0.2.2 hexagon surface; this is breaking-on-render and additive-on-data. Calc-version remains v1.
 
 ## §2. What this is NOT
 
@@ -215,5 +215,5 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v0.2.2-public (catalog-only; optional rising-sign surface coordinate; numerology hexagon surface; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-09 · v0.15 (§1.B added: v0.2.2 numerology hexagon is surface-breaking/data-additive; vertex order locked; calc-version remains v1)
+**content version:** v0.2.3-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
+**doctrine version:** 2026-05-10 · v0.16 (§1.B replaced: v0.2.3 reverts numerology surface to text triplet [life path, expression, soul urge]; personality/birthday/maturity calc fields reserved for v0.3.0+ paid surfacing; calc-version remains v1)
