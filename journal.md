@@ -2,6 +2,26 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.6 SHIPPED — 18+ acknowledgment gate (§4.A doctrine departure)
+
+Date stamp filled at squash-merge.
+
+First age-gate in the product. One-time modal before name/DOB entry; tap confirms; flag persists via separate localStorage key `eight_ball_age_ack_v1`. Acknowledgment is a click-through, not verification — copy explicit about that ("there is no verification — under-18 users should not enter"). About-modal discloses the gate's existence and shape per §4.A disclosure requirement.
+
+Why now: operator decision — "kids shouldn't use it." Coupled to a larger pricing-shape conversation (free vs $9.99 entry tier, "$9.99 is the price to sin") that is deferred to its own session. The disclaimer ships independently because it lands cleanly regardless of pricing direction.
+
+DOCTRINE bumped v0.17 → v0.18: §4 amended (existing "no targeting minors" tightened from passive posture to active gate), §4.A added (gate mechanics, click-through framing, disclosure requirement), §5 allow-list extended with the new flag.
+
+Sequencing note: labels-reveal + prestige refinements (originally v0.2.6 in the prior handoff) deferred to v0.2.7. The pre-flight typography catch (form-field labels are 9px/0.22em, not 11px/0.1em as the prior handoff claimed) and storage-key naming convention catch (`eight_ball_labels_revealed_v1` to match `eight_ball_profile_v1` namespace) ride forward to the v0.2.7 brief at `~/Desktop/8ball/sessions/handoff_v026_label_reveal_prestige.md`.
+
+Free-vs-$9.99-entry pricing pivot: deferred to its own design session. v0.3.0_design.md to be revisited.
+
+L28 (this session): pre-flight reads of the touch-list files surfaced two brief-discipline catches before drafting started — typography spec drift and storage-key convention drift, both in the prior handoff. Pre-flight reads as the brief-drafting discipline (not just the implementation discipline) is the L25/L26 family completing its loop: read the actual file, do not infer from the handoff.
+
+Files: index.html, DOCTRINE.md, tests/privacy_scan.test.js, tests/age_gate.test.js, journal.md, 8BALL.md.
+Branch: v0.2.6-age-gate.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.5.2 SHIPPED — feedback redirect ?sent=1 (banner-JS closure)
 
 Date stamp filled at squash-merge.

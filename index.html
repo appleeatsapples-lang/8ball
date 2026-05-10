@@ -609,9 +609,21 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send.</p>
+    <p>there is no mystery layer. 8 ball uses a name and date of birth to calculate seven calibrated coordinates: sun sign, chinese five-element, public animal, private animal, life path, name number, and soul urge. when birth time and place are provided, an eighth coordinate — rising sign — is added. these are your symbols. nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send. first visit on this device, you'll see a one-tap 18+ acknowledgment — it's a click-through, not verification, and is stored locally so you don't see it again.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 18+ acknowledgment modal ──────────────────────────────── -->
+<div class="modal-bg" id="age-gate-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
+    <h2 id="age-gate-title">for adults</h2>
+    <div class="modal-rule"></div>
+    <p id="age-gate-body">8 ball is a toy for adults. tapping confirm acknowledges that you are 18 or older. there is no verification — under-18 users should not enter.</p>
+    <div class="modal-actions">
+      <button class="btn" id="age-gate-confirm" type="button">confirm</button>
     </div>
   </div>
 </div>
@@ -635,6 +647,7 @@ import { buildProfile } from './core/profile.js';
 import { getCard, MissingCardError } from './core/engine.js';
 
 const STORAGE_KEY = 'eight_ball_profile_v1';
+const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -658,6 +671,8 @@ const forgetConfirm = $('forget-confirm');
 const aboutBtn = $('about-btn');
 const aboutModal = $('about-modal');
 const aboutClose = $('about-close');
+const ageGateModal = $('age-gate-modal');
+const ageGateConfirm = $('age-gate-confirm');
 
 const cardCatalog = $('card-catalog');
 const cardCoordinates = $('card-coordinates');
@@ -919,11 +934,43 @@ document.addEventListener('keydown', e => {
   if (forgetModal.classList.contains('open')) closeForget();
 });
 
+// ── 18+ acknowledgment gate (DOCTRINE.md §4.A) ────────────────────
+function isAgeAcknowledged() {
+  try { return localStorage.getItem(AGE_ACK_KEY) === 'true'; }
+  catch (_) { return false; }
+}
+
+function acknowledgeAge() {
+  try { localStorage.setItem(AGE_ACK_KEY, 'true'); }
+  catch (_) { /* localStorage unavailable; ack survives only this session */ }
+  ageGateModal.classList.remove('open');
+  ageGateModal.setAttribute('aria-hidden', 'true');
+  initAfterAck();
+}
+
+function showAgeGate() {
+  ageGateModal.classList.add('open');
+  ageGateModal.setAttribute('aria-hidden', 'false');
+  ageGateConfirm.focus();
+}
+
+ageGateConfirm.addEventListener('click', acknowledgeAge);
+
 // ── boot ──────────────────────────────────────────────────────────
-const existing = loadSavedProfile();
-if (existing) {
-  populateRisingFields(existing);
-  showResult(profileFromPayload(existing));
+function initAfterAck() {
+  const existing = loadSavedProfile();
+  if (existing) {
+    populateRisingFields(existing);
+    showResult(profileFromPayload(existing));
+  }
+}
+
+if (isAgeAcknowledged()) {
+  initAfterAck();
+} else {
+  onboarding.classList.add('hidden');
+  result.classList.add('hidden');
+  showAgeGate();
 }
 </script>
 </body>
