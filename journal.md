@@ -20,7 +20,7 @@ Operator-discipline carry-forward: I (the orchestrator) previously misclassified
 
 Files: index.html, tests/labels_reveal.test.js, journal.md, 8BALL.md.
 Branch: v0.2.7.1.1-modal-and-labels.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: ff6c726.
 
 ## v0.2.7.1 SHIPPED — lunar tables (calc v1 → v2)
 
