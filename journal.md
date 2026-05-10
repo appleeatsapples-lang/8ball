@@ -20,7 +20,7 @@ L28 (this session): pre-flight reads of the touch-list files surfaced two brief-
 
 Files: index.html, DOCTRINE.md, tests/privacy_scan.test.js, tests/age_gate.test.js, journal.md, 8BALL.md.
 Branch: v0.2.6-age-gate.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: c9524ee.
 
 ## v0.2.5.2 SHIPPED — feedback redirect ?sent=1 (banner-JS closure)
 
