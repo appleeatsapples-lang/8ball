@@ -18,7 +18,7 @@ L25 (this session): pre-flight read of existing tests is mandatory before drafti
 
 Files: index.html, tests/feedback_surface.test.js, journal.md, 8BALL.md.
 Branch: v0.2.5.1-thanks-redirect.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: 63c277a.
 
 ## v0.2.5 SHIPPED — feedback surface (§5.B doctrine departure)
 
