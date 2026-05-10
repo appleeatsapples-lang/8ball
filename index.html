@@ -6,6 +6,30 @@
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
 <meta name="description" content="Seven calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
+
+<!-- favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="shortcut icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://the-eight-ball.netlify.app/">
+<meta property="og:title" content="8 ball">
+<meta property="og:description" content="A magic 8-ball that knows you. Seven calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="8 ball">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="8 ball">
+<meta name="twitter:description" content="A magic 8-ball that knows you. Seven calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
+<meta name="twitter:image:alt" content="8 ball">
+
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -460,7 +484,7 @@
           <label for="lng-input">longitude (decimal, e.g. 46.6753)</label>
           <input id="lng-input" type="number" step="0.0001" min="-180" max="180" placeholder="">
         </div>
-        <p class="hint">picking a country auto-fills lat/lng to the country's centroid. edit them to use birthplace-precise coordinates. if any field is blank, rising sign is omitted. dst not adjusted in v0.2.1 — use standard time.</p>
+        <p class="hint">picking a country auto-fills lat/lng to the country's centroid. edit them to use birthplace-precise coordinates. if any field is blank, rising sign is omitted. dst not adjusted — use standard time.</p>
       </details>
       <button type="submit" class="btn btn-block" id="enter-btn">begin</button>
     </form>
