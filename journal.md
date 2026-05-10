@@ -22,7 +22,7 @@ L27 (this session): operator-merge-during-live-fire ordering hazard. v0.2.5.1's 
 
 Files: index.html, tests/feedback_surface.test.js, journal.md, 8BALL.md.
 Branch: v0.2.5.2-sent-banner.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: 052a88b.
 
 ## v0.2.5.1 SHIPPED — feedback form thanks-page redirect (UX polish)
 
