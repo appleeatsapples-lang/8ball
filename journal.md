@@ -2,6 +2,28 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.5.2 SHIPPED — feedback redirect ?sent=1 (banner-JS closure)
+
+Date stamp filled at squash-merge.
+
+v0.2.5.1 shipped `action="/"` per the v0.2.5 handoff. Live-fire returned "no redirect" — the redirect WAS firing (curl confirmed `action='/'` in the served HTML, with Netlify additionally rewriting the form tag at build to strip `data-netlify="true"` and reorder attributes), but the existing v0.2.5 banner JS at `index.html` lines 869-881 watches for `?sent=1`. Without the query string the banner never fired, and the homepage post-redirect looked visually identical to the post-shake state because localStorage rehydrates the card. Visually-invisible-redirect was the correct diagnosis.
+
+Fix: `action="/"` → `action="/?sent=1"`. Netlify 303s to `/?sent=1`; the banner JS detects the query, swaps the form for `<div class="feedback-sent">thanks. read.</div>`, then `replaceState` strips the query for a clean URL. End state: card rehydrated from localStorage, "thanks. read." banner visible, no Netlify branding, no query string in the address bar.
+
+This closes the half-wired loop the v0.2.5 banner JS was already waiting for. v0.2.5.1 wired the redirect; v0.2.5.2 wires the redirect *target* the JS expects. Two ships were the cycle the bug actually needed — the v0.2.5 handoff specified one but the JS was wired for two.
+
+§5.B language unchanged. "Single named endpoint" still holds — `action` controls success-redirect destination, not the submit endpoint. "Native HTML form POST" still holds. "Fail-silent" still holds. No DOCTRINE bump.
+
+Test surface change: `tests/feedback_surface.test.js` first assertion tightened from `/\saction="\/"/` to `/\saction="\/\?sent=1"/` to lock the precise shape under test. 420/420 tests still green.
+
+L26 (this session): pre-flight read of related-feature JS is mandatory when the patch hooks into existing client-side behavior. The v0.2.5 handoff specified `action="/"` as the right value for v0.2.5.1, but the v0.2.5 banner JS was already wired for `?sent=1` — the brief described the redirect destination but missed that the JS expected a specific query string. Live-fire surfaced the gap as "no redirect" (visually invisible because the homepage state matched the input state). Adjacent to L25 (pre-flight read of existing tests): same family of brief-claim-vs-repo-state drift, caught only when the actual file is read instead of inferred from the brief.
+
+L27 (this session): operator-merge-during-live-fire ordering hazard. v0.2.5.1's PR #9 was merged via the GitHub web UI between the operator opening the deploy preview to test and reporting the result. A fixup commit (`45ab8bc` on the v0.2.5.1-thanks-redirect branch) pushed mid-cycle was orphaned — the PR was already closed. Recovery cost: re-apply the fixup as v0.2.5.2 on a fresh branch from post-merge main (this ship). Hygiene for future cycles: when surfacing a deploy-preview live-fire, clarify whether merge happens before or after the test result lands; or wait for live-fire confirmation in chat before approving merge. The merge → test → fix → orphan-fixup sequence is a real failure mode that doesn't require operator error to occur, just default GitHub web-UI flow.
+
+Files: index.html, tests/feedback_surface.test.js, journal.md, 8BALL.md.
+Branch: v0.2.5.2-sent-banner.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.5.1 SHIPPED — feedback form thanks-page redirect (UX polish)
 
 Date stamp filled at squash-merge.
