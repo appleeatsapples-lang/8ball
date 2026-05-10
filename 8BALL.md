@@ -71,7 +71,7 @@ Layered source:
 | 6 | Persistence | localStorage only — name + DOB + optional rising inputs (`time`, `country`, `lat`, `lng`); no derived profile stored |
 | 7 | Telemetry | None. Permanently. |
 | 8 | Calc version | v1 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; Feb 4 CNY approximation |
-| 9 | Content version | v0.2.4-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`; launch-prep meta + favicons + og:image at /assets/) |
+| 9 | Content version | v0.2.5-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`; launch-prep meta + favicons + og:image at /assets/; opt-in feedback surface §5.B) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
 | 12 | Multi-model lanes | DOCTRINE.md §10 (mirrors SIRR §7 pattern at smaller scale) |
@@ -181,6 +181,8 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 ---
 
 ## 10. Current state (as of 2026-05-10)
+
+**v0.2.5 SHIPPED 2026-05-10** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `MERGE_SHA_TBD` (squash-merge of v0.2.5 feedback surface — first §5 doctrine departure since launch). CI green; tests 414 → 420 (+6 feedback_surface invariants). Local PII audit clean. Added an opt-in feedback `<details>` below the result card (Netlify Forms POST, single named endpoint, native form post, fail-silent). About-modal copy updated to disclose. DOCTRINE bumped v0.16 → v0.17 with new §5.B clause. No `core/` touch, no calc change.
 
 **v0.2.4.1 SHIPPED 2026-05-10** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `MERGE_SHA_TBD` (squash-merge of v0.2.4.1 favicon.ico repair). Single-asset patch closing the Cat 3 FAIL from the v0.2.4 Codex audit. ICO regenerated with 3 entries (16/32/48) per spec; root cause was a Pillow upscale-drop in the gen script, now fixed. No code change, no doctrine change. CI green; tests 414/414 unchanged. Local PII audit clean.
 

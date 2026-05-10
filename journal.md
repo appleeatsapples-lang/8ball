@@ -2,6 +2,27 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.5 SHIPPED — feedback surface (§5.B doctrine departure)
+
+Date stamp filled at squash-merge.
+
+First user-initiated network call in the product. Adds a single feedback form below the result card; submission goes to Netlify Forms at same origin; payload is exactly two user-typed fields (message, optional contact); no localStorage profile data, no derived coords, no telemetry. Native HTML form POST, not fetch — privacy_scan.test.js unchanged.
+
+DOCTRINE bumped v0.16 → v0.17 with new §5.B clause.
+
+Added:
+- index.html: feedback <details>/<form> below result buttons; CSS for feedback styles; minimal JS for ?sent=1 confirmation banner; about-modal copy updated to disclose the new surface.
+- tests/feedback_surface.test.js: codifies §5.B form-shape invariants (form present, data-netlify attribute, POST method, no profile-data field names, allow-listed field set, honeypot present, about-modal discloses).
+- DOCTRINE.md §5.B + version footer line.
+
+About-modal copy delta: final sentence "nothing is stored off-device" replaced with "nothing leaves your device on its own. a feedback form below the result card lets you write back to the operator if you want; only what you type there is sent, only when you press send."
+
+Reciprocation framing: this is the architectural answer to "the toy is a one-way broadcast and that's extractive in the operator's direction." Every shake produced output, but no door existed for users to write back. v0.2.5 opens that door, with §5.B as the doctrine clause that bounds what can fit through it.
+
+Files: index.html, DOCTRINE.md, tests/feedback_surface.test.js, journal.md, 8BALL.md.
+Branch: v0.2.5-feedback-surface.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.4.1 SHIPPED — favicon.ico repair (Cat 3 disposition)
 
 Date stamp filled at squash-merge.
