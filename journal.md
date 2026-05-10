@@ -23,7 +23,7 @@ Aesthetic: monochrome per Phase-2E lock. Asset generation reproducible via ~/Des
 
 Files: index.html, assets/* (5 new), journal.md, 8BALL.md.
 Branch: v0.2.4-launch-prep-meta.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: a671f23.
 
 Reasoning to ship: bare URL is live on TikTok bio (no card-style polish meta). Every share between v0.2.3 and a later polish is a worse-quality unfurl than it could be. Single-cycle ~30 line patch closes that gap.
 
