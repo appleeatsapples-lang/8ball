@@ -75,11 +75,22 @@ If a fixture changes silently, the test gate catches it. If a test changes silen
 - **No slurs.** Banned-pattern check runs in `tests/profile.test.js`.
 - **No medical/diagnostic framing.** Cards do not adopt clinical or diagnostic vocabulary, including ironic adoption (e.g., "diagnosis," "syndrome," "disorder").
 - **Cultural-symbol respect.** If the deck draws from any tradition (tarot, I Ching, runes, zodiac, etc.), cards respect that tradition's lineage. No syncretic flattening, no caricature of source traditions.
-- **No targeting minors.** Copy assumes adult user. UI does not pander to children.
+- **No targeting minors.** Copy assumes adult user. UI does not pander to children. As of v0.2.6, an 18+ acknowledgment gate is required before name/DOB entry — see §4.A.
 - **No real-person targets.** No "you're like [public figure]" lines.
 - **Universal floor.** Cards should land equally on a person who picked their own DOB.
 - **No card-content strings in tracked files.** As of v0.2.0 the card content (cell `name`, `type`, `habit`, `note` bodies) lives privately at `~/dev/8ball-private/cards.v1.full.js`. No public-repo tracked file (source, tests, fixtures, `journal.md`, audit notes, this doctrine) may contain a card-content string. Audit dispositions and content-batch logs reference cells by coordinate path (e.g. `aries.rabbit.note.mid`); before/after strings are stored with the private deck. Forward-looking from doctrine v0.11; pre-v0.11 trait-pool / template-pool excerpts in journal entries (retired `traits.v1.js` / `templates.v1.js` system, deleted from repo in 2F-2) are out of scope.
 - **Versioned, not edited.** Shipped content batches are immutable. New release = new file (e.g. `traits.v2.js`, `cards.v2.js`). Diff lives in `journal.md`.
+
+**§4.A — 18+ acknowledgment gate.**
+
+As of v0.2.6 the product gates entry to the onboarding form behind a one-time 18+ acknowledgment. Mechanics:
+
+- On first load, a modal blocks the onboarding form. Single button: "confirm." Tapping it is the acknowledgment.
+- Acknowledgment persists via `eight_ball_age_ack_v1` localStorage flag (string `'true'` on confirm). On subsequent visits the gate is skipped.
+- Acknowledgment is a click-through, not verification. Copy must be explicit about that — no implication of legal age-gating, no health-product warning theatre, no false claim of identity verification.
+- Disclosure: the about-modal mentions the gate's existence and shape so the user knows what the storage flag is for.
+
+If a future feature needs harder age verification (paid tier, adult-content layer, regulatory requirement), that requires a §4.A amendment and likely a §5 amendment for whatever data-collection surface the verification introduces.
 
 If a line lands but you can't tell whether it crosses any of the above, it crosses. Cut it.
 
@@ -95,6 +106,7 @@ The product persists only user-entered profile fields, in `localStorage` only, o
 - optional `country` (country/zone entry code from `core/countries.js`)
 - optional `lat` (decimal latitude)
 - optional `lng` (decimal longitude)
+- `eight_ball_age_ack_v1` — separate boolean flag (string `'true'`) set when the user confirms the 18+ acknowledgment gate per §4.A. Independent of the profile payload.
 
 Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No remote endpoints. No third-party scripts. System fonts only — zero network requests after page load.
 
@@ -233,6 +245,7 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v0.2.5-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`; opt-in feedback surface §5.B)
-**doctrine version:** 2026-05-10 · v0.17 (§5.B added: feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent)
+**content version:** v0.2.6-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`; opt-in feedback surface §5.B; 18+ acknowledgment gate §4.A)
+**doctrine version:** 2026-05-10 · v0.18 (§4 amended, §4.A added: 18+ acknowledgment gate; §5 allow-list extended with `eight_ball_age_ack_v1`)
+- v0.18: §4.A added — 18+ acknowledgment gate, click-through (no verification), one-time, persists via separate localStorage flag.
 - v0.17: §5.B added — feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent.
