@@ -2,6 +2,30 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.7.1 SHIPPED — lunar tables (calc v1 → v2)
+
+Date stamp filled at squash-merge.
+
+First calc-version bump since v0.1.0 launch. Replaces the v1 Feb-4 fixed-cutoff approximation for Chinese-astrology cusps with real astronomical computation: lunar new year for year-pillar cusps (`getAnimal`, `getChineseElement`); 12 jieqi (lichun → xiaohan) for month-pillar (`getInnerAnimal`). Both evaluated at date-precision in canonical Asia/Shanghai timezone (UTC+8). DOB given as `YYYY-MM-DD` is treated as the truth — no timezone conversion of user input. Range: 1900–2100.
+
+`getInnerAnimal` signature changed from `(month, day)` to `(year, month, day)` — this is a breaking calc change documented in DOCTRINE §3. All existing fixtures other than the v1-bug-locking fixture #6 (CNY Feb 4 cutoff → ox) remain byte-identical; fixture #6 is intentionally re-spec'd from `ox` to `rat` because it was locking the bug being fixed (LNY 2021 = Feb 12, so Feb 4 2021 falls in the 2020 lunar year = rat).
+
+DOCTRINE bumped v0.19 → v0.20: §3 calc-v2 amendment with cusp-resolution rule (date-precision, Asia/Shanghai canonical) + lineage line documenting v1 retirement; calc-version footer rewritten.
+
+**Disclosed deviation (per brief §10):** the brief specifies "Hong Kong Observatory" as the authoritative source for both tables. Operator approved a fork to compute the tables via Meeus astronomical algorithms (Chapter 25 solar position, Chapter 49 lunar phases) — same family already used by `core/rising.js` for ascendant math. The Meeus computation matches all 17 sanity-lock dates from the brief (10 LNY: 1900/1924/1950/1985/1990/2000/2010/2020/2024/2025; 7 solar-term: lichun 1985/1990/2000/2024, jingzhe 2024, qingming 2024, xiaohan 1985) byte-exact, and correctly handles the 2033/2034 leap-suì edge case (run shiyi yue) where simple "+2 lunations after dongzhi" gives Jan 20 but the leap-month rule shifts LNY 2034 to Feb 19. Codex pre-merge audit RECOMMENDED per brief §8.
+
+`core/calendar.js` (NEW) implements: (1) `solarLongitude(jde)` — Meeus low-accuracy solar longitude formula, ~0.01° accurate over the range; (2) `newMoonJDE(k)` — Meeus mean-phase plus 25-term periodic correction plus 14-term planetary correction; (3) `solarLongitudeCrossingJDE(target, roughJDE)` — bisection in a 60-day window; (4) `monthAnimalSolarTerm(year, animalIndex)` — Asia/Shanghai date for the start of an animal's month in `year`; (5) `lunarNewYearDate(year)` — full dongzhi rule with leap-month detection via "first month after m11 with no zhongqi." Range guards: 1900 ≤ year ≤ 2100, throw otherwise.
+
+Test surface: 437 → 466 (+29). Profile suite: 92 → 121 tests. Net additions: 10 LNY-cusp/solar-term-cusp fixtures (case 5 relabeled, case 6 flipped, +10 new); 4 range-guard tests; 10 LNY sanity locks; 5 solar-term sanity locks. The 12 inner-animal direct unit tests rewritten to 3-arg signature anchored at year 1985 (per brief §5.2 suggestion); 3 boundary assertions flipped where v1 had wrong cutoff dates by 1 day (jingzhe Mar 5 not 6, lixia May 5 not 6, liqiu Aug 7 not 8 in 1985). One existing chinese-element test `1996-02-04 → fire` flipped to `→ wood` because v2 places Feb 4 1996 in the previous lunar year (LNY 1996 = Feb 19); relabeled to document the v1 bug fix.
+
+User-impact note: v0.2.7 users who saw a Feb-4-cusp animal that fell in the LNY-window may see a different animal post-v0.2.7.1. Pre-traction; small audience; mitigation is the doctrine framing ("calc v2 is correct lunar-new-year math; v1 was an approximation"). No user-facing copy change in v0.2.7.1; calc-version bump is invisible to users beyond corrected animal output. About-modal calc disclosure deferred to v0.2.8 calculator-framing rewrite.
+
+L31 (this session): pre-flight question on data sourcing surfaced ambiguity between brief letter ("HKO sourced") and operational reality (no HKO data feed in CC's environment). Operator chose Meeus computation; that fork shipped against the brief's existing 17-sanity-lock + operator-live-fire merge gates rather than blocking on data acquisition. The brief's pseudocode in §3.4 had a subtle bug (reverse-array walk treats ox/xiaohan-Jan as the latest cutoff because it's at array index 11, but xiaohan is the EARLIEST jieqi within `year`); first npm test run caught it via 17 failures, fix was reverse-CHRONOLOGICAL walk + previous-year-rat fallthrough. Brief-pseudocode is starting code, not gospel — read first, run tests early.
+
+Files: core/calendar.js (NEW), core/profile.js, tests/fixtures.json, tests/profile.test.js, DOCTRINE.md, journal.md, 8BALL.md.
+Branch: v0.2.7.1-lunar-tables.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.7 SHIPPED — labels-reveal toggle (§5 allow-list extension)
 
 Date stamp filled at squash-merge.
