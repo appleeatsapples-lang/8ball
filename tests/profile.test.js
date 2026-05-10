@@ -21,7 +21,10 @@ import { dirname, join } from 'node:path';
 
 import {
   buildProfile,
+  getBirthday,
+  getMaturity, getMaturitySum,
   getNameNumber, getNameNumberSum,
+  getPersonality, getPersonalitySum,
   getSunSign,
   getAnimal,
   getInnerAnimal,
@@ -249,6 +252,67 @@ describe('calculation contract — 2F-3 additive fields', () => {
       dd: 15
     });
     expect(p.risingSign).toBeUndefined();
+  });
+});
+
+describe('calculation contract — 2G-2 additive fields', () => {
+  it('getPersonality: empty input', () => {
+    expect(getPersonality('')).toBe(0);
+    expect(getPersonalitySum('')).toBe(0);
+  });
+
+  it('getPersonality: simple consonants-only sum', () => {
+    // "Alex Thomas": consonants l-x-t-h-m-s -> 3+6+2+8+4+1 = 24 -> 6
+    expect(getPersonalitySum('Alex Thomas')).toBe(24);
+    expect(getPersonality('Alex Thomas')).toBe(6);
+  });
+
+  it('getPersonality: master-number preservation', () => {
+    expect(getPersonalitySum('Hal')).toBe(11);
+    expect(getPersonality('Hal')).toBe(11);
+  });
+
+  it('getPersonality: ignores non-letters', () => {
+    // x=6, y=7, z=8; punctuation skipped.
+    expect(getPersonalitySum('xyz!')).toBe(21);
+    expect(getPersonality('xyz!')).toBe(3);
+  });
+
+  it('getBirthday: single-digit days pass through', () => {
+    expect(getBirthday(7)).toBe(7);
+    expect(getBirthday(1)).toBe(1);
+  });
+
+  it('getBirthday: 31 reduces to 4', () => {
+    expect(getBirthday(31)).toBe(4);
+  });
+
+  it('getBirthday: master days preserved', () => {
+    expect(getBirthday(11)).toBe(11);
+    expect(getBirthday(22)).toBe(22);
+  });
+
+  it('getBirthday: 29 reduces to 11 (master)', () => {
+    expect(getBirthday(29)).toBe(11);
+  });
+
+  it('getMaturity: simple sum', () => {
+    expect(getMaturitySum(1996, 4, 1, 'Alex Thomas')).toBe(67);
+    expect(getMaturity(1996, 4, 1, 'Alex Thomas')).toBe(4);
+  });
+
+  it('getMaturity: master-number preservation', () => {
+    expect(getMaturitySum(2000, 1, 7, 'A')).toBe(11);
+    expect(getMaturity(2000, 1, 7, 'A')).toBe(11);
+  });
+
+  it('buildProfile: exposes new 2G-2 fields', () => {
+    const p = buildProfile('Alex Thomas', '1996-04-01');
+    expect(p.personality).toBe(6);
+    expect(p.personalitySum).toBe(24);
+    expect(p.birthday).toBe(1);
+    expect(p.maturity).toBe(4);
+    expect(p.maturitySum).toBe(67);
   });
 });
 

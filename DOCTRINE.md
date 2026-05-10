@@ -8,9 +8,9 @@ This document is the constitution of `8ball`. The codebase obeys it. PRs that co
 
 A fixed designed deck that knows you. Enter your name and date of birth once. Shake.
 
-The product calculates seven baseline calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, name number, and soul urge. The two animals pair on a single line via an equilibrium arrow (`⇌`); the three numerology numbers collapse onto a single line as a reduced triplet (concatenated when all are single-digit, space-separated when any is a master 11/22/33). The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
+The product calculates ten baseline calibrated coordinates from (name, DOB): sun sign, Chinese five-element, public animal (year-pillar), private animal (month-pillar), life path, expression/name number, personality, maturity, soul urge, and birthday. The two animals pair on a single line via an equilibrium arrow (`⇌`); six numerology coordinates render as a line-art hexagon. The (sun sign, public animal) pair drives a 144-card catalog index — computed positionally in `core/engine.js` (sun-row × 12 + animal-col + 1, rendered as roman numeral). Life path drives bracket resolution (low/mid/high) within a card cell via `resolveBracket`, not the catalog index. The catalog index is the only card-derived field surfaced.
 
-As of v0.2.1 only the seven baseline coordinates, optional rising sign, and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
+As of v0.2.2 only the ten baseline coordinates, optional rising sign, and the catalog index are surfaced. The card content itself (name, type, habit, note per cell) is the future paid interpretation layer and lives outside this repo (`~/dev/8ball-private/`). The public repo ships no card strings — the engine computes catalog from positional math without any content import. The free surface is symbols only — no interpretation, no per-symbol explanation.
 
 The voice is declarative-observational, framed in strengths and weaknesses. Cards openly reference the symbol systems they draw from — sun sign, Chinese five-element, Chinese zodiac animals (year and month pillars), numerology life path, name number, soul urge — and name them as such.
 
@@ -23,6 +23,14 @@ Rising sign is **surface-only**: it does not enter `getCard`, `resolveBracket`, 
 When any of (time, country, lat, lng) is missing, rising sign is `undefined` and line 2 falls back to the v0.2.0 bare-sun-sign render. Existing v0.2.0 profiles in localStorage continue to work without modification.
 
 UTC offsets in `core/countries.js` are fixed per entry (typically standard time, not DST). Lat/lng default to the selected country/zone's geographic centroid (1-decimal precision); user can override with birthplace-precise coordinates for greater accuracy. DST-aware computation, historical timezone changes, and pre-1970 date adjustments are out of scope for v0.2.1.
+
+**§1.B. Numerology hexagon — surface-breaking, data-additive.**
+
+As of v0.2.2 three numerology coordinates are added as calc-contract fields: Personality (consonants only), Birthday (day-of-month reduced with master preservation), and Maturity (life-path sum plus expression/name-number sum, reduced with master preservation). Existing outputs remain byte-identical and calc-version stays v1.
+
+v0.2.2 changes the fourth result-card surface from a text numerology triplet to an inline-SVG hexagon polygon. This is breaking-on-surface but additive-on-data: consumers of `buildProfile` gain fields, while the browser card no longer exposes line 4 as plain text.
+
+The hexagon vertex assignment is locked clockwise from top: Life Path · Expression · Personality · Maturity · Soul Urge · Birthday. Re-ordering these vertices is a surface-breaking change.
 
 ## §2. What this is NOT
 
@@ -207,5 +215,5 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 ---
 
 **calc version:** v1 (Pythagorean LP w/ 11/22/33 masters · tropical sun · CNY Feb 4 cutoff)
-**content version:** v0.2.1-public (catalog-only; optional rising-sign surface coordinate; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-09 · v0.14 (§1.A extended: lat/lng auto-fill from country centroid, user-overridable; buildProfile opts remain additive; fixed UTC offsets documented, DST out of scope for v0.2.1)
+**content version:** v0.2.2-public (catalog-only; optional rising-sign surface coordinate; numerology hexagon surface; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`)
+**doctrine version:** 2026-05-09 · v0.15 (§1.B added: v0.2.2 numerology hexagon is surface-breaking/data-additive; vertex order locked; calc-version remains v1)

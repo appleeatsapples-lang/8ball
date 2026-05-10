@@ -3,7 +3,8 @@
 // Breaking algorithm changes (modifying existing outputs) MUST update
 // tests/fixtures.json in lockstep. Additive changes (new exports, new
 // buildProfile fields) require direct unit tests; existing fixtures
-// stay byte-identical.
+// stay byte-identical. v0.2.2 additively extends the numerology surface
+// with personality, birthday, and maturity fields.
 // See DOCTRINE.md §3 for the calculation contract.
 
 import { getCountryByCode } from './countries.js';
@@ -162,11 +163,31 @@ export function getNameNumber(name) {
   return reduce(getNameNumberSum(name));
 }
 
-// Soul urge (heart's desire): sum of vowels only, Pythagorean values.
 // Standard numerology vowels: a, e, i, o, u. Y is variable in tradition;
 // excluded here for simplicity and reproducibility.
 const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 
+// Personality (outer self): sum of consonants only, Pythagorean values.
+// Standard numerology consonants: all letters minus a, e, i, o, u.
+// Mirror of getSoulUrge with the vowel-set logic inverted.
+export function getPersonalitySum(name) {
+  if (!name) return 0;
+  let total = 0;
+  for (const c of name) {
+    const lower = c.toLowerCase();
+    const code = lower.charCodeAt(0);
+    if (code < 97 || code > 122) continue;
+    if (VOWELS.has(lower)) continue;
+    total += ((code - 97) % 9) + 1;
+  }
+  return total;
+}
+
+export function getPersonality(name) {
+  return reduce(getPersonalitySum(name));
+}
+
+// Soul urge (heart's desire): sum of vowels only, Pythagorean values.
 export function getSoulUrgeSum(name) {
   if (!name) return 0;
   let total = 0;
@@ -181,6 +202,20 @@ export function getSoulUrgeSum(name) {
 
 export function getSoulUrge(name) {
   return reduce(getSoulUrgeSum(name));
+}
+
+// Birthday: day-of-month from DOB, reduced with master-number rule preserved.
+export function getBirthday(day) {
+  return reduce(day);
+}
+
+// Maturity: life-path sum plus expression/name-number sum, then reduced.
+export function getMaturitySum(year, month, day, name) {
+  return getLifePathSum(year, month, day) + getNameNumberSum(name);
+}
+
+export function getMaturity(year, month, day, name) {
+  return reduce(getMaturitySum(year, month, day, name));
 }
 
 export function buildProfile(name, dobIso, opts) {
@@ -225,6 +260,11 @@ export function buildProfile(name, dobIso, opts) {
     nameNumberSum: getNameNumberSum(cleanName),
     soulUrge: getSoulUrge(cleanName),
     soulUrgeSum: getSoulUrgeSum(cleanName),
+    personality: getPersonality(cleanName),
+    personalitySum: getPersonalitySum(cleanName),
+    birthday: getBirthday(d),
+    maturity: getMaturity(y, m, d, cleanName),
+    maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
     risingSign
   };
