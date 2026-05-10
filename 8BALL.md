@@ -70,7 +70,7 @@ Layered source:
 | 5 | Stack | Static + ES modules; no build step |
 | 6 | Persistence | localStorage only — name + DOB + optional rising inputs (`time`, `country`, `lat`, `lng`); no derived profile stored |
 | 7 | Telemetry | None. Permanently. |
-| 8 | Calc version | v1 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; Feb 4 CNY approximation |
+| 8 | Calc version | v2 — Pythagorean LP w/ master 11/22/33 preserved; tropical sun; real lunar new year + solar-term tables (1900–2100, Asia/Shanghai date-precision) |
 | 9 | Content version | v0.2.7-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`; launch-prep meta + favicons + og:image at /assets/; opt-in feedback surface §5.B; 18+ acknowledgment gate §4.A; symbol-label visibility toggle §5 allow-list) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
@@ -111,10 +111,10 @@ Operator personal data is NEVER tracked content. The repo is private as of v0.2.
 
 ## 6. Calculation contract
 
-`core/profile.js` is the calculation core. Calc version v1:
+`core/profile.js` is the calculation core. Calc version v2 (since v0.2.7.1):
 
 - **Sun sign:** Western tropical zodiac at standard cusps (Aries Mar 21–Apr 19, etc.).
-- **Chinese zodiac animal:** 12-year cycle anchored to 2020 = Rat. Cutoff approximated at Feb 4 (real lunar tables = future work).
+- **Chinese zodiac animal:** 12-year cycle anchored to 2020 = Rat. Year-pillar cusp is real lunar new year (Asia/Shanghai date-precision); month-pillar (`innerAnimal`) cuts at the 12 jieqi that start animal months. Tables span 1900–2100, computed via Meeus astronomical algorithms in `core/calendar.js`. Replaces the v1 Feb-4 fixed-cutoff approximation.
 - **Life path:** Pythagorean. Sum digits of YYYY-MM-DD, reduce until ≤9 OR a master number (11/22/33) is hit.
 - **Name number:** Pythagorean letter values (a=1..i=9, j=1..r=9, s=1..z=8), summed and reduced like life path.
 - **Personality:** Pythagorean consonant sum, reduced like name number.
@@ -181,6 +181,8 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 ---
 
 ## 10. Current state (as of 2026-05-10)
+
+**v0.2.7.1 SHIPPED MERGE_DATE_TBD** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `MERGE_SHA_TBD` (squash-merge of v0.2.7.1 lunar tables — first calc-version bump since v0.1.0 launch). Replaces v1 Feb-4 fixed-cutoff approximation with real lunar new year + solar-term tables (1900–2100), computed via Meeus astronomical algorithms in new `core/calendar.js`; Asia/Shanghai date-precision per DOCTRINE §3 (cusp resolution rule). `getInnerAnimal` signature changed `(month, day) → (year, month, day)`. Tests 437 → 466 (+29). Local PII audit clean. DOCTRINE bumped v0.19 → v0.20 (§3 calc v2 amendment + lineage). Disclosed deviation from brief's "HKO sourced" wording: tables computed via Meeus per operator-approved fork; matches all 17 sanity-lock dates byte-exact and handles 2033/2034 leap-suì edge case. No UI/index.html touch, no §5 privacy change.
 
 **v0.2.7 SHIPPED 2026-05-10** at `https://the-eight-ball.netlify.app`. Live commit on `main`: `136c509` (squash-merge of v0.2.7 labels-reveal toggle — §5 allow-list extension, second post-launch UI-state flag). Symbol-label visibility toggle below result card; default hides titles, revealed shows uppercase title above each symbol (`FIVE-ELEMENT`, `SUN ↑ RISING`, `PUBLIC ⇌ PRIVATE`, `LIFE · NAME · SOUL`). Persists via `eight_ball_labels_revealed_v1` localStorage flag, parallel to age-ack pattern. CI green; tests 425 → 437 (+12 in `tests/labels_reveal.test.js`). Local PII audit clean. About-modal copy updated to disclose. DOCTRINE bumped v0.18 → v0.19 (§5 allow-list extended). No `core/` touch, no calc change.
 

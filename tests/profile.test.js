@@ -33,6 +33,7 @@ import {
   getSoulUrge, getSoulUrgeSum
 } from '../core/profile.js';
 import { getCard, resolveBracket } from '../core/engine.js';
+import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
@@ -110,62 +111,76 @@ describe('calculation contract — 2F-3 additive fields', () => {
   it('chinese element 2024 → wood (cycle restart)', () => {
     expect(getChineseElement(2024, 6, 1)).toBe('wood');
   });
-  it('chinese element pre-CNY adjustment: 1996-01-15 → wood (resolves to 1995)', () => {
+  it('chinese element pre-LNY 1996 (Jan 15) → wood (resolves to 1995)', () => {
     expect(getChineseElement(1996, 1, 15)).toBe('wood');
   });
-  it('chinese element pre-CNY adjustment: 1996-02-04 → fire (resolves to 1996)', () => {
-    expect(getChineseElement(1996, 2, 4)).toBe('fire');
+  it('chinese element pre-LNY 1996 (Feb 4) → wood (resolves to 1995, was \'fire\' under v1 Feb-4-cutoff bug; LNY 1996 = Feb 19)', () => {
+    expect(getChineseElement(1996, 2, 4)).toBe('wood');
   });
 
   // Inner animal (month-pillar). Twelve solar-term-anchored windows;
-  // each window has a fixed-date cutoff approximation per v1 calc.
-  // Verify the cutoff boundary for each animal — at-cutoff = new
-  // animal, day-before-cutoff = previous animal.
-  it('inner animal: tiger month (feb 4 cutoff)', () => {
-    expect(getInnerAnimal(2, 4)).toBe('tiger');
-    expect(getInnerAnimal(2, 3)).toBe('ox');
-    expect(getInnerAnimal(3, 5)).toBe('tiger');
+  // calc v2 looks up actual jieqi dates for the given year via
+  // monthAnimalSolarTerm. Tests anchor at year 1985 (per the v0.2.7.1
+  // brief) where most boundaries land at simple integer days; some
+  // assertions differ from v1 by 1 day where v1's fixed-date cutoff
+  // was off (e.g. jingzhe 1985 = Mar 5, not Mar 6).
+  it('inner animal: tiger month (lichun 1985 = Feb 4)', () => {
+    expect(getInnerAnimal(1985, 2, 4)).toBe('tiger');
+    expect(getInnerAnimal(1985, 2, 3)).toBe('ox');
+    expect(getInnerAnimal(1985, 3, 4)).toBe('tiger');
+    // Mar 5 1985 is jingzhe → rabbit (was 'tiger' under v1 Mar-6 cutoff bug).
+    expect(getInnerAnimal(1985, 3, 5)).toBe('rabbit');
   });
-  it('inner animal: rabbit month (mar 6 cutoff)', () => {
-    expect(getInnerAnimal(3, 6)).toBe('rabbit');
-    expect(getInnerAnimal(4, 4)).toBe('rabbit');
+  it('inner animal: rabbit month (jingzhe 1985 = Mar 5)', () => {
+    expect(getInnerAnimal(1985, 3, 5)).toBe('rabbit');
+    expect(getInnerAnimal(1985, 4, 4)).toBe('rabbit');
   });
-  it('inner animal: dragon month (apr 5 cutoff)', () => {
-    expect(getInnerAnimal(4, 5)).toBe('dragon');
-    expect(getInnerAnimal(5, 5)).toBe('dragon');
+  it('inner animal: dragon month (qingming 1985 = Apr 5)', () => {
+    expect(getInnerAnimal(1985, 4, 5)).toBe('dragon');
+    expect(getInnerAnimal(1985, 5, 4)).toBe('dragon');
   });
-  it('inner animal: snake month (may 6 cutoff)', () => {
-    expect(getInnerAnimal(5, 6)).toBe('snake');
+  it('inner animal: snake month (lixia 1985 = May 5)', () => {
+    expect(getInnerAnimal(1985, 5, 5)).toBe('snake');
+    expect(getInnerAnimal(1985, 5, 6)).toBe('snake');
   });
-  it('inner animal: horse month (jun 6 cutoff)', () => {
-    expect(getInnerAnimal(6, 6)).toBe('horse');
+  it('inner animal: horse month (mangzhong 1985 = Jun 6)', () => {
+    expect(getInnerAnimal(1985, 6, 6)).toBe('horse');
+    expect(getInnerAnimal(1985, 6, 5)).toBe('snake');
   });
-  it('inner animal: goat month (jul 7 cutoff)', () => {
-    expect(getInnerAnimal(7, 7)).toBe('goat');
+  it('inner animal: goat month (xiaoshu 1985 = Jul 7)', () => {
+    expect(getInnerAnimal(1985, 7, 7)).toBe('goat');
+    expect(getInnerAnimal(1985, 7, 6)).toBe('horse');
   });
-  it('inner animal: monkey month (aug 8 cutoff)', () => {
-    expect(getInnerAnimal(8, 8)).toBe('monkey');
-    expect(getInnerAnimal(9, 7)).toBe('monkey');
+  it('inner animal: monkey month (liqiu 1985 = Aug 7)', () => {
+    expect(getInnerAnimal(1985, 8, 7)).toBe('monkey');
+    expect(getInnerAnimal(1985, 9, 7)).toBe('monkey');
   });
-  it('inner animal: rooster month (sep 8 cutoff)', () => {
-    expect(getInnerAnimal(9, 8)).toBe('rooster');
-    expect(getInnerAnimal(9, 23)).toBe('rooster');
+  it('inner animal: rooster month (bailu 1985 = Sep 8)', () => {
+    expect(getInnerAnimal(1985, 9, 8)).toBe('rooster');
+    expect(getInnerAnimal(1985, 9, 23)).toBe('rooster');
   });
-  it('inner animal: dog month (oct 8 cutoff)', () => {
-    expect(getInnerAnimal(10, 8)).toBe('dog');
+  it('inner animal: dog month (hanlu 1985 = Oct 8)', () => {
+    expect(getInnerAnimal(1985, 10, 8)).toBe('dog');
+    expect(getInnerAnimal(1985, 10, 7)).toBe('rooster');
   });
-  it('inner animal: pig month (nov 7 cutoff)', () => {
-    expect(getInnerAnimal(11, 7)).toBe('pig');
-    expect(getInnerAnimal(12, 6)).toBe('pig');
+  it('inner animal: pig month (lidong 1985 = Nov 7)', () => {
+    expect(getInnerAnimal(1985, 11, 7)).toBe('pig');
+    expect(getInnerAnimal(1985, 12, 6)).toBe('pig');
   });
-  it('inner animal: rat month (dec 7 cutoff, wraps year)', () => {
-    expect(getInnerAnimal(12, 7)).toBe('rat');
-    expect(getInnerAnimal(12, 31)).toBe('rat');
-    expect(getInnerAnimal(1, 5)).toBe('rat');
+  it('inner animal: rat month (daxue 1985 = Dec 7, wraps year)', () => {
+    expect(getInnerAnimal(1985, 12, 7)).toBe('rat');
+    expect(getInnerAnimal(1985, 12, 31)).toBe('rat');
+    // Year-wrap: Jan 1-4 of the FOLLOWING year is still in 1985's rat window
+    // (rat extends until xiaohan of next year). getInnerAnimal(1986, 1, 4)
+    // hits the previous-year-rat fallthrough rule.
+    expect(getInnerAnimal(1986, 1, 4)).toBe('rat');
   });
-  it('inner animal: ox month (jan 6 cutoff)', () => {
-    expect(getInnerAnimal(1, 6)).toBe('ox');
-    expect(getInnerAnimal(2, 3)).toBe('ox');
+  it('inner animal: ox month (xiaohan 1985 = Jan 5)', () => {
+    expect(getInnerAnimal(1985, 1, 5)).toBe('ox');
+    expect(getInnerAnimal(1985, 2, 3)).toBe('ox');
+    // Jan 1-4 of `year` is before xiaohan(`year`) — falls into previous
+    // year's rat window per the year-wrap fallthrough.
+    expect(getInnerAnimal(1985, 1, 4)).toBe('rat');
   });
 
   // Soul urge: vowel sum, Pythagorean values, reduced (master 11/22/33 preserved).
@@ -360,3 +375,53 @@ describe('engine — getCard catalog (positional math)', () => {
 // in v0.1.x; as of v0.2.0 the card content is private and those scans
 // run on the private content-authoring side. The public test suite no
 // longer has card strings to walk.
+
+describe('calendar — lunar new year + solar-term tables (v2)', () => {
+  // Sanity locks per v0.2.7.1 brief §4.1 / §4.2. CC's calendar.js
+  // (Meeus computation per operator-approved fork from HKO sourcing,
+  // see journal entry) MUST match these dates exactly. If any fails,
+  // the calc base is wrong — block merge.
+
+  // Lunar new year locks (10 entries spanning 1900–2025).
+  const lnyLocks = [
+    [1900, 1, 31], [1924, 2, 5], [1950, 2, 17], [1985, 2, 20], [1990, 1, 27],
+    [2000, 2, 5], [2010, 2, 14], [2020, 1, 25], [2024, 2, 10], [2025, 1, 29]
+  ];
+  for (const [year, month, day] of lnyLocks) {
+    it(`lunarNewYearDate(${year}) → [${month}, ${day}]`, () => {
+      expect(lunarNewYearDate(year)).toEqual([month, day]);
+    });
+  }
+
+  // Solar-term sanity locks (5 entries; brief §4.2). Animal-index 0..11
+  // maps to lichun..xiaohan; index 11 returns a January date in `year`.
+  it('monthAnimalSolarTerm(1985, 0) lichun → [2, 4] (tiger start)', () => {
+    expect(monthAnimalSolarTerm(1985, 0)).toEqual([2, 4]);
+  });
+  it('monthAnimalSolarTerm(2024, 0) lichun → [2, 4] (tiger start)', () => {
+    expect(monthAnimalSolarTerm(2024, 0)).toEqual([2, 4]);
+  });
+  it('monthAnimalSolarTerm(2024, 1) jingzhe → [3, 5] (rabbit start)', () => {
+    expect(monthAnimalSolarTerm(2024, 1)).toEqual([3, 5]);
+  });
+  it('monthAnimalSolarTerm(2024, 2) qingming → [4, 4] (dragon start)', () => {
+    expect(monthAnimalSolarTerm(2024, 2)).toEqual([4, 4]);
+  });
+  it('monthAnimalSolarTerm(1985, 11) xiaohan → [1, 5] (ox start, Jan in `year`)', () => {
+    expect(monthAnimalSolarTerm(1985, 11)).toEqual([1, 5]);
+  });
+
+  // Out-of-range guards.
+  it('lunarNewYearDate(1899) throws', () => {
+    expect(() => lunarNewYearDate(1899)).toThrow();
+  });
+  it('lunarNewYearDate(2101) throws', () => {
+    expect(() => lunarNewYearDate(2101)).toThrow();
+  });
+  it('monthAnimalSolarTerm(1899, 0) throws', () => {
+    expect(() => monthAnimalSolarTerm(1899, 0)).toThrow();
+  });
+  it('monthAnimalSolarTerm(2101, 0) throws', () => {
+    expect(() => monthAnimalSolarTerm(2101, 0)).toThrow();
+  });
+});
