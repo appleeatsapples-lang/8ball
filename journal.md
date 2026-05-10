@@ -22,7 +22,7 @@ L30 (this session): pre-flight reads of touch-list files surfaced the mockup-vs-
 
 Files: index.html, DOCTRINE.md, tests/privacy_scan.test.js, tests/labels_reveal.test.js, journal.md, 8BALL.md.
 Branch: v0.2.7-labels-reveal.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: 136c509.
 
 ## v0.2.6 SHIPPED — 18+ acknowledgment gate (§4.A doctrine departure)
 
