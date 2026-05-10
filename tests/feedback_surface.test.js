@@ -38,7 +38,9 @@ describe('feedback surface (DOCTRINE.md §5.B)', () => {
     expect(tag).toMatch(/name="feedback"/);
     expect(tag).toMatch(/data-netlify="true"/);
     expect(tag).toMatch(/method="POST"/i);
-    expect(tag).not.toMatch(/\saction=/i);
+    // action="/" replaces Netlify's branded thanks page with a 303 redirect
+    // to the homepage; same-origin invariant preserved (§5.B "single named endpoint").
+    expect(tag).toMatch(/\saction="\/"/);
   });
 
   it('feedback form does not include profile-data field names', () => {

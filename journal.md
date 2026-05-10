@@ -2,6 +2,24 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.5.1 SHIPPED — feedback form thanks-page redirect (UX polish)
+
+Date stamp filled at squash-merge.
+
+v0.2.5 live-fire surfaced an aesthetic break: Netlify's default post-submit response is a generic white "Thank you!" page. Hard break from the cream-on-black specimen design — user gets yanked out of 8 ball's world. §5.B "fail-silent" intent was satisfied on the plumbing layer (no errors, submission captured) but the visual discontinuity was UX, not doctrine.
+
+Fix: single-attribute add of `action="/"` on the feedback form. Netlify still captures the POST (routing is via `data-netlify="true"` + form name, not the action URL); after processing, Netlify 303-redirects to the homepage instead of showing its branded thanks page. User lands back on the result card rehydrated from localStorage; brief flash, lands coherent.
+
+§5.B language unchanged. "Single named endpoint" still holds — `action="/"` controls success-redirect destination, not the submit endpoint. "Native HTML form POST" still holds. "Fail-silent" still holds. No DOCTRINE bump.
+
+Test surface change: `tests/feedback_surface.test.js` first assertion replaced. Was `expect(tag).not.toMatch(/\saction=/i)` — defensively prohibiting any action attribute to keep the form fully default-Netlify, originally protecting against off-domain post targets. Now `expect(tag).toMatch(/\saction="\/"/)` — codifies the v0.2.5.1 decision precisely; the same-origin invariant the original assertion was guarding is preserved by `"/"` and is now the explicit shape under test. Tests 420/420 unchanged.
+
+L25 (this session): pre-flight read of existing tests is mandatory before drafting "trivial single-line patch" briefs. The v0.2.5 handoff carrying v0.2.5.1 forward said "no test surface change," but `feedback_surface.test.js` had a defensive absence-of-action assertion that the `action="/"` patch would have failed in CI. Caught pre-edit by reading the test file before staging. Cost: one extra file in the touch list. Adjacent to L22 (pre-commit verification grep counts in briefs must reflect actual current state) — both are instances of brief-claims-vs-repo-state drift caught by reading the actual file before acting.
+
+Files: index.html, tests/feedback_surface.test.js, journal.md, 8BALL.md.
+Branch: v0.2.5.1-thanks-redirect.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.5 SHIPPED — feedback surface (§5.B doctrine departure)
 
 Date stamp filled at squash-merge.
