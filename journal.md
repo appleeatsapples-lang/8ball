@@ -3,10 +3,10 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 =====
-2026-05-09 · v0.2.2 SHIPPED — Phase-2G-2 hexagon polygon, squash-merged at `MERGE_SHA_TBD`
+2026-05-09 · v0.2.2 SHIPPED — Phase-2G-2 hexagon polygon, squash-merged at `fa552ca`
 =====
 
-v0.2.2 lives at `https://the-eight-ball.netlify.app` on `main` at `MERGE_SHA_TBD`. The Phase-2G-2 arc closed; two-audit Codex cycle cleared (audit-1 caught a CI-gate FAIL — missing journal.md touch — promptly resolved by this entry; audit-2 PASS clean).
+v0.2.2 lives at `https://the-eight-ball.netlify.app` on `main` at `fa552ca`. The Phase-2G-2 arc closed; two-audit Codex cycle cleared (audit-1 caught a CI-gate FAIL — missing journal.md touch — promptly resolved by this entry; audit-2 PASS clean).
 
 ## What shipped
 
