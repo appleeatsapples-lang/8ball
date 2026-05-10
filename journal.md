@@ -2,6 +2,22 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.4.1 SHIPPED — favicon.ico repair (Cat 3 disposition)
+
+Date stamp filled at squash-merge.
+
+Single-asset patch closing the Cat 3 FAIL from the v0.2.4 Codex audit at `67b94a1`. The shipped favicon.ico had only 16×16 and 32×32 entries (header count=2) because the gen script passed a 32×32 source to Pillow's ICO-save with a 48×48 target — Pillow silently drops upscale targets. Regenerated with a 64×64 source that downsamples cleanly to all three entries; new ICO has count=3.
+
+Asset bytes: 1243 → 3571.
+
+Gen script fixed at `~/Desktop/8ball/sessions/launch_prep_asset_gen.py` for any future regeneration.
+
+No code change, no doctrine change, no other asset change. v0.2.4 surface intact otherwise.
+
+Files: assets/favicon.ico, journal.md, 8BALL.md.
+Branch: v0.2.4.1-favicon-ico-repair.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.4 SHIPPED — launch-prep meta polish (additive surface)
 
 Date stamp filled at squash-merge.
