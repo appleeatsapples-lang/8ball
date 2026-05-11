@@ -169,3 +169,74 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(paywallSubtree).toMatch(/your reading stays here/);
   });
 });
+
+describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
+  // pending_profile_write ────────────────────────────────────────────
+  // Both Path A (form submit → show-paywall) and Path B (lock icon
+  // click) must stage the typed profile via setPendingProfile BEFORE
+  // openPaywall fires. Order matters: the paid-return handler reads
+  // the pending profile from localStorage, so it must exist on disk
+  // before the redirect.
+
+  it('setPendingProfile is called immediately before openPaywall (Path A + Path B)', () => {
+    const matches = html.match(
+      /setPendingProfile\([^)]*\)\s*;\s*\n\s*(?:if[^\n]*\n\s*)?openPaywall\(\s*\)/g
+    );
+    expect(matches, 'setPendingProfile → openPaywall sequence not found').not.toBeNull();
+    // Path A (form submit) + Path B (lock icon click) = two sequences.
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the actual localStorage write for the pending profile lives in ui/payments.js', () => {
+    // The bare-string write is in the module per the same-file
+    // privacy_scan resolution pattern. index.html should call the
+    // exported helper, not write to localStorage directly.
+    expect(paymentsJs).toMatch(/localStorage\.setItem\(\s*PENDING_KEY/);
+    expect(html).not.toMatch(
+      /localStorage\.setItem\(\s*['"]eight_ball_pending_profile_v1['"]/
+    );
+  });
+
+  // pending_profile_consume ──────────────────────────────────────────
+  // handlePaidReturn must clear the pending key after consuming it
+  // (or after a no-pending replay) — otherwise a paid round-trip
+  // could re-fire on the next page load. The clear lives inside the
+  // function body in ui/payments.js.
+
+  it('clearPendingProfile is called inside handlePaidReturn', () => {
+    const m = paymentsJs.match(
+      /export function handlePaidReturn\([^)]*\)\s*\{([\s\S]*?)\n\}/
+    );
+    expect(m, 'handlePaidReturn body not found').not.toBeNull();
+    expect(m[1]).toMatch(/clearPendingProfile\(\s*\)/);
+  });
+
+  // try_another_behavior ─────────────────────────────────────────────
+  // β try-counting (DOCTRINE §6.8 / §7.1): tryAnotherBtn clears the
+  // form DOM, NOT localStorage. Re-entering the same (name, dob)
+  // remains idempotent. The "forget this device" path is the only
+  // surface that calls clearProfile.
+
+  it('tryAnotherBtn handler calls resetFormDisplay and NOT clearProfile', () => {
+    const m = html.match(
+      /tryAnotherBtn\.addEventListener\(\s*['"]click['"]\s*,\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\}\s*\)/
+    );
+    expect(m, 'tryAnotherBtn click handler not found').not.toBeNull();
+    expect(m[1]).toMatch(/resetFormDisplay\(\s*\)/);
+    expect(m[1]).not.toMatch(/clearProfile\(\s*\)/);
+  });
+
+  // profile_animal_field ─────────────────────────────────────────────
+  // The unlocked-render branch indexes the card deck by sun row × animal
+  // column; the catalog driver uses `profile.animal`, the public year-
+  // pillar animal. `profile.publicAnimal` was an earlier naming variant
+  // and must not resurface — it would silently route to the wrong card.
+
+  it('renderCard references profile.animal in the unlocked branch', () => {
+    expect(html).toMatch(/sunCells\s*\?\s*sunCells\[\s*profile\.animal\s*\]/);
+  });
+
+  it('profile.publicAnimal is not referenced anywhere in index.html', () => {
+    expect(html).not.toMatch(/profile\.publicAnimal/);
+  });
+});
