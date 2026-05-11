@@ -862,8 +862,9 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added.</p>
-    <p>nothing leaves your device on its own. inputs and the show-labels toggle are stored locally. first-visit 18+ tap is a click-through, not verification. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
+    <p>nothing leaves your device on its own. inputs, counters, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
+    <p>first three readings are free. after that, three dollars buys three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket. one tap, no account, no subscription. checkout is hosted by lemon squeezy — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the three-dollar coin funds more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -926,8 +927,13 @@ import {
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   showPaidBanner, handlePaidReturn,
 } from './ui/payments.js';
+import {
+  initProfileUI,
+  loadSavedProfile, saveProfile, clearProfile,
+  optsFromPayload, profileFromPayload,
+  populateRisingFields, resetFormDisplay,
+} from './ui/profile.js';
 
-const STORAGE_KEY = 'eight_ball_profile_v1';
 const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
 const LABELS_KEY = 'eight_ball_labels_revealed_v1';
 
@@ -961,6 +967,16 @@ const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
 initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+initProfileUI(
+  {
+    timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
+    risingFields, result, onboarding, nameInput, dobInput,
+  },
+  {
+    setSelectedCity: c => { selectedCity = c; },
+    setCurrentProfile: p => { currentProfile = p; },
+  }
+);
 const cardLockIcon = $('card-lock-icon');
 const cardName = $('card-name');
 const cardType = $('card-type');
@@ -1054,79 +1070,6 @@ cityInput.addEventListener('blur', () => {
   setTimeout(clearSuggestions, 120);
 });
 
-// ── profile persistence (DOCTRINE.md §5) ──────────────────────────
-function loadSavedProfile() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (obj && obj.name && obj.dob) return obj;
-  } catch (_) {}
-  return null;
-}
-function optsFromPayload(obj) {
-  const opts = {};
-  if (obj.time) opts.time = obj.time;
-  if (typeof obj.tz === 'string') opts.tz = obj.tz;
-  if (obj.country) opts.country = obj.country;
-  if (typeof obj.lat === 'number') opts.lat = obj.lat;
-  if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  return opts;
-}
-function profileFromPayload(obj) {
-  return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
-}
-function populateRisingFields(obj) {
-  timeInput.value = obj.time || '';
-  legacyHint.hidden = true;
-  polarMessage.hidden = true;
-  selectedCity = null;
-  cityInput.value = '';
-  // Two profile shapes coexist this cycle:
-  //   v0.2.7.2+ → { tz, lat, lng, city?, cc? }     → rehydrate cityInput
-  //   v0.2.1+   → { country, lat, lng }            → surface legacy hint
-  const hasNew = typeof obj.tz === 'string' && typeof obj.lat === 'number';
-  const hasLegacy = !hasNew && obj.country && typeof obj.lat === 'number';
-  if (hasNew) {
-    const countryName = obj.cc ? (getCountryName(obj.cc) || obj.cc) : '';
-    selectedCity = {
-      name: obj.city || '—',
-      country: countryName,
-      countryCode: obj.cc || '',
-      lat: obj.lat,
-      lng: obj.lng,
-      tz: obj.tz,
-      pop: 0
-    };
-    cityInput.value = countryName
-      ? selectedCity.name + ', ' + countryName
-      : selectedCity.name;
-    polarMessage.hidden = Math.abs(obj.lat) <= 66.5;
-  } else if (hasLegacy) {
-    legacyHint.hidden = false;
-  }
-  if (obj.time || hasNew || hasLegacy) {
-    risingFields.setAttribute('open', '');
-  }
-}
-function saveProfile(name, dob, opts) {
-  const payload = { name, dob };
-  if (opts) {
-    if (opts.time) payload.time = opts.time;
-    if (opts.city) payload.city = opts.city;
-    if (opts.cc) payload.cc = opts.cc;
-    if (typeof opts.tz === 'string') payload.tz = opts.tz;
-    if (opts.country) payload.country = opts.country;
-    if (typeof opts.lat === 'number' && !isNaN(opts.lat)) payload.lat = opts.lat;
-    if (typeof opts.lng === 'number' && !isNaN(opts.lng)) payload.lng = opts.lng;
-  }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }
-  catch (_) {}
-}
-function clearProfile() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
-}
-
 // ── render card face from profile ─────────────────────────────────
 // Locked render (default): four symbol lines + catalog index.
 // Unlocked render (v0.3.0, when opts.unlocked): adds card-name /
@@ -1217,29 +1160,6 @@ function showResult(profile, opts) {
   setTimeout(() => {
     flipInner.classList.remove('face-up');
   }, 300);
-}
-
-function resetFormDisplay() {
-  // v0.3.0 (DOCTRINE §6.8): clears the form DOM only, not localStorage.
-  // Caller is responsible for clearing the stored profile separately
-  // when the intent is a real reset (e.g. "forget this device").
-  result.classList.add('hidden');
-  onboarding.classList.remove('hidden');
-  onboarding.classList.add('reveal');
-  nameInput.value = '';
-  dobInput.value = '';
-  timeInput.value = '';
-  cityInput.value = '';
-  citySuggestions.innerHTML = '';
-  selectedCity = null;
-  polarMessage.hidden = true;
-  legacyHint.hidden = true;
-  risingFields.removeAttribute('open');
-  currentProfile = null;
-  // Move focus to the name field so keyboard and screen-reader users
-  // land on the next interactive element. Without this, focus can
-  // remain on the now-hidden 'try another' button after re-entry.
-  nameInput.focus();
 }
 
 function shakeAgain() {
