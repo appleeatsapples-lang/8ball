@@ -565,6 +565,164 @@
   .modal .modal-actions .btn:active,
   .modal .modal-actions .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+  /* ── v0.3.0 paid surface — lock icon, dimmed bars, credit chip, unlocked render */
+  .card .lock-icon {
+    position: absolute;
+    top: clamp(14px, 4vw, 18px);
+    left: clamp(16px, 5vw, 22px);
+    width: 18px;
+    height: 18px;
+    display: block;
+    color: var(--ink);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 0;
+  }
+  .card .lock-icon svg { width: 100%; height: 100%; display: block; stroke: currentColor; }
+  .card.unlocked .lock-icon { display: none; }
+
+  /* dimmed bars in locked state — opacity-only per Phase-2E mono */
+  .card .locked-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    margin-top: 8px;
+    opacity: 0.14;
+  }
+  .card .locked-extras .bar {
+    height: 1px;
+    background: var(--ink);
+    width: 60%;
+  }
+  .card .locked-extras .bar:nth-of-type(2) { width: 72%; }
+  .card .locked-extras .bar:nth-of-type(3) { width: 48%; }
+  .card.unlocked .locked-extras { display: none; }
+
+  /* unlocked-render slots — hidden in locked state */
+  .card .card-name,
+  .card .card-type,
+  .card .card-prose-rule,
+  .card .card-habit,
+  .card .card-note { display: none; }
+  .card.unlocked .card-name,
+  .card.unlocked .card-type,
+  .card.unlocked .card-habit,
+  .card.unlocked .card-note { display: block; }
+  .card.unlocked .card-prose-rule { display: block; }
+
+  .card .card-name {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink);
+    text-align: center;
+    text-transform: lowercase;
+    margin-top: clamp(18px, 5vw, 24px);
+  }
+  .card .card-type {
+    font-size: 11px;
+    font-style: italic;
+    letter-spacing: 0.06em;
+    color: var(--label);
+    text-align: center;
+    text-transform: lowercase;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+  .card .card-prose-rule {
+    height: 1px;
+    background: var(--ink);
+    opacity: 0.12;
+    margin: 10px auto;
+    width: 80%;
+  }
+  .card .card-habit {
+    font-size: 11px;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--ink);
+    text-align: center;
+  }
+  .card .card-note {
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--ink);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* coord-section compact spacing in unlocked state */
+  .card.unlocked .coord-section { margin: 2px 0; }
+  .card.unlocked .coord-section:first-of-type { padding-top: 4px; }
+
+  /* credit chip — paid-state only, bottom-center */
+  .reads-chip {
+    position: absolute;
+    bottom: clamp(12px, 4vw, 18px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: var(--label);
+    padding: 4px 10px;
+    border: 1px solid rgba(26, 24, 18, 0.2);
+    background: transparent;
+    pointer-events: none;
+  }
+  .card .reads-chip { display: none; }
+  .card.unlocked .reads-chip { display: block; }
+
+  /* paywall modal — shares .modal-bg / .modal base, adds CTA + disclosure */
+  .modal .modal-cta {
+    display: block;
+    text-align: center;
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 18px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: lowercase;
+    text-decoration: none;
+  }
+  .modal .modal-cta:hover,
+  .modal .modal-cta:focus { background: transparent; color: var(--ink); }
+  .modal .modal-disclosure {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--label);
+    opacity: 0.7;
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* paid-return banner — mirrors v0.2.5.x feedback-sent banner shape */
+  .paid-banner {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .paid-banner.visible { opacity: 1; }
+
   /* ── narrow viewport adjustments ─────────────────────────────── */
   @media (max-width: 380px) {
     .stage { padding-left: 16px; padding-right: 16px; }
@@ -632,22 +790,38 @@
         <div class="flip-side front">
           <article class="card" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
+            <button class="lock-icon" id="card-lock-icon" type="button" title="unlock for $3" aria-label="unlock for $3">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="1"></rect>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+              </svg>
+            </button>
+            <div class="card-name" id="card-name"></div>
+            <div class="card-type" id="card-type"></div>
             <div class="coord-section">
               <div class="coord-title">FIVE-ELEMENT</div>
               <div class="coord-symbol" id="coord-element-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
               <div class="coord-symbol" id="coord-sun-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">PUBLIC ⇌ PRIVATE</div>
               <div class="coord-symbol" id="coord-animal-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">LIFE · NAME · SOUL</div>
               <div class="coord-symbol" id="coord-numerology-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
+            <div class="card-prose-rule"></div>
+            <div class="card-habit" id="card-habit"></div>
+            <div class="card-note" id="card-note"></div>
+            <div class="reads-chip" id="reads-chip"></div>
           </article>
         </div>
 
@@ -720,6 +894,23 @@
     </div>
   </div>
 </div>
+
+<!-- ── paywall modal (v0.3.0 DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C) ───── -->
+<div class="modal-bg" id="paywall-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="paywall-title">
+    <h2 id="paywall-title">three tries · three dollars</h2>
+    <div class="modal-rule"></div>
+    <p>one tap. no account. three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket.</p>
+    <a class="modal-cta" id="paywall-cta" href="https://8-ball.lemonsqueezy.com/checkout/buy/14e9e2e6-8f96-4a2d-b0a8-92fac2bbdaae" target="_self">unlock · $3</a>
+    <p class="modal-disclosure">checkout via lemon squeezy. payment + email go to them; your reading stays here.</p>
+    <div class="modal-actions">
+      <button class="btn" id="paywall-close" type="button">maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── paid-return banner (v0.3.0) ─────────────────────────────── -->
+<div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
 
 <script type="module">
 import { searchCities, getCountryName } from './core/cities.js';
