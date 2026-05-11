@@ -358,7 +358,8 @@
     letter-spacing: 0.10em;
   }
   .polar-message,
-  .legacy-hint {
+  .legacy-hint,
+  .field-error {
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
@@ -366,8 +367,10 @@
     text-transform: lowercase;
     margin-top: 8px;
   }
+  .field-error { color: var(--ink); }
   .polar-message[hidden],
-  .legacy-hint[hidden] { display: none; }
+  .legacy-hint[hidden],
+  .field-error[hidden] { display: none; }
 
   /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
@@ -751,6 +754,7 @@
       <div class="field">
         <label for="dob-input">date of birth</label>
         <input id="dob-input" type="date" required>
+        <p class="field-error" id="dob-error" hidden>can't be a future date.</p>
       </div>
       <details class="field-group" id="rising-fields">
         <summary>add rising sign (optional)</summary>
@@ -943,6 +947,7 @@ const result = $('result');
 const profileForm = $('profile-form');
 const nameInput = $('name-input');
 const dobInput = $('dob-input');
+const dobError = $('dob-error');
 const risingFields = $('rising-fields');
 const timeInput = $('time-input');
 const cityInput = $('city-input');
@@ -977,6 +982,12 @@ initProfileUI(
     setCurrentProfile: p => { currentProfile = p; },
   }
 );
+// v0.3.0 fix B: clamp the native date picker to today. The attribute
+// is static once written; setting via JS at boot reaffirms today on
+// every page load. HTML5 max= is a soft fence (devtools-bypassable);
+// the form-submit handler is the real gate.
+dobInput.max = new Date().toISOString().slice(0, 10);
+dobInput.addEventListener('input', () => { dobError.hidden = true; });
 const cardLockIcon = $('card-lock-icon');
 const cardName = $('card-name');
 const cardType = $('card-type');
@@ -1079,9 +1090,11 @@ cityInput.addEventListener('blur', () => {
 // CSS-driven. Full spec in DOCTRINE §1 v0.22 + brief §6.3 / §9.
 
 function formatNumbers(profile) {
-  const nums = [profile.lifePath, profile.nameNumber, profile.soulUrge];
-  const hasMaster = nums.some(n => n > 9);
-  return hasMaster ? nums.join(' ') : nums.join('');
+  // v0.3.0 fix A: always space-separated. The concatenated form ("383")
+  // read as a single three-digit number cognitively; the spaced form
+  // ("3 8 3") reads as three coordinates. Master-vs-single-digit
+  // branching dropped — all triplets now render identically.
+  return [profile.lifePath, profile.nameNumber, profile.soulUrge].join(' ');
 }
 
 function renderCard(profile, opts) {
@@ -1189,8 +1202,18 @@ profileForm.addEventListener('submit', e => {
   const name = nameInput.value.trim();
   const dob = dobInput.value;
   if (!name || !dob) return;
+  // v0.3.0 fix B: real future-DOB gate. ISO date strings compare
+  // lexicographically the same as chronologically, so `dob > today`
+  // catches today-plus-one through any future year cleanly. Inline
+  // error surfaces; input event hides it on next edit.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  if (dob > todayIso) {
+    dobError.hidden = false;
+    return;
+  }
+  dobError.hidden = true;
   const [y] = dob.split('-').map(Number);
-  if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) return;
+  if (isNaN(y) || y < 1900) return;
   const time = timeInput.value || undefined;
   // v0.2.7.2: rising opts derive from the selected-city state. If the
   // user typed without selecting from the suggestion list, selectedCity
