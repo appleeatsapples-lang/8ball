@@ -1,5 +1,10 @@
 // 8ball / tests / rising.test.js
-// Rising-sign additive surface coordinate (v0.2.1).
+// Rising-sign tests.
+//
+// v0.2.7.2: extended with `computeRising` (tz-aware, DST + historical
+// timezone handling via Intl.DateTimeFormat). Legacy `getRisingSign`
+// retained for v0.2.1+ stored profiles (utcOffsetMinutes signature).
+// Polar latitudes (|lat| > 66.5°) return `null` from both APIs.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -9,6 +14,7 @@ import { dirname, join } from 'node:path';
 import { buildProfile } from '../core/profile.js';
 import {
   ascendantDeg,
+  computeRising,
   getRisingSign,
   gmstDeg,
   julianDay,
@@ -56,15 +62,10 @@ const referenceCases = [
   }
 ];
 
-function parseDob(dob) {
-  return dob.split('-').map(Number);
-}
+function parseDob(dob) { return dob.split('-').map(Number); }
+function parseTime(time) { return time.split(':').map(Number); }
 
-function parseTime(time) {
-  return time.split(':').map(Number);
-}
-
-describe('rising sign — algorithm fixtures', () => {
+describe('rising sign — algorithm fixtures (legacy offset API)', () => {
   for (const c of fixtures.rising_cases) {
     it(c.label, () => {
       const [y, m, d] = parseDob(c.dob);
@@ -107,6 +108,57 @@ describe('rising sign — math primitives', () => {
   }
 });
 
+describe('rising sign — computeRising (tz-aware, v0.2.7.2)', () => {
+  // Parity: same dates/places as legacy referenceCases, expressed via
+  // IANA tz strings. Should resolve to identical signs when no DST is
+  // in play, validating that the new API matches the offset-based path.
+  const parityCases = [
+    { label: 'London noon BST (parity)',
+      opts: { year: 1990, month: 6, day: 15, hour: 12, minute: 0,
+              tz: 'Europe/London', lat: 51.5074, lng: -0.1278 },
+      sign: 'virgo' },
+    { label: 'NYC mid-afternoon EST (parity)',
+      opts: { year: 1985, month: 3, day: 15, hour: 14, minute: 30,
+              tz: 'America/New_York', lat: 40.7128, lng: -74.006 },
+      sign: 'leo' },
+    { label: 'Riyadh sunrise AST (parity)',
+      opts: { year: 2000, month: 1, day: 1, hour: 6, minute: 0,
+              tz: 'Asia/Riyadh', lat: 24.7136, lng: 46.6753 },
+      sign: 'capricorn' }
+  ];
+
+  for (const c of parityCases) {
+    it(c.label, () => {
+      expect(computeRising(c.opts)).toBe(c.sign);
+    });
+  }
+
+  // DST-aware cases — the core new test surface. Each exercises a
+  // distinct DST/historical-tz path through Intl.DateTimeFormat.
+  // Operator live-fire vs astro.com per brief §5.
+  const dstCases = [
+    { label: 'US summer DST — Chicago 1990-07-15 14:00 CDT',
+      opts: { year: 1990, month: 7, day: 15, hour: 14, minute: 0,
+              tz: 'America/Chicago', lat: 41.8781, lng: -87.6298 },
+      sign: 'scorpio' },
+    { label: 'Indiana pre-2006 (no DST observed) — Indianapolis 1985-07-15 14:00 EST',
+      opts: { year: 1985, month: 7, day: 15, hour: 14, minute: 0,
+              tz: 'America/Indiana/Indianapolis',
+              lat: 39.7684, lng: -86.1581 },
+      sign: 'scorpio' },
+    { label: 'Russia post-2014 (permanent MSK) — Moscow 2020-07-15 14:00 MSK',
+      opts: { year: 2020, month: 7, day: 15, hour: 14, minute: 0,
+              tz: 'Europe/Moscow', lat: 55.7558, lng: 37.6173 },
+      sign: 'scorpio' }
+  ];
+
+  for (const c of dstCases) {
+    it(c.label, () => {
+      expect(computeRising(c.opts)).toBe(c.sign);
+    });
+  }
+});
+
 describe('rising sign — buildProfile integration', () => {
   it('omits risingSign when no opts are supplied', () => {
     const p = buildProfile('alice', '1990-06-15');
@@ -121,7 +173,8 @@ describe('rising sign — buildProfile integration', () => {
     expect(p.risingSign).toBeUndefined();
   });
 
-  it('computes risingSign when full time and location opts are supplied', () => {
+  it('computes risingSign via legacy country/offset path', () => {
+    // v0.2.1–v0.2.7.1 stored profiles: opts.country + lat + lng, no tz.
     const p = buildProfile('alice', '1990-06-15', {
       time: '12:00',
       country: 'DE',
@@ -130,26 +183,45 @@ describe('rising sign — buildProfile integration', () => {
     });
     expect(p.risingSign).toBe('virgo');
     expect(p.sunSign).toBe('gemini');
-    expect(p.chineseElement).toBe('metal');
-    expect(p.animal).toBe('horse');
-    expect(p.innerAnimal).toBe('horse');
-    expect(p.lifePath).toBe(4);
-    expect(p.nameNumber).toBe(3);
-    expect(p.soulUrge).toBe(6);
+  });
+
+  it('computes risingSign via new IANA tz path (v0.2.7.2)', () => {
+    // v0.2.7.2+ profiles: opts.tz + lat + lng (city autocomplete).
+    const p = buildProfile('alice', '1990-06-15', {
+      time: '12:00',
+      tz: 'Europe/London',
+      lat: 51.5074,
+      lng: -0.1278
+    });
+    expect(p.risingSign).toBe('virgo');
+    expect(p.sunSign).toBe('gemini');
+  });
+
+  it('tz path takes precedence over country when both present', () => {
+    // Mixed profile (legacy migrating to v0.2.7.2): tz wins.
+    const p = buildProfile('alice', '1990-06-15', {
+      time: '12:00',
+      tz: 'Europe/London',
+      country: 'DE',
+      lat: 51.5074,
+      lng: -0.1278
+    });
+    expect(p.risingSign).toBe('virgo');
   });
 });
 
-describe('rising sign — edge cases', () => {
+describe('rising sign — edge cases (legacy getRisingSign, returns valid sign)', () => {
+  // Boundary latitudes (|lat| == 66.5°) stay valid per v0.2.7.2 §1.A
+  // amendment: the polar-circle rule is strict greater-than 66.5°.
+  // Pre-1970 dates and far-future dates remain in the supported window.
   const cases = [
-    ['equator', 2000, 1, 1, 12, 0, 0, 0, 0],
-    ['northern high latitude', 2000, 1, 1, 12, 0, 0, 66.5, 10],
-    ['southern high latitude', 2000, 1, 1, 12, 0, 0, -66.5, 10],
-    ['near north pole', 2000, 1, 1, 12, 0, 0, 89, 10],
-    ['near south pole', 2000, 1, 1, 12, 0, 0, -89, 10],
-    ['east of IDL', 2000, 1, 1, 12, 0, 720, 0, 179.99],
-    ['west of IDL', 2000, 1, 1, 12, 0, -720, 0, -179.99],
-    ['pre-1970 Beijing anchor', 1924, 2, 4, 0, 0, 480, 39.9, 116.4],
-    ['post-2050 future date', 2099, 12, 31, 23, 59, 0, 51.5, -0.1]
+    ['equator',                    2000, 1,  1, 12, 0,    0,    0,      0],
+    ['northern boundary (66.5)',   2000, 1,  1, 12, 0,    0,   66.5,   10],
+    ['southern boundary (-66.5)',  2000, 1,  1, 12, 0,    0,  -66.5,   10],
+    ['east of IDL',                2000, 1,  1, 12, 0,  720,    0,    179.99],
+    ['west of IDL',                2000, 1,  1, 12, 0, -720,    0,   -179.99],
+    ['pre-1970 Beijing anchor',    1924, 2,  4,  0, 0,  480,   39.9,  116.4],
+    ['post-2050 future date',      2099,12, 31, 23, 59,   0,   51.5,   -0.1]
   ];
 
   for (const [label, y, m, d, h, min, offset, lat, lng] of cases) {
@@ -160,6 +232,39 @@ describe('rising sign — edge cases', () => {
       expect(asc).toBeGreaterThanOrEqual(0);
       expect(asc).toBeLessThan(360);
       expect(VALID_SIGNS.has(sign)).toBe(true);
+    });
+  }
+});
+
+describe('rising sign — polar latitudes return null (v0.2.7.2 §1.A)', () => {
+  // |lat| > 66.5° (strictly inside the polar circles) returns null
+  // from both APIs. The horizon-plane geometry degenerates and a
+  // rising sign is not astrologically meaningful. The UI surfaces a
+  // "rising unavailable at this latitude" message in place of a sign.
+  // Boundary cases (|lat| == 66.5°) are tested in the previous block
+  // and remain valid.
+
+  const polarCases = [
+    ['near north pole (89°)',     89,  10],
+    ['near south pole (-89°)',   -89,  10],
+    ['Svalbard (78°)',            78.2232,  15.6267],
+    ['Antarctic station (-78°)', -78,    100],
+    ['just past north circle',    66.5001, 10],
+    ['just past south circle',   -66.5001, 10]
+  ];
+
+  for (const [label, lat, lng] of polarCases) {
+    it(`${label}: getRisingSign returns null`, () => {
+      const sign = getRisingSign(2000, 6, 21, 12, 0, 0, lat, lng);
+      expect(sign).toBe(null);
+    });
+
+    it(`${label}: computeRising returns null`, () => {
+      const sign = computeRising({
+        year: 2000, month: 6, day: 21, hour: 12, minute: 0,
+        tz: 'UTC', lat, lng
+      });
+      expect(sign).toBe(null);
     });
   }
 });

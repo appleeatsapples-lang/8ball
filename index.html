@@ -322,6 +322,52 @@
     text-transform: lowercase;
     margin-top: -4px;
   }
+  /* ── city autocomplete (v0.2.7.2) ────────────────────────────── */
+  .city-field { position: relative; }
+  .city-suggestions {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--paper-bg, #0e0c0a);
+    border: 1px solid var(--rule);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .city-suggestions:empty { display: none; }
+  .city-suggestions li {
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--paper);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(138,132,114,0.15);
+  }
+  .city-suggestions li:last-child { border-bottom: none; }
+  .city-suggestions li:hover,
+  .city-suggestions li[aria-selected="true"] {
+    background: rgba(138,132,114,0.12);
+  }
+  .city-suggestions li .city-country {
+    color: var(--label);
+    letter-spacing: 0.10em;
+  }
+  .polar-message,
+  .legacy-hint {
+    font-size: 10px;
+    line-height: 1.45;
+    letter-spacing: 0.08em;
+    color: var(--label);
+    text-transform: lowercase;
+    margin-top: 8px;
+  }
+  .polar-message[hidden],
+  .legacy-hint[hidden] { display: none; }
 
   /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
@@ -551,24 +597,17 @@
       <details class="field-group" id="rising-fields">
         <summary>add rising sign (optional)</summary>
         <div class="field">
-          <label for="time-input">birth time (24h)</label>
+          <label for="time-input">birth time</label>
           <input id="time-input" type="time" placeholder="">
         </div>
-        <div class="field">
-          <label for="country-input">country / zone</label>
-          <select id="country-input">
-            <option value="">—</option>
-          </select>
+        <div class="field city-field">
+          <label for="city-input">birthplace</label>
+          <input id="city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false">
+          <ul class="city-suggestions" id="city-suggestions" role="listbox" aria-label="city suggestions"></ul>
         </div>
-        <div class="field">
-          <label for="lat-input">latitude (decimal, e.g. 24.7136)</label>
-          <input id="lat-input" type="number" step="0.0001" min="-90" max="90" placeholder="">
-        </div>
-        <div class="field">
-          <label for="lng-input">longitude (decimal, e.g. 46.6753)</label>
-          <input id="lng-input" type="number" step="0.0001" min="-180" max="180" placeholder="">
-        </div>
-        <p class="hint">picking a country auto-fills lat/lng to the country's centroid. edit them to use birthplace-precise coordinates. if any field is blank, rising sign is omitted. dst not adjusted — use standard time.</p>
+        <p class="hint" id="rising-hint">type a city to fill timezone and coordinates. dst and historical timezone changes are adjusted automatically. above 66.5° latitude rising sign is unavailable.</p>
+        <p class="polar-message" id="polar-message" hidden>rising unavailable at this latitude.</p>
+        <p class="legacy-hint" id="legacy-hint" hidden>this profile pre-dates city lookup. update your birthplace for accuracy.</p>
       </details>
       <button type="submit" class="btn btn-block" id="enter-btn">begin</button>
     </form>
@@ -683,7 +722,7 @@
 </div>
 
 <script type="module">
-import { COUNTRIES, getCountryByCode } from './core/countries.js';
+import { searchCities, getCountryName } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
 import { getCard, MissingCardError } from './core/engine.js';
 
@@ -699,9 +738,10 @@ const nameInput = $('name-input');
 const dobInput = $('dob-input');
 const risingFields = $('rising-fields');
 const timeInput = $('time-input');
-const countrySelect = $('country-input');
-const latInput = $('lat-input');
-const lngInput = $('lng-input');
+const cityInput = $('city-input');
+const citySuggestions = $('city-suggestions');
+const polarMessage = $('polar-message');
+const legacyHint = $('legacy-hint');
 const flipInner = $('flip-inner');
 const cardBack = $('card-back');
 const shakeAgainBtn = $('shake-again-btn');
@@ -728,20 +768,75 @@ const coordNumerologySymbol = $('coord-numerology-symbol');
 let currentProfile = null;
 let flipLocked = false;
 
-for (const c of COUNTRIES) {
-  const opt = document.createElement('option');
-  opt.value = c.code;
-  opt.textContent = c.name;
-  countrySelect.appendChild(opt);
+// ── City autocomplete (v0.2.7.2) ─────────────────────────────────
+// Selected city is held in module-scoped state so the form submit can
+// read tz/lat/lng atomically. Typing without selecting clears it so
+// stale state never silently propagates to buildProfile.
+let selectedCity = null;
+let citySearchDebounce = null;
+
+function clearSuggestions() {
+  citySuggestions.innerHTML = '';
 }
 
-countrySelect.addEventListener('change', () => {
-  const code = countrySelect.value;
-  if (!code) return;
-  const entry = getCountryByCode(code);
-  if (!entry) return;
-  latInput.value = entry.defaultLat;
-  lngInput.value = entry.defaultLng;
+function renderSuggestions(results) {
+  citySuggestions.innerHTML = '';
+  if (!results.length) return;
+  for (const c of results) {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'option');
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = c.name;
+    const countrySpan = document.createElement('span');
+    countrySpan.className = 'city-country';
+    countrySpan.textContent = ' · ' + c.country;
+    li.appendChild(nameSpan);
+    li.appendChild(countrySpan);
+    li.addEventListener('mousedown', e => {
+      // mousedown fires before the input's blur, so selection survives
+      // the focus shift; preventDefault stops the focus loss outright.
+      e.preventDefault();
+      selectCity(c);
+    });
+    citySuggestions.appendChild(li);
+  }
+}
+
+function selectCity(c) {
+  selectedCity = c;
+  cityInput.value = c.name + ', ' + c.country;
+  clearSuggestions();
+  legacyHint.hidden = true;
+  // Polar latitudes are unsupported — surface the message proactively
+  // at selection time so the user knows before submit. computeRising
+  // will also return null at |lat| > 66.5°; this is the UI mirror.
+  polarMessage.hidden = Math.abs(c.lat) <= 66.5;
+}
+
+cityInput.addEventListener('input', () => {
+  selectedCity = null;
+  polarMessage.hidden = true;
+  if (citySearchDebounce) clearTimeout(citySearchDebounce);
+  const q = cityInput.value.trim();
+  if (q.length < 2) {
+    clearSuggestions();
+    return;
+  }
+  citySearchDebounce = setTimeout(async () => {
+    try {
+      const results = await searchCities(q, 12);
+      // Race guard: drop results if the input has changed since dispatch.
+      if (cityInput.value.trim() !== q) return;
+      renderSuggestions(results);
+    } catch (_) {
+      clearSuggestions();
+    }
+  }, 150);
+});
+
+cityInput.addEventListener('blur', () => {
+  // Brief delay so the mousedown handler can fire and capture the pick.
+  setTimeout(clearSuggestions, 120);
 });
 
 // ── profile persistence (DOCTRINE.md §5) ──────────────────────────
@@ -755,22 +850,47 @@ function loadSavedProfile() {
   return null;
 }
 function optsFromPayload(obj) {
-  return {
-    time: obj.time,
-    country: obj.country,
-    lat: typeof obj.lat === 'number' ? obj.lat : undefined,
-    lng: typeof obj.lng === 'number' ? obj.lng : undefined
-  };
+  const opts = {};
+  if (obj.time) opts.time = obj.time;
+  if (typeof obj.tz === 'string') opts.tz = obj.tz;
+  if (obj.country) opts.country = obj.country;
+  if (typeof obj.lat === 'number') opts.lat = obj.lat;
+  if (typeof obj.lng === 'number') opts.lng = obj.lng;
+  return opts;
 }
 function profileFromPayload(obj) {
   return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
 }
 function populateRisingFields(obj) {
   timeInput.value = obj.time || '';
-  countrySelect.value = obj.country || '';
-  latInput.value = typeof obj.lat === 'number' ? String(obj.lat) : '';
-  lngInput.value = typeof obj.lng === 'number' ? String(obj.lng) : '';
-  if (obj.time || obj.country || typeof obj.lat === 'number' || typeof obj.lng === 'number') {
+  legacyHint.hidden = true;
+  polarMessage.hidden = true;
+  selectedCity = null;
+  cityInput.value = '';
+  // Two profile shapes coexist this cycle:
+  //   v0.2.7.2+ → { tz, lat, lng, city?, cc? }     → rehydrate cityInput
+  //   v0.2.1+   → { country, lat, lng }            → surface legacy hint
+  const hasNew = typeof obj.tz === 'string' && typeof obj.lat === 'number';
+  const hasLegacy = !hasNew && obj.country && typeof obj.lat === 'number';
+  if (hasNew) {
+    const countryName = obj.cc ? (getCountryName(obj.cc) || obj.cc) : '';
+    selectedCity = {
+      name: obj.city || '—',
+      country: countryName,
+      countryCode: obj.cc || '',
+      lat: obj.lat,
+      lng: obj.lng,
+      tz: obj.tz,
+      pop: 0
+    };
+    cityInput.value = countryName
+      ? selectedCity.name + ', ' + countryName
+      : selectedCity.name;
+    polarMessage.hidden = Math.abs(obj.lat) <= 66.5;
+  } else if (hasLegacy) {
+    legacyHint.hidden = false;
+  }
+  if (obj.time || hasNew || hasLegacy) {
     risingFields.setAttribute('open', '');
   }
 }
@@ -778,6 +898,9 @@ function saveProfile(name, dob, opts) {
   const payload = { name, dob };
   if (opts) {
     if (opts.time) payload.time = opts.time;
+    if (opts.city) payload.city = opts.city;
+    if (opts.cc) payload.cc = opts.cc;
+    if (typeof opts.tz === 'string') payload.tz = opts.tz;
     if (opts.country) payload.country = opts.country;
     if (typeof opts.lat === 'number' && !isNaN(opts.lat)) payload.lat = opts.lat;
     if (typeof opts.lng === 'number' && !isNaN(opts.lng)) payload.lng = opts.lng;
@@ -861,9 +984,11 @@ function showOnboarding() {
   nameInput.value = '';
   dobInput.value = '';
   timeInput.value = '';
-  countrySelect.value = '';
-  latInput.value = '';
-  lngInput.value = '';
+  cityInput.value = '';
+  citySuggestions.innerHTML = '';
+  selectedCity = null;
+  polarMessage.hidden = true;
+  legacyHint.hidden = true;
   risingFields.removeAttribute('open');
   currentProfile = null;
   // Move focus to the name field so keyboard and screen-reader users
@@ -893,12 +1018,18 @@ profileForm.addEventListener('submit', e => {
   const [y] = dob.split('-').map(Number);
   if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) return;
   const time = timeInput.value || undefined;
-  const country = countrySelect.value || undefined;
-  const latStr = latInput.value;
-  const lngStr = lngInput.value;
-  const lat = latStr === '' ? undefined : parseFloat(latStr);
-  const lng = lngStr === '' ? undefined : parseFloat(lngStr);
-  const opts = { time, country, lat, lng };
+  // v0.2.7.2: rising opts derive from the selected-city state. If the
+  // user typed without selecting from the suggestion list, selectedCity
+  // is null and rising sign isn't computed — bare sun line falls
+  // through naturally per profile.js's gates.
+  const opts = { time };
+  if (selectedCity) {
+    opts.city = selectedCity.name;
+    opts.cc = selectedCity.countryCode;
+    opts.tz = selectedCity.tz;
+    opts.lat = selectedCity.lat;
+    opts.lng = selectedCity.lng;
+  }
   try {
     const profile = buildProfile(name, dob, opts);
     saveProfile(name, dob, opts);

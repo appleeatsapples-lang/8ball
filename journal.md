@@ -2,6 +2,66 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.2.7.2 SHIPPED — city autocomplete + IANA timezone + DST-aware rising
+
+Date stamp filled at squash-merge.
+
+City-level birthplace input replaces country-centroid + fixed-offset rising. v0.2.1's `(country, lat, lng, utcOffsetMinutes)` form is retired from the UI; selecting a city now atomically sets `(city, cc, tz, lat, lng)` on the form state and routes rising-sign math through the new tz-aware `computeRising()` API. DST and historical timezone rule changes (Indiana pre-2006 no-DST, Russia post-2014 permanent MSK, US summer CDT) are now resolved correctly via `Intl.DateTimeFormat` with `{ timeZone: tz, timeZoneName: 'longOffset' }`. Legacy `getRisingSign(..., utcOffsetMinutes, ...)` API retained inside `core/rising.js` for v0.2.1+ stored-profile fallback; both APIs polar-safe (|lat| > 66.5° → null).
+
+Bundled cosmetic fix: dropped `(24h)` parenthetical from the BIRTH TIME label. v0.2.7.1 verifier-caught — the browser renders the input in 12-hour locale regardless of the parenthetical, so the label promised what the UI didn't deliver.
+
+DOCTRINE bumped v0.20 → v0.21: §1.A amended (DST + historical-tz handling in scope; city-level birthplace; polar null at strict >66.5°); §5 amended (same-origin lazy loads of static JSON permitted; `fetch()` / `XMLHttpRequest` / `navigator.sendBeacon` ban preserved); §5 allow-list extended with `city` / `cc` / `tz`. The v0.14 "fixed UTC offsets" wording and the §5 v0.10-era "zero network requests after page load" wording are retired by this amendment; intent ("no third-party traffic, no telemetry, no out-of-band data flow") is preserved verbatim.
+
+Calc version unchanged: stays v2. Rising is surface-only per §1.A and does not enter the catalog driver.
+
+**Data layer.** New `core/cities.js` implements lazy-loaded city autocomplete + ASCII-fold search + IANA timezone resolution. Backed by new `assets/cities.json` (2.30 MB raw, 1.04 MB gzip; 53,308 entries; 341 unique IANA tz strings, deduplicated via index lookup; sorted by population descending). Source: GeoNames cities5000 (`https://download.geonames.org/export/dump/cities5000.zip`) with additional pop ≥ 7500 floor to fit §5/§6 disciplines. New `tests/cities.test.js` codifies the data-quality contract (≥50K entries; valid IANA round-trip on every tz; no near-duplicate cities; population-sort invariant).
+
+**Lane discipline carry-forward (v0.2.7.2-specific).** This cycle ran across two implementation lanes after a mid-cycle re-pivot:
+
+1. **CC** wrote the calc layer (`core/rising.js` new `computeRising` API, `core/profile.js` plumbing) and built `assets/cities.json` via a Node prune script. Hit two consecutive API content-filter trips while writing the next file (`core/cities.js`), once at the rising-sign-description boundary and once at the cities-module-description boundary. L40 cap fired ("do the standard workaround does not always succeed — set a 2-attempt cap on opaque workarounds and close to next scope rather than grinding"; same pattern as Thread A KSA TikTok region enforcement earlier in the same session).
+
+2. **Chat-Claude** took over and shouldered the remainder via Desktop Commander: `index.html` UI rewrite + JS rewrite, `DOCTRINE.md` v0.21 amendments, `tests/rising.test.js` rewrite (polar-strict + DST-aware + parity), `core/cities.js` completion (COUNTRY_NAMES table K–Z covering 224 ISO codes + `loadCities` / `searchCities` / `getCountryName` exports), `tests/cities.test.js` NEW (14 assertion groups), this journal entry, `8BALL.md` state update.
+
+Mid-cycle the plan briefly added a third lane: Codex implementing `core/cities.js` + `tests/cities.test.js` from a paste-ready directive. The directive was drafted, extracted to clipboard, and surfaced to operator. Operator surfaced friction at the first paste-relay hurdle ("i dont know what should i do for codex its open tho"). L40 fired a third time in the same session, pivoting back to chat-Claude direct-write. Codex's earned role per MUHAB.md is adversarial doctrine audit, not implementer; the implementer routing was an L40-forced re-pivot that didn't survive the first friction test. DOCTRINE §10 two-eyes preserved via Codex pre-merge audit on the PR + operator final approval — the second model is the auditor, where it already has earned strength.
+
+**Disclosed deviations from the brief** (per v0.2.7.1 disclosure pattern):
+
+1. **GeoNames cities5000 + pop ≥ 7500 floor.** Brief specified cities5000 as default with ≤2.5 MB hard cap. Raw cities5000 is 68,581 entries / 7.98 MB. Applied additional pop ≥ 7500 floor to land 53,308 entries (clears the brief's "~52K entries" target + ≥50,000 test gate) at 2.30 MB. CC re-derived the implicit floor that yielded the brief's stated count — L42-candidate. Also applied a tz-dedup-via-index layout that further compressed the asset.
+
+2. **Dynamic `import()` with import attributes instead of `fetch()`.** `tests/privacy_scan.test.js` line 59 forbids the literal token `fetch(` in tracked source under `core/`, `content/`, and `index.html`. CC pivoted to `import('../assets/cities.json', { with: { type: 'json' } })` — pure ESM module-loader path, no XHR, no `fetch(` token in source. The privacy scan stays as-is and this remains the enforced gate. L41-candidate: token bans constrain implementation paths, not just runtime behavior; the gate did its job by forcing the cleaner ESM-native path.
+
+3. **NFD accent-fold at search time.** GeoNames stores diacritics ("Reykjavík", "São Paulo"); the brief implied accent-tolerant search via the Reykjavík sanity case. Implementation NFD-strips at search time (no bundle cost). Closes the "Reykjavik"-no-accent gap inline.
+
+4. **§5 framed as amendment, not clarification.** The brief used "clarification" wording for the same-origin lazy-load doctrine. On second pass (CC's pre-flight + chat-Claude's mediation), the literal §5 wording "zero network requests after page load" was too absolute to permit lazy loads under the existing rule. Reframed as a real amendment with the v0.14 wording explicitly retired. Honest framing > paper-over. Codex audits this as an amendment, not a clarification. L43-candidate.
+
+5. **`tests/fixtures.json` `rising_cases` NOT touched.** Brief touch list (post-CC pre-flight conflict-B) added fixtures.json re-anchoring. On execution, the legacy `rising_cases` test the legacy `getRisingSign` API which is preserved unchanged; the new tz-aware test surface went inline in the `computeRising` describe block (`parityCases` + `dstCases` arrays). Both approaches valid; inline arrays kept fixtures.json simpler and let parity + DST cases live next to their describe-block usage.
+
+6. **Polar test rewrite.** Existing edge-cases in `tests/rising.test.js` expected valid signs at lat ±89°. Brief §2.3 specifies strict |lat| > 66.5° → null. Tests split into two describe blocks: valid-sign cases (boundary ±66.5°, IDL crossings, pre-1970 anchor, post-2050 future) and polar-null cases (89°, Svalbard 78.2°, Antarctica −78°, just-past-circle ±66.5001°). Both `getRisingSign` and `computeRising` tested at the polar boundary.
+
+**Test surface.** 470 → 502 (+32). Net additions: `tests/rising.test.js` extended with `computeRising` (tz-aware) describe block (parity + DST cases), plus polar-null describe block (12 cases across both APIs); `tests/cities.test.js` NEW with structure / size / tz-validity / duplicate / pop-sort / sanity-lookup assertions.
+
+**User-impact note.** v0.2.1+ stored profiles (with country/lat/lng but no city/tz) continue to work without modification: `core/profile.js` routes through the legacy `getRisingSign` fallback when `opts.tz` is absent. The UI surfaces a non-blocking "this profile pre-dates city lookup. update your birthplace for accuracy." hint when a legacy profile is rehydrated. v0.2.8 retires the entire profile-persistence layer (calculator-framing pivot), so hard migration here would be cost for no v0.2.8 benefit.
+
+**Operator live-fire required pre-merge** (per brief §5): three DST-aware rising cases against astro.com — US summer DST (Chicago 1990-07-15 14:00 CDT, scorpio rising), Indiana pre-2006 no-DST (Indianapolis 1985-07-15 14:00 EST, scorpio rising), Russia post-2014 permanent UTC+3 (Moscow 2020-07-15 14:00 MSK, scorpio rising). Plus existing Sam-Carter-style reference cases (London BST → virgo, NYC EST → leo, Riyadh AST → capricorn). City autocomplete sanity: "Riyadh", "Indianapolis", "Moscow", "Reykjavík" all return plausible top hits.
+
+**L-candidates** (this session):
+
+- **L40 (re-fire, three instances this session).** "Do the standard workaround does not always succeed" — (i) Thread A KSA TikTok region enforcement, (ii) v0.2.7.2 CC content-filter retries, (iii) Codex paste-relay friction at the first hurdle. Pattern compounds: when an opaque workaround fails twice, the cost of continued attempts compounds while marginal information drops. Pivot to next path (different model lane, different scope, different routing) rather than grinding. Three firings in one session is a strong signal that the underlying L40 principle is correctly calibrated.
+
+- **L41-candidate.** Privacy-scan token bans (forbidden literal strings under `core/`, `content/`, `index.html`) constrain implementation paths, not just runtime behavior. Implementer pivoting from `fetch()` to `import()` w/ attributes is the right move; the test gate did its job by forcing the cleaner ESM-native path. Reinforced mid-cycle when a stale rule-stating comment in `core/cities.js` used the literal banned token and tripped the scan — fix was a comment rewrite, but it demonstrates that token bans apply to the entire textual surface, not just executable code. Worth surfacing in v0.2.8 doctrine-touch consideration if the pattern recurs.
+
+- **L42-candidate.** When a brief states a target entry count without specifying the implicit floor that produces it ("~52K entries"), the implementer landing on that exact count by re-deriving the floor (pop≥7500) is a brief-comprehension signal worth keeping. Either future briefs spell out the floor, or implementers continue the re-derivation discipline.
+
+- **L43-candidate.** When a brief frames a doctrine change as "clarification" but the literal current text contradicts the new behavior, the implementer's reframe to "amendment" is the right disposition. Preserves doctrine integrity and primes the cross-model audit for real review rather than rubber-stamp.
+
+- **L44-candidate (refined this cycle).** Lane discipline (DOCTRINE §10) is about two-model-eyes, not specifically about "which model writes which file." When CC trips content filters repeatedly, chat-Claude can shoulder file ops via Desktop Commander while a second-model audit at PR-open + operator merge approval preserve the two-eyes intent. The second model doesn't have to be the implementer; the auditor role satisfies the rule.
+
+- **L45-candidate (new).** Lane re-routing under L40 pressure should match earned model strengths. When L40 forces a pivot, the new routing inherits all the friction risks of any unfamiliar path — and any friction at the first hurdle is a signal to re-evaluate whether the new routing matches earned strengths rather than double down. This cycle: routing Codex as cities.js + cities.test.js implementer (a stretch from its earned auditor role per MUHAB.md) didn't survive the first paste-relay friction. Chat-Claude direct-write was the right path the whole time; the L40 pivot to Codex-as-implementer was an over-rotation. Codify: under L40 pressure, prefer pivots that strengthen existing earned roles over pivots that stretch new ones.
+
+Files: core/cities.js (NEW), core/rising.js, core/profile.js, assets/cities.json (NEW), index.html, tests/rising.test.js, tests/cities.test.js (NEW), DOCTRINE.md, journal.md, 8BALL.md.
+Branch: v0.2.7.2-geo-tz.
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.2.7.1.1 SHIPPED — modal copy tighten + labels title conditional fix
 
 Date stamp filled at squash-merge.
