@@ -358,7 +358,8 @@
     letter-spacing: 0.10em;
   }
   .polar-message,
-  .legacy-hint {
+  .legacy-hint,
+  .field-error {
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
@@ -366,8 +367,10 @@
     text-transform: lowercase;
     margin-top: 8px;
   }
+  .field-error { color: var(--ink); }
   .polar-message[hidden],
-  .legacy-hint[hidden] { display: none; }
+  .legacy-hint[hidden],
+  .field-error[hidden] { display: none; }
 
   /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
@@ -565,6 +568,164 @@
   .modal .modal-actions .btn:active,
   .modal .modal-actions .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+  /* ── v0.3.0 paid surface — lock icon, dimmed bars, credit chip, unlocked render */
+  .card .lock-icon {
+    position: absolute;
+    top: clamp(14px, 4vw, 18px);
+    left: clamp(16px, 5vw, 22px);
+    width: 18px;
+    height: 18px;
+    display: block;
+    color: var(--ink);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 0;
+  }
+  .card .lock-icon svg { width: 100%; height: 100%; display: block; stroke: currentColor; }
+  .card.unlocked .lock-icon { display: none; }
+
+  /* dimmed bars in locked state — opacity-only per Phase-2E mono */
+  .card .locked-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    margin-top: 8px;
+    opacity: 0.14;
+  }
+  .card .locked-extras .bar {
+    height: 1px;
+    background: var(--ink);
+    width: 60%;
+  }
+  .card .locked-extras .bar:nth-of-type(2) { width: 72%; }
+  .card .locked-extras .bar:nth-of-type(3) { width: 48%; }
+  .card.unlocked .locked-extras { display: none; }
+
+  /* unlocked-render slots — hidden in locked state */
+  .card .card-name,
+  .card .card-type,
+  .card .card-prose-rule,
+  .card .card-habit,
+  .card .card-note { display: none; }
+  .card.unlocked .card-name,
+  .card.unlocked .card-type,
+  .card.unlocked .card-habit,
+  .card.unlocked .card-note { display: block; }
+  .card.unlocked .card-prose-rule { display: block; }
+
+  .card .card-name {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink);
+    text-align: center;
+    text-transform: lowercase;
+    margin-top: clamp(18px, 5vw, 24px);
+  }
+  .card .card-type {
+    font-size: 11px;
+    font-style: italic;
+    letter-spacing: 0.06em;
+    color: var(--label);
+    text-align: center;
+    text-transform: lowercase;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+  .card .card-prose-rule {
+    height: 1px;
+    background: var(--ink);
+    opacity: 0.12;
+    margin: 10px auto;
+    width: 80%;
+  }
+  .card .card-habit {
+    font-size: 11px;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--ink);
+    text-align: center;
+  }
+  .card .card-note {
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--ink);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* coord-section compact spacing in unlocked state */
+  .card.unlocked .coord-section { margin: 2px 0; }
+  .card.unlocked .coord-section:first-of-type { padding-top: 4px; }
+
+  /* credit chip — paid-state only, bottom-center */
+  .reads-chip {
+    position: absolute;
+    bottom: clamp(12px, 4vw, 18px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: var(--label);
+    padding: 4px 10px;
+    border: 1px solid rgba(26, 24, 18, 0.2);
+    background: transparent;
+    pointer-events: none;
+  }
+  .card .reads-chip { display: none; }
+  .card.unlocked .reads-chip { display: block; }
+
+  /* paywall modal — shares .modal-bg / .modal base, adds CTA + disclosure */
+  .modal .modal-cta {
+    display: block;
+    text-align: center;
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 18px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: lowercase;
+    text-decoration: none;
+  }
+  .modal .modal-cta:hover,
+  .modal .modal-cta:focus { background: transparent; color: var(--ink); }
+  .modal .modal-disclosure {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--label);
+    opacity: 0.7;
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* paid-return banner — mirrors v0.2.5.x feedback-sent banner shape */
+  .paid-banner {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .paid-banner.visible { opacity: 1; }
+
   /* ── narrow viewport adjustments ─────────────────────────────── */
   @media (max-width: 380px) {
     .stage { padding-left: 16px; padding-right: 16px; }
@@ -593,6 +754,7 @@
       <div class="field">
         <label for="dob-input">date of birth</label>
         <input id="dob-input" type="date" required>
+        <p class="field-error" id="dob-error" hidden>can't be a future date.</p>
       </div>
       <details class="field-group" id="rising-fields">
         <summary>add rising sign (optional)</summary>
@@ -632,22 +794,38 @@
         <div class="flip-side front">
           <article class="card" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
+            <button class="lock-icon" id="card-lock-icon" type="button" title="unlock for $3" aria-label="unlock for $3">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="1"></rect>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+              </svg>
+            </button>
+            <div class="card-name" id="card-name"></div>
+            <div class="card-type" id="card-type"></div>
             <div class="coord-section">
               <div class="coord-title">FIVE-ELEMENT</div>
               <div class="coord-symbol" id="coord-element-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
               <div class="coord-symbol" id="coord-sun-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">PUBLIC ⇌ PRIVATE</div>
               <div class="coord-symbol" id="coord-animal-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">LIFE · NAME · SOUL</div>
               <div class="coord-symbol" id="coord-numerology-symbol">—</div>
+              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
+            <div class="card-prose-rule"></div>
+            <div class="card-habit" id="card-habit"></div>
+            <div class="card-note" id="card-note"></div>
+            <div class="reads-chip" id="reads-chip"></div>
           </article>
         </div>
 
@@ -688,8 +866,9 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added.</p>
-    <p>nothing leaves your device on its own. inputs and the show-labels toggle are stored locally. first-visit 18+ tap is a click-through, not verification. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
+    <p>nothing leaves your device on its own. inputs, counters, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
+    <p>first three readings are free. after that, three dollars buys three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket. one tap, no account, no subscription. checkout is hosted by lemon squeezy — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the three-dollar coin funds more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -721,12 +900,44 @@
   </div>
 </div>
 
+<!-- ── paywall modal (v0.3.0 DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C) ───── -->
+<div class="modal-bg" id="paywall-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-labelledby="paywall-title">
+    <h2 id="paywall-title">three tries · three dollars</h2>
+    <div class="modal-rule"></div>
+    <p>one tap. no account. three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket.</p>
+    <a class="modal-cta" id="paywall-cta" href="https://8-ball.lemonsqueezy.com/checkout/buy/14e9e2e6-8f96-4a2d-b0a8-92fac2bbdaae" target="_self">unlock · $3</a>
+    <p class="modal-disclosure">checkout via lemon squeezy. payment + email go to them; your reading stays here.</p>
+    <div class="modal-actions">
+      <button class="btn" id="paywall-close" type="button">maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── paid-return banner (v0.3.0) ─────────────────────────────── -->
+<div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
+
 <script type="module">
 import { searchCities, getCountryName } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
-import { getCard, MissingCardError } from './core/engine.js';
+import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
+import { CARDS } from './content/cards.v1.full.js';
+import { isNewPair, nextShakeState } from './core/payments.js';
+import {
+  TRIES_KEY, CREDITS_KEY, PENDING_KEY,
+  getTriesUsed, setTriesUsed,
+  getCredits, setCredits,
+  getPendingProfile, setPendingProfile, clearPendingProfile,
+  initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
+  showPaidBanner, handlePaidReturn,
+} from './ui/payments.js';
+import {
+  initProfileUI,
+  loadSavedProfile, saveProfile, clearProfile,
+  optsFromPayload, profileFromPayload,
+  populateRisingFields, resetFormDisplay,
+} from './ui/profile.js';
 
-const STORAGE_KEY = 'eight_ball_profile_v1';
 const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
 const LABELS_KEY = 'eight_ball_labels_revealed_v1';
 
@@ -736,6 +947,7 @@ const result = $('result');
 const profileForm = $('profile-form');
 const nameInput = $('name-input');
 const dobInput = $('dob-input');
+const dobError = $('dob-error');
 const risingFields = $('rising-fields');
 const timeInput = $('time-input');
 const cityInput = $('city-input');
@@ -755,6 +967,33 @@ const aboutModal = $('about-modal');
 const aboutClose = $('about-close');
 const ageGateModal = $('age-gate-modal');
 const ageGateConfirm = $('age-gate-confirm');
+// v0.3.0 paid-surface elements (DOCTRINE §6).
+const paywallModal = $('paywall-modal');
+const paywallClose = $('paywall-close');
+const paidBanner = $('paid-banner');
+initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+initProfileUI(
+  {
+    timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
+    risingFields, result, onboarding, nameInput, dobInput,
+  },
+  {
+    setSelectedCity: c => { selectedCity = c; },
+    setCurrentProfile: p => { currentProfile = p; },
+  }
+);
+// v0.3.0 fix B: clamp the native date picker to today. The attribute
+// is static once written; setting via JS at boot reaffirms today on
+// every page load. HTML5 max= is a soft fence (devtools-bypassable);
+// the form-submit handler is the real gate.
+dobInput.max = new Date().toISOString().slice(0, 10);
+dobInput.addEventListener('input', () => { dobError.hidden = true; });
+const cardLockIcon = $('card-lock-icon');
+const cardName = $('card-name');
+const cardType = $('card-type');
+const cardHabit = $('card-habit');
+const cardNote = $('card-note');
+const readsChip = $('reads-chip');
 
 const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
@@ -767,6 +1006,9 @@ const coordNumerologySymbol = $('coord-numerology-symbol');
 
 let currentProfile = null;
 let flipLocked = false;
+// v0.3.0: tracks the previous render's unlock state so cosmetic re-flips
+// (shakeAgain on the same profile) preserve it without re-consuming credit.
+let currentRenderUnlocked = false;
 
 // ── City autocomplete (v0.2.7.2) ─────────────────────────────────
 // Selected city is held in module-scoped state so the form submit can
@@ -839,106 +1081,23 @@ cityInput.addEventListener('blur', () => {
   setTimeout(clearSuggestions, 120);
 });
 
-// ── profile persistence (DOCTRINE.md §5) ──────────────────────────
-function loadSavedProfile() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (obj && obj.name && obj.dob) return obj;
-  } catch (_) {}
-  return null;
-}
-function optsFromPayload(obj) {
-  const opts = {};
-  if (obj.time) opts.time = obj.time;
-  if (typeof obj.tz === 'string') opts.tz = obj.tz;
-  if (obj.country) opts.country = obj.country;
-  if (typeof obj.lat === 'number') opts.lat = obj.lat;
-  if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  return opts;
-}
-function profileFromPayload(obj) {
-  return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
-}
-function populateRisingFields(obj) {
-  timeInput.value = obj.time || '';
-  legacyHint.hidden = true;
-  polarMessage.hidden = true;
-  selectedCity = null;
-  cityInput.value = '';
-  // Two profile shapes coexist this cycle:
-  //   v0.2.7.2+ → { tz, lat, lng, city?, cc? }     → rehydrate cityInput
-  //   v0.2.1+   → { country, lat, lng }            → surface legacy hint
-  const hasNew = typeof obj.tz === 'string' && typeof obj.lat === 'number';
-  const hasLegacy = !hasNew && obj.country && typeof obj.lat === 'number';
-  if (hasNew) {
-    const countryName = obj.cc ? (getCountryName(obj.cc) || obj.cc) : '';
-    selectedCity = {
-      name: obj.city || '—',
-      country: countryName,
-      countryCode: obj.cc || '',
-      lat: obj.lat,
-      lng: obj.lng,
-      tz: obj.tz,
-      pop: 0
-    };
-    cityInput.value = countryName
-      ? selectedCity.name + ', ' + countryName
-      : selectedCity.name;
-    polarMessage.hidden = Math.abs(obj.lat) <= 66.5;
-  } else if (hasLegacy) {
-    legacyHint.hidden = false;
-  }
-  if (obj.time || hasNew || hasLegacy) {
-    risingFields.setAttribute('open', '');
-  }
-}
-function saveProfile(name, dob, opts) {
-  const payload = { name, dob };
-  if (opts) {
-    if (opts.time) payload.time = opts.time;
-    if (opts.city) payload.city = opts.city;
-    if (opts.cc) payload.cc = opts.cc;
-    if (typeof opts.tz === 'string') payload.tz = opts.tz;
-    if (opts.country) payload.country = opts.country;
-    if (typeof opts.lat === 'number' && !isNaN(opts.lat)) payload.lat = opts.lat;
-    if (typeof opts.lng === 'number' && !isNaN(opts.lng)) payload.lng = opts.lng;
-  }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }
-  catch (_) {}
-}
-function clearProfile() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
-}
-
 // ── render card face from profile ─────────────────────────────────
-//
-// v0.2.3 surface: renders four text lines on the result card:
-//   1. chinese five-element
-//   2. sun sign, or sun ↑ rising when birth time/place are provided
-//   3. (public-animal ⇌ private-animal) — paired via equilibrium arrow
-//   4. numerology triplet: [life path, expression, soul urge]. Single-digit
-//      values concatenate (e.g. "383"); when any value is a master number
-//      (11/22/33), values are space-separated (e.g. "3 11 3").
-// Plus the catalog index of the resolved card.
-//
-// Calc fields personality, birthday, and maturity remain on buildProfile
-// but are not surfaced — reserved for v0.3.0+ paid surfacing per §1.B.
-//
-// Product principle: free surface = calibrated symbols only. No
-// interpretation, no per-symbol explanation. Interpretation is the
-// future paid layer (v0.3.0+ may introduce the meaning layer from the
-// private card-content source). Per DOCTRINE §4 cards are
-// versioned-not-edited.
+// Locked render (default): four symbol lines + catalog index.
+// Unlocked render (v0.3.0, when opts.unlocked): adds card-name /
+// card-type / card-habit / card-note (bracket-resolved from
+// profile.lifePath) and the reads-chip credit counter. Toggle is the
+// `.unlocked` class on cardFace; locked-extras / depth slots are
+// CSS-driven. Full spec in DOCTRINE §1 v0.22 + brief §6.3 / §9.
 
 function formatNumbers(profile) {
-  const nums = [profile.lifePath, profile.nameNumber, profile.soulUrge];
-  const hasMaster = nums.some(n => n > 9);
-  return hasMaster ? nums.join(' ') : nums.join('');
+  // v0.3.0 fix A: always space-separated. The concatenated form ("383")
+  // read as a single three-digit number cognitively; the spaced form
+  // ("3 8 3") reads as three coordinates. Master-vs-single-digit
+  // branching dropped — all triplets now render identically.
+  return [profile.lifePath, profile.nameNumber, profile.soulUrge].join(' ');
 }
 
-function renderCard(profile) {
+function renderCard(profile, opts) {
   const sunLine = profile.risingSign
     ? `${profile.sunSign} ↑ ${profile.risingSign}`
     : profile.sunSign;
@@ -961,62 +1120,100 @@ function renderCard(profile) {
       throw err;
     }
   }
+
+  // v0.3.0 unlocked-render branch (DOCTRINE §1 v0.22).
+  const unlocked = !!(opts && opts.unlocked);
+  const credits = (opts && typeof opts.credits === 'number') ? opts.credits : 0;
+  cardFace.classList.toggle('unlocked', unlocked);
+  if (unlocked) {
+    try {
+      const sunCells = CARDS[profile.sunSign];
+      const cell = sunCells ? sunCells[profile.animal] : null;
+      if (cell) {
+        cardName.textContent = cell.name;
+        cardType.textContent = cell.type;
+        cardHabit.textContent = cell.habit;
+        const bracket = resolveBracket(profile.lifePath);
+        cardNote.textContent = cell.note[bracket];
+      } else {
+        // Defensive fallback: clear depth slots without dropping back
+        // to locked. With a 144-cell deck this should be unreachable.
+        cardName.textContent = '';
+        cardType.textContent = '';
+        cardHabit.textContent = '';
+        cardNote.textContent = '';
+      }
+      // §6.5: chip hidden when credits===0 (the last paid render shows
+      // no chip; the lock returns on the next shake).
+      if (credits > 0) {
+        readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`;
+        readsChip.style.display = '';
+      } else {
+        readsChip.textContent = '';
+        readsChip.style.display = 'none';
+      }
+    } catch (_) {
+      // If anything in the unlocked branch throws, drop back to the
+      // locked symbol-only render rather than display half-state.
+      cardFace.classList.remove('unlocked');
+    }
+  }
 }
 
 // ── shake / flip control ──────────────────────────────────────────
-function showResult(profile) {
+function showResult(profile, opts) {
   currentProfile = profile;
+  currentRenderUnlocked = !!(opts && opts.unlocked);
   onboarding.classList.add('hidden');
   result.classList.remove('hidden');
   result.classList.add('reveal');
   // Land on the back side first; card-back shows for ~300ms before flip.
   flipInner.classList.add('face-up');
-  renderCard(profile);
+  renderCard(profile, opts);
   setTimeout(() => {
     flipInner.classList.remove('face-up');
   }, 300);
 }
 
-function showOnboarding() {
-  result.classList.add('hidden');
-  onboarding.classList.remove('hidden');
-  onboarding.classList.add('reveal');
-  nameInput.value = '';
-  dobInput.value = '';
-  timeInput.value = '';
-  cityInput.value = '';
-  citySuggestions.innerHTML = '';
-  selectedCity = null;
-  polarMessage.hidden = true;
-  legacyHint.hidden = true;
-  risingFields.removeAttribute('open');
-  currentProfile = null;
-  // Move focus to the name field so keyboard and screen-reader users
-  // land on the next interactive element. Without this, focus can
-  // remain on the now-hidden 'try another' button after re-entry.
-  nameInput.focus();
-}
-
 function shakeAgain() {
   if (flipLocked || !currentProfile) return;
   flipLocked = true;
-  // Flip back to card-back, then re-flip to face after ~300ms.
+  // Flip back to card-back, then re-flip to face after ~320ms. The re-
+  // render preserves the previous render's unlock state — shakeAgain on
+  // the same profile is cosmetic and never re-consumes a credit
+  // (§6.5/§7.1 β idempotence).
   flipInner.classList.add('face-up');
   setTimeout(() => {
-    renderCard(currentProfile);
+    renderCard(currentProfile, { unlocked: currentRenderUnlocked, credits: getCredits() });
     flipInner.classList.remove('face-up');
     flipLocked = false;
   }, 320);
 }
 
 // ── form submit ───────────────────────────────────────────────────
+// v0.3.0 (DOCTRINE §4.B / §6 / §7): the typed payload is compared to
+// the last-rendered profile via isNewPair, then nextShakeState picks
+// one of four actions: render-idempotent, render-unlocked (credit
+// burn), render-locked (free try burn), show-paywall. Only the first
+// three persist the profile and counters; show-paywall (Path A)
+// writes the pending profile and aborts the render.
 profileForm.addEventListener('submit', e => {
   e.preventDefault();
   const name = nameInput.value.trim();
   const dob = dobInput.value;
   if (!name || !dob) return;
+  // v0.3.0 fix B: real future-DOB gate. ISO date strings compare
+  // lexicographically the same as chronologically, so `dob > today`
+  // catches today-plus-one through any future year cleanly. Inline
+  // error surfaces; input event hides it on next edit.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  if (dob > todayIso) {
+    dobError.hidden = false;
+    return;
+  }
+  dobError.hidden = true;
   const [y] = dob.split('-').map(Number);
-  if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) return;
+  if (isNaN(y) || y < 1900) return;
   const time = timeInput.value || undefined;
   // v0.2.7.2: rising opts derive from the selected-city state. If the
   // user typed without selecting from the suggestion list, selectedCity
@@ -1030,10 +1227,47 @@ profileForm.addEventListener('submit', e => {
     opts.lat = selectedCity.lat;
     opts.lng = selectedCity.lng;
   }
+
+  const stored = loadSavedProfile();
+  const isNew = isNewPair({ name, dob }, stored);
+  const state = nextShakeState({
+    triesUsed: getTriesUsed(),
+    credits: getCredits(),
+    isNew
+  });
+
+  if (state.action === 'show-paywall') {
+    // Path A (DOCTRINE §6.7): typed-but-not-yet-rendered profile is
+    // staged for the paid round-trip. eight_ball_profile_v1 is not
+    // touched; tries_used does not increment.
+    const pendingPayload = { name, dob };
+    if (opts.time) pendingPayload.time = opts.time;
+    if (opts.city) pendingPayload.city = opts.city;
+    if (opts.cc) pendingPayload.cc = opts.cc;
+    if (typeof opts.tz === 'string') pendingPayload.tz = opts.tz;
+    if (typeof opts.lat === 'number' && !isNaN(opts.lat)) pendingPayload.lat = opts.lat;
+    if (typeof opts.lng === 'number' && !isNaN(opts.lng)) pendingPayload.lng = opts.lng;
+    setPendingProfile(pendingPayload);
+    openPaywall();
+    return;
+  }
+
   try {
     const profile = buildProfile(name, dob, opts);
     saveProfile(name, dob, opts);
-    showResult(profile);
+    // render-idempotent leaves counters unchanged; the other two write
+    // the post-shake counters before render so the chip + lock state
+    // match the persisted truth.
+    if (state.action !== 'render-idempotent') {
+      setTriesUsed(state.triesUsed);
+      setCredits(state.credits);
+    }
+    // §6.3/§6.5: action determines unlock. render-idempotent preserves
+    // the previous render's unlock state — a cosmetic re-shake of the
+    // same profile cannot regress an already-unlocked card.
+    const unlocked = state.action === 'render-unlocked'
+      || (state.action === 'render-idempotent' && currentRenderUnlocked);
+    showResult(profile, { unlocked, credits: state.credits });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1042,24 +1276,33 @@ profileForm.addEventListener('submit', e => {
 // ── shake interactions ────────────────────────────────────────────
 shakeAgainBtn.addEventListener('click', shakeAgain);
 tryAnotherBtn.addEventListener('click', () => {
-  // Different intent from forget-this-device: user explicitly wants to
-  // try a new profile (e.g. friend's DOB on TikTok). Same underlying
-  // action — clear localStorage + return to onboarding — but no
-  // confirmation modal because the action is the explicit intent, not a
-  // privacy reset.
-  clearProfile();
-  showOnboarding();
+  // v0.3.0 (DOCTRINE §6.8 / §7.1 β try-counting): clears the form DOM
+  // only, NOT eight_ball_profile_v1. Re-entering the same (name, dob)
+  // remains idempotent and does not consume a free try or a paid
+  // credit. To erase the stored profile, use "forget this device".
+  resetFormDisplay();
 });
 cardBack.addEventListener('click', shakeAgain);
 cardBack.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
 });
 
+// ── lock-icon Path B (DOCTRINE §6.7) ──────────────────────────────
+// Tapping the lock icon on a rendered locked card stages the
+// currently-stored profile for the paid round-trip, then opens the
+// paywall. Paid return consumes one credit and re-renders the same
+// profile unlocked.
+cardLockIcon.addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  const stored = loadSavedProfile();
+  if (stored) setPendingProfile(stored);
+  openPaywall();
+});
+
 // ── feedback sent-state (§5.B) ────────────────────────────────────
-// Netlify Forms redirects on success to the configured success page or
-// the same URL with a query string. We honor `?sent=1` as a signal to
-// show a small confirmation banner in place of the form. No persistent
-// state; reload without the query returns to the normal surface.
+// Netlify Forms redirects to `?sent=1`; we swap the form for a small
+// confirmation banner and strip the query. No persistent state.
 if (window.location.search.includes('sent=1')) {
   const detailsEl = document.querySelector('.feedback-details');
   if (detailsEl) {
@@ -1095,9 +1338,13 @@ function closeForget() {
 forgetBtn.addEventListener('click', openForget);
 forgetCancel.addEventListener('click', closeForget);
 forgetConfirm.addEventListener('click', () => {
+  // "forget this device" is the full erase: clear stored profile and
+  // return the form to its empty state. Distinct from v0.3.0 "try
+  // another" which clears only the form DOM and keeps the stored
+  // profile so β idempotence holds on re-entry.
   clearProfile();
   closeForget();
-  showOnboarding();
+  resetFormDisplay();
 });
 forgetModal.addEventListener('click', e => { if (e.target === forgetModal) closeForget(); });
 
@@ -1106,6 +1353,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (aboutModal.classList.contains('open')) closeAbout();
   if (forgetModal.classList.contains('open')) closeForget();
+  if (isPaywallOpen()) closePaywall();
 });
 
 // ── 18+ acknowledgment gate (DOCTRINE.md §4.A) ────────────────────
@@ -1156,10 +1404,23 @@ labelsToggle.addEventListener('click', () => {
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
   applyLabelsState(isLabelsRevealed());
+  // §6.6 paid-return runs before rehydration so the +3 credits and any
+  // pending-consumed profile are persisted before loadSavedProfile()
+  // reads them. Sequencing here (post age-gate) avoids the race where
+  // the boot block would otherwise hide the result behind the gate.
+  const consumedPending = handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
   if (existing) {
     populateRisingFields(existing);
-    showResult(profileFromPayload(existing));
+    // Cold-load rehydration defaults to LOCKED — the depth content is
+    // a paid-only render path and any rehydration that isn't a direct
+    // paid-return must shake-to-consume to unlock. The exception is
+    // ?paid=t1 with a pending profile: handlePaidReturn already
+    // consumed a credit, so the immediate render is unlocked.
+    const opts = consumedPending
+      ? { unlocked: true, credits: getCredits() }
+      : { unlocked: false, credits: getCredits() };
+    showResult(profileFromPayload(existing), opts);
   } else {
     // No saved profile. The gate path pre-emptively hides #onboarding so
     // it doesn't leak behind the modal; un-hide here so the form is

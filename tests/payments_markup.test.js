@@ -1,0 +1,242 @@
+// 8ball / tests / payments_markup.test.js
+//
+// v0.3.0 paid-surface markup + disclosure invariants (DOCTRINE §1
+// v0.22 / §6 / §10.2). Forward-ports a subset of brief §11.2 from
+// step 9 → step 7 per codex pre-merge audit hook 9 P1: bring
+// markup/static or thin DOM smoke tests forward before piling on
+// step 7 copy/UI work.
+//
+// Scope (step-7 forward port):
+//   1. lock_icon_markup        — DOM existence
+//   2. paywall_modal_markup    — DOM existence + LS Buy Link shape
+//   3. credit_chip_markup      — DOM existence
+//   4. unlocked_render_markup  — DOM existence
+//   5. paid_query_handler      — URL handling JS pattern (in ui/payments.js)
+//   6. disclosure_in_about_modal + paywall_modal_disclosure — §10.3 copy
+//
+// Deferred to step 9 (the JS-pattern groups that scan across both
+// index.html and ui/payments.js for state-machine wiring):
+//   - pending_profile_write
+//   - pending_profile_consume
+//   - try_another_behavior
+//   - profile_animal_field
+
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const paymentsJs = readFileSync(
+  join(__dirname, '..', 'ui', 'payments.js'),
+  'utf-8'
+);
+
+// ── helper: extract a modal subtree by id (same shape as age_gate.test) ──
+function modalSubtree(id) {
+  const re = new RegExp(`id="${id}"[\\s\\S]*?<\\/div>\\s*<\\/div>\\s*<\\/div>`);
+  const m = html.match(re);
+  if (!m) throw new Error(`subtree for #${id} not found`);
+  return m[0];
+}
+
+describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
+  // 1. lock_icon_markup ──────────────────────────────────────────────
+  it('lock-icon element exists with id and SVG', () => {
+    expect(html).toMatch(/id="card-lock-icon"/);
+    const m = html.match(/id="card-lock-icon"[\s\S]*?<\/(?:span|div)>/);
+    expect(m, 'card-lock-icon subtree not found').not.toBeNull();
+    expect(m[0]).toMatch(/<svg[\s\S]*?<\/svg>/);
+  });
+
+  // 2. paywall_modal_markup ─────────────────────────────────────────
+  it('paywall modal element exists with required attributes', () => {
+    expect(html).toMatch(/id="paywall-modal"/);
+    const subtree = modalSubtree('paywall-modal');
+    expect(subtree).toMatch(/aria-hidden="true"/);
+  });
+
+  it('paywall CTA is a Lemon Squeezy Buy Link', () => {
+    const subtree = modalSubtree('paywall-modal');
+    expect(subtree).toMatch(
+      /href="https:\/\/[a-z0-9-]+\.lemonsqueezy\.com\/checkout\/buy\/[a-f0-9-]+"/
+    );
+  });
+
+  // 3. credit_chip_markup ───────────────────────────────────────────
+  it('reads-chip element exists', () => {
+    expect(html).toMatch(/id="reads-chip"/);
+  });
+
+  it('no inline credit count hardcoded in markup', () => {
+    // The chip should be empty in markup and populated by renderCard at
+    // runtime — guards against a stale "3 reads left" baked into source.
+    const m = html.match(/id="reads-chip"[^>]*>([\s\S]*?)<\/(?:span|div)>/);
+    expect(m, 'reads-chip subtree not found').not.toBeNull();
+    expect(m[1].trim()).toBe('');
+  });
+
+  // 4. unlocked_render_markup ───────────────────────────────────────
+  it('unlocked-render slots exist (card-name / card-type / card-habit / card-note)', () => {
+    expect(html).toMatch(/id="card-name"/);
+    expect(html).toMatch(/id="card-type"/);
+    expect(html).toMatch(/id="card-habit"/);
+    expect(html).toMatch(/id="card-note"/);
+  });
+
+  // 5. paid_query_handler (URL handling lives in ui/payments.js) ────
+  it('handlePaidReturn reads ?paid via URLSearchParams', () => {
+    expect(paymentsJs).toMatch(/URLSearchParams\(window\.location\.search\)/);
+    expect(paymentsJs).toMatch(/params\.get\(['"]paid['"]\)/);
+  });
+
+  it('handlePaidReturn calls applyPaidReturn from core', () => {
+    expect(paymentsJs).toMatch(/applyPaidReturn\(/);
+  });
+
+  it('handlePaidReturn strips query via replaceState to pathname (not hard-coded /)', () => {
+    expect(paymentsJs).toMatch(
+      /history\.replaceState\([^)]*window\.location\.pathname[^)]*\)/
+    );
+    // Defensive: no hard-coded `'/'` second-arg in the replaceState call.
+    // Comments may discuss the rejected shape; we only forbid it inside
+    // the actual replaceState call.
+    expect(paymentsJs).not.toMatch(/replaceState\([^)]*['"]\/['"]\s*\)/);
+  });
+});
+
+describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
+  // 6a. disclosure_in_about_modal ───────────────────────────────────
+  // The about-modal subtree must contain every disclosure the brief
+  // names (§10.3). Substrings are case-insensitive where the brief
+  // permits, exact otherwise.
+
+  const aboutSubtree = modalSubtree('about-modal');
+
+  it('about-modal: contains "calculator-grade"', () => {
+    expect(aboutSubtree).toMatch(/calculator-grade/);
+  });
+
+  it('about-modal: contains "three dollars"', () => {
+    expect(aboutSubtree).toMatch(/three dollars/);
+  });
+
+  it('about-modal: names lemon squeezy (case-insensitive)', () => {
+    expect(aboutSubtree).toMatch(/lemon squeezy/i);
+  });
+
+  it('about-modal: discloses on-device data boundary', () => {
+    expect(aboutSubtree).toMatch(
+      /your name, DOB, and reading stay on this device/
+    );
+  });
+
+  it('about-modal: discloses source visibility ("the deck is visible in source")', () => {
+    expect(aboutSubtree).toMatch(/the deck is visible in source/);
+  });
+
+  it('about-modal: discloses lock-as-convention framing', () => {
+    expect(aboutSubtree).toMatch(/the lock is a convention, not a vault/);
+  });
+
+  it('about-modal: discloses what $3 unlocks ("three more reads with the card opened up")', () => {
+    expect(aboutSubtree).toMatch(/three more reads with the card opened up/);
+  });
+
+  it('about-modal: word "subscription" only appears in the negation "no subscription"', () => {
+    const occurrences = (aboutSubtree.match(/subscription/g) || []).length;
+    const negations = (aboutSubtree.match(/no subscription/g) || []).length;
+    expect(occurrences).toBe(negations);
+  });
+
+  // 6b. paywall_modal_disclosure ────────────────────────────────────
+  const paywallSubtree = modalSubtree('paywall-modal');
+
+  it('paywall modal contains .modal-disclosure element', () => {
+    expect(paywallSubtree).toMatch(/class="modal-disclosure"/);
+  });
+
+  it('paywall modal disclosure names lemon squeezy (case-insensitive)', () => {
+    expect(paywallSubtree).toMatch(/lemon squeezy/i);
+  });
+
+  it('paywall modal disclosure routes payment + email to LS', () => {
+    expect(paywallSubtree).toMatch(/payment \+ email go to them/);
+  });
+
+  it('paywall modal disclosure keeps reading on-device', () => {
+    expect(paywallSubtree).toMatch(/your reading stays here/);
+  });
+});
+
+describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
+  // pending_profile_write ────────────────────────────────────────────
+  // Both Path A (form submit → show-paywall) and Path B (lock icon
+  // click) must stage the typed profile via setPendingProfile BEFORE
+  // openPaywall fires. Order matters: the paid-return handler reads
+  // the pending profile from localStorage, so it must exist on disk
+  // before the redirect.
+
+  it('setPendingProfile is called immediately before openPaywall (Path A + Path B)', () => {
+    const matches = html.match(
+      /setPendingProfile\([^)]*\)\s*;\s*\n\s*(?:if[^\n]*\n\s*)?openPaywall\(\s*\)/g
+    );
+    expect(matches, 'setPendingProfile → openPaywall sequence not found').not.toBeNull();
+    // Path A (form submit) + Path B (lock icon click) = two sequences.
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the actual localStorage write for the pending profile lives in ui/payments.js', () => {
+    // The bare-string write is in the module per the same-file
+    // privacy_scan resolution pattern. index.html should call the
+    // exported helper, not write to localStorage directly.
+    expect(paymentsJs).toMatch(/localStorage\.setItem\(\s*PENDING_KEY/);
+    expect(html).not.toMatch(
+      /localStorage\.setItem\(\s*['"]eight_ball_pending_profile_v1['"]/
+    );
+  });
+
+  // pending_profile_consume ──────────────────────────────────────────
+  // handlePaidReturn must clear the pending key after consuming it
+  // (or after a no-pending replay) — otherwise a paid round-trip
+  // could re-fire on the next page load. The clear lives inside the
+  // function body in ui/payments.js.
+
+  it('clearPendingProfile is called inside handlePaidReturn', () => {
+    const m = paymentsJs.match(
+      /export function handlePaidReturn\([^)]*\)\s*\{([\s\S]*?)\n\}/
+    );
+    expect(m, 'handlePaidReturn body not found').not.toBeNull();
+    expect(m[1]).toMatch(/clearPendingProfile\(\s*\)/);
+  });
+
+  // try_another_behavior ─────────────────────────────────────────────
+  // β try-counting (DOCTRINE §6.8 / §7.1): tryAnotherBtn clears the
+  // form DOM, NOT localStorage. Re-entering the same (name, dob)
+  // remains idempotent. The "forget this device" path is the only
+  // surface that calls clearProfile.
+
+  it('tryAnotherBtn handler calls resetFormDisplay and NOT clearProfile', () => {
+    const m = html.match(
+      /tryAnotherBtn\.addEventListener\(\s*['"]click['"]\s*,\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\}\s*\)/
+    );
+    expect(m, 'tryAnotherBtn click handler not found').not.toBeNull();
+    expect(m[1]).toMatch(/resetFormDisplay\(\s*\)/);
+    expect(m[1]).not.toMatch(/clearProfile\(\s*\)/);
+  });
+
+  // profile_animal_field ─────────────────────────────────────────────
+  // The unlocked-render branch indexes the card deck by sun row × animal
+  // column; the catalog driver uses `profile.animal`, the public year-
+  // pillar animal. `profile.publicAnimal` was an earlier naming variant
+  // and must not resurface — it would silently route to the wrong card.
+
+  it('renderCard references profile.animal in the unlocked branch', () => {
+    expect(html).toMatch(/sunCells\s*\?\s*sunCells\[\s*profile\.animal\s*\]/);
+  });
+
+  it('profile.publicAnimal is not referenced anywhere in index.html', () => {
+    expect(html).not.toMatch(/profile\.publicAnimal/);
+  });
+});
