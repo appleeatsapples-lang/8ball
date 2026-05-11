@@ -34,6 +34,7 @@ import {
 } from '../core/profile.js';
 import { getCard, resolveBracket } from '../core/engine.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
+import { CARDS } from '../content/cards.v1.full.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
@@ -429,5 +430,133 @@ describe('calendar — lunar new year + solar-term tables (v2)', () => {
   });
   it('monthAnimalSolarTerm(2101, 0) throws', () => {
     expect(() => monthAnimalSolarTerm(2101, 0)).toThrow();
+  });
+});
+
+
+// =============================================================================
+// v0.3.0 deck contract — content/cards.v1.full.js (DOCTRINE §1 v0.22, §4 v0.22,
+// §7 v0.22 stage 1 extension)
+// =============================================================================
+
+// Expected sun-row + animal-column order. Cross-checks engine.js SUN_ORDER /
+// ANIMAL_ORDER without importing them, so a silent reorder there + matching
+// reorder here would still fire one of these tests.
+const EXPECTED_SUN_KEYS = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'
+];
+const EXPECTED_ANIMAL_KEYS = [
+  'rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake',
+  'horse', 'goat', 'monkey', 'rooster', 'dog', 'pig'
+];
+
+describe('content/cards.v1.full.js — v0.3.0 deck contract', () => {
+  it('exports CARDS object with exactly 12 sun-sign keys', () => {
+    const keys = Object.keys(CARDS);
+    expect(keys.length).toBe(12);
+    // Set-equality, not order — engine.js owns the canonical ordering; the
+    // deck just needs all 12 keys present. Catalog roman-numeral correctness
+    // is verified by 'engine — getCard catalog (positional math)' suite.
+    expect(new Set(keys)).toEqual(new Set(EXPECTED_SUN_KEYS));
+  });
+
+  it('each sun-sign holds exactly 12 animal keys (144 cells total)', () => {
+    let total = 0;
+    for (const sun of EXPECTED_SUN_KEYS) {
+      const row = CARDS[sun];
+      expect(row, `CARDS.${sun} missing`).toBeDefined();
+      const animals = Object.keys(row);
+      expect(animals.length, `CARDS.${sun} has ${animals.length} keys, want 12`).toBe(12);
+      expect(new Set(animals)).toEqual(new Set(EXPECTED_ANIMAL_KEYS));
+      total += animals.length;
+    }
+    expect(total).toBe(144);
+  });
+
+  it('every cell has { name, type, habit, note: {low, mid, high}, catalog } shape', () => {
+    const malformed = [];
+    for (const sun of EXPECTED_SUN_KEYS) {
+      for (const animal of EXPECTED_ANIMAL_KEYS) {
+        const cell = CARDS[sun][animal];
+        const path = `${sun}.${animal}`;
+        if (typeof cell?.name !== 'string' || cell.name.length === 0) malformed.push(`${path}: missing/empty name`);
+        if (typeof cell?.type !== 'string' || cell.type.length === 0) malformed.push(`${path}: missing/empty type`);
+        if (typeof cell?.habit !== 'string' || cell.habit.length === 0) malformed.push(`${path}: missing/empty habit`);
+        if (!cell?.note || typeof cell.note !== 'object') {
+          malformed.push(`${path}: missing note`);
+        } else {
+          for (const bracket of ['low', 'mid', 'high']) {
+            if (typeof cell.note[bracket] !== 'string' || cell.note[bracket].length === 0) {
+              malformed.push(`${path}.note.${bracket}: missing/empty`);
+            }
+          }
+        }
+        if (typeof cell?.catalog !== 'string' || cell.catalog.length === 0) malformed.push(`${path}: missing/empty catalog`);
+      }
+    }
+    expect(malformed, `Deck cells failing schema:\n${malformed.join('\n')}`).toEqual([]);
+  });
+
+  // Collect every content string in the deck once for the policy scans below.
+  // Yields { path, text } so a hit reports its coordinate.
+  function* deckStrings() {
+    for (const sun of EXPECTED_SUN_KEYS) {
+      for (const animal of EXPECTED_ANIMAL_KEYS) {
+        const c = CARDS[sun][animal];
+        if (!c) continue;
+        yield { path: `${sun}.${animal}.name`, text: c.name ?? '' };
+        yield { path: `${sun}.${animal}.type`, text: c.type ?? '' };
+        yield { path: `${sun}.${animal}.habit`, text: c.habit ?? '' };
+        if (c.note) {
+          for (const bracket of ['low', 'mid', 'high']) {
+            yield { path: `${sun}.${animal}.note.${bracket}`, text: c.note[bracket] ?? '' };
+          }
+        }
+      }
+    }
+  }
+
+  it('no BANNED_VOICE_REGISTER hits in deck content (DOCTRINE §2)', () => {
+    const hits = [];
+    for (const { path, text } of deckStrings()) {
+      const lower = text.toLowerCase();
+      for (const term of BANNED_VOICE_REGISTER) {
+        // Word-boundary case-insensitive match — same shape as the v0.1.x
+        // scan that historically ran against the private deck.
+        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        if (re.test(text)) {
+          hits.push(`${path}: matched "${term}" in "${text.slice(0, 80)}…"`);
+          break;
+        }
+      }
+    }
+    expect(hits, `Voice-register violations in cards.v1.full.js:\n${hits.join('\n')}`).toEqual([]);
+  });
+
+  it('no BANNED_PATTERNS slur hits in deck content (DOCTRINE §4)', () => {
+    const hits = [];
+    for (const { path, text } of deckStrings()) {
+      for (const re of BANNED_PATTERNS) {
+        if (re.test(text)) {
+          hits.push(`${path}: matched ${re} in "${text.slice(0, 80)}…"`);
+          break;
+        }
+      }
+    }
+    expect(hits, `Slur-pattern violations in cards.v1.full.js:\n${hits.join('\n')}`).toEqual([]);
+  });
+
+  it('no card-content string contains a YYYY-MM-DD date (DOCTRINE §11 sub-rule)', () => {
+    // Defensive: card content should never contain dates. Codifies the
+    // invariant even though no deck cell is expected to need one.
+    const re = /\b\d{4}-\d{2}-\d{2}\b/;
+    const hits = [];
+    for (const { path, text } of deckStrings()) {
+      if (re.test(text)) {
+        hits.push(`${path}: contains date pattern in "${text.slice(0, 80)}…"`);
+      }
+    }
+    expect(hits, `Date strings in cards.v1.full.js (unexpected):\n${hits.join('\n')}`).toEqual([]);
   });
 });

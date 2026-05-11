@@ -44,9 +44,12 @@ coverage/
 # operator's local-only PII pattern file (audited locally, never tracked)
 audits/local_personal_data.txt
 
-# Card content is private (paid layer, future v0.3.0+).
-# Full content lives outside the repo at ~/dev/8ball-private/cards.v1.full.js.
-# Any cards.v1.js / cards.v*.js / cards.v1.full.js that lands in this repo
-# is the secret leaking — gitignore prevents accidental re-add.
+# Card content was private through v0.2.x (full deck at
+# ~/dev/8ball-private/cards.v1.full.js). As of v0.3.0 (DOCTRINE §1 / §4 / §6 /
+# §5.C v0.22), exactly one card-content file ships in this repo:
+# content/cards.v1.full.js, as a verbatim copy of the private authoring source.
+# All other cards.v*.js / cards.*.js variants remain gitignored — any new
+# tracked deck file requires explicit doctrine carve-out.
 content/cards.v*.js
 content/cards.*.js
+!content/cards.v1.full.js

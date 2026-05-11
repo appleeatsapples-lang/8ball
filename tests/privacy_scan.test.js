@@ -69,7 +69,11 @@ const FORBIDDEN = [
 const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_profile_v1',
   'eight_ball_age_ack_v1',
-  'eight_ball_labels_revealed_v1'
+  'eight_ball_labels_revealed_v1',
+  // v0.3.0 paid-tier counters (DOCTRINE §5 v0.22 allow-list extension)
+  'eight_ball_tries_used_v1',
+  'eight_ball_credits_v1',
+  'eight_ball_pending_profile_v1'
 ]);
 
 // Match: localStorage.setItem('key', ...) or localStorage.setItem("key", ...)
