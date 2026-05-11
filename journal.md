@@ -32,7 +32,7 @@ Follow-up minor closing both P1s and one P2 from the v0.3.0 codex full-PR audit 
 
 Files: index.html, tests/payments_markup.test.js, tests/dob_validation.test.js, journal.md (this entry), 8BALL.md.
 Branch: v0.3.0.1-codex-absorb (cherry-picked `b25321e` from the orphaned `v0.3.0-depth-unlock` branch post-v0.3.0 merge).
-Squash merge: MERGE_SHA_TBD.
+Squash merge: `21bfb5c`.
 
 ## v0.3.0 SHIPPED — paid surface (3 free tries, $3/3 reads, hosted LS checkout)
 
