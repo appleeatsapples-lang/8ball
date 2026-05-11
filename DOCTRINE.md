@@ -36,7 +36,7 @@ The v0.14 wording (fixed UTC offsets per country entry; DST and historical-tz ch
 
 **§1.B. Numerology surface — text triplet, calc reserved.**
 
-As of v0.2.3 the result-card numerology surface renders as a three-number text line: life path, expression/name number, soul urge. Single-digit values concatenate (e.g. `383`); when any value is a master number (11/22/33), values are space-separated for readability (e.g. `3 11 3`).
+As of v0.2.3 the result-card numerology surface renders as a three-number text line: life path, expression/name number, soul urge. Values are always space-separated for readability (e.g. `3 8 3`, `3 11 3`). **v0.23 amendment (CiC Fix A): the v0.22 hasMaster-branched concatenation (`383` for all-single-digit, spaced when any master present) is retired — the concatenated form read cognitively as a single three-digit number rather than three independent coordinates.** Codified by `tests/numerology_display.test.js`.
 
 The additional calc fields personality (consonants only), birthday (day-of-month reduced with master preservation), and maturity (life-path sum plus expression/name-number sum, reduced with master preservation) remain on `buildProfile` as data-only — computed but not surfaced. They are reserved for v0.3.0+ paid surfacing per §1.
 
@@ -105,7 +105,7 @@ If a future feature needs harder age verification (paid tier, adult-content laye
 
 **§4.B — Three-free-tries cap (v0.22, v0.3.0).**
 
-Three free tries total per device. First three unique `(name, dob)` pairs render the locked card (symbols visible, depth bars dimmed, lock icon top-left — Pattern C surface per `~/Desktop/8ball/sessions/v03_pattern_c_locked_vs_unlocked.html`). The fourth new pair triggers the paywall modal. The cap is monotonic and per-device — wiping localStorage resets it. Paying does not reset the cap; paying adds paid credits separately (see §5 `eight_ball_credits_v1`). The about-modal discloses the cap mechanics including the reset condition.
+Three free tries total per device. First three unique `(name, dob)` pairs render the locked card (symbols visible, depth bars dimmed, lock icon top-left — Pattern C surface per `~/Desktop/8ball/sessions/v03_pattern_c_locked_vs_unlocked.html`). The fourth new pair triggers the paywall modal. The cap is monotonic and per-device — wiping localStorage resets it. Paying does not reset the cap; paying adds paid credits separately (see §5 `eight_ball_credits_v1`). The about-modal discloses the cap exists ("first three readings are free. after that, three dollars buys three more reads…"). The localStorage-wipe reset is intentionally not advertised in user-facing copy — disclosing the cap shape is the load-bearing disclosure; advertising the bypass is not.
 
 The cap exists to admit the offer plainly: this is a paid toy, not an ad-supported product, not a free-trial-with-aggressive-upsell. Three free tries is the demo.
 
@@ -197,7 +197,7 @@ Backend-gated delivery (Netlify Functions + Stripe webhook verification, or Lemo
 - Static site. Deployed on Netlify free tier from `main` branch.
 - ES modules in the browser. No build step.
 - Three-folder source layout: `core/` (logic), `content/` (data — `cards.v1.full.js` 144-card deck added v0.3.0 per §1/§4 amendments), `tests/` (gates). Plus `index.html` and config. The private location at `~/dev/8ball-private/cards.v1.full.js` remains the authoring source; the public `content/cards.v1.full.js` is a verbatim copy maintained via `cp` at release-prep time.
-- The single-file rule: `index.html` may not exceed 1500 lines. If it would, split into `ui/*.js` modules. Not before.
+- The single-file rule: `index.html` may not exceed 1500 lines. If it would, split into `ui/*.js` modules. Not before. **v0.23 amendment: the split-target shape is locked. A `ui/*.js` module is an ES module with pure exports (no DOM, vitest-testable without jsdom) alongside DOM-touching helpers gated by an `init*UI({refs}, {hooks})` injection point. Host-side `let` bindings stay in `index.html`; the module mutates them via host-injected setter callbacks (e.g. `setCurrentProfile`, `setSelectedCity`). Module-internal localStorage keys are bare-string `const KEY = '...'` definitions inside the module so `tests/privacy_scan.test.js`'s same-file identifier resolution catches them. Concrete precedents: `ui/payments.js` (v0.3.0 step 6, 165 LOC) and `ui/profile.js` (v0.3.0 step 7, 153 LOC). Future splits inherit the shape rather than re-deriving it.**
 
 ## §7. CI gate
 
@@ -308,7 +308,8 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 
 **calc version:** v2 (Pythagorean LP w/ 11/22/33 masters · tropical sun · real lunar new year tables · real solar-term tables · canonical Asia/Shanghai date-precision for cusps)
 **content version:** v0.3.0-public-tier-1 (catalog + JS-gated card-content layer at `content/cards.v1.full.js`; locked render = symbols only per §1 free-surface invariant; unlocked render = symbols + name/type/habit/note × low/mid/high gated by paid credits per §1 v0.22 / §4 v0.22 / §4.B / §5.C; rising-sign surface coordinate; numerology text triplet [life path, expression, soul urge]; symbol-label visibility toggle; opt-in feedback surface §5.B Call 1; LS Buy Link redirect §5.B Call 2; 18+ acknowledgment gate §4.A; three-free-tries cap §4.B; content-delivery transparency §5.C; private authoring source preserved at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-11 · v0.22 (§1 amended — public deck JS-gated, locked invariant preserved; §2 amended — arcade-toy carve-out replaces no-payments ban; §4 amended — scoped carve-out for `content/cards.v1.full.js`, all other tracked files prohibited; §4.B added — three-free-tries cap per device; §5 allow-list extended with `eight_ball_tries_used_v1` / `eight_ball_credits_v1` / `eight_ball_pending_profile_v1`; §5.B amended — exactly two user-initiated network calls, LS Buy Link redirect added as Call 2; §5.C added — content-delivery transparency, deck visible in source; §6 amended — `content/cards.v1.full.js` joins repo as verbatim copy of private source; §7 amended — stages 1/2/3 extended, stage 6 payments-state-machine added)
+**doctrine version:** 2026-05-11 · v0.23 (§1.B amended — numerology triplet always space-separated, v0.22 hasMaster branch retired post-CiC Fix A; §4.B amended — about-modal discloses cap shape, not the localStorage-wipe reset; §6 amended — ui/*.js split pattern locked with `ui/payments.js` + `ui/profile.js` as concrete precedents and DI shape specified)
+- v0.22: §1 / §2 / §4 / §5 / §5.B / §5.C / §6 / §7 amended or added — paid surface (3 free + $3/3 reads via LS Buy Link redirect; public-bundle JS-gated deck delivery; arcade-toy carve-out; payments state-machine CI stage).
 - v0.21: §1.A amended — DST + historical-tz handling in scope; city-level birthplace via core/cities.js; |lat|>66.5° returns null. §5 amended — same-origin lazy loads permitted, fetch() ban preserved. §5 allow-list extended with city/cc/tz.
 - v0.20: §3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution.
 - v0.19: §5 allow-list extended with `eight_ball_labels_revealed_v1`.
