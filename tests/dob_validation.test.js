@@ -42,10 +42,8 @@ describe('DOB validation markup (v0.3.0 fix B)', () => {
 });
 
 describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
-  it('dobInput.max set at boot to today via toISOString', () => {
-    expect(html).toMatch(
-      /dobInput\.max\s*=\s*new Date\(\)\.toISOString\(\)\.slice\(\s*0\s*,\s*10\s*\)/
-    );
+  it('dobInput.max set at boot to today via local-date helper', () => {
+    expect(html).toMatch(/dobInput\.max\s*=\s*todayIsoLocal\(\s*\)/);
   });
 
   it('input event handler hides dob-error on edit', () => {
@@ -56,8 +54,23 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
 
   it('submit handler compares dob against today (ISO lexicographic)', () => {
     // The check shape: `if (dob > todayIso) { dobError.hidden = false; return; }`
-    expect(html).toMatch(/const\s+todayIso\s*=\s*new Date\(\)\.toISOString\(\)\.slice\(\s*0\s*,\s*10\s*\)/);
+    expect(html).toMatch(/const\s+todayIso\s*=\s*todayIsoLocal\(\s*\)/);
     expect(html).toMatch(/if\s*\(\s*dob\s*>\s*todayIso\s*\)/);
+  });
+
+  it('todayIsoLocal helper uses local-date math, not UTC (step-12 codex hook 4 P2)', () => {
+    // toISOString() returns UTC calendar date; in positive-UTC tzs
+    // (KSA UTC+3) the user's local today is one day ahead of UTC
+    // between local-midnight and UTC-midnight. The helper composes
+    // the ISO string from local-tz accessors (getFullYear, getMonth,
+    // getDate), avoiding the off-by-one.
+    expect(html).toMatch(
+      /function\s+todayIsoLocal\s*\(\s*\)\s*\{[\s\S]*?getFullYear\(\s*\)[\s\S]*?getMonth\(\s*\)[\s\S]*?getDate\(\s*\)[\s\S]*?\}/
+    );
+    // Both DOB-validation call sites must use the helper, not the
+    // retired UTC pattern.
+    expect(html).not.toMatch(/dobInput\.max\s*=\s*new Date\(\)\.toISOString/);
+    expect(html).not.toMatch(/const\s+todayIso\s*=\s*new Date\(\)\.toISOString/);
   });
 
   it('submit handler surfaces dobError on future-DOB rejection', () => {
