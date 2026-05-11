@@ -2,6 +2,38 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## v0.3.0.1 SHIPPED — codex full-PR audit absorb
+
+Date stamp filled at squash-merge.
+
+Follow-up minor closing both P1s and one P2 from the v0.3.0 codex full-PR audit (response at `~/Desktop/8ball/audits/codex_v030_full_pr_response.md`). Per L48-candidate (v0.3.0 entry below), the merge-gate fired at 17:24Z before the audit response landed; v0.3.0.1 ships the dispositions as the standard remedy. Cherry-picked from commit `b25321e` on the orphaned `v0.3.0-depth-unlock` branch (the absorb work was pushed there post-step-12-merge while the audit was still being dispositioned).
+
+**Dispositioned hooks:**
+
+- **Hook 10 P1 — modal overflow at 568px / 720px viewports.** `.modal` had no `max-height`; Playwright measured 1045px modal height at 320×568 (iPhone SE), which clipped the about-modal's third paragraph past the page bottom. Fix: add `max-height: calc(100vh - 48px)` + `max-height: calc(100dvh - 48px)` (dvh override for mobile-safe behavior) + `overflow-y: auto` to the `.modal` selector. Modal scrolls internally when content exceeds viewport instead of overflowing the page. No content/copy change; markup-static tests unchanged.
+
+- **Hook 4 P2 — toISOString UTC midnight off-by-one in DOB validation.** `new Date().toISOString().slice(0, 10)` returns the UTC calendar date. In positive-UTC timezones (KSA UTC+3), the user's local today is one day ahead of UTC between local-midnight and UTC-midnight; a same-day DOB would be rejected as "future" relative to UTC yesterday. Fix: small `todayIsoLocal()` helper that composes the ISO string from `getFullYear` / `getMonth` / `getDate` (all local-tz accessors). Replaces both call sites (HTML5 `max=` at boot + JS submit-handler gate). `tests/dob_validation.test.js` updated: two existing UTC-pattern assertions retargeted to the helper shape; one new positive assertion that the helper definition contains the three local-tz accessors AND negative assertions that the retired UTC pattern is gone from both call sites. Edge-case stakes: 1 user / ~1000 days per positive-UTC timezone whose birthday falls between local-midnight and UTC-midnight on their entry day. Real but low. Fix is ~6 LOC + tighter test surface.
+
+- **Hook 3 P2 — 18+ substring not asserted in payments_markup.** The about-modal copy contains "first-visit 18+ tap is a click-through, not verification" (§4.A carry from v0.18), but `tests/payments_markup.test.js` `describe('disclosure copy ...')` had no positive assertion for the `18+` substring. Fix: add `it('about-modal: discloses the 18+ acknowledgment gate (§4.A carry)', ...)` with `expect(aboutSubtree).toMatch(/18\+/)`. Guards against a future copy tightening silently dropping the disclosure.
+
+**Hooks NOT absorbed** (with disposition):
+
+- **Hook 6 P1 — §16 PayPal payout verify** — operator-action, not code. The brief §16 punch-list item ("PayPal account verified + connected as LS payout method; test a small withdrawal-to-KSA-bank route before launch") is independent of code surface. Surfaced as explicit step-12.6 prerequisite in the recovery sequence. No PR change.
+- **Hook 8 P2 — literal "XHR" in core/cities.js comment** — comment text, not runtime code; `tests/privacy_scan.test.js` does not fire on comment strings. Known-deferred; can fold into a future patch if the scan ever tightens to include comments. Not blocking.
+- **Hook 9 P2 — LS Test→Live operational gate reminder** — codex verified the URL is identical in both LS modes (dashboard toggle, not a URL swap). Already on the operator-action queue per step 12.6 of the original handoff. Recalibrated mid-recovery: the LS account is still in identity verification (per chat-3 21:08 KSA screenshot), so Live mode is not one-toggle-away yet anyway. No code change.
+
+**Test surface.** 583 → 585 (+2: 18+ disclosure assertion + todayIsoLocal helper assertion). Two existing dob_validation assertions retargeted to the new shape (zero net delta from those).
+
+**index.html.** 1441 → 1455 (margin 45 to §6 ceiling, down from 59). The modal CSS fix is +9 LOC including the comment block; the todayIsoLocal helper + comment block is +4 LOC net at the boot site; the submit-gate site swap is 0 LOC delta.
+
+**Doctrine.** No DOCTRINE bump. Fix B layered validation (HTML5 `max=` + JS gate + `.field-error` markup) was already in §1.B v0.23 scope; the toISOString → local-date swap is a sub-fix to the same doctrine surface, not a new clause. v0.23 footer wording stays accurate against shipped code.
+
+**Cycle shape.** Three fixes, three files touched (index.html + payments_markup test + dob_validation test). The cherry-pick from `b25321e` carried the absorb commit verbatim; this journal entry + 8BALL.md row update are the only additions on top of the cherry-pick.
+
+Files: index.html, tests/payments_markup.test.js, tests/dob_validation.test.js, journal.md (this entry), 8BALL.md.
+Branch: v0.3.0.1-codex-absorb (cherry-picked `b25321e` from the orphaned `v0.3.0-depth-unlock` branch post-v0.3.0 merge).
+Squash merge: MERGE_SHA_TBD.
+
 ## v0.3.0 SHIPPED — paid surface (3 free tries, $3/3 reads, hosted LS checkout)
 
 2026-05-11 at `https://the-eight-ball.netlify.app`. Live commit on `main`: `f955607` (squash-merge of `v0.3.0-depth-unlock`, 10 commits collapsing 11 steps). Codex full-PR audit dispositioned post-merge as v0.3.0.1 follow-up — see "Step 12 sequencing slip" below.

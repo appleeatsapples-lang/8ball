@@ -536,6 +536,13 @@
     max-width: 360px;
     padding: 26px 24px;
     position: relative;
+    /* v0.3.0 step-12 absorb (codex hook 10 P1): bound modal height to
+       viewport so about-modal copy (3 paragraphs, ~180 words) scrolls
+       internally on short viewports (iPhone SE 568px tall) and on
+       1280x720 desktops, instead of overflowing the page. */
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
   }
   .modal h2 {
     font-family: var(--font-mono);
@@ -982,11 +989,18 @@ initProfileUI(
     setCurrentProfile: p => { currentProfile = p; },
   }
 );
-// v0.3.0 fix B: clamp the native date picker to today. The attribute
-// is static once written; setting via JS at boot reaffirms today on
-// every page load. HTML5 max= is a soft fence (devtools-bypassable);
-// the form-submit handler is the real gate.
-dobInput.max = new Date().toISOString().slice(0, 10);
+// v0.3.0 fix B + step-12 absorb (codex hook 4 P2): clamp the native
+// date picker to today using local-date math, not UTC. toISOString()
+// returns the UTC calendar date, which is one day behind local in
+// positive-UTC tzs (e.g. KSA UTC+3) between local-midnight and UTC-
+// midnight — a same-day DOB would be rejected as "future" there.
+// HTML5 max= is a soft fence (devtools-bypassable); the submit handler
+// is the real gate. Both sites share this helper.
+function todayIsoLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+dobInput.max = todayIsoLocal();
 dobInput.addEventListener('input', () => { dobError.hidden = true; });
 const cardLockIcon = $('card-lock-icon');
 const cardName = $('card-name');
@@ -1206,7 +1220,7 @@ profileForm.addEventListener('submit', e => {
   // lexicographically the same as chronologically, so `dob > today`
   // catches today-plus-one through any future year cleanly. Inline
   // error surfaces; input event hides it on next edit.
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = todayIsoLocal();
   if (dob > todayIso) {
     dobError.hidden = false;
     return;
