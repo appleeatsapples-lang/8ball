@@ -22,7 +22,15 @@ Rising sign is **surface-only**: it does not enter `getCard`, `resolveBracket`, 
 
 When any of (time, country, lat, lng) is missing, rising sign is `undefined` and line 2 falls back to the v0.2.0 bare-sun-sign render. Existing v0.2.0 profiles in localStorage continue to work without modification.
 
-UTC offsets in `core/countries.js` are fixed per entry (typically standard time, not DST). Lat/lng default to the selected country/zone's geographic centroid (1-decimal precision); user can override with birthplace-precise coordinates for greater accuracy. DST-aware computation, historical timezone changes, and pre-1970 date adjustments are out of scope for v0.2.1.
+**v0.21 amendment (v0.2.7.2).** Birthplace input is city-level via `core/cities.js` — a 53,308-entry pop≥7500 subset of GeoNames cities5000, lazy-loaded from `assets/cities.json` per §5 (v0.21 same-origin lazy-load permission). Selecting a city atomically sets `tz` (IANA timezone), `lat`, `lng`, and country code on the form state. The country-centroid + fixed-UTC-offset path from v0.2.1 is retained inside `core/profile.js` for backward compatibility with stored v0.2.1–v0.2.7.1 profiles, but the UI no longer surfaces country selection.
+
+Rising-sign math is now DST-aware and historical-tz-aware. The new `computeRising({...tz...})` API in `core/rising.js` resolves the UTC offset for the (year, month, day, hour, minute) wall-time input via `Intl.DateTimeFormat` with `{ timeZone: tz, timeZoneName: 'longOffset' }` — gives correct offset including DST transitions and historical-rule changes (e.g. Indiana pre-2006 no-DST, Russia post-2014 permanent UTC+3, US summer DST). Legacy `getRisingSign(..., utcOffsetMinutes, ...)` is retained for v0.2.1+ stored-profile rehydration; both APIs are polar-safe.
+
+Polar latitudes (|lat| > 66.5°, strictly past the polar circles) return `null` from both rising APIs. The horizon-plane geometry degenerates at the poles and a rising sign is not astrologically meaningful inside the polar circle. The UI surfaces "rising unavailable at this latitude" at city-selection time when |lat| > 66.5°. Boundary cases (|lat| == 66.5°) return a valid sign — the rule is strict greater-than.
+
+Pre-1970 dates: `Intl.DateTimeFormat`'s historical-tz coverage falls back to LMT (Local Mean Time) approximation for some timezones in pre-tzdata-coverage periods. This is acknowledged as a precision tradeoff; the about-modal disclosure copy lands at v0.2.8 (calculator-framing rewrite cycle).
+
+The v0.14 wording (fixed UTC offsets per country entry; DST and historical-tz changes "out of scope") is retired by this amendment. The catalog-driver rule (rising surface-only, never entering `getCard` or `resolveBracket`) is unchanged.
 
 **§1.B. Numerology surface — text triplet, calc reserved.**
 
@@ -107,10 +115,23 @@ The product persists only user-entered profile fields, in `localStorage` only, o
 - optional `country` (country/zone entry code from `core/countries.js`)
 - optional `lat` (decimal latitude)
 - optional `lng` (decimal longitude)
+- optional `city` (city display name from `assets/cities.json` — user's birthplace selection. Added v0.2.7.2.)
+- optional `cc` (ISO 3166-1 alpha-2 country code, paired with `city` for display rehydration. Added v0.2.7.2.)
+- optional `tz` (IANA timezone string — drives DST-aware rising-sign computation per §1.A v0.21. Added v0.2.7.2.)
 - `eight_ball_age_ack_v1` — separate boolean flag (string `'true'`) set when the user confirms the 18+ acknowledgment gate per §4.A. Independent of the profile payload.
 - `eight_ball_labels_revealed_v1` — separate string flag (`'true'` or `'false'`) tracking whether the user has chosen to reveal the symbol-name labels on the result card. UI preference only; independent of the profile payload. Added v0.2.7.
 
-Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No remote endpoints. No third-party scripts. System fonts only — zero network requests after page load.
+Nothing else. No derived profile is stored — it's recomputed on each load. No analytics. No third-party endpoints. No third-party scripts. System fonts only.
+
+**Network behavior is scope-restricted, not absolute** (v0.21 amendment). The product makes no telemetry calls, no third-party calls, no fingerprinting calls, no out-of-band data flow. The following same-origin asset loads are permitted:
+
+- **Initial page load.** HTML and ES modules served from the deployed origin, plus same-origin static assets (favicons, og:image).
+- **Same-origin lazy loads.** Dynamic ES `import()` of same-origin JSON or modules. As of v0.2.7.2, `assets/cities.json` is lazy-loaded the first time the user opens the rising-sign `<details>` element. Lazy loads carry no user state — they fetch a static asset whose bytes are identical for every visitor.
+- **§5.B feedback POST.** The single user-initiated outbound network call (see §5.B).
+
+`fetch()`, `XMLHttpRequest`, and `navigator.sendBeacon` remain forbidden in tracked source under `core/`, `content/`, and `index.html` — enforced by `tests/privacy_scan.test.js`. Dynamic `import()` with import attributes (`with: { type: 'json' }`) is the permitted same-origin lazy-load mechanism for static JSON; it does not trip the `fetch(` ban because it is an ES module-loader call, not an XHR.
+
+The v0.14 wording "zero network requests after page load" is retired by this amendment. The intent — no third-party traffic, no telemetry, no out-of-band data flow — is preserved verbatim.
 
 If a future feature requires storing or transmitting more, that feature requires a doctrine amendment to §5 and a privacy-policy update before merge.
 
@@ -121,7 +142,7 @@ The site permits exactly one user-initiated network call: submission of a feedba
 Constraints:
 
 - **User-initiated only.** The submission fires only on user click of the explicit submit button. No timer, no auto-fire, no submission on page load, on shake, on result-render, or on any other implicit trigger.
-- **User-authored content only.** The submitted payload contains exactly two fields: a free-text `message` and an optional free-text `contact`, both typed by the user inside the form. No localStorage profile data (`name`, `dob`, `time`, `country`, `lat`, `lng`) is included. No derived coordinates. No name, no DOB, no IP enrichment from the page, no analytics tags, no UTM params, no fingerprint. The form has no hidden field carrying user-data state.
+- **User-authored content only.** The submitted payload contains exactly two fields: a free-text `message` and an optional free-text `contact`, both typed by the user inside the form. No localStorage profile data (`name`, `dob`, `time`, `country`, `lat`, `lng`, `city`, `cc`, `tz`) is included. No derived coordinates. No name, no DOB, no IP enrichment from the page, no analytics tags, no UTM params, no fingerprint. The form has no hidden field carrying user-data state.
 - **Single named endpoint.** The `<form>` action is the same-origin Netlify Forms handler (no `action` attribute or `action="/?sent=1"` for redirect after submit; Netlify intercepts the POST). No third-party form provider, no webhook fan-out, no secondary destination.
 - **Native form post, no JavaScript fetch.** The form uses HTML `<form method="POST" data-netlify="true">` semantics. No `fetch()`, no `XMLHttpRequest`, no `navigator.sendBeacon`. The privacy scan (`tests/privacy_scan.test.js`) is unchanged and remains the enforcement.
 - **Fail-silent.** On submission failure (offline, provider outage, network error), the browser handles the error natively. No retry queue, no remote error reporting, no telemetry of failure. If the user's browser is offline, the submit fails and the user can decide what to do.
@@ -248,7 +269,8 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 
 **calc version:** v2 (Pythagorean LP w/ 11/22/33 masters · tropical sun · real lunar new year tables · real solar-term tables · canonical Asia/Shanghai date-precision for cusps)
 **content version:** v0.2.7-public (catalog-only; optional rising-sign surface coordinate; numerology text triplet surface [life path, expression, soul urge]; symbol-label visibility toggle §5 allow-list; engine computes catalog positionally, no card strings in public runtime · full content lives privately at `~/dev/8ball-private/cards.v1.full.js`; opt-in feedback surface §5.B; 18+ acknowledgment gate §4.A)
-**doctrine version:** 2026-05-10 · v0.20 (§3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution)
+**doctrine version:** 2026-05-11 · v0.21 (§1.A amended — DST + historical-tz handling in scope; city-level birthplace via core/cities.js; |lat|>66.5° returns null; §5 amended — same-origin lazy loads permitted, fetch() ban preserved; §5 allow-list extended with city/cc/tz)
+- v0.20: §3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution.
 - v0.19: §5 allow-list extended with `eight_ball_labels_revealed_v1`.
 - v0.18: §4.A added — 18+ acknowledgment gate, click-through (no verification), one-time, persists via separate localStorage flag.
 - v0.17: §5.B added — feedback surface, user-initiated only, single named endpoint, native form POST, fail-silent.

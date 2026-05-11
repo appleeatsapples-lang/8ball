@@ -8,9 +8,13 @@
 // replaces v1 fixed-date Chinese-astrology cusps with real lunar new
 // year + solar-term tables (see core/calendar.js); date-precision in
 // canonical Asia/Shanghai timezone (UTC+8). See DOCTRINE.md §3.
+// v0.2.7.2 routes rising-sign through IANA-tz-aware computeRising when
+// opts.tz is provided; legacy v0.2.1+ profiles with opts.country (and
+// no opts.tz) still use the country fixed-offset fallback. See
+// DOCTRINE.md §1.A (v0.21 amendment).
 
 import { getCountryByCode } from './countries.js';
-import { getRisingSign } from './rising.js';
+import { computeRising, getRisingSign } from './rising.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 
 export const SUN_SIGNS = [
@@ -239,23 +243,47 @@ export function buildProfile(name, dobIso, opts) {
     throw new Error('DOB out of range');
   }
   const cleanName = (name || '').trim();
+  // ── Rising sign resolution (v0.2.7.2: IANA-tz primary, country-offset legacy)
+  //
+  // Result legend:
+  //   undefined  → required inputs missing or invalid; line-2 falls back to bare sun
+  //   string     → astrologically resolved sign
+  //   null       → polar latitude (|lat| > 66.5°); UI surfaces "rising unavailable"
+  //
+  // Two code paths:
+  //   1. v0.2.7.2+ profiles supply `opts.tz` (IANA timezone) → DST-aware
+  //      via computeRising / Intl.DateTimeFormat.
+  //   2. v0.2.1–v0.2.7.1 profiles supply `opts.country` (no tz) → fixed
+  //      UTC offset from core/countries.js, preserved so legacy users
+  //      don't see broken state. UI surfaces a non-blocking "update your
+  //      birthplace for accuracy" hint when rising <details> opens
+  //      (see DOCTRINE.md §1.A v0.21 amendment, brief §2.4).
   let risingSign;
-  if (opts && opts.time && opts.country && typeof opts.lat === 'number' && typeof opts.lng === 'number') {
+  if (opts && opts.time
+      && typeof opts.lat === 'number' && typeof opts.lng === 'number') {
     const tm = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
     if (tm) {
       const hour = parseInt(tm[1], 10);
       const minute = parseInt(tm[2], 10);
-      const country = getCountryByCode(opts.country);
-      if (country
-          && hour >= 0 && hour <= 23
+      if (hour >= 0 && hour <= 23
           && minute >= 0 && minute <= 59
           && opts.lat >= -90 && opts.lat <= 90
           && opts.lng >= -180 && opts.lng <= 180) {
-        risingSign = getRisingSign(
-          y, m, d, hour, minute,
-          country.utcOffsetMinutes,
-          opts.lat, opts.lng
-        );
+        if (typeof opts.tz === 'string' && opts.tz.length > 0) {
+          risingSign = computeRising({
+            year: y, month: m, day: d, hour, minute,
+            tz: opts.tz, lat: opts.lat, lng: opts.lng
+          });
+        } else if (opts.country) {
+          const country = getCountryByCode(opts.country);
+          if (country) {
+            risingSign = getRisingSign(
+              y, m, d, hour, minute,
+              country.utcOffsetMinutes,
+              opts.lat, opts.lng
+            );
+          }
+        }
       }
     }
   }
