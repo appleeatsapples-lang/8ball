@@ -60,7 +60,7 @@ Mid-cycle the plan briefly added a third lane: Codex implementing `core/cities.j
 
 Files: core/cities.js (NEW), core/rising.js, core/profile.js, assets/cities.json (NEW), index.html, tests/rising.test.js, tests/cities.test.js (NEW), DOCTRINE.md, journal.md, 8BALL.md.
 Branch: v0.2.7.2-geo-tz.
-Squash merge: MERGE_SHA_TBD.
+Squash merge: 4d1e71d.
 
 ## v0.2.7.1.1 SHIPPED — modal copy tighten + labels title conditional fix
 
