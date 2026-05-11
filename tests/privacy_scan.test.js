@@ -16,7 +16,7 @@ const REPO_ROOT = join(__dirname, '..');
 // Roots to scan — product-runtime surfaces only. Tests, audits, build
 // metadata, and external folders are out of scope: they are not the
 // runtime, so storing/transmitting tokens there would not violate §5.
-const SCAN_ROOTS = ['core', 'content'];
+const SCAN_ROOTS = ['core', 'content', 'ui'];
 const SCAN_FILES = ['index.html'];
 const TEXT_EXTS = ['.js', '.html'];
 
