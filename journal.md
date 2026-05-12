@@ -2,7 +2,7 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## drift-sweep tier 2 — DOCTRINE v0.25 → v0.26 — IN-FLIGHT
+## drift-sweep tier 2 — DOCTRINE v0.25 → v0.26 — SHIPPED
 
 2026-05-12. Tier 2 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`) plus chat-9 tier-1 re-audit (`~/Desktop/8ball/audits/codex_drift_sweep_tier1_response_2026-05-12.md`). 17 drifts closed + Drift 12 disposition + Drift 19 verification:
 
@@ -15,15 +15,15 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 Doctrine v0.25 → v0.26. Lineage preserves v0.25. No code touch. No tests added or removed (586/586 unchanged). No `index.html` change. Local PII audit clean.
 
-L48 discipline: codex re-audit pre-merge per §10. Audit return at `~/Desktop/8ball/audits/codex_drift_sweep_tier2_response_2026-05-12.md` (forthcoming).
+L48 discipline observation: codex re-audit returned at `~/Desktop/8ball/audits/codex_drift_sweep_tier2_response_2026-05-12.md` — **19/19 tier-2 drifts PASS** plus 3 new drifts surfaced (1 P1 + 1 P2 + 1 P3). PR #21 was merged at squash-commit `839eefa` 2 minutes after CI green, before the codex re-audit response landed in chat — the 2-minute CI-green-to-merge window is the L48 failure shape (chat-9 codified). Outcome was fine because codex came back clean on the original 19 drifts, but the 3 new drifts (C/D/E) shipped to prod un-absorbed; post-merge absorb follows in the next commit on main.
 
-T1 third firing opportunity: if this re-audit lands clean (third clean firing), codify drift-sweep as `agents/auditor.md` Procedure 6 regardless of failure-mode characterization (per chat-9 dispatch journal recommendation — clean lane is itself a finding).
+T1 lane third firing: **CLEAN.** All four promotion criteria now hit (3 firings + repeatable brief shape + distinct lane boundary + failure-mode characterized as "no Codex-side friction across three firings — the lane works smoothly when brief is self-contained, corpus is bounded, verdict format is pre-specified"). **PROMOTION:** codify drift-sweep as `agents/auditor.md` Procedure 6 in a subsequent micro-cycle. Observation across all three firings: re-audit surfaces 2–3 new drifts beyond original scope per cycle (chat-9: 2; chat-10: 3). The rewrite-makes-adjacent-text-salient mechanism is the load-bearing value, not a side-effect — future drift-sweep cycles should plan a follow-up absorb commit by default.
 
 T2 second firing opportunity: openclaw cold-read of this brief planned before paste-relay to CC.
 
 Per chat-9 L promotion (gh `--delete-branch` worktree-occupies failure): CC removes worktree as part of completion-state; orchestrator post-merge playbook checks `git worktree list` before `gh pr merge --squash --delete-branch`.
 
-IN-FLIGHT pre-merge per chat-9 state-fill discipline. Post-merge state-fill commit on main flips to SHIPPED with live merge SHA + adds 8BALL.md §10 entry for v0.26.
+Shipped 2026-05-12 at squash-merge `839eefa` (PR #21, single commit). State-fill commit on main flips IN-FLIGHT → SHIPPED + adds 8BALL.md §10 v0.26 entry per chat-9 state-fill discipline. Post-merge absorb commit follows for new drifts C/D/E (no doctrine bump). Branch `drift-sweep-tier-2` survived on origin post-merge — gh `--delete-branch` did not fire (new sighting of the chat-9 L, this time without a worktree; the leaky-3-leg-abstraction lesson generalizes beyond worktree-occupies failure mode). Cleaned manually post-state-fill.
 
 ## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — SHIPPED
 
