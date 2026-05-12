@@ -2,6 +2,32 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## post-v0.3.0.1 — 8BALL.md §11 + sessions/ stale cleanup pass
+
+2026-05-12. Hygiene-only commit during LS-identity-verification wait (chat-4 picked Path C: unrelated work while LS pending). No code touched. No DOCTRINE touch (stays v0.23). No tests added or removed.
+
+**Closed §11 items** in `8BALL.md`:
+- Item 12 — residual `v0.1.4-phase2d-concern-dispositions` branch cleanup verified absent on origin (origin contains `main` only). Appended `v0.3.0-depth-unlock` deletion to the branch-history note.
+- Item 15 — live-fire testing reframed from work-to-do to ✅ codified per §8 ritual-gate sub-rule. Subsequent firings recorded (v0.2.1, v0.2.7.2, v0.3.0-pending-LS-Live).
+- Item 16 — MUHAB.md §6 8ball row confirmed in place; marked done.
+- "v0.3.0 — free-vs-$9.99-entry pricing conversation (open)" paragraph reframed as ✅ resolved by ship. The $9.99 entry-price framing was retired during the v0.3.0 design churn; v3 of the design doc locked free-first; v0.3.0 shipped at $3/3 Tesla-369 staircase. Pricing conversation is now post-traction.
+
+**Sessions/ archaeology** in `~/Desktop/8ball/sessions/`:
+- `v0.3.0_design.md` marked SUPERSEDED at top with reference to `f955607` + `21bfb5c` as the executing commits. Preserves history as decision-locking artifact, signals it is no longer a live working doc. Live state pointer points to `8BALL.md` §10/§11 + the `v0.3.0 SHIPPED` / `v0.3.0.1 SHIPPED` journal entries.
+
+**Still open in §11** (not touched in this pass):
+- Item 11 — shadow Netlify project deletion. Operator-action (one-click in Netlify dashboard); can't be done from chat.
+- Item 10 — deferred 2G-3+ candidates (moon sign / day-pillar / lunar phase / birth card). Held behind v0.3.0; valid held-state, may not return.
+
+**Trigger.** Operator query "go through the project and find us work we are radiating from energy" at the chat-4 routing point (LS still pending identity verification). Chat-Claude surfaced four candidates: agents/ scaffold codification (most operator-signal), Friday rule-kill on DOCTRINE v0.23 (highest-leverage hygiene given recent doctrine churn), this stale cleanup pass (#3), folded #1+#2. Operator picked #3.
+
+**Rationale.** §11 punch-list staleness is a doctrine-virtue cost: an open-items list that contains already-closed items dilutes the working signal in every future bootstrap read. Three items were already done at the implementation level but not yet at the documentation level; the cleanup re-aligns disk-state with shipped-state. The `v0.3.0_design.md` SUPERSEDED banner is the minimal annotation that preserves historical context while signaling "not the live source." Adjacent option: deleting the design doc — rejected per the project's "files are canon; memory is index-only" pattern (MUHAB.md §2.2). Historical artifacts stay on disk with status banners.
+
+**No L-candidate this pass.** Cleanup work was pure execution against the visible state delta; no novel sequencing, audit, or doctrine learning surfaced.
+
+Files modified: `8BALL.md` (§11 items 12/15/16 + the freestanding $9.99-pricing paragraph), `~/Desktop/8ball/sessions/v0.3.0_design.md` (SUPERSEDED banner), `journal.md` (this entry).
+Commit: direct-to-main per post-release fill pattern (mirrors `ebe039b` / `f3c6c09` / `22bcedf`). No PR, no DOCTRINE touch, no `core/` touch.
+
 ## v0.3.0.1 SHIPPED — codex full-PR audit absorb
 
 Date stamp filled at squash-merge.
