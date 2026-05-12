@@ -101,7 +101,7 @@ Per-cycle artifact locations (briefs, audit briefs/responses, CiC directives/rep
 
 **Privacy primitive (DOCTRINE.md §5):**
 
-The product persists only user-entered profile fields in `localStorage`, on the user's own device: `name`, `dob`, and optional rising-sign inputs (`time`, `country`, `lat`, `lng`). No derived profile is stored or transmitted.
+The product persists only user-entered profile fields in `localStorage`, on the user's own device. The canonical allow-list lives in DOCTRINE §5; the shipped scope as of v0.3.0 is: profile payload `eight_ball_profile_v1` containing `name` + `dob` + optional rising-sign inputs (`time`, `city`, `cc`, `tz`, `lat`, `lng` — city-level birthplace via `assets/cities.json` since v0.21); plus behavior flags `eight_ball_age_ack_v1` (§4.A 18+ ack), `eight_ball_labels_revealed_v1` (symbol-label toggle preference); plus paid-credits state `eight_ball_tries_used_v1` (§4.B free-tries counter), `eight_ball_credits_v1` (paid credits balance), `eight_ball_pending_profile_v1` (transient pending-profile payload for paid round-trip per §5.B Call 2). No derived profile is stored or transmitted; recomputed on each load.
 
 **PII rule (DOCTRINE.md §11):**
 

@@ -90,7 +90,7 @@ First-time Netlify setup:
 [`DOCTRINE.md`](./DOCTRINE.md) is the constitution. The two load-bearing sections are:
 
 - **§3 Calculation contract** — fixtures gate algorithm changes.
-- **§4 Content rules** — what trait phrases can and can't say.
+- **§4 Content rules** — what card lines (name/type/habit/note × low/mid/high) can and can't say.
 
 Anything that contradicts the doctrine requires an explicit doctrine amendment in the same change.
 

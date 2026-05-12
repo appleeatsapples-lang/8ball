@@ -37,8 +37,10 @@ No build step. Netlify auto-deploys on push to `main`.
 
 - Don't `git push` without explicit operator confirmation in the same session
 - Don't merge anything that touches `DOCTRINE.md` without cross-model audit per §10
-- Don't edit shipped immutable content files (`content/*.v1.js`) — new version
-  means new file (`content/*.v2.js`). Exception: documented safety-patch carve-outs.
+- Don't edit shipped content batches (e.g. `content/cards.v1.full.js`) — per
+  DOCTRINE §4, new release = new file (e.g. `cards.v2.full.js`), not in-place
+  edit. Exception: documented safety-patch carve-outs (DOCTRINE §4 safety-patch
+  carve-out).
 - Don't edit `tests/fixtures.json` without updating `core/profile.js` in lockstep per §3
 - Don't add runtime dependencies, `fetch()` calls, analytics, or new
   `localStorage` keys (§5, §12)
