@@ -2,6 +2,29 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## drift-sweep tier 2 — DOCTRINE v0.25 → v0.26 — IN-FLIGHT
+
+2026-05-12. Tier 2 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`) plus chat-9 tier-1 re-audit (`~/Desktop/8ball/audits/codex_drift_sweep_tier1_response_2026-05-12.md`). 17 drifts closed + Drift 12 disposition + Drift 19 verification:
+
+- **DOCTRINE.md (3 drifts):** §5.B Call 1 retires the stale `action="/?sent=1"` ban (Drift 5 = chat-9 New Drift A, P1); §5.B Call 2 documents the URL-encoded `checkout[success_url]` query-param mechanism shipped at v0.3.0.2 paired with the dashboard Button link (Drift 6, P1); §6 main paragraph re-aligned with shipped `ui/` folder + 7-module `core/` + 14-test `tests/` (Drift 7, P1).
+- **8BALL.md (7 drifts + 1 disposition + 1 verification):** §1 rising input city-level not country+lat/lng (Drift 9, P1); §1 numerology always space-separated per §1.B v0.23 (Drift 10, P2); §1 SIRR engine framing recast as metaphor/architecture split per **controller disposition B** (Drift 12, P1); §2 `core/` row enumerates 7 modules (Drift 13, P1); §2 new `ui/` row added; §2 `content/` row describes shipped `cards.v1.full.js` (Drift 14, P2); §2 `tests/` row enumerates 14 files + 586 cases (Drift 15, P1); §8 CI green claim 5→6 stages per §7 v0.22 (Drift 18, P1); §10 v0.25 entry SHA verified consistent with chat-9 state-fill discipline (Drift 19, P2 auto-resolved, no edit).
+- **README.md (3 drifts):** opening paragraph city-level rising input + numerology always space-separated (Drifts 20 + 21, P1 + P2); Test section 586 cases + 6 CI stages (Drift 23, P1); Structure tree shows `ui/` + 7 `core/` modules + populated `content/` + `agents/` + 14 tests (Drift 25, P1).
+- **root AGENTS.md (1 drift):** auditor vocabulary PASS / P3 / P2 / P1 / P0 + fix-recommendation language matches `agents/auditor.md` v0.24 (Drift 26, P1).
+- **root CLAUDE.md (1 drift):** repo shape lists `ui/`, `agents/`, `assets/`; `content/` describes shipped deck (not retired trait+template pools); CI 6 stages (Drift 27, P1).
+- **agents/auditor.md (1 drift):** Hook 3 wording matches §5 / §5.B scoped-network model (Drift 28, P2).
+
+Doctrine v0.25 → v0.26. Lineage preserves v0.25. No code touch. No tests added or removed (586/586 unchanged). No `index.html` change. Local PII audit clean.
+
+L48 discipline: codex re-audit pre-merge per §10. Audit return at `~/Desktop/8ball/audits/codex_drift_sweep_tier2_response_2026-05-12.md` (forthcoming).
+
+T1 third firing opportunity: if this re-audit lands clean (third clean firing), codify drift-sweep as `agents/auditor.md` Procedure 6 regardless of failure-mode characterization (per chat-9 dispatch journal recommendation — clean lane is itself a finding).
+
+T2 second firing opportunity: openclaw cold-read of this brief planned before paste-relay to CC.
+
+Per chat-9 L promotion (gh `--delete-branch` worktree-occupies failure): CC removes worktree as part of completion-state; orchestrator post-merge playbook checks `git worktree list` before `gh pr merge --squash --delete-branch`.
+
+IN-FLIGHT pre-merge per chat-9 state-fill discipline. Post-merge state-fill commit on main flips to SHIPPED with live merge SHA + adds 8BALL.md §10 entry for v0.26.
+
 ## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — SHIPPED
 
 2026-05-12. Tier 1 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`). 9 drifts closed: 2 P0 (Drift 3 + Drift 24, absolute "no network calls" claim in DOCTRINE §2/§7 + README) + 7 P1 (Drift 1/2/4/11/16/17/22, paid-content state alignment + persistence allow-list explicit wrapper key). Plus 1 P3 (Drift 8, 8BALL.md refresh date) folded in as freebie.
