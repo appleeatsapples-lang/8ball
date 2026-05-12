@@ -45,7 +45,7 @@ Surface every hook you can defend. Categorize each: PASS / P0 / P1 / P2 / P3.
 # Audit dimensions (hooks)
 1. Doctrine drift — does shipped code match what §X says?
 2. Content rules (§4) — voice register, banned patterns, cultural-symbol respect
-3. Privacy (§5) — localStorage allow-list, no network calls, no third-party fonts/scripts
+3. Privacy (§5) — localStorage allow-list, no unpermitted network calls (only §5-permitted same-origin lazy loads + §5.B user-initiated feedback POST / LS Buy Link redirect), no third-party fonts/scripts
 4. PII (§11) — operator name, SIRR refs, labeled-DOB shapes
 5. SIRR boundary (§9) — no cross-references in tracked content
 6. Test surface — claimed delta matches actual count; new tests assert what the brief required

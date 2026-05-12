@@ -47,11 +47,14 @@ No build step. Netlify auto-deploys on push to `main`.
 
 ## Repository shape
 
-    core/         pure functions — calc, engine
-    content/      versioned trait + template pools (immutable per version)
-    tests/        vitest + PII scanner + fixtures
+    core/         pure functions — 7 modules (profile, engine, rising, countries, calendar, cities, payments)
+    ui/           DOM-touching ES modules — payments, profile — init*UI({refs},{hooks}) shape per §6 v0.23
+    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22)
+    agents/       agent role docs + platform constraints per §10 v0.24
+    tests/        14 vitest files + fixtures.json
     audits/       release checklist + PII audit script + cross-model briefs
-    .github/      CI workflow (5 stages)
+    assets/       cities.json + favicons + og:image
+    .github/      CI workflow (6 stages per §7)
     index.html    single-file UI, ≤1500 lines
     DOCTRINE.md   constitution
     8BALL.md      canonical context, AI-readable
