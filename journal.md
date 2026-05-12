@@ -2,7 +2,7 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — IN-FLIGHT
+## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — SHIPPED
 
 2026-05-12. Tier 1 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`). 9 drifts closed: 2 P0 (Drift 3 + Drift 24, absolute "no network calls" claim in DOCTRINE §2/§7 + README) + 7 P1 (Drift 1/2/4/11/16/17/22, paid-content state alignment + persistence allow-list explicit wrapper key). Plus 1 P3 (Drift 8, 8BALL.md refresh date) folded in as freebie.
 
@@ -13,6 +13,10 @@ Doctrine v0.24 → v0.25. Lineage preserves v0.24. No code touch. No tests added
 Tier 2 (~18 remaining drifts: structural P1s + P2s across DOCTRINE §5.B/§6, 8BALL §1/§2/§3/§8, README, root AGENTS.md, root CLAUDE.md, agents/auditor.md) follows in a subsequent cycle. Tier 3 (Drift 8, P3 refresh date) folded in here.
 
 Audit return: codex re-audit pre-merge per §10.
+
+Shipped 2026-05-12 at squash-merge `3d81c6f` (PR #20, 2 commits collapsed: drift-fix absorb + journal-label discipline). Codex re-audit response at `~/Desktop/8ball/audits/codex_drift_sweep_tier1_response_2026-05-12.md` — 10/10 PASS on the original tier-1 scope plus 2 new drifts surfaced (New Drift B P2 journal-label pre-merge SHIPPED, absorbed in-PR via commit `39596f7`; New Drift A P1 DOCTRINE §5.B stale `action="/?sent=1"` ban contradicts shipped v0.2.5.2 feedback redirect — parked for tier 2 per codex recommendation).
+
+**L-candidate promoted to real L: gh `--delete-branch` worktree-occupies failure** (3rd sighting). PR #18 and PR #19 were silent failures (remote branch survived with no error message). PR #20 was the explicit-error variant: gh aborted both legs of cleanup (remote + local branch deletion) once local-delete failed because the CC worktree at `~/dev/8ball/.claude/worktrees/intelligent-cori-459ee6` was still occupying `drift-sweep-tier-1`. Remote branch survived on origin post-merge; cleaned up manually post-state-fill via `git push origin --delete drift-sweep-tier-1` + `git worktree remove` + `git branch -D`. **Mitigation:** before any future `gh pr merge --squash --delete-branch`, remove any CC worktree on the branch first (`git worktree remove <path>`), OR pass `--delete-branch=false` and manage deletion explicitly via `git push origin --delete <branch>` after worktree teardown. Lesson framing candidate: "worktree state is part of merge-cleanup state; gh's --delete-branch is a leaky abstraction over a 3-leg cleanup (merge / remote-delete / local-delete) and a failure on any leg can abort the others." Codify in `agents/implementer.md` procedure 4 (CC must `git worktree remove` after completion) and in the post-merge orchestrator playbook.
 
 ## chat-8 housekeeping: A vs B redirect thread retired — CLOSED
 
