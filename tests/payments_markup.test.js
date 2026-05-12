@@ -60,7 +60,19 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   it('paywall CTA is a Lemon Squeezy Buy Link', () => {
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(
-      /href="https:\/\/[a-z0-9-]+\.lemonsqueezy\.com\/checkout\/buy\/[a-f0-9-]+"/
+      /href="https:\/\/[a-z0-9-]+\.lemonsqueezy\.com\/checkout\/buy\/[a-f0-9-]+(\?[^"]*)?"/
+    );
+  });
+
+  it('paywall CTA carries checkout success_url back to /?paid=t1 (v0.3.0.2)', () => {
+    // LS Buy Link redirect after successful purchase. The success_url is
+    // URL-encoded inside the href. Without it, LS shows its default
+    // thank-you modal and the site never receives ?paid=t1 to trigger
+    // applyPaidReturn(). Independent of the LS dashboard's per-product
+    // thank-you config so Test + Live behave identically.
+    const subtree = modalSubtree('paywall-modal');
+    expect(subtree).toMatch(
+      /checkout%5Bsuccess_url%5D=https%3A%2F%2Fthe-eight-ball\.netlify\.app%2F%3Fpaid%3Dt1/
     );
   });
 
