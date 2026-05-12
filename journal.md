@@ -2,6 +2,21 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## chat-8 housekeeping: A vs B redirect thread retired — CLOSED
+
+2026-05-12. Thread 4 from chat-8 handoff (`~/Desktop/8ball/sessions/chat_7_to_chat_8_handoff.md`) closed without resolution. Terminal verify (chat-8) confirmed:
+
+- prod Buy Link href intact and well-formed: `8-ball.lemonsqueezy.com/checkout/buy/14e9e2e6-...` with URL-encoded `checkout[success_url]=https://the-eight-ball.netlify.app/?paid=t1`. LS 302s to cart-id session without 4xx; cookies set (`ls_cart_id`, `XSRF-TOKEN`, `laravel_session`).
+- `success_url` is NOT echoed in page body, form action, or cookies. LS swallows it into server-side cart state at the 302 hop. The redirect-vs-default-modal fork only resolves at payment completion, when LS reads its cart record server-side.
+
+Implication: A (query-param mechanism) vs B (dashboard Button link mechanism) cannot be disentangled by static inspection. Only a real checkout with the dashboard Button toggled OFF would resolve it.
+
+Decision: retire from active queue. Belt-and-suspenders is structurally sound — code-tracked `success_url` plus dashboard Button link both set. The gate is "redirect lands cleanly post-payment," and v0.3.0.2 live-fire on 2026-05-12 (CiC §13 PASS, per 8BALL.md §10) already demonstrated that gate firing. A vs B is a curiosity, not a blocker.
+
+Reopen condition: a real Live-mode purchase fails to redirect. Until then, the question is noise.
+
+No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged). Local PII audit untouched. No live-fire required.
+
 ## chat-7 housekeeping: branch drift + shadow netlify deletion — SHIPPED
 
 2026-05-12. Two housekeeping items closed this chat, no code touch.
