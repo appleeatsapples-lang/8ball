@@ -75,4 +75,4 @@ After a release squash-merges to main, immediately: fill any `MERGE_SHA_TBD` pla
 
 ## Audit history (this file)
 
-- 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Companion to verifier.md (created 2026-05-11). Codename `كن فيكون / kun fayakun` is operator-coined (Quranic phrase "Be, and it is"); see `AGENTS.md` for the naming note.
+- 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Companion to verifier.md (created 2026-05-11). Codename `كن فيكون` / `kun fayakun` is operator-coined; see `AGENTS.md` for the naming note.

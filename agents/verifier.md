@@ -94,9 +94,9 @@ Per-profile checks: form acceptance, shake-completes, card renders, coordinates 
 
 Cross-profile checks: 18+ gate persists, no network calls beyond expected (cities.json lazy-load, feedback POST when explicitly submitted), localStorage keys are allow-listed only, mobile viewport doesn't break.
 
-### 2. (future, v0.3.0+) Payment flow walkthrough
+### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; awaiting LS Live for end-to-end)
 
-After v0.3.0 ships, add a `payment_flow_test_mode.md` procedure that runs:
+After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. Currently runs against LS Test mode only; LS identity verification is pending, so Live-mode end-to-end is deferred until the LS account clears. Procedure runs:
 - 3 free tries hitting locked render
 - 4th try hitting paywall (Path A)
 - Lock-tap on a locked card hitting paywall (Path B)
@@ -107,7 +107,7 @@ After v0.3.0 ships, add a `payment_flow_test_mode.md` procedure that runs:
 
 Live-fire §13 of the v0.3.0 brief is the source-of-truth checklist; CiC procedure derives from it.
 
-### 3. (future) Feedback form e2e
+### 3. Feedback form e2e (current — shipped in v0.2.5)
 
 Verify Netlify Forms submission lands in dashboard. CiC must NOT submit during normal verifier runs (hard stop above); this dedicated procedure is the exception, with explicit operator approval and a known-test-payload that operator monitors.
 
@@ -131,4 +131,4 @@ Even with the domain allowlisted, the verifier's existing boundaries hold: no cr
 ## Audit history additions
 
 - 2026-05-11 — Domain-allowlist constraint surfaced when first non-default-domain directive (`cic_ls_store_setup_2026-05-11.md` targeting `app.lemonsqueezy.com`) was blocked at pre-flight. Skill updated with boundaries addendum above. Verifier report at `~/Desktop/8ball/controllers/verifier_report_ls_store_blocked_2026-05-11.md`.
-- 2026-05-12 — Preamble updated from "v0.22 extension (proposed)" to "v0.24 extension" as part of the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Sibling role docs landed: `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`. Index doc `AGENTS.md` + platform notes `PLATFORMS.md` shipped alongside. The role doc's substance is unchanged; only the citation reference and this audit entry were touched.
+- 2026-05-12 — Preamble updated from "v0.22 extension (proposed)" to "v0.24 extension" as part of the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Sibling role docs landed: `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`. Index doc `AGENTS.md` + platform notes `PLATFORMS.md` shipped alongside. The role doc's substance was controller-verified locally against the authored state from the prior session to be unchanged in this cycle; only the preamble citation reference and this audit entry were touched. (The file was previously untracked, so this claim is not independently auditable from git history — controller-verified locally is the audit trail.)
