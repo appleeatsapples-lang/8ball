@@ -242,24 +242,30 @@ Tracked content of this repo MAY NOT contain the string "SIRR" (case-sensitive) 
 
 **The author-judge problem is real.** A single instance writing AND reviewing its own work has a structural blind spot. SIRR's session L4 named this directly: "Solo authority on doctrine IS the failure mode."
 
-For 8ball at its current scale, the lanes are:
+For 8ball at its current scale, the system runs **four agent roles plus one always-on controller**. Full role docs live at `~/dev/8ball/agents/*.md`; platform-specific constraints at `~/dev/8ball/agents/PLATFORMS.md`; this § is the constitutional summary.
 
-| Role | Tool | Read access | Write access |
-|---|---|---|---|
-| Orchestrator, brief composer, doctrine drafter | **Claude (chat)** | Everywhere in `~/dev/8ball/` and `~/Desktop/8ball/` | Pragmatic for fast initial work; routes through CC for production-grade edits |
-| Engine work, filesystem, git ops, audit-script execution | **Claude Code (CC)** — CLI tool installed at `/usr/local/bin/claude` | Repo + `~/Desktop/8ball/` | Repo + `~/Desktop/8ball/` |
-| Content-batch review (trait pool diffs, template diffs) | **ChatGPT** — Mac desktop app, manual paste-and-relay | Pasted briefs only | Returns flagged-line lists only |
-| Adversarial pre-merge auditor (doctrine changes, release-gate passes) | **Codex** — Mac desktop app, manual paste-and-relay | Pasted briefs only | Returns verdicts only |
-| Editorial approver, merge gate, deploy authorization | **Operator** | Everywhere | Everywhere |
+**Core agent roles** (v0.24):
 
-**Lane discipline:**
+| Role | Tool | Role doc | Read access | Write access |
+|---|---|---|---|---|
+| **Orchestrator** — context, briefs, dispositions, sequencing | Claude (chat) | [`agents/orchestrator.md`](agents/orchestrator.md) | Everywhere in `~/dev/8ball/` and `~/Desktop/8ball/` | Pragmatic for fast initial work; routes through implementer for production-grade edits |
+| **Implementer** — multi-file production edits, git ops, repo filesystem | Claude Code (CC) — `/usr/local/bin/claude` | [`agents/implementer.md`](agents/implementer.md) | Repo + `~/Desktop/8ball/` | Repo + `~/Desktop/8ball/` |
+| **Auditor** — adversarial pre-merge review on doctrine, content, release-gates | Codex — Mac desktop app, paste-and-relay | [`agents/auditor.md`](agents/auditor.md) | Pasted briefs only | Returns categorized verdicts (PASS / P3 / P2 / P1 / P0) |
+| **Verifier** — live UX on deployed product, structured findings + screenshots | Claude in Chrome (CiC) — browser extension | [`agents/verifier.md`](agents/verifier.md) | Per-session domain allowlist (default = read-only/static; non-default requires controller approval) | Reports text + screenshots only; no irreversible action clicks |
 
-- This Claude (chat) does NOT autonomously override §4 or §5. Borderline content gets flagged for ChatGPT review before merge.
-- Doctrine amendments go through Codex review before merge. Mechanical edits do not.
-- All filesystem and git operations are routed through CC for any change touching ≥3 files or modifying core/. Single-file documentation tweaks may stay in chat.
-- The operator is always the final approver. No model auto-merges.
+**Controller** (always-on, never an agent): the **Operator**. Sole authority for merges, deploys, payments, account changes, sharing-permission changes, TOS acceptance, identity verification flows, and any irreversible third-party action. Full role doc at [`agents/controller.md`](agents/controller.md).
 
-For SIRR-specific lane discipline, see `~/dev/SIRR/SIRR.md` §7.
+**Adjunct lanes** (not core agents; invoked ad-hoc, no project-specific role doc): **ChatGPT** for content/copy review (paste-relay); **Perplexity** for web search; **Gemini** for second opinion. Per `~/MUHAB.md` §3.
+
+**Lane discipline (v0.24):**
+
+- The orchestrator does NOT autonomously override §4 or §5. Borderline content gets flagged for ChatGPT review before merge.
+- Doctrine amendments go through the auditor before merge. Mechanical edits do not.
+- All filesystem and git operations route to the implementer for any change touching ≥3 files or modifying `core/`. Single-file documentation tweaks may stay in chat.
+- Live-UX verification routes to the verifier post-deploy-preview (pre-merge for surface changes) and post-merge for the first 24–48h on production for any significant ship.
+- The controller is always the final approver. No agent auto-merges. Per L48: explicit audit-cleared signal before merge; five-minute-CI-green-to-merge windows are the L48 failure shape.
+
+For per-cycle artifact locations (briefs, audits, directives, reports), see `agents/PLATFORMS.md` "Artifact-location matrix". For SIRR-specific lane discipline, see `~/dev/SIRR/SIRR.md` §7.
 
 ## §11. PII rule
 
@@ -308,7 +314,8 @@ If you find yourself adding more locked rules than you're killing on Fridays, th
 
 **calc version:** v2 (Pythagorean LP w/ 11/22/33 masters · tropical sun · real lunar new year tables · real solar-term tables · canonical Asia/Shanghai date-precision for cusps)
 **content version:** v0.3.0-public-tier-1 (catalog + JS-gated card-content layer at `content/cards.v1.full.js`; locked render = symbols only per §1 free-surface invariant; unlocked render = symbols + name/type/habit/note × low/mid/high gated by paid credits per §1 v0.22 / §4 v0.22 / §4.B / §5.C; rising-sign surface coordinate; numerology text triplet [life path, expression, soul urge]; symbol-label visibility toggle; opt-in feedback surface §5.B Call 1; LS Buy Link redirect §5.B Call 2; 18+ acknowledgment gate §4.A; three-free-tries cap §4.B; content-delivery transparency §5.C; private authoring source preserved at `~/dev/8ball-private/cards.v1.full.js`)
-**doctrine version:** 2026-05-11 · v0.23 (§1.B amended — numerology triplet always space-separated, v0.22 hasMaster branch retired post-CiC Fix A; §4.B amended — about-modal discloses cap shape, not the localStorage-wipe reset; §6 amended — ui/*.js split pattern locked with `ui/payments.js` + `ui/profile.js` as concrete precedents and DI shape specified)
+**doctrine version:** 2026-05-12 · v0.24 (§10 restructured as 4 core agents + 1 always-on controller + adjuncts; agents/ folder formalized with `AGENTS.md`, `PLATFORMS.md`, and 5 role docs at `agents/orchestrator.md` / `implementer.md` / `auditor.md` / `verifier.md` / `controller.md`; v0.23 5-row table reshaped, lane labels aligned with role docs, ChatGPT moved from core lane to adjunct, verifier (Claude in Chrome) added as the fourth agent role)
+- v0.23: 2026-05-11 (§1.B amended — numerology triplet always space-separated, v0.22 hasMaster branch retired post-CiC Fix A; §4.B amended — about-modal discloses cap shape, not the localStorage-wipe reset; §6 amended — ui/*.js split pattern locked with `ui/payments.js` + `ui/profile.js` as concrete precedents and DI shape specified).
 - v0.22: §1 / §2 / §4 / §5 / §5.B / §5.C / §6 / §7 amended or added — paid surface (3 free + $3/3 reads via LS Buy Link redirect; public-bundle JS-gated deck delivery; arcade-toy carve-out; payments state-machine CI stage).
 - v0.21: §1.A amended — DST + historical-tz handling in scope; city-level birthplace via core/cities.js; |lat|>66.5° returns null. §5 amended — same-origin lazy loads permitted, fetch() ban preserved. §5 allow-list extended with city/cc/tz.
 - v0.20: §3 calc v2 — real lunar new year + solar-term tables; getInnerAnimal signature change; date-precision Asia/Shanghai cusp resolution.

@@ -21,13 +21,25 @@ const SKIP_FILES = new Set(['LOCAL_PII_AUDIT.md', 'pii_scan.test.js']);
 // "Doctrine files" — files whose job is explicitly to document the boundary.
 // These can reference operator-name and SIRR-domain vocabulary because
 // they're describing the rule, not violating it.
+//
+// As of DOCTRINE v0.24 (agents/ codification), the agents/*.md role docs are
+// part of the doctrine surface — they're operational extensions of §10. They
+// can reference MUHAB.md (operator-preferences source) and SIRR.md (sibling
+// project boundary reference) for the same reason DOCTRINE.md can.
 const DOCTRINE_ALLOW = new Set([
   'DOCTRINE.md',
   '8BALL.md',
   'journal.md',
   'README.md',
   'audits/RELEASE_CHECKLIST.md',
-  'audits/LOCAL_PII_AUDIT.md'
+  'audits/LOCAL_PII_AUDIT.md',
+  'agents/AGENTS.md',
+  'agents/PLATFORMS.md',
+  'agents/orchestrator.md',
+  'agents/implementer.md',
+  'agents/auditor.md',
+  'agents/verifier.md',
+  'agents/controller.md'
 ]);
 
 // Config files that legitimately carry repo metadata (operator GitHub username).
