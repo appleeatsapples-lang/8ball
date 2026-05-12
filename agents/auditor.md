@@ -110,6 +110,73 @@ When a cycle's only deliverable is a DOCTRINE.md amendment (e.g. consolidation p
 - **Defer:** P2/P3 filed to scope-notes; visible in next cycle's brief.
 - **Reject:** Orchestrator + controller disagree with the auditor's framing; documented in journal with reasoning. Rare; preserves the audit-trail when it happens.
 
+### 6. Corpus drift-sweep
+
+Cross-document doctrine-vs-shipped audit across the full tracked-content surface. Used when state docs have accumulated enough drift that per-cycle audits are no longer catching it — the rewrite-makes-adjacent-text-salient mechanism means each surface-touch cycle leaves new staleness in adjacent paragraphs that wasn't visible at the time of the touch. Drift-sweep is the periodic explicit pass that catches what per-cycle audits structurally miss.
+
+**When to invoke:** when corpus age + cumulative shipped surface change suggests state docs lag shipped reality. Three firings to date — inaugural sweep at chat-8 (28 drifts surfaced across 12 files / 1624 lines), tier-1 cleanup re-audit at chat-9 (10/10 PASS + 2 new drifts), tier-2 cleanup re-audit at chat-10 (19/19 PASS + 3 new drifts). A drift-sweep cycle generally produces a tier-split corpus repair (large-N drift corpora split by coherence — e.g. tier-1 honesty-critical P0+P1 / tier-2 structural cleanup) shipped across consecutive PRs.
+
+**Brief shape (drift-sweep audit):**
+
+```
+=== EXAMPLE BRIEF START ===
+
+# Role
+Adversarial corpus auditor for 8ball. Read every tracked content file inlined below.
+Surface every drift hook you can defend between doctrine + shipped reality.
+
+# Inputs
+- Corpus (full contents inlined via `git show <branch>:<file>` per file):
+  <file 1>
+  <file 2>
+  ...
+
+# Audit dimensions
+1. Doctrine-vs-doctrine internal consistency (§-references resolve, version footers consistent)
+2. Doctrine-vs-shipped (claims about code state match `core/`, `ui/`, `tests/` reality)
+3. State-doc-vs-doctrine (8BALL.md, README.md, root AGENTS.md + CLAUDE.md, agents/*.md alignment with DOCTRINE.md)
+4. Cross-file vocabulary consistency (shipped path names, file counts, version strings, test counts)
+5. Stale-amendment residue (deprecated rules + retired vocabularies that linger in adjacent text)
+
+# Verdict format
+For each drift:
+- **Drift N — <short name>**
+- **File:** <path>
+- **Location:** <section ref + line range>
+- **Severity:** P0 / P1 / P2 / P3
+- **Quoted stale text:** "<exact text>"
+- **Current reality:** <what shipped reality says>
+- **Recommendation:** <fix>
+
+Closing section: cross-file consistency findings clustering the drifts into structural categories.
+
+# Hard stops
+- Don't suggest §-renumbering as a fix (compounds drift).
+- Don't recommend feature additions or new doctrine clauses (out of scope for drift catch).
+- Don't soften severity to be polite — adversarial is the value.
+- Re-audit cycles surface 2–3 new drifts per pass via the rewrite-makes-adjacent-text-salient mechanism. This is expected; pre-budget a post-audit absorb commit in cycle scope rather than treating new drifts as out-of-scope.
+
+=== EXAMPLE BRIEF END ===
+```
+
+**How orchestrator consumes a drift-sweep return:**
+
+1. Save the response to `~/Desktop/8ball/audits/codex_drift_sweep_<slug>_response.md` immediately, full text.
+2. If N > 10 drifts surface, split the corpus by coherence (e.g. tier-1 honesty-critical P0+P1 closing first, tier-2 structural cleanup shipping second). Single-tier-large-N briefs lose implementer focus.
+3. Each tier ships as its own PR, with its own re-audit. Re-audit briefs are constructed via `git show <branch>:<file>` of each post-fix file inlined — corpus paste, not diff paste.
+4. **Pre-budget the absorb commit.** Three firings, three N>0 results on new drifts surfaced post-fix. The rewrite-makes-adjacent-text-salient mechanism is a structural feature of the procedure. Scope the cycle to include either an in-PR absorb (if PR is still open per chat-9 pattern via `39596f7`) or a post-merge absorb on main (if PR has already been merged per chat-10 pattern via `4bb3f77`). Both are valid; the choice depends on merge timing, not on drift severity.
+
+**Boundaries:**
+
+- Drift-sweep is read-only verdict; implementer writes the fixes per Procedure 1 / 2 / 3 routing.
+- Drift-sweep is NOT a doctrine amendment surface. If the audit thinks doctrine itself is wrong, the verdict raises it — the orchestrator surfaces to controller for separate doctrine cycle.
+- Drift-sweep does NOT replace pre-merge audits at PR open. Per-cycle audits catch in-cycle drift; drift-sweep catches accumulated drift. Both fire.
+
+**Discipline footnotes:**
+
+- Three firings, zero Codex-side friction. The lane works when (a) the brief is self-contained, (b) the corpus is bounded (4–12 files, <2500 lines), (c) the per-drift verdict format is pre-specified with PASS + severity ladder.
+- L48 firing shape (controller-merge-without-audit-signal) is more likely in drift-sweep cycles because the cycle's primary deliverable is doctrine-shaped, not code-shaped — CI green looks like the whole gate, but the audit-cleared signal is the actual gate. Pre-merge audit response must land in chat before merge clears.
+
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Codifies the audit-routing patterns from v0.1.0 onward (8 audit cycles to date, including the v0.3.0 step-6 mid-cycle audit and v0.3.0 full-PR post-merge audit absorbed as v0.3.0.1).
