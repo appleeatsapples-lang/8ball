@@ -51,6 +51,25 @@ Squash merge: `MERGE_SHA_TBD`.
 
 **Codex full-PR audit disposition (2026-05-12).** Overall P1. Response saved at `~/Desktop/8ball/audits/codex_agents_codification_response.md`. Hooks 1–7, 10–12: PASS. Hook 8 P1 (codename gloss not single-sourced): absorbed in-cycle — stripped Quranic-phrase gloss from `agents/orchestrator.md` audit history + `journal.md` pre-cycle-state paragraph + `journal.md` "Naming note" paragraph; gloss now lives only in `agents/AGENTS.md` "Orchestrator codename note" per the AGENTS.md claim. Hook 9 P2 (verifier.md substance-unchanged claim not independently auditable from git): softened the claim in `agents/verifier.md` audit-history; controller-verified is now the audit trail (the file was previously untracked). Hook 13 P2 (audit count drift 47 → 53): fixed both spots in the journal entry above. Hook 14 P2 (stale "future" wording in `verifier.md` §2/§3 procedures): reworded §2 as "current — paid surface shipped in v0.3.0; awaiting LS Live for end-to-end" and §3 as "current — shipped in v0.2.5". All four absorbs land in a single follow-up commit on the same branch; no re-audit requested since the changes are surface-narrow.
 
+## v0.3.0.2 IN-FLIGHT — LS checkout success_url in Buy Link href
+
+2026-05-12. Hotfix on branch `v0.3.0.2-redirect-fix`. Surfaced during the §13 17-step live-fire on Path A (operator running the paywall path on the deployed site, test-mode LS checkout, test card `4242 4242 4242 4242`). Test charge processed cleanly in LS Test mode; operator landed on LS's default "Thanks for your order!" modal with a "View order" button instead of being auto-redirected back to `the-eight-ball.netlify.app/?paid=t1` to trigger `applyPaidReturn()`.
+
+**Root cause.** The Buy Link `<a href>` in `index.html` line 916 was the bare LS storefront URL with no `?checkout[success_url]=...` query parameter. LS only auto-redirects post-purchase when (a) a per-product Thank-you URL is set in the LS dashboard, or (b) the Buy Link URL itself carries `checkout[success_url]`. Neither was true. LS UI for setting the dashboard-side Thank-you URL is hidden under Product → Variant → Edit → some "after purchase" sub-section that the operator couldn't surface during 3 panels of clicking (Email receipt, Add Variant, product actions menu — all dead ends for this setting).
+
+**Fix.** Append the URL-encoded `?checkout[success_url]=https://the-eight-ball.netlify.app/?paid=t1` to the Buy Link href. Code-tracked rather than dashboard-config because: (a) ships through normal PR → audit → merge gate, doctrine-clean; (b) same href works in Test + Live without per-mode config; (c) survives LS account migrations or store swaps without re-configuration drift. The §5.B Call 2 contract ("Success URL is `/?paid=t1` — JS parses the query on next load, runs `applyPaidReturn()`") was always the doctrine; this fix routes LS through the contract instead of relying on dashboard state.
+
+**Tests.** Tightened the existing `paywall CTA is a Lemon Squeezy Buy Link` regex to accept an optional query string after the variant UUID. Added a new assertion `paywall CTA carries checkout success_url back to /?paid=t1 (v0.3.0.2)` that locks the URL-encoded `checkout%5Bsuccess_url%5D=https%3A%2F%2Fthe-eight-ball.netlify.app%2F%3Fpaid%3Dt1` substring in the href. Test count 585 → 586. Local PII audit clean.
+
+**Out of scope.** No `core/` touch. No DOCTRINE touch (stays v0.23 on `main`; agents/ PR #18 still proposing v0.24 in parallel — independent of this hotfix). No new files. No new dependencies. No surface change on the site itself — the change is invisible to the user until they tap the paywall CTA, at which point LS receives the success_url and redirects cleanly post-purchase.
+
+**Operator notes for re-test.** After merge + Netlify deploy lands, repeat §13-step-7: trigger paywall with a new pair → tap `unlock · $3` → pay with `4242 4242 4242 4242` / any future expiry / any CVC → confirm browser auto-redirects to `the-eight-ball.netlify.app/?paid=t1` (not the LS modal) → confirm the four post-pay verifications (URL query stripped, banner shown, card unlocked, localStorage matches §13 expected). If LS still shows its modal post-deploy, then `checkout[success_url]` may have been silently rejected (account-level redirect-domain allow-list, etc.) — but that's a controller-facing LS support question, not a code issue.
+
+**Gate sequence.** ✅ Branch + commit + push. ⏳ PR open. ⏳ Codex spot-audit (single hook: URL-encoding correctness + tests pass + no doctrine drift). ⏳ Operator merge. ⏳ Post-merge: `MERGE_SHA_TBD` fill + 8BALL.md §10 state row entry + re-test on prod.
+
+Branch: `v0.3.0.2-redirect-fix`.
+Squash merge: `MERGE_SHA_TBD`.
+
 ## post-v0.3.0.1 — 8BALL.md §11 + sessions/ stale cleanup pass
 
 2026-05-12. Hygiene-only commit during LS-identity-verification wait (chat-4 picked Path C: unrelated work while LS pending). No code touched. No DOCTRINE touch (stays v0.23). No tests added or removed.
