@@ -2,7 +2,7 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## agents/ codification + DOCTRINE v0.23 → v0.24 — IN-FLIGHT
+## agents/ codification + DOCTRINE v0.23 → v0.24 — SHIPPED
 
 2026-05-12. Doctrine + scaffolding cycle on branch `agents-codification-doctrine-v024`. No code touch (no `core/`, no `index.html`, no `ui/*.js`, no tests added/removed). 585/585 passing; local PII audit clean.
 
@@ -34,11 +34,11 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - ✅ Local PII audit clean (53 files scanned, no hits — 47 pre-cycle + 6 new agents/*.md tracked entries).
 - ✅ Test surface 585/585 passing (no new tests added — doctrine + docs cycle).
 - ✅ Journal entry (this entry).
-- ⏳ PR open. Audit brief drafted at `~/Desktop/8ball/audits/codex_agents_codification_2026-05-12.md` (TBD this cycle).
-- ⏳ Codex full-PR audit. Controller paste-relays brief, returns response.
-- ⏳ Audit dispositions. Each P1+ hook absorbed in-cycle or filed as follow-up.
-- ⏳ Controller merge. Squash-merge via `gh pr merge --squash --delete-branch`.
-- ⏳ Post-merge: `MERGE_SHA_TBD` fills + `8BALL.md` §10 state row + journal entry stamp.
+- ✅ PR #18 opened 2026-05-12. Audit brief at `~/Desktop/8ball/audits/codex_agents_codification_2026-05-12.md`.
+- ✅ Codex full-PR audit returned overall P1. Response saved at `~/Desktop/8ball/audits/codex_agents_codification_response.md`.
+- ✅ Audit dispositions. 1 P1 + 3 P2 absorbed in-cycle (commit `29023dd` on branch); no hooks deferred.
+- ✅ Controller squash-merge 2026-05-12 via `gh pr merge --squash --delete-branch` (PR #18).
+- ✅ Post-merge: `76b83ea` squash-SHA filled + `8BALL.md` §10 state row + journal entry stamped (this commit, 2026-05-12).
 
 **L-candidate (this cycle): L49-candidate — agents-codification as the inverse of doctrine-ahead-of-code.** L16 named "doctrine-ahead-of-code is the inverse of aspirational doctrine." L49 candidate is the sibling form: **agents-ahead-of-code-and-doctrine**. The verifier.md role doc was written 2026-05-11 citing a doctrine extension that didn't exist (`v0.22 extension (proposed)`). The doc was true to its own logic but the citation was structurally floating. This cycle lands the cited doctrine and brings the role doc's citation into truth-with-disk. The lesson is symmetric to L16: a role doc that cites a doctrine clause not yet landed is the same shape as code that implements a doctrine clause not yet landed. Both produce the same audit verdict — citation-not-found. Mitigation: when writing a role doc that requires a doctrine amendment, write both or neither; don't ship the role doc with a "(proposed)" citation expecting the doctrine to land later, because the role doc is doctrine-shaped content and inherits the same gates. (Tentative; promote to full L on second sighting.)
 
@@ -47,11 +47,11 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 Files modified or added this cycle: `DOCTRINE.md` (§10 amendment + footer v0.23 → v0.24 + v0.23 line moved to lineage bullets), `8BALL.md` (§3 row 12 + §4 rewrite), `agents/orchestrator.md` (NEW), `agents/implementer.md` (NEW), `agents/auditor.md` (NEW), `agents/controller.md` (NEW), `agents/verifier.md` (preamble + audit-history), `agents/PLATFORMS.md` (NEW), `agents/AGENTS.md` (NEW), `journal.md` (this entry).
 
 Branch: `agents-codification-doctrine-v024`.
-Squash merge: `MERGE_SHA_TBD`.
+Squash merge: `76b83ea` (PR #18, 2026-05-12).
 
 **Codex full-PR audit disposition (2026-05-12).** Overall P1. Response saved at `~/Desktop/8ball/audits/codex_agents_codification_response.md`. Hooks 1–7, 10–12: PASS. Hook 8 P1 (codename gloss not single-sourced): absorbed in-cycle — stripped Quranic-phrase gloss from `agents/orchestrator.md` audit history + `journal.md` pre-cycle-state paragraph + `journal.md` "Naming note" paragraph; gloss now lives only in `agents/AGENTS.md` "Orchestrator codename note" per the AGENTS.md claim. Hook 9 P2 (verifier.md substance-unchanged claim not independently auditable from git): softened the claim in `agents/verifier.md` audit-history; controller-verified is now the audit trail (the file was previously untracked). Hook 13 P2 (audit count drift 47 → 53): fixed both spots in the journal entry above. Hook 14 P2 (stale "future" wording in `verifier.md` §2/§3 procedures): reworded §2 as "current — paid surface shipped in v0.3.0; awaiting LS Live for end-to-end" and §3 as "current — shipped in v0.2.5". All four absorbs land in a single follow-up commit on the same branch; no re-audit requested since the changes are surface-narrow.
 
-## v0.3.0.2 IN-FLIGHT — LS checkout success_url in Buy Link href
+## v0.3.0.2 SHIPPED — LS checkout success_url in Buy Link href
 
 2026-05-12. Hotfix on branch `v0.3.0.2-redirect-fix`. Surfaced during the §13 17-step live-fire on Path A (operator running the paywall path on the deployed site, test-mode LS checkout, test card `4242 4242 4242 4242`). Test charge processed cleanly in LS Test mode; operator landed on LS's default "Thanks for your order!" modal with a "View order" button instead of being auto-redirected back to `the-eight-ball.netlify.app/?paid=t1` to trigger `applyPaidReturn()`.
 
@@ -65,10 +65,12 @@ Squash merge: `MERGE_SHA_TBD`.
 
 **Operator notes for re-test.** After merge + Netlify deploy lands, repeat §13-step-7: trigger paywall with a new pair → tap `unlock · $3` → pay with `4242 4242 4242 4242` / any future expiry / any CVC → confirm browser auto-redirects to `the-eight-ball.netlify.app/?paid=t1` (not the LS modal) → confirm the four post-pay verifications (URL query stripped, banner shown, card unlocked, localStorage matches §13 expected). If LS still shows its modal post-deploy, then `checkout[success_url]` may have been silently rejected (account-level redirect-domain allow-list, etc.) — but that's a controller-facing LS support question, not a code issue.
 
-**Gate sequence.** ✅ Branch + commit + push. ⏳ PR open. ⏳ Codex spot-audit (single hook: URL-encoding correctness + tests pass + no doctrine drift). ⏳ Operator merge. ⏳ Post-merge: `MERGE_SHA_TBD` fill + 8BALL.md §10 state row entry + re-test on prod.
+**Gate sequence.** ✅ Branch + commit + push. ✅ PR #19 opened. ✅ Codex spot-audit returned overall P1 (response at `~/Desktop/8ball/audits/codex_v0302_redirect_fix_response.md`; noted `checkout[success_url]` is undocumented per LS; operator merged anyway with belt-and-suspenders shape — LS dashboard Confirmation modal Button link also set to `https://the-eight-ball.netlify.app/?paid=t1` on product 1045549 variant 1639690, 2026-05-12). ✅ Controller squash-merge 2026-05-12 via `gh pr merge --squash --delete-branch` (PR #19). ✅ Post-merge: `6619cb9` squash-SHA filled + `8BALL.md` §10 state row + journal entry stamped + re-test on prod (live-fire outcome below).
+
+**Live-fire on prod (2026-05-12, post-deploy).** CiC agent ran the full §13-shape sequence on `the-eight-ball.netlify.app` (Test mode LS, `4242` test card). Report at `~/Desktop/8ball/audits/cic_live_fire_v0302_redirect_report.md`. Outcome: **PASS end-to-end**. Free 3-of-3 consumed cleanly (Sam Carter / Jane Doe / Alex Reed); paywall fired at try 4 (Casey Park) as designed; LS checkout link confirmed carrying the `?checkout[success_url]=` query param; payment processed; **Path C ruled out** — browser landed on `the-eight-ball.netlify.app/` with the `?paid=t1` already stripped and the Casey Park card rendered in unlocked state (depth surface visible: card-name `the floating trick`, type `trickster · soft chaos`, habit + bracket-resolved note, "2 reads left" chip); subsequent shake didn't re-trigger the paywall; localStorage state correct (`eight_ball_credits_v1: "2"`, `eight_ball_tries_used_v1: "4"`). **A vs B undetermined** — controller completed checkout manually; the CiC observation window opened post-redirect so the v0.3.0.2 query-param mechanism (A) vs the dashboard Confirmation modal Button link (B) couldn't be distinguished on this fire. Belt-and-suspenders shape preserved; the operational outcome (redirect lands cleanly) is what matters for v0.3.0.2's gate. Two non-blocking deviations flagged: (1) CiC reported the `three reads unlocked. enjoy.` banner not observed on landing — code path verified intact (`ui/payments.js:147-149` calls `showPaidBanner()` after `replaceState`; banner has ~4s visible window + 600ms fade); most likely a screenshot-timing artifact across the controller's manual checkout dance, but no test coverage exists on the banner DOM and that's a small QA gap worth noting. (2) CiC reported SHAKE AGAIN "broken" — verified by code-level inspection (`index.html:1192-1203`) as the β idempotence behavior locked at v0.3.0 per DOCTRINE §6.5/§7.1; re-shake on the same profile is cosmetic and credit-preserving by design, not a bug. CiC misread the spec expecting re-roll semantics. Parked the depth-re-roll design conversation at `~/Desktop/8ball/sessions/v0.3.x_shake_again_facet_reroll.md` as a v0.3.1 candidate (option c facet re-roll); not in scope for v0.3.0.2.
 
 Branch: `v0.3.0.2-redirect-fix`.
-Squash merge: `MERGE_SHA_TBD`.
+Squash merge: `6619cb9` (PR #19, 2026-05-12).
 
 ## post-v0.3.0.1 — 8BALL.md §11 + sessions/ stale cleanup pass
 
