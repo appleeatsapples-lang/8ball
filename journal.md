@@ -2,6 +2,16 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## chat-7 housekeeping: branch drift + shadow netlify deletion — SHIPPED
+
+2026-05-12. Two housekeeping items closed this chat, no code touch.
+
+**Branch drift cleanup.** Found at chat-7 bootstrap: `git ls-remote --heads origin` showed `agents-codification-doctrine-v024` and `v0.3.0.2-redirect-fix` still alive on origin alongside `main`, despite both PR #18 and PR #19 having been merged via `gh pr merge --squash --delete-branch`. The `--delete-branch` flag did not fire as expected on either merge. Cleaned manually with `git push origin --delete <branch>` (both) plus `git branch -D <branch>` (both). Origin and local now reflect main-only (`git ls-remote --heads origin` returns one ref: `refs/heads/main`). Worth watching the next squash-merge to see whether the flag fires correctly or whether this is a recurring `gh`-version or branch-protection interaction; if it repeats, that's an L-candidate sighting for codification.
+
+**Shadow netlify deletion.** `enchanting-bonbon-2b5064` (project ID `6f0fbabc-fa42-4423-bd74-78a7b951613e`, created 2026-05-08 at 4:49 PM) deleted via the controller dashboard `/configuration/general/Danger zone/Delete this project` flow. Sibling to the canonical `the-eight-ball` (project ID `cfc7f984-b54d-4116-a206-6a4647daaeeb`, created 32 minutes earlier same day at 4:17 PM); both had been silently double-deploying every push to main since their creation. 8BALL.md §11 item 11 closes; team-projects page now reflects single canonical project. Expected side effect: ~50% reduction in netlify credit consumption per push, easing the recurring credit-cap pressure documented at v0.2.1 ship time (warning visible on the team-projects page at deletion time was from before deletion took effect).
+
+No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged). Local PII audit untouched (no tracked-content changes beyond journal.md + 8BALL.md). No live-fire required (no surface or deploy-gate change).
+
 ## agents/ codification + DOCTRINE v0.23 → v0.24 — SHIPPED
 
 2026-05-12. Doctrine + scaffolding cycle on branch `agents-codification-doctrine-v024`. No code touch (no `core/`, no `index.html`, no `ui/*.js`, no tests added/removed). 585/585 passing; local PII audit clean.
