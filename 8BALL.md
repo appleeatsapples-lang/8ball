@@ -74,21 +74,25 @@ Layered source:
 | 9 | Content version | v0.2.7.2-public (city autocomplete via `assets/cities.json` lazy-load; IANA tz + DST-aware rising via `Intl.DateTimeFormat`; polar |lat|>66.5° null fallback; legacy v0.2.1+ profile rehydration path retained; `(24h)` label parenthetical dropped; catalog-only; numerology text triplet surface; positional math in engine.js; full content private at `~/dev/8ball-private/cards.v1.full.js`; launch-prep meta + favicons + og:image at /assets/; opt-in feedback surface §5.B; 18+ acknowledgment gate §4.A; symbol-label visibility toggle §5 allow-list) |
 | 10 | Single-source-of-truth for content rules | DOCTRINE.md §4 |
 | 11 | Single-source-of-truth for PII rules | DOCTRINE.md §11 + `audits/LOCAL_PII_AUDIT.md` |
-| 12 | Multi-model lanes | DOCTRINE.md §10 (mirrors SIRR §7 pattern at smaller scale) |
+| 12 | Multi-model lanes | DOCTRINE.md §10 + `agents/AGENTS.md` (4 core agents — orchestrator/implementer/auditor/verifier — plus controller; adjuncts: ChatGPT/Perplexity/Gemini per `~/MUHAB.md` §3). Mirrors SIRR §7 pattern at smaller scale. |
 
 ---
 
 ## 4. Lane system (multi-model)
 
-Per `DOCTRINE.md §10`. Brief summary:
+Per `DOCTRINE.md §10` (constitutional summary) and `agents/AGENTS.md` (operational detail). Four core agent roles plus one always-on controller, plus ad-hoc adjuncts. Brief summary:
 
-- **Claude (chat)** = orchestrator, doctrine drafter, brief composer. Pragmatic write access for fast initial work; routes through CC for production-grade edits.
-- **Claude Code (CC)** = the CLI tool at `/usr/local/bin/claude` (currently v2.1.42 per MUHAB.md §4). Filesystem and git operations for changes touching ≥3 files or modifying `core/`.
-- **ChatGPT** (Mac desktop app) = content-batch review. Trait pool diffs, template diffs. Manual paste-and-relay.
-- **Codex** (Mac desktop app) = adversarial pre-merge auditor for doctrine and release-gate changes. Manual paste-and-relay.
-- **Operator** = final approver, merge gate.
+- **Orchestrator** = Claude (chat). Holds context, drafts briefs, dispositions audits, sequences cycles. Codename `كن فيكون` / `kun fayakun`. Full role doc: `agents/orchestrator.md`.
+- **Implementer** = Claude Code (CC) — CLI tool at `/usr/local/bin/claude` (v2.1.42 per MUHAB.md §4). Multi-file production-grade edits, git ops, repo filesystem. Required for changes touching ≥3 files or modifying `core/`. Full role doc: `agents/implementer.md`.
+- **Auditor** = Codex (Mac desktop app). Adversarial pre-merge review on doctrine, content, release-gates. Manual paste-and-relay. Returns categorized verdicts (PASS / P3 / P2 / P1 / P0). Full role doc: `agents/auditor.md`.
+- **Verifier** = Claude in Chrome (CiC) — browser extension. Live UX on deployed product; structured findings + screenshots. Per-session domain allowlist; no irreversible action clicks. Full role doc: `agents/verifier.md`.
+- **Controller** = Operator. Always-on final approver for merges, deploys, payments, account changes, irreversible actions. Not an agent — the human running them. Full role doc: `agents/controller.md`.
 
-**Solo authority is the failure mode.** Doctrine and content batches do not merge without a second model's review.
+**Adjunct lanes** (not core agents): ChatGPT (content/copy review), Perplexity (web search), Gemini (second opinion). Per MUHAB.md §3.
+
+**Solo authority is the failure mode.** Doctrine and content batches do not merge without the auditor + the controller. Per L48: explicit audit-cleared signal before merge; five-minute-CI-green-to-merge windows are the L48 failure shape.
+
+Per-cycle artifact locations (briefs, audit briefs/responses, CiC directives/reports) live at `~/Desktop/8ball/` — see `agents/PLATFORMS.md` "Artifact-location matrix" for the full table.
 
 ---
 
