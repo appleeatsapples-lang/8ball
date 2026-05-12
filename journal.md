@@ -2,7 +2,7 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — SHIPPED
+## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — IN-FLIGHT
 
 2026-05-12. Tier 1 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`). 9 drifts closed: 2 P0 (Drift 3 + Drift 24, absolute "no network calls" claim in DOCTRINE §2/§7 + README) + 7 P1 (Drift 1/2/4/11/16/17/22, paid-content state alignment + persistence allow-list explicit wrapper key). Plus 1 P3 (Drift 8, 8BALL.md refresh date) folded in as freebie.
 
