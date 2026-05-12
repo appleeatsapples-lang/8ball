@@ -2,6 +2,18 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## drift-sweep tier 1 — DOCTRINE v0.24 → v0.25 — SHIPPED
+
+2026-05-12. Tier 1 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`). 9 drifts closed: 2 P0 (Drift 3 + Drift 24, absolute "no network calls" claim in DOCTRINE §2/§7 + README) + 7 P1 (Drift 1/2/4/11/16/17/22, paid-content state alignment + persistence allow-list explicit wrapper key). Plus 1 P3 (Drift 8, 8BALL.md refresh date) folded in as freebie.
+
+**Drift 12 (P1, SIRR engine framing 8BALL §1 vs DOCTRINE §2) parked** — controller decision pending. Will land in a subsequent cycle as A (soften to "sibling reference discipline") or B (expand metaphor-vs-architecture explicitly).
+
+Doctrine v0.24 → v0.25. Lineage preserves v0.24. No code touch. No tests added or removed (586/586 unchanged). No index.html change. Local PII audit untouched.
+
+Tier 2 (~18 remaining drifts: structural P1s + P2s across DOCTRINE §5.B/§6, 8BALL §1/§2/§3/§8, README, root AGENTS.md, root CLAUDE.md, agents/auditor.md) follows in a subsequent cycle. Tier 3 (Drift 8, P3 refresh date) folded in here.
+
+Audit return: codex re-audit pre-merge per §10.
+
 ## chat-8 housekeeping: A vs B redirect thread retired — CLOSED
 
 2026-05-12. Thread 4 from chat-8 handoff (`~/Desktop/8ball/sessions/chat_7_to_chat_8_handoff.md`) closed without resolution. Terminal verify (chat-8) confirmed:
