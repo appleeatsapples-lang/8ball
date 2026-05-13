@@ -80,6 +80,10 @@ Companion to `AGENTS.md` and the role docs in this folder. Each agent runs on a 
 - Domain allowlist block at pre-flight (v0.3.0 cycle): LS store-setup directive hit `app.lemonsqueezy.com`, blocked at pre-flight; controller added domain to session allowlist before retry succeeded. Documented in `verifier_report_ls_store_blocked_2026-05-11.md`.
 - Region enforcement on platforms (Thread A closure, v0.3.0 cycle): TikTok KSA account-region locked at registration time; Business switch flow appeared to complete but silently reverted on region re-detection. Disposition per L40 cap: 2 attempts, then close to next scope; bio reverted to plain-text URL, calculator-framing rewrite deferred to a future v0.2.8.
 
+### CiC per-tab scope (added chat-15)
+
+Claude in Chrome operates per browser tab with a per-session domain allowlist. A CiC directive targets exactly one tab/domain unless explicitly stated otherwise. Multi-tab directives require enumerating each tab + its domain + its STEPS. Sidepanel + conversation context are independent per tab; one directive = one tab; paste must land in the target tab's sidepanel. The L40 firing log (v0.3.0 CiC domain-allowlist block, listed above) is the canonical instance of this constraint asserting itself; the chat-13 per-tab context note at `~/Desktop/8ball/sessions/cic_per_tab_context_2026-05-13.md` is the codified directive-paste discipline (URL-check step 1 in every directive). Cross-tab status synthesis is orchestrator-aggregated from per-tab Inspector / Verifier reports, never a single CiC directive.
+
 ## ChatGPT (adjunct — content/copy review)
 
 **Surface.** ChatGPT Mac desktop app. Paste-relay only.
@@ -125,3 +129,4 @@ The split between repo tracked (`~/dev/8ball/`) and Desktop materialization (`~/
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Codifies the per-platform constraints observed across the v0.1.0 → v0.3.0.1 cycles. L40 firing log will live here in subsequent cycles; new platform additions (e.g. if Cowork or another adjunct gets a defined role) extend the table.
+- 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added "CiC per-tab scope" H3 inside the CiC (verifier) entry (Clause 2 of the bundle). Disambiguates that CiC operates per browser tab; multi-tab directives must enumerate each tab + domain + STEPS. Pairs with the directive-template clauses landed in `verifier.md` (downstream DO-NOT + upstream-diagnostic gate, Clauses 3 + 7), the no-strategic-synthesis Boundary clause in `verifier.md` (Clause 1), the content-seed routing Procedure in `controller.md` (Clause 5), and the register-alignment + paper-design sanity-check Procedures in `orchestrator.md` (Clauses 6 + 8). No DOCTRINE touch this cycle.
