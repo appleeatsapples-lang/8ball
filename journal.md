@@ -2,6 +2,34 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-13 — IN-FLIGHT: DOCTRINE v0.27 — T1 lane codification (Procedure 6)
+
+**Status:** IN-FLIGHT pending PR merge + state-fill commit.
+
+**Cycle:** T1 tentative-lane PROMOTION codification. Three clean firings (chat-8 28-drift inaugural / chat-9 tier-1 re-audit / chat-10 tier-2 re-audit) cleared all four promotion criteria by chat-10 close. This cycle absorbs the lane as a real auditor procedure.
+
+**Changes:**
+- `agents/auditor.md` — Procedure 6 (Corpus drift-sweep) added after Procedure 5. Brief shape, paste workflow, verdict format, tier-split-by-coherence pattern, pre-budget-absorb pattern, hard stops, discipline footnotes (L48 firing-shape in drift-sweep cycles).
+- `DOCTRINE.md` — §10 amended additively with single-clause bullet pointing to Procedure 6 (v0.27). Version footer v0.26 → v0.27; v0.26 entry preserved verbatim in lineage.
+- `8BALL.md` §10 — new v0.27 entry prepended; v0.26 entry preserved verbatim.
+
+**gh `--delete-branch` L generalization (carried in v0.27 entry):** chat-10 sighting #2 (non-worktree variant) sharpened the chat-9 worktree-specific L framing. The canonical generalized lesson: `gh pr merge --delete-branch` is a courtesy attempt over a non-atomic 3-leg cleanup; always verify `git ls-remote --heads origin` post-merge regardless of merge mechanism.
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: clean (53 files).
+- index.html: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no shipped-surface change.
+
+**Audit return target:** `~/Desktop/8ball/audits/codex_v027_audit_response_2026-05-13.md` per §10 standing pre-merge audit pattern (drift-sweep cycle's first invocation of its own newly-codified Procedure 6 happens later; this cycle uses the existing Procedure 4 doctrine-only audit pattern).
+
+**Live SHA:** `<SQUASH_SHA>` — filled by post-merge state-fill.
+
+**Lessons / discipline:**
+- T1 promotion the orchestrator-side codification mirror of the chat-9 `gh --delete-branch` L promotion (both: 3-firing-track-record → real-doc codification).
+- L48 mitigation candidates from chat-10 (orchestrator pre-flight `git fetch origin --prune`; "DO NOT MERGE until codex response is in chat" framing in brief openers) NOT codified this cycle — still observation phase; codify on second firing.
+- L-candidate `cc-session-bound-to-removed-worktree-becomes-unrecoverable` (chat-10 origin) still watching; not codified.
+
 ## drift-sweep tier 2 — DOCTRINE v0.25 → v0.26 — SHIPPED
 
 2026-05-12. Tier 2 of 28-drift cleanup from chat-8 codex drift-sweep audit (`~/Desktop/8ball/audits/codex_drift_sweep_response_2026-05-12.md`) plus chat-9 tier-1 re-audit (`~/Desktop/8ball/audits/codex_drift_sweep_tier1_response_2026-05-12.md`). 17 drifts closed + Drift 12 disposition + Drift 19 verification:
