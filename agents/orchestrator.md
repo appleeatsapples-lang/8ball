@@ -73,6 +73,45 @@ For cycles spanning >5 steps, use handoff files at chat boundaries (`~/Desktop/8
 
 After a release squash-merges to main, immediately: fill any `MERGE_SHA_TBD` placeholders in `8BALL.md` and `journal.md` with the actual squash SHA (direct-to-main commit, mirrors `ebe039b` / `f3c6c09` / `22bcedf`). Update `8BALL.md` §10 with the new state row. Confirm prod parity if Netlify deployed cleanly.
 
+### 6. Register-alignment diagnostic for content seeds (added chat-15)
+
+**Inputs.** Candidate seed list (channels / subscriptions / follows / feeds / podcast subscriptions / news sources / RSS bundles) + intended surface (YouTube algorithm / RSS / Substack / X follow list / Spotify / podcast-app / etc.).
+
+**Outputs.** Register-aligned bin + register-mismatched bin + a realignment directive draft for the seeding surface. If the mismatched bin is empty, the output is a PASS verdict that controller may seed directly; if non-empty, the verdict is `register-gap-found` with the realignment directive draft attached.
+
+**Procedure.**
+
+1. Read the candidate seed list. Tag each item by (a) tier (mainstream / mid / primary-source / specialist), (b) register-axis match against `~/MUHAB.md §9.global` + recent Diamond Compression artifacts (cross-domain mapping / primary-source scholarship / diagnostic-honest naming).
+2. Partition: items aligned with operator's documented register → aligned bin; items 1–2 tiers shallower OR off the register axes → mismatched bin.
+3. If mismatched bin is empty, return PASS. Controller may seed directly.
+4. If mismatched bin is non-empty, draft a realignment directive for the seeding surface (e.g. `cic_<surface>_realign_<date>.md`) that nukes the mismatched items, reinforces the aligned items, and adds register-appropriate channels surfaced from the operator's documented sources. Realignment directive is paste-relayed via the verifier per the upstream-diagnostic gate codified in `verifier.md`'s CiC directive-template clauses.
+
+This procedure is the upstream half of the closed loop with `controller.md` Procedure 5 (content-seed routing). Controller routes seeds → orchestrator diagnoses → orchestrator drafts directive → verifier executes → controller approves. The diagnostic catches the mainstream-default seed instinct that the chat-14 L-candidate `controller-content-seed-defaults-mainstream` codifies; without the diagnostic, the seed lock-in produces a feed that progressively underservices operator's actual intellectual register over weeks.
+
+**Boundaries.** Procedure 6 is read-only diagnostic + directive-draft. It does not seed on operator's behalf; controller is always the actor on the seeding surface. It does not amend `~/MUHAB.md §9.global` from the diagnostic output — register-axis source-of-truth lives in MUHAB.md, not in per-cycle orchestrator output.
+
+### 7. Paper-design surface sanity check (added chat-15)
+
+Before treating a paper-design surface (`~/Desktop/8ball/sessions/*.md`, parking docs, brief drafts, review pre-reads) as canonical input to a downstream cycle, run a grep-the-doctrine pass on every § reference in the surface:
+
+```
+grep -nE 'PATTERN' ~/dev/8ball/DOCTRINE.md
+```
+
+for each cited section (e.g. `§6\.5`, `§7\.1`, `§4\.B`, `§5\.B`). If a § reference returns zero matches in DOCTRINE.md, classify per context:
+
+- **Assertion-style** (surface ASSERTS against the non-existent §, e.g. "DOCTRINE §6.5 says X" / "per §6.5" / "§6.5/§7.1 amendment lands") — this is the routing error. Fix or remove before the surface is used as input.
+- **Meta-discussion** (surface DISCUSSES the routing-error finding without asserting against the §, e.g. "chat-12 caught §6.5/§7.1 routing-error" / "the §6.5/§7.1 pattern was the leak") — legitimate; naming the error requires the token. No action.
+
+The grep produces candidates; the orchestrator pass distinguishes assertion from meta-discussion. (Chat-15 self-check on the Friday rule-kill review pre-read found 3 meta-discussion occurrences of `§6.5/§7.1` — lines describing the L-finding itself — and verified them legitimate per this distinction. The procedure ran on its own output and refined itself; the assertion-vs-meta-discussion refinement is chat-15 self-check learning.)
+
+**When to invoke.** Any time a paper-design surface is about to be cited / paste-relayed / handed to a downstream cycle as input. Specifically: brief drafts before they reach the implementer, parking docs before they bubble into a doctrine amendment, review pre-reads before the operator runs the review, handoff files before the next chat bootstraps from them.
+
+**Reasoning.** Chat-12 caught the §6.5/§7.1 routing-error in the v0.3.1 facet-reroll parking doc (`~/Desktop/8ball/sessions/v0.3.x_shake_again_facet_reroll.md`); the parking doc framed the doctrine amendment as a "§6.5/§7.1 amendment" against subclauses that don't exist in DOCTRINE.md. Chat-15 caught the same vocabulary inherited into the Friday rule-kill review pre-read (`~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`); the pre-read's v1 inventory table listed §6.5 and §7.1 as rules. Both leaks happened because the paper-design surface was treated as canonical without a sanity-check pass. Two sightings promote the L-candidate `paper-design-routing-errors` from candidate to real L (L-number pending operator assignment). Procedure 7 codifies the pass that would have caught either leak at authoring time.
+
+**Boundaries.** Procedure 7 is read-only verdict on the paper-design surface. It does not amend DOCTRINE.md when a § reference is missing; if a surface cites a § that should exist but doesn't, the orchestrator surfaces it as a doctrine-amendment candidate to the controller, separate from this procedure's output. Procedure 7 catches the assertion → it doesn't act on the assertion's underlying claim.
+
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Companion to verifier.md (created 2026-05-11). Codename `كن فيكون` / `kun fayakun` is operator-coined; see `AGENTS.md` for the naming note.
+- 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added Procedure 6 (Register-alignment diagnostic for content seeds) per chat-14 L-candidate `controller-content-seed-defaults-mainstream` (1 sighting, mitigation queued pre-promotion; pairs with `controller.md` Procedure 5 as the closed-loop upstream half + with `verifier.md`'s upstream-diagnostic-gate clause on CiC directives). Added Procedure 7 (Paper-design surface sanity check) per chat-15 L promotion of `paper-design-routing-errors` (chat-12 sighting #1 v0.3.1 parking doc §6.5/§7.1 routing error; chat-15 sighting #2 Friday rule-kill review pre-read inherited the same vocabulary; L-number pending operator assignment). Procedure 7 self-check refinement (assertion-vs-meta-discussion distinction) is chat-15 learning; the procedure ran on its own output. No DOCTRINE touch this cycle.
