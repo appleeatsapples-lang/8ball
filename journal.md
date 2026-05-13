@@ -2,6 +2,44 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-13 — IN-FLIGHT: agents/ L-mitigation cycle — c13-c14-c15 bundle
+
+**Status:** IN-FLIGHT on branch `agents-l-mitigations-c13-c14-c15` (created from main HEAD `03728ce`). Pre-merge journal entry per chat-9 codified discipline (IN-FLIGHT → SHIPPED + live SHA on post-merge state-fill).
+
+**Cycle:** absorb three L-source findings from chats 13–15 into `agents/*.md` role docs + one out-of-`agents/` inspector-sketch update. No DOCTRINE touch this cycle (per §10 v0.24 scope codification — agents/ content changes don't fire the §10 footnote / lineage track). 8 clauses across 5 files.
+
+**L sources absorbed:**
+- chat-13 L-candidate `CiC-scope-expansion-into-strategic-content` (1 sighting; mitigation queued pre-promotion). Source: chat-13 → chat-14 handoff.
+- chat-14 L-candidate `controller-content-seed-defaults-mainstream` (1 sighting; mitigation queued pre-promotion). Source: `~/Desktop/8ball/sessions/L_candidate_controller_mainstream_default_2026-05-13.md`.
+- chat-15 L promoted: `paper-design-routing-errors` (2 sightings: chat-12 v0.3.1 parking doc §6.5/§7.1 + chat-15 Friday rule-kill review pre-read inherited the same vocabulary). L-number pending operator assignment. Source: `~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md` Routing-error finding subsection.
+
+**Changes (8 clauses, 5 files):**
+- `agents/verifier.md` — Clause 1 (no-strategic-synthesis Boundary bullet) + new H2 "CiC directive template — standing clauses" with Clause 3 (downstream DO-NOT) + Clause 7 (upstream-diagnostic gate on directive origination) + chat-15 audit-history entry.
+- `agents/PLATFORMS.md` — Clause 2 (CiC per-tab scope H3 inside the existing CiC entry) + chat-15 audit-history entry.
+- `agents/controller.md` — Clause 5 (Procedure 5 Content-seed routing) + chat-15 audit-history entry.
+- `agents/orchestrator.md` — Clause 6 (Procedure 6 Register-alignment diagnostic for content seeds) + Clause 8 (Procedure 7 Paper-design surface sanity check) + chat-15 audit-history entry.
+- `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` — Clause 4 (inspector inherits the verifier no-strategic-synthesis-beyond-STEPS boundary; sketch §10 audit-history added marking this as chat-15 mitigation, not chat-1 authoring decision). Out-of-`agents/`, out-of-repo (sketch lives in `~/Desktop/8ball/sessions/`).
+
+**Closed loops:**
+- Content-seed routing: `controller.md` Procedure 5 (downstream actor) ↔ `orchestrator.md` Procedure 6 (upstream diagnostic) ↔ `verifier.md` upstream-diagnostic gate (Clause 7, directive-template precondition).
+- Synthesis-overreach: `verifier.md` Boundary clause (Clause 1) ↔ `verifier.md` downstream DO-NOT directive-template clause (Clause 3) ↔ Inspector sketch §1 boundary inherit (Clause 4).
+- Per-tab discipline: `PLATFORMS.md` CiC per-tab scope (Clause 2) names the platform constraint that `verifier.md`'s directive-template clauses operationalize.
+
+**Gates (pre-merge):**
+- Tests: 586/586 (CI surface; no code touched, no `core/` / `ui/` / `content/` / `tests/` change). Local `npm test` shows one pii_scan failure caused by gitignored `.claude/settings.local.json` containing harness-local command paths with the operator handle — does NOT reach CI since the file is gitignored. My edits add no banned tokens; verified via `git diff main..HEAD -- agents/ | grep -iE 'muhab|akif|appleeatsapples|\bSIRR\b'` → no hits.
+- Local PII audit: clean (53 files scanned).
+- index.html: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no shipped-surface change.
+
+**Audit return target:** `~/Desktop/8ball/audits/codex_agents_l_mitigations_c13_c14_c15_response_2026-05-13.md` per §10 standing pre-merge audit pattern. Codex Procedure 4 (doctrine-only audit) applies — this cycle's only deliverables are `agents/*.md` content + an out-of-repo sketch edit. No DOCTRINE.md / `core/` / shipped-surface diff.
+
+**Live SHA:** `MERGE_SHA_TBD` (state-fills post-merge per chat-9 codified IN-FLIGHT → SHIPPED discipline).
+
+**Lessons / discipline:**
+- Bundle absorbed 2 L-candidates (chat-13 + chat-14, both 1 sighting, mitigated pre-2nd-sighting per operator decision) + 1 promoted L (chat-15 paper-design-routing-errors, 2 sightings).
+- Procedure 7 (paper-design sanity check) self-check fired on its own brief during chat-15 authoring; refined assertion-vs-meta-discussion distinction is chat-15 learning, codified inline.
+- gh `--delete-branch` L mitigation per chat-9/10: verify `git ls-remote --heads origin` post-merge regardless of merge mechanism. Worktree on this branch (`focused-morse-8fbe06`) will need `git worktree remove` before / after squash-merge to clear the local-delete leg.
+
 ## 2026-05-13 — SHIPPED: DOCTRINE v0.27 — T1 lane codification (Procedure 6)
 
 **Status:** SHIPPED 2026-05-13 at squash-merge `a76320e` (PR #22). State-fill commit on main flips IN-FLIGHT → SHIPPED + adds live SHA in both journal and 8BALL.md §10 per chat-9 codified discipline.
