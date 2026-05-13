@@ -139,6 +139,11 @@ Surface every drift hook you can defend between doctrine + shipped reality.
 5. Stale-amendment residue (deprecated rules + retired vocabularies that linger in adjacent text)
 
 # Verdict format
+
+Procedure 6 operates in two modes. The verdict shape differs.
+
+**Mode A — Initial drift-finding sweep** (corpus is stale; output is the drift list):
+
 For each drift:
 - **Drift N — <short name>**
 - **File:** <path>
@@ -147,6 +152,19 @@ For each drift:
 - **Quoted stale text:** "<exact text>"
 - **Current reality:** <what shipped reality says>
 - **Recommendation:** <fix>
+
+No PASS slot in Mode A — corpus is stale by assumption; nothing is being passed.
+
+**Mode B — Re-audit on closed drifts** (corpus is the re-fixed file + the implementer's claimed-closed drift list; output verifies or re-opens):
+
+For each claimed-closed drift:
+- **Drift N — <short name>**
+- **Severity:** PASS / P0 / P1 / P2 / P3
+- **Evidence:** <file:line refs or quoted text>
+- **Reasoning:** <why this severity>
+- **Recommendation:** <fix, or "verified closed" on PASS>
+
+PASS is the load-bearing verdict shape in Mode B. New drifts surfaced beyond the claimed-closed scope (rewrite-makes-adjacent-text-salient mechanism) are flagged separately as `New Drift A/B/C…` and carry full Mode A verdict shape.
 
 Closing section: cross-file consistency findings clustering the drifts into structural categories.
 
