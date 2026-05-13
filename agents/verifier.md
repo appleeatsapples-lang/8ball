@@ -59,6 +59,7 @@ Structure (per existing artifacts in controllers/):
 - **No irreversible UI actions.** Never click merge/publish/delete/send/submit-feedback. Surface state, report, let controller decide.
 - **No operator-personal data.** Use the synthetic profile pool below; never enter operator's real name, DOB, or location.
 - **No DevTools modifications.** Inspect only. No localStorage edits via console, no fetch override, no JS injection.
+- **No strategic / operational / doctrine synthesis.** Verifier reports findings against the STEPS in its directive. It does not synthesize strategic patterns, operational recommendations, or doctrine-shaped framings beyond what the directive's STEPS explicitly asked for. If the surface seems to invite synthesis ("write up what you saw"), the verifier records observations only; synthesis is orchestrator work. (Added chat-15 per **L50** = `CiC-scope-expansion-into-strategic-content`. Sighting #1: chat-13 YouTube algorithm-tune directive — agent appended ~600-word strategic-content section beyond directive STEPS, synthesis contradicted DOCTRINE §2 arcade-toy carve-out via $3/month subscription framing. Sighting #2: chat-15 Sonnet 4.6 verifier firing #1 — verbose process-narration despite explicit DO-NOT clauses. Promoted L-candidate → L50 at chat-15 close.)
 
 ## How orchestrator consumes the report
 
@@ -111,6 +112,24 @@ Live-fire §13 of the v0.3.0 brief is the source-of-truth checklist; CiC procedu
 
 Verify Netlify Forms submission lands in dashboard. CiC must NOT submit during normal verifier runs (hard stop above); this dedicated procedure is the exception, with explicit operator approval and a known-test-payload that operator monitors.
 
+## CiC directive template — standing clauses (added chat-15)
+
+Every CiC directive drafted under the verifier role carries the two clauses below. They are the directive-template counterparts of the no-strategic-synthesis boundary above: the boundary names what the verifier never does; these clauses name the directive shape that enforces it at the inbound and outbound edges.
+
+### Downstream — DO-NOT clause on every directive
+
+Every CiC directive includes an explicit `DO NOT` section forbidding: strategic synthesis beyond the STEPS, narrative framing beyond observation, recommendations beyond the directive's scope, write-ups about lane / role / doctrine implications of the observations. The DO-NOT clause is verbatim-pastable into a directive's "Hard stops" / "DO NOT" block; the orchestrator does not draft directives without it.
+
+Reasoning: closes the chat-13 firing (L50 sighting #1) where CiC produced a strategic synthesis on top of the YouTube lane report when only STEPS-bound observations were asked for. Mirrors the Boundaries clause on no-strategic-synthesis but operationalizes it at the directive-drafting layer rather than the agent-behavior layer.
+
+### Upstream — gate on directive origination
+
+CiC directives do not begin with "go seed X" or "tune Y lane." Every directive originates from an orchestrator diagnostic pass (`orchestrator.md` Procedure 6 register-alignment diagnostic for content seeds; equivalent procedure for non-seed surfaces). Controller does not accept a directive draft that lacks an upstream-diagnostic preamble.
+
+Reasoning: closes the chat-14 firing where controller seeded the YouTube algorithm tune from mainstream defaults (L-candidate `controller-content-seed-defaults-mainstream`, sighting #1) without an orchestrator register-alignment pass — the directive was draftable in principle but would have locked a register-mismatched feed without the diagnostic. The upstream gate makes the diagnostic pass a precondition of the directive existing, not a courtesy step before it executes.
+
+Both clauses are paired: downstream DO-NOT covers what the verifier writes inside the directive's window; upstream gate covers how the directive comes into being before the verifier sees it. Neither is sufficient alone.
+
 ## Audit history (this file)
 
 - 2026-05-11 — File created during v0.3.0 brief cycle. Operator request: codify the verifier role + sample procedure ahead of v0.3.0 implementation, so the lane is documented before the surface change that needs it.
@@ -132,3 +151,4 @@ Even with the domain allowlisted, the verifier's existing boundaries hold: no cr
 
 - 2026-05-11 — Domain-allowlist constraint surfaced when first non-default-domain directive (`cic_ls_store_setup_2026-05-11.md` targeting `app.lemonsqueezy.com`) was blocked at pre-flight. Skill updated with boundaries addendum above. Verifier report at `~/Desktop/8ball/controllers/verifier_report_ls_store_blocked_2026-05-11.md`.
 - 2026-05-12 — Preamble updated from "v0.22 extension (proposed)" to "v0.24 extension" as part of the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Sibling role docs landed: `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`. Index doc `AGENTS.md` + platform notes `PLATFORMS.md` shipped alongside. The role doc's substance was controller-verified locally against the authored state from the prior session to be unchanged in this cycle; only the preamble citation reference and this audit entry were touched. (The file was previously untracked, so this claim is not independently auditable from git history — controller-verified locally is the audit trail.)
+- 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added no-strategic-synthesis bullet to Boundaries (Clause 1, **L50** = `CiC-scope-expansion-into-strategic-content`, promoted at chat-15 close on 2 sightings — chat-13 firing + chat-15 verifier firing #1); added "CiC directive template — standing clauses" H2 with downstream DO-NOT clause (Clause 3, L50 directive-template pair to Clause 1) and upstream-diagnostic gate (Clause 7, chat-14 L-candidate `controller-content-seed-defaults-mainstream` pair to controller.md content-seed routing Procedure 5 + orchestrator.md Procedure 6 register-alignment diagnostic). No DOCTRINE touch this cycle. Sibling clauses landed in same cycle: `controller.md` Procedure 5 (content-seed routing); `orchestrator.md` Procedure 6 (register-alignment diagnostic) + Procedure 7 (paper-design surface sanity check, **L49** = `paper-design-routing-errors`); `PLATFORMS.md` CiC per-tab scope subsection (Clause 2). Inspector sketch (`~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md`) inherits the no-strategic-synthesis boundary; sketch updated in-place per chat-15 mitigation note (not a chat-1 authoring decision).
