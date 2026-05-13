@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-13 — IN-FLIGHT: agents/ L-mitigation cycle — c13-c14-c15 bundle
+## 2026-05-13 — SHIPPED: agents/ L-mitigation cycle — c13-c14-c15 bundle
 
-**Status:** IN-FLIGHT on branch `agents-l-mitigations-c13-c14-c15` (created from main HEAD `03728ce`). Pre-merge journal entry per chat-9 codified discipline (IN-FLIGHT → SHIPPED + live SHA on post-merge state-fill).
+**Status:** SHIPPED 2026-05-13 at squash-merge `c2a8c2b` (PR #24, 5 commits collapsed). State-fill commit on main flips IN-FLIGHT → SHIPPED + adds live SHA per chat-9 codified discipline. PR #23 retroactive entry bundled into this state-fill per chat-16 handoff item 5 recommendation (a).
 
 **Cycle:** absorb three L-source findings from chats 13–15 into `agents/*.md` role docs + one out-of-`agents/` inspector-sketch update. No DOCTRINE touch this cycle (per §10 v0.24 scope codification — agents/ content changes don't fire the §10 footnote / lineage track). 8 clauses across 5 files.
 
@@ -35,13 +35,44 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Audit return target:** `~/Desktop/8ball/audits/codex_agents_l_mitigations_c13_c14_c15_response_2026-05-13.md` per §10 standing pre-merge audit pattern. Codex Procedure 4 (doctrine-only audit) applies — this cycle's only deliverables are `agents/*.md` content + an out-of-repo sketch edit. No DOCTRINE.md / `core/` / shipped-surface diff.
 
-**Live SHA:** `MERGE_SHA_TBD` (state-fills post-merge per chat-9 codified IN-FLIGHT → SHIPPED discipline).
+**Live SHA:** `c2a8c2b` (PR #24 squash-merge, 5 commits collapsed: `24aa8ba` verifier+PLATFORMS / `7b73801` controller+orchestrator / `92f694d` journal IN-FLIGHT / `567282a` orchestrator pre-audit refinement / `0a679b7` codex hook 6 P2 absorb).
 
 **Lessons / discipline:**
 - Bundle absorbed 2 promoted Ls (**L49** + **L50**, each at 2 sightings) + 1 L-candidate (chat-14 `controller-content-seed-defaults-mainstream`, 1 sighting, mitigated pre-promotion per operator decision to absorb the mitigation early rather than wait for sighting #2). Pre-promotion mitigation is the rarer shape; standard pattern is mitigate-on-promotion.
 - Procedure 7 (paper-design sanity check) self-check fired on its own brief during chat-15 authoring; refined assertion-vs-meta-discussion distinction is chat-15 learning, codified inline.
 - gh `--delete-branch` L mitigation pulled forward: CC worktree (`focused-morse-8fbe06`) removed at chat-16 pre-audit refinement pass rather than post-merge, since orchestrator refinement edits needed the branch checked out in the main worktree. Post-merge `git ls-remote --heads origin` verify still required regardless of merge mechanism.
 - Orchestrator pre-pass on CC output (this cycle): operator delegation prompted a refinement commit before firing Codex Procedure 4 audit — plugged L49/L50 numbers, fixed L50 sighting-count framing (CC followed brief which predated chat-15 close 2-sighting state), added chat-7 L49-candidate disambiguation. Net: cleaner audit surface for Codex, less P2/P3 polish-noise in the audit response.
+- **Post-chat-16 absorb cycle (chat between handoff and chat-17):** Codex Procedure 4 audit returned **P1 overall, PASS 11 / P2 1 / P1 1 / P0 0**. Hook 4 P1 (Inspector sketch boundary verbatim + L50 promoted framing at lines 25/172 of `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md`) absorbed on disk (out-of-repo session doc, not in PR commit chain per L49-candidate discipline). Hook 6 P2 (orchestrator.md Procedure 6 step-count brief↔code mismatch — brief said "5-step Procedure" but procedure had 4 numbered steps) absorbed via in-PR commit `0a679b7` using codex Option A (add explicit step 5 codifying the verifier paste-relay + controller approval handoff that previously lived buried in the Reasoning paragraph). Step 4 now scopes cleanly to directive drafting; step 5 closes the loop.
+- **Codex response file reconstruction discipline gap (chat-17 cleanup):** the absorb cycle ran in a separate chat which exhausted its budget before persisting the Codex paste to disk. chat-17 reconstructed a summary-shape response file at `~/Desktop/8ball/audits/codex_agents_l_mitigations_c13_c14_c15_response_2026-05-13.md` anchoring verdict + hook 4 + hook 6 dispositions from prior chat context + commit `0a679b7` message. Verbatim Codex per-hook output on the 11 PASS hooks is not recoverable. Future cycles: save the Codex paste to disk BEFORE in-chat absorb work. L48-adjacent: persist before process.
+- **PR merged via GitHub UI before terminal merge command ran (chat-17, L48-adjacent sighting):** chat-17 prepped + queued the `gh pr merge 24 --squash --delete-branch` sequence in pbcopy; operator pasted into terminal but the PR was already merged via GitHub UI (gh returned `! Pull request appleeatsapples-lang/8ball#24 was already merged`). The downstream `--delete-branch` cleanup proceeded in cleanup-mode. No harm — the audit-cleared signal was already explicit on disk via the reconstructed response file pre-merge — but the merge-out-of-band shape is worth tracking as a near-sibling of L48 (CI-green-to-merge windows). Sighting #1 of this near-sibling pattern.
+- **gh `--delete-branch` L sighting (chat-17, sighting #N where N≥4):** branch `agents-l-mitigations-c13-c14-c15` survived on origin post-merge despite gh's `✓ Deleted remote branch` claim. Verified via `git ls-remote --heads origin` showing the branch still present at `0a679b7`. Cleaned manually via `git push origin --delete agents-l-mitigations-c13-c14-c15`. Same generalized lesson as chat-9, chat-10, chat-16: gh's `--delete-branch` is a leaky abstraction over a 3-leg cleanup; always verify with `git ls-remote --heads origin` post-merge and explicit-delete on survivors. The codified discipline is working as intended — verification caught the failure, cleanup was routine.
+
+## 2026-05-13 — SHIPPED: tracked-content drift fix — L49 corpus sweep (PR #23, retroactive entry)
+
+**Status:** SHIPPED 2026-05-13 at squash-merge `03728ce` (PR #23). Retroactive journal entry — PR #23 shipped without a journal entry at the time (chat-16 discipline gap, flagged in chat_16_to_chat_17_handoff.md item 5). Bundled into the PR #24 state-fill commit per handoff recommendation (a) — one commit covers both. The discipline rule remains: every ship cycle gets a journal entry; comment-only line edits still count as cycles.
+
+**Cycle:** Three line-edits closing L49 backward-cleanup drift (paper-design routing errors as paper equivalent of aspirational doctrine — promoted at chat-15 close). Tracked content scanned for inherited L49-shape vocabulary referencing non-existent doctrine subclauses (the chat-12 v0.3.1 parking doc framing "§6.5/§7.1 amendment" referenced subclauses that don't exist; the routing-error was inherited into the Friday rule-kill review pre-read, becoming the L49 second sighting).
+
+**Changes (3 line edits, comment-only):**
+- T1 sweep: tracked content referencing `§6.5` / `§7.1` as if they were live doctrine subclauses — corrected to point at the actual β-idempotence location in DOCTRINE §7 stage 6 test invariant.
+- T2 sweep: secondary inherited references in same vocabulary cluster.
+- Line-4 ambiguity fix: one trailing wording disambiguation.
+
+No code touch. No DOCTRINE touch. No surface change. Comment-level / parking-doc-level edits only.
+
+**Gates:**
+- Tests: 586/586 unchanged.
+- Local PII audit: clean.
+- index.html: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no shipped-surface change.
+
+**Audit return:** `~/Desktop/8ball/audits/codex_spot_audit_pr23_drift_fix_2026-05-13.md` — Codex Procedure 1 spot-audit returned **PASS 3/3**, no new drifts surfaced.
+
+**Live SHA:** `03728ce` (PR #23 squash-merge).
+
+**Lessons / discipline:**
+- Comment-only / wording-fix cycles still earn journal entries — L49 backward-cleanup is a real cycle even though no shipped surface moved. The chat-16 omission was the failure mode; the chat-17 retroactive bundle is the correction. Standing rule re-confirmed: journal entry per cycle, regardless of diff size or surface impact.
+- **gh `--delete-branch` L sighting (PR #23):** operator merged PR #23 via GitHub UI (browser flow rather than terminal `gh`); branch survived on origin post-merge; cleaned manually in chat-16. Captured retroactively in this entry; another firing of the generalized leaky-3-leg-abstraction lesson — failure mode is independent of merge mechanism (CLI, UI, hybrid all produce the same survivor pattern when `--delete-branch` doesn't atomically clear all three legs).
 
 ## 2026-05-13 — SHIPPED: DOCTRINE v0.27 — T1 lane codification (Procedure 6)
 
