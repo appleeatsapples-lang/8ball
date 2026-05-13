@@ -1,7 +1,7 @@
 // 8ball / tests / payments_markup.test.js
 //
 // v0.3.0 paid-surface markup + disclosure invariants (DOCTRINE §1
-// v0.22 / §6 / §10.2). Forward-ports a subset of brief §11.2 from
+// v0.22 / §6 / brief §10.2). Forward-ports a subset of brief §11.2 from
 // step 9 → step 7 per codex pre-merge audit hook 9 P1: bring
 // markup/static or thin DOM smoke tests forward before piling on
 // step 7 copy/UI work.
@@ -232,7 +232,7 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
   });
 
   // try_another_behavior ─────────────────────────────────────────────
-  // β try-counting (DOCTRINE §6.8 / §7.1): tryAnotherBtn clears the
+  // β try-counting (test invariant per DOCTRINE §7 stage 6, not §-codified): tryAnotherBtn clears the
   // form DOM, NOT localStorage. Re-entering the same (name, dob)
   // remains idempotent. The "forget this device" path is the only
   // surface that calls clearProfile.
