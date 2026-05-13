@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-13 — IN-FLIGHT: DOCTRINE v0.27 — T1 lane codification (Procedure 6)
+## 2026-05-13 — SHIPPED: DOCTRINE v0.27 — T1 lane codification (Procedure 6)
 
-**Status:** IN-FLIGHT pending PR merge + state-fill commit.
+**Status:** SHIPPED 2026-05-13 at squash-merge `a76320e` (PR #22). State-fill commit on main flips IN-FLIGHT → SHIPPED + adds live SHA in both journal and 8BALL.md §10 per chat-9 codified discipline.
 
 **Cycle:** T1 tentative-lane PROMOTION codification. Three clean firings (chat-8 28-drift inaugural / chat-9 tier-1 re-audit / chat-10 tier-2 re-audit) cleared all four promotion criteria by chat-10 close. This cycle absorbs the lane as a real auditor procedure.
 
@@ -23,7 +23,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Audit return target:** `~/Desktop/8ball/audits/codex_v027_audit_response_2026-05-13.md` per §10 standing pre-merge audit pattern (drift-sweep cycle's first invocation of its own newly-codified Procedure 6 happens later; this cycle uses the existing Procedure 4 doctrine-only audit pattern).
 
-**Live SHA:** `<SQUASH_SHA>` — filled by post-merge state-fill.
+**Live SHA:** `a76320e` (PR #22 squash-merge, 3 commits collapsed). Codex Procedure 4 audit returned **PASS 7 / P3 0 / P2 0 / P1 1 / P0 0**; Hook 6 P1 (Procedure 6 verdict-format internal inconsistency — example brief omitted PASS while footnote + state entry claimed `PASS + severity ladder`) absorbed pre-merge in `fa7c615` via two-mode codification (Mode A initial drift-finding sweep, P0–P3 only / Mode B re-audit on closed drifts, PASS + severity ladder + evidence/reasoning/recommendation) per codex Option B recommendation. Audit response saved at `~/Desktop/8ball/audits/codex_v027_audit_response_2026-05-13.md`. gh `--delete-branch` L did NOT fire this cycle — squash-merge cleared all three legs; origin-state verification post-merge confirmed clean (only `main` on origin).
 
 **Lessons / discipline:**
 - T1 promotion the orchestrator-side codification mirror of the chat-9 `gh --delete-branch` L promotion (both: 3-firing-track-record → real-doc codification).
