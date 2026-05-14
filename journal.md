@@ -2,6 +2,32 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 sub-decision #6 lock (chat-13 retroactive)
+
+**Status:** state-fill — no surface, no code, no doctrine touch. Closes off-repo-ahead-of-on-repo drift: sub-decision #6 (v0.3.1 lateral facet taxonomy) was locked chat-13 (2026-05-13) in `~/Desktop/8ball/sessions/v0.3.x_shake_again_facet_reroll.md` + `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` + `~/Desktop/8ball/sessions/v0.3.1_taxonomy_trial_run_aries_rat.md`, but the corresponding `8BALL.md` §11.11 row (last updated chat-12) was never refreshed. chat-18 caught the drift after operator asked to close v0.3.1 open items; orchestrator initially mis-framed #6 as still open quoting stale §11.11; cross-check against design docs surfaced the chat-13 lock + work product, operator confirmed stick-with-chat-13 over re-lock.
+
+**Cycle:** three surgical edits to `8BALL.md` §11.11 reflecting chat-13 lock + trial-run + ship-gate (a) closure.
+
+**Changes:**
+- `8BALL.md` §11.11 design-lock framing — "Design-locked chat-12" → "Design-locked chat-12 (2026-05-13); taxonomy locked chat-13 (2026-05-13)"; parking-doc layers extended chat-6 + chat-12 → chat-6 + chat-12 + chat-13; calibration trial-run file `~/Desktop/8ball/sessions/v0.3.1_taxonomy_trial_run_aries_rat.md` referenced; stale line counts on parking doc + brief dropped (out-of-date by chat-13 expansion).
+- `8BALL.md` §11.11 sub-decisions status — "4 of 5 listed sub-decisions resolved ... one open operator-taste decision — sub-decision #6 lateral facet taxonomy (recommended lock: ... ; alternatives: ...)" → "all 5 listed sub-decisions resolved ... **Sub-decision #6 (lateral facet taxonomy, added chat-12) LOCKED chat-13 2026-05-13 = outward / inward / returning**" with Facet I/II/III gloss + brand-fit + calibration trial-run cells `aries/i` + `cancer/xlii` + authoring-risk pre-flag for ChatGPT brief + `habit` single-string confirmation (432-line authoring scope).
+- `8BALL.md` §11.11 ship-gate — (a) marked ✅ closed (chat-13); (b) LS Live + (c) ≥5 paid Live purchases remain open.
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged (state-row edit; all new vocabulary already in tracked design docs).
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `b13df7c` (direct-to-main state-fill commit, no PR — pattern matches `eaead15` PR #24 state-fill + `c45c722` chat-12 §11 housekeeping).
+
+**Lessons / discipline:**
+- **Off-repo-ahead-of-on-repo state drift, sighting #1.** Refinement of L4 (files canon / memory not) for the layered-files case: when a state row references off-repo design docs, the design docs win on substance; the state row needs an explicit catch-up edit to stay canonical. Orchestrator default: when 8BALL.md state references a design doc, cross-check the design doc before treating the state row as canonical for downstream questions. Observation only; not L-promoted (single sighting).
+- **Operator-prompted catch-shape worked.** "let's close [open items]" → orchestrator quotes stale state row → operator pick exposes contradiction with off-repo reality → orchestrator surfaces drift instead of executing blind. Blind-execution would have torn up chat-13 work product (trial-run + brief §1.C voice register + §1.C amendment draft, ~half a chat of paper-work). The recovery shape is: read the design doc the row points to, before posing the question, not after.
+- **Chat-numbering correction filed inline.** chat-18 first response misquoted "Last conversation closed at chat-15" — actual sequence per journal is chat-15 (agents L-mitigation brief) → chat-16 (PR #24 ship + state-fill) → chat-17 (PR #23 retroactive + audit response reconstruction). This is chat-18. Confident-prior misread on the chat counter; corrected in this entry.
+
+
+
 ## 2026-05-13 — SHIPPED: agents/ L-mitigation cycle — c13-c14-c15 bundle
 
 **Status:** SHIPPED 2026-05-13 at squash-merge `c2a8c2b` (PR #24, 5 commits collapsed). State-fill commit on main flips IN-FLIGHT → SHIPPED + adds live SHA per chat-9 codified discipline. PR #23 retroactive entry bundled into this state-fill per chat-16 handoff item 5 recommendation (a).
