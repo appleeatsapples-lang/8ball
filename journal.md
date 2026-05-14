@@ -2,6 +2,29 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 ship-gate (b) ✅ closure (LS Live unlock)
+
+**Status:** state-fill — no surface, no code, no doctrine touch. Closes second of three v0.3.1 ship-gates: LS Live unlock from identity verification, confirmed via LS dashboard snapshot 2026-05-14 19:02 KSA (`~/Desktop/8ball/audits/ls_dashboard_snapshot_2026-05-14.md`) — no identity-verification banner, account Live, product `8 ball — 3 tries · tier 1` Published at $3.00, 0 sales. Banner-state per chat-13 dashboard read (2026-05-13) was identity verification; resolved 2026-05-14.
+
+**Cycle:** single surgical edit to `8BALL.md` §11.11 ship-gate (b) line. Pattern matches chat-18 (a)-closure state-fill (`bf89317`).
+
+**Changes:**
+- `8BALL.md` §11.11 ship-gate — (b) marked ✅ closed (2026-05-14) with citation to LS dashboard snapshot + dashboard-row detail (Live, no banner, Published at $3.00). (a) ✅ closed (chat-13, state-filled chat-18 at `bf89317`). (c) ≥5 real paid Live purchases remains open (0/5).
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** TBD (filled in follow-up commit per chat-18 SHA-discipline inheritance).
+
+**Lessons / discipline:**
+- **SHA-fill discipline (chat-18 inheritance applied).** Live SHA written as TBD in this commit; follow-up commit fills the actual SHA. No `--amend` on the state-fill commit — that was the chat-18 trip-up that needed `abb5539` to clean up. Standing rule from chat-18: either leave the placeholder until after the final commit (git log is canonical), or fill via a separate follow-up commit, not via pre-push amend.
+- **Off-repo-ahead-of-on-repo state drift — possible sighting #2.** chat-18 logged sighting #1 (refinement of L4: when an `8BALL.md` state row references off-repo design docs, the design docs win on substance; row needs explicit catch-up edit). This cycle has a similar shape: LS dashboard evidence moved 2026-05-14 (account Live) while §11.11 row still cited the 2026-05-13 banner-state. Same pattern (state row out of sync with off-repo reality), or distinct sub-shape (evidence-tracking vs decision-canonicalization)? Operator's call on framing. Conservative-default read: same pattern, L-promotion path on second sighting per established discipline. Orchestrator working-default for chat-19+: when any §11 state row cites an off-repo source (design doc OR evidence file) with a dated reference, cross-check the source's current state before treating the row as canonical for downstream questions.
+- **Single-edit cycle below the journal-entry threshold debate avoided.** This is one line. PR #23 retroactive entry from chat-17 codified the standing rule: every ship cycle gets a journal entry, regardless of diff size (comment-only line edits counted). State-fill cycles are even less ambiguous — they exist to close drift between on-repo state and reality, and the journal entry IS the closing-record artifact. No debate; entry filed.
+
+
 ## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 sub-decision #6 lock (chat-13 retroactive)
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Closes off-repo-ahead-of-on-repo drift: sub-decision #6 (v0.3.1 lateral facet taxonomy) was locked chat-13 (2026-05-13) in `~/Desktop/8ball/sessions/v0.3.x_shake_again_facet_reroll.md` + `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` + `~/Desktop/8ball/sessions/v0.3.1_taxonomy_trial_run_aries_rat.md`, but the corresponding `8BALL.md` §11.11 row (last updated chat-12) was never refreshed. chat-18 caught the drift after operator asked to close v0.3.1 open items; orchestrator initially mis-framed #6 as still open quoting stale §11.11; cross-check against design docs surfaced the chat-13 lock + work product, operator confirmed stick-with-chat-13 over re-lock.
