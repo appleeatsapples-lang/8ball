@@ -17,7 +17,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** TBD (filled in follow-up commit per chat-18 SHA-discipline inheritance).
+**Live SHA:** `2d25c65` (direct-to-main state-fill commit, no PR — pattern matches chat-18 `bf89317` + `eaead15` PR #24 state-fill + `c45c722` chat-12 §11 housekeeping).
 
 **Lessons / discipline:**
 - **SHA-fill discipline (chat-18 inheritance applied).** Live SHA written as TBD in this commit; follow-up commit fills the actual SHA. No `--amend` on the state-fill commit — that was the chat-18 trip-up that needed `abb5539` to clean up. Standing rule from chat-18: either leave the placeholder until after the final commit (git log is canonical), or fill via a separate follow-up commit, not via pre-push amend.
