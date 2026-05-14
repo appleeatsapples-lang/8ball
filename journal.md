@@ -19,7 +19,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `b13df7c` (direct-to-main state-fill commit, no PR — pattern matches `eaead15` PR #24 state-fill + `c45c722` chat-12 §11 housekeeping).
+**Live SHA:** `bf89317` (direct-to-main state-fill commit, no PR — pattern matches `eaead15` PR #24 state-fill + `c45c722` chat-12 §11 housekeeping).
 
 **Lessons / discipline:**
 - **Off-repo-ahead-of-on-repo state drift, sighting #1.** Refinement of L4 (files canon / memory not) for the layered-files case: when a state row references off-repo design docs, the design docs win on substance; the state row needs an explicit catch-up edit to stay canonical. Orchestrator default: when 8BALL.md state references a design doc, cross-check the design doc before treating the state row as canonical for downstream questions. Observation only; not L-promoted (single sighting).
