@@ -2,6 +2,27 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## Friday rule-kill review — 2026-05-15 — addendum (post-review items)
+
+**Status:** Addendum to the §13 review at `012f59b` (19 KEEP / 0 KILL / 0 AMEND-now / 1 AMEND-flagged-for-next-Friday). No re-review of the verdict; locks the trail for two doctrine-shape items that surfaced *after* the review closed earlier today, so the 2026-05-22 pre-read author finds them pre-staged rather than fresh.
+
+**Cycle:** journal-entry-only addendum, direct-to-main commit, no PR, no audit.
+
+**Items pre-staged for 2026-05-22:**
+
+1. **§12 wording-stale ("trait pool" → "cards")** — already flagged by the chat-20 review itself; standing decision is bundle with next structural pass per §13 ("don't spin a cycle on a single-word fix"). Natural carrier: v0.3.1 doctrine amendment cycle (paste-staged at `~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md`, Cycle C of chat-21) — bump v0.27 → v0.28 absorbs §12 as a sibling edit.
+
+2. **Live-surface-scan-gate doctrine question** — surfaced chat-21 Cycle G; documented in the RUM-closure journal entry at `7b875f0` with three mitigation candidates ((a) §8 post-merge curl-grep ritual, (b) GitHub Actions step against live URL on Netlify deploy webhook, (c) CI step against built artifact pre-Netlify-ship). L-watch at 1 sighting; two-sighting rule applies before L promotion or doctrine amendment. Carry for inspection at 2026-05-22; promote on second sighting.
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- No DOCTRINE touch, no `core/`, no `ui/`, no `content/`, no `tests/`, no shipped-surface change.
+
+**Lessons / discipline:**
+- **Addendum-as-trail-lock pattern.** When new doctrine-shape items surface *after* a Friday review closes but *before* the next one, the cheapest discipline is a same-day addendum that pre-stages them for the next pre-read — cheaper than letting them float as journal-distributed L-watches that the next pre-read has to rediscover by searching. ~10-line addendum, no cycle weight, lock-the-trail value high.
+
+
 ## 2026-05-15 — SHIPPED: §2/§5 P1 live-surface RUM violation closed — Netlify RUM disabled (L51 Procedure 8 first real-world firing)
 
 **Status:** SHIPPED 2026-05-15 at direct-to-main commit (state-fill pattern; no PR; dashboard-config change scope; no tracked-content touch). Closes the chat-21 Codex-surfaced P1: a Netlify-CDN-injected RUM script (`netlify-rum-container` / `cwv-token` / `/.netlify/scripts/rum`) was being injected on every page served from the CDN, tripping §2 (no telemetry / no third-party scripts) + §5 (no out-of-band data flow). Tracked `index.html` (1455 lines) was always clean — the injection lived at Netlify's serve layer, invisible to `tests/privacy_scan.test.js`. No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged).
