@@ -33,7 +33,7 @@ Sightings tally:
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `TBD` (direct-to-main commit, no PR; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+**Live SHA:** `47e8908` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
