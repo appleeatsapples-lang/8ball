@@ -2,6 +2,55 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: chat-25 v028 Operations byte-verification (L52-candidate closure for this draft)
+
+**Status:** state-fill — no surface, no code, no DOCTRINE touch. Verification pass on the v028 Operations section resync that landed off-repo earlier this date (file mtime `~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md` = 2026-05-15 21:19 KSA, between chat-24 handoff write at 20:51 and chat-25 bootstrap at 21:02). The resync's top-note self-flagged an L52-candidate (`self-audit assertion ahead of direct evidence` — chat-21 Procedure 7 grep verified § references resolve but did NOT byte-verify `old_string` blocks against DOCTRINE.md). Chat-25 inaugural substantive turn closes the L52-candidate concern for this draft by running the byte-verification for real.
+
+**Cycle:** lightweight orchestrator-side state-fill — verification only, no source-of-truth edits. Direct-to-main commit + SHA-fill follow-up per chat-18 inheritance.
+
+**What was verified:**
+
+All 10 `edit_block` operations in the v028 draft (`Op 1 / Op 2 / Op 2b / Op 3 / Op 4 / Op 4b / Op 4c / Op 4d / Op 5 / Op 6` per the chat-25-resync 10-op post-merge count) have `old_string` anchors that byte-match DOCTRINE.md v0.27 (live HEAD `ccfe16b`). Per-op grep results:
+
+- **Op 1** — `Calc-version remains v1.` → `## §2. What this is NOT` block at lines 43→45, unique.
+- **Op 2** — `` `{low, mid, high}` brackets `` at line 92, unique.
+- **Op 2b** — `` exactly one tracked file, `content/cards.v1.full.js`, is permitted to contain card-content strings `` at line 92, unique.
+- **Op 3** — `Added v0.3.0.` + blank line + `Nothing else.` span at lines 134→136, unique (the `eight_ball_pending_profile_v1` bullet + blank line + paragraph break).
+- **Op 4** — `note.{low, mid, high}` at line 207, unique.
+- **Op 4b** — `` verifies `content/cards.v1.full.js` parses as an ES module exporting `CARDS` with exactly 144 entries `` at line 207, unique.
+- **Op 4c** — `the deck's content strings` at line 207, unique (short anchor used intentionally per the chat-25-resync clause d.2-second find-anchor correction, since the chat-12 paraphrase `BANNED_VOICE_REGISTER scan against the deck's content strings` does not exist verbatim in DOCTRINE — missing backticks around `BANNED_VOICE_REGISTER` + missing parenthetical context).
+- **Op 4d** — `` scans `content/cards.v1.full.js` for the same banned patterns `` at line 209, unique.
+- **Op 5** — `` replay-attack `no-pending` branch, same-profile idempotence, pending-profile round-trip). `` at line 212, unique.
+- **Op 6** — `**doctrine version:** 2026-05-13 · v0.27` paragraph at line 319 + truncated lineage entry `- v0.26: 2026-05-12` at line 320, unique span. (The `old_string` ends mid-line at "2026-05-12" without trailing parenthetical content; `edit_block` substring semantics preserve the trailing content after replacement. Confirmed safe.)
+
+**Verdict:** 10/10 byte-match. All 10 ops will fail-clean if applied — no silent corruption risk. L52-candidate concern from the v028 top-note **closed for this draft.** The L52 discipline pattern itself (verify byte-match at draft time, not at implementer fail-clean fallback time) remains active for future drafts.
+
+**Why on-repo journal entry (not v028 file top-note update):**
+
+The v028 file's L52-candidate flag in its top-note serves dual purpose: (1) per-draft concern record + (2) discipline-pattern documentation. The byte-verification closes (1) for this specific draft; (2) is preserved by leaving the flag in place as a documented L-candidate awaiting promotion. The verification audit trail belongs in the journal (canonical for on-repo state changes + lesson capture), not in the off-repo draft.
+
+**Changes:**
+
+- This journal entry (on-repo).
+- No v028 file edit (the file's resync work was complete prior to this chat's bootstrap; verification is downstream of the resync, not a re-edit of it).
+- No DOCTRINE.md edit (verification is read-only).
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** _(placeholder — direct-to-main commit, SHA fills in follow-up per chat-18 inheritance discipline)._
+
+**Lessons / discipline:**
+
+- **Off-repo work product done outside-chat-session needs in-session verification before being treated as trusted.** The v028 Operations resync landed via off-chat-session edit (mtime 21:19 KSA, ~10 minutes before chat-25 bootstrap); whether by operator-direct or by parallel chat-25 instance is undetermined and irrelevant. The file's own L52-candidate flag was the signal to verify, not skim-and-trust. Pattern note: **trust-by-default scales poorly across chat-session boundaries** — when a file's mtime falls between two known chat-session boundaries, treat the contents as needing verification rather than as inherited state. The L52 discipline pattern generalizes here.
+- **Verification-only cycles are valid state-fill content.** Chat-24 established the pattern that orchestrator self-audit + absorb cycles produce journal entries; this cycle is even smaller — just verification of pre-existing claims — but still warrants journal capture because the audit trail (10/10 byte-match against DOCTRINE.md v0.27 live HEAD `ccfe16b`) is the value, and chat history doesn't survive past the session. Pattern note: **verification work, even when it produces no source-of-truth edits, is journal-worthy when it closes a flagged risk** — the L52-candidate concern closure is the deliverable.
+- **`edit_block` substring semantics admit mid-line termination of `old_string`.** Op 6's `old_string` ends mid-line at `- v0.26: 2026-05-12` without the trailing parenthetical content present in DOCTRINE.md. The replacement leaves the trailing content (`(drift-sweep tier-2 cleanup: ...)`) intact because `edit_block` matches substrings, not whole lines. This is correct behavior + relied-upon by Op 6's design (preserves the v0.26 lineage entry while inserting a new v0.27 entry between v0.28 and v0.26). Pattern note worth filing: **mid-line `old_string` termination is supported and safe when the boundary character is whitespace-separated from preserved-content**, but reviewers should sanity-check the resulting line for orphan-fragment issues; this cycle the resulting line `- v0.27: 2026-05-13 (...) (drift-sweep tier-2 cleanup: ...)` would be wrong (two parentheticals on one line). On re-inspection: Op 6 `new_string` ends with `- v0.26: 2026-05-12` followed by nothing, so the result after replacement is `- v0.26: 2026-05-12 (drift-sweep tier-2 cleanup: ...)` — single parenthetical, correct. The risk window exists but this draft is clean.
+
+
 ## 2026-05-15 — STATE-FILL: chat-24 forward-looking drafts (Friday 2026-05-22 pre-stage + LS rejection-response preemptive)
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Two forward-looking off-repo drafts written during chat-24 wait-state-productive marathon close. Neither touches repo-tracked state; journal entry is the on-repo acknowledgment that the artifacts exist.
