@@ -111,7 +111,36 @@ The grep produces candidates; the orchestrator pass distinguishes assertion from
 
 **Boundaries.** Procedure 7 is read-only verdict on the paper-design surface. It does not amend DOCTRINE.md when a § reference is missing; if a surface cites a § that should exist but doesn't, the orchestrator surfaces it as a doctrine-amendment candidate to the controller, separate from this procedure's output. Procedure 7 catches the assertion → it doesn't act on the assertion's underlying claim.
 
+### 8. Multi-step external-process closure verification (added chat-21)
+
+**Triggered when.** Marking any multi-condition gate or multi-step external-process as ✅ — vendor onboarding (LS / Stripe / PayPal), tax / payment / KYC activation, dashboard-state-vs-flow-state reads, doctrine ship-gates with sub-conditions, paper-design status closures, or any state-row update that depends on >1 sub-state being confirmed.
+
+**Procedure.**
+
+1. **Enumerate** all known sub-steps explicitly before any closure call. If the count of sub-steps is uncertain, that's the first finding — surface the uncertainty before continuing.
+2. For each sub-step, **identify the canonical direct-evidence source** — the surface where that step's state is authoritative (e.g. LS Settings → General → Store activation for activation state, not the dashboard sidebar; the design doc itself for design-decision state, not the §11 row referencing it).
+3. **Verify each sub-step against its direct-evidence source independently.** If only an inferred signal is available (a related-but-not-canonical banner state, a dashboard read with no Test/Live indicator, a §11 row citing an off-repo doc), flag the gap explicitly rather than infer-and-fill.
+4. **Only declare ✅** when all sub-steps are confirmed against direct evidence. Partial verification is "OPEN with N/M sub-steps cleared" — never ✅.
+
+**Reasoning / sightings.**
+
+L51 = `closure-discipline-on-multi-step-external-processes` — orchestrator-side analog of L48 (controller-side merge-before-audit-signal). Promoted chat-21 2026-05-15 on a 4-sighting basis documented in `journal.md`:
+
+- **Sighting #1** chat-18: sub-decision #6 (design-doc-done ≠ state-row updated) — closing on the design-doc completion as if it were the state-row update. Originally framed as "off-repo-ahead-of-on-repo state drift sighting #1"; subsumed under L51 as the internal-multi-step variant.
+- **Sighting #2** chat-19: dashboard-evidence-moved ≠ state-row updated — LS dashboard moved 2026-05-14 (account Live), §11.11 row cited 2026-05-13 banner-state. Originally framed as off-repo-drift sighting #2; subsumed under L51.
+- **Sighting #3** chat-20: identity-verification-cleared ≠ Live-unlocked — LS activation has 4 sub-steps (questionnaire / identity verification / KYC-KYB staff review / `Copy to Live Mode`); chat-19 (b)-closure misread Step 2 clearance as full-activation closure. Required chat-20 state-correction commits `1344c2e` + `b854d5d` to reopen (b).
+- **Sighting #4** chat-20 (same chat): $21-dashboard-read ≠ Test/Live-mode-confirmed — LS dashboard has no implicit Test/Live indicator; orchestrator initial read of "$21 / 7 orders" as Live revenue was the same multi-step-signal misread shape applied to dashboard data rather than activation flow.
+
+In every sighting, the failure shape was identical: **inferring whole-state closure from a partial-state signal**, where the partial-state signal was related enough to feel canonical but not actually authoritative for the whole. The mitigation is enumerate-then-verify-each-against-direct-evidence.
+
+**Pairs with.** L48 (controller-side, codified as `agents/controller.md` boundaries + the post-PR-#24 explicit-audit-cleared discipline): controller waits for explicit audit-cleared signal before merge. L51 is the orchestrator-side equivalent: orchestrator waits for explicit direct-evidence closure on each sub-step before declaring a gate ✅. Together they form a matched pair — each role-type has its own closure-discipline failure mode, and each procedure codifies the role-specific mitigation.
+
+**Subsumes.** Off-repo-ahead-of-on-repo state drift L-candidate (chat-18 + chat-19 sightings) is reframed as the internal-multi-step-process variant of L51 — the "step" pairs being (design-doc-content, §11-row-text) or (canonical-state-on-dashboard, §11-row-text). Both fit the multi-step closure umbrella; the off-repo-drift framing was the narrower observation, L51 is the broader pattern.
+
+**Boundaries.** Procedure 8 is verdict + enumeration discipline; it does not block declarations that the controller explicitly authorizes ("close it anyway, I'll reopen if wrong" is a controller call and overrides this procedure). It does enforce the discipline that the orchestrator does not autonomously declare a multi-step gate closed without enumerating + verifying. When an enumeration produces only inferred signals for some sub-steps, the procedure's output is a recommendation to the controller to either accept the partial-closure with explicit risk acknowledgment or wait for direct evidence.
+
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Companion to verifier.md (created 2026-05-11). Codename `كن فيكون` / `kun fayakun` is operator-coined; see `AGENTS.md` for the naming note.
 - 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added Procedure 6 (Register-alignment diagnostic for content seeds) per chat-14 L-candidate `controller-content-seed-defaults-mainstream` (1 sighting, mitigation queued pre-promotion; pairs with `controller.md` Procedure 5 as the closed-loop upstream half + with `verifier.md`'s upstream-diagnostic-gate clause on CiC directives). Added Procedure 7 (Paper-design surface sanity check) per chat-15 promotion of **L49** = `paper-design-routing-errors` (chat-12 sighting #1 v0.3.1 parking doc §6.5/§7.1 routing error; chat-15 sighting #2 Friday rule-kill review pre-read inherited the same vocabulary). L49 assignment supersedes the chat-7 v0.24-cycle pre-allocation of "L49-candidate" to `agents-ahead-of-code-and-doctrine` (still 1 sighting, retains candidate status). Procedure 7 self-check refinement (assertion-vs-meta-discussion distinction) is chat-15 learning; the procedure ran on its own output. No DOCTRINE touch this cycle.
+- 2026-05-15 — chat-21 L51 promotion cycle. Added Procedure 8 (Multi-step external-process closure verification) per **L51** = `closure-discipline-on-multi-step-external-processes` (4 sightings: chat-18 sub-decision-#6 closure / chat-19 dashboard-evidence drift / chat-20 identity-verification ≠ Live-unlock / chat-20 $21-dashboard ≠ Test/Live-mode-confirmed). L51 is the orchestrator-side analog of L48 (controller-side merge-before-audit-signal); together they form the closure-discipline matched pair, each role-type with its own failure mode. L51 subsumes the previously-tracked "off-repo-ahead-of-on-repo state drift" L-candidate (chat-18 + chat-19 sightings) as the internal-multi-step variant. Lightweight orchestrator-controller cycle per agents/-content scope — no DOCTRINE touch, no Codex audit (v0.24 codification: agents/ content changes don't fire §10 footnote/lineage track), no PR. Direct-to-main state-fill commit pattern + SHA-fill follow-up.

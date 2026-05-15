@@ -2,6 +2,47 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — SHIPPED: agents/orchestrator.md Procedure 8 — L51 promotion (closure-discipline-on-multi-step-external-processes)
+
+**Status:** SHIPPED 2026-05-15 at direct-to-main commit (state-fill pattern; no PR, agents/-content scope per v0.24 codification). L51-candidate promoted to formal **L51** on 4-sighting basis. Procedure 8 codifies the orchestrator-side closure-discipline mitigation. No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged).
+
+**Cycle:** lightweight orchestrator-controller cycle. agents/-content changes don't fire §10 footnote/lineage per v0.24 codification, so no Codex Procedure 4 audit, no PR ritual. State-fill commit + SHA-fill follow-up per chat-18 inheritance discipline.
+
+**L51 framing:**
+
+**L51 = closure-discipline-on-multi-step-external-processes** — orchestrator-side analog of L48 (controller-side merge-before-audit-signal). The failure shape across all four sightings was identical: **inferring whole-state closure from a partial-state signal**, where the partial-state signal was related enough to feel canonical but not actually authoritative for the whole.
+
+Sightings tally:
+- **Sighting #1** chat-18 (2026-05-14): sub-decision-#6 closure — design-doc-done ≠ state-row updated. Originally framed as off-repo-ahead-of-on-repo state drift sighting #1.
+- **Sighting #2** chat-19 (2026-05-14): LS dashboard moved 2026-05-14 (account Live) while §11.11 row still cited 2026-05-13 banner-state. Originally framed as off-repo-drift sighting #2.
+- **Sighting #3** chat-20 (2026-05-15): identity-verification-cleared misread as Live-unlocked. LS activation is 4 steps (questionnaire / identity / KYC-KYB review / Copy-to-Live-Mode); chat-19 (b)-closure on Step-2 clearance required chat-20 state-correction commits `1344c2e` + `b854d5d` to reopen.
+- **Sighting #4** chat-20 (same chat): $21-dashboard-read misread as Live revenue. LS dashboard has no implicit Test/Live indicator; orchestrator inferred Live from the dollar figure before reading the toggle state.
+
+**Subsumes:** the previously-tracked "off-repo-ahead-of-on-repo state drift" L-candidate (chat-18 + chat-19 sightings) becomes the internal-multi-step variant of L51 — the "step" pairs being (design-doc-content, §11-row-text) or (canonical-state-on-dashboard, §11-row-text). Both fit the multi-step closure umbrella; L51 is the broader pattern.
+
+**Pairs with:** L48 (controller-side, codified as `agents/controller.md` boundaries + post-PR-#24 explicit-audit-cleared discipline). Together L48 + L51 form the closure-discipline matched pair: each role-type has its own closure-discipline failure mode, each procedure codifies the role-specific mitigation. L48 says "controller waits for audit-cleared signal before merge"; L51 says "orchestrator waits for direct-evidence closure on each sub-step before declaring a gate ✅."
+
+**Changes:**
+- `agents/orchestrator.md` — Procedure 8 (Multi-step external-process closure verification) added after Procedure 7. Four-step procedure (enumerate / identify-direct-evidence-source / verify-each-independently / declare-✅-only-when-all-confirmed). Includes sightings tally, L48 pairing, off-repo-drift subsumption clause, and controller-override boundary.
+- `agents/orchestrator.md` — audit-history entry appended for chat-21 L51 promotion cycle.
+- This journal entry (chat-21 L51 promotion record).
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: clean.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `TBD` (direct-to-main commit, no PR; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **L promotion timing was 2 sightings overdue.** Standard discipline is 2 sightings → promote. L51 sat at 3 sightings by chat-20 close (operator-deferred for chat-21 framing call) and effectively 4 by the time the framing actually happened. The over-deferral cost a state-correction cycle (chat-20 (b)-reopen) that would have been caught at authoring time if Procedure 8 had already existed. Standing rule reinforced: when discipline gap is felt twice, codify on the second sighting rather than the third.
+- **Lightweight cycle pattern works for agents/-content L promotions.** No Codex audit, no PR, no §10 lineage. Direct-to-main state-fill + SHA-fill follow-up. This is the right cycle weight for L promotions whose mitigation lives entirely in agents/ role docs. If a future L promotion requires DOCTRINE.md changes (e.g. amending §10 itself), the cycle weight scales up to PR + Codex Procedure 4.
+- **Subsumption framing reduces L-count drift.** Off-repo-ahead-of-on-repo state drift sat at 2 sightings as its own L-candidate; chat-20 L51 framing reinterpreted both as internal-multi-step instances of L51. Subsumption is the right move when the broader pattern fits — keeps the L-list focused on distinct failure modes rather than near-siblings. (Counter-discipline: subsumption should require explicit operator review when the narrower L-candidate has its own mitigation surface; in this case both candidates resolve to the same mitigation — direct-evidence verification — so the subsumption is mitigation-equivalent and safe.)
+- **Procedure 8's first test fires immediately on next §11 row update.** Any future § state-row update that depends on multi-step external-process state (LS activation, Stripe / PayPal onboarding, tax registration, any vendor KYC) gates through Procedure 8 from this cycle forward. The chat-21 state-fill cycle that just landed (§11.11 (c) wiring) was itself the inverse case (defining done rather than declaring done) and explicitly noted "L51-candidate firing-shape does NOT apply"; that note is preserved as a corroborating-example datum.
+
+
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11.11 (c) wording — v0.3.1 ship-gate (c) wired to off-repo re-spec file
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Updates v0.3.1 ship-gate (c) in `8BALL.md` §11.11 to point at `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` as canonical for the gate's operational definition. Re-spec file authored chat-19 (skeleton); default-filled chat-21 under carnaval frame; calibration #1 (pre-8ball @eczaki follower boundary) resolved by operator chat-21 ("most of those are strangers"), applied to Channels 1 + 3 Noise.
