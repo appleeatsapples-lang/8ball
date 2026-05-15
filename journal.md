@@ -2,6 +2,39 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-CORRECTION: §11.11 (b) reopened — multi-step LS activation flow surfaced; identity-verification ≠ Live
+
+**Status:** state-correction — no surface, no code, no DOCTRINE touch. Reopens v0.3.1 ship-gate (b) from ✅ to OPEN. Chat-19 closure on 2026-05-14 at `2d25c65` was premature — read identity-verification banner clearance as Live-unlock; LS docs surfaced chat-20 2026-05-15 reveal the actual activation is a 4-step process: (1) submit questionnaire, (2) verify identity, (3) LS KYC/KYB staff review (2-3 business days), (4) operator `Copy to Live Mode` on tier-1 product. Steps 1+2 cleared by 2026-05-14; Step 3 still in progress as of 2026-05-15 08:21 KSA (application-received banner observed on orders page); Step 4 is post-activation, not yet runnable.
+
+**Trigger:** Chat-20 operator query "Am I getting money or not yet" → LS dashboard PDF appeared to show $21 / 7 orders → orders-page screenshot revealed Test-mode toggle ON (Stripe-test-card transactions, $0 real revenue) AND application-received banner present in bottom-left sidebar. LS docs (`Test Mode` + `Statement Descriptor` + `Activate Your Store`) loaded sequentially to identify the banner as the post-submission KYC/KYB review state, not identity verification. Chat-19 (b)-closure built on identity-verification clearance alone misread a sub-step signal as terminal.
+
+**Changes:**
+
+- `8BALL.md` §11.11 ship-gate (b) bullet — wording tightened from "LS Live unlock from identity verification" to "LS store activation cleared (Step 1 questionnaire + Step 2 identity verification + Step 3 LS KYC/KYB review) AND Step 4 tier-1 product `Copy to Live Mode` executed." Flipped from ✅ to **OPEN** with reopening citation pointing at `~/Desktop/8ball/audits/ls_dashboard_snapshot_2026-05-15.md`.
+- `~/Desktop/8ball/audits/ls_dashboard_snapshot_2026-05-15.md` — rewritten with corrected Test/Live mode reading, application-received banner identified as KYC/KYB review state, activation-flow resolution, LS-business-type-fit risk flagged as a watch item, brand-traction sequencing implication noted (posting while Step 3 open may be wasted distribution if Buy Link doesn't route to a working Live checkout).
+- This journal entry (chat-20 state-correction record).
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `TBD_STATE_CORRECTION_SHA` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits + `012f59b` chat-20 Friday review commit; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+
+**LS-business-type-fit watch item:**
+
+LS approval FAQ states approved categories are "digital goods that can be fulfilled by Lemon Squeezy (e.g. eBooks, PDFs, design assets, photos, audio, video, etc.)" plus subscription/license-key SaaS. 8ball's fulfillment per DOCTRINE §5.B Call 2 + §5.C is the trust-based `?paid=t1` redirect granting device-local credit — no LS-side artifact, no license key, no subscription. May not cleanly fit the LS schema and could complicate KYC/KYB review. Not necessarily blocking; flagging as watch item. Resolution arrives at the 2-3-business-day mark when LS responds (approval, request-for-info, or rejection).
+
+**Lessons / discipline:**
+
+- **L sighting #3 candidate — closure-discipline on multi-step external processes.** chat-18 sighting #1 (sub-decision #6: design-doc-done ≠ state-row updated), chat-19 sighting #2 (dashboard-evidence-moved ≠ state-row updated), chat-20 sighting #3 (identity-verification-cleared ≠ Live-unlocked). Refined common pattern across all three: declaring done from a sub-step signal without confirming the full state. Per chat-19 conservative-default-read, 3 sightings → L promotion candidate. **Proposed framing: L51 = closure-discipline-on-multi-step-external-processes** (orchestrator-side analog of the L48 controller-side merge-before-audit-signal pattern). Operator-call on naming + promotion timing.
+- **Standing mitigation (applies prospectively, orchestrator-side):** before marking a multi-step external-process gate as ✅, enumerate all known steps explicitly + confirm each is closed against direct evidence, not via inference from a related signal. The chat-19 inference was "identity-verification banner gone → Live unlocked"; the correct read would have been "identity verification (one of N steps) cleared; what are the remaining steps, and is each confirmed against direct evidence?" Applies to LS activation, any future vendor multi-stage onboarding (Stripe direct, PayPal payout, tax-registration), and any 8ball-internal cycle with multiple ship-conditions.
+- **Test/Live mode read discipline.** Chat-20 initial $21-as-Live-revenue read was the orchestrator-side firing of the same multi-step-signal misread shape, on the dashboard rather than the activation flow. Pattern: LS dashboard data has no implicit Test/Live indicator — the toggle state must be read explicitly. Adding to standing orchestrator-side discipline: any LS dashboard read references the toggle state explicitly before the data is treated as canonical.
+- **State-correction cycle ships journal-entry + state-row edit + snapshot rewrite.** No DOCTRINE touch (the rule itself is fine; the closure-discipline is the issue). No PR, no audit cycle (state-correction is an orchestrator-controller cycle per established state-fill pattern). Direct-to-main commit, two-commit SHA-fill per chat-18 inheritance.
+
+
 ## Friday rule-kill review — 2026-05-15
 
 **Status:** First firing of §13 since the rule was authored (2026-05-08, 7 days ago). Inaugural review is calibration, not pruning — doctrine doesn't have 30-day-without-firing data yet. Pre-read prepared chat-15 at `~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`; chat-20 walked the inventory.
