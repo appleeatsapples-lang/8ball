@@ -21,7 +21,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `TBD_STATE_CORRECTION_SHA` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits + `012f59b` chat-20 Friday review commit; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+**Live SHA:** `1344c2e` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits + `012f59b` chat-20 Friday review commit; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
 
 **LS-business-type-fit watch item:**
 
