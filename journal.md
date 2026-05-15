@@ -42,7 +42,7 @@ The v028 file's L52-candidate flag in its top-note serves dual purpose: (1) per-
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** _(placeholder — direct-to-main commit, SHA fills in follow-up per chat-18 inheritance discipline)._
+**Live SHA:** `e341b9c` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
