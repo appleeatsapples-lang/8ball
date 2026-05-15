@@ -23,7 +23,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `TBD` (direct-to-main commit, no PR; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+**Live SHA:** `f71d939` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 - **Re-spec file's own discipline notes anticipated this state-fill in advance** — the file states: "When operator fills the `[TBD: …]` markers, state-fill commit updates §11.11 (c) to point at this file's filled version." Not a drift cycle — a planned transition from skeleton-pointer to filled-canonical.
