@@ -2,6 +2,58 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 5 (Phase-2E capture closure) + row 11 (brief v0.3) + refresh date
+
+**Status:** state-fill — no surface, no code, no doctrine touch. Updates `8BALL.md` §11 row 5 (Phase-2E) to reflect capture closure 2026-05-15 chat-22 (all six open questions resolved); updates §11 row 11 (v0.3.1) to reflect brief v0.2 → v0.3 chat-23 Phase-2E alignment additive pass; refreshes "Last refreshed" date 2026-05-13 → 2026-05-15.
+
+**Cycle:** lightweight orchestrator-controller state-fill — 8BALL.md edits + journal entry. Three surgical edits to 8BALL.md (header date + §11 row 5 + §11 row 11). Off-repo brief additive pass authored chat-23 at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` (350 → 461 lines, 9 edits, no renumbering — additive shape preserved) is the trigger for this state-fill; row updates pull the on-repo index truth-with-disk.
+
+**Phase-2E capture closure summary** (canonical at `~/Desktop/8ball/sessions/phase_2e_aesthetic_constraints.md`):
+
+- Six open questions resolved 2026-05-15 chat-22: three by operator pick (mono-face = all-mono / type-scale ratio = 1.25 major-third / hairline = `#888` neutral mid-gray) + three by Claude default + operator non-override (three-tier graduated reduced-motion fallback / motion locus card-stage-carries-settle + SHAKE button press-compression-only / card max-width 360–420px range fixed, no card-back per field-guide consistency).
+- Locked tokens: type 11/14/17/22, colors `--rule: #888` + `--label: #7a7470` (cool/warm tonal asymmetry load-bearing) + `--ink: #1a1a1a` + `--paper: #ebe5d4`, spacing 4/8/12/16/24/32/48.
+- Motion grammar: spring physics + soft settle + overshoot, 250–400ms reveal beat, NOT crossfade / instant / slide. SHAKE button press-compression only, no multi-axis tremor.
+- Hierarchy: weight 400 → 500 carries emphasis; whitespace structural not decorative; uppercase labels 0.14em tracking.
+- Reference lineage: modern tarot deck typography · brutalist editorial print · field-guide / museum specimen grammar · print-first divination/symbol books (Cirlot · de Vries · Penguin Symbols). Explicitly NOT SaaS-premium (Linear / Vercel / Raycast / Arc / Stripe / Notion) / crypto-oracle / wellness / "modern AI product" tropes.
+- v0.3.1 IS the first cycle to consume Phase-2E locks. Subsequent surface cycles inherit.
+
+**Brief v0.3 additive pass summary** (off-repo at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md`):
+
+- Header: v0.2 → v0.3 with chat-23 Phase-2E alignment layer line.
+- §3 architecture diff: `index.html` row declares CSS variable block addition at top of existing `<style>`; margin to 1500-line ceiling ~45 → ~30.
+- §6 CC PROMPT: new `### Phase-2E alignment (mandatory pre-implementation read)` subsection inside the prompt block (ships when CC PROMPT extracts via `sed`-anchor). Tokens declared verbatim, motion grammar spelled out, three-tier reduced-motion path, SHAKE button press-compression-only, hierarchy rules, explicit NOT-in-scope list. CC PROMPT "Out of scope" line corrected from "No surface aesthetics" to scope-split (CSS variable block + facet motion IN; full chrome conversion OUT).
+- §7 Codex Audit 3: Phase-2E adherence hook (cross-check tokens against constraints file, flag rogue px, verify spring physics on facet transition, verify reduced-motion fallback, verify SHAKE button no multi-axis tremor).
+- §8 Test plan: 5th bullet — `~5 new in tests/payments_markup.test.js` (token-value byte-exact assertions on `--text-base: 17px` / `--rule: #888` / `--label: #7a7470` / `--paper: #ebe5d4` + `prefers-reduced-motion` media query presence + facet-transition selector existence). Same pattern as v0.3.0.1 hook 3 `18+` substring assertion.
+- §9 Out-of-scope: Phase-2E line clarified (full chrome conversion OUT; v0.3.1 IS first Phase-2E consumer; monochrome lock holds throughout).
+- §11 References: constraints file added as canonical.
+- §12 NEW: orchestrator-level Phase-2E alignment section with 8-row binding table (Type-scale / Color / Spacing / Motion-facet / Motion-SHAKE / Reveal-beat / Reduced-motion / Hierarchy), explicit NOT-bind list, per-lane consumption pattern, drift-watch clause naming constraints file as winning if it evolves later.
+- End-of-brief marker: v0.1 → v0.3 (fixed prior v0.1/v0.2 drift in marker).
+- Routing choice locked: CC and Codex consume constraints file directly when their lanes fire; brief §12 is orchestrator-level snapshot. Avoids drift between brief and constraints file — if constraints evolve, only §12 needs a follow-up additive pass.
+
+**Changes:**
+
+- `8BALL.md` header "Last refreshed" — 2026-05-13 → 2026-05-15.
+- `8BALL.md` §11 row 5 (Phase-2E) — expanded to reflect capture closure 2026-05-15 chat-22 (all six locks codified inline: tokens / motion grammar / hierarchy / reference lineage / NOT-references) + v0.3.1 first-consumption pointer to brief v0.3 §12.
+- `8BALL.md` §11 row 11 (v0.3.1) — brief reference v0.2 → v0.3 with chat-23 additive pass note inline (§12 binding table + CC PROMPT Phase-2E subsection + Codex Audit 3 adherence hook + ~5 token-assertion tests).
+- This journal entry.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `<TBD>` (direct-to-main state-fill commit, no PR; SHA-fill follow-up commit per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **Additive-pass-as-state-fill-trigger pattern.** Off-repo additive passes on layered artifacts (cycle briefs, session docs) often justify a state-fill on the on-repo index (`8BALL.md` §11 row referencing the artifact). Pattern: brief gets v-bump → §11 row updates to reflect new version → journal entry filed. Keeps row pointers truth-with-disk. This cycle is the canonical positive instance; future additive passes on referenced off-repo artifacts should pull the row update into the same chat by default rather than letting on-repo references go stale.
+- **L51 Procedure 8 firing-shape does NOT apply.** L51 fires when declaring done from a sub-step signal on an external multi-step process. This cycle is internal-only: both the brief additive pass and the 8BALL.md row update are directly verifiable against disk; no external-process state at stake. The off-repo-ahead-of-on-repo drift sub-shape (chat-18 L51 sighting #1 framing) is exactly what pulling the state-fill into the same chat as the brief-edit prevents prospectively — Procedure 8 in defensive-mode, applied at authoring time rather than after drift surfaces.
+- **Phase-2E capture closure ships as state-fill, not §10 entry.** §10 entries are SHIPPED-on-main records with live SHAs on doctrine-bump or surface-change cycles. Phase-2E is design-lock + on-repo-index update; no doctrine change, no shipped-surface change. State-fill cycle pattern matches chat-21 §11.11 (c) wiring + chat-20 §11.11 (b) reopen + chat-18 sub-decision-#6 lock + chat-14 PR #24 state-fill. §10 entry will arrive when v0.3.1 ships and exercises the Phase-2E locks.
+- **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle. Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
+
+
 ## Friday rule-kill review — 2026-05-15 — addendum (post-review items)
 
 **Status:** Addendum to the §13 review at `012f59b` (19 KEEP / 0 KILL / 0 AMEND-now / 1 AMEND-flagged-for-next-Friday). No re-review of the verdict; locks the trail for two doctrine-shape items that surfaced *after* the review closed earlier today, so the 2026-05-22 pre-read author finds them pre-staged rather than fresh.
