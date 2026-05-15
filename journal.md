@@ -44,7 +44,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `<TBD>` (direct-to-main state-fill commit, no PR; SHA-fill follow-up commit per chat-18 inheritance discipline).
+**Live SHA:** `b071ca3` (direct-to-main state-fill commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
