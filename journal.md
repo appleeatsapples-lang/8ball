@@ -2,6 +2,37 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: 8BALL.md §11.11 (c) wording — v0.3.1 ship-gate (c) wired to off-repo re-spec file
+
+**Status:** state-fill — no surface, no code, no doctrine touch. Updates v0.3.1 ship-gate (c) in `8BALL.md` §11.11 to point at `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` as canonical for the gate's operational definition. Re-spec file authored chat-19 (skeleton); default-filled chat-21 under carnaval frame; calibration #1 (pre-8ball @eczaki follower boundary) resolved by operator chat-21 ("most of those are strangers"), applied to Channels 1 + 3 Noise.
+
+**Cycle:** single surgical edit to `8BALL.md` §11.11 (c) wording + off-repo re-spec file fills. State-fill commit pattern matches chat-20 §11.11 (b)-reopen (`1344c2e`) + chat-18 sub-decision-#6 (`bf89317`).
+
+**Changes:**
+- `8BALL.md` §11.11 (c) — wording from "≥5 real paid purchases on Live LS with observed SHAKE AGAIN behavior" → "≥5 paid Live purchases AND ≥1 Strong-tier qualitative facet-variation-demand signal by 2026-06-15, surfaced via at least one of three observation channels (LS dashboard / §5.B feedback POST / @eczaki social — IG + TikTok + Threads per carnaval frame); operational definition lives at `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` (canonical), this row is the index pointer."
+- `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` (off-repo, not tracked) — 9 TBD cells default-filled under carnaval frame; Channel 3 frame acknowledges IG + TikTok + Threads as three distinct surfaces; pre-8ball @eczaki follower bucket moved Noise → outside-network (Weak/Strong eligible) on Channels 1 + 3 per operator's calibration #1 resolution.
+- This journal entry (chat-21 state-fill record).
+
+**Two structural fixes the re-spec resolved (chat-19 framing carried in the file):**
+- Original (c) said "observed SHAKE AGAIN behavior" — but v0.3.1 hasn't shipped, and v0.3.0 SHAKE AGAIN is β-idempotent on same profile by design (DOCTRINE §7 stage 6 test invariant). No facets to vary yet. Gate was measuring demand signal for facet variation, not behavior on a non-existent surface.
+- Locked decision #7 is "no telemetry, permanently." Original gate had no instrumentation path. Re-spec defines signal types per channel through operator-eyes-only observation, the only path that exists by doctrine.
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `TBD` (direct-to-main commit, no PR; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+- **Re-spec file's own discipline notes anticipated this state-fill in advance** — the file states: "When operator fills the `[TBD: …]` markers, state-fill commit updates §11.11 (c) to point at this file's filled version." Not a drift cycle — a planned transition from skeleton-pointer to filled-canonical.
+- **Calibration-#1 resolution = real change in gate semantics.** Pre-8ball @eczaki followers (~28 IG + ~33 TikTok = ~60 outside-network handles operator inherited from the lineage-name era) are mostly strangers per operator's chat-21 ruling. Default proposal had them in known-network Noise; resolution moved them to outside-network. Treating them as Noise would have made any conversions from this base invisible to the gate; treating them as outside-network preserves their signal value. Affects how the gate reads if any current followers convert.
+- **Carnaval frame's Channel 3 Noise call shipped without operator pushback** — engagement on non-8ball posts (IG AI-dreams, TikTok music, Threads aphorisms) is NOT 8ball signal under carnaval frame. Strongest single application of carnaval to operational doctrine yet. A rising IG follower count from a dream post does not validate v0.3.1. If operator later wants cross-pollination to count, this is the line to revisit.
+- **L51-candidate firing-shape does NOT apply to this cycle.** L51 (closure-discipline-on-multi-step-external-processes) is about declaring done from a sub-step signal. This cycle is the inverse: defining what done means. State-fill correctly enumerates the falsification conditions before claiming any gate-closure.
+- **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle (state-fill is an orchestrator-controller cycle per established discipline). Direct-to-main commit, two-commit SHA-fill per chat-18 inheritance.
+
+
 ## 2026-05-15 — STATE-CORRECTION: §11.11 (b) reopened — multi-step LS activation flow surfaced; identity-verification ≠ Live
 
 **Status:** state-correction — no surface, no code, no DOCTRINE touch. Reopens v0.3.1 ship-gate (b) from ✅ to OPEN. Chat-19 closure on 2026-05-14 at `2d25c65` was premature — read identity-verification banner clearance as Live-unlock; LS docs surfaced chat-20 2026-05-15 reveal the actual activation is a 4-step process: (1) submit questionnaire, (2) verify identity, (3) LS KYC/KYB staff review (2-3 business days), (4) operator `Copy to Live Mode` on tier-1 product. Steps 1+2 cleared by 2026-05-14; Step 3 still in progress as of 2026-05-15 08:21 KSA (application-received banner observed on orders page); Step 4 is post-activation, not yet runnable.
