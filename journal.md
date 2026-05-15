@@ -23,7 +23,7 @@ Pre-read v1 flagged §5.C as KILL-candidate via the heuristic "never fired in jo
 - `index.html`: 1455 lines (margin 45, unchanged).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** `TBD_RULE_KILL_REVIEW_SHA` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+**Live SHA:** `012f59b` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
