@@ -2,6 +2,45 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — SHIPPED: §2/§5 P1 live-surface RUM violation closed — Netlify RUM disabled (L51 Procedure 8 first real-world firing)
+
+**Status:** SHIPPED 2026-05-15 at direct-to-main commit (state-fill pattern; no PR; dashboard-config change scope; no tracked-content touch). Closes the chat-21 Codex-surfaced P1: a Netlify-CDN-injected RUM script (`netlify-rum-container` / `cwv-token` / `/.netlify/scripts/rum`) was being injected on every page served from the CDN, tripping §2 (no telemetry / no third-party scripts) + §5 (no out-of-band data flow). Tracked `index.html` (1455 lines) was always clean — the injection lived at Netlify's serve layer, invisible to `tests/privacy_scan.test.js`. No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged).
+
+**Cycle:** lightweight orchestrator-controller cycle. Codex authored the manual controller directive chat-21 (`~/Desktop/8ball/controllers/netlify_disable_rum_directive_2026-05-15.md`); chat-22 added a parallel paste-ready directive for the Netlify-native Claude Agent (`~/Desktop/8ball/controllers/netlify_claude_agent_rum_disable_directive_2026-05-15.md`); operator-fronted execution via the Netlify Claude Agent in the browser sidebar; closure verified independently by curl-grep on the live URL.
+
+**L51 Procedure 8 first real-world firing on an external-process closure declaration.** Three sub-steps enumerated chat-21; all three confirmed against direct evidence before declaring ✅:
+
+1. **Dashboard "Disabled" state** — confirmed via agent report verbatim: before-state heading "Turn off Real User Monitoring service" with red "Disable Real User Monitoring" button; after-state heading "Real User Monitoring" with teal "Enable Real User Monitoring" button (off-state UI). Final URL `https://app.netlify.com/projects/the-eight-ball/logs-and-metrics/rum#danger-zone`.
+2. **Cache propagation complete** — confirmed via live HTML line count: 1456 → 1455 (the single line that disappeared is the RUM `<script>` tag at line 1455 per chat-21 verify); cache-buster URL (`?cb=<unix-ts>`) also returns 1455 / 0, ruling out edge-cache hiding a stale copy.
+3. **Grep returns 0** — `curl -sSfL https://the-eight-ball.netlify.app/ | grep -cE 'netlify-rum|cwv-token|/\.netlify/scripts/rum'` → `0`. Re-run via cache-buster also → `0`.
+
+**Surprise flag from agent execution (transparently reported, resolved by independent verification):** Netlify confirmation modal required typing the project name to confirm disable; during typing, the modal closed before the agent finished and the "Disable Real User Monitoring" button-click was not explicitly observed by the agent. Agent flagged the uncertainty up front. Independent curl-grep confirmed the disable did commit regardless of how the modal interaction completed — the verification path is what gates closure, not the interaction-flow observation. Pattern note: when an agent reports ambiguous closure, the independent-verification path is what closes the gate. This is precisely the partial-state-signal failure shape L51 was promoted to defend against, and Procedure 8 routed past it cleanly.
+
+**Changes:**
+- `~/Desktop/8ball/controllers/netlify_claude_agent_rum_disable_directive_2026-05-15.md` (off-repo, not tracked) — paste-ready directive for Netlify's first-party Claude Agent with anchored `=== AGENT PROMPT START ===` / `=== AGENT PROMPT END ===` markers, navigation steps, do-not list, success criteria, report-back specification. Sibling to the Codex-authored manual directive.
+- This journal entry (chat-22 closure record).
+
+**Gates:**
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines tracked (live HTML now matches at 1455 vs prior 1456 with RUM injection).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** TBD (filled by follow-up commit per chat-18 inheritance discipline — direct-to-main commit, no `--amend`, SHA-fill via separate follow-up).
+
+**Lessons / discipline:**
+
+- **L51 Procedure 8 fired clean on its first real external-process test.** Three sub-steps enumerated up front (chat-21 handoff), each verified against direct evidence rather than inferred from a related signal. The disable-action ambiguity (modal closed mid-typing) was exactly the kind of partial-state signal L51 was promoted to defend against; Procedure 8 routed past it by holding on the curl-grep verification, not the agent's narrative of the click sequence. Procedure works as designed; carry this firing as the canonical positive example for the procedure's role-doc audit-history.
+
+- **Doctrine-shape question for 2026-05-22 Friday review — L-watch (1 sighting):** `tests/privacy_scan.test.js` scans tracked source only. Netlify-CDN-injected scripts live outside tracked source and were invisible to the test. Should §5 or §7 grow a live-surface scan gate (post-deploy ritual or build-hook scan against served HTML)? Single sighting; two-sighting rule applies before promoting to L or amending doctrine. Don't fix unilaterally; carry to Friday review alongside the §12 wording-stale fix. Mitigation candidates if promoted: (a) §8 post-merge ritual line "after Netlify auto-deploy, curl-grep live URL against `BANNED_LIVE_SURFACE_PATTERNS`", (b) GitHub Actions step running curl-grep against the live URL once Netlify deploy webhook fires, (c) CI step running the same scan against the built artifact before Netlify ships it. (a) is cheapest, (b) closes a real gap, (c) requires build emulation. No decision now — surface for Friday.
+
+- **Netlify Claude Agent as a new platform-bound execution surface — observation only (1 sighting).** Worked: navigated Logs & metrics → Real User Monitoring → Danger zone, clicked Disable, hit the confirmation modal. Limitation: confirmation-modal interaction was fragile (modal closed mid-typing into the name-confirmation field). Scope: platform-bound (Netlify project surface only; cannot run repo / git / CI / external dashboard actions). Treat as an adjunct surface, not a core agent. Don't add to `agents/AGENTS.md` core table on a single firing. Watch for second firing before any role-doc work.
+
+- **Paste-ready directive shape for platform-native agents matches CiC directive shape.** Goal / navigation / do-not / success criteria / report-back / context. Same authoring discipline as the chat-21 Threads CiC directive (Cycle E). The shape ports cleanly across browser-bound agents regardless of platform. No new pattern needed.
+
+- **Two-directive pattern (manual + agent) is operationally useful.** Codex authored the manual directive chat-21; chat-22 added an agent-paste version. Operator gets to choose execution path at fire time. Manual = ~30 seconds, no agent risk. Agent = hands-off but adds verification overhead (this very cycle). For future P1s with similar shape: surface both paths in the same handoff, let operator pick.
+
+
 ## 2026-05-15 — SHIPPED: agents/orchestrator.md Procedure 8 — L51 promotion (closure-discipline-on-multi-step-external-processes)
 
 **Status:** SHIPPED 2026-05-15 at direct-to-main commit (state-fill pattern; no PR, agents/-content scope per v0.24 codification). L51-candidate promoted to formal **L51** on 4-sighting basis. Procedure 8 codifies the orchestrator-side closure-discipline mitigation. No DOCTRINE touch. No code touch. No tests added or removed (586/586 unchanged).
