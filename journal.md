@@ -2,6 +2,59 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 11 (brief v0.3 → v0.4) + chat-24 self-audit absorb pass
+
+**Status:** state-fill — no surface, no code, no DOCTRINE touch. Off-repo brief at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` advanced v0.3 → v0.4 via chat-24 self-audit absorb pass; on-repo §11 row 11 updated to reflect the new version + absorb-pass scope. Off-repo orchestrator self-audit response at `~/Desktop/8ball/audits/orchestrator_self_audit_brief_v031_2026-05-15.md` is the trigger artifact.
+
+**Cycle:** lightweight orchestrator-controller state-fill (chat-23 pattern — `additive-pass-as-state-fill-trigger`). Off-repo work product: orchestrator self-audit (276 lines) + brief v0.3 → v0.4 (461 → 464 lines, 11 surgical edits, no renumbering). On-repo work product: 8BALL.md §11 row 11 update + journal entry. Direct-to-main commit + SHA-fill follow-up per chat-18 inheritance.
+
+**Engineer-sweep + self-audit + absorb-pass shape for chat-24 (full trajectory):**
+
+1. **Engineer sweep** (turn 3) — orchestrator-side pass over project: `npm audit`, `npm outdated`, vitest reporter, `wc -l`, `git grep TODO|FIXME`, CI workflow staleness. Greens dominant; 3 ambers + 6 watch-items surfaced.
+2. **Housekeeping cycle** (turn 4) — 3 ambers closed: `package.json` 0.1.1 → 0.3.0; `audits/RELEASE_CHECKLIST.md` 42 → 51 lines; stale local branch `claude/focused-morse-8fbe06` deleted. State-fill `5272161` + SHA-fill `bfb068e`.
+3. **Orchestrator self-audit on brief v0.3** (this turn) — adversarial pre-Codex review of `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md`: 0 P0 / 3 P1 / 4 P2 / 6 P3. Audit response saved to `~/Desktop/8ball/audits/orchestrator_self_audit_brief_v031_2026-05-15.md`.
+4. **Brief v0.3 → v0.4 absorb pass** (this turn) — 3 P1 + 2 P2 absorbed into brief; 4 carryable items deferred to fire-time. State-fill (this cycle) + SHA-fill follow.
+
+**Absorb pass — 11 surgical edits on brief v0.3 → v0.4** (off-repo at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md`):
+
+- **P1.1 — Ship-gate wording** (2 locations: header + §10 #4). Rewrote against `v031_ship_gate_respec.md` canonical + 4-step LS activation flow (Step 1 questionnaire + Step 2 identity verification + Step 3 KYC/KYB review + Step 4 `Copy to Live Mode`); retired the chat-19-era "LS Live unlock from identity verification" framing and the chat-21-retired "observed SHAKE AGAIN behavior" gate wording.
+- **P1.2 — `habit` single-string lock** (3 locations: §1 body, §5 first line, ChatGPT PROMPT output schema). Replaced all three "TBD on habit facet variants" wordings with "stays single-string per chat-13 lock (8BALL.md §11 row 11); authoring scope 432 lines, not 864."
+- **P1.3 — `.gitignore` carve-out** (2 coupled edits: §4 doctrine-amendment block (b) text + §6 CC PROMPT first-commit step under `**content/cards.v2.full.js:**`). §4 (b) now reads "bracket terminology retirement + permit `content/cards.v2.full.js` alongside / in place of `cards.v1.full.js` in the v0.22 carve-out's single-permitted-tracked-file clause (coordinates with the `.gitignore` amendment per §6 CC PROMPT first-commit step)." §6 gains a new first bullet under `**content/cards.v2.full.js:**` instructing CC to extend the carve-out pattern to `!content/cards.v*.full.js` and commit gitignore change as first commit on branch — without this, `git add content/cards.v2.full.js` silently no-ops.
+- **P2.3 — Audit 1 verdict format** (§7 first audit block). Replaced "Mode B verdict format per Procedure 6 footnote" with "Standard Procedure 4 verdict format per `agents/auditor.md`: PASS / P3 / P2 / P1 / P0, one verdict per hook (matches the chat-11 v0.27 audit response)"; added explicit clarifying line "Mode A / Mode B are Procedure 6 (drift-sweep) verdict formats and do not apply here."
+- **P2.4 — Paste-target paths** (2 locations: §5 + §6). Both `audits/` paths corrected to `sessions/`; "split out from this brief once lanes upstream complete" wording retired (files already split out as separate paste-ready briefs).
+- **Header version line + end-of-brief marker** — v0.3 → v0.4; absorb-pass provenance citation added (orchestrator self-audit response file referenced inline).
+
+**4 carryable items NOT absorbed this pass** (deferred to fire-time, no pre-fire urgency per audit recommendation):
+
+- P2.1 §4 readability — expand (a)–(f) summaries when parking-doc amendment text is finalized.
+- P2.2 `tests/payments_state.test.js` callsite undercount — folds naturally into CC's implementation pass.
+- P3.1 probe-shape example chat-12 `monkey/cxli` vs chat-13 trial-run cells — minor; chat-13 cells are more current.
+- P3.2–P3.6 minor polish items (resolveBracket sweep undercount, anchorFacetIndex master mapping, payments_markup naming, fixture coverage, ink/paper soft-lock).
+
+**Changes:**
+
+- `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` (off-repo) — 11 surgical edits, 461 → 464 lines (+3 net; additive shape preserved, no renumbering; §-structure intact).
+- `~/Desktop/8ball/audits/orchestrator_self_audit_brief_v031_2026-05-15.md` (off-repo, NEW) — 276 lines; Codex-style audit response with 0 P0 / 3 P1 / 4 P2 / 6 P3 disposition + cross-referenced against DOCTRINE v0.27 + Phase-2E constraints + ship-gate respec.
+- `8BALL.md` §11 row 11 — brief reference v0.3 → v0.4 with chat-24 absorb-pass note inline (5 absorbed items summarized + 4 deferred items implied); chat-23 Phase-2E alignment additive pass note preserved.
+- This journal entry.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `<TBD>` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **Orchestrator self-audit as wait-state-productive cycle.** Project was in wait state on §11.11 (b)/(c) — no operator-fronted work fire-able. Pre-empting Codex's likely findings on brief v0.3 cost ~30 min of paper-work and produced a 276-line audit response + 11 surgical fixes on the very artifact that drives the next ship cycle. Better than waiting for fire-time when each Codex round-trip costs ~hours of operator paste-relay. Pattern note: **wait-state windows are productive for adversarial review on artifacts that will fire next** — pre-empting external-process latency by paying internal-process compute upfront. Mirror of the chat-23 additive-pass-as-state-fill-trigger pattern: artifact advances off-repo → state-fill pulls on-repo index truth-with-disk in the same chat.
+- **Self-audit catches its own errors.** Audit response claimed P1.2 appeared in "3 locations" but on re-verification only 2 were initially confirmed (§5 + ChatGPT PROMPT). Mid-absorb-pass re-read surfaced a third occurrence in §1 body ("(and optionally `habit`)"). Audit's count was right; orchestrator's mid-cycle re-check was briefly wrong. Self-audit's value isn't infallibility — it's surfacing the inspection surface so that the absorb pass can re-verify each finding against current text. Pattern note: **absorb-pass re-verifies each audit finding against current file state**, not against the audit response's quoted text — file state can drift between audit-write and absorb-execute even within the same chat.
+- **Additive-shape preservation under 11 surgical edits.** No renumbering; §-structure intact; internal cross-refs unbroken; anchor markers (`=== CHATGPT PROMPT START/END ===` / `=== CC PROMPT START/END ===`) unmoved. Mirrors chat-23 9-edit additive pass — both at ~460-line brief size. The pattern scales for brief-shape artifacts in this size range. Procedural note: **for additive passes >5 edits on a single artifact, `edit_block` with unique anchored substrings remains reliable**; the cost is proportional to edit count, not artifact size.
+- **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle (audit response IS the audit, off-repo, no Codex). Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
+
+
 ## 2026-05-15 — HOUSEKEEPING: package.json version bump + RELEASE_CHECKLIST.md refresh + stale local branch cleanup
 
 **Status:** housekeeping — no surface, no code, no DOCTRINE touch. Three engineer-eyes hygiene items surfaced in chat-24 engineering sweep, all cheap-and-safe. Closes truth-with-disk drift on `package.json` version (`0.1.1` → `0.3.0`); refreshes `audits/RELEASE_CHECKLIST.md` against shipped v0.3.x reality (6 CI stages, §4.A/§4.B/§5.B/§5.C clauses, §10 v0.24 agent table, L48 / SHA-fill / `--delete-branch` 3-leg disciplines, live-surface scan as L-watch carry); deletes stale local branch `claude/focused-morse-8fbe06` (CC worktree leftover, never on origin).
