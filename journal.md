@@ -2188,3 +2188,33 @@ Initial `tests/fixtures.json` had hand-calc errors on 6/12 cases. All caught by 
 =====
 End of 2026-05-08 entry.
 =====
+
+
+## 2026-05-15 — Friday rule-kill discipline inaugural firing + v028 Operations resync (chat-25)
+
+**Three Friday-rule-kill discipline surfaces fired same day** per DOCTRINE §13 + MUHAB.md §7 mirror cadence:
+
+1. **DOCTRINE.md §13 review** at `~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`. 19 rules walked (§1 / §1.A / §1.B / §2 / §3 / §4 / §4.A / §4.B / §5 / §5.B / §5.C / §6 / §7 / §8 / §9 / §10 / §11 / §12 / §13). **19 KEEP / 0 KILL / 0 AMEND.** First-review caveat applied (doctrine 7 days old; calibration not pruning). §5.C pre-read flag (KILL-candidate, "never fired in journal") reversed to KEEP — walk-through identified load-bearing doctrinal-anchor firing pattern (shapes Codex audit responses re: public-bundle JS-gating + forms doctrinal basis of v0.3.1 cycle brief `.gitignore` carve-out). §5.C watch-list at 30-day mark to confirm pattern holds. §12 KEEP with watch-list note (doctrine-as-fence pattern fires by being the boundary on backend/account/telemetry proposals, not by being invoked; 30-day mark check). Routing-error finding (chat-12 L-candidate sighting #2) already addressed in chat-15 L-mitigation bundle via `agents/orchestrator.md` Procedure 7.
+
+2. **MUHAB.md §7 mirror** at `~/MUHAB.md`. 8 clauses walked (§2.1 teach style / §2.2 documentation discipline / §2.3 unleashed mode / §2.4 build first narrate less / §2.5 communication shortcuts / §2.6 mechanical patterns / §3 lanes table / §6 bootstrap protocol). **All KEEP / 0 KILL / 0 AMEND.** Operator-personal layer is young + firing actively across every chat — each clause fired multiple times in chat-25 alone. Inaugural firing log subsection appended to §7 ("Friday rule-kill review log:"). Same calibration outcome as the DOCTRINE.md §13 review fired same day.
+
+3. **Inspector role-doc firing-log update** at `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` (option a per chat-25 Friday-discipline review Item 3). Chat-25 `~/Desktop/8ball/controllers/cic_ls_step3_recheck_2026-05-15.md` directive was Inspector firing #3 by directive-shape criteria — clean execution on `app.lemonsqueezy.com` LS dashboard, operator-reported result "In Review" confirms ship-gate (b) still open. Strict-reading promotion-gate at 2 clean + 1 mixed-with-L50-mitigated (firing #2 chat-13 was MIXED before L50 mitigation landed); promotion deferred to next unambiguously-clean firing of a different surface (GitHub commits page, Railway status, or post-Step-3-clear LS check are queued candidates). §5 firing log + firing-count line + §10 audit history all updated. No tracked-file edits — sketch remains in `sessions/`, not `agents/`, per L49-candidate discipline ("fire first, codify after").
+
+**v028 doctrine amendment draft Operations section full resync (same chat).** `~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md` grew 398 → 463 lines via 5 `edit_block` operations:
+
+- Op 2b added — clause (b.2) §4 `content/cards.v1.full.js` → `content/cards.v*.full.js` glob generalization.
+- Op 4b added — clause (d.2 first) §7 stage 1 deck-file glob.
+- Op 4c added — clause (d.2 second) §7 stage 1 scan-target phrasing; find-string anchor corrected to `the deck's content strings` to byte-match DOCTRINE.md v0.27 line 207 (original chat-12 paraphrase missing backticks around `BANNED_VOICE_REGISTER` + trailing parenthetical context would have failed `edit_block` byte-match).
+- Op 4d added — clause (d.3) §7 stage 3 deck-file glob.
+- Operations section header note + top metadata "Absorb pass" line both refreshed to chat-25 resync state.
+
+Operation count post-chat-25 resync: **10 paste-ready operations** (Op 1 / 2 / 2b / 3 / 4 / 4b / 4c / 4d / 5 / 6) + Op 7 RETIRED marker preserved as audit trail. Closes the chat-24 forecast gap. Saves estimated 1–2 Codex round-trips at v0.3.1 fire-time (post §11.11 (b)+(c) close).
+
+**L52-candidate filed** in v028 metadata: **self-audit assertion ahead of direct evidence.** Chat-21's Procedure 7 sanity check verified § references resolve in current DOCTRINE.md, but did NOT byte-verify `old_string` blocks against current DOCTRINE bytes; chat-21's L51 self-check item 4 asserted "find-strings match exact current DOCTRINE.md text ✅" without running the byte-level diff. Chat-25's grep against DOCTRINE.md surfaced the mismatch. Sibling of L49 (agents-ahead-of-code-and-doctrine). Mitigation candidate: paper-design surfaces carrying `edit_block` operation blocks should byte-verify `old_string` against current target-file bytes at draft time, not at implementer-cycle fail-clean fallback time. To codify after second sighting per L-promotion discipline.
+
+**Ship-gate state unchanged.** §11.11 (b) Step 3 KYC/KYB review still **"In Review"** per chat-25 CiC verifier read on Identity verification row at `app.lemonsqueezy.com/settings/general` (operator-confirmed). (c) still 0/5 paid + 0/1 Strong-tier. v0.3.1 cycle continues to wait; gap-shaped backlog now drained (chat-24 marathon + chat-25 closing gaps).
+
+**HEAD post-this-entry:** TBD (filled in follow-up commit if needed). Tests still 586/586. DOCTRINE still v0.27. index.html still 1455/1500. Local PII audit still clean (53 files). No `core/` / `ui/` / `content/` / `tests/` / shipped-surface touch.
+
+**Next Friday review:** 2026-05-22 (per DOCTRINE §13 cadence). Pre-stage file already at `~/Desktop/8ball/sessions/friday_rule_kill_pre_stage_2026-05-22.md` (chat-24 forward draft, 4 items pre-staged: §12 wording staleness / Live-surface-scan-gate L-watch / standalone-extracted-briefs drift L-candidate / Procedure 8 first-month firing audit). Chat-25 firing-log carry-forward: this inaugural review fired clean, so next-Friday pre-stage stays current.
+
