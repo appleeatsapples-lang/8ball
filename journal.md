@@ -26,7 +26,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - `index.html`: 1455 lines tracked (live HTML now matches at 1455 vs prior 1456 with RUM injection).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
 
-**Live SHA:** TBD (filled by follow-up commit per chat-18 inheritance discipline — direct-to-main commit, no `--amend`, SHA-fill via separate follow-up).
+**Live SHA:** `7b875f0` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
