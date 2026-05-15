@@ -2,6 +2,54 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — HOUSEKEEPING: package.json version bump + RELEASE_CHECKLIST.md refresh + stale local branch cleanup
+
+**Status:** housekeeping — no surface, no code, no DOCTRINE touch. Three engineer-eyes hygiene items surfaced in chat-24 engineering sweep, all cheap-and-safe. Closes truth-with-disk drift on `package.json` version (`0.1.1` → `0.3.0`); refreshes `audits/RELEASE_CHECKLIST.md` against shipped v0.3.x reality (6 CI stages, §4.A/§4.B/§5.B/§5.C clauses, §10 v0.24 agent table, L48 / SHA-fill / `--delete-branch` 3-leg disciplines, live-surface scan as L-watch carry); deletes stale local branch `claude/focused-morse-8fbe06` (CC worktree leftover, never on origin).
+
+**Cycle:** state-fill — no PR, no Codex audit. `audits/` + `package.json` touches fall outside the journal-touch CI gate (gate fires on `DOCTRINE.md` or `content/*.js`); journal entry is the record-of-cycle per chat-17 PR #23 retroactive codification. Direct-to-main commit + SHA-fill follow-up per chat-18 inheritance.
+
+**Engineer sweep (chat-24 open, full pass prior to executing):**
+
+- **Greens (no action):** `npm audit` 0 vulnerabilities; `npm outdated` empty; full suite 586/586 PASS in 1.71s; no `TODO`/`FIXME`/`XXX`/`HACK` in tracked source; no `console.log` / `debugger` leaks in shipped code; CI workflow at `actions/checkout@v4` + `setup-node@v4` + Node 20 (all current); `package-lock.json` committed and synced; `.gitignore` correct (SIRR barrier + `cards.v*.js` glob carve-out for `cards.v1.full.js`); `index.html` 1455 / 1500 margin 45; local PII audit clean (53 files).
+- **Ambers fixed this cycle:** `package.json` version drift; `RELEASE_CHECKLIST.md` drift; stale local branch.
+- **Watch-items not actionable:** test coverage gap by filename convention (`core/calendar.js` / `core/engine.js` / `core/payments.js` have no same-named test files but all have behavioral coverage via `tests/profile.test.js` + `tests/payments_state.test.js` — discoverability observation not defect; `tests/profile.test.js` 562 lines / 129 tests is the candidate for a future split when v0.3.1's facet tests land); vitest pinned `^1.6.1` (deliberate-or-deferred, parking for dedicated upgrade cycle); live-surface scan gate L-watch at 1 sighting (pre-staged for 2026-05-22 Friday pre-read per chat-22 RUM closure).
+
+**Changes:**
+
+- `package.json` — `"version": "0.1.1"` → `"version": "0.3.0"`. Truth-with-disk: shipped state is the v0.3.0.x line. npm semver is 3-segment; 4-segment hotfix levels (.1, .2) live in `8BALL.md §10` + git SHAs, `package.json` carries the line version. Next bump on v0.3.1 ship. Benign drift (private package, no consumer, no CI gate reads it) but worth fixing as truth-with-disk hygiene.
+- `audits/RELEASE_CHECKLIST.md` — full refresh against current DOCTRINE state (v0.27 + v0.22 extensions + v0.24 §10), 42 → 51 lines:
+  - CI stage count "All five stages" → "All 6 stages" with payments-state-machine named explicitly.
+  - `bash audits/run_local_audit.sh` → `/bin/bash audits/run_local_audit.sh` (macOS bash 3.2 compatibility per chat-9 codified shell pattern).
+  - Diff review §-list expanded: §4.A (18+ gate) + §4.B (three-free-tries cap) + §4 v0.22 carve-out (`cards.v1.full.js` is the ONE permitted tracked deck file) + §5 v0.21 lazy-load allow-list + §5.B's two named calls (feedback POST + LS Buy Link redirect) + §5.C content-delivery transparency invariant.
+  - Cross-model audit clause aligned with §10 v0.24: Codex = auditor lane (doctrine + content audits, Procedure 4 / Procedure 6); ChatGPT = adjunct (copy review). v0.13-era "ChatGPT or Codex per §10" wording retired.
+  - L48 discipline named explicitly (wait for audit-cleared signal before merge; five-minute-CI-green-to-merge window is the L48 failure shape; `agents/controller.md` citation).
+  - Verifier (CiC) gate line added — surface changes route through verifier post-deploy-preview pre-merge per §10.
+  - Merge section: gh `--delete-branch` 3-leg cleanup discipline added (post-merge `git ls-remote --heads origin` verification per chat-9/10 L generalization) + squash-merge local-divergence reset (`git reset --hard origin/main`).
+  - Post-merge smoke test expanded from "verify seven coordinates" to per-path coverage (locked render / 18+ gate / rising / labels toggle / paid surface / feedback surface). Each path names the surface it touches and the storage/network behavior to confirm.
+  - **Live-surface scan added as a smoke-test bullet** — `curl -s <live-url> | grep -cE` against known CDN-injection risk patterns. Carries the chat-22 RUM closure L-watch into the operational checklist at observation-tier (one sighting, not yet doctrine-codified); promotes naturally if a second sighting fires.
+  - Journal-entry shape corrected: `===== YYYY-MM-DD · Title =====` → `## YYYY-MM-DD — Title:` (matches actual journal header convention; v0.1.x-era separator-style retired).
+  - SHA-fill discipline named explicitly (chat-18 inheritance: write Live SHA as `<TBD>` → commit → push → follow-up commit fills SHA; NO `--amend` on pushed history; cites `abb5539` as the codifying cleanup commit).
+  - Hotfix pattern named explicitly (v0.3.0.1 / v0.3.0.2 canonical: cherry-pick onto fresh branch from `main` per L27 / L48; do NOT push direct-to-main for post-merge defect closure).
+- Local branch `claude/focused-morse-8fbe06` — deleted (untracked repo-state hygiene; not on origin; CC worktree leftover from a prior cycle).
+- This journal entry.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: clean (53 files).
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `<TBD>` (direct-to-main commit, no PR; SHA-fill commit follows per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **Engineering sweep as state-fill cycle works cleanly.** Sweep was orchestrator-side (`wc -l`, `npm audit`, `npm outdated`, `git grep TODO|FIXME`, vitest reporter); execution was three surgical hygiene fixes; no Codex required because the deltas are factual truth-with-disk corrections, not interpretive doctrine moves. Pattern parallels Friday rule-kill review (orchestrator-driven, journal-recorded, no PR) and recent state-fill cycles. Suitable cadence for engineer-eyes hygiene: any time the queue is in wait-state (e.g. v0.3.1 ship-gate blocked on LS KYC/KYB), run a sweep and clear cheap ambers. Cheaper than waiting for the next ship cycle to surface them.
+- **`package.json` version drift is the canonical example of "version drift that nothing breaks."** No consumer reads it, `npm publish` never fires, no CI gate checks it. The fix is truth-with-disk hygiene, not bug closure. Future versioning gates (e.g. if `tests/dependency_discipline.test.js` ever grows a version-check, or if 8ball ever ships an npm package) would make this a real defect; until then, pure hygiene.
+- **RELEASE_CHECKLIST drift was the largest gap by surface area.** 42-line file vs ~10 doctrine versions of drift (v0.17 → v0.27 since last touch). Shape: a long-tail-low-frequency file (read once per release) accumulates drift faster than per-release-touched files because nothing forces the read against current truth. **L-watch (1 sighting):** any `audits/` or top-level `.md` file untouched in the journal for >5 doctrine-version bumps gets a sweep-on-next-housekeeping-pass by default. Not promoted today; carry for second sighting per two-sighting discipline.
+- **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle. Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
+
+
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 5 (Phase-2E capture closure) + row 11 (brief v0.3) + refresh date
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Updates `8BALL.md` §11 row 5 (Phase-2E) to reflect capture closure 2026-05-15 chat-22 (all six open questions resolved); updates §11 row 11 (v0.3.1) to reflect brief v0.2 → v0.3 chat-23 Phase-2E alignment additive pass; refreshes "Last refreshed" date 2026-05-13 → 2026-05-15.
