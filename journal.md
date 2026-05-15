@@ -2,6 +2,37 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## Friday rule-kill review — 2026-05-15
+
+**Status:** First firing of §13 since the rule was authored (2026-05-08, 7 days ago). Inaugural review is calibration, not pruning — doctrine doesn't have 30-day-without-firing data yet. Pre-read prepared chat-15 at `~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`; chat-20 walked the inventory.
+
+**Cycle:** Walk DOCTRINE.md @ v0.27 — 15 top-level §-headers + 4 labeled subclauses (§1.A / §1.B / §4.A / §4.B). For each: review last firing per journal + 8BALL.md §10 + test surface; propose KEEP / KILL / AMEND. No rule-touch this cycle.
+
+**Verdict counts:** 19 KEEP / 0 KILL / 0 AMEND-now / 1 AMEND-flagged-for-next-Friday.
+
+The 1 amend-flag is §12: wording "multi-language until v2 of the trait pool exists in any language" — trait pools were retired in v0.2.0 / Phase-2F. Should read "v2 of the cards." Carry forward to 2026-05-22 or absorb opportunistically into a future structural pass.
+
+**Pre-read divergence — §5.C (content-delivery transparency, v0.22):**
+
+Pre-read v1 flagged §5.C as KILL-candidate via the heuristic "never fired in journal — only label-referenced from §1 / §1.B / §4.B / 8BALL.md content-version footer." Reading the clause text on Friday surfaced that §5.C is anchor-role, not aspirational: §1 v0.22 amendment says `(see §5.C)`, §1.B references §5.C, §4 references §5.C, §4.B references §5.C, and the about-modal disclosure copy ("the deck is visible in source; the lock is a convention, not a vault") is doctrine-bound to it. The clause fires every release by being the canonical name for the JS-gated-bundle convention. Pre-read's heuristic mistook anchor-role for aspirational. **KEEP.**
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `TBD_RULE_KILL_REVIEW_SHA` (direct-to-main commit, no PR — pattern matches `2d25c65` chat-19 + `bf89317` chat-18 state-fill commits; follow-up SHA-fill commit fills this line per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **First §13 firing landed as calibration, not pruning** — as the pre-read predicted. Nothing has had time to atrophy at 7-day doctrine age. The value of running early is the audit of "has every rule fired at least once" — 19/19 have, across 9 doctrine versions (v0.18 → v0.27) and substantial release activity (v0.2.5 → v0.3.0.2 → 3 drift-sweep cycles → agents codification → T1 promotion). Next review: 2026-05-22.
+- **Pre-read heuristic refinement on anchor-role clauses.** "Never fired in journal" is the *start* of an inspection, not the conclusion. If a clause is the source-of-truth name for a shipped surface, or is cross-referenced from ≥2 other §-clauses, it's anchor-role and KEEPs regardless of journal-firing count. §5.C was the trigger; refinement folded into the 2026-05-22 pre-read methodology. Not promoting to L-status yet — single observation.
+- **§12 wording-stale flag deferred, not absorbed.** "Trait pool" → "cards" is a one-line edit; could ship as v0.27 → v0.28. The §13 discipline ("if you find yourself adding more locked rules than you're killing on Fridays — stop drafting and ship something") argues for bundling with another structural pass rather than spinning a cycle on a single-word fix. Carry forward to 2026-05-22.
+- **Cycle ships journal-entry-only.** Zero KILLs, zero AMEND-now → no doctrine touch, no code touch, no audit cycle, no PR. State-fill commit pattern: direct-to-main, no `--amend`, SHA-fill via follow-up commit per chat-18 inheritance.
+
+
 ## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 ship-gate (b) ✅ closure (LS Live unlock)
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Closes second of three v0.3.1 ship-gates: LS Live unlock from identity verification, confirmed via LS dashboard snapshot 2026-05-14 19:02 KSA (`~/Desktop/8ball/audits/ls_dashboard_snapshot_2026-05-14.md`) — no identity-verification banner, account Live, product `8 ball — 3 tries · tier 1` Published at $3.00, 0 sales. Banner-state per chat-13 dashboard read (2026-05-13) was identity verification; resolved 2026-05-14.
