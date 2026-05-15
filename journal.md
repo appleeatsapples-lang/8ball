@@ -2,6 +2,68 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: chat-24 v0.3.1 three-lane-artifact self-audit + absorb cycle (v028 doctrine + ChatGPT brief + CC brief)
+
+**Status:** state-fill — no surface, no code, no DOCTRINE touch. Three off-repo lane artifacts at `~/Desktop/8ball/sessions/` self-audited + absorb-passed via orchestrator-side wait-state-productive cycle while §11.11 ship-gate (b)/(c) hold. Direct extension of the chat-24 cycle-brief self-audit absorb pass (state-fill `28eeb5b` + SHA-fill `faac2ef` earlier this chat) — same pattern (orchestrator-self-audit-as-wait-state-productive-cycle) applied to the three lane artifacts that consume the cycle brief downstream.
+
+**Cycle:** lightweight orchestrator-controller state-fill — off-repo audits + absorbs, on-repo journal entry only. No §11 row update (row 11 already references brief v0.4 from earlier this chat's absorb; lane artifacts are downstream of cycle brief, not separately §11-tracked). Direct-to-main commit + SHA-fill follow-up per chat-18 inheritance.
+
+**Trajectory (chat-24 cumulative):**
+
+1. Engineer sweep (turn 3) — orchestrator-side pass over project hygiene.
+2. Housekeeping cycle (turn 4) — state-fill `5272161` + SHA-fill `bfb068e`. 3 ambers closed.
+3. Cycle brief self-audit + v0.3 → v0.4 absorb (turn 5) — state-fill `28eeb5b` + SHA-fill `faac2ef`. 3 P1 + 2 P2 absorbed; cycle brief at v0.4.
+4. **THIS CYCLE — Three lane artifact self-audits + absorbs (turn 6–this entry).** v028 doctrine + ChatGPT brief + CC brief all self-audited and absorbed in sequence; combined on-repo state-fill journal entry only.
+
+**Audits filed (3 new files at `~/Desktop/8ball/audits/`):**
+
+- `orchestrator_self_audit_v028_doctrine_amendment_2026-05-15.md` (195 lines) — 0 P0 / 2 P1 / 2 P2 / 2 P3. Extends chat-21 in-file Procedure 7/8 self-check (which verified structural soundness — § resolution + ghost-clause absence + find-string match) with scope-completeness review. Key findings: P1.1 §1.C habit stale (mirror of cycle brief P1.2); P1.2 block (b) §4 surgical edit doesn't cover cards.v1 → cards.v2 transition; P2.1 §7 stages 1/3 wording references cards.v1 literally; P2.2 Operation 7 non-paste-ready ("TBD at implementer time").
+- `orchestrator_self_audit_chatgpt_brief_v031_2026-05-15.md` (118 lines) — 0 P0 / 1 P1 / 1 P2 / 1 P3. Smallest finding count of the three — brief is structurally clean. Key findings: P1.1 `habit` schema-verification stale (2 locations: When-to-fire step 3 + JS output schema); P2.1 probe-shape uses chat-6 `monkey/cxli` but chat-13 trial-run cells (`aries/i` + `cancer/xlii`) are operator-vetted and locally referenced in same brief.
+- `orchestrator_self_audit_cc_brief_v031_2026-05-15.md` (209 lines) — 0 P0 / 2 P1 / 3 P2 / 2 P3. Largest absorb surface. Key findings: P1.1 Phase-2E alignment section (~60 lines from cycle brief v0.4 §6 CC PROMPT) missing entirely — standalone brief extracted chat-21 hasn't propagated chat-22/23 Phase-2E capture or chat-24 absorb; P1.2 "Apply Operations 1–7" pins to v028 op count that absorption changes; P2.1 facet-selector allocation ambiguous (selector lives in `ui/` per brief but current renderer in `index.html` — `ui/payments.js` / `ui/facets.js` / inline are three options); P2.2 Codex full-PR audit Phase-2E adherence hook not referenced; P2.3 22-callsite `nextShakeState` update undercounted.
+
+**Total findings across three lane artifacts: 0 P0 / 5 P1 / 6 P2 / 5 P3.** All P1 + P2 absorbed this cycle; 5 P3 carryable.
+
+**Absorbs applied (off-repo, 3 files):**
+
+- **v028 doctrine amendment draft** (`~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md`): 339 → 398 lines (+59). Header gains chat-24 absorb-pass note. Clause (a) §1.C habit wording fixed in 2 locations. Clause (b) expanded into (b.1) bracket retirement + (b.2) cards.v* glob generalization (Option A from audit). Clause (d) §7 expanded with (d.1) note shape + (d.2)/(d.3) cards.v* generalization for stages 1+3. Operations section gains chat-24-absorb-pass note flagging clauses-canonical/Operations-paste-ready relationship. Operations 6+7 combined into single paste-ready Op 6 (Op 7 marked RETIRED). Sub-ops (b.2, d.2, d.3) documented in clauses; Operations section partial sync deferred to future cycle (chat-24-absorb-pass note flags it).
+- **ChatGPT brief** (`~/Desktop/8ball/sessions/chatgpt_brief_v031_facet_authoring.md`): 170 → 180 lines (+10). Header gains chat-24 absorb-pass note. P1.1 habit wording fixed in 2 locations (When-to-fire step 3 + JS output schema). P2.1 probe-shape section rewritten — chat-6 `monkey/cxli` sketch replaced with chat-13 `aries/i` "the receipt runner" trial-run output (operator-vetted three-facet content from `~/Desktop/8ball/sessions/v0.3.1_taxonomy_trial_run_aries_rat.md`, 33/33/34 word counts inside the 30–60 target). Note added documenting lateral-lens contract via the no-paraphrase property; chat-6 sketch preserved at parking doc as historical superseded.
+- **CC brief** (`~/Desktop/8ball/sessions/cc_brief_v031_facet_implementation.md`): 308 → 391 lines (+83). Header gains chat-24 absorb-pass note flagging Phase-2E section propagation as the largest absorbed item. P1.2 "Operations 1–7" replaced with generic phrasing in both Doctrine application section and Bootstrap step 3. P2.1 new "Module allocation for facet selector + storage I/O" subsection (~20 lines) names three options (`ui/facets.js` new / extend `ui/payments.js` / inline `index.html`) with Option B recommended (paid-surface co-location with existing controller). P2.3 22-callsite update bullet added to `tests/payments_state.test.js` MODIFIED section. P1.1 ~67-line Phase-2E alignment section inserted before "Out of scope" — verbatim propagation from cycle brief v0.4 §6 CC PROMPT (CSS variable block + facet transition motion + reduced-motion three-tier fallback + SHAKE button press-compression + hierarchy rules + Phase-2E-NOT-in-scope-at-v0.3.1 list). "Out of scope" line "No surface aesthetics" amended to clarify Phase-2E IN scope vs full chrome conversion OUT. Gate sequence step 2 updated for generic operations; step 3 added gitignore carve-out step; step 5 updated for Phase-2E line-count delta (~45 lines net, brings index.html very close to 1500/1500 ceiling); step 7 PR-description Phase-2E adherence summary requirement. Output handling step 2 updated with Phase-2E hook reference.
+
+**Carryable items (5 P3 deferred to fire-time):**
+
+- v028 P3.1 block (e) callsite count tightening (cross-reference, not an edit op).
+- v028 P3.2 §4 cross-ref dependency on §1.C (structural observation).
+- ChatGPT brief P3.1 §11.11 (b) shorthand (minor fidelity gap).
+- CC brief P3.1 §11.11 (b) shorthand (same finding, different file).
+- CC brief P3.2 `anchorFacetIndex` defensive validation (optional robustness; CC-call).
+
+**Changes:**
+
+- `~/Desktop/8ball/audits/orchestrator_self_audit_v028_doctrine_amendment_2026-05-15.md` (NEW, 195 lines, off-repo).
+- `~/Desktop/8ball/audits/orchestrator_self_audit_chatgpt_brief_v031_2026-05-15.md` (NEW, 118 lines, off-repo).
+- `~/Desktop/8ball/audits/orchestrator_self_audit_cc_brief_v031_2026-05-15.md` (NEW, 209 lines, off-repo).
+- `~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md` (off-repo, +59 lines, additive shape preserved; Operations section partial sync noted).
+- `~/Desktop/8ball/sessions/chatgpt_brief_v031_facet_authoring.md` (off-repo, +10 lines, additive shape preserved).
+- `~/Desktop/8ball/sessions/cc_brief_v031_facet_implementation.md` (off-repo, +83 lines, additive shape preserved with ~67-line Phase-2E section insertion).
+- This journal entry.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `<TBD>` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **Wait-state-productive cycle scales across artifact chain.** Pattern established by chat-24 earlier (cycle brief self-audit + absorb during §11.11 wait state) extended to the three downstream lane artifacts in the same chat. Total off-repo work product this chat: 1 cycle-brief audit (276 lines) + 3 lane-artifact audits (521 lines) + 4 absorbs (~155 lines net additive across 4 files). Pattern note: **wait-state-productive cycles compound across artifact chains** — when one artifact gets self-audited and absorbed, downstream artifacts that reference it benefit from the same treatment in the same chat, because the orchestrator already has the upstream artifact's state fresh in context.
+- **Standalone-extracted briefs drift from their cycle-brief parents.** The chat-21 extraction pattern (cycle brief → 3 separate paste-ready lane briefs) creates parallel artifacts. Updates to the cycle brief don't auto-propagate. CC brief was extracted chat-21, cycle brief updated chat-22 (Phase-2E capture) + chat-23 (Phase-2E alignment additive pass) + chat-24 (self-audit absorb), and the standalone CC brief sat stale through three rounds of cycle-brief evolution. **Pattern note: standalone-extracted briefs need a sync gate** — either (a) sync-pass at every cycle-brief update, or (b) treat the cycle brief as canonical and have lane fire-time read directly from §5/§6 sections rather than from standalone files. Operator's chat-21 extraction was for paste-relay convenience; the drift cost was unsurfaced until chat-24's lane-audit pass. This finding is itself a procedural lesson worth carrying — flag as L-candidate at the 2026-05-22 Friday rule-kill review.
+- **Three-tier audit-completeness pattern observed.** Chat-21's in-file self-check (v028 Procedure 7 sanity + Procedure 8 6/6 confirmation) verified **structural soundness**. Chat-24's audit on the same artifact found **scope-completeness gaps**. Both are valid + needed; the layers don't substitute for each other. Pattern note: **structural soundness ≠ scope completeness ≠ sync currency**. Three different audit lenses: (1) structural — every § reference resolves; (2) completeness — the amendment scope covers everything that needs covering; (3) currency — the artifact is current vs upstream sources. Codex's Procedure 4 hooks 1–13 land at the structural + completeness layers; the currency layer is orchestrator-side. Future briefs would benefit from explicit three-lens self-check before paste-extraction.
+- **Operation-count pinning is a brittle reference shape.** CC brief's "Apply Operations 1–7" pinned to v028's pre-absorb count; v028 absorb expanded count to ~9 operations; CC brief became internally inconsistent until P1.2 fix. **Pattern note: cross-artifact references should name what's being referenced, not count it** — "the listed `edit_block` operations" robust to op-count drift; "Operations 1–7" pinned to a state that changes. Generalizes beyond ops: any sibling-artifact reference that uses positional/numeric pinning should be reviewed for drift risk.
+
+
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 11 (brief v0.3 → v0.4) + chat-24 self-audit absorb pass
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Off-repo brief at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` advanced v0.3 → v0.4 via chat-24 self-audit absorb pass; on-repo §11 row 11 updated to reflect the new version + absorb-pass scope. Off-repo orchestrator self-audit response at `~/Desktop/8ball/audits/orchestrator_self_audit_brief_v031_2026-05-15.md` is the trigger artifact.
