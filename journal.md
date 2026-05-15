@@ -2,6 +2,51 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-15 — STATE-FILL: chat-24 forward-looking drafts (Friday 2026-05-22 pre-stage + LS rejection-response preemptive)
+
+**Status:** state-fill — no surface, no code, no DOCTRINE touch. Two forward-looking off-repo drafts written during chat-24 wait-state-productive marathon close. Neither touches repo-tracked state; journal entry is the on-repo acknowledgment that the artifacts exist.
+
+**Cycle:** lightweight journal-only state-fill. No §11 row update; both files are forward-looking (Friday review fires 2026-05-22 future; LS draft fires contingent on LS clarification request). Direct-to-main commit + SHA-fill follow-up per chat-18 inheritance.
+
+**Trajectory (chat-24 final cumulative):**
+
+1. Engineer sweep (turn 3).
+2. Housekeeping cycle — `5272161` / `bfb068e`.
+3. Cycle brief v0.3 → v0.4 self-audit + absorb — `28eeb5b` / `faac2ef`.
+4. Three lane artifact self-audits + absorbs (v028 + ChatGPT + CC) — `7e31625` / `d9c6562`.
+5. **THIS CYCLE — Forward-looking drafts (Friday pre-stage + LS rejection-response).** Journal-only state-fill.
+
+**Files written this cycle (off-repo, both at `~/Desktop/8ball/sessions/`):**
+
+- `friday_rule_kill_pre_stage_2026-05-22.md` (123 lines). Pre-stages 4 new items for the 2026-05-22 Friday review per DOCTRINE §13 weekly cadence: **Item 1** §12 wording staleness (references retired "trait pool / template" vocabulary; AMEND candidate); **Item 2** Live-surface-scan-gate L-watch carry (1 sighting; WATCH, no verdict change unless 2nd fires); **Item 3** L-candidate "standalone-extracted briefs drift from cycle-brief parents" (1st sighting chat-24, lane-brief Phase-2E sync gap; verdict candidate Option A sync-pass or Option B retire-standalones); **Item 4** Procedure 8 first-month firing audit (5x firings in 2 weeks, all clean; AMEND or KEEP-AS-IS). Pre-stage explicitly notes that the inaugural 2026-05-15 Friday review file remains unfired; if not fired by 2026-05-22, roll forward §5.C KILL-candidate + §12 wording + §13 self-firing items.
+- `ls_rejection_response_preemptive_2026-05-15.md` (147 lines). 8-block paste-ready response to fire if Lemon Squeezy KYC/KYB review returns with clarification request: (1) product summary one-paragraph; (2) digital-content/one-time-purchase classification; (3) browser-side immediate-delivery model; (4) PII handling (no transmission, GDPR/CCPA-friendly, no minor-targeting via 18+ gate); (5) age-restriction posture; (6) refund policy (full pre-consumption, prorated/none post-consumption); (7) live-product-surface verification path for reviewer; (8) seller information (repeat-from-questionnaire). Plus explicit DO-NOT-include guardrails (SIRR boundary preserved — LS sees 8ball only; no internal doctrine vocabulary; no over-explanation). Retires post-LS-clearance.
+
+**Why journal-only state-fill (no §11 row update):**
+
+Both files are forward-looking and contingent. The Friday pre-stage fires 7 days out at operator-taste; the LS rejection-response fires only on LS clarification request (may never fire if LS clears clean). Neither belongs in §11 (which tracks shipped state + in-flight roadmap rows). The journal acknowledgment is the right surface — captures that the orchestrator did the prep, available to grep at fire-time.
+
+**Changes:**
+
+- `~/Desktop/8ball/sessions/friday_rule_kill_pre_stage_2026-05-22.md` (NEW, 123 lines, off-repo).
+- `~/Desktop/8ball/sessions/ls_rejection_response_preemptive_2026-05-15.md` (NEW, 147 lines, off-repo).
+- This journal entry.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: unchanged.
+- `index.html`: 1455 lines (margin 45, unchanged).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no shipped-surface change.
+
+**Live SHA:** `<TBD>` (direct-to-main commit, no PR; this SHA-fill commit follows per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **Forward-looking drafts during wait-state are journal-only.** Pre-staging the Friday 2026-05-22 review while waiting on §11.11 (b) ≠ entering the v0.3.1 cycle; it's calendar-pre-work. Similarly the LS rejection draft is contingent (fires only on LS-side ask). Neither warrants §11 row evolution; the journal entry is the right surface. Pattern note: **off-repo forward-looking drafts get journal acknowledgment, not §11 promotion** — §11 is for shipped + in-flight roadmap state, not for paper that may never fire.
+- **Wait-state productive output has natural saturation.** Chat-24 went engineer-sweep → housekeeping → cycle-brief audit → 3 lane-brief audits → all 4 absorbs → 2 forward drafts. By the forward-draft cycle, all critical-path gap-closing for v0.3.1 was complete. The remaining items (Inspector role-doc draft, fire today's Friday review, MUHAB.md §7) are operator-taste, not gap-shaped — they need operator-hand and don't unblock v0.3.1 fire. Pattern note: **wait-state marathons have a natural completion signal — the menu shifts from gap-shaped to operator-taste**. When that happens, the productive marathon is done; further work needs operator selection.
+- **chat-24 cumulative work product summary** (for the chat-24-to-chat-25 handoff): 4 self-audits (cycle brief + 3 lane briefs, ~1,038 lines off-repo at `~/Desktop/8ball/audits/`); 4 artifact absorbs (cycle brief v0.3 → v0.4 + 3 lane brief absorbs, ~155 net additive lines off-repo at `~/Desktop/8ball/sessions/`); 2 forward-looking drafts (Friday pre-stage + LS rejection-response, 270 lines off-repo); 8 on-repo commits across 4 state-fill cycles (HOUSEKEEPING + cycle-brief-absorb + 3-lane-absorb + forward-drafts), each with state-fill + SHA-fill per chat-18 inheritance. v0.3.1 cycle is now substantially pre-Codex-cleared — when §11.11 (b) + (c) close, the cycle fires with all upstream artifacts at audited-clean state. Estimated Codex round-trip savings at v0.3.1 fire: 1–2 audit cycles closed pre-emptively.
+
+
 ## 2026-05-15 — STATE-FILL: chat-24 v0.3.1 three-lane-artifact self-audit + absorb cycle (v028 doctrine + ChatGPT brief + CC brief)
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Three off-repo lane artifacts at `~/Desktop/8ball/sessions/` self-audited + absorb-passed via orchestrator-side wait-state-productive cycle while §11.11 ship-gate (b)/(c) hold. Direct extension of the chat-24 cycle-brief self-audit absorb pass (state-fill `28eeb5b` + SHA-fill `faac2ef` earlier this chat) — same pattern (orchestrator-self-audit-as-wait-state-productive-cycle) applied to the three lane artifacts that consume the cycle brief downstream.
