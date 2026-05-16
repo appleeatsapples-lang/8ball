@@ -1,6 +1,6 @@
 # Agent role: controller — operator
 
-> The always-on layer per DOCTRINE §10 v0.24 extension. Not one of the four agent roles (orchestrator / implementer / auditor / verifier) — the controller is the human running them.
+> The always-on layer per DOCTRINE §10 v0.29 extension. Not one of the five agent roles (orchestrator / implementer / auditor / verifier / inspector) — the controller is the human running them.
 
 ## What this lane does
 

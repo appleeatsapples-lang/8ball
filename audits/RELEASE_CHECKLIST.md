@@ -2,7 +2,7 @@
 
 > Read top to bottom every release. No skipping.
 
-Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 extensions) and §10 v0.24's 4-agent + always-on-controller structure. Operational form of the same gates.
+Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 extensions) and §10 v0.29's 5-agent + always-on-controller structure. Operational form of the same gates.
 
 ## Pre-merge
 

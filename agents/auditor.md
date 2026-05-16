@@ -1,6 +1,6 @@
 # Agent role: auditor — Codex
 
-> One of four agent roles per DOCTRINE §10 v0.24 extension: orchestrator (chat-Claude), implementer (CC), **auditor (Codex)**, verifier (CiC), with controller (operator) as the always-on final approver.
+> One of five agent roles per DOCTRINE §10 v0.29 extension: orchestrator (chat-Claude), implementer (CC), **auditor (Codex)**, verifier (CiC against deployed product), inspector (CiC + adjacents against operator infrastructure), with controller (operator) as the always-on final approver.
 
 ## What this lane does
 
