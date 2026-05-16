@@ -2,6 +2,66 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-16 — STATE-FILL: v0.3.0.3 Gumroad processor cutover (chat-28 close, §11.11 (b) gate closed)
+
+**SHA:** TBD (direct-to-main commit; follow-on commit pins live SHA per chat-18 inheritance discipline)
+**Predecessor IN-FLIGHT entry:** prepended earlier this date (same chat-28); see below.
+**Live SHA of v0.3.0.3 merge:** `e64ec8f` (squash of `7801574` from `v0.3.0.3-gumroad-cutover`).
+**Smoke-test:** CiC firing #9 PASS clean; report at `~/Desktop/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`.
+
+**Cycle:** L51 / Procedure 8 step 10 of 10 — fires the v0.3.1 §11.11 (b) ship-gate to closed. State-fill commit direct-to-main per chat-18 inheritance discipline (no code-surface change, only state docs + journal).
+
+**What's pinned:**
+
+- Merged commit: `e64ec8f` (verified via `git log --oneline -3` post-merge).
+- Live deploy: `https://the-eight-ball.netlify.app/` returning HTTP 200 with paywall CTA `href="https://theeightball.gumroad.com/l/rzqezp"`, paywall disclosure `checkout via gumroad. payment + email go to them; your reading stays here.`, about-modal `checkout is hosted by gumroad`. All 3 surface swaps byte-verified via orchestrator curl (chat-28) + CiC firing #9 DOM inspection (chat-28).
+- Branch deletion: local + remote `v0.3.0.3-gumroad-cutover` removed (`git ls-remote --heads origin | grep -c "v0.3.0.3-gumroad-cutover"` = 0).
+- 586/586 tests green on main (verified pre-merge on branch tip `7801574`).
+- Local PII audit clean on main (verified pre-merge; 53 files scanned).
+- Firing #9 audit report archived at `~/Desktop/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md` (51 lines); inspector_sketch §5 + §10 updated.
+
+**`8BALL.md` amendments (this commit):**
+
+- §75 row 9 content version: `LS Buy Link redirect §5.B Call 2` → `Gumroad Buy Link redirect §5.B Call 2 (LS path retired v0.3.0.3)` — mirrors `DOCTRINE.md` content-version footer at v0.28.
+- §262 v0.3.1 ship-gate (b): LS-activation-4-step framing rewritten as processor-agnostic ship-gate language, now reads **✅ CLOSED 2026-05-16** via Gumroad path. DOCTRINE §5.B Call 2 v0.28 codifies the LS→Gumroad processor swap; CiC firing #9 PASS confirms live-fire smoke-test. LS-activation history preserved as parenthetical note. The substantive change: ship-gate (b) is no longer LS-staff-pending, it's Gumroad-cleared and live.
+
+**Closes:**
+
+- v0.3.0.3 cycle (all 10 steps of L51 / Procedure 8 complete).
+- v0.3.1 §11.11 (b) ship-gate (was OPEN per chat-20 / chat-25 / chat-28 IN-FLIGHT; now ✅ CLOSED).
+
+**Carries forward to v0.3.1:**
+
+- §11.11 (a) operator taxonomy lock: ✅ closed chat-13 2026-05-13.
+- §11.11 (b) live processor activation + tier-1 product live: ✅ CLOSED 2026-05-16 (this entry).
+- §11.11 (c) ≥5 paid Live purchases AND ≥1 Strong-tier qualitative facet-variation-demand signal by 2026-06-15: **OPEN** (signal-tier matrix at `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` canonical; channel signal observation still pending — IG + TikTok + Threads per carnaval frame + Gumroad dashboard now-live as additional observation channel post-cutover).
+
+v0.3.1 design lock (locked chat-12/chat-13 2026-05-13) is intact; ship trigger remains post-traction signal-gated.
+
+**Follow-up cycle queued (NOT in this commit):**
+
+`v0.3.0.3.1-doctrine-drift-sweep` per Codex Procedure 4 P1 findings (chat-28). Stale LS references inventoried across 7 tracked files via the audit brief at `~/Desktop/8ball/audits/codex_procedure_4_v0_3_0_3_brief_2026-05-16.md`:
+
+- `audits/RELEASE_CHECKLIST.md` × 2 hits (lines :15, :37 — ops doc naming LS as active path)
+- `README.md` × 1 hit (line :26 — repo overview naming LS)
+- `ui/payments.js` × 1 source comment (line :89 — code comment referencing LS)
+- `agents/auditor.md` × 1 hit (line :48 — role doc)
+- `agents/verifier.md` × 1 cluster (lines :98-:107 — role doc)
+- `tests/payments_markup.test.js` × 1 legacy comment (line :11 — pre-v0.3.0.3 comment; the new chat-28 :68 §5.B-Call-2-history comment is intentional doctrine alignment, sibling to the 4 LS mentions in DOCTRINE flagged as legitimate)
+
+Sibling shape to DOCTRINE lineage v0.25 / v0.26 drift-sweep tier-2 cleanups (state-doc realignment without doctrine clause changes). Branch + PR + Codex Procedure 6 audit + merge sequence; routine cycle. Separate audit trail from this state-fill keeps shapes clean.
+
+**Sweep methodology lesson (P2 from Codex audit):** The chat-28 v0.3.0.3 grep sweep used `lemonsqueezy\|Lemon Squeezy\|lemon squeezy` but NOT the bare abbreviation `\bLS\b`. Two comment-hits in `tests/payments_markup.test.js` slipped through. For future drift-sweeps + state-fills: add `\|\bLS\b` to the grep, OR explicitly distinguish "0 active LS uses" vs "N comparative-history LS comment references" in the sweep summary.
+
+**Codex Procedure 4 audit:** filed at `~/Desktop/8ball/audits/codex_procedure_4_v0_3_0_3_brief_2026-05-16.md` (orchestrator-drafted brief, 145 lines). Operator ran audit retroactively after merge; verdict landed PASS-WITH-FOLLOWUP with 7-file P1 drift cluster + 1 P2 sweep-methodology gap. P0=none. The P1 cluster is fully captured above as v0.3.0.3.1 follow-up cycle scope; the P2 is captured as a methodology lesson. Standard chat-18-inheritance state-fill shape applies for audit-after-merge: the audit verdict + dispositions become canonical via this entry, not via a re-opened PR cycle. (L48 discipline note: future cycles, the audit-pre-merge variant is the L48-preferred shape — backfill-after-merge is acceptable when verdict is PASS-shape but adds journal-bookkeeping load to capture the dispositions.)
+
+**Changes:**
+
+- `journal.md` — this STATE-FILL entry prepended above IN-FLIGHT entry.
+- `8BALL.md` — §75 row 9 content version updated; §262 v0.3.1 ship-gate (b) rewritten.
+
+---
+
 ## 2026-05-16 — IN-FLIGHT: v0.3.0.3 Gumroad processor cutover (chat-28, branch `v0.3.0.3-gumroad-cutover`)
 
 **SHA:** TBD (state-fill commit pins post-merge per chat-18 inheritance discipline)
