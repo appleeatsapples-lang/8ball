@@ -12,7 +12,7 @@ Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 e
   - [ ] Any new tracked content cross §4 (slurs, medical/diagnostic framing, real-person targets, minor-targeting, card-content strings outside the v0.22 carve-out — `content/cards.v1.full.js` is the ONE permitted tracked deck file)?
   - [ ] §4.A 18+ acknowledgment gate intact? §4.B three-free-tries cap intact?
   - [ ] Any new path under `core/` / `ui/` / `content/` / `index.html` cross §5 (persisting more than the v0.21+ allow-list, transmitting out-of-band, introducing `fetch` / `XMLHttpRequest` / `navigator.sendBeacon`)?
-  - [ ] Any new §5.B user-initiated network call beyond the two named (Netlify Forms feedback POST + Lemon Squeezy Buy Link redirect)?
+  - [ ] Any new §5.B user-initiated network call beyond the two named (Netlify Forms feedback POST + Gumroad Buy Link redirect)?
   - [ ] §5.C content-delivery transparency invariant intact (deck visible in source; lock is convention; about-modal disclosure preserved)?
   - [ ] Any new tracked content cross §11 (operator personal data) or §9 (SIRR cross-references)?
 - [ ] **Cross-model audit per §10 v0.24.** Doctrine amendments → Codex (auditor lane, Procedure 4 or Procedure 6 as appropriate). Content batches → ChatGPT (adjunct, copy review). Mechanical edits → no audit required.
@@ -34,7 +34,7 @@ Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 e
   - 18+ gate — first-load modal blocks form until confirm; `eight_ball_age_ack_v1` persists across reload.
   - Rising sign — birth time + city autocomplete → 8th coordinate on line 2 as `${sun} ↑ ${rising}`; partial opts fall back to bare sun sign.
   - Labels toggle — uppercase labels reveal/hide; `eight_ball_labels_revealed_v1` persists.
-  - Paid surface — first 3 reads free; 4th new pair triggers paywall; LS Buy Link href carries `checkout[success_url]`; post-payment `/?paid=t1` lands unlocked render with credits balance; `replaceState` strips query.
+  - Paid surface — first 3 reads free; 4th new pair triggers paywall; Gumroad Buy Link href is bare (no `checkout[success_url]` — Gumroad redirects via product Content-tab Button per DOCTRINE §5.B Call 2 v0.28); post-payment `/?paid=t1` lands unlocked render with credits balance; `replaceState` strips query.
   - Feedback surface — submit form → `/?sent=1` redirect → in-page banner swap to "thanks. read." → `replaceState` strips query.
   - **Live-surface scan** (post-deploy, L-watch per chat-22 RUM closure): `curl -s <live-url> | grep -cE '<banned-injection-patterns>'` against any known CDN-injection risk (`netlify-rum`, `cwv-token`, etc.). 0 expected.
 - [ ] **Append to `journal.md`.** Use the `## YYYY-MM-DD — Title:` markdown-header shape (newest-at-top per journal preamble). Document what shipped (with live commit SHA on `main`), what was rejected or deferred, any incident + remediation.

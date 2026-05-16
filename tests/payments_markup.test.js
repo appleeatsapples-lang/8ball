@@ -8,7 +8,7 @@
 //
 // Scope (step-7 forward port):
 //   1. lock_icon_markup        — DOM existence
-//   2. paywall_modal_markup    — DOM existence + LS Buy Link shape
+//   2. paywall_modal_markup    — DOM existence + Gumroad Buy Link shape
 //   3. credit_chip_markup      — DOM existence
 //   4. unlocked_render_markup  — DOM existence
 //   5. paid_query_handler      — URL handling JS pattern (in ui/payments.js)

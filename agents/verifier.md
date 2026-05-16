@@ -95,16 +95,16 @@ Per-profile checks: form acceptance, shake-completes, card renders, coordinates 
 
 Cross-profile checks: 18+ gate persists, no network calls beyond expected (cities.json lazy-load, feedback POST when explicitly submitted), localStorage keys are allow-listed only, mobile viewport doesn't break.
 
-### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; awaiting LS Live for end-to-end)
+### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; Gumroad live as of v0.3.0.3 2026-05-16)
 
-After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. Currently runs against LS Test mode only; LS identity verification is pending, so Live-mode end-to-end is deferred until the LS account clears. Procedure runs:
+After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. As of v0.3.0.3 (2026-05-16) the live processor is Gumroad; CiC firing #9 cleared the post-cutover live-fire smoke-test (`~/Desktop/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`). LS path permanently retired 2026-05-17 per DOCTRINE v0.30. Procedure runs:
 - 3 free tries hitting locked render
 - 4th try hitting paywall (Path A)
 - Lock-tap on a locked card hitting paywall (Path B)
-- Test-mode LS checkout (Stripe test card `4242 4242 4242 4242`)
-- `?paid=t1` return + pending-profile consumption
+- Gumroad hosted checkout (Stripe via Gumroad Connect)
+- `?paid=t1` return + pending-profile consumption (single-source via Gumroad product Content-tab Button per DOCTRINE §5.B Call 2 v0.28)
 - Replay-attack probe: manual `/?paid=t1` URL entry
-- About-modal + paywall-modal LS-disclosure copy assertions
+- About-modal + paywall-modal Gumroad-disclosure copy assertions
 
 Live-fire §13 of the v0.3.0 brief is the source-of-truth checklist; CiC procedure derives from it.
 
@@ -140,7 +140,7 @@ CiC enforces a per-session domain allowlist as a safety control. The default all
 
 **Pre-flight requirement for directives targeting non-default domains:** the directive must state explicitly which domain(s) are required, and the controller (operator) must add them to the CiC session allowlist before pasting. Examples of domains likely to require explicit approval:
 
-- Payment processors (`lemonsqueezy.com`, `stripe.com`, `paypal.com`)
+- Payment processors (`gumroad.com`, `stripe.com`, `paypal.com`)
 - Social media authoring surfaces (`tiktok.com` business dashboard, `x.com` compose)
 - Analytics, advertising, marketing-automation dashboards
 - Anywhere an agent could in principle trigger irreversible actions (charges, payouts, posts, sends, deletions)

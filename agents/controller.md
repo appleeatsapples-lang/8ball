@@ -48,7 +48,7 @@ For high-stakes actions (merges, deploys, payment authorizations), the orchestra
 ## Boundaries (controller never delegates these)
 
 - **Merge button.** Always controller-clicked. Even on PASS-clean audits.
-- **Deploy authorization.** Netlify auto-deploys on push, but Live-mode toggles (e.g. Lemon Squeezy Test → Live) are controller-only.
+- **Deploy authorization.** Netlify auto-deploys on push, but payment-processor Live-mode toggles (e.g. Gumroad processor activation) are controller-only.
 - **Account creation.** Per MUHAB.md system rules — agents never create accounts on operator's behalf.
 - **Payment authorizations.** Test-mode is agent-runnable; Live-mode charges are controller-only. Even a $3 live-fire test charge is controller-initiated.
 - **Sharing permissions / ACL changes.** Doc sharing, repo visibility flips (public/private), CI permission changes — all controller.

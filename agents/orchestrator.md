@@ -113,12 +113,12 @@ The grep produces candidates; the orchestrator pass distinguishes assertion from
 
 ### 8. Multi-step external-process closure verification (added chat-21)
 
-**Triggered when.** Marking any multi-condition gate or multi-step external-process as ✅ — vendor onboarding (LS / Stripe / PayPal), tax / payment / KYC activation, dashboard-state-vs-flow-state reads, doctrine ship-gates with sub-conditions, paper-design status closures, or any state-row update that depends on >1 sub-state being confirmed.
+**Triggered when.** Marking any multi-condition gate or multi-step external-process as ✅ — vendor onboarding (Gumroad / Stripe / PayPal), tax / payment / KYC activation, dashboard-state-vs-flow-state reads, doctrine ship-gates with sub-conditions, paper-design status closures, or any state-row update that depends on >1 sub-state being confirmed.
 
 **Procedure.**
 
 1. **Enumerate** all known sub-steps explicitly before any closure call. If the count of sub-steps is uncertain, that's the first finding — surface the uncertainty before continuing.
-2. For each sub-step, **identify the canonical direct-evidence source** — the surface where that step's state is authoritative (e.g. LS Settings → General → Store activation for activation state, not the dashboard sidebar; the design doc itself for design-decision state, not the §11 row referencing it).
+2. For each sub-step, **identify the canonical direct-evidence source** — the surface where that step's state is authoritative (e.g. Gumroad Settings → Payments for processor verification state, not the dashboard sidebar; the design doc itself for design-decision state, not the §11 row referencing it).
 3. **Verify each sub-step against its direct-evidence source independently.** If only an inferred signal is available (a related-but-not-canonical banner state, a dashboard read with no Test/Live indicator, a §11 row citing an off-repo doc), flag the gap explicitly rather than infer-and-fill.
 4. **Only declare ✅** when all sub-steps are confirmed against direct evidence. Partial verification is "OPEN with N/M sub-steps cleared" — never ✅.
 
