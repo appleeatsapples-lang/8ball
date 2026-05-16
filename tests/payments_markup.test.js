@@ -57,22 +57,24 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(subtree).toMatch(/aria-hidden="true"/);
   });
 
-  it('paywall CTA is a Lemon Squeezy Buy Link', () => {
+  it('paywall CTA is a Gumroad Buy Link (v0.3.0.3)', () => {
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(
-      /href="https:\/\/[a-z0-9-]+\.lemonsqueezy\.com\/checkout\/buy\/[a-f0-9-]+(\?[^"]*)?"/
+      /href="https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+"/
     );
   });
 
-  it('paywall CTA carries checkout success_url back to /?paid=t1 (v0.3.0.2)', () => {
-    // LS Buy Link redirect after successful purchase. The success_url is
-    // URL-encoded inside the href. Without it, LS shows its default
-    // thank-you modal and the site never receives ?paid=t1 to trigger
-    // applyPaidReturn(). Independent of the LS dashboard's per-product
-    // thank-you config so Test + Live behave identically.
+  it('paywall CTA points at the specific Gumroad product URL with no query string (v0.3.0.3)', () => {
+    // Gumroad Buy Link redirect mechanism. Unlike the v0.3.0 LS path,
+    // Gumroad does not accept a URL-encoded success_url query parameter
+    // on the Buy Link href; post-purchase redirect to /?paid=t1 is
+    // handled by the product's Content-tab Button on Gumroad's side
+    // (single-source redirect, not belt-and-suspenders). Locks the
+    // exact product URL and the bare-URL shape — guards against
+    // accidental UTM tag addition / tracking param leakage.
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(
-      /checkout%5Bsuccess_url%5D=https%3A%2F%2Fthe-eight-ball\.netlify\.app%2F%3Fpaid%3Dt1/
+      /href="https:\/\/theeightball\.gumroad\.com\/l\/rzqezp"/
     );
   });
 
@@ -134,8 +136,8 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/three dollars/);
   });
 
-  it('about-modal: names lemon squeezy (case-insensitive)', () => {
-    expect(aboutSubtree).toMatch(/lemon squeezy/i);
+  it('about-modal: names gumroad (case-insensitive)', () => {
+    expect(aboutSubtree).toMatch(/gumroad/i);
   });
 
   it('about-modal: discloses on-device data boundary', () => {
@@ -177,11 +179,11 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(paywallSubtree).toMatch(/class="modal-disclosure"/);
   });
 
-  it('paywall modal disclosure names lemon squeezy (case-insensitive)', () => {
-    expect(paywallSubtree).toMatch(/lemon squeezy/i);
+  it('paywall modal disclosure names gumroad (case-insensitive)', () => {
+    expect(paywallSubtree).toMatch(/gumroad/i);
   });
 
-  it('paywall modal disclosure routes payment + email to LS', () => {
+  it('paywall modal disclosure routes payment + email to Gumroad', () => {
     expect(paywallSubtree).toMatch(/payment \+ email go to them/);
   });
 
