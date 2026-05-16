@@ -4,7 +4,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-05-16 — STATE-FILL: v0.3.0.3 Gumroad processor cutover (chat-28 close, §11.11 (b) gate closed)
 
-**SHA:** TBD (direct-to-main commit; follow-on commit pins live SHA per chat-18 inheritance discipline)
+**SHA:** `2d0f9bf` (direct-to-main commit; pinned via follow-on commit per chat-18 inheritance discipline)
 **Predecessor IN-FLIGHT entry:** prepended earlier this date (same chat-28); see below.
 **Live SHA of v0.3.0.3 merge:** `e64ec8f` (squash of `7801574` from `v0.3.0.3-gumroad-cutover`).
 **Smoke-test:** CiC firing #9 PASS clean; report at `~/Desktop/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`.
