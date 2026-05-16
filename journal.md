@@ -2,10 +2,13 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-16 — IN-FLIGHT: v0.29 inspector lane promotion (chat-29)
+## 2026-05-16 — SHIPPED: v0.29 inspector lane promotion (chat-29)
 
-**Branch:** `agents-inspector-promotion-doctrine-v029` off `main` HEAD `92f32fb`.
-**Pre-merge SHA:** TBD post-commit; will pin at post-merge state-fill per chat-25 SHIPPED-label discipline.
+**Live SHA on `main`:** `b1ad771` (squash-merge of `agents-inspector-promotion-doctrine-v029`, 2 commits collapsing the cycle + audit absorb: `d41ab1d` + `1ae68a0`).
+**PR:** [#26](https://github.com/appleeatsapples-lang/8ball/pull/26) — merged with `gh pr merge --squash --delete-branch`.
+**Branch cleanup:** `gh --delete-branch` L sighting #3 fired — branch survived on origin post-merge despite `--delete-branch` flag (sighting #1 chat-9 worktree-occupies variant, sighting #2 chat-10 non-worktree variant; this sighting non-worktree). Cleaned manually via explicit `git push origin --delete agents-inspector-promotion-doctrine-v029` + `git branch -D agents-inspector-promotion-doctrine-v029`. `git ls-remote --heads origin` post-cleanup confirmed clean (only `main`). The chat-9/10 codified mitigation (always verify `git ls-remote --heads origin` post-merge regardless of merge mechanism) held — L pattern is now N=3 sightings with deterministic mitigation.
+
+**Codex audit:** Procedure 4 returned PASS 7 / P3 0 / P2 1 / P1 2 / P0 0 overall P1; full response at `~/Desktop/8ball/audits/codex_v029_inspector_promotion_response.md`; all P1+ hooks (4, 6, 7-soft, 9) absorbed in commit `1ae68a0` before merge per L48 audit-cleared-signal discipline.
 
 **Cycle:** chat-13 sketch (`~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md`) graduates to permanent agent role after 9/9 directive-shape firings logged, 8 actually fired (firing #7 chat-28 superseded without paste per operator-direct-Confirm flow), 7/8 unambiguously clean across 8 distinct surfaces. All four T1 promotion pillars over-satisfied with 4-firing buffer: ≥3 clean firings ✅ / repeatable directive shape across firings ✅ / distinct lane boundary against existing roles ✅ (four-way table Inspector vs Verifier vs Auditor vs Controller) / characterized failure mode ✅ (6 entries — CiC default domain allowlist · Control Chrome MCP false-negative when Apple-Events-JS toggle off · osascript JS execution toggle-gated · CiC per-tab context · CiC sidepanel Anthropic-policy block on `connect.stripe.com` / payment-processor domains · CiC `javascript_tool` URL/query-string concatenation filter on payment-context content). L49-candidate discipline (fire first, codify after) preserved throughout sketch period — sketch lived in `~/Desktop/8ball/sessions/`, not `~/dev/8ball/agents/`, until this cycle.
 
@@ -28,19 +31,19 @@ Two distinct false-positive triggers diagnosed: (1) the regex trigger-word list 
 
 Rationale for absorbing rather than separating: the fix is two single-line wording tweaks with no semantic change, smaller than spinning up a separate audit cycle; tests must be green pre-merge regardless; the bug was pre-existing but blocking on this PR's CI gate. No test code change, no LABELED_DOB_ALLOW expansion (the allow-list is intentionally narrow per `tests/pii_scan.test.js` block comment).
 
-**Verification (pre-commit, branch `agents-inspector-promotion-doctrine-v029`):**
+**Verification (post-merge, on `main` HEAD `b1ad771`):**
 
 - `./node_modules/.bin/vitest run` → 586/586 tests pass.
 - `/bin/bash audits/run_local_audit.sh` → "LOCAL PII AUDIT: clean (54 files scanned)".
-- `git diff --stat HEAD` → DOCTRINE.md / agents/AGENTS.md / agents/PLATFORMS.md / 8BALL.md / journal.md modified; agents/inspector.md untracked. To-be-staged after this entry lands: all five tracked-file modifications + new agents/inspector.md.
+- `git ls-remote --heads origin` → only `main` (post manual branch-cleanup; see L sighting #3 above).
 
-**Carries forward (post-merge state-fill, chat-29 or chat-30):**
+**Post-merge state-fill completed (this commit):**
 
-- Flip this entry's IN-FLIGHT → SHIPPED with live merge SHA per chat-25 codification.
-- Update `8BALL.md` §10 entry's "Pre-merge state" placeholder with live SHA.
-- Update `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` status → PROMOTED with final firing-log entry pointing at merged `agents/inspector.md` tracked path.
+- This entry flipped IN-FLIGHT → SHIPPED with live merge SHA `b1ad771`.
+- `8BALL.md` §10 v0.29 entry's "Pre-merge state" placeholder replaced with live merge SHA.
+- `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` status flipped to PROMOTED with final firing-log entry pointing at the merged tracked role doc at `~/dev/8ball/agents/inspector.md` (off-repo session-doc edit; documented in audit history).
 
-**Cycle B (this entry) closes the operator's "B then A" queue B leg.** Cycle A (v0.3.0.3.1 doctrine drift sweep — Codex Procedure 4 P1 follow-up for 7 stale LS references across tracked files surfaced chat-28 audit) is the next cycle, starts after B merges.
+**Cycle B (this entry) closes the operator's "B then A" queue B leg.** Cycle A (v0.3.0.3.1 doctrine drift sweep — Codex Procedure 4 P1 follow-up for 7 stale LS references across tracked files surfaced chat-28 audit) is the next cycle.
 
 ---
 
