@@ -134,7 +134,7 @@ Per `MUHAB.md` §3:
 - **Perplexity** — web search / current-info verification.
 - **Gemini** — personal queries / second opinion.
 
-Neither is in the 4-agent core or used in standard cycle flow. Reserved for cross-check use cases as they arise.
+Neither is in the core agent system or used in standard cycle flow. Reserved for cross-check use cases as they arise.
 
 ## Artifact-location matrix
 
@@ -147,6 +147,8 @@ Neither is in the 4-agent core or used in standard cycle flow. Reserved for cros
 | Audit responses from Codex | `~/Desktop/8ball/audits/codex_<slug>_response.md` |
 | Directives for CiC | `~/Desktop/8ball/controllers/cic_<slug>_<date>.md` |
 | Verifier reports from CiC | `~/Desktop/8ball/controllers/verifier_report_<slug>_<date>.md` |
+| Inspector directives (read-only state checks via CiC + adjacents) | `~/Desktop/8ball/controllers/cic_<slug>_<date>.md` (sibling shape to verifier directives; same anchored `=== DIRECTIVE START/END ===` markers) |
+| Inspector reports (operational dashboard state observations) | `~/Desktop/8ball/audits/inspector_report_<slug>_<date>.md` or `~/Desktop/8ball/controllers/inspector_report_<slug>_<date>.md` (artifact lives alongside directive when one-shot; alongside audits when state-fill consumed) |
 | Content-batch reviews for ChatGPT | `~/Desktop/8ball/sessions/content_<slug>_<date>.md` |
 | Session distillates | `~/Desktop/8ball/sessions/session_distillate_<date>.md` |
 | Scope notes for future versions | `~/Desktop/8ball/sessions/v0X_scope_notes.md` |

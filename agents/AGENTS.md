@@ -1,6 +1,6 @@
 # AGENTS.md — agent-team system index
 
-> Codifies the agent-team model per DOCTRINE §10 v0.24 extension. Read this file at the start of any cycle that will route across multiple roles.
+> Codifies the agent-team model per DOCTRINE §10 v0.29 extension. Read this file at the start of any cycle that will route across multiple roles.
 
 This folder (`~/dev/8ball/agents/`) is the constitutional surface for the agent-team model. Each role has a doc here. Per-cycle artifacts (briefs, audits, directives, reports) live in `~/Desktop/8ball/` per the artifact-location matrix in `PLATFORMS.md`.
 

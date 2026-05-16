@@ -39,6 +39,7 @@ const DOCTRINE_ALLOW = new Set([
   'agents/implementer.md',
   'agents/auditor.md',
   'agents/verifier.md',
+  'agents/inspector.md',
   'agents/controller.md'
 ]);
 
