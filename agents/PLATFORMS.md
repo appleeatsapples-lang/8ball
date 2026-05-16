@@ -84,6 +84,33 @@ Companion to `AGENTS.md` and the role docs in this folder. Each agent runs on a 
 
 Claude in Chrome operates per browser tab with a per-session domain allowlist. A CiC directive targets exactly one tab/domain unless explicitly stated otherwise. Multi-tab directives require enumerating each tab + its domain + its STEPS. Sidepanel + conversation context are independent per tab; one directive = one tab; paste must land in the target tab's sidepanel. The L40 firing log (v0.3.0 CiC domain-allowlist block, listed above) is the canonical instance of this constraint asserting itself; the chat-13 per-tab context note at `~/Desktop/8ball/sessions/cic_per_tab_context_2026-05-13.md` is the codified directive-paste discipline (URL-check step 1 in every directive). Cross-tab status synthesis is orchestrator-aggregated from per-tab Inspector / Verifier reports, never a single CiC directive.
 
+## Inspector (operational dashboard read)
+
+**Surface.** Operator's Chrome tabs on operational third-party dashboards (Gumroad, LS, Netlify, GitHub, Railway, IG / TikTok / Threads, etc.). Multiple viable channels — see `inspector.md` channel-decision tree; Inspector picks per task.
+
+**Capabilities present.**
+- Read banner state, build status, project lists, PR/CI signals, profile state.
+- Tab inventory + URL/title surface across windows.
+- Single-page content excerpts for triage.
+- Cross-tab status synthesis (orchestrator-aggregated; per-tab context preserved).
+
+**Constraints.**
+- Read-only. No irreversible-action clicks under any condition. (All irreversibles → Controller.)
+- No credentials, payment info, cookie acceptance, agreement clicks, permission grants.
+- Targets operational dashboards only — not personal accounts (Gmail, personal banking, personal social inbox).
+- Channel reliability varies — Apple-Events-JS toggle gates osascript JS; Control Chrome MCP returns misleading "Chrome not running" when toggle is off; CiC default allowlist gates payment-processor domains; CiC sidepanel is policy-blocked on `connect.stripe.com` and likely other Stripe-hosted onboarding flows.
+
+**Friction modes observed** (6 entries, inherited from `inspector.md` characterized failure modes; firings logged in inspector sketch §5 and `inspector.md` Audit history).
+
+- CiC default domain allowlist (firing #3 LS, firing #6 Gumroad). Mitigation: controller adds domain to session allowlist before paste.
+- Control Chrome MCP false-negative when Apple-Events-JS toggle off (firing #6 datum). Mitigation: don't rely; fallback only.
+- osascript JS execution gated by Apple-Events-JS toggle. Mitigation: one-time operator toggle, or pivot to operator-screenshot / CiC.
+- CiC per-tab context — codified above in the CiC subsection.
+- CiC sidepanel policy-blocked on payment-processor domains (firing #7 superseded, `connect.stripe.com`). Mitigation: operator-fronted screenshot channel for Stripe-hosted Connect flows.
+- CiC `javascript_tool` filter blocks URL/query-string concatenation on payment-context content (firing #9). Mitigation: scoped `find` / `read_page` / `get_page_text` over bulk JS.
+
+L50 boundary fired once at sketch period (firing #2 chat-13, MIXED verdict). Mitigated by directive-template DO-NOT clause + Boundaries clause inherited from verifier.md; no L50 sightings on inspector-shaped firings since.
+
 ## ChatGPT (adjunct — content/copy review)
 
 **Surface.** ChatGPT Mac desktop app. Paste-relay only.
@@ -94,7 +121,7 @@ Claude in Chrome operates per browser tab with a per-session domain allowlist. A
 - Trait pool diff review (legacy; retired post-pivot per `8BALL.md` §11 paused/retired).
 
 **Constraints.**
-- Not in the 4-agent core system; adjunct lane only.
+- Not in the core agent system; adjunct lane only.
 - No filesystem access; paste-relay only.
 - Voice register has its own training prior — orchestrator briefs constrain explicitly per §2 voice register rules.
 
@@ -130,3 +157,4 @@ The split between repo tracked (`~/dev/8ball/`) and Desktop materialization (`~/
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Codifies the per-platform constraints observed across the v0.1.0 → v0.3.0.1 cycles. L40 firing log will live here in subsequent cycles; new platform additions (e.g. if Cowork or another adjunct gets a defined role) extend the table.
 - 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added "CiC per-tab scope" H3 inside the CiC (verifier) entry (Clause 2 of the bundle). Disambiguates that CiC operates per browser tab; multi-tab directives must enumerate each tab + domain + STEPS. Pairs with the directive-template clauses landed in `verifier.md` (downstream DO-NOT + upstream-diagnostic gate, Clauses 3 + 7), the no-strategic-synthesis Boundary clause in `verifier.md` (Clause 1), the content-seed routing Procedure in `controller.md` (Clause 5), and the register-alignment + paper-design sanity-check Procedures in `orchestrator.md` (Clauses 6 + 8). No DOCTRINE touch this cycle.
+- 2026-05-16 — chat-29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). Added new H2 "Inspector (operational dashboard read)" section between the CiC (verifier) entry and the ChatGPT entry, per `inspector_sketch_2026-05-13.md` §6 (b) staged content. Updated ChatGPT Constraints bullet from "Not in the 4-agent core system" → "Not in the core agent system" (version-agnostic). The Inspector entry inherits 6 friction-mode classes from the sketch firing log (CiC default domain allowlist, Control Chrome MCP false-negative, osascript JS toggle gate, CiC per-tab context, CiC sidepanel policy-block on payment-processor domains, CiC `javascript_tool` URL-concat filter); cross-references `inspector.md` for the full channel matrix + decision tree. Sibling tracked-file changes this cycle: new `agents/inspector.md` role doc; `agents/AGENTS.md` role table 4 → 5 core agents + opening paragraph updated; `DOCTRINE.md` §10 4-row table → 5-row table v0.24 → v0.29 with inspector row inserted between verifier and controller, plus version footer bump + lineage entry.

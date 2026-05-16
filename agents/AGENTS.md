@@ -6,7 +6,7 @@ This folder (`~/dev/8ball/agents/`) is the constitutional surface for the agent-
 
 ## The system in one paragraph
 
-8ball runs four agent roles plus one always-on controller. The **orchestrator** (chat-Claude, codename كن فيكون / kun fayakun) holds context and composes briefs. The **implementer** (Claude Code) executes multi-file production-grade edits. The **auditor** (Codex) adversarially reviews doctrine + content + release-gates before merge. The **verifier** (Claude in Chrome) drives the deployed product through user-style interactions and reports findings. The **controller** (operator) is the always-on layer — final approver for every merge, deploy, payment, and irreversible action. Solo authority is the failure mode; doctrine and content do not ship without the second pair of eyes.
+8ball runs five agent roles plus one always-on controller. The **orchestrator** (chat-Claude, codename كن فيكون / kun fayakun) holds context and composes briefs. The **implementer** (Claude Code) executes multi-file production-grade edits. The **auditor** (Codex) adversarially reviews doctrine + content + release-gates before merge. The **verifier** (Claude in Chrome) drives the deployed product through user-style interactions and reports findings. The **inspector** (Claude in Chrome and adjacent channels) reads operator's own infrastructure dashboards — payment processors, hosting, code, social — and reports state. The **controller** (operator) is the always-on layer — final approver for every merge, deploy, payment, and irreversible action. Solo authority is the failure mode; doctrine and content do not ship without the second pair of eyes.
 
 ## Roles
 
@@ -16,6 +16,7 @@ This folder (`~/dev/8ball/agents/`) is the constitutional surface for the agent-
 | Implementer | Claude Code (CC) | [`implementer.md`](./implementer.md) | — |
 | Auditor | Codex (Mac app) | [`auditor.md`](./auditor.md) | — |
 | Verifier | Claude in Chrome (CiC) | [`verifier.md`](./verifier.md) | — |
+| Inspector | Claude in Chrome (CiC) + adjacents | [`inspector.md`](./inspector.md) | — |
 | Controller (always-on) | Operator | [`controller.md`](./controller.md) | — |
 
 **Orchestrator codename note.** `كن فيكون` (kun fayakun) is the Quranic phrase "Be, and it is" — Allah's creative command. Operator-coined as the orchestrator skill's working name. Used as the codename in `orchestrator.md`'s H1; treat as religious-scholarly Arabic vocabulary (do not gloss in tracked content per MUHAB.md §8 #6). The Latin transliteration is a navigation aid for non-Arabic readers, not a translation.
@@ -107,3 +108,4 @@ The split keeps the constitutional surface stable while letting operational deta
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Index ships alongside `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`, `PLATFORMS.md`. Existing `verifier.md` preamble updated to cite v0.24 extension.
+- 2026-05-16 — chat-29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). Role table extended from 4 core agents + 1 controller → 5 core agents + 1 controller; new Inspector row inserted between Verifier and Controller. Opening "system in one paragraph" updated from four-roles-plus-controller phrasing to five-roles-plus-controller phrasing with new inspector sentence. New role doc landed at `agents/inspector.md`. Sibling tracked-file changes this cycle: `agents/PLATFORMS.md` new H2 "Inspector (operational dashboard read)" section between CiC (verifier) and ChatGPT entries; `DOCTRINE.md` §10 4-row table → 5-row table v0.24 → v0.29 with version footer bump + lineage entry. Promoted from sketch `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` after 9/9 directive-shape firings (8 fired, 7 unambiguously clean across 8 surfaces); all four T1 promotion pillars cleared with 4-firing buffer. Boundary clause (no-strategic-synthesis) inherited verbatim from `agents/verifier.md` via chat-15 c13-c14-c15 L-mitigation bundle.
