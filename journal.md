@@ -2,6 +2,70 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-16 — IN-FLIGHT: v0.3.0.3 Gumroad processor cutover (chat-28, branch `v0.3.0.3-gumroad-cutover`)
+
+**SHA:** TBD (state-fill commit pins post-merge per chat-18 inheritance discipline)
+**Branch:** `v0.3.0.3-gumroad-cutover` off main HEAD `4127209`
+**Cycle:** standard 10-step deploy cycle (operator Publish-flip → orchestrator code edits → Codex Procedure 4 audit → merge → Netlify deploy → CiC smoke-test → state-fill)
+
+**Trigger:** chat-25 Lemon Squeezy Step 3 KYC/KYB review remained "In Review" / vendor-staff-pending after the 1-3 BD SLA window. Chat-28 Gumroad Stripe Connect verification cleared 2026-05-16 same day after operator submission of corrected business-website (stale `muhabster2.gumroad.com` → `theeightball.gumroad.com`) + product-description fields (orchestrator-drafted Stripe-Connect-safe replacement using digital-entertainment-app vocabulary, operator-edited + Confirmed). Per chat-27 "whichever clears first becomes primary funnel" → Gumroad cleared first → live processor.
+
+**Pre-condition verification (operator-side, chat-28):**
+
+- Stripe Verification Summary screenshot — all green checks (Business representative, Business details, Business address, Tax info, Bank account).
+- Gumroad settings/payments banner CLEARED — no amber "Complete pending verification requirements via Stripe" remediation banner. Audit at `~/Desktop/8ball/audits/gumroad_post_confirm_recheck_2026-05-16.md` (CiC firing #8 PASS clean).
+- Bank Account on file: SWIFT `SABBSARI` (Saudi British Bank), account `******4001`, SAR currency.
+- Gumroad product `theeightball.gumroad.com/l/rzqezp` PUBLISHED (operator manual click via CiC with per-action approval, 2026-05-16 18:25 KSA; not a Verifier firing per directive-shape distinction — operator-driven multi-step, not orchestrator-queued directive).
+
+**Calibration captured (chat-28):** Gumroad Publish CTA placement — top-right button on Product tab reads "Save and continue" (not "Publish") even with payments gate clear; the "Publish and continue" CTA only appears on Content tab after advancing past Product step. Save→Content→Publish is the actual flow. Pre-clear hypothesis ("Product tab CTA will flip from Save→Publish post-Stripe-clear") was wrong — the CTA on Product tab is invariant; publish lives on Content tab. Worth recording for future cycle docs.
+
+**What's shipped on this branch:**
+
+- `DOCTRINE.md` v0.27 → v0.28 (329 → 333 lines). §5.B Call 2 rewritten — Lemon Squeezy Buy Link redirect path retired, Gumroad Buy Link redirect codified as live processor mechanism. §2 + §5 preamble + §5.B section header + §5.B Call 2 numbered item updated. Content-version footer updated. v0.28 lineage entry prepended.
+- `index.html` (line count unchanged at 1455). Three single-line LS→Gumroad swaps: line 916 paywall CTA href (`https://8-ball.lemonsqueezy.com/checkout/buy/<variant-id>?checkout%5Bsuccess_url%5D=...` → `https://theeightball.gumroad.com/l/rzqezp`), line 917 paywall disclosure ("lemon squeezy" → "gumroad"), line 878 about-modal disclosure ("lemon squeezy" → "gumroad").
+- `tests/payments_markup.test.js` (262 → 264 lines). Two LS Buy Link assertions retired (LS regex + URL-encoded success_url regex), replaced with two Gumroad Buy Link assertions (generic-shape regex `[a-z0-9-]+\.gumroad\.com/l/[a-z0-9]+` + exact-product-URL regex `theeightball\.gumroad\.com/l/rzqezp`). Two disclosure-naming tests swapped ("lemon squeezy" → "gumroad"). One test-name hygiene fix ("routes payment + email to LS" → "routes payment + email to Gumroad" — assertion was already generic).
+
+**Mechanism differences (LS path vs Gumroad path) codified in §5.B Call 2:**
+
+- **Bare URL with no `checkout[success_url]` query parameter** (vs URL-encoded query on LS).
+- **Single-source post-purchase redirect** via Gumroad's product Content-tab "→ unlock your reads" Button (vs LS belt-and-suspenders: dashboard Button link + URL-encoded query both pointing at the same target).
+- **Two-click post-purchase flow:** paywall → Gumroad checkout → Content Button → `/?paid=t1` (vs LS single-click `checkout[success_url]` redirect). Structurally different, not a regression — Gumroad's redirect surface is operator-controlled on Gumroad's side, not in the Buy Link URL shape.
+- **Stripe under Gumroad's Connect** (vs Stripe under LS as MoR).
+
+**Constraints preserved (no doctrinal regression):** user-initiated only · hosted redirect not overlay · no user data on redirect · no SDK/fetch/webhook · trust-based return · no customer object retained · disclosure in about-modal + paywall modal · overlay/embed script ban (Gumroad overlay rejected same as LS overlay per §5 third-party-script ban).
+
+**Pre-flight checks (this orchestrator session):**
+
+- Vitest: **586/586 PASS**, 14 test files, 1.70s.
+- Local PII audit (`/bin/bash audits/run_local_audit.sh`): **clean**, 53 files scanned.
+- `grep -c "lemonsqueezy\|Lemon Squeezy\|lemon squeezy"`:
+  - `index.html`: **0**
+  - `tests/payments_markup.test.js`: **0**
+  - `DOCTRINE.md`: **4** (all legitimate: 2 comparative history notes in active §5.B Call 2 + §5.B item 2, 1 illustrative §5.C future-amendment example, 1 v0.28 lineage entry — historical record preserved per discipline)
+
+**Open work (steps 5b-10 of this cycle):**
+
+- Push branch + open PR via `gh pr create`.
+- Codex Procedure 4 audit on the PR (paste-ready brief queued after push, sed-extracted to clipboard).
+- Operator merge approval after audit-clear (L48 discipline: wait for audit verdict, not the 2-min CI-green window).
+- Post-merge: `git reset --hard origin/main` per memory; `gh pr merge --squash --delete-branch` + verify branch deletion via `git ls-remote --heads origin` per gh L mitigation.
+- Netlify auto-deploy.
+- CiC firing #9: live-fire smoke-test on prod (paywall CTA href byte-match + about-modal copy match + paywall modal disclosure match against shipped HTML at `https://the-eight-ball.netlify.app`). Directive sibling shape to firings #6/#8.
+- §11.11 (b) state-fill journal entry post-deploy: live SHA + smoke-test PASS confirmation + `8BALL.md` §11.11 wording amendment to reflect Gumroad-path closure.
+
+**L51 / Procedure 8 alignment:** This branch is sub-step 1-7 of 10 toward §11.11 (b) "Gumroad-as-processor live" closure. The §11.11 (b) gate does not auto-close until step 10 (live-fire smoke-test) lands and the state-fill entry pins the live SHA.
+
+**LS path disposition:** LS store at `8-ball.lemonsqueezy.com` is preserved but not wired through 8ball's runtime. If LS Step 3 KYC/KYB ever clears, the LS path is recoverable but doctrine codifies single-processor-at-a-time at runtime (§5.B Call 2 v0.28). Operator decision to switch back to LS would require a doctrine amendment of similar shape to this one in reverse.
+
+**Changes:**
+
+- `DOCTRINE.md` — §2 third bullet + §5 preamble + §5.B section header + §5.B item 2 + §5.B Call 2 (full rewrite) + content-version footer + doctrine-version footer + v0.28 lineage entry.
+- `index.html` — paywall CTA href (line 916) + paywall disclosure copy (line 917) + about-modal disclosure copy (line 878).
+- `tests/payments_markup.test.js` — 2 Buy Link assertions retired + 2 Gumroad assertions added + 2 disclosure-naming swaps + 1 test-name hygiene fix.
+- `journal.md` — this IN-FLIGHT entry.
+
+---
+
 ## 2026-05-15 — STATE-FILL: chat-25 v028 Operations byte-verification (L52-candidate closure for this draft)
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Verification pass on the v028 Operations section resync that landed off-repo earlier this date (file mtime `~/Desktop/8ball/sessions/v028_doctrine_amendment_draft.md` = 2026-05-15 21:19 KSA, between chat-24 handoff write at 20:51 and chat-25 bootstrap at 21:02). The resync's top-note self-flagged an L52-candidate (`self-audit assertion ahead of direct evidence` — chat-21 Procedure 7 grep verified § references resolve but did NOT byte-verify `old_string` blocks against DOCTRINE.md). Chat-25 inaugural substantive turn closes the L52-candidate concern for this draft by running the byte-verification for real.
