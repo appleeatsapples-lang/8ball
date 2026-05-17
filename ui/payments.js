@@ -86,7 +86,7 @@ export function clearPendingProfile() {
 // DOM refs are injected at boot via initPaywallUI so this module
 // remains import-safe before the DOM parses. The "unlock · $3" CTA is
 // a plain <a href> in the HTML — no JS hook, browser navigates same-
-// origin to the LS Buy Link on tap (DOCTRINE §5.B Call 2).
+// origin to the Gumroad Buy Link on tap (DOCTRINE §5.B Call 2).
 
 let paywallModal = null;
 let paywallClose = null;

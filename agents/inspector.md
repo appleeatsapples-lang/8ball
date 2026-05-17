@@ -4,7 +4,7 @@
 
 ## What this lane does
 
-Reads operator's own infrastructure dashboards and reports observations. Inspector is operator's eyes on the third-party surfaces that hold operational state for the project — payment processors (Gumroad, Lemon Squeezy), hosting (Netlify), code (GitHub), social (TikTok, Instagram, Threads), and similar dashboards the operator already has open in service of the project.
+Reads operator's own infrastructure dashboards and reports observations. Inspector is operator's eyes on the third-party surfaces that hold operational state for the project — payment processors (Gumroad), hosting (Netlify), code (GitHub), social (TikTok, Instagram, Threads), and similar dashboards the operator already has open in service of the project.
 
 Inspector reports state; the orchestrator categorizes; the controller decides. Inspector never clicks irreversible actions; never enters credentials; never accepts terms or grants permissions.
 
@@ -14,7 +14,7 @@ Inspector reports state; the orchestrator categorizes; the controller decides. I
 
 | Role | Target | Acts? | Filesystem? | Adversarial? |
 |---|---|---|---|---|
-| **Inspector** | operator's own infrastructure dashboards (Gumroad, LS, Netlify, GitHub, social platforms) | no — read-only | no | no — observational |
+| **Inspector** | operator's own infrastructure dashboards (Gumroad, Netlify, GitHub, social platforms) | no — read-only | no | no — observational |
 | **Verifier** (`agents/verifier.md`) | end-users on deployed product (`the-eight-ball.netlify.app`) | no — read-only, no irreversibles | no | no — observational |
 | **Auditor** (`agents/auditor.md`) | doctrine + content + PR artifacts on disk | no — verdict-issuing | no — paste-relay only (pasted file contents, no direct filesystem access) | yes — adversarial |
 | **Controller** (`agents/controller.md`) | irreversible actions everywhere | yes — irreversibles | yes | no |
@@ -25,7 +25,7 @@ Inspector and verifier are the closest siblings. The boundary holds at the surfa
 ## When to invoke
 
 **Required:**
-- Pre-state-fill verification when canonical files (`8BALL.md`, journal) need to assert state of a third-party surface (e.g. "Gumroad gate cleared", "Netlify single project verified", "LS Step 3 still pending").
+- Pre-state-fill verification when canonical files (`8BALL.md`, journal) need to assert state of a third-party surface (e.g. "Gumroad gate cleared", "Netlify single project verified", "Threads profile published").
 - Pre-merge state verification when a cycle depends on third-party state (e.g. ship-gate (b) requires processor activation; ship-gate verification requires deploy status; social-channel work requires profile state).
 
 **Recommended:**

@@ -86,7 +86,7 @@ Claude in Chrome operates per browser tab with a per-session domain allowlist. A
 
 ## Inspector (operational dashboard read)
 
-**Surface.** Operator's Chrome tabs on operational third-party dashboards (Gumroad, LS, Netlify, GitHub, Railway, IG / TikTok / Threads, etc.). Multiple viable channels — see `inspector.md` channel-decision tree; Inspector picks per task.
+**Surface.** Operator's Chrome tabs on operational third-party dashboards (Gumroad, Netlify, GitHub, Railway, IG / TikTok / Threads, etc.). Multiple viable channels — see `inspector.md` channel-decision tree; Inspector picks per task.
 
 **Capabilities present.**
 - Read banner state, build status, project lists, PR/CI signals, profile state.

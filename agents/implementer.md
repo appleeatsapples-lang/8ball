@@ -83,7 +83,7 @@ Implementer returns: a branch with commits, a clean working tree, test surface d
 - **No solo doctrine amendments.** DOCTRINE.md changes in the brief flow back through Codex audit; implementer writes the bump but doesn't ship it without auditor + controller sign-off.
 - **No private-content access from public repo work.** `~/dev/8ball-private/` is the private deck source; the public-repo implementer never reads or copies from it directly. The release-prep `cp` from private to `content/cards.v1.full.js` is a controller-initiated step.
 - **No SIRR cross-references.** Per §9 SIRR boundary — no imports, no references, no shape-mirroring beyond what's already in tracked doctrine.
-- **No real-money commits.** Test-mode Lemon Squeezy keys only; Live-mode credentials are operator-managed.
+- **No real-money commits.** Live-mode payment-processor credentials and account toggles are operator-managed; implementer works against test-mode/sandbox surfaces only.
 - **No merge.** Implementer pushes branches and opens PRs. Merge is controller-action.
 - **No working-tree-dirty pushes.** Always commit or stash before push.
 

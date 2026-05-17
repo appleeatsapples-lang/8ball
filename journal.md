@@ -2,6 +2,75 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-17 — IN-FLIGHT: DOCTRINE v0.30 LS retirement + drift sweep (chat-30, branch `doctrine-v030-ls-retired`)
+
+**SHA:** TBD (live merge SHA filled post-merge via state-fill commit per chat-18 inheritance discipline; no `--amend` on pushed history).
+**Branch:** `doctrine-v030-ls-retired` off `main` HEAD `952f5a5` (chat-29 state-fill commit closing v0.29 inspector lane promotion).
+**PR:** TBD.
+**Codex audit (Procedure 4):** brief target `~/Desktop/8ball/audits/codex_v030_ls_retirement_2026-05-17.md`; response target `~/Desktop/8ball/audits/codex_v030_ls_retirement_2026-05-17_response.md`; P1+ hooks absorbed pre-merge per L48 audit-cleared-signal discipline.
+
+**Trigger:** Lemon Squeezy rejected the application 2026-05-17 after Step 3 KYC/KYB review (chat-25 logged Step 2 cleared; chat-28 chose Gumroad path per "whichever clears first becomes primary funnel" framing). The v0.28 lineage clause "LS path preserved at lemon-squeezy.com store but not wired through 8ball runtime; future re-route possible if LS Step 3 clears" is hereby superseded — no future re-route is possible, Gumroad is the single permanent runtime processor.
+
+**Cycle shape:** v0.29 → v0.30 doctrine amendment + sibling drift sweep + state-fill. Doctrine-only surface (no `core/` touch, no `index.html` touch, no `ui/*.js` logic, no test logic, no shipped-surface change — v0.3.0.3 already removed LS from runtime; this cycle is the doctrine + state-doc + agent-doc cleanup that v0.3.0.3 deliberately did not bundle). Cycle B leg per chat-29 close handoff (Cycle A was v0.29 inspector lane promotion). Sibling shape in size/scope to v0.27 (T1 lane codification doctrine cycle): ~13 file edits, ~21 surgical line tweaks via Desktop Commander `edit_block`, 1 cycle commit + 1 audit-absorb follow-up commit pre-merge, Procedure 4 audit returning PASS + severity ladder per Mode B convention.
+
+**Files touched (13 active drift, ~19 surgical edits applied chat-30 pre-commit):**
+
+- `DOCTRINE.md` — three surgical edits: §5.C future-amendment example (line :196) drops `Lemon Squeezy license-key issuance with server-side validation` and rewrites to `any processor's server-validated license-key issuance` (processor-agnostic backend-gated framing — LS is no longer a future option, so naming it as the canonical example of "doctrinally permitted future amendment" was doctrine drift); §10 inspector core-agent table row (line :259) drops `LS` from operator-dashboard list — operator no longer has reason to check LS dashboards post-rejection, becomes `Gumroad, Netlify, GitHub, social`; version footer v0.29 → v0.30 with full amendment description and v0.29 entry demoted to lineage bullet verbatim per L17 §-numbering / text preservation discipline.
+- `8BALL.md` — four touches: §4 inspector lane row mirror (line :90) drops `LS` from dashboard target list to match DOCTRINE §10 row; §11.11 (b) ship-gate parenthetical (line :265) appends v0.30 supersession clause noting LS path permanently retired 2026-05-17 with no future re-route possible; §11.16 Live-fire testing row (line :275) rewrites stale "awaits LS Live" framing to "cleared at v0.3.0.3 via Gumroad path"; §10 current-state gains v0.30 IN-FLIGHT entry at top above v0.29 SHIPPED block.
+- `README.md` — §5.B privacy scan description (line :26): drops LS Buy Link redirect description, replaces with Gumroad Buy Link redirect (matches DOCTRINE §5.B Call 2 v0.28 / 8BALL.md §3 row 9 content version).
+- `ui/payments.js` — paywall-CTA comment (line :89): updates comment text from LS-checkout-success_url mechanism reference to Gumroad bare-href reference. No logic change. Existing v0.3.0.3 assertion in `tests/payments_markup.test.js:34-42` already locks the Gumroad URL.
+- `tests/payments_markup.test.js` — header-comment scope line (line :11): updates legacy LS-mechanism comment to Gumroad-mechanism per DOCTRINE §5.B Call 2 v0.28. No test logic change. Line :68 mechanism-via-comparison comment preserved verbatim per L17 (documents the transition).
+- `audits/RELEASE_CHECKLIST.md` — two touches: §5.B Buy Link check (line :15) rewrites from LS-`checkout[success_url]` query-param mechanism to Gumroad bare-href + product Content-tab Button mechanism per DOCTRINE §5.B Call 2 v0.28; post-merge smoke-test paid-surface line (line :37) rewrites the same mechanism description (Buy Link href bare, no `checkout[success_url]`, Gumroad redirects via product Content-tab Button) — wording, not URL/domain, is what changes.
+- `agents/orchestrator.md` — two touches: L51 Procedure 8 trigger (line :116) drops LS-dashboard sighting from third-party-dashboard-state-row-drift trigger examples; step-2 example (line :121) updates LS-Step-3-recheck framing to Gumroad-funnel-recheck framing. Audit history block preserved verbatim per L17.
+- `agents/auditor.md` — Hook 3 (line :48): drops LS-payment-processor framing from scoped-network model example. Audit history block preserved verbatim per L17.
+- `agents/verifier.md` — three touches: §2 payment-flow section header (lines :98-:107) updates "Lemon Squeezy" → "Gumroad" / generic-processor framing; procedure block rewritten to reference Gumroad checkout flow + bare-href mechanism per DOCTRINE §5.B Call 2 v0.28; payment-processor domain example list (line :143) swaps `lemonsqueezy.com` → `gumroad.com` in the bare-domain triple `(gumroad.com, stripe.com, paypal.com)`. Audit history block preserved verbatim per L17.
+- `agents/controller.md` — deploy-authorization example (line :51): updates LS-dashboard-toggle example to Gumroad-product-Publish-flip example matching v0.3.0.3 cycle reality.
+- `agents/PLATFORMS.md` — inspector surface dashboard list (line :89): drops LS-dashboard entry, retains Gumroad / Netlify / GitHub / social (IG, TikTok, Threads). Audit history + firing-log blocks preserved verbatim per L17.
+- `agents/inspector.md` — three touches (post-v0.29-promotion, this is sibling-doc scrub): preamble (line :7) drops LS example from "what this lane does" sentence; four-way-table row (line :17) drops LS-dashboard example from inspector-target-surfaces column; when-to-invoke example (line :28) updates LS-Step-3-recheck framing to Gumroad-funnel-recheck framing. Audit history block + firing-log entries against `app.lemonsqueezy.com` chat-25 (firing #3) preserved verbatim per L17 — historical record.
+- `agents/implementer.md` — no-real-money-commits boundary (line :86): updates LS-checkout-test-mode example to Gumroad-checkout-test-mode example.
+
+**Discovered-during-work fix absorbed in same cycle (L-candidate N=2 sighting):**
+
+First pre-commit vitest run failed on the labeled-DOB regex (the role-noun + within-40-chars-of-YYYY-MM-DD shape) firing on two newly-written lines in this cycle: `8BALL.md:191` and `journal.md:12`. Both lines contained the substring `operator's application <DATE>` (where `<DATE>` here masks the literal 2026-05 ISO date stamp to avoid re-tripping the regex inside this very journal entry) — the regex role-noun followed by `'s application ` (15 chars) followed by a YYYY-MM-DD date stamp, well inside the 40-char window. Both lines were authored in this cycle (chat-30 inserted the v0.30 IN-FLIGHT entries in `8BALL.md` §10 and `journal.md`). Smallest-blast-radius fix: drop the qualifier `operator's` from the trigger sentence in both files (semantic loss zero — context makes the application's applicant unambiguous). No test logic change, no LABELED_DOB_ALLOW or DOCTRINE_ALLOW expansion. Tests re-ran 586/586 green, local PII audit re-ran clean (54 files scanned). DOCTRINE.md contains two adjacent labeled-DOB regex matches (lines :177 and :324) which the test correctly passes through via the `DOCTRINE_ALLOW` allow-list extended in v0.24 + v0.29 cycles — those are not drift.
+
+**L-candidate `meta-recursion-on-PII-failure-descriptions` now at N=2 sightings** (chat-29 first sighting was the role-noun-qualifier-in-§11.11(a)-sub-step-labels false-positive on a pre-existing main-HEAD line + a chat-29-authored journal line that echoed it; chat-30 second sighting is a different regex trigger word, `operator`, on chat-30-authored state-doc + journal lines describing LS rejection). The shape: writing recovery prose that describes a PII-regex-relevant event includes vocabulary the regex matches on, even when the prose itself is not PII. Both sightings absorbed in-cycle via smallest-blast-radius reword. Per L-promotion discipline, two sightings on the same META pattern (different trigger words, same shape) is the threshold for codifying as a real L; pending controller review of whether to (a) keep the discipline informal as "watch for trigger words near YYYY-MM-DD when writing state-doc / journal prose about regex-related events," or (b) tighten the regex window from 40 chars to a smaller value to reduce false-positives, or (c) add a structural carve-out for known-safe vocabulary patterns. Decision deferred to a future micro-cycle.
+
+**Preserved verbatim per L17 §-numbering / text preservation discipline:**
+
+- `DOCTRINE.md` lines :142, :150, :155, :173-:185 — historical breadcrumbs in §5 / §5.B Call 2 that explain Gumroad mechanism via comparison with prior LS path. These are not drift; they are how the doctrine documents the v0.3.0.3 cutover transition. Cutting them would erase the mechanism-via-comparison documentation.
+- `DOCTRINE.md` line :323 — content-version line already reads `LS path retired v0.3.0.3` (live-state-correct since chat-28 state-fill).
+- `DOCTRINE.md` lines :324-:331 — full lineage block (v0.28 through v0.22 preserved verbatim; v0.29 entry demoted to lineage in this cycle's footer bump). The v0.28 entry's "LS path preserved off-runtime / future re-route possible if LS Step 3 clears" clause stays — it was true on 2026-05-16. v0.30 codifies the supersession explicitly in the footer paragraph rather than retroactively editing v0.28.
+- `8BALL.md` lines :75, :191, :201-:262 — state-block ship descriptions are lineage (v0.29 SHIPPED through v0.1.0 SHIPPED); only the v0.30 IN-FLIGHT entry is new.
+- `tests/payments_markup.test.js` line :68 — mechanism-via-comparison comment documenting the LS→Gumroad transition (intentional doctrine alignment per chat-28 §5.B-Call-2-history comment).
+- All `agents/*.md` audit-history blocks and firing-log entries (`orchestrator.md` lines :130-:132 / `verifier.md` line :152 / `PLATFORMS.md` lines :80, :105 / `inspector.md` lines :118, :148, :166, :186).
+- Off-repo inspector sketch at `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` PROMOTED status with firing-log entries against `app.lemonsqueezy.com` (firing #3 chat-25 LS Step 3 recheck) preserved verbatim — historical record of past lane firings.
+
+**Out of scope (explicitly):**
+
+- No runtime/code-surface change. v0.3.0.3 already removed LS from runtime (verified via `grep -E "lemonsqueezy|Lemon Squeezy|lemon-squeezy" index.html ui/*.js` returning zero hits on `main` HEAD `952f5a5` before branch creation).
+- No test logic change. Only test comments / describe block text. Test counts unchanged at 586/586 expected.
+- No calc change.
+- No SIRR-boundary work (DOCTRINE §9 unchanged).
+- No new doctrine clauses — only retiring one ("preserved off-runtime / re-routable backup"). Pure consolidation per L17.
+- No `tests/pii_scan.test.js` DOCTRINE_ALLOW expansion expected (allow-list already covers all files in this PR's diff).
+
+**Verification (expected pre-merge, this cycle):**
+
+- `./node_modules/.bin/vitest run` → 586/586 tests pass (no test count change expected).
+- `/bin/bash audits/run_local_audit.sh` → "LOCAL PII AUDIT: clean (54 files scanned)".
+- `git diff --stat main..HEAD` post-commit → 14 files changed, 98 insertions, 26 deletions (the 13-active-drift surgical edits + the v0.30 IN-FLIGHT journal entry itself; pre-commit working-tree estimate of "~29 insertions" predated this journal-entry insertion and the L-candidate absorb subsection).
+- Aesthetic mono per Phase-2E (not exercised — no surface touch).
+
+**Post-merge state-fill plan:**
+
+- Flip this entry IN-FLIGHT → SHIPPED with live merge SHA via state-fill commit direct-to-main per chat-18 inheritance discipline.
+- Mirror sibling IN-FLIGHT → SHIPPED in `8BALL.md` §10 v0.30 entry with live merge SHA.
+- Verify `git ls-remote --heads origin` post-merge per `gh --delete-branch` 3-leg L pattern N=3 (sighting #4 expected on this cycle — mitigation deterministic per chat-29 codification: explicit `git push origin --delete <branch>` + `git branch -D <branch>` if origin-state check shows a survivor post-`gh pr merge --squash --delete-branch`).
+
+**L17 §-numbering preservation discipline is load-bearing for this cycle.** v0.30 is structurally an exercise in respecting L17: a lineage entry (v0.28) containing forward-looking claims that turned out false ("future re-route possible if LS Step 3 clears") gets superseded by a new lineage entry (v0.30's footer paragraph), not retroactively edited. Same shape as v0.29 demoting v0.28 to lineage verbatim; same shape as v0.27 demoting v0.26 to lineage; consistent across the L17-disciplined doctrine cycles.
+
+---
+
 ## 2026-05-16 — SHIPPED: v0.29 inspector lane promotion (chat-29)
 
 **Live SHA on `main`:** `b1ad771` (squash-merge of `agents-inspector-promotion-doctrine-v029`, 2 commits collapsing the cycle + audit absorb: `d41ab1d` + `1ae68a0`).
