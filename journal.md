@@ -2,12 +2,13 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-17 — IN-FLIGHT: DOCTRINE v0.30 LS retirement + drift sweep (chat-30, branch `doctrine-v030-ls-retired`)
+## 2026-05-17 — SHIPPED: DOCTRINE v0.30 LS retirement + drift sweep (chat-30)
 
-**SHA:** TBD (live merge SHA filled post-merge via state-fill commit per chat-18 inheritance discipline; no `--amend` on pushed history).
-**Branch:** `doctrine-v030-ls-retired` off `main` HEAD `952f5a5` (chat-29 state-fill commit closing v0.29 inspector lane promotion).
-**PR:** TBD.
-**Codex audit (Procedure 4):** brief target `~/Desktop/8ball/audits/codex_v030_ls_retirement_2026-05-17.md`; response target `~/Desktop/8ball/audits/codex_v030_ls_retirement_2026-05-17_response.md`; P1+ hooks absorbed pre-merge per L48 audit-cleared-signal discipline.
+**Live SHA on `main`:** `b20d644` (squash-merge of `doctrine-v030-ls-retired`, 2 commits collapsing the cycle + Codex P2 audit absorb: `b4ba867` + `d1d7610`).
+**PR:** [#27](https://github.com/appleeatsapples-lang/8ball/pull/27) — merged with `gh pr merge --squash --delete-branch`.
+**Branch cleanup:** `gh --delete-branch` L **sighting #4** fired as predicted — branch survived on origin post-merge despite `--delete-branch` flag (sighting #1 chat-9 worktree-occupies variant, sighting #2 chat-10 non-worktree variant, sighting #3 chat-29 non-worktree variant, this sighting #4 non-worktree). Cleaned manually via explicit `git push origin --delete doctrine-v030-ls-retired` + `git branch -D doctrine-v030-ls-retired`. `git ls-remote --heads origin` post-cleanup confirmed clean (only `main`). L pattern now at N=4 sightings with deterministic mitigation; the codified discipline (always verify `git ls-remote --heads origin` post-merge regardless of merge mechanism + explicit deletion if survivor) held cleanly.
+**Branch off:** `main` HEAD `952f5a5` (chat-29 state-fill commit closing v0.29 inspector lane promotion).
+**Codex audit (Procedure 4 / Mode B):** PASS 11 / P3 0 / **P2 1** / P1 0 / P0 0; response at `~/Desktop/8ball/audits/codex_v030_ls_retirement_2026-05-17_response.md`; single P2 (New Drift A — journal self-description metadata mismatch in three places) absorbed in commit `d1d7610` before merge. Soft-threshold absorb call — strict L48 reads P1+, but cycle's declared purpose is state-doc cleanup so shipping a journal entry that misrecords its own diff is a structural mismatch worth fixing in-cycle.
 
 **Trigger:** Lemon Squeezy rejected the application 2026-05-17 after Step 3 KYC/KYB review (chat-25 logged Step 2 cleared; chat-28 chose Gumroad path per "whichever clears first becomes primary funnel" framing). The v0.28 lineage clause "LS path preserved at lemon-squeezy.com store but not wired through 8ball runtime; future re-route possible if LS Step 3 clears" is hereby superseded — no future re-route is possible, Gumroad is the single permanent runtime processor.
 
@@ -54,18 +55,20 @@ First pre-commit vitest run failed on the labeled-DOB regex (the role-noun + wit
 - No new doctrine clauses — only retiring one ("preserved off-runtime / re-routable backup"). Pure consolidation per L17.
 - No `tests/pii_scan.test.js` DOCTRINE_ALLOW expansion expected (allow-list already covers all files in this PR's diff).
 
-**Verification (expected pre-merge, this cycle):**
+**Verification (post-merge, on `main` HEAD `b20d644`):**
 
-- `./node_modules/.bin/vitest run` → 586/586 tests pass (no test count change expected).
+- `./node_modules/.bin/vitest run` → 586/586 tests pass.
 - `/bin/bash audits/run_local_audit.sh` → "LOCAL PII AUDIT: clean (54 files scanned)".
-- `git diff --stat main..HEAD` post-commit → 14 files changed, 98 insertions, 26 deletions (the 13-active-drift surgical edits + the v0.30 IN-FLIGHT journal entry itself; pre-commit working-tree estimate of "~29 insertions" predated this journal-entry insertion and the L-candidate absorb subsection).
+- `git ls-remote --heads origin` → only `main` (post manual branch-cleanup; see L sighting #4 above).
 - Aesthetic mono per Phase-2E (not exercised — no surface touch).
 
-**Post-merge state-fill plan:**
+**Post-merge state-fill completed (this commit):**
 
-- Flip this entry IN-FLIGHT → SHIPPED with live merge SHA via state-fill commit direct-to-main per chat-18 inheritance discipline.
-- Mirror sibling IN-FLIGHT → SHIPPED in `8BALL.md` §10 v0.30 entry with live merge SHA.
-- Verify `git ls-remote --heads origin` post-merge per `gh --delete-branch` 3-leg L pattern N=3 (sighting #4 expected on this cycle — mitigation deterministic per chat-29 codification: explicit `git push origin --delete <branch>` + `git branch -D <branch>` if origin-state check shows a survivor post-`gh pr merge --squash --delete-branch`).
+- This entry flipped IN-FLIGHT → SHIPPED with live merge SHA `b20d644`.
+- `8BALL.md` §10 v0.30 entry's `<TBD post-merge ...>` placeholder replaced with live merge SHA `b20d644`; v0.30 IN-FLIGHT framing flipped to SHIPPED.
+- `8BALL.md` §10 section refresh date updated to `as of 2026-05-17` to match this cycle's state.
+
+**Cycle B leg of chat-29 close handoff (Cycle A = v0.29 inspector lane promotion) closes here.** Net cycle outcome: LS permanently retired from doctrine + state docs + agent docs + active code-surface comments + audits/RELEASE_CHECKLIST.md; v0.3.0.3-shipped runtime state now matches v0.30-doctrine claims; the v0.28 lineage clause that opened the door for a future LS re-route is hereby superseded. The doctrine documents its own transition via mechanism-via-comparison breadcrumbs (DOCTRINE §5.B Call 2 lines :142, :150, :155, :173-:185) preserved verbatim per L17 — auditors reading the doctrine post-v0.30 can still see how the Gumroad mechanism differs from the prior LS mechanism, which is the documentation pattern this cycle preserves rather than erases.
 
 **L17 §-numbering preservation discipline is load-bearing for this cycle.** v0.30 is structurally an exercise in respecting L17: a lineage entry (v0.28) containing forward-looking claims that turned out false ("future re-route possible if LS Step 3 clears") gets superseded by a new lineage entry (v0.30's footer paragraph), not retroactively edited. Same shape as v0.29 demoting v0.28 to lineage verbatim; same shape as v0.27 demoting v0.26 to lineage; consistent across the L17-disciplined doctrine cycles.
 
