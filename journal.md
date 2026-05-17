@@ -2,6 +2,56 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-17 — SHIPPED: L53 promotion — meta-recursion-on-PII-failure-descriptions (informal-discipline mitigation)
+
+**Status:** SHIPPED at direct-to-main commit (state-fill pattern; no PR, journal + state-doc scope only). L-candidate `meta-recursion-on-PII-failure-descriptions` promoted to formal **L53** on N=2-sighting basis. Informal-discipline standing mitigation codified in this entry. No DOCTRINE touch. No `agents/` touch. No code touch. No tests added or removed (586/586 unchanged).
+
+**Cycle:** lightweight orchestrator-controller cycle. Journal-only codification — no `agents/` Procedure added (unlike L51's Procedure 8), because the mitigation IS the in-cycle absorption pattern already practiced across both sightings. A Procedure would impose ceremony heavier than the discipline.
+
+**L53 framing:**
+
+**L53 = meta-recursion-on-PII-failure-descriptions** — when state-doc / journal prose describes a PII-regex-relevant event (a scan failure, a regex trigger, a fix), the prose itself can contain the vocabulary that re-fires the regex. The recursion is meta because the description of the failure shape *is* an instance of the failure shape.
+
+**Sightings tally:**
+
+- **Sighting #1** (chat-29, ship date 16 May): labeled-DOB regex fired on `8BALL.md` §11.11 (a) sub-step labels + a `journal.md` line echoing them. Two distinct false-positive triggers diagnosed: (i) a role-noun-qualifier alternative in the regex trigger list, adjacent to a literal ISO date; (ii) word-suffix overlap with the two-letter `me` alternative on a noun whose final two letters match the alternative followed by a word boundary. Smallest-blast-radius fix: drop the role-noun qualifier where semantic loss was zero + reword the suffix-overlap word by appending one letter to break the word boundary.
+- **Sighting #2** (chat-30, ship date today): regex fired on a different trigger word (the role-noun `operator`) in chat-30-authored v0.30 state-doc + journal lines describing the LS rejection event. The substring shape `<role-noun>'s application <ISO-DATE>` — role noun + `'s application ` (15 chars) + ISO date — re-fired the regex inside the prose narrating the chat-29 fix. Smallest-blast-radius fix: drop the qualifier (semantic loss zero; context unambiguous) + mask the literal date in failure-description narration when retention is necessary.
+
+Common shape: writing recovery prose that narrates a regex-relevant event uses regex-relevant vocabulary, especially close to literal dates because the event itself has a date. Different trigger words, identical structural shape, twice.
+
+**Standing mitigation (informal discipline):**
+
+> When the PII scanner fires on a line describing a PII-scan failure or related state-doc / journal narration about regex events: absorb in-cycle via smallest-blast-radius reword + literal-date masking in the failure-description text itself. No out-of-cycle commit. No regex change. No allow-list expansion. Reconsider structural mitigation (regex-window tightening or named carve-out) at N=4 or N=5 sightings.
+
+Rationale at N=2: absorption cost is small + bounded (each sighting closed via one or two single-line rewords, tests re-ran 586/586 clean); useful forcing function (absorbing produces awkward-prose-into-better-shape pressure); loosening a privacy-load-bearing scanner at N=2 is premature (the `LABELED_DOB` narrowness is intentional per the `tests/pii_scan.test.js` block comment — false positives are accepted cost, false negatives unacceptable); carving allow-lists for a pattern not yet fully characterized is more drift surface than it prevents.
+
+**Pairs with:** L17 (text preservation) composes — preserve historical content verbatim, but new descriptive prose narrating regex events can be reworded if semantically lossless. **Sibling shape to:** `gh --delete-branch` L pattern (chat-9/10 informal mitigation at N=2, deterministic mitigation accumulated only after N=3+). **Joins:** the cycle-hygiene cluster — L48 (audit-cleared signal) protects merge timing, L51 (closure discipline) protects multi-step gate closure, L53 protects state-doc / journal prose from re-firing the scanner it describes.
+
+**Subsumes:** none. L53 is a distinct failure mode from any prior L-candidate. **L52 slot** remains held by the chat-25 `self-audit assertion ahead of direct evidence` candidate (filed 15 May, awaiting second sighting); L53 takes the next free number.
+
+**Trigger for re-decision:** N=4 or N=5 sightings on the same META pattern. At that count, the pattern is richer-characterized and the structural choice (B regex-window tighten vs C named carve-out) becomes obvious based on which trigger-word classes have actually fired. Until then, informal discipline holds.
+
+**Changes:**
+
+- `journal.md` — this L53 promotion entry prepended.
+- `8BALL.md` §10 v0.30 entry — `L-candidate ... pending controller review of three mitigation options` flipped to `L53 promoted with informal-discipline mitigation per journal entry today`. One-line state-doc update.
+
+**Gates:**
+
+- Tests: 586/586 unchanged (no code touch).
+- Local PII audit: clean (54 files scanned).
+- No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no `agents/` touch, no shipped-surface change.
+
+**Live SHA:** TBD (state-fill commit; SHA-fill follow-up per chat-18 inheritance discipline).
+
+**Lessons / discipline:**
+
+- **N=2 promotion with informal mitigation is the right cycle weight for codifying a discipline that already practices.** L51's Procedure 8 codification was correctly heavier because the mitigation required step-enumeration the orchestrator was not yet doing. L53's mitigation is what both sightings already did in-cycle — codification just labels the practice and locks the reconsider-trigger.
+- **Codifying "wait for more data" is itself a valid codification.** The standing rule does not say "always informal" — it says "informal at N=2; reconsider at N=4 or N=5." The wait-and-see discipline is made explicit. Without the trigger, the L promotion would be a soft-edged shrug; with it, the L promotion is a structurally meaningful checkpoint that is self-pruning under §13 (no firing in 30 days = pruning candidate; reconsider-trigger fired = structural reconsideration window).
+
+
+---
+
 ## 2026-05-17 — SHIPPED: DOCTRINE v0.30 LS retirement + drift sweep (chat-30)
 
 **Live SHA on `main`:** `b20d644` (squash-merge of `doctrine-v030-ls-retired`, 2 commits collapsing the cycle + Codex P2 audit absorb: `b4ba867` + `d1d7610`).
