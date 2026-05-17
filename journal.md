@@ -42,7 +42,7 @@ Rationale at N=2: absorption cost is small + bounded (each sighting closed via o
 - Local PII audit: clean (54 files scanned).
 - No `core/`, no `ui/`, no `content/`, no `tests/`, no DOCTRINE touch, no `agents/` touch, no shipped-surface change.
 
-**Live SHA:** TBD (state-fill commit; SHA-fill follow-up per chat-18 inheritance discipline).
+**Live SHA:** `ccc847d` (direct-to-main commit, no PR; SHA-fill follow-up per chat-18 inheritance discipline).
 
 **Lessons / discipline:**
 
