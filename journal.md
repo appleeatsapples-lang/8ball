@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-29 — IN-FLIGHT: doc-truth sweep (stale pre-v0.3.0 comments) — branch `doc-truth-sweep`
+## 2026-05-29 — SHIPPED: doc-truth sweep (stale pre-v0.3.0 comments) — PR #28 `21a72cb`
 
-**Status:** IN-FLIGHT on branch `doc-truth-sweep` off `main` HEAD `a341752`. Comment/doc-string truthing only — zero executable lines, 586/586 unchanged, no DOCTRINE touch (stays v0.30), no `core/` logic touch, no `content/` touch, no deps. State-fill flips IN-FLIGHT → SHIPPED with live SHA post-merge.
+**Status:** SHIPPED at `21a72cb` (squash-merge of PR #28, 2026-05-29). Comment/doc-string truthing only — zero executable lines, 586/586 unchanged, no DOCTRINE touch (stays v0.30), no `core/` logic touch, no `content/` touch, no deps.
 
 **Trigger:** chat-resume bootstrap found 3 uncommitted files in the `main` working tree, provenance pre-this-chat (unfinished CC or paste-relay comment pass — never committed/journaled). Operator disposition A: verify clean truthing, commit through the normal gate as its own small cycle.
 
@@ -17,7 +17,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Gate call:** comment-only, no doctrine substance, no card-content change → below the Codex audit threshold (L48 audit-cleared-signal does not bind on a zero-substance comment cycle). Operator merge on review; Codex optional belt-and-suspenders.
 
-**HEAD post-merge:** TBD (state-fill).
+**HEAD:** `21a72cb` (PR #28 squash-merge). Branch `doc-truth-sweep` deleted (local + remote).
 
 ## 2026-05-17 — SHIPPED: L53 promotion — meta-recursion-on-PII-failure-descriptions (informal-discipline mitigation)
 
