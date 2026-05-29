@@ -2,6 +2,24 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-29 — IN-FLIGHT: share surface (free card → PNG → share) — product v0.4.0 / DOCTRINE v0.31
+
+**Status:** IN-FLIGHT on branch `share-surface` (off clean `main` @ `9ca3eb5`). Pre-merge. Flip to SHIPPED + live SHA after Codex Procedure 4 audit (doctrine change) + operator merge. Tests **597/597** green (586 baseline + 11 new); local PII audit clean (56 files); `index.html` 1481/1500.
+
+**Why:** the v0.3.1 traction gate (§11.11(c): ≥5 paid Gumroad purchases + 1 strong signal by 2026-06-15) sits at 0 sales / $0 ~13 days post-launch; chat-34 diagnosed "no traffic mechanism." A share control makes the toy self-distributing — every free reader can emit a grayscale specimen-card PNG carrying the bare site URL as the only discovery handle. Reach bet, doctrine-clean. Independent of (and may precede) the v0.3.1 facet-reroll, which stays gated behind this.
+
+**Scope (5 files):**
+- `ui/share.js` (new, 211 LOC) — `initShareUI({refs}, {hooks})` DI module per §6, mirroring `ui/payments.js` / `ui/profile.js`. Card → SVG string (read from the four free coordinate symbol nodes + their section titles + catalog) → offscreen `<canvas>` → `canvas.toBlob('image/png')`. Share via `navigator.share({ files })` where `navigator.canShare` accepts the file; else PNG download (anchor + object URL) + `navigator.clipboard.writeText(SITE_URL)` with a transient inline confirmation. Grayscale specimen styling mirrors the on-screen card (paper `#ebe5d4`, ink `#1a1812`, rule `#8a8472`, mono); footer wordmark `the-eight-ball.netlify.app`. No imports, no network, no new localStorage key.
+- `index.html` — `#share-btn` (label `share`, `type="button"`) as the third `.result-controls` button after shake-again / try-another; `#share-status` confirmation node + `.share-status` CSS; `initShareUI` import + boot wiring reading only the free symbol refs.
+- `DOCTRINE.md` — new **§5.D** (share surface; invariants a–d: free-symbols-only + bare URL, no per-result link/query, no telemetry/network, free-surface placement). **§12** "Sharing/social-card export until a privacy review explicitly clears it" amended (original line preserved as lineage per L17): that review landed here, clearing the §5.D-constrained free-card export; unconstrained / paid-content / PII / per-result-link export stays permanently out of scope. Footer `v0.30 → v0.31`, v0.30 demoted to a verbatim lineage bullet.
+- `tests/share_surface.test.js` (new, 11 tests) — markup (#share-btn placement/label/type, #share-status), DI arity `(refs, hooks)` + boot, privacy (no fetch/XHR/sendBeacon in `ui/share.js`), paid-content leak guard (no card-name/type/habit/note read), PII guard (no `profile.*` field read, bare URL with no query string), on-device render primitives + no-dependency.
+
+**Doctrine gate:** DOCTRINE touched → Codex Procedure 4 audit required pre-merge (§10 / §8 gate 6); journal touched in same change (§8 gate 2 satisfied). Operator is sole merge authority (§10 / L48 audit-cleared signal before merge).
+
+**Invariants held:** no calc change; no `content/` deck touch; no new dependency (dependency_discipline green); no new localStorage key (`privacy_scan` `LOCALSTORAGE_KEY_ALLOW` unchanged); no network call introduced (`privacy_scan` FORBIDDEN list unchanged); `pii_scan` DOCTRINE_ALLOW unchanged. The shared artifact carries only the free coordinate symbols + the bare URL — never the paid card layer, never name or DOB.
+
+**Post-merge checklist:** flip this entry to SHIPPED + live SHA; watch the `gh --delete-branch` L (N=5 predicted) — verify `git ls-remote --heads origin` and explicit `git push origin --delete share-surface`; CiC live-fire on the deploy — free card → share → PNG renders (symbols legible, grayscale, wordmark present), no paid content, no PII; DevTools Network shows zero requests fired by the share action.
+
 ## 2026-05-29 — SHIPPED: doc-truth sweep (stale pre-v0.3.0 comments) — PR #28 `21a72cb`
 
 **Status:** SHIPPED at `21a72cb` (squash-merge of PR #28, 2026-05-29). Comment/doc-string truthing only — zero executable lines, 586/586 unchanged, no DOCTRINE touch (stays v0.30), no `core/` logic touch, no `content/` touch, no deps.
