@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-05-29 — IN-FLIGHT: share surface (free card → PNG → share) — product v0.4.0 / DOCTRINE v0.31
+## 2026-05-29 — SHIPPED: share surface (free card → PNG → share) — product v0.4.0 / DOCTRINE v0.31 — `beb0279`
 
-**Status:** IN-FLIGHT on branch `share-surface` (off clean `main` @ `9ca3eb5`). Pre-merge. Flip to SHIPPED + live SHA after Codex Procedure 4 audit (doctrine change) + operator merge. Tests **598/598** green (586 baseline + 12 new); local PII audit clean (56 files); `index.html` 1481/1500.
+**Status:** SHIPPED at `beb0279` (squash-merge of PR #29, 2026-05-29; feature `6e58bc8` + Codex P2/P3 absorb `dbab683`). Tests **598/598** green (586 baseline + 12 new); local PII audit clean (56 files); `index.html` 1481/1500.
 
 **Why:** the v0.3.1 traction gate (§11.11(c): ≥5 paid Gumroad purchases + 1 strong signal by 2026-06-15) sits at 0 sales / $0 ~13 days post-launch; chat-34 diagnosed "no traffic mechanism." A share control makes the toy self-distributing — every free reader can emit a grayscale specimen-card PNG carrying the bare site URL as the only discovery handle. Reach bet, doctrine-clean. Independent of (and may precede) the v0.3.1 facet-reroll, which stays gated behind this.
 
@@ -18,7 +18,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Invariants held:** no calc change; no `content/` deck touch; no new dependency (dependency_discipline green); no new localStorage key (`privacy_scan` `LOCALSTORAGE_KEY_ALLOW` unchanged); no network call introduced (`privacy_scan` FORBIDDEN list unchanged); `pii_scan` DOCTRINE_ALLOW unchanged. The shared artifact carries only the free coordinate symbols, their section labels, and the catalog number, plus the bare URL — never the paid card layer, never name or DOB.
 
-**Post-merge checklist:** flip this entry to SHIPPED + live SHA; watch the `gh --delete-branch` L (N=5 predicted) — verify `git ls-remote --heads origin` and explicit `git push origin --delete share-surface`; CiC live-fire on the deploy — free card → share → PNG renders (symbols legible, grayscale, wordmark present), no paid content, no PII; DevTools Network shows zero requests fired by the share action.
+**Post-merge:** state-fill done (this entry flipped to SHIPPED + SHA `beb0279`). `gh --delete-branch` L fired again as predicted (**N=5**) — remote `share-surface` survived the GitHub UI merge; cleaned via explicit `git push origin --delete share-surface` + `git branch -D`. **PENDING (next chat): CiC live-fire** on the prod deploy — shake to a free card → tap share → PNG renders (labeled symbols + catalog + wordmark, grayscale), no paid content, no PII; DevTools Network shows zero requests fired by the share action. Directive staged at `~/Desktop/8ball/controllers/cic_share_livefire_2026-05-29.md`.
 
 ## 2026-05-29 — SHIPPED: doc-truth sweep (stale pre-v0.3.0 comments) — PR #28 `21a72cb`
 
