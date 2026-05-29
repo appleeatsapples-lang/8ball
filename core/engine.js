@@ -1,19 +1,17 @@
 // 8ball / core / engine.js
 // Catalog computation. Pure logic, no DOM.
 //
-// v0.2.0 surface (Phase-2F-3): the public free product surfaces only
-// the catalog index of the resolved card, not the card content itself.
-// The (sun, animal) → catalog mapping is positional (sun-row × 12 +
-// animal-col + 1), so the catalog can be computed without any card
-// content present in the runtime. The interpretation layer (card
-// content) is the future paid product and lives outside this repo.
+// Current surface: the engine computes only the catalog index of the
+// resolved card. The (sun, animal) -> catalog mapping is positional
+// (sun-row x 12 + animal-col + 1), so the pure engine remains
+// content-agnostic while the UI unlock path reads deck content from
+// content/cards.v1.full.js.
 //
 // Pipeline (DOCTRINE §1):
-//   profile (from buildProfile) → getCard(profile) → { catalog }
-//   The card content fields (name, type, habit, note) are returned as
-//   empty strings in this build; they remain in the engine API for
-//   forward compatibility with v0.3.0+ which will populate them from
-//   the private content layer.
+//   profile (from buildProfile) -> getCard(profile) -> { catalog }
+//   The card content fields (name, type, habit, note) intentionally
+//   return empty strings here; callers use catalog/profile coordinates
+//   to resolve deck content outside the pure engine.
 
 // Sun-row order in the 144-card catalog. Astrological year, starting
 // from Aries. This is positional only — no card content is loaded.

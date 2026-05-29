@@ -2,6 +2,23 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-29 — IN-FLIGHT: doc-truth sweep (stale pre-v0.3.0 comments) — branch `doc-truth-sweep`
+
+**Status:** IN-FLIGHT on branch `doc-truth-sweep` off `main` HEAD `a341752`. Comment/doc-string truthing only — zero executable lines, 586/586 unchanged, no DOCTRINE touch (stays v0.30), no `core/` logic touch, no `content/` touch, no deps. State-fill flips IN-FLIGHT → SHIPPED with live SHA post-merge.
+
+**Trigger:** chat-resume bootstrap found 3 uncommitted files in the `main` working tree, provenance pre-this-chat (unfinished CC or paste-relay comment pass — never committed/journaled). Operator disposition A: verify clean truthing, commit through the normal gate as its own small cycle.
+
+**Scope (3 files, comments only):**
+- `core/engine.js` — header comment reconciled from "v0.2.0 Phase-2F-3 / content lives outside this repo / fields empty for forward-compat with v0.3.0+" to current reality (engine is content-agnostic; UI unlock path reads deck from `content/cards.v1.full.js`). Pure-logic body byte-identical.
+- `tests/profile.test.js` — three stale comment blocks reconciled. Old comments claimed banned-pattern / voice-register scans "run on the private side; public suite has no content to scan" — true pre-v0.3.0, false since. Verified against the current file: imports `CARDS` from `content/cards.v1.full.js` (line 35) and runs live deck scans — BANNED_VOICE_REGISTER (§2, it@507), BANNED_PATTERNS slur (§4, it@524), date-string (§11, it@537). New comments state the truth. getCard catalog-block assertions (catalog + four empty-string fields) intact; none added or removed.
+- `README.md` — "This public repo includes" → "This source tree includes" (repo private since v0.2.0).
+
+**Verification:** 586/586 green (unchanged count confirms no logic touched); local PII audit clean (54 files).
+
+**Gate call:** comment-only, no doctrine substance, no card-content change → below the Codex audit threshold (L48 audit-cleared-signal does not bind on a zero-substance comment cycle). Operator merge on review; Codex optional belt-and-suspenders.
+
+**HEAD post-merge:** TBD (state-fill).
+
 ## 2026-05-17 — SHIPPED: L53 promotion — meta-recursion-on-PII-failure-descriptions (informal-discipline mitigation)
 
 **Status:** SHIPPED at direct-to-main commit (state-fill pattern; no PR, journal + state-doc scope only). L-candidate `meta-recursion-on-PII-failure-descriptions` promoted to formal **L53** on N=2-sighting basis. Informal-discipline standing mitigation codified in this entry. No DOCTRINE touch. No `agents/` touch. No code touch. No tests added or removed (586/586 unchanged).

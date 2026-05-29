@@ -8,11 +8,9 @@
 //  2. Engine — getCard pipeline against the 144 positional catalog cells
 //     (12 sun-rows × 12 animals; engine computes catalog index without any
 //     card-content import), plus resolveBracket direct cases.
-//  3. Banned-pattern + banned-voice-register policy — preserved here as the
-//     canonical rule reference. As of v0.2.0 the card content moved to
-//     `~/dev/8ball-private/cards.v1.full.js`, so the scan over the shipped
-//     CARDS pool runs on the private content-authoring pipeline; the policy
-//     constants live in this file so doctrine and code stay co-located.
+//  3. Banned-pattern + banned-voice-register policy — constants and scans
+//     live here against the shipped CARDS pool in content/cards.v1.full.js
+//     so doctrine, deck shape, and policy enforcement stay co-located.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -64,14 +62,8 @@ const BANNED_PATTERNS = [
   /\bn[i1]gg[ae]r/i
 ];
 
-// Note: the banned-pattern and banned-voice-register scans previously
-// walked the CARDS pool (content/cards.v1.js). As of v0.2.0 the card
-// content is private (paid layer) and not present in the public
-// runtime; those scans now run on the private side as part of the
-// content-authoring pipeline, not in this public test suite. The
-// regex tables below are kept here so the rules remain visible in
-// the public repo as enforced policy, even though the public test
-// suite no longer has content to scan.
+// The regex tables below are the enforced policy source for the deck
+// scans later in this file.
 
 describe('calculation contract', () => {
   for (const c of fixtures.cases) {
@@ -357,10 +349,9 @@ describe('engine — getCard catalog (positional math)', () => {
       }
       const card = getCard(profile);
       expect(card.catalog).toBe(c.expected.catalog);
-      // Card content fields (name, type, habit, note) are empty strings
-      // in v0.2.0 — the public engine computes catalog only. Full card
-      // content is the future paid layer; its banned-pattern and voice-
-      // register scans run on the private side, not in this suite.
+      // The pure engine computes catalog only. Full card content is
+      // resolved outside getCard by the unlocked UI path from
+      // content/cards.v1.full.js.
       expect(card.name).toBe('');
       expect(card.type).toBe('');
       expect(card.habit).toBe('');
@@ -370,12 +361,8 @@ describe('engine — getCard catalog (positional math)', () => {
   }
 });
 
-// Note: BANNED_PATTERNS and BANNED_VOICE_REGISTER tables above remain
-// in this public file as the canonical policy. The scans that walked
-// CARDS content (banned-pattern check, voice-register check) ran here
-// in v0.1.x; as of v0.2.0 the card content is private and those scans
-// run on the private content-authoring side. The public test suite no
-// longer has card strings to walk.
+// BANNED_PATTERNS and BANNED_VOICE_REGISTER remain in this file as the
+// canonical policy tables for the deck scans below.
 
 describe('calendar — lunar new year + solar-term tables (v2)', () => {
   // Sanity locks per v0.2.7.1 brief §4.1 / §4.2. CC's calendar.js
