@@ -61,6 +61,18 @@ describe('ui/share.js DI shape (DOCTRINE §6)', () => {
     expect(html).toMatch(/import\s*\{\s*initShareUI\s*\}\s*from\s*['"]\.\/ui\/share\.js['"]/);
     expect(html).toMatch(/initShareUI\(/);
   });
+
+  it('the initShareUI call site passes no profile or paid-card ref (§5.D a/b at the wiring)', () => {
+    const i = html.indexOf('initShareUI(');
+    expect(i, 'initShareUI call not found').toBeGreaterThanOrEqual(0);
+    const call = html.slice(i, html.indexOf(');', i) + 2);
+    for (const key of ['btn', 'status', 'catalog', 'symbols']) {
+      expect(call, `initShareUI should pass ${key}`).toContain(key);
+    }
+    for (const bad of ['currentProfile', 'profile', 'cardName', 'card-name', 'cardType', 'cardHabit', 'cardNote', 'unlock']) {
+      expect(call, `initShareUI must not pass ${bad}`).not.toContain(bad);
+    }
+  });
 });
 
 describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => {
