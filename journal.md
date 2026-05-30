@@ -2,6 +2,46 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-30 — Audit + cleanup session + distribution/content backfill (chats 31–34 + 05-29/05-30)
+
+**Status:** No code, no doctrine surface. Orchestrator audit-and-close pass under full-authority "close everything." One direct-to-main state-fill (this entry + `package.json` version-truth `0.3.0 → 0.4.0`). Repo otherwise untouched: `main @ b95bdd6`, clean; `git ls-remote --heads origin` = `main` only.
+
+**Trigger:** chat opened on the 2026-05-30 distribution/content handoff. The opening orientation leaned on the handoff summary rather than disk; operator flagged it ("shortcutting"). Re-audit against disk surfaced five gaps the handoff omitted — recorded below as the corrective.
+
+### Repo-state correction
+- `git branch -a` showed `remotes/origin/v0.3.0.3-gumroad-cutover`, contradicting the handoff's "origin only main." It was a **stale local remote-tracking ref**, not a live origin branch — origin was already clean. `--cherry-pick --right-only` confirmed the branch is fully patch-equivalent in main (squash-merge survivor). Pruned via `git fetch --prune`. Lesson: `git branch -a` lies via stale tracking refs; `git ls-remote --heads origin` is authoritative. (Not a true gh `--delete-branch` L sighting — origin was clean; this was a tracking-ref ghost.)
+- `package.json` version had drifted to `0.3.0` (never bumped through .1/.2/.3 or v0.4.0). Truthed to `0.4.0` here (same class as the doc-truth-sweep's stale-metadata reconciliation).
+
+### Five gaps found (handoff omitted all)
+1. **Two missed Friday rule-kill reviews.** 2026-05-22 pre-staged but never fired; 2026-05-29 never staged. §13/§7 weekly cadence dead ~2 weeks — the prune-discipline is itself the rule that stopped firing. **Closed:** catch-up review at `sessions/friday_rule_kill_review_2026-05-30.md` (consolidates both + 7 pre-stage items). Headline verdict: weekly is wrong for solo → AMEND to monthly, queued.
+2. **Weekly Inspector cadence never started.** First fire due 2026-05-24; no directive drafted; `audits/inspector_weekly_*.md` = zero reports — yet the gate-close diagnostic *opens* by pulling them. **Closed:** first weekly directive at `controllers/cic_inspector_weekly_w2_2026-05-31.md` (starts week 2; week-1 a permanent gap); walk-away diagnostic edited 4→3 expected reports.
+3. **Journal didn't carry the distribution/content work.** Newest entry was the v0.4.0 code ship; chats 31–34 + 05-29/30 decisions lived only in scattered `sessions/` handoffs (4+ overlapping). **Closed:** backfilled below.
+4. **`package.json` version drift** — truthed (above).
+5. **Voice-memo capture shortcut** — dream-pipeline dependency, no evidence set up. **Closed (operator-hand):** setup+test brief at `sessions/voicememo_shortcut_setup_2026-05-30.md`.
+
+### Distribution / content backfill (chats 31–34 + 05-29/30) — previously un-journaled
+- **Tarot birth card → FREE surface** (was paid-ladder candidate). Specimen-grammar mock approved (Major Arcana numeral + name, e.g. `XVII · the star`) as a free coordinate; doctrine-clean vs §1 (coordinate, not interpretation). Logged `sessions/queue_post_2G2_candidates.md`. NOT BUILT — additive DOB-only build (new `core/birthcard.js` ~30 lines + profile field + render + tests + DOCTRINE clause). Two spec calls open: reduction method (rec: sum DOB digits, reduce ≤22) + include 0·the fool (rec: yes, map sum-22). Build awaits go.
+- **Store resolved:** stay Gumroad (no Shopify — $39/mo wrong tool for one digital product; Gumroad = no monthly + Merchant-of-Record intl tax). One product, depth via tier ladder not many SKUs. One link (the site). "Specialised products" reframed as marketing ANGLES into one product.
+- **Cards-in-posts allowed:** specimen result-card as art object = yes; app-UI screenshots / $-tier cards = no (breaks carnaval one-act frame).
+- **TikTok color exemption:** TikTok cards may be color (track-art frames) — "it's a hook." Phase-2E monochrome lock REMAINS binding on app UI / dream line / Threads. Early signal: card posts pulled plays (2) vs bare covers (0).
+- **Dream pipeline:** capture-on-wake → weekly triage + batch render → tiered tagging. FROZEN ANCHOR v2 (cold/mineral neutral B&W, eroded artifact) after #1 came warm sepia (deviation). State: #5 cave pond = keeper, UNNAMED (dreamer's-stamp — owed); #1 fruit = sepia, re-render/name TBD; #3 horse-in-fog = render unconfirmed. 2 dreams posted.
+- **Carnaval frame governs all:** 8ball one act among others; discovery via bio link only; no CTAs / product-UI screenshots / origin-story / explicit "8ball" in captions. Aphorism register tried + rejected.
+- **MBA integration** locked 4 threads (brand voice / audience model / cross-surface discipline / multi-model briefing); 12 handbooks parked. Ref `sessions/augment_mba_integration_2026-05-18.md`.
+- **v0.4.0 share surface** re-verified GREEN on prod via CiC synthetic smoke-test 2026-05-30 (PASS vs 5/5 baseline). Two non-blocking app flags for next surface touch: share PNG is image/jpeg not PNG (PNG better for line-art); DOM "18+" age-gate didn't fire on fresh visit — confirm intent.
+
+### New L promoted
+- **L — stale-context discipline:** orchestrator orients/drafts on summary instead of re-grepping canonical state. Sighting #1 chat-25 (§5.C duplicate); sighting #2 = this session's handoff-orientation shortcut (operator-caught). Promoted. **Procedure 9** drafted paste-ready inside the Friday review for the `agents/orchestrator.md` codification micro-cycle.
+
+### Queued doctrine micro-cycle (operator-gated, NOT executed)
+One bundled cycle (PR → Codex Procedure 4 → merge): (1) §12 retired-vocab AMEND; (2) §13/§7 cadence weekly→monthly; (3) Procedure 9 codification. Fire on go.
+
+### Open / operator-hand
+- Tarot: 2 spec calls + build go (recs above). Dream names: #5 owed / #1 re-render / #3 confirm. App flags: PNG-vs-JPEG + age-gate (next UI touch). Reddit frame: parked, needs its own frame before any post. First Gumroad sale → tier spec (`sessions/tier_symbol_unlock_ladder_2026-05-29.md`).
+
+**v0.3.1 ship-gate unchanged:** ≥5 paid Gumroad + 1 strong signal by 2026-06-15. 0 sales / $0.
+
+---
+
 ## 2026-05-29 — SHIPPED: share surface (free card → PNG → share) — product v0.4.0 / DOCTRINE v0.31 — `beb0279`
 
 **Status:** SHIPPED at `beb0279` (squash-merge of PR #29, 2026-05-29; feature `6e58bc8` + Codex P2/P3 absorb `dbab683`). Tests **598/598** green (586 baseline + 12 new); local PII audit clean (56 files); `index.html` 1481/1500.
