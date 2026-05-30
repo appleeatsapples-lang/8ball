@@ -2,6 +2,22 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-30 — SHIPPED: tarot birth-card free coordinate — product v0.5.0 / DOCTRINE v0.33 — `387f67d`
+
+**Status:** SHIPPED at `387f67d` (squash-merge of PR #30; feature `28c161b` + Codex P2 absorb `febcbf4`). Tests **612/612** green (586 baseline + 14 birthcard + 12 share, net since v0.3.0); local PII audit clean (58 files); `index.html` 1489/1500. Full gate path (a): branch → PR → Codex Procedure 4 → operator merge.
+
+**What:** A Major Arcana birth-card coordinate (roman numeral + lowercase name, e.g. `XXI · the world`) as the **lead row** of the free card, above five-element. DOB-only, surface-only — does not enter `getCard` / `resolveBracket` / catalog; catalog driver stays `(sunSign, animal)` per §1, same pattern as §1.A rising. Free-surface coordinate inside the §1 symbols-only invariant; paid card-content layer untouched. Included in the §5.D share PNG (free coordinate → shared image matches the on-screen free card, now five coordinates); no PII, no paid content.
+
+**Specs (operator-locked this session):** reduction = digit-sum (sum all DOB digits, reduce ≤22), distinct from the master-number-stopping life-path reduce; 22 → 0 (the fool) so every DOB resolves to a real arcana (out-of-range XXII never renders); lead-row placement. Operator reviewed a computed divergence table + rendered specimen mock before locking ("let's see first") — the three named traditions collapsed to two distinct outputs (component-add vs digit-sum; digit-sum ≡ plain), digit-sum chosen.
+
+**Files (7):** new `core/birthcard.js` (`getBirthCard` / `getBirthCardNumber` / `MAJOR_ARCANA`); `core/profile.js` import + additive `birthCard` field; `index.html` arcana lead `.coord-section` + render wiring + share symbols array 4→5 + 5 copy-count fixes; new `tests/birthcard.test.js` (14 tests); `tests/labels_reveal.test.js` coord-count 4→5; `DOCTRINE.md` §1.C + footer v0.32→v0.33; `package.json` 0.4.0→0.5.0.
+
+**Codex Procedure 4:** CONCERN → resolved. Targets 1-4 + 6 (free/paid boundary, §5.D share, catalog isolation, reduction correctness incl. 3.7M-combo exhaustive probe badCount 0, PII meta-check) all PASS with file:line citations. One P2: `index.html` coordinate-count copy drift ("seven coordinates / an eighth" stale after adding the lead row) — absorbed in `febcbf4` across 5 strings (Codex named 3; +2 sibling og/twitter meta tags caught on grep — share-preview surfaces, doubly relevant now the PNG is a discovery handle). Response filed `audits/codex_procedure_4_v0_5_0_response_2026-05-30.md`.
+
+**L-candidate (1st sighting):** surface-copy coordinate-count drift on additive-coordinate cycles. The `labels_reveal` test catches the *structural* count (DOM element count 4→5) but no test pins the *prose* count (meta description / about-modal "N coordinates"). Additive coordinates (rising historically, tarot now, moon/day-pillar/lunar-phase parked as 2G candidates) leave prose counts stale; the suite can't catch it, Codex did. Mitigation candidate: a small test asserting meta/about copy coordinate-count stays consistent. WATCH — promote at 2nd sighting (next additive coordinate is the natural trigger).
+
+**Deploys on merge:** first user-visible product change since the share surface — live free card gains the tarot lead row, share PNG changes. Prod ETag verification follows this entry.
+
 ## 2026-05-30 — Audit + cleanup session + distribution/content backfill (chats 31–34 + 05-29/05-30)
 
 **Status:** Two cycles this session. (1) State-fill `589a581` (journal backfill + `package.json` version-truth `0.3.0 → 0.4.0`). (2) **DOCTRINE v0.32** `57f3a36` (§13/§7 cadence weekly → monthly + `agents/orchestrator.md` Procedure 9) — merged direct-to-main (path b, operator call). Both pushed; `git ls-remote --heads origin` = `main @ 57f3a36` only. No code / calc / `content/` / shipped-surface touch in either. Tests 598/598, local PII audit clean (56 files).
