@@ -2,6 +2,20 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-05-30 — Distribution session: Tumblr live + discoverable · share-PNG flag CLOSED · paywall mechanics confirmed
+
+**Status:** Distribution/verification session — NO code, NO repo-surface touch. Product stays v0.5.0 `387f67d`; DOCTRINE v0.33; tests 612/612; working tree clean. State-fill only (this entry + 8BALL.md §10 → v0.5.0, §2 counts, §11.10 birth-card marked shipped).
+
+**Tumblr (`tumblr.com/eczaki`):** blog LIVE + fully discoverable — all four visibility toggles OFF (public logged-out view; Google + Tumblr-search indexable; surfaces in Tumblr search + recs; third-party sharing allowed), password off, not flagged. Theme-editor Description carries the real clickable anchor `<a href=…netlify.app>decode your pattern</a>` (the bio field doesn't linkify; the theme Description does — DOM-verified). The one load-bearing fresh-account item now CLOSED. Five surfaces live (IG / TikTok / Threads / Reddit / Tumblr); empty content pipeline remains the bottleneck (0 staged, 0 sales).
+
+**Share-card pull (CiC, capture-only):** generated a free card off live prod and hooked the canvas export. **Closes the open "share PNG is image/jpeg not PNG" flag — it IS PNG** (`canvas.toBlob('image/png')`; blob + shared file `image/png`; `iVBORw0K` data-URL signature; ~89 KB, 960×1440 2:3 portrait). Lossless, no artifacts; warm cream/charcoal specimen palette (not neutral gray — by design). The JPEG flag was stale; PNG confirmed.
+
+**Paywall mechanics confirmed against `core/payments.js` (corrects an in-session misread):** `FREE_TRIES_CAP = 3`. A new (name, dob) pair → `render-locked` (free symbols-only card) for tries 1–3; `show-paywall` fires only at try 4 (credits 0); `$3 → +3 credits → render-unlocked`. A COLD visitor (fresh browser) GETS their free locked card — the paywall does NOT wall off the first reading. CiC observed an immediate paywall only because the dev browser had already spent its 3 free tries. Free surface = the symbols (incl. the new v0.5.0 tarot lead row); paid layer = interpretation prose. Intended, not a conversion bug. (Earlier-in-session orchestrator claim that the wall blocked the first read was wrong and is retracted here.)
+
+**Still-open app flag (carried):** the "18+ age-gate didn't fire on fresh visit" flag is UNRESOLVED — couldn't observe this session (the exhausted-tries paywall masked the path on the dev browser). Needs a true fresh-state (incognito) check: does the age-gate fire AND does a 0-tries visitor get a locked free card. Carry to the next UI/verification touch.
+
+**Open / operator-hand:** first staged post (Tumblr-first — cleanest link + tags-as-discovery); Sunday Inspector read fires 2026-05-31 (add Tumblr to the surface list per `controllers/cic_inspector_weekly_w2_2026-05-31.md`); finish Reddit profile when its backend cooperates; cheap funnel-observability read (Gumroad views/clicks on the Buy link — needs operator login). v0.3.1 ship-gate unchanged: ≥5 paid + 1 strong signal by 2026-06-15, still 0 sales.
+
 ## 2026-05-30 — SHIPPED: tarot birth-card free coordinate — product v0.5.0 / DOCTRINE v0.33 — `387f67d`
 
 **Status:** SHIPPED at `387f67d` (squash-merge of PR #30; feature `28c161b` + Codex P2 absorb `febcbf4`). Tests **612/612** green (586 baseline + 14 birthcard + 12 share, net since v0.3.0); local PII audit clean (58 files); `index.html` 1489/1500. Full gate path (a): branch → PR → Codex Procedure 4 → operator merge.
