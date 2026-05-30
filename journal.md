@@ -4,7 +4,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-05-30 — Audit + cleanup session + distribution/content backfill (chats 31–34 + 05-29/05-30)
 
-**Status:** No code, no doctrine surface. Orchestrator audit-and-close pass under full-authority "close everything." One direct-to-main state-fill (this entry + `package.json` version-truth `0.3.0 → 0.4.0`). Repo otherwise untouched: `main @ b95bdd6`, clean; `git ls-remote --heads origin` = `main` only.
+**Status:** Two cycles this session. (1) State-fill `589a581` (journal backfill + `package.json` version-truth `0.3.0 → 0.4.0`). (2) **DOCTRINE v0.32** `57f3a36` (§13/§7 cadence weekly → monthly + `agents/orchestrator.md` Procedure 9) — merged direct-to-main (path b, operator call). Both pushed; `git ls-remote --heads origin` = `main @ 57f3a36` only. No code / calc / `content/` / shipped-surface touch in either. Tests 598/598, local PII audit clean (56 files).
 
 **Trigger:** chat opened on the 2026-05-30 distribution/content handoff. The opening orientation leaned on the handoff summary rather than disk; operator flagged it ("shortcutting"). Re-audit against disk surfaced five gaps the handoff omitted — recorded below as the corrective.
 
@@ -32,8 +32,8 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 ### New L promoted
 - **L — stale-context discipline:** orchestrator orients/drafts on summary instead of re-grepping canonical state. Sighting #1 chat-25 (§5.C duplicate); sighting #2 = this session's handoff-orientation shortcut (operator-caught). Promoted. **Procedure 9** drafted paste-ready inside the Friday review for the `agents/orchestrator.md` codification micro-cycle.
 
-### Queued doctrine micro-cycle (operator-gated, NOT executed)
-One bundled cycle (PR → Codex Procedure 4 → merge): (1) §12 retired-vocab AMEND; (2) §13/§7 cadence weekly→monthly; (3) Procedure 9 codification. Fire on go.
+### Queued doctrine micro-cycle — EXECUTED + MERGED this session (`57f3a36`, direct-to-main path b)
+Bundled cycle landed: (1) **§13/§7 cadence weekly → monthly** (next 2026-06-15, co-located with gate-close); (2) **Procedure 9** codified into `agents/orchestrator.md` (re-grep canonical state before orienting/drafting). DOCTRINE footer `v0.31 → v0.32`, v0.31 demoted to lineage per L17. §7 mirror updated in `~/MUHAB.md` (untracked) + catch-up firing-log entry. **§12 retired-vocab leg DROPPED** on verification — the pre-stage's targeted "trait pool / template expansion" string no longer exists in DOCTRINE (retired in an earlier cycle); the surviving §12 "trait pool" multi-language clause is accurate, not drift. Dropping it was itself a Procedure 9 / Procedure 7 application (don't edit doctrine off a stale pre-stage). Merge path: **direct-to-main (b)** per operator call — doctrine-*governance* change (self-referential cadence + orchestrator procedure), not a doctrine *invariant*, so no Codex Procedure 4 / PR (same class as the v0.30 doctrine-only cycle). Tests 598/598, local PII audit clean (56 files). Branch `doctrine-v032-cadence-procedure9` merged ff-only + deleted; `git ls-remote --heads origin` = `main` only.
 
 ### Open / operator-hand
 - Tarot: 2 spec calls + build go (recs above). Dream names: #5 owed / #1 re-render / #3 confirm. App flags: PNG-vs-JPEG + age-gate (next UI touch). Reddit frame: parked, needs its own frame before any post. First Gumroad sale → tier spec (`sessions/tier_symbol_unlock_ladder_2026-05-29.md`).
