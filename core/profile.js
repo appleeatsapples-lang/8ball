@@ -16,6 +16,7 @@
 import { getCountryByCode } from './countries.js';
 import { computeRising, getRisingSign } from './rising.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
+import { getBirthCard } from './birthcard.js';
 
 export const SUN_SIGNS = [
   { name: 'capricorn',   start: [12, 22], end: [1, 19]  },
@@ -306,6 +307,7 @@ export function buildProfile(name, dobIso, opts) {
     maturity: getMaturity(y, m, d, cleanName),
     maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
-    risingSign
+    risingSign,
+    birthCard: getBirthCard(y, m, d)
   };
 }
