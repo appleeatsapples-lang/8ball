@@ -139,8 +139,35 @@ In every sighting, the failure shape was identical: **inferring whole-state clos
 
 **Boundaries.** Procedure 8 is verdict + enumeration discipline; it does not block declarations that the controller explicitly authorizes ("close it anyway, I'll reopen if wrong" is a controller call and overrides this procedure). It does enforce the discipline that the orchestrator does not autonomously declare a multi-step gate closed without enumerating + verifying. When an enumeration produces only inferred signals for some sub-steps, the procedure's output is a recommendation to the controller to either accept the partial-closure with explicit risk acknowledgment or wait for direct evidence.
 
+---
+
+## Procedure 9 — Re-grep canonical state before orienting or drafting
+
+**Triggered when.** Producing any orientation at chat-open, status sweep, verdict, disposition, discipline write (Friday review, audit-response absorb, lane brief), or "where things stand" summary — i.e. any output that asserts what the current state *is*.
+
+**Procedure.**
+
+1. **Do not trust a handoff / compaction / prior-session summary as state.** It is a pointer, not the source. Before orienting off it, verify against disk: tail recent `journal.md`, run `git ls-remote --heads origin` (authoritative — `git branch -a` lies via stale tracking refs), and `ls -lt` the relevant `~/Desktop/8ball/` dirs.
+2. **Grep canonical state for prior coverage of the topic** before drafting. If a prior `journal.md` entry or `audits/*.md` covers it, reference + extend rather than re-derive.
+3. **For time-triggered items** (cadence reviews, scheduled firings), check the date against today *before* reporting "on track" — a silently-lapsed cadence reports as fine only if you never check the clock.
+4. The grep / check is the cost; running it is the discipline.
+
+**Reasoning / sightings.**
+
+L-promoted 2026-05-30. Failure shape: orchestrator orients or drafts from a summary artifact instead of re-grepping canonical state, and either re-derives work that already exists or misses gaps the summary omitted.
+
+- **Sighting #1** chat-25: the Friday-rule-kill discipline write + the chat-25 Friday journal entry independently re-derived the §5.C anchor-role-vs-aspirational analysis the operator had already written ~30 min earlier in a STATE-FILL entry. Duplicate analyses agreed — but the duplication was avoidable documentation cost.
+- **Sighting #2** chat-[2026-05-30 audit session]: the opening orientation leaned on the pasted distribution/content handoff instead of auditing disk; it would have missed five live gaps (two lapsed Friday reviews, the never-started weekly Inspector cadence feeding the 06-15 gate diagnostic, the un-journaled distribution work, `package.json` version drift, the voice-memo dependency). Operator caught it ("you're shortcutting"). Re-audit against disk surfaced all five.
+
+Both sightings share the root cause: **summary-as-state instead of disk-as-state.** The mitigation is the re-grep before the assertion.
+
+**Pairs with.** L49 (`paper-design-routing-errors`, Procedure 7) — both are "trusting a written artifact ahead of the underlying reality"; Procedure 7 catches it on paper-design surfaces (§-references that don't resolve), Procedure 9 catches it at orientation/draft time (summary state that doesn't match disk). L52-candidate (self-audit-assertion-ahead-of-direct-evidence) is the byte-level sibling — same family, finer grain.
+
+**Boundaries.** Procedure 9 is a pre-draft discipline, not a block. It does not require re-grepping for trivially-stable facts (a definition, a closed-and-shipped SHA already in hand). It fires on state assertions, where "what is true now" is the claim being made. A handoff summary remains useful as a *pointer to where to look* — the discipline is verifying it, not discarding it.
+
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Companion to verifier.md (created 2026-05-11). Codename `كن فيكون` / `kun fayakun` is operator-coined; see `AGENTS.md` for the naming note.
 - 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added Procedure 6 (Register-alignment diagnostic for content seeds) per chat-14 L-candidate `controller-content-seed-defaults-mainstream` (1 sighting, mitigation queued pre-promotion; pairs with `controller.md` Procedure 5 as the closed-loop upstream half + with `verifier.md`'s upstream-diagnostic-gate clause on CiC directives). Added Procedure 7 (Paper-design surface sanity check) per chat-15 promotion of **L49** = `paper-design-routing-errors` (chat-12 sighting #1 v0.3.1 parking doc §6.5/§7.1 routing error; chat-15 sighting #2 Friday rule-kill review pre-read inherited the same vocabulary). L49 assignment supersedes the chat-7 v0.24-cycle pre-allocation of "L49-candidate" to `agents-ahead-of-code-and-doctrine` (still 1 sighting, retains candidate status). Procedure 7 self-check refinement (assertion-vs-meta-discussion distinction) is chat-15 learning; the procedure ran on its own output. No DOCTRINE touch this cycle.
 - 2026-05-15 — chat-21 L51 promotion cycle. Added Procedure 8 (Multi-step external-process closure verification) per **L51** = `closure-discipline-on-multi-step-external-processes` (4 sightings: chat-18 sub-decision-#6 closure / chat-19 dashboard-evidence drift / chat-20 identity-verification ≠ Live-unlock / chat-20 $21-dashboard ≠ Test/Live-mode-confirmed). L51 is the orchestrator-side analog of L48 (controller-side merge-before-audit-signal); together they form the closure-discipline matched pair, each role-type with its own failure mode. L51 subsumes the previously-tracked "off-repo-ahead-of-on-repo state drift" L-candidate (chat-18 + chat-19 sightings) as the internal-multi-step variant. Lightweight orchestrator-controller cycle per agents/-content scope — no DOCTRINE touch, no Codex audit (v0.24 codification: agents/ content changes don't fire §10 footnote/lineage track), no PR. Direct-to-main state-fill commit pattern + SHA-fill follow-up.
+- 2026-05-30 — audit/cleanup session. Added Procedure 9 (Re-grep canonical state before orienting or drafting) per **L** = orchestrator-stale-context discipline (2 sightings: chat-25 §5.C duplicate-analysis / chat-[2026-05-30] handoff-orientation-shortcut, operator-caught "you're shortcutting"). Pairs with L49 (Procedure 7) as the orientation/draft-time analog of paper-design routing errors. Bundled with the §13/§7 Friday-cadence AMEND (weekly → monthly) landing on branch `doctrine-v032-cadence-procedure9`; that leg is the DOCTRINE-touch part of the cycle (this Procedure 9 leg is agents/-scope and per v0.24 codification needs no Codex/PR on its own, but rides the same branch for one merge). §12 retired-vocab leg from the Friday pre-stage was DROPPED — verification showed the targeted "trait pool / template expansion" string no longer exists in DOCTRINE (retired in an earlier cycle); the surviving §12 "trait pool" reference (multi-language clause) is accurate, not drift. Dropping it is itself a Procedure 9 / Procedure 7 application — don't edit doctrine off a stale pre-stage.
