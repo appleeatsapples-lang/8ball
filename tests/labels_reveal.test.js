@@ -23,19 +23,20 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/id="labels-toggle"[^>]*aria-pressed="false"/);
   });
 
-  it('four coord-section elements present', () => {
+  // v0.5.0: five coordinates — arcana (lead) + element + sun + animal + numerology.
+  it('five coord-section elements present', () => {
     const matches = html.match(/class="coord-section"/g) || [];
-    expect(matches.length).toBe(4);
+    expect(matches.length).toBe(5);
   });
 
-  it('four coord-title elements present', () => {
+  it('five coord-title elements present', () => {
     const matches = html.match(/class="coord-title"/g) || [];
-    expect(matches.length).toBe(4);
+    expect(matches.length).toBe(5);
   });
 
-  it('four coord-symbol elements present', () => {
+  it('five coord-symbol elements present', () => {
     const matches = html.match(/class="coord-symbol"/g) || [];
-    expect(matches.length).toBe(4);
+    expect(matches.length).toBe(5);
   });
 
   it('locked title copy: FIVE-ELEMENT', () => {

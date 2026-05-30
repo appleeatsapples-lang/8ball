@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="Seven calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
+<meta name="description" content="Eight calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
 
 <!-- favicon -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://the-eight-ball.netlify.app/">
 <meta property="og:title" content="8 ball">
-<meta property="og:description" content="A magic 8-ball that knows you. Seven calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta property="og:description" content="A magic 8-ball that knows you. Eight calibrated coordinates from your name and date of birth, stored only on your device.">
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -26,7 +26,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="8 ball">
-<meta name="twitter:description" content="A magic 8-ball that knows you. Seven calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta name="twitter:description" content="A magic 8-ball that knows you. Eight calibrated coordinates from your name and date of birth, stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta name="twitter:image:alt" content="8 ball">
 
@@ -821,6 +821,10 @@
             <div class="card-name" id="card-name"></div>
             <div class="card-type" id="card-type"></div>
             <div class="coord-section">
+              <div class="coord-title">ARCANA</div>
+              <div class="coord-symbol" id="coord-arcana-symbol">—</div>
+            </div>
+            <div class="coord-section">
               <div class="coord-title">FIVE-ELEMENT</div>
               <div class="coord-symbol" id="coord-element-symbol">—</div>
               <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
@@ -886,7 +890,7 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball calculates seven coordinates from your name and DOB: sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, an eighth — rising sign — is added. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
+    <p>there is no mystery layer. 8 ball calculates eight coordinates from your name and DOB: tarot birth card, sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, a ninth — rising sign — is added. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
     <p>nothing leaves your device on its own. inputs, counters, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
     <p>first three readings are free. after that, three dollars buys three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the three-dollar coin funds more of the toy. we trust adults.</p>
     <div class="modal-actions">
@@ -1031,15 +1035,18 @@ const coordSunSymbol = $('coord-sun-symbol');
 const coordSunTitle = $('coord-sun-title');
 const coordAnimalSymbol = $('coord-animal-symbol');
 const coordNumerologySymbol = $('coord-numerology-symbol');
+const coordArcanaSymbol = $('coord-arcana-symbol');
 
 // v0.4.0 share-surface (DOCTRINE §5.D). The image builder reads only the
-// four free coordinate symbol nodes + catalog; no profile, no card layer.
+// free coordinate symbol nodes + catalog; no profile, no card layer.
+// v0.5.0: arcana lead coordinate included — it is a free coordinate, so the
+// shared PNG and the on-screen free card stay identical.
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [coordElementSymbol, coordSunSymbol, coordAnimalSymbol, coordNumerologySymbol],
+    symbols: [coordArcanaSymbol, coordElementSymbol, coordSunSymbol, coordAnimalSymbol, coordNumerologySymbol],
   },
   {}
 );
@@ -1122,7 +1129,7 @@ cityInput.addEventListener('blur', () => {
 });
 
 // ── render card face from profile ─────────────────────────────────
-// Locked render (default): four symbol lines + catalog index.
+// Locked render (default): five symbol lines + catalog index.
 // Unlocked render (v0.3.0, when opts.unlocked): adds card-name /
 // card-type / card-habit / card-note (bracket-resolved from
 // profile.lifePath) and the reads-chip credit counter. Toggle is the
@@ -1142,6 +1149,7 @@ function renderCard(profile, opts) {
     ? `${profile.sunSign} ↑ ${profile.risingSign}`
     : profile.sunSign;
   coordSunTitle.textContent = profile.risingSign ? 'SUN ↑ RISING' : 'SUN';
+  coordArcanaSymbol.textContent = profile.birthCard.label;
   coordElementSymbol.textContent = profile.chineseElement;
   coordSunSymbol.textContent = sunLine;
   coordAnimalSymbol.textContent = `${profile.animal} ⇌ ${profile.innerAnimal}`;
