@@ -17,6 +17,7 @@ import { getCountryByCode } from './countries.js';
 import { computeRising, getRisingSign } from './rising.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 import { getBirthCard } from './birthcard.js';
+import { getDayPillar, getHourPillar } from './pillars.js';
 
 export const SUN_SIGNS = [
   { name: 'capricorn',   start: [12, 22], end: [1, 19]  },
@@ -288,6 +289,21 @@ export function buildProfile(name, dobIso, opts) {
       }
     }
   }
+  // ── Hour pillar (additive, build A). Needs ONLY the birth hour — no lat/lng/tz
+  // — so it resolves whenever a valid HH:MM birth time is present, even without
+  // a city (brief §5). Reuses the same HH:MM parse shape as the rising block above.
+  // Missing/invalid time → null; the day pillar (date-only) always computes.
+  let hourPillar = null;
+  if (opts && opts.time) {
+    const hp = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
+    if (hp) {
+      const hpHour = parseInt(hp[1], 10);
+      const hpMinute = parseInt(hp[2], 10);
+      if (hpHour >= 0 && hpHour <= 23 && hpMinute >= 0 && hpMinute <= 59) {
+        hourPillar = getHourPillar(y, m, d, hpHour);
+      }
+    }
+  }
   return {
     name: cleanName,
     firstName: cleanName.split(/\s+/)[0] || '',
@@ -308,6 +324,8 @@ export function buildProfile(name, dobIso, opts) {
     maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
     risingSign,
-    birthCard: getBirthCard(y, m, d)
+    birthCard: getBirthCard(y, m, d),
+    dayPillar: getDayPillar(y, m, d),
+    hourPillar
   };
 }
