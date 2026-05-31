@@ -144,7 +144,13 @@ export function resetFormDisplay() {
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   r.polarMessage.hidden = true;
   r.legacyHint.hidden = true;
-  r.risingFields.removeAttribute('open');
+  // v0.5.1: the entry form is default-open on rising (the <details open>
+  // in index.html) so first-time visitors discover birth time + birthplace
+  // instead of skipping to begin. resetFormDisplay returns to that same
+  // entry form (try-another / forget), so keep the disclosure open rather
+  // than re-collapsing it — otherwise the first reset would silently strip
+  // the default-open state for the rest of the session.
+  r.risingFields.setAttribute('open', '');
   if (_hooks.setCurrentProfile) _hooks.setCurrentProfile(null);
   // Move focus to the name field so keyboard and screen-reader users
   // land on the next interactive element. Without this, focus can
