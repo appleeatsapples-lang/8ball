@@ -333,3 +333,109 @@ describe('no surface leak this cycle (brief §7 — data-only, no render wiring)
     expect(html).not.toContain('hourPillar');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test hardening (closes Codex Procedure 4 P3 on PR #32 — test sufficiency).
+// Test-only; the calc is verified correct and is NOT modified.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Five Rats (五鼠遁) — exhaustive 10×12 matrix', () => {
+  it('every day-stem × hour-branch pair obeys the stem rule and element map', () => {
+    // 10 consecutive days advance the day-stem 0→9; each day's hours 0–23 cover
+    // all 12 hour-branches → the full 120-cell matrix, re-stated independently
+    // of the implementation (hourStem = (dayStem*2 + hourBranch) mod 10).
+    let date = [2000, 1, 1];
+    const dayStems = new Set();
+    const hourBranches = new Set();
+    const pairs = new Set();
+    for (let i = 0; i < 10; i++) {
+      const day = getDayPillar(...date);
+      dayStems.add(day.stemIndex);
+      for (let h = 0; h < 24; h++) {
+        const hour = getHourPillar(...date, h);
+        hourBranches.add(hour.branchIndex);
+        pairs.add(`${day.stemIndex}x${hour.branchIndex}`);
+        expect(hour.stemIndex).toBe((day.stemIndex * 2 + hour.branchIndex) % 10);
+        expect(hour.stemElement).toBe(STEM_ELEMENTS[hour.stemIndex]);
+      }
+      date = nextDay(...date);
+    }
+    expect(dayStems.size).toBe(10);    // all 10 day-stems exercised
+    expect(hourBranches.size).toBe(12); // all 12 hour-branches exercised
+    expect(pairs.size).toBe(120);       // full 10×12 matrix, no gaps
+  });
+});
+
+describe('pre-1900 day pillar (day calc is unbounded; year-pillar gates buildProfile)', () => {
+  const FIVE = new Set(ELEMENT_BY_HALF);
+
+  it('getDayPillar is well-formed for a pre-1900 date', () => {
+    const p = getDayPillar(1899, 12, 31);
+    expect(p.stemIndex).toBeGreaterThanOrEqual(0);
+    expect(p.stemIndex).toBeLessThanOrEqual(9);
+    expect(p.branchIndex).toBeGreaterThanOrEqual(0);
+    expect(p.branchIndex).toBeLessThanOrEqual(11);
+    expect(ANIMALS).toContain(p.animal);
+    expect(p.animal).toBe(ANIMALS[p.branchIndex]);
+    expect(FIVE.has(p.stemElement)).toBe(true);
+    expect(p.stemElement).toBe(STEM_ELEMENTS[p.stemIndex]);
+  });
+
+  it('day cycle stays continuous across the 1899 → 1900 century boundary', () => {
+    const a = getDayPillar(1899, 12, 31);
+    const b = getDayPillar(1900, 1, 1);
+    expect(b.stemIndex).toBe((a.stemIndex + 1) % 10);
+    expect(b.branchIndex).toBe((a.branchIndex + 1) % 12);
+  });
+
+  it('buildProfile yields a well-formed dayPillar at its earliest supported date', () => {
+    // 1900-01-01 is the earliest DOB buildProfile accepts (calendar.js floor).
+    const p = buildProfile('Test', '1900-01-01');
+    expect(p.dayPillar).toEqual(getDayPillar(1900, 1, 1));
+    expect(p.dayPillar.stemIndex).toBeGreaterThanOrEqual(0);
+    expect(p.dayPillar.stemIndex).toBeLessThanOrEqual(9);
+    expect(ANIMALS).toContain(p.dayPillar.animal);
+    expect(FIVE.has(p.dayPillar.stemElement)).toBe(true);
+  });
+
+  it('buildProfile is gated below 1900 by the untouched year-pillar range, not the day pillar', () => {
+    // getDayPillar itself is unbounded (asserted above) — pure JDN arithmetic.
+    // buildProfile throws pre-1900 only because getAnimal / getInnerAnimal route
+    // through the calendar.js solar/lunar tables (range 1900–2100). Documented
+    // boundary + tripwire: if that floor ever drops, add pre-1900 buildProfile
+    // dayPillar coverage here.
+    expect(() => buildProfile('Test', '1899-12-31')).toThrow();
+  });
+});
+
+describe('buildProfile — minute / hour boundaries', () => {
+  // 2024-02-10 is a 甲 (jia, stem 0) day; its 子 hour is 甲子 (wood / rat).
+  const JIA_DAY = '2024-02-10';
+  const jiaDayPillar = getDayPillar(2024, 2, 10);
+
+  it('boundary wall-times resolve a valid hour pillar (子 spans 23:00–00:59)', () => {
+    for (const time of ['00:00', '00:59', '23:00', '23:59']) {
+      const p = buildProfile('Test', JIA_DAY, { time });
+      expect(p.hourPillar).not.toBeNull();
+      // Five Rats consistency against this day's stem.
+      expect(p.hourPillar.stemIndex)
+        .toBe((jiaDayPillar.stemIndex * 2 + p.hourPillar.branchIndex) % 10);
+      // all four wall-times fall in the 子 (Rat, branch 0) hour
+      expect(p.hourPillar.branchIndex).toBe(0);
+    }
+    // 23:00–23:59 resolves on the SAME civil day (no 晚子时 rollover) → 甲子.
+    expect(buildProfile('Test', JIA_DAY, { time: '23:00' }).hourPillar)
+      .toEqual({ stemIndex: 0, branchIndex: 0, stemElement: 'wood', animal: 'rat' });
+  });
+
+  it('malformed / out-of-range / absent times → hourPillar null, dayPillar still defined', () => {
+    for (const time of ['24:00', '12:60', 'abc', '', '7', '12:5', '1:2']) {
+      const p = buildProfile('Test', JIA_DAY, { time });
+      expect(p.hourPillar).toBeNull();
+      expect(p.dayPillar).toEqual(jiaDayPillar);
+    }
+    const absent = buildProfile('Test', JIA_DAY);
+    expect(absent.hourPillar).toBeNull();
+    expect(absent.dayPillar).toEqual(jiaDayPillar);
+  });
+});
