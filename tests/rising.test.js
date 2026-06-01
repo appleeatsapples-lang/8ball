@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { buildProfile } from '../core/profile.js';
+import { profileFromPayload } from '../ui/profile.js';
 import {
   ascendantDeg,
   computeRising,
@@ -64,6 +65,7 @@ const referenceCases = [
 
 function parseDob(dob) { return dob.split('-').map(Number); }
 function parseTime(time) { return time.split(':').map(Number); }
+const payload = (n, d, extra) => ({ name: n, dob: d, ...extra });
 
 describe('rising sign — algorithm fixtures (legacy offset API)', () => {
   for (const c of fixtures.rising_cases) {
@@ -173,8 +175,10 @@ describe('rising sign — buildProfile integration', () => {
     expect(p.risingSign).toBeUndefined();
   });
 
-  it('computes risingSign via legacy country/offset path', () => {
+  it('computes risingSign for legacy country payloads via the IANA path', () => {
     // v0.2.1–v0.2.7.1 stored profiles: opts.country + lat + lng, no tz.
+    // The country code now resolves to a representative IANA timezone
+    // before buildProfile calls computeRising.
     const p = buildProfile('alice', '1990-06-15', {
       time: '12:00',
       country: 'DE',
@@ -183,6 +187,25 @@ describe('rising sign — buildProfile integration', () => {
     });
     expect(p.risingSign).toBe('virgo');
     expect(p.sunSign).toBe('gemini');
+  });
+
+  it('stored legacy profile matches equivalent fresh city profile on a DST-sensitive date', () => {
+    const legacy = profileFromPayload(payload('Legacy Specimen', '1990-07-15', {
+      time: '14:00',
+      country: 'DE',
+      lat: 52.5244,
+      lng: 13.4105
+    }));
+    const fresh = profileFromPayload(payload('Fresh Specimen', '1990-07-15', {
+      time: '14:00',
+      city: 'Berlin',
+      cc: 'DE',
+      tz: 'Europe/Berlin',
+      lat: 52.5244,
+      lng: 13.4105
+    }));
+    expect(legacy.risingSign).toBe(fresh.risingSign);
+    expect(fresh.risingSign).toBe('libra');
   });
 
   it('computes risingSign via new IANA tz path (v0.2.7.2)', () => {
@@ -195,6 +218,55 @@ describe('rising sign — buildProfile integration', () => {
     });
     expect(p.risingSign).toBe('virgo');
     expect(p.sunSign).toBe('gemini');
+  });
+
+  it('keeps already-valid city data on the city timezone path', () => {
+    const p = buildProfile('city specimen', '1990-01-01', {
+      time: '03:31',
+      city: 'Dhahran',
+      cc: 'SA',
+      tz: 'Asia/Riyadh',
+      lat: 26.2886,
+      lng: 50.114
+    });
+    expect(p.risingSign).toBe('sagittarius');
+  });
+
+  it('keeps risingSign undefined when country/location exists but birth time is absent', () => {
+    const p = buildProfile('no clock specimen', '1990-01-01', {
+      country: 'SA',
+      lat: 26.2886,
+      lng: 50.114
+    });
+    expect(p.risingSign).toBeUndefined();
+  });
+
+  it('cusp-sensitive Saudi locations resolve consistently between legacy country and city payloads', () => {
+    const dhahranLegacy = buildProfile('cusp specimen', '1990-01-01', {
+      time: '03:31',
+      country: 'SA',
+      lat: 26.2886,
+      lng: 50.114
+    });
+    const dhahranFresh = buildProfile('cusp specimen', '1990-01-01', {
+      time: '03:31',
+      city: 'Dhahran',
+      cc: 'SA',
+      tz: 'Asia/Riyadh',
+      lat: 26.2886,
+      lng: 50.114
+    });
+    const jeddahFresh = buildProfile('cusp specimen', '1990-01-01', {
+      time: '03:31',
+      city: 'Jeddah',
+      cc: 'SA',
+      tz: 'Asia/Riyadh',
+      lat: 21.4901,
+      lng: 39.1862
+    });
+    expect(dhahranLegacy.risingSign).toBe(dhahranFresh.risingSign);
+    expect(dhahranFresh.risingSign).toBe('sagittarius');
+    expect(jeddahFresh.risingSign).toBe('scorpio');
   });
 
   it('tz path takes precedence over country when both present', () => {

@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildCardSVGFromSnapshot } from '../ui/share.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -71,6 +72,44 @@ describe('ui/share.js DI shape (DOCTRINE §6)', () => {
     }
     for (const bad of ['currentProfile', 'profile', 'cardName', 'card-name', 'cardType', 'cardHabit', 'cardNote', 'unlock']) {
       expect(call, `initShareUI must not pass ${bad}`).not.toContain(bad);
+    }
+  });
+});
+
+describe('share PNG SVG structure', () => {
+  const svg = buildCardSVGFromSnapshot({
+    catalog: 'no. 042',
+    sections: [
+      { title: 'ARCANA', symbol: 'XXI · the world' },
+      { title: 'FIVE-ELEMENT', symbol: 'metal' },
+      { title: 'SUN ↑ RISING', symbol: 'gemini ↑ virgo' },
+      { title: 'PUBLIC ⇌ PRIVATE', symbol: 'horse ⇌ rabbit' },
+      { title: 'LIFE · NAME · SOUL', symbol: '3 8 3' },
+    ],
+  });
+
+  it('carries the 8ball wordmark, catalog, and bare URL inside the export card', () => {
+    expect(svg).toContain('>8ball</text>');
+    expect(svg).toContain('>no. 042</text>');
+    expect(svg).toContain('>the-eight-ball.netlify.app</text>');
+    expect(svg).toMatch(/<rect x="16" y="16" width="288" height="448"/);
+    expect(svg).toMatch(/x="30" y="43"/);
+    expect(svg).toMatch(/y="442"/);
+  });
+
+  it('renders all five free coordinate rows without paid or profile content', () => {
+    expect(svg.match(/<g transform="translate\(0 /g)).toHaveLength(5);
+    for (const text of [
+      'ARCANA', 'XXI · the world',
+      'FIVE-ELEMENT', 'metal',
+      'SUN ↑ RISING', 'gemini ↑ virgo',
+      'PUBLIC ⇌ PRIVATE', 'horse ⇌ rabbit',
+      'LIFE · NAME · SOUL', '3 8 3',
+    ]) {
+      expect(svg).toContain(`>${text}</text>`);
+    }
+    for (const forbidden of ['card-name', 'card-type', 'card-habit', 'card-note']) {
+      expect(svg).not.toContain(forbidden);
     }
   });
 });

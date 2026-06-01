@@ -2,6 +2,16 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-01 — upgrade cycle: QA hardening + rising determinism + share-PNG polish
+
+**Release note:** small correctness-and-polish cycle, deliberately scoped. QA hardening now pins the prose "eight coordinates" count and the paywall "three reads unlocked. enjoy." banner behavior, closing two drift gaps that were easy to miss in manual review.
+
+**Rising determinism:** stored legacy country-code profiles now resolve rising signs through the same IANA-timezone `computeRising({...tz...})` path as fresh city profiles. This removes the fixed-offset / country-centroid divergence that could produce different rising signs for equivalent birthplace data, especially near cusps, while preserving backward compatibility.
+
+**Share PNG polish:** the exported share card now carries a clearer `8ball` wordmark, safer padding, stronger row grouping, and better coordinate hierarchy. The artifact remains the free card only: labeled symbols, catalog number, brand mark, and bare URL.
+
+**Posture unchanged:** no runtime AI, no backend, no memory, no new dependency, no telemetry, and no new network surface. Share export remains on-device SVG → canvas → PNG. Full suite now passes **941/941**.
+
 ## 2026-05-31 (eve) — core/pillars.js (build A · day+hour pillar coordinates) MERGED · paid layer redesigned to coordinate-density · direction call RESOLVED
 
 **`core/pillars.js` (build A) MERGED 2026-05-31** to `main` at `061f8a6` (squash-merge of PR #32 `pillars-module`, 2 commits: feat `e1fbcac` + test-harden `b9a3cd0`). **Calc-only — no product surface, no DOCTRINE touch (stays v0.33), no package bump (stays 0.5.1).** First step of the tier-model paid-layer redesign (see WHY).
@@ -2643,4 +2653,3 @@ Operation count post-chat-25 resync: **10 paste-ready operations** (Op 1 / 2 / 2
 **HEAD post-this-entry:** TBD (filled in follow-up commit if needed). Tests still 586/586. DOCTRINE still v0.27. index.html still 1455/1500. Local PII audit still clean (53 files). No `core/` / `ui/` / `content/` / `tests/` / shipped-surface touch.
 
 **Next Friday review:** 2026-05-22 (per DOCTRINE §13 cadence). Pre-stage file already at `~/Desktop/8ball/sessions/friday_rule_kill_pre_stage_2026-05-22.md` (chat-24 forward draft, 4 items pre-staged: §12 wording staleness / Live-surface-scan-gate L-watch / standalone-extracted-briefs drift L-candidate / Procedure 8 first-month firing audit). Chat-25 firing-log carry-forward: this inaugural review fired clean, so next-Friday pre-stage stays current.
-

@@ -7,9 +7,9 @@
 //   • Polar latitudes |lat| > 66.5° return `null`. The horizon-plane
 //     geometry degenerates at the polar circle; rising sign is not
 //     astrologically meaningful inside it.
-//   • Legacy `getRisingSign(..., utcOffsetMinutes, ...)` kept for
-//     v0.2.1+ stored profiles that hold only country + lat/lng. Also
-//     polar-safe. New code should use `computeRising`.
+//   • Legacy `getRisingSign(..., utcOffsetMinutes, ...)` kept as a
+//     low-level fixed-offset helper for direct math tests. Stored
+//     profile resolution routes through `computeRising`.
 
 const SIGNS = [
   'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
@@ -162,8 +162,9 @@ export function computeRising(opts) {
 
 // ── Legacy fallback ──────────────────────────────────────────────────
 // getRisingSign(year, month, day, hour, minute, utcOffsetMinutes, lat, lng)
-// Pre-v0.2.7.2 API. Retained for v0.2.1+ stored profiles that hold
-// country + lat/lng but no tz. Also polar-safe (returns null at |lat| > 66.5°).
+// Pre-v0.2.7.2 API. Retained for fixed-offset math parity tests and
+// polar safety checks; buildProfile uses computeRising for both fresh
+// city payloads and legacy country payloads.
 export function getRisingSign(year, month, day, hour, minute, utcOffsetMinutes, lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null;
   if (isPolarLatitude(lat)) return null;

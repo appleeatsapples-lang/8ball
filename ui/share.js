@@ -25,16 +25,24 @@
 
 // ── constants ─────────────────────────────────────────────────────
 // The bare production URL is the only discovery handle that travels
-// with a shared card (carried as the image footer wordmark, and copied
-// to the clipboard on the desktop fallback). No query parameters, no
-// profile fields — §5.D invariant (b).
+// with a shared card (carried in the image footer, and copied to the
+// clipboard on the desktop fallback). No query parameters, no profile
+// fields — §5.D invariant (b).
 const SITE_URL = 'https://the-eight-ball.netlify.app';
+const BRAND_WORDMARK = '8ball';
 
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
 const CARD_W = 320;
 const CARD_H = 480;
 const SCALE = 3;
+const SAFE_X = 30;
+const HEADER_Y = 43;
+const STACK_TOP = 86;
+const STACK_BOTTOM = 398;
+const ROW_START_Y = 120;
+const ROW_STEP_Y = 60;
+const FOOTER_Y = 442;
 
 // Grayscale specimen palette, mirroring the on-screen free card
 // (index.html :root --paper / --ink / --label / --rule).
@@ -45,7 +53,7 @@ const RULE = '#8a8472';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status, catalog, symbols: [elem, sun, animal, numerology] }
+// refs:  { btn, status, catalog, symbols: [arcana, elem, sun, animal, numerology] }
 // hooks: reserved for parity with the other ui/*.js modules; unused today.
 let _refs = null;
 let _hooks = null;
@@ -77,22 +85,30 @@ function titleFor(symbolNode) {
   return titleNode ? titleNode.textContent.trim() : '';
 }
 
-function buildCardSVG() {
-  const symbols = (_refs && _refs.symbols) || [];
-  const catalog = _refs && _refs.catalog ? _refs.catalog.textContent.trim() : '';
-
-  // Four sections evenly stacked between the catalog row and the footer.
-  const startY = 116;
-  const stepY = 78;
-  const sections = symbols.map((node, i) => {
-    const cy = startY + i * stepY;
-    const title = esc(titleFor(node));
-    const symbol = esc(node ? node.textContent.trim() : '');
+export function buildCardSVGFromSnapshot(snapshot) {
+  const safeSnapshot = snapshot || {};
+  const catalog = esc(safeSnapshot.catalog || '');
+  const sectionItems = Array.isArray(safeSnapshot.sections)
+    ? safeSnapshot.sections
+    : [];
+  const separators = sectionItems.slice(1).map((_, i) => {
+    const y = ROW_START_Y + i * ROW_STEP_Y + ROW_STEP_Y / 2;
     return (
-      `<text x="${CARD_W / 2}" y="${cy - 13}" text-anchor="middle" ` +
-      `font-family="${FONT}" font-size="10" letter-spacing="1.2" fill="${LABEL}">${title}</text>` +
-      `<text x="${CARD_W / 2}" y="${cy + 10}" text-anchor="middle" ` +
-      `font-family="${FONT}" font-size="15" font-weight="500" fill="${INK}">${symbol}</text>`
+      `<line x1="${SAFE_X}" y1="${y}" x2="${CARD_W - SAFE_X}" y2="${y}" ` +
+      `stroke="${RULE}" stroke-width="0.5" opacity="0.35"/>`
+    );
+  }).join('');
+  const sections = sectionItems.map((item, i) => {
+    const cy = ROW_START_Y + i * ROW_STEP_Y;
+    const title = esc(item && item.title);
+    const symbol = esc(item && item.symbol);
+    return (
+      `<g transform="translate(0 ${cy})">` +
+      `<text x="${CARD_W / 2}" y="-14" text-anchor="middle" ` +
+      `font-family="${FONT}" font-size="9" letter-spacing="1.25" fill="${LABEL}">${title}</text>` +
+      `<text x="${CARD_W / 2}" y="10" text-anchor="middle" ` +
+      `font-family="${FONT}" font-size="14" font-weight="600" fill="${INK}">${symbol}</text>` +
+      `</g>`
     );
   }).join('');
 
@@ -100,14 +116,32 @@ function buildCardSVG() {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W * SCALE}" height="${CARD_H * SCALE}" ` +
     `viewBox="0 0 ${CARD_W} ${CARD_H}">` +
     `<rect x="0" y="0" width="${CARD_W}" height="${CARD_H}" fill="${PAPER}"/>` +
-    `<rect x="12" y="12" width="${CARD_W - 24}" height="${CARD_H - 24}" fill="none" stroke="${RULE}" stroke-width="1"/>` +
-    `<text x="${CARD_W - 24}" y="40" text-anchor="end" font-family="${FONT}" font-size="9" ` +
-    `letter-spacing="1.5" fill="${LABEL}">${esc(catalog)}</text>` +
+    `<rect x="16" y="16" width="${CARD_W - 32}" height="${CARD_H - 32}" fill="none" stroke="${RULE}" stroke-width="1"/>` +
+    `<text x="${SAFE_X}" y="${HEADER_Y}" text-anchor="start" font-family="${FONT}" ` +
+    `font-size="16" font-weight="600" letter-spacing="1.1" fill="${INK}">${BRAND_WORDMARK}</text>` +
+    `<text x="${CARD_W - SAFE_X}" y="${HEADER_Y - 2}" text-anchor="end" font-family="${FONT}" font-size="9" ` +
+    `letter-spacing="1.4" fill="${LABEL}">${catalog}</text>` +
+    `<line x1="${SAFE_X}" y1="${STACK_TOP}" x2="${CARD_W - SAFE_X}" y2="${STACK_TOP}" ` +
+    `stroke="${RULE}" stroke-width="0.75"/>` +
+    separators +
     sections +
-    `<text x="${CARD_W / 2}" y="${CARD_H - 28}" text-anchor="middle" font-family="${FONT}" ` +
+    `<line x1="${SAFE_X}" y1="${STACK_BOTTOM}" x2="${CARD_W - SAFE_X}" y2="${STACK_BOTTOM}" ` +
+    `stroke="${RULE}" stroke-width="0.75"/>` +
+    `<text x="${CARD_W / 2}" y="${FOOTER_Y}" text-anchor="middle" font-family="${FONT}" ` +
     `font-size="9" letter-spacing="1" fill="${LABEL}">${esc(SITE_URL.replace(/^https:\/\//, ''))}</text>` +
     `</svg>`
   );
+}
+
+function buildCardSVG() {
+  const symbols = (_refs && _refs.symbols) || [];
+  return buildCardSVGFromSnapshot({
+    catalog: _refs && _refs.catalog ? _refs.catalog.textContent.trim() : '',
+    sections: symbols.map(node => ({
+      title: titleFor(node),
+      symbol: node ? node.textContent.trim() : ''
+    }))
+  });
 }
 
 // ── SVG → PNG Blob ────────────────────────────────────────────────
