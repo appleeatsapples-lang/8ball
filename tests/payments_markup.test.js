@@ -21,10 +21,18 @@
 //   - try_another_behavior
 //   - profile_animal_field
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  CREDITS_KEY,
+  PENDING_KEY,
+  TRIES_KEY,
+  handlePaidReturn,
+  initPaywallUI,
+  showPaidBanner,
+} from '../ui/payments.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -32,6 +40,17 @@ const paymentsJs = readFileSync(
   join(__dirname, '..', 'ui', 'payments.js'),
   'utf-8'
 );
+const originalWindow = globalThis.window;
+const originalLocalStorage = globalThis.localStorage;
+
+afterEach(() => {
+  vi.useRealTimers();
+  if (originalWindow === undefined) delete globalThis.window;
+  else globalThis.window = originalWindow;
+  if (originalLocalStorage === undefined) delete globalThis.localStorage;
+  else globalThis.localStorage = originalLocalStorage;
+  vi.restoreAllMocks();
+});
 
 // ── helper: extract a modal subtree by id (same shape as age_gate.test) ──
 function modalSubtree(id) {
@@ -40,6 +59,48 @@ function modalSubtree(id) {
   if (!m) throw new Error(`subtree for #${id} not found`);
   return m[0];
 }
+
+function makeClassList() {
+  const classes = new Set();
+  return {
+    add: cls => classes.add(cls),
+    remove: cls => classes.delete(cls),
+    contains: cls => classes.has(cls),
+  };
+}
+
+function makeElement(extra = {}) {
+  return {
+    hidden: true,
+    offsetWidth: 1,
+    classList: makeClassList(),
+    addEventListener: vi.fn(),
+    setAttribute: vi.fn(),
+    ...extra,
+  };
+}
+
+function makeStorage(initial = {}) {
+  const store = new Map(Object.entries(initial));
+  return {
+    getItem: vi.fn(key => store.get(key) || null),
+    setItem: vi.fn((key, value) => { store.set(key, String(value)); }),
+    removeItem: vi.fn(key => { store.delete(key); }),
+    snapshot: () => Object.fromEntries(store),
+  };
+}
+
+function installPaywallUI() {
+  const banner = makeElement();
+  initPaywallUI({
+    modal: makeElement(),
+    closeBtn: makeElement(),
+    banner,
+  });
+  return banner;
+}
+
+const mk = (n, d) => ({ name: n, dob: d });
 
 describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   // 1. lock_icon_markup ──────────────────────────────────────────────
@@ -99,6 +160,13 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(html).toMatch(/id="card-note"/);
   });
 
+  it('paid-return banner exists hidden-by-default with exact unlock copy', () => {
+    const m = html.match(/<div([^>]*id="paid-banner"[^>]*)>([\s\S]*?)<\/div>/);
+    expect(m, 'paid-banner element not found').not.toBeNull();
+    expect(m[1]).toMatch(/\bhidden\b/);
+    expect(m[2].trim()).toBe('three reads unlocked. enjoy.');
+  });
+
   // 5. paid_query_handler (URL handling lives in ui/payments.js) ────
   it('handlePaidReturn reads ?paid via URLSearchParams', () => {
     expect(paymentsJs).toMatch(/URLSearchParams\(window\.location\.search\)/);
@@ -117,6 +185,69 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     // Comments may discuss the rejected shape; we only forbid it inside
     // the actual replaceState call.
     expect(paymentsJs).not.toMatch(/replaceState\([^)]*['"]\/['"]\s*\)/);
+  });
+});
+
+describe('paid-return banner behavior', () => {
+  it('showPaidBanner reveals, fades, then hides the banner', () => {
+    vi.useFakeTimers();
+    const banner = installPaywallUI();
+
+    showPaidBanner();
+
+    expect(banner.hidden).toBe(false);
+    expect(banner.classList.contains('visible')).toBe(true);
+
+    vi.advanceTimersByTime(4000);
+    expect(banner.hidden).toBe(false);
+    expect(banner.classList.contains('visible')).toBe(false);
+
+    vi.advanceTimersByTime(600);
+    expect(banner.hidden).toBe(true);
+  });
+
+  it('handlePaidReturn shows the banner and persists the paid state', () => {
+    vi.useFakeTimers();
+    const banner = installPaywallUI();
+    const pending = mk('Paid Path', '1999-09-09');
+    const storage = makeStorage({
+      [CREDITS_KEY]: '0',
+      [TRIES_KEY]: '3',
+      [PENDING_KEY]: JSON.stringify(pending),
+    });
+    const replaceState = vi.fn();
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t1', pathname: '/return' },
+      history: { replaceState },
+    };
+    const onConsume = vi.fn();
+
+    const consumed = handlePaidReturn(onConsume);
+
+    expect(consumed).toBe(true);
+    expect(onConsume).toHaveBeenCalledWith(pending);
+    expect(storage.snapshot()).toMatchObject({
+      [CREDITS_KEY]: '2',
+      [TRIES_KEY]: '4',
+    });
+    expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
+    expect(replaceState).toHaveBeenCalledWith({}, '', '/return');
+    expect(banner.hidden).toBe(false);
+    expect(banner.classList.contains('visible')).toBe(true);
+  });
+
+  it('handlePaidReturn ignores non-paid loads and leaves the banner hidden', () => {
+    const banner = installPaywallUI();
+    globalThis.localStorage = makeStorage();
+    globalThis.window = {
+      location: { search: '', pathname: '/' },
+      history: { replaceState: vi.fn() },
+    };
+
+    expect(handlePaidReturn()).toBe(false);
+    expect(banner.hidden).toBe(true);
+    expect(banner.classList.contains('visible')).toBe(false);
   });
 });
 
