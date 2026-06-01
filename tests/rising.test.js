@@ -280,6 +280,16 @@ describe('rising sign — buildProfile integration', () => {
     });
     expect(p.risingSign).toBe('virgo');
   });
+
+  it('invalid city timezone resolves to null without throwing', () => {
+    const p = buildProfile('bad tz specimen', '1990-06-15', {
+      time: '12:00',
+      tz: 'Not/AZone',
+      lat: 51.5074,
+      lng: -0.1278
+    });
+    expect(p.risingSign).toBeNull();
+  });
 });
 
 describe('rising sign — edge cases (legacy getRisingSign, returns valid sign)', () => {

@@ -297,7 +297,7 @@ export const COUNTRIES = [
 // Representative IANA timezone for every legacy country/zone code above.
 // For alpha-2 countries, this follows the largest-city timezone already
 // present in assets/cities.json; split legacy codes use their named region.
-const LEGACY_COUNTRY_TIMEZONES = {
+export const LEGACY_COUNTRY_TIMEZONES = {
   'AF': 'Asia/Kabul',
   'AX': 'Europe/Mariehamn',
   'AL': 'Europe/Tirane',

@@ -11,7 +11,7 @@
 //
 // Does NOT own:
 //   - any profile / card-content state. The image builder reads ONLY the
-//     four rendered free-coordinate symbol nodes (+ their section titles
+//     rendered free-coordinate symbol nodes (+ their section titles
 //     and the catalog number) from the live DOM. It never touches the
 //     paid card-content layer (name/type/habit/note) and never reads a
 //     profile object — so name and DOB cannot reach the shared artifact
