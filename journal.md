@@ -4,7 +4,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-06-01 (absorb) — Codex Procedure 4 v0.5.2 absorb · DOCTRINE v0.34
 
-**Status: IN-FLIGHT — PR #34, pre-merge.** Post-merge absorb of the v0.5.2 cycle's Codex Procedure 4 audit (verdict PASS / PASS / P3 / P1 / PASS / P2). All findings closed; full suite 947/947; `git diff --check` clean.
+**Status: SHIPPED 2026-06-01 — merged to `main` at `1116024` (squash of PR #34).**
 
 - **P1 version/doctrine truth:** `package.json` + `package-lock.json` 0.5.1 → 0.5.2; DOCTRINE footer v0.33 → **v0.34** (§1.A unified-rising amendment; v0.33 demoted to lineage); §1.A "As of v0.5.2".
 - **P2 prose-count:** `tests/prose_coordinate_count.test.js` now derives the expected count from rendered coord-section titles + the `initShareUI` symbols array, not a standalone constant.
@@ -16,7 +16,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Mergeability:** PR #33 squash-merged `2a4e85e` into `main` as `adda520`, so PR #34's branch carried the original commit as a real ancestor and GitHub flagged CONFLICTING. Resolved with `git rebase --onto origin/main 2a4e85e v0.5.2-rising-qa-share` (replays only the absorb), then a force-with-lease push → MERGEABLE. Codex Mode-B re-audit returned APPROVE WITH SMALL FIXES (only the now-resolved conflict).
 
-**HEAD post-this-entry:** TBD (SHA-filled post-merge). Tests 947/947. DOCTRINE v0.34. product v0.5.2. Awaiting operator merge → Netlify deploy → smoke-test → flip this entry to SHIPPED.
+**HEAD post-this-entry:** `1116024` (squash-merge of PR #34). Tests 947/947. DOCTRINE v0.34. product v0.5.2. Live on `the-eight-ball.netlify.app`.
 
 ## 2026-06-01 — upgrade cycle: QA hardening + rising determinism + share-PNG polish
 
