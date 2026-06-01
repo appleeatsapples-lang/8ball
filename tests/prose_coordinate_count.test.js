@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
-const SURFACED_COORDINATES = [
+const EXPECTED_COORDINATE_NAMES = [
   'tarot birth card',
   'sun',
   'five-element',
@@ -27,6 +27,39 @@ const COUNT_WORDS = {
   8: 'eight',
   9: 'ninth',
 };
+
+function countWord(n) {
+  const word = COUNT_WORDS[n];
+  if (!word) throw new Error(`missing count word for ${n}`);
+  return word;
+}
+
+function renderedCoordinateTitles() {
+  const titles = [];
+  const re = /<div class="coord-title"(?:\s+id="[^"]+")?>([^<]+)<\/div>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    titles.push(m[1].trim());
+  }
+  return titles;
+}
+
+function rowCoordinateWeight(title) {
+  if (title === 'PUBLIC ⇌ PRIVATE') return 2;
+  if (title === 'LIFE · NAME · SOUL') return 3;
+  return 1;
+}
+
+function renderedBaseCoordinateCount() {
+  return renderedCoordinateTitles()
+    .reduce((total, title) => total + rowCoordinateWeight(title), 0);
+}
+
+function shareSymbolRefCount() {
+  const m = html.match(/symbols:\s*\[([^\]]+)\]/);
+  if (!m) throw new Error('initShareUI symbols array not found');
+  return m[1].split(',').map(s => s.trim()).filter(Boolean).length;
+}
 
 function metaContent(name) {
   const re = new RegExp(`<meta\\s+name="${name}"\\s+content="([^"]+)"`);
@@ -50,7 +83,7 @@ function aboutText() {
 
 describe('prose coordinate-count copy', () => {
   it('meta descriptions claim the current free-surface count', () => {
-    const expected = `${COUNT_WORDS[SURFACED_COORDINATES.length]} calibrated coordinates`;
+    const expected = `${countWord(renderedBaseCoordinateCount())} calibrated coordinates`;
     expect(metaContent('description').toLowerCase()).toContain('optional rising sign');
     for (const text of [
       metaContent('description'),
@@ -63,15 +96,20 @@ describe('prose coordinate-count copy', () => {
 
   it('about-modal count matches the named coordinate list', () => {
     const text = aboutText().toLowerCase();
-    expect(text).toContain(`calculates ${COUNT_WORDS[SURFACED_COORDINATES.length]} coordinates`);
-    for (const coordinate of SURFACED_COORDINATES) {
+    expect(text).toContain(`calculates ${countWord(renderedBaseCoordinateCount())} coordinates`);
+    for (const coordinate of EXPECTED_COORDINATE_NAMES) {
       expect(text, `about copy should name ${coordinate}`).toContain(coordinate);
     }
   });
 
   it('about-modal optional rising count is exactly one more than the base count', () => {
     const text = aboutText().toLowerCase();
-    expect(text).toContain(`a ${COUNT_WORDS[SURFACED_COORDINATES.length + 1]} — ${OPTIONAL_COORDINATE} — is added`);
-    expect(SURFACED_COORDINATES.length + 1).toBe(9);
+    const baseCount = renderedBaseCoordinateCount();
+    expect(text).toContain(`a ${countWord(baseCount + 1)} — ${OPTIONAL_COORDINATE} — is added`);
+    expect(baseCount + 1).toBe(9);
+  });
+
+  it('share export refs stay coupled to rendered coordinate rows', () => {
+    expect(shareSymbolRefCount()).toBe(renderedCoordinateTitles().length);
   });
 });

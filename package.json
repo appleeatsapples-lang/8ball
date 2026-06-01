@@ -1,6 +1,6 @@
 {
   "name": "8ball",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Magic 8-ball that knows you",
   "type": "module",
   "private": true,
