@@ -2,6 +2,22 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-01 (absorb) — Codex Procedure 4 v0.5.2 absorb · DOCTRINE v0.34
+
+**Status: IN-FLIGHT — PR #34, pre-merge.** Post-merge absorb of the v0.5.2 cycle's Codex Procedure 4 audit (verdict PASS / PASS / P3 / P1 / PASS / P2). All findings closed; full suite 947/947; `git diff --check` clean.
+
+- **P1 version/doctrine truth:** `package.json` + `package-lock.json` 0.5.1 → 0.5.2; DOCTRINE footer v0.33 → **v0.34** (§1.A unified-rising amendment; v0.33 demoted to lineage); §1.A "As of v0.5.2".
+- **P2 prose-count:** `tests/prose_coordinate_count.test.js` now derives the expected count from rendered coord-section titles + the `initShareUI` symbols array, not a standalone constant.
+- **P2 country-map semantics:** `core/countries.js` exports `LEGACY_COUNTRY_TIMEZONES`; `tests/countries.test.js` adds exact-keyset coverage, alpha-2 largest-city parity, split-code snapshots, and DST/historical sign-impact regressions.
+- **P3 share comment:** stale fixed-count comment scrubbed from `ui/share.js`; §5.D(a) wordmark wording reconciled.
+- **Optional:** `tests/rising.test.js` invalid-tz → null regression.
+
+**Provenance:** the absorb edits were applied in parallel in the working tree (operator/CC) during the session; the orchestrator verified each against its finding, then committed + opened PR #34. The version-bump guard caught the parallel DOCTRINE edit and prevented a double-bump to v0.35.
+
+**Mergeability:** PR #33 squash-merged `2a4e85e` into `main` as `adda520`, so PR #34's branch carried the original commit as a real ancestor and GitHub flagged CONFLICTING. Resolved with `git rebase --onto origin/main 2a4e85e v0.5.2-rising-qa-share` (replays only the absorb), then a force-with-lease push → MERGEABLE. Codex Mode-B re-audit returned APPROVE WITH SMALL FIXES (only the now-resolved conflict).
+
+**HEAD post-this-entry:** TBD (SHA-filled post-merge). Tests 947/947. DOCTRINE v0.34. product v0.5.2. Awaiting operator merge → Netlify deploy → smoke-test → flip this entry to SHIPPED.
+
 ## 2026-06-01 — upgrade cycle: QA hardening + rising determinism + share-PNG polish
 
 **Release note:** small correctness-and-polish cycle, deliberately scoped. QA hardening now pins the prose "eight coordinates" count and the paywall "three reads unlocked. enjoy." banner behavior, closing two drift gaps that were easy to miss in manual review.
