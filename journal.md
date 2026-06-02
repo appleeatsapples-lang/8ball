@@ -2,6 +2,26 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-02 (eve) — DOCTRINE v0.35 governance-repair amendment — STAGED on branch (pre-audit, not merged)
+
+**Status: STAGED on `doctrine-v035-governance-repair`, pre-Codex, pre-merge.** No code / no calc / no `content/` deck / no shipped surface. Product stays 0.5.2. Flips to SHIPPED with live SHA post-merge per the IN-FLIGHT-label discipline.
+
+**Trigger:** a constraint-decoupling pass (Codex constraint-audit package + `~/Desktop/8ball/sessions/constraint_decoupling_analysis_2026-06-02.md`) found several constraints over-extended past their load-bearing value — privacy conflated with measurement-impossibility, anti-manipulation conflated with anti-participation, aesthetic preference treated as governance, deniability-posture conflated with the §9 SIRR rule, uniform "permanently" on §12. Patch plan: `~/Desktop/8ball/sessions/doctrine_patch_plan_2026-06-02.md`.
+
+**DOCTRINE.md edits (v0.34 → v0.35):**
+- §2: analytics bullet clarified — first-party server-side host logs are not "telemetry". New review-discipline bullet "honest invitation permitted; manipulation forbidden" (supersedes "not a funnel / no CTA" language that lived only in plan docs, never in doctrine).
+- §5: new "first-party server-side observability is not telemetry" clause — reading own origin logs permitted; product still injects no client / makes no call / emits no beacon; privacy_scan unchanged (logs are host-produced, not tracked source).
+- §12: retitled "Out of scope" + two-tier [PERMANENT]/[GUARDED] marking. PERMANENT: accounts, email, push, runtime-AI-phrases, daily/weekly horoscopes, unconstrained-export, SIRR. GUARDED (2 items only): multi-language, astrology-charts. No item deleted.
+- §13: gated-work-needs-a-named-trigger discipline added.
+
+**8BALL.md co-edits:** §3 telemetry row (first-party logs ≠ telemetry); §1 deniability-layer clarified (privacy/identity split, not a status claim — 8ball may be first-class public; §9 unchanged); build-B parked behind a NAMED evidence gate ([reach ≥ ~2–3k qualified] OR [≥1 strong divination-niche inflection signal]).
+
+**Held invariants (decouple, never remove):** §9 SIRR rule, §5 privacy primitive, §2 voice register, §4 anti-diagnostic, no-backend, no-oracle — all byte-identical. privacy_scan FORBIDDEN list + LOCALSTORAGE_KEY_ALLOW unchanged; pii_scan DOCTRINE_ALLOW unchanged. Fork-neutral: removes false prohibitions, forces nothing.
+
+**Gate (pending):** branch → local-test green → Codex Procedure 4 (DOCTRINE touched → §10 / §8 gate 6) → operator merge. NOT pulled forward; build B stays parked. Plan-doc reframes (P2b / P5 — traction plan, distribution brief, phase-2e aesthetic) are NON-audit-bound and held as a separate follow-up, not in this branch.
+
+**Next:** Codex Procedure 4 audit (brief `~/Desktop/8ball/audits/codex_procedure_4_doctrine_v035_2026-06-02.md`); paste/relay; absorb findings; merge → flip this entry to SHIPPED with SHA.
+
 ## 2026-06-02 — W3 traction sweep COMPLETE · reach ≈ 0 confirmed · W2 Tumblr "SIGNAL" reclassified · mechanics fully ruled out
 
 **No code / no ship / no DOCTRINE touch (stays v0.34, product 0.5.2, 947 tests, main `4395315`).** Distribution-diagnostic session only. Full record: `~/Desktop/8ball/audits/inspector_report_w3_traction_sweep_2026-06-02.md`.
