@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-02 (eve) — DOCTRINE v0.35 governance-repair amendment — STAGED on branch (pre-audit, not merged)
+## 2026-06-02 (eve) — DOCTRINE v0.35 governance-repair amendment SHIPPED
 
-**Status: STAGED on `doctrine-v035-governance-repair`, pre-Codex, pre-merge.** No code / no calc / no `content/` deck / no shipped surface. Product stays 0.5.2. Flips to SHIPPED with live SHA post-merge per the IN-FLIGHT-label discipline.
+**Status: SHIPPED 2026-06-02 — squash-merged to `main` at `bbdfe31` (PR #35).** No code / no calc / no `content/` deck / no shipped surface. Product stays 0.5.2.
 
 **Trigger:** a constraint-decoupling pass (Codex constraint-audit package + `~/Desktop/8ball/sessions/constraint_decoupling_analysis_2026-06-02.md`) found several constraints over-extended past their load-bearing value — privacy conflated with measurement-impossibility, anti-manipulation conflated with anti-participation, aesthetic preference treated as governance, deniability-posture conflated with the §9 SIRR rule, uniform "permanently" on §12. Patch plan: `~/Desktop/8ball/sessions/doctrine_patch_plan_2026-06-02.md`.
 
@@ -18,9 +18,9 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Held invariants (decouple, never remove):** §9 SIRR rule, §5 privacy primitive, §2 voice register, §4 anti-diagnostic, no-backend, no-oracle — all byte-identical. privacy_scan FORBIDDEN list + LOCALSTORAGE_KEY_ALLOW unchanged; pii_scan DOCTRINE_ALLOW unchanged. Fork-neutral: removes false prohibitions, forces nothing.
 
-**Gate (pending):** branch → local-test green → Codex Procedure 4 (DOCTRINE touched → §10 / §8 gate 6) → operator merge. NOT pulled forward; build B stays parked. Plan-doc reframes (P2b / P5 — traction plan, distribution brief, phase-2e aesthetic) are NON-audit-bound and held as a separate follow-up, not in this branch.
+**Gate (cleared):** branch → local-test 947/947 green → Codex Procedure 4 **PASS** (no P0/P1/P2; H4 astrology-guard accepted no-edit; New-Drift P3 8BALL test-count 18→19 / 652→947 absorbed in-branch `5ad5f4c`) → PR #35 CI green → operator squash-merge `bbdfe31`. NOT pulled forward; build B stays parked. Plan-doc reframes (P2b / P5 — traction plan, distribution brief, phase-2e aesthetic) are NON-audit-bound and held as a separate follow-up.
 
-**Next:** Codex Procedure 4 audit (brief `~/Desktop/8ball/audits/codex_procedure_4_doctrine_v035_2026-06-02.md`); paste/relay; absorb findings; merge → flip this entry to SHIPPED with SHA.
+**Next:** v0.35 closed. Audit trail: brief + response at `~/Desktop/8ball/audits/codex_procedure_4_doctrine_v035_2026-06-02{,_response}.md`. Deferred non-audit follow-up: P2b/P5 plan-doc reframes. Open controller call still pending (unchanged by this cycle): Fork 1 (product-seeking vs practice-engine), then hold-vs-participate — v0.35 only cleared the doctrinal blockers so distribution is now permitted *if* A is chosen; it does not make the choice.
 
 ## 2026-06-02 — W3 traction sweep COMPLETE · reach ≈ 0 confirmed · W2 Tumblr "SIGNAL" reclassified · mechanics fully ruled out
 
