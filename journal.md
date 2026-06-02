@@ -2,6 +2,19 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-02 — W3 traction sweep COMPLETE · reach ≈ 0 confirmed · W2 Tumblr "SIGNAL" reclassified · mechanics fully ruled out
+
+**No code / no ship / no DOCTRINE touch (stays v0.34, product 0.5.2, 947 tests, main `4395315`).** Distribution-diagnostic session only. Full record: `~/Desktop/8ball/audits/inspector_report_w3_traction_sweep_2026-06-02.md`.
+
+- **W3 multi-surface read (CiC inspector + operator screenshots):** Gumroad 0 sales / $0 (Published $3 rzqezp). IG flat 29 / 0 8ball-engagement. TikTok 56→61 followers (music act, not 8ball) / 0 8ball-engagement. Threads 0 / 0. Tumblr (real blog = `eczaki.tumblr.com`; `voidsteelmist` is the empty primary blog of the same account) 3 specimen posts: hanged man 2 likes / tower 1 / lovers 0; **0 reblogs across all three**.
+- **W2 reclassification (correction of record):** the W2 "Tumblr SIGNAL — outside-network pull" was an overread. All three engagers (@caelestisplaneta, @dustanddivination, @lilyrosedet) are blogs the account FOLLOWS — reciprocal-follow likes, not cold discovery. WATCH handles did NOT return (their likes sit on the May 30 post; the two newer posts have 0 notes from them). Genuine outside-network pull ≈ 0 across the whole footprint.
+- **Mechanics fully ruled out (3 layers):** specimen posts have NO link in body (netlify URL only baked into the card image); tags clean + correct (first-5 = #tarot #[card] #major arcana #astrology #divination, no hygiene breaks); blog visibility all open ("Exclude from Tumblr search & recommendations" OFF, "discourage external search" OFF, "hide from logged-out" OFF, not explicit). Posts ARE eligible + entering tag feeds + recommendations.
+- **Diagnosis (locked):** flatline = cold-start / participation gap, not product / site-conversion / mechanics. Being IN #tarot ≠ being SEEN; a cold blog with ~0 followers gets no amplification, nothing reblogs → never reaches strangers. Verified against current Tumblr circulation mechanics (reblogs propagate, likes don't; only original posts + first-5 tags enter search; niche runs on participation — asks / free-readings / reblog-chains / established-blog pickup).
+- **Ship-gate (c) unchanged:** 0/5 paid, checkpoint 2026-06-15 — near-certain MISS on current evidence, dominant bucket = Distribution.
+- **OPEN (controller call, carried to next chat):** hold restrained "not a funnel" posture vs. participate in the niche's circulation. Participation prerequisite spotted: @eczaki "Let people ask questions" is OFF (the niche's free-reading engine). Blaze (paid promo) available.
+
+**Next:** operator decides hold-vs-participate; orchestrator builds the first-week move around it. No repo action pending.
+
 ## 2026-06-01 (absorb) — Codex Procedure 4 v0.5.2 absorb · DOCTRINE v0.34
 
 **Status: SHIPPED 2026-06-01 — merged to `main` at `1116024` (squash of PR #34).**
