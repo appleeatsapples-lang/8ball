@@ -327,6 +327,21 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/upgrades the sheet/);
   });
 
+  it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
+    // Rising needs birth time + place; the hour pillar needs birth time.
+    // Both are paid-rung coordinates sold on the ladder, so the load-
+    // bearing disclosure surface must carry the conditionality.
+    expect(aboutSubtree).toMatch(/rising sign \(with birth time \+ place\)/);
+    expect(aboutSubtree).toMatch(/hour pillar \(with birth time\)/);
+  });
+
+  it('free-card copy binds the free coordinates to DOB only (v0.6.0 absorb)', () => {
+    // All four free coordinates are DOB-derived; the name enters the
+    // math at t1 (numerology). Meta + about must not overclaim.
+    expect(aboutSubtree).toMatch(/four coordinates from your date of birth/);
+    expect(html).not.toMatch(/[Ff]our calibrated coordinates from your name/);
+  });
+
   it('about-modal: word "subscription" only appears in the negation "no subscription"', () => {
     const occurrences = (aboutSubtree.match(/subscription/g) || []).length;
     const negations = (aboutSubtree.match(/no subscription/g) || []).length;

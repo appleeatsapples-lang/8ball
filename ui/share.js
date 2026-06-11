@@ -61,7 +61,10 @@ const RULE = '#8a8472';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status, catalog, symbols: [arcana, elem, sun, animal, numerology] }
+// refs:  { btn, status, catalog, symbols: [...] } — all eight coordinate
+//        symbol nodes in DOM order (arcana, element, sun, animal,
+//        numerology, numbers2, dayPillar, hourPillar); tier-hidden rows
+//        are filtered out at build time (§5.D v0.36).
 // hooks: reserved for parity with the other ui/*.js modules; unused today.
 let _refs = null;
 let _hooks = null;
