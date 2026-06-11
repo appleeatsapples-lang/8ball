@@ -73,7 +73,10 @@ const LOCALSTORAGE_KEY_ALLOW = new Set([
   // v0.3.0 paid-tier counters (DOCTRINE §5 v0.22 allow-list extension)
   'eight_ball_tries_used_v1',
   'eight_ball_credits_v1',
-  'eight_ball_pending_profile_v1'
+  'eight_ball_pending_profile_v1',
+  // v0.6.0 tier ladder (DOCTRINE §5 v0.36 allow-list extension / §1.D):
+  // highest rung purchased, monotonic, written only by handlePaidReturn.
+  'eight_ball_tier_v1'
 ]);
 
 // Match: localStorage.setItem('key', ...) or localStorage.setItem("key", ...)

@@ -10,6 +10,7 @@ import {
   isNewPair,
   nextShakeState,
   applyPaidReturn,
+  maxTier,
   FREE_TRIES_CAP,
   CREDITS_PER_PURCHASE,
 } from '../core/payments.js';
@@ -195,17 +196,59 @@ describe('payments — applyPaidReturn', () => {
     });
   });
 
-  it('pending profile + credits=5 (stacked tier) → 7 credits, render-unlocked', () => {
-    // Buying T2 with leftover T1 credits hypothetical; the state machine
-    // doesn't know tiers yet (v0.3.0 ships T1 only) but math holds.
+  it('pending profile + credits=5 (stacked purchases) → 7 credits, render-unlocked', () => {
+    // Buying t2 with leftover t1 credits: credits stack across rungs
+    // (+3 per purchase regardless of tier, DOCTRINE §1.D / §2 v0.36).
     const pending = mk('Stacker', '1980-12-31');
-    const result = applyPaidReturn({ credits: 5, triesUsed: 10, pendingProfile: pending });
+    const result = applyPaidReturn({
+      credits: 5, triesUsed: 10, pendingProfile: pending,
+      tier: 't1', purchasedTier: 't2',
+    });
     expect(result).toEqual({
       action: 'render-unlocked',
       credits: 7,
       triesUsed: 11,
       profile: pending,
+      tier: 't2',
     });
+  });
+
+  // ── v0.6.0 tier extension (DOCTRINE §1.D; brief §2) ────────────────
+  // Deep ladder coverage (rank table, handler parsing, render gating)
+  // lives in tests/tiers.test.js; these cases pin the state-machine
+  // contract itself: +3 credits on any rung, tier monotonic.
+
+  it('tier extension: purchase with no prior tier sets the purchased tier', () => {
+    const result = applyPaidReturn({
+      credits: 0, triesUsed: 3, pendingProfile: null,
+      tier: null, purchasedTier: 't2',
+    });
+    expect(result).toEqual({ action: 'no-pending', credits: 3, triesUsed: 3, tier: 't2' });
+  });
+
+  it('tier extension: upgrade raises tier, replay of a lower rung never downgrades', () => {
+    const upgraded = applyPaidReturn({
+      credits: 2, triesUsed: 4, pendingProfile: null,
+      tier: 't1', purchasedTier: 't3',
+    });
+    expect(upgraded.tier).toBe('t3');
+    expect(upgraded.credits).toBe(5);
+    const replayed = applyPaidReturn({
+      credits: upgraded.credits, triesUsed: upgraded.triesUsed, pendingProfile: null,
+      tier: upgraded.tier, purchasedTier: 't1',
+    });
+    expect(replayed.tier).toBe('t3');
+    expect(replayed.credits).toBe(8);
+  });
+
+  it('tier extension: tier-less legacy call shape stays byte-compatible (tier undefined)', () => {
+    // Pre-v0.6.0 callers pass no tier fields; counters behave identically
+    // and the returned tier is undefined (renders free per brief §2).
+    const result = applyPaidReturn({ credits: 0, triesUsed: 3, pendingProfile: null });
+    expect(result.credits).toBe(3);
+    expect(result.triesUsed).toBe(3);
+    expect(result.tier).toBeUndefined();
+    expect(maxTier(result.tier, 't1')).toBe('t1');
   });
 
   it('pending profile object without name/dob → still treated as pending and consumed', () => {

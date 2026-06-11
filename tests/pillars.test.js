@@ -327,10 +327,26 @@ describe('buildProfile integration — additive only', () => {
   });
 });
 
-describe('no surface leak this cycle (brief §7 — data-only, no render wiring)', () => {
-  it('index.html does not reference dayPillar or hourPillar', () => {
-    expect(html).not.toContain('dayPillar');
-    expect(html).not.toContain('hourPillar');
+describe('surface wiring (v0.6.0 — build B authorized, supersedes the build-A no-leak tripwire)', () => {
+  // The build-A (2026-05-31) guard pinned index.html free of dayPillar /
+  // hourPillar references while the paywall wiring stayed gated. The
+  // v0.6.0 tier-ladder cycle IS the authorized build B (controller
+  // override recorded 2026-06-11, brief §preamble; DOCTRINE §1.D), so
+  // the tripwire flips: the rows must now exist, gated to t2/t3 by
+  // ui/tiers.js (tests/tiers.test.js pins the gating itself).
+  it('index.html ships the day/hour pillar rows for the tier gate', () => {
+    expect(html).toContain('id="coord-daypillar-symbol"');
+    expect(html).toContain('id="coord-hourpillar-symbol"');
+    expect(html).toMatch(/>DAY PILLAR</);
+    expect(html).toMatch(/>HOUR PILLAR</);
+  });
+
+  it('pillars stay out of the catalog driver (DOCTRINE §1.D — surface-only)', () => {
+    // The engine import surface in index.html is unchanged: getCard /
+    // resolveBracket consume (sunSign, animal, lifePath) only; no pillar
+    // value flows into the catalog computation.
+    expect(html).not.toMatch(/getCard\([^)]*[Pp]illar/);
+    expect(html).not.toMatch(/resolveBracket\([^)]*[Pp]illar/);
   });
 });
 

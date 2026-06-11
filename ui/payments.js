@@ -2,13 +2,13 @@
 // v0.3.0 paid-surface controller (DOCTRINE §4.B / §5 v0.22 / §6).
 //
 // Owns:
-//   - localStorage keys for tries_used / credits / pending_profile
-//   - getter/setter shims for the three counters
+//   - localStorage keys for tries_used / credits / pending_profile / tier
+//   - getter/setter shims for the three counters + the stored tier
 //   - paywall modal open/close + outside-click + Escape handlers
 //   - paid-return banner fade animation
-//   - the `?paid=t1` redirect handler (handlePaidReturn) which calls
-//     applyPaidReturn from core/payments.js, persists the new counters,
-//     and signals to the caller whether a pending profile was consumed
+//   - the `?paid=t1|t2|t3` redirect handler (handlePaidReturn) which calls
+//     applyPaidReturn from core/payments.js, persists the new counters +
+//     tier, and signals to the caller whether a pending profile was consumed
 //
 // Does NOT own:
 //   - the state-machine logic itself (lives in core/payments.js — pure,
@@ -25,26 +25,28 @@
 // crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
 // target — `ui/*.js` modules — is exactly what §6 specifies.
 
-import { applyPaidReturn } from '../core/payments.js';
+import { applyPaidReturn, isTier, resolveRenderTier } from '../core/payments.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
-// All three keys are in the §5 v0.22 allow-list. tests/privacy_scan
-// resolves identifier-as-key via same-file `const IDENT = '...'` lookup,
-// so the bare string definitions here are mandatory for the scan.
+// The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY is the
+// v0.6.0 §5 v0.36 allow-list extension. tests/privacy_scan resolves
+// identifier-as-key via same-file `const IDENT = '...'` lookup, so the
+// bare string definitions here are mandatory for the scan.
 export const TRIES_KEY = 'eight_ball_tries_used_v1';
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
+export const TIER_KEY = 'eight_ball_tier_v1';
 
 // ── counter shims ─────────────────────────────────────────────────
 // Three counters live in localStorage:
 //   tries_used  monotonic int — increments per new-pair render (locked
 //               or unlocked). Cap is FREE_TRIES_CAP=3 in core/payments.js.
-//   credits     decrementing int — +3 on every ?paid=t1 return,
+//   credits     decrementing int — +3 on every ?paid=t1|t2|t3 return,
 //               -1 per new-pair render while > 0.
 //   pending     JSON payload — written when the paywall opens (Path A
-//               or B), consumed on the ?paid=t1 return to render the
-//               user's pending profile unlocked. Lifetime is one
-//               round-trip.
+//               or B), consumed on the ?paid=tN return to render the
+//               user's pending profile at the stored tier. Lifetime is
+//               one round-trip.
 //
 // Every read defends against a localStorage exception (private mode,
 // quota, etc.) by returning a safe zero/null default. Writes silently
@@ -65,6 +67,32 @@ export function getCredits() {
 export function setCredits(n) {
   try { localStorage.setItem(CREDITS_KEY, String(n)); } catch (_) {}
 }
+// Tier is the highest rung purchased ("t1" | "t2" | "t3"); absent = free.
+// Monotonic — only handlePaidReturn writes it, via the max-rank result of
+// applyPaidReturn. Garbage in storage reads as free (never throws).
+export function getTier() {
+  try {
+    const t = localStorage.getItem(TIER_KEY);
+    return isTier(t) ? t : null;
+  } catch (_) { return null; }
+}
+export function setTier(tier) {
+  if (!isTier(tier)) return;
+  try { localStorage.setItem(TIER_KEY, tier); } catch (_) {}
+}
+// THE single render-density helper (remediation R1, PR #36 Codex inv.
+// 5+11): every render path — cold-boot rehydration, same-card shake,
+// same-pair submit, paid-return boot — resolves density here and only
+// here. Delegates the rule to core/payments.js resolveRenderTier; this
+// wrapper adds the storage read and the R2 grandfather persistence:
+// credits with no tier key (pre-v0.6.0 purchase shape) resolve to t3
+// and the key is written on first detection so the rule is total.
+export function getRenderTier() {
+  const stored = getTier();
+  const resolved = resolveRenderTier({ tier: stored, credits: getCredits() });
+  if (!stored && isTier(resolved)) setTier(resolved);
+  return resolved;
+}
 export function getPendingProfile() {
   try {
     const raw = localStorage.getItem(PENDING_KEY);
@@ -84,9 +112,10 @@ export function clearPendingProfile() {
 
 // ── paywall modal + banner ────────────────────────────────────────
 // DOM refs are injected at boot via initPaywallUI so this module
-// remains import-safe before the DOM parses. The "unlock · $3" CTA is
-// a plain <a href> in the HTML — no JS hook, browser navigates same-
-// origin to the Gumroad Buy Link on tap (DOCTRINE §5.B Call 2).
+// remains import-safe before the DOM parses. The three-rung ladder CTAs
+// are plain <a href> elements in the HTML — no JS hook, browser
+// navigates to each rung's Gumroad Buy Link on tap (DOCTRINE §5.B
+// Call 2 v0.36: three products, same bare-href mechanism).
 
 let paywallModal = null;
 let paywallClose = null;
@@ -128,25 +157,32 @@ export function showPaidBanner() {
 }
 
 // ── paid-return handler (§5.B Call 2 / §6.6 / §7.2) ───────────────
-// Reads `?paid=t1` and runs applyPaidReturn. Credits += 3; if a pending
-// profile is present (Path A or B paywall trigger wrote it before the
-// redirect) one credit is consumed and the caller's onConsumePending
-// callback is fired with the profile so it can persist it through the
-// host's saveProfile (which owns the v0.2.7.2 city+tz payload shape).
-// Always strips the query string and shows the banner; returns true iff
-// a pending profile was consumed.
+// Reads `?paid=t1|t2|t3` (v0.6.0 generalization) and runs applyPaidReturn.
+// Credits += 3 on any rung; the stored tier rises to max(current,
+// purchased) and never downgrades. Unknown ?paid= values are ignored —
+// the replay-safe branch is preserved: no credits, no tier write, no
+// banner. If a pending profile is present (Path A or B paywall trigger
+// wrote it before the redirect) one credit is consumed and the caller's
+// onConsumePending callback is fired with the profile so it can persist
+// it through the host's saveProfile (which owns the v0.2.7.2 city+tz
+// payload shape). Always strips the query string and shows the banner;
+// returns true iff a pending profile was consumed.
 //
 // Caller is expected to fire this from inside the 18+-gate-cleared
 // boot path so the credits + banner sequence after age-ack, not before.
 
 export function handlePaidReturn(onConsumePending) {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('paid') !== 't1') return false;
+  const purchased = params.get('paid');
+  if (!isTier(purchased)) return false;
   const paidState = applyPaidReturn({
     credits: getCredits(),
     triesUsed: getTriesUsed(),
-    pendingProfile: getPendingProfile()
+    pendingProfile: getPendingProfile(),
+    tier: getTier(),
+    purchasedTier: purchased
   });
+  setTier(paidState.tier);
   setCredits(paidState.credits);
   setTriesUsed(paidState.triesUsed);
   clearPendingProfile();

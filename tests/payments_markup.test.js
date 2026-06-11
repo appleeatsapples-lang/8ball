@@ -125,18 +125,50 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     );
   });
 
-  it('paywall CTA points at the specific Gumroad product URL with no query string (v0.3.0.3)', () => {
-    // Gumroad Buy Link redirect mechanism. Unlike the v0.3.0 LS path,
+  it('paywall ladder carries exactly three Gumroad CTAs with the locked product URLs (v0.6.0)', () => {
+    // Gumroad Buy Link redirect mechanism (DOCTRINE §5.B Call 2 v0.36).
     // Gumroad does not accept a URL-encoded success_url query parameter
-    // on the Buy Link href; post-purchase redirect to /?paid=t1 is
-    // handled by the product's Content-tab Button on Gumroad's side
-    // (single-source redirect, not belt-and-suspenders). Locks the
-    // exact product URL and the bare-URL shape — guards against
-    // accidental UTM tag addition / tracking param leakage.
+    // on the Buy Link href; post-purchase redirect to /?paid=t1|t2|t3 is
+    // handled by each product's Content-tab Button on Gumroad's side
+    // (single-source redirect). Locks the exact product URL per rung and
+    // the bare-URL shape — guards against accidental UTM tag addition /
+    // tracking param leakage and against rung→product mismatches.
     const subtree = modalSubtree('paywall-modal');
-    expect(subtree).toMatch(
-      /href="https:\/\/theeightball\.gumroad\.com\/l\/rzqezp"/
-    );
+    const ctaRe = /<a class="modal-cta" id="paywall-cta-(t[123])" href="([^"]+)"/g;
+    const ctas = {};
+    let m;
+    while ((m = ctaRe.exec(subtree)) !== null) ctas[m[1]] = m[2];
+    expect(ctas).toEqual({
+      t1: 'https://theeightball.gumroad.com/l/rzqezp',
+      t2: 'https://theeightball.gumroad.com/l/neysyv',
+      t3: 'https://theeightball.gumroad.com/l/xjpvp',
+    });
+    for (const href of Object.values(ctas)) {
+      expect(href, 'Buy Link hrefs must stay bare — no query string').not.toMatch(/[?&]/);
+    }
+  });
+
+  it('ladder copy: each CTA names its rung price and clinical contents (v0.6.0)', () => {
+    const subtree = modalSubtree('paywall-modal');
+    const t1 = subtree.match(/id="paywall-cta-t1"[^>]*>([^<]+)<\/a>/)[1];
+    const t2 = subtree.match(/id="paywall-cta-t2"[^>]*>([^<]+)<\/a>/)[1];
+    const t3 = subtree.match(/id="paywall-cta-t3"[^>]*>([^<]+)<\/a>/)[1];
+    expect(t1).toContain('$3');
+    expect(t1).toMatch(/rising/);
+    expect(t2).toContain('$6');
+    expect(t2).toMatch(/day pillar/); // clinical label, §2 voice
+    expect(t3).toContain('$9');
+    expect(t3).toMatch(/hour pillar/);
+    expect(t3).toMatch(/written card entry/); // t3 carries the content unlock
+    // §2 voice: no destiny/unlock-your-X language on the ladder.
+    expect(`${t1}${t2}${t3}`).not.toMatch(/destiny|fate|secret|reveal your/i);
+  });
+
+  it('paywall title and body carry the three-rung framing (v0.6.0)', () => {
+    const subtree = modalSubtree('paywall-modal');
+    expect(subtree).toMatch(/three tries · three rungs/);
+    expect(subtree).toMatch(/three more reads with the sheet opened to that rung/);
+    expect(subtree).toMatch(/the highest rung bought holds/);
   });
 
   // 3. credit_chip_markup ───────────────────────────────────────────
@@ -263,8 +295,8 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/calculator-grade/);
   });
 
-  it('about-modal: contains "three dollars"', () => {
-    expect(aboutSubtree).toMatch(/three dollars/);
+  it('about-modal: discloses the ladder prices ("three, six, or nine dollars")', () => {
+    expect(aboutSubtree).toMatch(/three, six, or nine dollars/);
   });
 
   it('about-modal: names gumroad (case-insensitive)', () => {
@@ -285,8 +317,29 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/the lock is a convention, not a vault/);
   });
 
-  it('about-modal: discloses what $3 unlocks ("three more reads with the card opened up")', () => {
-    expect(aboutSubtree).toMatch(/three more reads with the card opened up/);
+  it('about-modal: discloses what a rung buys ("three more reads with the sheet opened to that rung")', () => {
+    expect(aboutSubtree).toMatch(/three more reads with the sheet opened to that rung/);
+  });
+
+  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.6.0)', () => {
+    expect(aboutSubtree).toMatch(/the nine-dollar rung carries the written card entry/);
+    expect(aboutSubtree).toMatch(/the paid rung/); // §5 storage disclosure
+    expect(aboutSubtree).toMatch(/upgrades the sheet/);
+  });
+
+  it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
+    // Rising needs birth time + place; the hour pillar needs birth time.
+    // Both are paid-rung coordinates sold on the ladder, so the load-
+    // bearing disclosure surface must carry the conditionality.
+    expect(aboutSubtree).toMatch(/rising sign \(with birth time \+ place\)/);
+    expect(aboutSubtree).toMatch(/hour pillar \(with birth time\)/);
+  });
+
+  it('free-card copy binds the free coordinates to DOB only (v0.6.0 absorb)', () => {
+    // All four free coordinates are DOB-derived; the name enters the
+    // math at t1 (numerology). Meta + about must not overclaim.
+    expect(aboutSubtree).toMatch(/four coordinates from your date of birth/);
+    expect(html).not.toMatch(/[Ff]our calibrated coordinates from your name/);
   });
 
   it('about-modal: word "subscription" only appears in the negation "no subscription"', () => {
