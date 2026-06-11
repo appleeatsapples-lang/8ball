@@ -965,12 +965,12 @@ import { isNewPair, nextShakeState } from './core/payments.js';
 import {
   TRIES_KEY, CREDITS_KEY, PENDING_KEY,
   getTriesUsed, setTriesUsed,
-  getCredits, setCredits, getTier,
+  getCredits, setCredits, getRenderTier,
   getPendingProfile, setPendingProfile, clearPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   showPaidBanner, handlePaidReturn,
 } from './ui/payments.js';
-import { initTiersUI, renderTierSections, renderTierFor } from './ui/tiers.js';
+import { initTiersUI, renderTierSections } from './ui/tiers.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1085,9 +1085,9 @@ initShareUI(
 
 let currentProfile = null;
 let flipLocked = false;
-// v0.6.0: tracks the previous render's tier so cosmetic re-flips
-// (shakeAgain on the same profile) preserve it without re-consuming credit.
-let currentRenderTier = 'free';
+// v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
+// state is kept here — density is resolved from storage at render time
+// via getRenderTier(), the single helper, on every path.
 
 // ── City autocomplete (v0.2.7.2) ─────────────────────────────────
 // Selected city is held in module-scoped state so the form submit can
@@ -1161,11 +1161,12 @@ cityInput.addEventListener('blur', () => {
 });
 
 // ── render card face from profile ─────────────────────────────────
-// v0.6.0 (DOCTRINE §1.D): coordinate rows render up to opts.tier (free
-// tries → free card; paid reads → stored tier); fill + visibility live
-// in ui/tiers.js renderTierSections. cardEntry is true only at t3, where
-// the written 144-card entry renders through the pre-existing v0.22
-// unlocked path. Toggle is the `.unlocked` class; depth slots CSS-driven.
+// v0.6.0 (DOCTRINE §1.D, R1): coordinate rows render up to opts.tier —
+// always the device's entitled density from getRenderTier(); fill +
+// visibility live in ui/tiers.js renderTierSections. cardEntry is true
+// only at t3, where the written 144-card entry renders through the
+// pre-existing v0.22 unlocked path. Toggle is the `.unlocked` class;
+// depth slots CSS-driven.
 
 function renderCard(profile, opts) {
   const tier = (opts && opts.tier) || 'free';
@@ -1220,7 +1221,6 @@ function renderCard(profile, opts) {
 // ── shake / flip control ──────────────────────────────────────────
 function showResult(profile, opts) {
   currentProfile = profile;
-  currentRenderTier = (opts && opts.tier) || 'free';
   onboarding.classList.add('hidden');
   result.classList.remove('hidden');
   result.classList.add('reveal');
@@ -1235,13 +1235,13 @@ function showResult(profile, opts) {
 function shakeAgain() {
   if (flipLocked || !currentProfile) return;
   flipLocked = true;
-  // Flip back to card-back, then re-flip to face after ~320ms. The re-
-  // render preserves the previous render's tier — shakeAgain on the
-  // same profile is cosmetic and never re-consumes a credit
-  // (§6.5/§7.1 β idempotence).
+  // Flip back to card-back, then re-flip to face after ~320ms. shakeAgain
+  // on the same profile is cosmetic and never re-consumes a credit
+  // (§6.5/§7.1 β idempotence); density resolves from the stored tier at
+  // render time (R1) — a paid rung survives the re-flip and the reload.
   flipInner.classList.add('face-up');
   setTimeout(() => {
-    renderCard(currentProfile, { tier: currentRenderTier, credits: getCredits() });
+    renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits() });
     flipInner.classList.remove('face-up');
     flipLocked = false;
   }, 320);
@@ -1319,14 +1319,11 @@ profileForm.addEventListener('submit', e => {
       setTriesUsed(state.triesUsed);
       setCredits(state.credits);
     }
-    // §6.3/§6.5 + §1.D: a paid read renders at the stored tier; a free
-    // try renders the free card; render-idempotent preserves the previous
-    // render's tier — a cosmetic re-shake of the same profile cannot
-    // regress an already-revealed sheet.
-    const tier = state.action === 'render-idempotent'
-      ? currentRenderTier
-      : renderTierFor(state.action, getTier());
-    showResult(profile, { tier, credits: state.credits });
+    // §6.3/§6.5 + §1.D (R1): density is the device's entitled tier on
+    // every action — render-idempotent, render-locked, render-unlocked
+    // alike. Credits/tries decide how many readings (already settled
+    // above); the stored tier decides how much sheet.
+    showResult(profile, { tier: getRenderTier(), credits: state.credits });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1463,22 +1460,20 @@ labelsToggle.addEventListener('click', () => {
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
   applyLabelsState(isLabelsRevealed());
-  // §6.6 paid-return runs before rehydration so the +3 credits and any
-  // pending-consumed profile are persisted before loadSavedProfile()
-  // reads them. Sequencing here (post age-gate) avoids the race where
-  // the boot block would otherwise hide the result behind the gate.
-  const consumedPending = handlePaidReturn(p => saveProfile(p.name, p.dob, p));
+  // §6.6 paid-return runs before rehydration so the +3 credits, tier,
+  // and any pending-consumed profile are persisted before
+  // loadSavedProfile() reads them. Sequencing here (post age-gate)
+  // avoids the race where the boot block would otherwise hide the
+  // result behind the gate. R1: a paid-return boot is not special — it
+  // just sets tier+credits and falls into the same render path as any
+  // rehydration; density resolves from storage via getRenderTier().
+  handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
   if (existing) {
     populateRisingFields(existing);
-    // Cold-load rehydration defaults to the FREE card — any rehydration
-    // that isn't a direct paid-return must shake-to-consume to reveal
-    // (§1.D). The exception is ?paid=tN with a pending profile:
-    // handlePaidReturn already consumed a credit → render at stored tier.
-    const opts = consumedPending
-      ? { tier: renderTierFor('render-unlocked', getTier()), credits: getCredits() }
-      : { tier: 'free', credits: getCredits() };
-    showResult(profileFromPayload(existing), opts);
+    showResult(profileFromPayload(existing), {
+      tier: getRenderTier(), credits: getCredits(),
+    });
   } else {
     // No saved profile. The gate path pre-emptively hides #onboarding so
     // it doesn't leak behind the modal; un-hide here so the form is

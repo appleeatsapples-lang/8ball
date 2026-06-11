@@ -6,14 +6,17 @@
 //     coordinates each tier surfaces (the §3 rollback flag: reverting the
 //     free card to the pre-v0.6.0 seven-coordinate surface is a one-line
 //     change to the `free` list plus a test update, not surgery)
-//   - tier-resolution helpers (coordsForTier / renderTierFor)
+//   - coordsForTier — tier → coordinate-key set
 //   - renderTierSections — fills every coordinate row from a profile and
 //     gates row visibility to the render tier; rows above the tier are
 //     hidden AND cleared so no t1+ coordinate value sits in the free DOM
 //
 // Does NOT own:
 //   - tier persistence (eight_ball_tier_v1 lives in ui/payments.js)
-//   - the tier rank/upgrade math (pure functions in core/payments.js)
+//   - the tier rank/upgrade math AND the density rule (pure functions in
+//     core/payments.js; the single render-density helper is
+//     ui/payments.js getRenderTier per remediation R1 — this module only
+//     renders the tier it is handed)
 //   - the catalog render, the t3 card-entry (written deck) block, and the
 //     reads-chip — those stay in index.html's renderCard, which reads the
 //     `cardEntry` flag this module returns
@@ -53,15 +56,9 @@ export function coordsForTier(tier) {
   return new Set(TIER_COORDS[tier] || TIER_COORDS.free);
 }
 
-/**
- * Resolve the tier a shake action renders at (brief §2): a paid read
- * renders coordinates up to the stored tier; free tries and cold-load
- * rehydration render the free-tier card.
- */
-export function renderTierFor(action, storedTier) {
-  if (action !== 'render-unlocked') return 'free';
-  return TIER_COORDS[storedTier] ? storedTier : 'free';
-}
+// (v0.6.0 remediation R1: the action-dependent renderTierFor helper is
+// retired — density never depends on the shake action or boot path.
+// Resolution lives in ui/payments.js getRenderTier / core resolveRenderTier.)
 
 /** `animal · stem-element` — the clinical pillar register (e.g. `horse · fire`). */
 export function formatPillar(pillar) {

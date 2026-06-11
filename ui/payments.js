@@ -25,7 +25,7 @@
 // crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
 // target — `ui/*.js` modules — is exactly what §6 specifies.
 
-import { applyPaidReturn, isTier } from '../core/payments.js';
+import { applyPaidReturn, isTier, resolveRenderTier } from '../core/payments.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
 // The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY is the
@@ -79,6 +79,19 @@ export function getTier() {
 export function setTier(tier) {
   if (!isTier(tier)) return;
   try { localStorage.setItem(TIER_KEY, tier); } catch (_) {}
+}
+// THE single render-density helper (remediation R1, PR #36 Codex inv.
+// 5+11): every render path — cold-boot rehydration, same-card shake,
+// same-pair submit, paid-return boot — resolves density here and only
+// here. Delegates the rule to core/payments.js resolveRenderTier; this
+// wrapper adds the storage read and the R2 grandfather persistence:
+// credits with no tier key (pre-v0.6.0 purchase shape) resolve to t3
+// and the key is written on first detection so the rule is total.
+export function getRenderTier() {
+  const stored = getTier();
+  const resolved = resolveRenderTier({ tier: stored, credits: getCredits() });
+  if (!stored && isTier(resolved)) setTier(resolved);
+  return resolved;
 }
 export function getPendingProfile() {
   try {

@@ -45,6 +45,29 @@ export function maxTier(a, b) {
 }
 
 /**
+ * The single density rule (v0.6.0 remediation R1, PR #36 Codex inv. 5+11):
+ * render density = f(stored tier, credit state) at render time — never a
+ * function of boot circumstance or shake action.
+ *
+ *   - a stored tier governs every render of any card on the device;
+ *   - credits held with NO stored tier are the pre-v0.6.0 purchase shape:
+ *     that product sold the written-entry unlock, which now lives at t3,
+ *     so the device is grandfathered to t3 (R2 — deterministic, total,
+ *     never downgrades; the caller persists it on first detection);
+ *   - neither → the free card.
+ *
+ * Credits/tries govern how many readings, never density (§1.D v0.36).
+ *
+ * @param {{tier?: string | null, credits?: number}} state
+ * @returns {string} 'free' | 't1' | 't2' | 't3'
+ */
+export function resolveRenderTier({ tier, credits }) {
+  if (isTier(tier)) return tier;
+  if (credits > 0) return 't3';
+  return 'free';
+}
+
+/**
  * Compare the typed input against the last successfully rendered profile.
  * Try-counting cares only about (name, dob); rising-sign optional fields
  * don't make a profile a "new pair" (DOCTRINE §4.B / brief §15 hook 9).

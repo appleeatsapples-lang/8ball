@@ -11,12 +11,12 @@ import {
   isTier,
   tierRank,
   maxTier,
+  resolveRenderTier,
   applyPaidReturn,
 } from '../core/payments.js';
 import {
   TIER_COORDS,
   coordsForTier,
-  renderTierFor,
   formatPillar,
   initTiersUI,
   renderTierSections,
@@ -28,9 +28,16 @@ import {
   PENDING_KEY,
   getTier,
   setTier,
+  getRenderTier,
   handlePaidReturn,
   initPaywallUI,
 } from '../ui/payments.js';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 // Same labeled-DOB-regex dodge as tests/payments_state.test.js: the pii
 // scan's `me` alternation lacks a leading word-boundary and matches the
@@ -195,13 +202,105 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(maxTier(null, 'zz')).toBe(null);
   });
 
-  it('renderTierFor: paid reads render the stored tier; free tries render free', () => {
-    expect(renderTierFor('render-unlocked', 't2')).toBe('t2');
-    expect(renderTierFor('render-unlocked', 't3')).toBe('t3');
-    // Stored-tier-absent paid read (legacy credits) renders free per brief §2.
-    expect(renderTierFor('render-unlocked', null)).toBe('free');
-    expect(renderTierFor('render-locked', 't3')).toBe('free');
-    expect(renderTierFor('show-paywall', 't3')).toBe('free');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// density resolution — the single rule (PR #36 Codex remediation R1 + R2)
+// render density = f(stored tier, credit state) at render time, never
+// f(boot circumstance) or f(shake action).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — resolveRenderTier single density rule (remediation R1/R2)', () => {
+  it('a stored tier governs density regardless of credit state', () => {
+    for (const credits of [0, 1, 3, 100]) {
+      expect(resolveRenderTier({ tier: 't1', credits })).toBe('t1');
+      expect(resolveRenderTier({ tier: 't2', credits })).toBe('t2');
+      expect(resolveRenderTier({ tier: 't3', credits })).toBe('t3');
+    }
+  });
+
+  it('R2 grandfather: credits with no stored tier resolve to t3 (pre-v0.6.0 buyers bought the written-entry unlock)', () => {
+    expect(resolveRenderTier({ tier: null, credits: 1 })).toBe('t3');
+    expect(resolveRenderTier({ tier: undefined, credits: 3 })).toBe('t3');
+    // total rule: garbage tier value with credits also grandfathers
+    expect(resolveRenderTier({ tier: 'banana', credits: 2 })).toBe('t3');
+  });
+
+  it('free devices (no tier, no credits) render the free card — unchanged', () => {
+    expect(resolveRenderTier({ tier: null, credits: 0 })).toBe('free');
+    expect(resolveRenderTier({ tier: undefined, credits: 0 })).toBe('free');
+    expect(resolveRenderTier({ tier: null, credits: undefined })).toBe('free');
+  });
+
+  it('the rule takes no action/boot argument — density cannot depend on them', () => {
+    expect(resolveRenderTier.length).toBe(1); // single state object
+  });
+});
+
+describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
+  it('t3 buyer after reload: stored tier wins on every resolution', () => {
+    globalThis.localStorage = makeStorage({ [TIER_KEY]: 't3', [CREDITS_KEY]: '0' });
+    expect(getRenderTier()).toBe('t3');
+    // repeated calls (same-card shake, same-pair submit) stay t3
+    expect(getRenderTier()).toBe('t3');
+  });
+
+  it('R2 grandfather persists the tier key on first detection', () => {
+    const storage = makeStorage({ [CREDITS_KEY]: '2' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t3');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3'); // persisted — rule is total
+    // and stays stable once persisted
+    expect(getRenderTier()).toBe('t3');
+  });
+
+  it('does not rewrite an already-stored tier (monotonic ownership stays with handlePaidReturn)', () => {
+    const storage = makeStorage({ [TIER_KEY]: 't1', [CREDITS_KEY]: '5' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t1');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t1');
+  });
+
+  it('free user: resolves free and writes NO tier key', () => {
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('free');
+    expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+  });
+});
+
+describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
+  it('cold-boot rehydration renders at getRenderTier() — no boot-circumstance branch', () => {
+    // initAfterAck: the rehydrate showResult call passes the helper output.
+    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?showResult\(profileFromPayload\(existing\),\s*\{([\s\S]*?)\}\s*\)/);
+    expect(m, 'rehydration showResult call not found').not.toBeNull();
+    expect(m[1]).toMatch(/tier:\s*getRenderTier\(\)/);
+    // the paid-return special case is gone: no consumedPending ternary
+    expect(html).not.toMatch(/consumedPending\s*\?/);
+  });
+
+  it('same-pair submit and paid reads render at getRenderTier() — no action-based density', () => {
+    const m = html.match(/showResult\(profile,\s*\{\s*tier:\s*getRenderTier\(\)/);
+    expect(m, 'submit-path showResult must resolve via getRenderTier').not.toBeNull();
+    expect(html).not.toMatch(/renderTierFor/);
+    expect(html).not.toMatch(/currentRenderTier/);
+  });
+
+  it('same-card shake renders at getRenderTier()', () => {
+    const m = html.match(/renderCard\(currentProfile,\s*\{\s*tier:\s*getRenderTier\(\)/);
+    expect(m, 'shakeAgain renderCard must resolve via getRenderTier').not.toBeNull();
+  });
+
+  it('t3 density end-to-end: the resolved tier renders the full ladder including the card entry', () => {
+    // Compose the R1 helper with the render gate: a t3 buyer's rehydrate
+    // tier ('t3' from storage) produces the 8-row render + written entry.
+    globalThis.localStorage = makeStorage({ [TIER_KEY]: 't3', [CREDITS_KEY]: '0' });
+    const tier = getRenderTier();
+    const { rows } = installTierRows();
+    const { cardEntry } = renderTierSections(PROFILE, tier);
+    expect(cardEntry).toBe(true);
+    expect(rows.hourPillar.root.hidden).toBe(false);
+    expect(rows.dayPillar.root.hidden).toBe(false);
   });
 });
 
