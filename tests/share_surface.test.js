@@ -97,7 +97,7 @@ describe('share PNG SVG structure', () => {
     expect(svg).toMatch(/y="442"/);
   });
 
-  it('renders all five free coordinate rows without paid or profile content', () => {
+  it('renders all five t1-density coordinate rows without paid or profile content', () => {
     expect(svg.match(/<g transform="translate\(0 /g)).toHaveLength(5);
     for (const text of [
       'ARCANA', 'XXI · the world',
@@ -111,6 +111,83 @@ describe('share PNG SVG structure', () => {
     for (const forbidden of ['card-name', 'card-type', 'card-habit', 'card-note']) {
       expect(svg).not.toContain(forbidden);
     }
+  });
+
+  // v0.6.0 (§5.D v0.36): the builder is row-count adaptive — the free
+  // card emits 3 rows, the t3 card 8 — and every row lands between the
+  // stack rules (y 86..398) regardless of count.
+  function rowYs(svgStr) {
+    return [...svgStr.matchAll(/<g transform="translate\(0 ([\d.]+)\)"/g)]
+      .map(m => parseFloat(m[1]));
+  }
+
+  it('free-tier snapshot (3 rows + catalog) renders 3 rows inside the stack', () => {
+    const free = buildCardSVGFromSnapshot({
+      catalog: 'no. 042',
+      sections: [
+        { title: 'ARCANA', symbol: 'XXI · the world' },
+        { title: 'SUN', symbol: 'gemini' },
+        { title: 'PUBLIC', symbol: 'horse' },
+      ],
+    });
+    const ys = rowYs(free);
+    expect(ys).toHaveLength(3);
+    for (const y of ys) {
+      expect(y).toBeGreaterThan(86);
+      expect(y).toBeLessThan(398);
+    }
+    expect(free).toContain('>no. 042</text>');
+    expect(free).not.toContain('↑'); // free sun line is bare
+    expect(free).not.toContain('⇌'); // free animal line is public-only
+  });
+
+  it('t3-density snapshot (8 rows) renders 8 rows inside the stack', () => {
+    const t3 = buildCardSVGFromSnapshot({
+      catalog: 'no. 042',
+      sections: [
+        { title: 'ARCANA', symbol: 'XXI · the world' },
+        { title: 'FIVE-ELEMENT', symbol: 'metal' },
+        { title: 'SUN ↑ RISING', symbol: 'gemini ↑ virgo' },
+        { title: 'PUBLIC ⇌ PRIVATE', symbol: 'horse ⇌ rabbit' },
+        { title: 'LIFE · NAME · SOUL', symbol: '3 8 3' },
+        { title: 'PERSONALITY · BIRTHDAY · MATURITY', symbol: '5 7 11' },
+        { title: 'DAY PILLAR', symbol: 'dragon · earth' },
+        { title: 'HOUR PILLAR', symbol: 'rat · wood' },
+      ],
+    });
+    const ys = rowYs(t3);
+    expect(ys).toHaveLength(8);
+    for (const y of ys) {
+      expect(y).toBeGreaterThan(86);
+      expect(y).toBeLessThan(398);
+    }
+    expect(t3).toContain('>DAY PILLAR</text>');
+    expect(t3).toContain('>HOUR PILLAR</text>');
+  });
+});
+
+describe('share tier-awareness (DOCTRINE §5.D v0.36)', () => {
+  it('the builder skips tier-hidden rows (reads section.hidden, set by ui/tiers.js)', () => {
+    // Mechanism pin: buildCardSVG filters refs.symbols on the closest
+    // .coord-section's hidden flag before snapshotting. This is how the
+    // PNG matches the on-screen card at the current tier without share.js
+    // learning the tier model.
+    expect(shareJs).toMatch(/function isRenderedSymbol\(/);
+    expect(shareJs).toMatch(/closest\(['"]\.coord-section['"]\)/);
+    expect(shareJs).toMatch(/section\.hidden/);
+    expect(shareJs).toMatch(/\.filter\(isRenderedSymbol\)/);
+  });
+
+  it('index.html passes all eight coordinate rows to initShareUI', () => {
+    const m = html.match(/symbols:\s*\[([^\]]+)\]/);
+    expect(m, 'initShareUI symbols array not found').not.toBeNull();
+    const refs = m[1].split(',').map(s => s.trim()).filter(Boolean);
+    expect(refs).toHaveLength(8);
+  });
+
+  it('share.js still imports nothing and knows no tier constant (gating stays in ui/tiers.js)', () => {
+    expect(shareJs).not.toMatch(/^\s*import\s/m);
+    expect(shareJs).not.toMatch(/TIER_COORDS|eight_ball_tier_v1/);
   });
 });
 

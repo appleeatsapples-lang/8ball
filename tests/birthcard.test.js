@@ -18,6 +18,7 @@ import { buildProfile } from '../core/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 
 describe('birth-card reduction (digit-sum tradition)', () => {
   const cases = [
@@ -114,7 +115,10 @@ describe('render + share wiring (index.html)', () => {
     expect(html).toMatch(/symbols:\s*\[\s*coordArcanaSymbol/);
   });
 
-  it('render populates arcana symbol from profile.birthCard.label', () => {
-    expect(html).toContain('coordArcanaSymbol.textContent = profile.birthCard.label');
+  it('render populates arcana symbol from profile.birthCard.label (moved to ui/tiers.js at v0.6.0)', () => {
+    // The row fill lives in renderTierSections; the arcana row is in
+    // TIER_COORDS.free, so every tier including free renders it
+    // (behavioral pin in tests/tiers.test.js).
+    expect(tiersJs).toMatch(/setRow\('arcana',[\s\S]{0,60}?profile\.birthCard\.label\)/);
   });
 });

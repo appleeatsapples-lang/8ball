@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="Eight calibrated coordinates, optional rising sign, and a catalog index. Stored only on your device.">
+<meta name="description" content="Four calibrated coordinates from your name and date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
 
 <!-- favicon -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -17,7 +17,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://the-eight-ball.netlify.app/">
 <meta property="og:title" content="8 ball">
-<meta property="og:description" content="A magic 8-ball that knows you. Eight calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta property="og:description" content="A magic 8-ball that knows you. Four calibrated coordinates from your name and date of birth, free — three paid rungs reveal the full sheet. Stored only on your device.">
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -26,7 +26,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="8 ball">
-<meta name="twitter:description" content="A magic 8-ball that knows you. Eight calibrated coordinates from your name and date of birth, stored only on your device.">
+<meta name="twitter:description" content="A magic 8-ball that knows you. Four calibrated coordinates from your name and date of birth, free — three paid rungs reveal the full sheet. Stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta name="twitter:image:alt" content="8 ball">
 
@@ -694,8 +694,8 @@
     background: transparent;
     pointer-events: none;
   }
+  /* v0.6.0: chip visibility is JS-driven (paid renders at any tier). */
   .card .reads-chip { display: none; }
-  .card.unlocked .reads-chip { display: block; }
 
   /* paywall modal — shares .modal-bg / .modal base, adds CTA + disclosure */
   .modal .modal-cta {
@@ -715,6 +715,7 @@
   }
   .modal .modal-cta:hover,
   .modal .modal-cta:focus { background: transparent; color: var(--ink); }
+  .modal .modal-cta + .modal-cta { margin-top: 10px; }
   .modal .modal-disclosure {
     font-size: 9px;
     letter-spacing: 0.04em;
@@ -812,7 +813,7 @@
         <div class="flip-side front">
           <article class="card" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
-            <button class="lock-icon" id="card-lock-icon" type="button" title="unlock for $3" aria-label="unlock for $3">
+            <button class="lock-icon" id="card-lock-icon" type="button" title="unlock more" aria-label="unlock more">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="5" y="11" width="14" height="10" rx="1"></rect>
                 <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
@@ -835,7 +836,7 @@
               <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title">PUBLIC ⇌ PRIVATE</div>
+              <div class="coord-title" id="coord-animal-title">PUBLIC ⇌ PRIVATE</div>
               <div class="coord-symbol" id="coord-animal-symbol">—</div>
               <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             </div>
@@ -843,6 +844,18 @@
               <div class="coord-title">LIFE · NAME · SOUL</div>
               <div class="coord-symbol" id="coord-numerology-symbol">—</div>
               <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">PERSONALITY · BIRTHDAY · MATURITY</div>
+              <div class="coord-symbol" id="coord-numbers2-symbol">—</div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">DAY PILLAR</div>
+              <div class="coord-symbol" id="coord-daypillar-symbol">—</div>
+            </div>
+            <div class="coord-section">
+              <div class="coord-title">HOUR PILLAR</div>
+              <div class="coord-symbol" id="coord-hourpillar-symbol">—</div>
             </div>
             <div class="card-prose-rule"></div>
             <div class="card-habit" id="card-habit"></div>
@@ -890,9 +903,9 @@
   <div class="modal" role="dialog" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. 8 ball calculates eight coordinates from your name and DOB: tarot birth card, sun, five-element, public animal, private animal, life path, name number, soul urge. with birth time + place, a ninth — rising sign — is added. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
-    <p>nothing leaves your device on its own. inputs, counters, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
-    <p>first three readings are free. after that, three dollars buys three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the three-dollar coin funds more of the toy. we trust adults.</p>
+    <p>there is no mystery layer. the free card files four coordinates from your name and DOB: tarot birth card, sun sign, public animal, catalog numeral. three paid rungs open the rest of the sheet — rising sign (with birth time + place), five-element, private animal, life path, name number, soul urge at the first rung; personality, birthday, maturity and the day pillar at the second; the hour pillar and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work.</p>
+    <p>nothing leaves your device on its own. inputs, counters, the paid rung, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
+    <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and the trait for your life-path bracket. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -924,13 +937,15 @@
   </div>
 </div>
 
-<!-- ── paywall modal (v0.3.0 DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C) ───── -->
+<!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C v0.36) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
   <div class="modal" role="dialog" aria-labelledby="paywall-title">
-    <h2 id="paywall-title">three tries · three dollars</h2>
+    <h2 id="paywall-title">three tries · three rungs</h2>
     <div class="modal-rule"></div>
-    <p>one tap. no account. three more reads with the card opened up — name, type, habit, and the trait for your life-path bracket.</p>
-    <a class="modal-cta" id="paywall-cta" href="https://theeightball.gumroad.com/l/rzqezp" target="_self">unlock · $3</a>
+    <p>one tap. no account. each rung is a one-time purchase: three more reads with the sheet opened to that rung. the highest rung bought holds.</p>
+    <a class="modal-cta" id="paywall-cta-t1" href="https://theeightball.gumroad.com/l/rzqezp" target="_self">t1 · rising · five-element · private animal · three numbers — $3</a>
+    <a class="modal-cta" id="paywall-cta-t2" href="https://theeightball.gumroad.com/l/neysyv" target="_self">t2 · + three more numbers · day pillar — $6</a>
+    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">t3 · + hour pillar · the written card entry — $9</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -950,11 +965,12 @@ import { isNewPair, nextShakeState } from './core/payments.js';
 import {
   TRIES_KEY, CREDITS_KEY, PENDING_KEY,
   getTriesUsed, setTriesUsed,
-  getCredits, setCredits,
+  getCredits, setCredits, getTier,
   getPendingProfile, setPendingProfile, clearPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   showPaidBanner, handlePaidReturn,
 } from './ui/payments.js';
+import { initTiersUI, renderTierSections, renderTierFor } from './ui/tiers.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1036,26 +1052,42 @@ const coordSunTitle = $('coord-sun-title');
 const coordAnimalSymbol = $('coord-animal-symbol');
 const coordNumerologySymbol = $('coord-numerology-symbol');
 const coordArcanaSymbol = $('coord-arcana-symbol');
+const coordNumbers2Symbol = $('coord-numbers2-symbol');
+const coordDayPillarSymbol = $('coord-daypillar-symbol');
+const coordHourPillarSymbol = $('coord-hourpillar-symbol');
 
-// v0.4.0 share-surface (DOCTRINE §5.D). The image builder reads only the
-// free coordinate symbol nodes + catalog; no profile, no card layer.
-// v0.5.0: arcana lead coordinate included — it is a free coordinate, so the
-// shared PNG and the on-screen free card stay identical.
+// v0.6.0 tier ladder (DOCTRINE §1.D). Coordinate-row fill + visibility
+// gating live in ui/tiers.js; renderCard delegates the rows to it.
+initTiersUI({
+  sunTitle: coordSunTitle,
+  animalTitle: $('coord-animal-title'),
+  symbols: {
+    arcana: coordArcanaSymbol, element: coordElementSymbol, sun: coordSunSymbol,
+    animal: coordAnimalSymbol, numerology: coordNumerologySymbol,
+    numbers2: coordNumbers2Symbol, dayPillar: coordDayPillarSymbol,
+    hourPillar: coordHourPillarSymbol,
+  },
+}, {});
+
+// v0.4.0 share-surface (DOCTRINE §5.D): reads only rendered symbol nodes +
+// catalog — no profile, no card layer. v0.6.0: all eight rows passed;
+// share.js skips tier-hidden rows so the PNG matches the current tier.
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [coordArcanaSymbol, coordElementSymbol, coordSunSymbol, coordAnimalSymbol, coordNumerologySymbol],
+    symbols: [coordArcanaSymbol, coordElementSymbol, coordSunSymbol, coordAnimalSymbol,
+      coordNumerologySymbol, coordNumbers2Symbol, coordDayPillarSymbol, coordHourPillarSymbol],
   },
   {}
 );
 
 let currentProfile = null;
 let flipLocked = false;
-// v0.3.0: tracks the previous render's unlock state so cosmetic re-flips
+// v0.6.0: tracks the previous render's tier so cosmetic re-flips
 // (shakeAgain on the same profile) preserve it without re-consuming credit.
-let currentRenderUnlocked = false;
+let currentRenderTier = 'free';
 
 // ── City autocomplete (v0.2.7.2) ─────────────────────────────────
 // Selected city is held in module-scoped state so the form submit can
@@ -1129,51 +1161,29 @@ cityInput.addEventListener('blur', () => {
 });
 
 // ── render card face from profile ─────────────────────────────────
-// Locked render (default): five symbol lines + catalog index.
-// Unlocked render (v0.3.0, when opts.unlocked): adds card-name /
-// card-type / card-habit / card-note (bracket-resolved from
-// profile.lifePath) and the reads-chip credit counter. Toggle is the
-// `.unlocked` class on cardFace; locked-extras / depth slots are
-// CSS-driven. Full spec in DOCTRINE §1 v0.22 + brief §6.3 / §9.
-
-function formatNumbers(profile) {
-  // v0.3.0 fix A: always space-separated. The concatenated form ("383")
-  // read as a single three-digit number cognitively; the spaced form
-  // ("3 8 3") reads as three coordinates. Master-vs-single-digit
-  // branching dropped — all triplets now render identically.
-  return [profile.lifePath, profile.nameNumber, profile.soulUrge].join(' ');
-}
+// v0.6.0 (DOCTRINE §1.D): coordinate rows render up to opts.tier (free
+// tries → free card; paid reads → stored tier); fill + visibility live
+// in ui/tiers.js renderTierSections. cardEntry is true only at t3, where
+// the written 144-card entry renders through the pre-existing v0.22
+// unlocked path. Toggle is the `.unlocked` class; depth slots CSS-driven.
 
 function renderCard(profile, opts) {
-  const sunLine = profile.risingSign
-    ? `${profile.sunSign} ↑ ${profile.risingSign}`
-    : profile.sunSign;
-  coordSunTitle.textContent = profile.risingSign ? 'SUN ↑ RISING' : 'SUN';
-  coordArcanaSymbol.textContent = profile.birthCard.label;
-  coordElementSymbol.textContent = profile.chineseElement;
-  coordSunSymbol.textContent = sunLine;
-  coordAnimalSymbol.textContent = `${profile.animal} ⇌ ${profile.innerAnimal}`;
-  coordNumerologySymbol.textContent = formatNumbers(profile);
+  const tier = (opts && opts.tier) || 'free';
+  const credits = (opts && typeof opts.credits === 'number') ? opts.credits : 0;
+  const { cardEntry } = renderTierSections(profile, tier);
   try {
     const card = getCard(profile);
     cardCatalog.textContent = `no. ${card.catalog}`;
   } catch (err) {
-    if (err instanceof MissingCardError) {
-      // Defensive: with the full 144-card deck this branch is unreachable
-      // in practice, but the engine export survives for future authoring
-      // gaps. If a profile somehow misses the deck, coordinates still
-      // render; the catalog falls back gracefully.
-      cardCatalog.textContent = 'no. —';
-    } else {
-      throw err;
-    }
+    // Defensive: unreachable with the full 144-card deck — coordinates
+    // still render; the catalog falls back gracefully.
+    if (err instanceof MissingCardError) cardCatalog.textContent = 'no. —';
+    else throw err;
   }
 
-  // v0.3.0 unlocked-render branch (DOCTRINE §1 v0.22).
-  const unlocked = !!(opts && opts.unlocked);
-  const credits = (opts && typeof opts.credits === 'number') ? opts.credits : 0;
-  cardFace.classList.toggle('unlocked', unlocked);
-  if (unlocked) {
+  // t3 card-entry branch (DOCTRINE §1 v0.22, relocated to t3 per §4.B v0.36).
+  cardFace.classList.toggle('unlocked', cardEntry);
+  if (cardEntry) {
     try {
       const sunCells = CARDS[profile.sunSign];
       const cell = sunCells ? sunCells[profile.animal] : null;
@@ -1184,34 +1194,33 @@ function renderCard(profile, opts) {
         const bracket = resolveBracket(profile.lifePath);
         cardNote.textContent = cell.note[bracket];
       } else {
-        // Defensive fallback: clear depth slots without dropping back
-        // to locked. With a 144-cell deck this should be unreachable.
+        // Defensive: clear depth slots; unreachable with a 144-cell deck.
         cardName.textContent = '';
         cardType.textContent = '';
         cardHabit.textContent = '';
         cardNote.textContent = '';
       }
-      // §6.5: chip hidden when credits===0 (the last paid render shows
-      // no chip; the lock returns on the next shake).
-      if (credits > 0) {
-        readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`;
-        readsChip.style.display = '';
-      } else {
-        readsChip.textContent = '';
-        readsChip.style.display = 'none';
-      }
     } catch (_) {
-      // If anything in the unlocked branch throws, drop back to the
-      // locked symbol-only render rather than display half-state.
+      // If anything in the card-entry branch throws, drop back to the
+      // coordinates-only render rather than display half-state.
       cardFace.classList.remove('unlocked');
     }
+  }
+  // §6.5: the chip shows on paid renders (any rung) while credits remain;
+  // the last paid render shows no chip (the lock returns on next shake).
+  if (tier !== 'free' && credits > 0) {
+    readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`;
+    readsChip.style.display = 'block';
+  } else {
+    readsChip.textContent = '';
+    readsChip.style.display = 'none';
   }
 }
 
 // ── shake / flip control ──────────────────────────────────────────
 function showResult(profile, opts) {
   currentProfile = profile;
-  currentRenderUnlocked = !!(opts && opts.unlocked);
+  currentRenderTier = (opts && opts.tier) || 'free';
   onboarding.classList.add('hidden');
   result.classList.remove('hidden');
   result.classList.add('reveal');
@@ -1227,12 +1236,12 @@ function shakeAgain() {
   if (flipLocked || !currentProfile) return;
   flipLocked = true;
   // Flip back to card-back, then re-flip to face after ~320ms. The re-
-  // render preserves the previous render's unlock state — shakeAgain on
-  // the same profile is cosmetic and never re-consumes a credit
+  // render preserves the previous render's tier — shakeAgain on the
+  // same profile is cosmetic and never re-consumes a credit
   // (§6.5/§7.1 β idempotence).
   flipInner.classList.add('face-up');
   setTimeout(() => {
-    renderCard(currentProfile, { unlocked: currentRenderUnlocked, credits: getCredits() });
+    renderCard(currentProfile, { tier: currentRenderTier, credits: getCredits() });
     flipInner.classList.remove('face-up');
     flipLocked = false;
   }, 320);
@@ -1310,12 +1319,14 @@ profileForm.addEventListener('submit', e => {
       setTriesUsed(state.triesUsed);
       setCredits(state.credits);
     }
-    // §6.3/§6.5: action determines unlock. render-idempotent preserves
-    // the previous render's unlock state — a cosmetic re-shake of the
-    // same profile cannot regress an already-unlocked card.
-    const unlocked = state.action === 'render-unlocked'
-      || (state.action === 'render-idempotent' && currentRenderUnlocked);
-    showResult(profile, { unlocked, credits: state.credits });
+    // §6.3/§6.5 + §1.D: a paid read renders at the stored tier; a free
+    // try renders the free card; render-idempotent preserves the previous
+    // render's tier — a cosmetic re-shake of the same profile cannot
+    // regress an already-revealed sheet.
+    const tier = state.action === 'render-idempotent'
+      ? currentRenderTier
+      : renderTierFor(state.action, getTier());
+    showResult(profile, { tier, credits: state.credits });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1460,14 +1471,13 @@ function initAfterAck() {
   const existing = loadSavedProfile();
   if (existing) {
     populateRisingFields(existing);
-    // Cold-load rehydration defaults to LOCKED — the depth content is
-    // a paid-only render path and any rehydration that isn't a direct
-    // paid-return must shake-to-consume to unlock. The exception is
-    // ?paid=t1 with a pending profile: handlePaidReturn already
-    // consumed a credit, so the immediate render is unlocked.
+    // Cold-load rehydration defaults to the FREE card — any rehydration
+    // that isn't a direct paid-return must shake-to-consume to reveal
+    // (§1.D). The exception is ?paid=tN with a pending profile:
+    // handlePaidReturn already consumed a credit → render at stored tier.
     const opts = consumedPending
-      ? { unlocked: true, credits: getCredits() }
-      : { unlocked: false, credits: getCredits() };
+      ? { tier: renderTierFor('render-unlocked', getTier()), credits: getCredits() }
+      : { tier: 'free', credits: getCredits() };
     showResult(profileFromPayload(existing), opts);
   } else {
     // No saved profile. The gate path pre-emptively hides #onboarding so

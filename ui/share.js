@@ -1,21 +1,28 @@
 // 8ball / ui/share.js
-// v0.4.0 share-surface controller (DOCTRINE §5.D v0.31 / §6).
+// v0.4.0 share-surface controller (DOCTRINE §5.D v0.31 / §6; tier-aware
+// per §5.D v0.36, v0.6.0).
 //
 // Owns:
-//   - the #share-btn click handler on the free result surface
-//   - card-to-image: serialize the free, symbols-only card as an SVG
-//     string, raster it through an offscreen <canvas>, emit a PNG Blob
+//   - the #share-btn click handler on the result surface
+//   - card-to-image: serialize the rendered, symbols-only card as an SVG
+//     string, raster it through an offscreen <canvas>, emit a PNG Blob.
+//     v0.6.0: the builder is tier-aware by construction — it reads the
+//     rendered coordinate rows and skips rows the tier gate has hidden,
+//     so the PNG matches the card at the user's current render tier
+//     (paid users emit denser PNGs; §5.D v0.36 / brief §3).
 //   - the share flow: Web Share API (navigator.share with the PNG file)
 //     where available; otherwise a local PNG download + clipboard copy
 //     of the bare production URL, with a transient inline confirmation
 //
 // Does NOT own:
 //   - any profile / card-content state. The image builder reads ONLY the
-//     rendered free-coordinate symbol nodes (+ their section titles
-//     and the catalog number) from the live DOM. It never touches the
-//     paid card-content layer (name/type/habit/note) and never reads a
+//     rendered coordinate symbol nodes (+ their section titles and the
+//     catalog number) from the live DOM. It never touches the paid
+//     card-content layer (name/type/habit/note) and never reads a
 //     profile object — so name and DOB cannot reach the shared artifact
 //     (DOCTRINE §5.D invariants a/b).
+//   - tier resolution. Row visibility is decided by ui/tiers.js at
+//     render time; this module only respects the hidden state it finds.
 //
 // Network: none. SVG → canvas → toBlob is entirely on-device; the only
 // outbound surfaces are the user's own native share sheet and clipboard.
@@ -33,6 +40,9 @@ const BRAND_WORDMARK = '8ball';
 
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
+// v0.6.0: row positions are computed from the row count (the stack
+// distributes evenly between STACK_TOP and STACK_BOTTOM) so the card
+// holds anywhere from the 3-row free render to the 8-row t3 render.
 const CARD_W = 320;
 const CARD_H = 480;
 const SCALE = 3;
@@ -40,8 +50,6 @@ const SAFE_X = 30;
 const HEADER_Y = 43;
 const STACK_TOP = 86;
 const STACK_BOTTOM = 398;
-const ROW_START_Y = 120;
-const ROW_STEP_Y = 60;
 const FOOTER_Y = 442;
 
 // Grayscale specimen palette, mirroring the on-screen free card
@@ -91,15 +99,21 @@ export function buildCardSVGFromSnapshot(snapshot) {
   const sectionItems = Array.isArray(safeSnapshot.sections)
     ? safeSnapshot.sections
     : [];
+  // Even vertical distribution: row i is centered in slot i of n equal
+  // slots between the stack rules; +8 optically centers the title+symbol
+  // pair (title sits at -14, symbol at +10 relative to the row origin).
+  const n = Math.max(sectionItems.length, 1);
+  const slot = (STACK_BOTTOM - STACK_TOP) / n;
+  const rowY = i => STACK_TOP + slot * (i + 0.5) + 8;
   const separators = sectionItems.slice(1).map((_, i) => {
-    const y = ROW_START_Y + i * ROW_STEP_Y + ROW_STEP_Y / 2;
+    const y = STACK_TOP + slot * (i + 1);
     return (
       `<line x1="${SAFE_X}" y1="${y}" x2="${CARD_W - SAFE_X}" y2="${y}" ` +
       `stroke="${RULE}" stroke-width="0.5" opacity="0.35"/>`
     );
   }).join('');
   const sections = sectionItems.map((item, i) => {
-    const cy = ROW_START_Y + i * ROW_STEP_Y;
+    const cy = rowY(i);
     const title = esc(item && item.title);
     const symbol = esc(item && item.symbol);
     return (
@@ -133,8 +147,17 @@ export function buildCardSVGFromSnapshot(snapshot) {
   );
 }
 
+// A symbol node is rendered iff its .coord-section is not tier-hidden.
+// ui/tiers.js sets `hidden` on rows above the current render tier, so
+// filtering on it keeps the PNG equal to the on-screen card at the
+// user's current tier (§5.D v0.36) without this module knowing tiers.
+function isRenderedSymbol(node) {
+  const section = node && node.closest ? node.closest('.coord-section') : null;
+  return !(section && section.hidden);
+}
+
 function buildCardSVG() {
-  const symbols = (_refs && _refs.symbols) || [];
+  const symbols = ((_refs && _refs.symbols) || []).filter(isRenderedSymbol);
   return buildCardSVGFromSnapshot({
     catalog: _refs && _refs.catalog ? _refs.catalog.textContent.trim() : '',
     sections: symbols.map(node => ({
