@@ -53,3 +53,4 @@ audits/local_personal_data.txt
 content/cards.v*.js
 content/cards.*.js
 !content/cards.v1.full.js
+.claude/
