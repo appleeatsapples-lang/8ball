@@ -203,6 +203,26 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(side[1]).not.toMatch(/position:\s*absolute/);
   });
 
+  // 3c. v0.7.0 compartment card — seal system tokens ────────────────
+  it('the locked-extras bars are fully retired (v0.7.0 seal system supersedes)', () => {
+    expect(html).not.toMatch(/locked-extras/);
+  });
+
+  it('compartment cells and seal layers are present (v0.7.0)', () => {
+    expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
+    // 14 cell seals + 1 written-entry block seal.
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(15);
+    expect(html).toMatch(/id="card-entry"/);
+  });
+
+  it('seal treatment is the single root token .card.seal-hatch with one gradient (F1)', () => {
+    expect(html).toMatch(/class="card seal-hatch"/);
+    expect(html).toMatch(/\.card\.seal-hatch \.coord-seal/);
+    // The hatch gradient is defined exactly once — swapping treatment
+    // later (bars/stamp) must stay a single-token change.
+    expect((html.match(/repeating-linear-gradient/g) || []).length).toBe(1);
+  });
+
   // 4. unlocked_render_markup ───────────────────────────────────────
   it('unlocked-render slots exist (card-name / card-type / card-habit / card-note)', () => {
     expect(html).toMatch(/id="card-name"/);

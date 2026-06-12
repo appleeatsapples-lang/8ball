@@ -9,9 +9,11 @@
 // v0.6.0: the triplet assembly moved from index.html's formatNumbers
 // into ui/tiers.js renderTierSections (DOCTRINE §1.B unchanged; §1.D
 // adds a second triplet — personality/birthday/maturity — which
-// inherits the same always-spaced rule). Behavior is asserted directly
-// against renderTierSections output in tests/tiers.test.js; this file
-// pins the source shape so a concat form can't silently return.
+// inherits the same always-spaced rule). v0.7.0: each triplet renders
+// as three separate compartment cells (§1.D v0.37), so the numbers can
+// no longer concatenate in the DOM at all; the share-PNG join keeps the
+// space separator (pinned in tests/tiers.test.js). This file pins the
+// source shape so a concat form can't silently return.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -23,11 +25,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
-describe('numerology display (v0.3.0 fix A, render moved to ui/tiers.js at v0.6.0)', () => {
-  it("triplet rows use .join(' ') — space-separated", () => {
-    const joins = tiersJs.match(/\.join\(\s*['"]\s['"]\s*\)/g) || [];
-    // Two triplets: life/name/soul (§1.B) + personality/birthday/maturity (§1.D).
-    expect(joins.length).toBe(2);
+describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', () => {
+  it('each numerology number renders into its own compartment cell (v0.7.0)', () => {
+    for (const key of ['lifePath', 'nameNumber', 'soulUrge',
+      'personality', 'birthday', 'maturity']) {
+      expect(tiersJs).toMatch(new RegExp(`setCell\\('${key}'`));
+    }
   });
 
   it("no .join('') — never concatenated", () => {
@@ -56,17 +59,31 @@ describe('numerology display (v0.3.0 fix A, render moved to ui/tiers.js at v0.6.
     expect(html).not.toMatch(/hasMaster/);
   });
 
-  it('master numbers render spaced in both triplets (behavioral lock)', () => {
-    const rows = {};
-    for (const key of ['arcana', 'element', 'sun', 'animal', 'numerology',
-      'numbers2', 'dayPillar', 'hourPillar']) {
-      const root = { hidden: false };
-      rows[key] = { textContent: '—', closest: () => root };
+  it('master numbers render whole in their own cells (behavioral lock)', () => {
+    const cells = {};
+    for (const key of ['arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+      'dayPillar', 'hourPillar']) {
+      const root = {
+        classList: {
+          set: new Set(),
+          add(c) { this.set.add(c); },
+          remove(c) { this.set.delete(c); },
+          contains(c) { return this.set.has(c); },
+          toggle(c, force) {
+            const on = force === undefined ? !this.set.has(c) : !!force;
+            if (on) this.set.add(c); else this.set.delete(c);
+            return on;
+          },
+        },
+      };
+      cells[key] = { textContent: '', closest: sel => (sel === '.coord-cell' ? root : null) };
     }
     initTiersUI({
       sunTitle: { textContent: '' },
       animalTitle: { textContent: '' },
-      symbols: rows,
+      entry: null,
+      cells,
     }, {});
     renderTierSections({
       sunSign: 'gemini', risingSign: undefined, chineseElement: 'metal',
@@ -77,7 +94,11 @@ describe('numerology display (v0.3.0 fix A, render moved to ui/tiers.js at v0.6.
       dayPillar: { animal: 'dragon', stemElement: 'earth' },
       hourPillar: null,
     }, 't2');
-    expect(rows.numerology.textContent).toBe('3 11 3');
-    expect(rows.numbers2.textContent).toBe('22 7 33');
+    expect(cells.lifePath.textContent).toBe('3');
+    expect(cells.nameNumber.textContent).toBe('11');
+    expect(cells.soulUrge.textContent).toBe('3');
+    expect(cells.personality.textContent).toBe('22');
+    expect(cells.birthday.textContent).toBe('7');
+    expect(cells.maturity.textContent).toBe('33');
   });
 });

@@ -110,15 +110,17 @@ describe('render + share wiring (index.html)', () => {
     expect(slice).not.toContain('locked-extras');
   });
 
-  it('share symbols array includes the arcana node (PNG matches free card)', () => {
-    expect(html).toContain('coordArcanaSymbol');
-    expect(html).toMatch(/symbols:\s*\[\s*coordArcanaSymbol/);
+  it('share refs lead with the arcana row (PNG matches free card; v0.7.0 row proxies)', () => {
+    // v0.7.0: share refs are per-row snapshot proxies from ui/tiers.js;
+    // the arcana row is index 0 and its id survives for selector continuity.
+    expect(html).toContain('id="coord-arcana-symbol"');
+    expect(html).toMatch(/symbols:\s*\[\s*shareArcana/);
   });
 
-  it('render populates arcana symbol from profile.birthCard.label (moved to ui/tiers.js at v0.6.0)', () => {
-    // The row fill lives in renderTierSections; the arcana row is in
+  it('render populates the arcana cell from profile.birthCard.label (ui/tiers.js)', () => {
+    // The cell fill lives in renderTierSections; the arcana cell is in
     // TIER_COORDS.free, so every tier including free renders it
     // (behavioral pin in tests/tiers.test.js).
-    expect(tiersJs).toMatch(/setRow\('arcana',[\s\S]{0,60}?profile\.birthCard\.label\)/);
+    expect(tiersJs).toMatch(/setCell\('arcana',[\s\S]{0,60}?profile\.birthCard\.label\)/);
   });
 });
