@@ -2,6 +2,10 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-12 (close) — Gumroad t2/t3 PUBLISHED — v0.6.0 post-ship FULLY CLOSED
+
+**Status: v0.6.0 post-ship complete; no repo action pending.** Controller published t2 (`neysyv`) + t3 (`xjpvp`) following the live-fire finding (entry below). Verification: controller-confirmed; orchestrator curl smoke inconclusive (Gumroad product pages are client-rendered — publish-state strings absent from server HTML even on known-selling t1), so the public pages were opened for operator eyeball as the closing check. Full ladder now sellable at $3/$6/$9. With live-fire CLEARED (entry below), every v0.6.0 post-ship item is closed. Remaining board is exposure + signal, not repo: r/SecularTarot tier pin (UNPINNED against the respec matrix), A-mode bet watch (reach post-free-shrink; rollback = one-line `TIER_COORDS`), ship-gate checkpoint read 2026-06-15 (co-located monthly §13 rule-kill review). L-candidate from the entry below stands at WATCH.
+
 ## 2026-06-12 — v0.6.0 post-ship live-fire CLEARED (CiC 11/11) — Gumroad t2/t3 unpublished-draft finding
 
 **Status: live-fire gate CLOSED for the v0.6.0 site surface; one revenue-path item OPEN (dashboard, not site code).** CiC verifier ran all three production paid paths per `~/Desktop/8ball/controllers/cic_v060_paid_paths_livefire_2026-06-11.md`; response + orchestrator disposition filed at `~/Desktop/8ball/audits/cic_v060_paid_paths_livefire_2026-06-11_response.md`. 11/11 PASS. Both Procedure-4 P1 shapes re-proved live: **P1-a** — paid device cold-reloads at purchased density, never free (verified t1, t2, t3; written entry survives reboot at the ceiling); **P1-b** — credits-without-tier renders t3 and the resolver persists `t3` back on first detection (§1.D live-confirmed). Monotonicity held (`?paid=t1` replay on a t3 device: density stays t3, credits bank). Free devices never get `eight_ball_tier_v1` written; hidden rows in the free DOM are cleared to `—`. Counter math matched `core/payments.js` exactly across the run (tries 1→3 at paywall fire; credits 2→5→8→11; chip text tracked throughout).
