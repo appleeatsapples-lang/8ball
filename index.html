@@ -142,7 +142,6 @@
   }
   .card { justify-content: space-evenly; }
   .card .coord-section { text-align: center; }
-  .card .coord-section:first-of-type { padding-top: clamp(18px, 5vw, 24px); }
   .card .coord-title {
     font-size: 11px;
     letter-spacing: 0.1em;
@@ -154,12 +153,44 @@
     visibility: hidden;
   }
   .card.labels-revealed .coord-title { visibility: visible; }
-  .card .coord-symbol {
-    font-size: clamp(15px, 4vw, 18px);
-    line-height: 1.5;
-    color: var(--ink);
-    text-transform: lowercase;
-    font-weight: 500;
+
+  /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
+     Full cell structure at every tier; sealed cell = EMPTY value node +
+     seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
+     defined once — bars/stamp later is a single-token swap. Mono only. */
+  .coord-cells { display: flex; gap: 6px; justify-content: center; }
+  .coord-cell {
+    position: relative; display: inline-flex;
+    align-items: center; justify-content: center;
+    border: 1px solid rgba(26, 24, 18, 0.25);
+    min-width: 52px; min-height: 27px; padding: 1px 8px;
+  }
+  .coord-cell .coord-val {
+    font-size: clamp(13px, 3.6vw, 16px); line-height: 1.5;
+    color: var(--ink); text-transform: lowercase; font-weight: 500;
+  }
+  .coord-cell.unres .coord-val { color: var(--label); }
+  .coord-seal { position: absolute; inset: 0; display: none; pointer-events: none; }
+  .sealed .coord-seal { display: block; }
+  .card.seal-hatch .coord-seal {
+    background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(26, 24, 18, 0.20) 3px 4px);
+  }
+  /* sealed written-entry block — rule + sealed text-area, fixed floor */
+  .card-entry { position: relative; min-height: 64px; }
+  .card-entry .coord-seal { inset: 16px 10% 4px; }
+  /* unseal beat (Phase-2E): one settle per newly entitled compartment,
+     ~100ms DOM-order stagger; ui/tiers.js flags upgrade renders only. */
+  .unsealing .coord-seal { display: block; animation: sealOut 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
+  .unsealing .coord-val,
+  .card-entry.unsealing .card-habit,
+  .card-entry.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
+  @keyframes sealOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+  @keyframes valIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .unsealing .coord-seal { display: none; animation: none; }
+    .unsealing .coord-val,
+    .card-entry.unsealing .card-habit,
+    .card-entry.unsealing .card-note { animation: none; }
   }
   .labels-toggle {
     display: block;
@@ -604,38 +635,10 @@
   .card .lock-icon svg { width: 100%; height: 100%; display: block; stroke: currentColor; }
   .card.unlocked .lock-icon { display: none; }
 
-  /* dimmed bars in locked state — opacity-only per Phase-2E mono */
-  .card .locked-extras {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    align-items: center;
-    margin-top: 8px;
-    opacity: 0.14;
-  }
-  .card .locked-extras .bar {
-    height: 1px;
-    background: var(--ink);
-    width: 60%;
-  }
-  .card .locked-extras .bar:nth-of-type(2) { width: 72%; }
-  .card .locked-extras .bar:nth-of-type(3) { width: 48%; }
-  .card.unlocked .locked-extras { display: none; }
-
-  /* unlocked-render slots — hidden in locked state */
-  .card .card-name,
-  .card .card-type,
-  .card .card-prose-rule,
-  .card .card-habit,
-  .card .card-note { display: none; }
-  .card.unlocked .card-name,
-  .card.unlocked .card-type,
-  .card.unlocked .card-habit,
-  .card.unlocked .card-note { display: block; }
-  .card.unlocked .card-prose-rule { display: block; }
-
+  /* v0.7.0: the written-entry slots are constant-skeleton — always
+     rendered, EMPTY below t3; name/type reserve their height per tier. */
   .card .card-name {
-    font-size: 22px;
+    min-height: 27px; font-size: 22px;
     font-weight: 500;
     line-height: 1.2;
     color: var(--ink);
@@ -644,7 +647,7 @@
     margin-top: clamp(18px, 5vw, 24px);
   }
   .card .card-type {
-    font-size: 11px;
+    min-height: 14px; font-size: 11px;
     font-style: italic;
     letter-spacing: 0.06em;
     color: var(--label);
@@ -674,10 +677,6 @@
     text-align: center;
     margin-top: 6px;
   }
-
-  /* coord-section compact spacing in unlocked state */
-  .card.unlocked .coord-section { margin: 2px 0; }
-  .card.unlocked .coord-section:first-of-type { padding-top: 4px; }
 
   /* credit chip — paid-state only, bottom-center */
   .reads-chip {
@@ -809,7 +808,7 @@
 
         <!-- front side (card face) -->
         <div class="flip-side front">
-          <article class="card" id="card-face" aria-live="polite">
+          <article class="card seal-hatch" id="card-face" aria-live="polite">
             <span class="catalog" id="card-catalog">no. —</span>
             <button class="lock-icon" id="card-lock-icon" type="button" title="unlock more" aria-label="unlock more">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -821,43 +820,42 @@
             <div class="card-type" id="card-type"></div>
             <div class="coord-section">
               <div class="coord-title">ARCANA</div>
-              <div class="coord-symbol" id="coord-arcana-symbol">—</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-arcana-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">FIVE-ELEMENT</div>
-              <div class="coord-symbol" id="coord-element-symbol">—</div>
-              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-element-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
-              <div class="coord-symbol" id="coord-sun-symbol">—</div>
-              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title" id="coord-animal-title">PUBLIC ⇌ PRIVATE</div>
-              <div class="coord-symbol" id="coord-animal-symbol">—</div>
-              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-animal-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-inner-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">LIFE · NAME · SOUL</div>
-              <div class="coord-symbol" id="coord-numerology-symbol">—</div>
-              <div class="locked-extras" aria-hidden="true"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">PERSONALITY · BIRTHDAY · MATURITY</div>
-              <div class="coord-symbol" id="coord-numbers2-symbol">—</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">DAY PILLAR</div>
-              <div class="coord-symbol" id="coord-daypillar-symbol">—</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-daypillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">HOUR PILLAR</div>
-              <div class="coord-symbol" id="coord-hourpillar-symbol">—</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-hourpillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
-            <div class="card-prose-rule"></div>
-            <div class="card-habit" id="card-habit"></div>
-            <div class="card-note" id="card-note"></div>
+            <div class="card-entry" id="card-entry">
+              <div class="card-prose-rule"></div>
+              <div class="card-habit" id="card-habit"></div>
+              <div class="card-note" id="card-note"></div>
+              <span class="coord-seal" aria-hidden="true"></span>
+            </div>
             <div class="reads-chip" id="reads-chip"></div>
           </article>
         </div>
@@ -968,7 +966,7 @@ import {
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   showPaidBanner, handlePaidReturn,
 } from './ui/payments.js';
-import { initTiersUI, renderTierSections } from './ui/tiers.js';
+import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs } from './ui/tiers.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1044,39 +1042,36 @@ const readsChip = $('reads-chip');
 const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
 const labelsToggle = $('labels-toggle');
-const coordElementSymbol = $('coord-element-symbol');
-const coordSunSymbol = $('coord-sun-symbol');
-const coordSunTitle = $('coord-sun-title');
-const coordAnimalSymbol = $('coord-animal-symbol');
-const coordNumerologySymbol = $('coord-numerology-symbol');
-const coordArcanaSymbol = $('coord-arcana-symbol');
-const coordNumbers2Symbol = $('coord-numbers2-symbol');
-const coordDayPillarSymbol = $('coord-daypillar-symbol');
-const coordHourPillarSymbol = $('coord-hourpillar-symbol');
 
-// v0.6.0 tier ladder (DOCTRINE §1.D). Coordinate-row fill + visibility
-// gating live in ui/tiers.js; renderCard delegates the rows to it.
+// v0.7.0 compartment card (DOCTRINE §1.D v0.37). Per-cell fill/seal lives
+// in ui/tiers.js; refs are the .coord-val nodes (cell roots resolved there).
 initTiersUI({
-  sunTitle: coordSunTitle,
+  sunTitle: $('coord-sun-title'),
   animalTitle: $('coord-animal-title'),
-  symbols: {
-    arcana: coordArcanaSymbol, element: coordElementSymbol, sun: coordSunSymbol,
-    animal: coordAnimalSymbol, numerology: coordNumerologySymbol,
-    numbers2: coordNumbers2Symbol, dayPillar: coordDayPillarSymbol,
-    hourPillar: coordHourPillarSymbol,
+  entry: $('card-entry'),
+  cells: {
+    arcana: $('coord-arcana-symbol'), element: $('coord-element-symbol'),
+    sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'),
+    animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
+    lifePath: $('coord-lifepath-symbol'), nameNumber: $('coord-namenumber-symbol'),
+    soulUrge: $('coord-soulurge-symbol'), personality: $('coord-personality-symbol'),
+    birthday: $('coord-birthday-symbol'), maturity: $('coord-maturity-symbol'),
+    dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
 
-// v0.4.0 share-surface (DOCTRINE §5.D): reads only rendered symbol nodes +
-// catalog — no profile, no card layer. v0.6.0: all eight rows passed;
-// share.js skips tier-hidden rows so the PNG matches the current tier.
+// v0.4.0 share-surface (§5.D): no profile, no card layer. v0.7.0: rows
+// are snapshot proxies from ui/tiers.js — the PNG keeps rendering open
+// coordinates only (sealed-structure-in-PNG deferred); share.js untouched.
+const [shareArcana, shareElement, shareSun, shareAnimal,
+  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [coordArcanaSymbol, coordElementSymbol, coordSunSymbol, coordAnimalSymbol,
-      coordNumerologySymbol, coordNumbers2Symbol, coordDayPillarSymbol, coordHourPillarSymbol],
+    symbols: [shareArcana, shareElement, shareSun, shareAnimal,
+      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar],
   },
   {}
 );
@@ -1180,7 +1175,10 @@ function renderCard(profile, opts) {
     else throw err;
   }
 
-  // t3 card-entry branch (DOCTRINE §1 v0.22, relocated to t3 per §4.B v0.36).
+  // t3 card-entry branch (DOCTRINE §1 v0.22, relocated to t3 per §4.B
+  // v0.36). v0.7.0: `.unlocked` is REPURPOSED — it only hides the lock
+  // icon now; the entry slots are constant-skeleton (sealed shell via
+  // ui/tiers.js) and MUST be cleared below t3 (§1.D v0.37 DOM purity).
   cardFace.classList.toggle('unlocked', cardEntry);
   if (cardEntry) {
     try {
@@ -1204,6 +1202,12 @@ function renderCard(profile, opts) {
       // coordinates-only render rather than display half-state.
       cardFace.classList.remove('unlocked');
     }
+  } else {
+    // Sub-t3: the sealed entry block carries no entry text — no card
+    // name/type/habit/note string exists anywhere in the DOM (§1.D v0.37).
+    cardName.textContent = '';
+    cardType.textContent = '';
+    cardHabit.textContent = cardNote.textContent = '';
   }
   // §6.5: the chip shows on paid renders (any rung) while credits remain;
   // the last paid render shows no chip (the lock returns on next shake).
@@ -1458,6 +1462,9 @@ labelsToggle.addEventListener('click', () => {
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
   applyLabelsState(isLabelsRevealed());
+  // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
+  // paid-return boot unseals exactly the delta; rehydrate unseals nothing.
+  primeUnsealBaseline(getRenderTier());
   // §6.6 paid-return runs before rehydration so the +3 credits, tier,
   // and any pending-consumed profile are persisted before
   // loadSavedProfile() reads them. Sequencing here (post age-gate)

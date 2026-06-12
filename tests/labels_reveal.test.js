@@ -38,9 +38,11 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(matches.length).toBe(8);
   });
 
-  it('eight coord-symbol elements present', () => {
-    const matches = html.match(/class="coord-symbol"/g) || [];
-    expect(matches.length).toBe(8);
+  it('fourteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
+    // 1+1+2+2+3+3+1+1 cells per the §1.D v0.37 row table; every cell
+    // carries one .coord-val value node.
+    const matches = html.match(/class="coord-val"/g) || [];
+    expect(matches.length).toBe(14);
   });
 
   it('locked title copy: FIVE-ELEMENT', () => {
@@ -59,12 +61,12 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/<div class="coord-title" id="coord-animal-title">/);
   });
 
-  it('tier render sets sun-title conditionally on rising availability (moved to ui/tiers.js at v0.6.0)', () => {
-    expect(tiersJs).toMatch(/sunTitle\.textContent\s*=\s*withRising\s*\?\s*['"`]SUN ↑ RISING['"`]\s*:\s*['"`]SUN['"`]/);
+  it('tier render keeps the paired-row title grammar — SUN ↑ RISING vs SUN · RISING (v0.7.0)', () => {
+    expect(tiersJs).toMatch(/sunTitle\.textContent\s*=\s*withRising\s*\?\s*['"`]SUN ↑ RISING['"`]\s*:\s*['"`]SUN · RISING['"`]/);
   });
 
-  it('tier render sets animal-title conditionally on the private-animal rung (v0.6.0)', () => {
-    expect(tiersJs).toMatch(/animalTitle\.textContent\s*=\s*withInner\s*\?\s*['"`]PUBLIC ⇌ PRIVATE['"`]\s*:\s*['"`]PUBLIC['"`]/);
+  it('tier render keeps the paired-row title grammar — PUBLIC ⇌ PRIVATE vs PUBLIC · PRIVATE (v0.7.0)', () => {
+    expect(tiersJs).toMatch(/animalTitle\.textContent\s*=\s*withInner\s*\?\s*['"`]PUBLIC ⇌ PRIVATE['"`]\s*:\s*['"`]PUBLIC · PRIVATE['"`]/);
   });
 
   it('locked title copy: PUBLIC ⇌ PRIVATE', () => {

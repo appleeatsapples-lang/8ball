@@ -1,9 +1,14 @@
 // 8ball / tests / tiers.test.js
-// v0.6.0 tier-ladder contract (DOCTRINE §1 v0.36 / §1.D / §4.B / §5.B Call 2
-// v0.36; brief §6). Covers: TIER_COORDS composition per tier, tier
-// rank/monotonic-upgrade math, the generalized ?paid=t1|t2|t3 handler,
-// unknown-param replay safety, and the free-card render gate (the free
-// card contains NO t1+ coordinate nodes).
+// v0.7.0 compartment-card contract (DOCTRINE §1 / §1.D v0.37 / §4.B;
+// brief §5). Covers: TIER_COORDS composition per tier, tier rank/
+// monotonic-upgrade math, the generalized ?paid=t1|t2|t3 handler,
+// unknown-param replay safety — all carried from v0.6.0 unchanged —
+// plus the v0.7.0 compartment render: constant skeleton (rows never
+// hidden), DOM purity (sealed cells carry EMPTY value nodes — no paid
+// value string in the DOM below its tier), seal-iff-above-tier, the F4
+// sealed ≠ unresolvable distinction, the paired-row title grammar, the
+// unseal-trigger decision (pure + β-idempotent), and the §5.D share-row
+// snapshot refs (PNG renders open coordinates only; ui/share.js untouched).
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
@@ -20,6 +25,9 @@ import {
   formatPillar,
   initTiersUI,
   renderTierSections,
+  newlyEntitledCells,
+  primeUnsealBaseline,
+  shareRowRefs,
 } from '../ui/tiers.js';
 import {
   TIER_KEY,
@@ -38,6 +46,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 
 // Same labeled-DOB-regex dodge as tests/payments_state.test.js: the pii
 // scan's `me` alternation lacks a leading word-boundary and matches the
@@ -101,7 +110,7 @@ function installWindow(search) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TIER_COORDS — composition per tier (the §1.D locked table; brief §1)
+// TIER_COORDS — composition per tier (the §1.D locked table)
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () => {
@@ -119,7 +128,7 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     }
   });
 
-  it('t1 adds rising (conditional) + element + private animal + numerology — today\'s full free card', () => {
+  it('t1 adds rising (conditional) + element + private animal + numerology', () => {
     expect(TIER_COORDS.t1).toEqual(
       [...TIER_COORDS.free, 'rising', 'element', 'innerAnimal', 'numerology']
     );
@@ -291,21 +300,23 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
     expect(m, 'shakeAgain renderCard must resolve via getRenderTier').not.toBeNull();
   });
 
-  it('t3 density end-to-end: the resolved tier renders the full ladder including the card entry', () => {
-    // Compose the R1 helper with the render gate: a t3 buyer's rehydrate
-    // tier ('t3' from storage) produces the 8-row render + written entry.
+  it('t3 density end-to-end: the resolved tier renders the full sheet open including the card entry', () => {
+    // Compose the R1 helper with the render contract: a t3 buyer's
+    // rehydrate tier ('t3' from storage) opens every compartment.
     globalThis.localStorage = makeStorage({ [TIER_KEY]: 't3', [CREDITS_KEY]: '0' });
     const tier = getRenderTier();
-    const { rows } = installTierRows();
+    const { cells } = installCompartments();
     const { cardEntry } = renderTierSections(PROFILE, tier);
     expect(cardEntry).toBe(true);
-    expect(rows.hourPillar.root.hidden).toBe(false);
-    expect(rows.dayPillar.root.hidden).toBe(false);
+    expect(cells.hourPillar.root.classList.contains('sealed')).toBe(false);
+    expect(cells.hourPillar.val.textContent).toBe('rat · wood');
+    expect(cells.dayPillar.root.classList.contains('sealed')).toBe(false);
+    expect(cells.dayPillar.val.textContent).toBe('dragon · earth');
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// applyPaidReturn tier extension + upgrade path (brief §2)
+// applyPaidReturn tier extension + upgrade path
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — applyPaidReturn upgrade path', () => {
@@ -430,33 +441,100 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36)'
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// render gating — the free card contains NO t1+ coordinate nodes
+// v0.7.0 compartment harness — mock per-cell nodes mirroring the
+// index.html DOM: each .coord-val resolves its .coord-cell root and its
+// .coord-section (with .coord-title) via closest().
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Mock symbol nodes mirroring the index.html DOM: each .coord-symbol
-// resolves its .coord-section root via closest().
-function makeRow() {
-  const root = { hidden: false };
-  const symbol = { textContent: '—', closest: () => root };
-  return { root, symbol };
+const CELL_KEYS = [
+  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+  'lifePath', 'nameNumber', 'soulUrge',
+  'personality', 'birthday', 'maturity',
+  'dayPillar', 'hourPillar',
+];
+
+function makeClassSet() {
+  const classes = new Set();
+  return {
+    add: cls => classes.add(cls),
+    remove: cls => classes.delete(cls),
+    contains: cls => classes.has(cls),
+    toggle: (cls, force) => {
+      const on = force === undefined ? !classes.has(cls) : !!force;
+      if (on) classes.add(cls); else classes.delete(cls);
+      return on;
+    },
+  };
 }
 
-function installTierRows() {
-  const rows = {
-    arcana: makeRow(), element: makeRow(), sun: makeRow(), animal: makeRow(),
-    numerology: makeRow(), numbers2: makeRow(), dayPillar: makeRow(), hourPillar: makeRow(),
+function makeStyle() {
+  const props = {};
+  return {
+    props,
+    setProperty: (key, value) => { props[key] = value; },
+    removeProperty: key => { delete props[key]; },
   };
-  const sunTitle = { textContent: '' };
-  const animalTitle = { textContent: '' };
-  initTiersUI({
-    sunTitle,
-    animalTitle,
-    symbols: Object.fromEntries(
-      Object.entries(rows).map(([k, v]) => [k, v.symbol])
-    ),
-  }, {});
-  return { rows, sunTitle, animalTitle };
 }
+
+function makeSection(title) {
+  const titleNode = { textContent: title };
+  return {
+    titleNode,
+    querySelector: sel => (sel === '.coord-title' ? titleNode : null),
+  };
+}
+
+function makeCompartmentCell(section) {
+  const root = { classList: makeClassSet(), style: makeStyle() };
+  const val = {
+    textContent: '',
+    closest: sel => (sel === '.coord-cell' ? root
+      : sel === '.coord-section' ? section : null),
+  };
+  return { root, val };
+}
+
+const CELL_SECTION = {
+  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
+  animal: 'animal', innerAnimal: 'animal',
+  lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
+  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
+  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
+};
+
+function installCompartments() {
+  const sections = {
+    arcana: makeSection('ARCANA'),
+    element: makeSection('FIVE-ELEMENT'),
+    sun: makeSection('SUN ↑ RISING'),
+    animal: makeSection('PUBLIC ⇌ PRIVATE'),
+    numerology: makeSection('LIFE · NAME · SOUL'),
+    numbers2: makeSection('PERSONALITY · BIRTHDAY · MATURITY'),
+    dayPillar: makeSection('DAY PILLAR'),
+    hourPillar: makeSection('HOUR PILLAR'),
+  };
+  const cells = {};
+  for (const key of CELL_KEYS) {
+    cells[key] = makeCompartmentCell(sections[CELL_SECTION[key]]);
+  }
+  const entry = { classList: makeClassSet(), style: makeStyle() };
+  // The dynamic titles ARE the section title nodes, as in index.html.
+  initTiersUI({
+    sunTitle: sections.sun.titleNode,
+    animalTitle: sections.animal.titleNode,
+    entry,
+    cells: Object.fromEntries(CELL_KEYS.map(key => [key, cells[key].val])),
+  }, {});
+  return {
+    cells, entry, sections,
+    sunTitle: sections.sun.titleNode,
+    animalTitle: sections.animal.titleNode,
+  };
+}
+
+const sealed = cell => cell.root.classList.contains('sealed');
+const unres = cell => cell.root.classList.contains('unres');
+const unsealing = cell => cell.root.classList.contains('unsealing');
 
 // Fixture profile per §11 sub-rule: synthetic values chosen for the render
 // paths they exercise; no real-person anchor, no DOB string needed at all.
@@ -477,98 +555,401 @@ const PROFILE = {
   hourPillar: { animal: 'rat', stemElement: 'wood' },
 };
 
-describe('tiers — render gating (free card has NO t1+ coordinate nodes)', () => {
-  it('free render: only arcana/sun/animal rows visible; all t1+ rows hidden AND cleared', () => {
-    const { rows } = installTierRows();
+// Cell keys above each render tier per the §2 locked table.
+const SEALED_AT = {
+  free: ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge',
+    'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
+  t1: ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
+  t2: ['hourPillar'],
+  t3: [],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// constant skeleton — rows never hidden (markup + module source)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', () => {
+  it('all eight .coord-section rows ship without hidden attributes', () => {
+    const sections = html.match(/<div class="coord-section"[^>]*>/g) || [];
+    expect(sections).toHaveLength(8);
+    for (const tag of sections) {
+      expect(tag, 'coord-section must never carry hidden').not.toMatch(/\bhidden\b/);
+    }
+  });
+
+  it('ui/tiers.js never hides a row — the v0.6.0 hidden-gating is retired', () => {
+    expect(tiersJs).not.toMatch(/\.hidden\s*=/);
+    expect(tiersJs).not.toMatch(/setRow\(/);
+  });
+
+  it('14 compartment cells + the entry block each carry a seal layer', () => {
+    expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(15);
+  });
+
+  it('every cell renders with structure intact at every tier (no node removed)', () => {
+    const { cells } = installCompartments();
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      renderTierSections(PROFILE, tier);
+      for (const key of CELL_KEYS) {
+        expect(cells[key].root, `${key} cell root must exist at ${tier}`).toBeTruthy();
+        expect(cells[key].root.classList.contains('hidden')).toBe(false);
+      }
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOM purity — sealed cells carry EMPTY value nodes (the mock-port trap)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () => {
+  it('free render: every t1+ value node is the empty string, never opacity-hidden text', () => {
+    const { cells } = installCompartments();
     const { cardEntry } = renderTierSections(PROFILE, 'free');
-
     expect(cardEntry).toBe(false);
-    for (const key of ['arcana', 'sun', 'animal']) {
-      expect(rows[key].root.hidden, `${key} must be visible at free`).toBe(false);
+    for (const key of SEALED_AT.free) {
+      expect(cells[key].val.textContent, `${key} must carry no value at free`).toBe('');
     }
-    for (const key of ['element', 'numerology', 'numbers2', 'dayPillar', 'hourPillar']) {
-      expect(rows[key].root.hidden, `${key} must be hidden at free`).toBe(true);
-      expect(rows[key].symbol.textContent, `${key} must carry no coordinate value at free`).toBe('—');
-    }
-  });
-
-  it('free render: sun is bare (no rising even when computable); animal is public-only', () => {
-    const { rows, sunTitle, animalTitle } = installTierRows();
-    renderTierSections(PROFILE, 'free');
-
-    expect(rows.sun.symbol.textContent).toBe('gemini');
-    expect(rows.sun.symbol.textContent).not.toContain('↑');
-    expect(sunTitle.textContent).toBe('SUN');
-    expect(rows.animal.symbol.textContent).toBe('horse');
-    expect(rows.animal.symbol.textContent).not.toContain('⇌');
-    expect(animalTitle.textContent).toBe('PUBLIC');
-  });
-
-  it('t1 render matches today\'s full free card: rising joins sun, private joins animal, element + numerology visible', () => {
-    const { rows, sunTitle, animalTitle } = installTierRows();
-    const { cardEntry } = renderTierSections(PROFILE, 't1');
-
-    expect(cardEntry).toBe(false);
-    expect(rows.sun.symbol.textContent).toBe('gemini ↑ virgo');
-    expect(sunTitle.textContent).toBe('SUN ↑ RISING');
-    expect(rows.animal.symbol.textContent).toBe('horse ⇌ rabbit');
-    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
-    expect(rows.element.root.hidden).toBe(false);
-    expect(rows.element.symbol.textContent).toBe('metal');
-    expect(rows.numerology.root.hidden).toBe(false);
-    expect(rows.numerology.symbol.textContent).toBe('3 8 3'); // space-separated per §1.B
-    for (const key of ['numbers2', 'dayPillar', 'hourPillar']) {
-      expect(rows[key].root.hidden, `${key} must stay hidden at t1`).toBe(true);
+    // The whole rendered cell text at free is exactly the free surface.
+    const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
+    for (const leaked of ['virgo', 'metal', 'rabbit', '3', '8', '5', '7', '11',
+      'dragon', 'earth', 'rat', 'wood']) {
+      expect(allText, `t1+ value "${leaked}" leaked into the free DOM`).not.toContain(leaked);
     }
   });
 
-  it('t1 render without computable rising falls back to the bare sun line (§1.A shape)', () => {
-    const { rows, sunTitle } = installTierRows();
-    renderTierSections({ ...PROFILE, risingSign: undefined }, 't1');
-    expect(rows.sun.symbol.textContent).toBe('gemini');
-    expect(sunTitle.textContent).toBe('SUN');
+  it('t1 render: t2+ value nodes empty (second triplet, day pillar, hour pillar)', () => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, 't1');
+    for (const key of SEALED_AT.t1) {
+      expect(cells[key].val.textContent, `${key} must carry no value at t1`).toBe('');
+    }
+    const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
+    for (const leaked of ['5', '7', '11', 'dragon', 'earth', 'rat', 'wood']) {
+      expect(allText, `t2+ value "${leaked}" leaked into the t1 DOM`).not.toContain(leaked);
+    }
   });
 
-  it('t2 render adds the second triplet + day pillar; hour pillar stays hidden', () => {
-    const { rows } = installTierRows();
-    const { cardEntry } = renderTierSections(PROFILE, 't2');
-
-    expect(cardEntry).toBe(false);
-    expect(rows.numbers2.root.hidden).toBe(false);
-    expect(rows.numbers2.symbol.textContent).toBe('5 7 11'); // space-separated triplet
-    expect(rows.dayPillar.root.hidden).toBe(false);
-    expect(rows.dayPillar.symbol.textContent).toBe('dragon · earth');
-    expect(rows.hourPillar.root.hidden).toBe(true);
+  it('t2 render: the hour-pillar value node is empty', () => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, 't2');
+    expect(cells.hourPillar.val.textContent).toBe('');
+    const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
+    expect(allText).not.toContain('rat');
+    expect(allText).not.toContain('wood');
   });
 
-  it('t3 render completes the four pillars and unlocks the card entry', () => {
-    const { rows } = installTierRows();
-    const { cardEntry } = renderTierSections(PROFILE, 't3');
-
-    expect(cardEntry).toBe(true);
-    expect(rows.hourPillar.root.hidden).toBe(false);
-    expect(rows.hourPillar.symbol.textContent).toBe('rat · wood');
-  });
-
-  it('t3 render without birth time files the hour pillar as an empty field, not a hidden row', () => {
-    const { rows } = installTierRows();
-    renderTierSections({ ...PROFILE, hourPillar: null }, 't3');
-    expect(rows.hourPillar.root.hidden).toBe(false);
-    expect(rows.hourPillar.symbol.textContent).toBe('—');
-  });
-
-  it('re-rendering free after t3 re-hides and re-clears every t1+ row (no leak across renders)', () => {
-    const { rows } = installTierRows();
+  it('re-rendering free after t3 re-seals and re-clears every paid cell (no leak across renders)', () => {
+    const { cells } = installCompartments();
     renderTierSections(PROFILE, 't3');
     renderTierSections(PROFILE, 'free');
-    for (const key of ['element', 'numerology', 'numbers2', 'dayPillar', 'hourPillar']) {
-      expect(rows[key].root.hidden).toBe(true);
-      expect(rows[key].symbol.textContent).toBe('—');
+    for (const key of SEALED_AT.free) {
+      expect(sealed(cells[key]), `${key} must re-seal`).toBe(true);
+      expect(cells[key].val.textContent, `${key} must re-clear`).toBe('');
     }
+  });
+
+  it('index.html clears the written-entry slots below t3 (name/type/habit/note empty)', () => {
+    const m = html.match(
+      /Sub-t3: the sealed entry block carries no entry text[\s\S]{0,400}?cardName\.textContent = '';[\s\S]{0,200}?cardNote\.textContent = '';/
+    );
+    expect(m, 'renderCard sub-t3 clear branch not found').not.toBeNull();
+  });
+
+  it('the mock\'s opacity trick is not ported: no opacity-gated .coord-val rule', () => {
+    expect(html).not.toMatch(/\.sealed[^{]*\.coord-val[^{]*\{[^}]*opacity:\s*0/);
+    expect(html).not.toMatch(/\.coord-cell\.locked/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// seal state — present iff the cell is above the render tier
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — seal iff above tier (§2 locked table)', () => {
+  it.each(['free', 't1', 't2', 't3'])('%s render seals exactly the cells above it', tier => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, tier);
+    const expectSealed = new Set(SEALED_AT[tier]);
+    for (const key of CELL_KEYS) {
+      expect(sealed(cells[key]), `${key} sealed state wrong at ${tier}`)
+        .toBe(expectSealed.has(key));
+    }
+  });
+
+  it('open cells carry their values at the entitled tier', () => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, 't3');
+    expect(cells.arcana.val.textContent).toBe('XXI · the world');
+    expect(cells.element.val.textContent).toBe('metal');
+    expect(cells.sun.val.textContent).toBe('gemini');
+    expect(cells.rising.val.textContent).toBe('virgo');
+    expect(cells.animal.val.textContent).toBe('horse');
+    expect(cells.innerAnimal.val.textContent).toBe('rabbit');
+    expect(cells.lifePath.val.textContent).toBe('3');
+    expect(cells.nameNumber.val.textContent).toBe('8');
+    expect(cells.soulUrge.val.textContent).toBe('3');
+    expect(cells.personality.val.textContent).toBe('5');
+    expect(cells.birthday.val.textContent).toBe('7');
+    expect(cells.maturity.val.textContent).toBe('11');
+    expect(cells.dayPillar.val.textContent).toBe('dragon · earth');
+    expect(cells.hourPillar.val.textContent).toBe('rat · wood');
+  });
+
+  it('the written-entry block is sealed below t3 and open at t3', () => {
+    const { entry } = installCompartments();
+    for (const tier of ['free', 't1', 't2']) {
+      const { cardEntry } = renderTierSections(PROFILE, tier);
+      expect(cardEntry).toBe(false);
+      expect(entry.classList.contains('sealed'), `entry must be sealed at ${tier}`).toBe(true);
+    }
+    const { cardEntry } = renderTierSections(PROFILE, 't3');
+    expect(cardEntry).toBe(true);
+    expect(entry.classList.contains('sealed')).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F4 sealed ≠ unresolvable + paired-row title grammar
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LOCKED)', () => {
+  it('t3 without birth time: hour pillar renders the — empty field, never a seal', () => {
+    const { cells } = installCompartments();
+    renderTierSections({ ...PROFILE, hourPillar: null }, 't3');
+    expect(cells.hourPillar.val.textContent).toBe('—');
+    expect(sealed(cells.hourPillar)).toBe(false);
+    expect(unres(cells.hourPillar)).toBe(true);
+  });
+
+  it('t1 without computable rising: — empty field, no seal, title SUN · RISING', () => {
+    const { cells, sunTitle } = installCompartments();
+    renderTierSections({ ...PROFILE, risingSign: undefined }, 't1');
+    expect(cells.rising.val.textContent).toBe('—');
+    expect(sealed(cells.rising)).toBe(false);
+    expect(unres(cells.rising)).toBe(true);
+    expect(sunTitle.textContent).toBe('SUN · RISING');
+  });
+
+  it('free render: rising is paywalled → seal (not —) even when uncomputable', () => {
+    const { cells } = installCompartments();
+    renderTierSections({ ...PROFILE, risingSign: undefined }, 'free');
+    expect(sealed(cells.rising)).toBe(true);
+    expect(unres(cells.rising)).toBe(false);
+    expect(cells.rising.val.textContent).toBe('');
+  });
+
+  it('the two states never conflate: a cell is sealed or unres, never both', () => {
+    const { cells } = installCompartments();
+    renderTierSections({ ...PROFILE, hourPillar: null, risingSign: undefined }, 't3');
+    for (const key of CELL_KEYS) {
+      expect(sealed(cells[key]) && unres(cells[key]), `${key} conflates seal/unres`).toBe(false);
+    }
+  });
+
+  it('SUN ↑ RISING only when rising is entitled AND computed', () => {
+    const { sunTitle } = installCompartments();
+    renderTierSections(PROFILE, 't1');
+    expect(sunTitle.textContent).toBe('SUN ↑ RISING');
+  });
+
+  it('SUN · RISING while the rising cell is sealed (free)', () => {
+    const { sunTitle } = installCompartments();
+    renderTierSections(PROFILE, 'free');
+    expect(sunTitle.textContent).toBe('SUN · RISING');
+  });
+
+  it('a bare SUN title never renders — every state names the rising compartment', () => {
+    const { sunTitle } = installCompartments();
+    for (const [profile, tier] of [
+      [PROFILE, 'free'], [PROFILE, 't1'], [PROFILE, 't3'],
+      [{ ...PROFILE, risingSign: undefined }, 'free'],
+      [{ ...PROFILE, risingSign: undefined }, 't1'],
+      [{ ...PROFILE, risingSign: undefined }, 't3'],
+    ]) {
+      renderTierSections(profile, tier);
+      expect(sunTitle.textContent).not.toBe('SUN');
+      expect(sunTitle.textContent).toMatch(/^SUN [·↑] RISING$/);
+    }
+    // Source pin: no bare 'SUN' string assignment survives in the module.
+    expect(tiersJs).not.toMatch(/['"`]SUN['"`]/);
+  });
+
+  it('animal title: PUBLIC · PRIVATE while private is sealed; PUBLIC ⇌ PRIVATE at t1+', () => {
+    const { animalTitle } = installCompartments();
+    renderTierSections(PROFILE, 'free');
+    expect(animalTitle.textContent).toBe('PUBLIC · PRIVATE');
+    renderTierSections(PROFILE, 't1');
+    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
+    renderTierSections(PROFILE, 't3');
+    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
+    expect(tiersJs).not.toMatch(/['"`]PUBLIC['"`]/);
   });
 
   it('formatPillar renders the clinical animal · stem-element register', () => {
     expect(formatPillar({ animal: 'ox', stemElement: 'fire' })).toBe('ox · fire');
     expect(formatPillar(null)).toBe('—');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// unseal trigger — the pure decision (brief §3 motion grammar, β idempotence)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () => {
+  it('newlyEntitledCells: free → t1 flags exactly the t1 delta in DOM order', () => {
+    expect(newlyEntitledCells('free', 't1')).toEqual(
+      ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge']
+    );
+  });
+
+  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus the entry block', () => {
+    expect(newlyEntitledCells('t1', 't3')).toEqual(
+      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry']
+    );
+  });
+
+  it('newlyEntitledCells: same tier flags none; lower tier flags none', () => {
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      expect(newlyEntitledCells(tier, tier)).toEqual([]);
+    }
+    expect(newlyEntitledCells('t3', 't1')).toEqual([]);
+    expect(newlyEntitledCells('t2', 'free')).toEqual([]);
+  });
+
+  it('upgrade render flags newly entitled cells with the staggered beat', () => {
+    const { cells } = installCompartments();
+    primeUnsealBaseline('free');
+    renderTierSections(PROFILE, 't1');
+    const flagged = ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge'];
+    flagged.forEach((key, i) => {
+      expect(unsealing(cells[key]), `${key} must unseal on the upgrade render`).toBe(true);
+      expect(cells[key].root.style.props['--unseal-delay']).toBe(`${i * 100}ms`);
+    });
+    for (const key of CELL_KEYS.filter(k => !flagged.includes(k))) {
+      expect(unsealing(cells[key]), `${key} must not unseal`).toBe(false);
+    }
+  });
+
+  it('paid-return boot to t3 also unseals the entry block, last in DOM order', () => {
+    const { entry } = installCompartments();
+    primeUnsealBaseline('t2');
+    renderTierSections(PROFILE, 't3');
+    expect(entry.classList.contains('unsealing')).toBe(true);
+    expect(entry.classList.contains('sealed')).toBe(false);
+    expect(entry.style.props['--unseal-delay']).toBe('100ms'); // after hourPillar
+  });
+
+  it('same-tier re-render flags none (shake-again / rehydrate — no replay)', () => {
+    const { cells, entry } = installCompartments();
+    primeUnsealBaseline('free');
+    renderTierSections(PROFILE, 't1');
+    renderTierSections(PROFILE, 't1'); // shake again
+    for (const key of CELL_KEYS) {
+      expect(unsealing(cells[key]), `${key} must not replay`).toBe(false);
+    }
+    expect(entry.classList.contains('unsealing')).toBe(false);
+  });
+
+  it('plain rehydrate at the stored tier flags none (baseline = entitled tier)', () => {
+    const { cells, entry } = installCompartments();
+    primeUnsealBaseline('t3');
+    renderTierSections(PROFILE, 't3');
+    for (const key of CELL_KEYS) {
+      expect(unsealing(cells[key])).toBe(false);
+    }
+    expect(entry.classList.contains('unsealing')).toBe(false);
+  });
+
+  it('unprimed first render never animates (tests/dev harness safety)', () => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, 't3');
+    for (const key of CELL_KEYS) {
+      expect(unsealing(cells[key])).toBe(false);
+    }
+  });
+
+  it('index.html primes the baseline BEFORE handlePaidReturn applies the purchase', () => {
+    const m = html.match(/primeUnsealBaseline\(getRenderTier\(\)\);[\s\S]{0,900}?handlePaidReturn\(/);
+    expect(m, 'baseline must be primed ahead of the paid return').not.toBeNull();
+    // and never the other way around
+    const primeIdx = html.indexOf('primeUnsealBaseline(getRenderTier())');
+    const returnIdx = html.indexOf('handlePaidReturn(p =>');
+    expect(primeIdx).toBeGreaterThan(-1);
+    expect(primeIdx).toBeLessThan(returnIdx);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// share-row snapshot refs (§5.D — PNG renders open coordinates only;
+// ui/share.js untouched, its refs contract satisfied by proxies)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tiers — shareRowRefs (§5.D open-coordinates-only snapshot)', () => {
+  it('returns 8 row refs answering closest/textContent like symbol nodes', () => {
+    installCompartments();
+    const rows = shareRowRefs();
+    expect(rows).toHaveLength(8);
+    for (const row of rows) {
+      expect(typeof row.closest).toBe('function');
+      expect(typeof row.textContent).toBe('string');
+    }
+  });
+
+  it('free render: fully sealed rows read hidden — the PNG keeps the 3-row free card', () => {
+    installCompartments();
+    renderTierSections(PROFILE, 'free');
+    const hiddenFlags = shareRowRefs().map(row => row.closest('.coord-section').hidden);
+    // arcana, element, sun, animal, numerology, numbers2, day, hour
+    expect(hiddenFlags).toEqual([false, true, false, false, true, true, true, true]);
+  });
+
+  it('free render: pair rows expose only the open value — no sealed value leaks', () => {
+    installCompartments();
+    renderTierSections(PROFILE, 'free');
+    const rows = shareRowRefs();
+    expect(rows[0].textContent).toBe('XXI · the world');
+    expect(rows[2].textContent).toBe('gemini'); // rising sealed → excluded
+    expect(rows[3].textContent).toBe('horse'); // private sealed → excluded
+    const all = rows.map(row => row.textContent).join('|');
+    for (const leaked of ['virgo', 'rabbit', 'metal', 'dragon', 'rat']) {
+      expect(all, `sealed value "${leaked}" leaked into the share snapshot`).not.toContain(leaked);
+    }
+  });
+
+  it('t1 render: pairs join in the row grammar; triplets stay space-separated (§1.B)', () => {
+    installCompartments();
+    renderTierSections(PROFILE, 't1');
+    const rows = shareRowRefs();
+    expect(rows[2].textContent).toBe('gemini ↑ virgo');
+    expect(rows[3].textContent).toBe('horse ⇌ rabbit');
+    expect(rows[4].textContent).toBe('3 8 3');
+    expect(rows[1].textContent).toBe('metal');
+  });
+
+  it('unresolved cells drop from pairs but keep the — register on single-cell rows', () => {
+    installCompartments();
+    renderTierSections({ ...PROFILE, risingSign: undefined, hourPillar: null }, 't3');
+    const rows = shareRowRefs();
+    expect(rows[2].textContent).toBe('gemini'); // no "gemini ↑ —"
+    expect(rows[7].textContent).toBe('—'); // hour pillar empty field, row open
+    expect(rows[7].closest('.coord-section').hidden).toBe(false);
+  });
+
+  it('row titles resolve through the live section (dynamic pair titles reach the PNG)', () => {
+    installCompartments();
+    renderTierSections(PROFILE, 't1');
+    const rows = shareRowRefs();
+    expect(rows[2].closest('.coord-section').querySelector('.coord-title').textContent)
+      .toBe('SUN ↑ RISING');
+    renderTierSections(PROFILE, 'free');
+    expect(rows[2].closest('.coord-section').querySelector('.coord-title').textContent)
+      .toBe('SUN · RISING');
+  });
+
+  it('index.html wires the share surface through shareRowRefs (ui/share.js untouched)', () => {
+    expect(html).toMatch(/\] = shareRowRefs\(\)/);
+    expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareAnimal/);
   });
 });
