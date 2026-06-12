@@ -184,6 +184,25 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(m[1].trim()).toBe('');
   });
 
+  // 3b. v0.6.1 card geometry — chip in-flow + growable flip stack ───
+  it('reads-chip is in-flow, not absolutely positioned (v0.6.1)', () => {
+    const css = html.match(/\.reads-chip\s*\{([\s\S]*?)\}/);
+    expect(css, '.reads-chip CSS block not found').not.toBeNull();
+    expect(css[1]).not.toMatch(/position:\s*absolute/);
+    expect(css[1]).toMatch(/margin:\s*10px auto 0/);
+  });
+
+  it('flip faces are grid-stacked so the card can grow at t3 (v0.6.1)', () => {
+    const inner = html.match(/\.flip-inner\s*\{([\s\S]*?)\}/);
+    expect(inner, '.flip-inner CSS block not found').not.toBeNull();
+    expect(inner[1]).toMatch(/display:\s*grid/);
+    expect(inner[1]).not.toMatch(/position:\s*absolute/);
+    const side = html.match(/\.flip-side\s*\{([\s\S]*?)\}/);
+    expect(side, '.flip-side CSS block not found').not.toBeNull();
+    expect(side[1]).toMatch(/grid-area:\s*1 \/ 1/);
+    expect(side[1]).not.toMatch(/position:\s*absolute/);
+  });
+
   // 4. unlocked_render_markup ───────────────────────────────────────
   it('unlocked-render slots exist (card-name / card-type / card-habit / card-note)', () => {
     expect(html).toMatch(/id="card-name"/);

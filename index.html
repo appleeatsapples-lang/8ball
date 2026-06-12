@@ -214,15 +214,15 @@
     position: relative;
   }
   .flip-inner {
-    position: absolute;
-    inset: 0;
+    display: grid;
+    width: 100%;
+    min-height: 100%;
     transform-style: preserve-3d;
     transition: transform 300ms ease-in-out;
   }
   .flip-inner.face-up { transform: rotateY(180deg); }
   .flip-side {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
@@ -681,10 +681,8 @@
 
   /* credit chip — paid-state only, bottom-center */
   .reads-chip {
-    position: absolute;
-    bottom: clamp(12px, 4vw, 18px);
-    left: 50%;
-    transform: translateX(-50%);
+    width: max-content;
+    margin: 10px auto 0;
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: lowercase;
