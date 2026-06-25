@@ -58,9 +58,14 @@
 // Cumulative coordinate keys per tier. Keys name coordinates, not rows:
 // `rising` joins the sun row, `innerAnimal` joins the animal row, and
 // `cardEntry` is the t3 written-deck unlock consumed by index.html.
-// The catalog numeral renders at every tier (it is the fourth free
-// coordinate per §1.D; it lives in the card corner, not a row).
-const FREE_COORDS = ['arcana', 'sun', 'animal'];
+// The catalog numeral renders at every tier (it is a free coordinate
+// per §1.D; it lives in the card corner, not a row).
+// §1.D v0.38 (override #3, 2026-06-12): the numerology coordinate is
+// split — `lifePath` (DOB-derived, preserves the free = DOB-only
+// invariant) joins free; `numerology` narrows to the name-derived inner
+// pair (expression/name number, soul urge) and stays t1. Free carries
+// five coordinate VALUES; the t1 numerology line is a pair, not a triplet.
+const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
 const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry'];
@@ -73,9 +78,10 @@ export const TIER_COORDS = {
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
-// entitles it. The numerology triplets split into one cell per number;
-// the §1.B space-separated guarantee survives in the compartment gaps
-// and in the shareRowRefs join.
+// entitles it. life path is its own (DOB-derived) coordinate at free;
+// expression/name number and soul urge share the name-derived `numerology`
+// coordinate at t1. The §1.B space-separated guarantee survives in the
+// compartment gaps and in the shareRowRefs join.
 const CELL_KEYS = [
   'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
   'lifePath', 'nameNumber', 'soulUrge',
@@ -85,7 +91,7 @@ const CELL_KEYS = [
 const CELL_COORD = {
   arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising',
   animal: 'animal', innerAnimal: 'innerAnimal',
-  lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
+  lifePath: 'lifePath', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
   dayPillar: 'dayPillar', hourPillar: 'hourPillar',
 };
@@ -195,10 +201,12 @@ export function renderTierSections(profile, tier) {
 
   setCell('arcana', 'value', profile.birthCard.label);
   setCell('element', coords.has('element') ? 'value' : 'sealed', profile.chineseElement);
-  const num1 = coords.has('numerology') ? 'value' : 'sealed';
-  setCell('lifePath', num1, String(profile.lifePath));
-  setCell('nameNumber', num1, String(profile.nameNumber));
-  setCell('soulUrge', num1, String(profile.soulUrge));
+  // Life path is free (DOB-derived); expression + soul urge stay t1
+  // (name-derived) — §1.D v0.38 split.
+  setCell('lifePath', coords.has('lifePath') ? 'value' : 'sealed', String(profile.lifePath));
+  const numInner = coords.has('numerology') ? 'value' : 'sealed';
+  setCell('nameNumber', numInner, String(profile.nameNumber));
+  setCell('soulUrge', numInner, String(profile.soulUrge));
   const num2 = coords.has('numbers2') ? 'value' : 'sealed';
   setCell('personality', num2, String(profile.personality));
   setCell('birthday', num2, String(profile.birthday));

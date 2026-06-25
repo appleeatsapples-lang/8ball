@@ -19,8 +19,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 // The free card's coordinate count per the §1.D locked table: the free
-// rows (arcana / sun / animal) plus the catalog numeral, which renders
-// from the card corner rather than a coordinate row.
+// rows (arcana / sun / animal / life path) plus the catalog numeral, which
+// renders from the card corner rather than a coordinate row.
+// §1.D v0.38: life path joined the free surface (DOB-derived split).
 const FREE_COORDINATE_COUNT = TIER_COORDS.free.length + 1;
 
 // Coordinates the about-modal must name on the free surface…
@@ -28,6 +29,7 @@ const FREE_COORDINATE_NAMES = [
   'tarot birth card',
   'sun sign',
   'public animal',
+  'life path',
   'catalog numeral',
 ];
 // …and across the paid rungs (DOCTRINE §1.D ladder, cumulative).
@@ -35,7 +37,6 @@ const LADDER_COORDINATE_NAMES = [
   'rising sign',
   'five-element',
   'private animal',
-  'life path',
   'name number',
   'soul urge',
   'personality',
@@ -45,7 +46,7 @@ const LADDER_COORDINATE_NAMES = [
   'hour pillar',
 ];
 
-const COUNT_WORDS = { 4: 'four' };
+const COUNT_WORDS = { 4: 'four', 5: 'five' };
 
 function countWord(n) {
   const word = COUNT_WORDS[n];
@@ -122,8 +123,8 @@ describe('prose coordinate-count copy (v0.6.0 free surface)', () => {
   it('the free row count stays coupled to the TIER_COORDS map', () => {
     // Belt-and-suspenders against a markup/tier-map split: the §1.D free
     // list names exactly the rows the prose count is derived from.
-    expect(TIER_COORDS.free).toEqual(['arcana', 'sun', 'animal']);
-    expect(FREE_COORDINATE_COUNT).toBe(4);
+    expect(TIER_COORDS.free).toEqual(['arcana', 'sun', 'animal', 'lifePath']);
+    expect(FREE_COORDINATE_COUNT).toBe(5);
   });
 
   it('share export refs stay coupled to rendered coordinate rows', () => {

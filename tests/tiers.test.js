@@ -114,11 +114,11 @@ function installWindow(search) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () => {
-  it('free tier is exactly birth card + sun + public animal (4 coordinates with the catalog numeral)', () => {
-    expect(TIER_COORDS.free).toEqual(['arcana', 'sun', 'animal']);
+  it('free tier is birth card + sun + public animal + life path (5 coordinates with the catalog numeral)', () => {
+    expect(TIER_COORDS.free).toEqual(['arcana', 'sun', 'animal', 'lifePath']);
     // The catalog numeral renders at every tier from the card corner —
-    // it is the fourth free coordinate per §1.D, not a row key.
-    expect(TIER_COORDS.free.length + 1).toBe(4);
+    // it is the fifth free coordinate per §1.D v0.38, not a row key.
+    expect(TIER_COORDS.free.length + 1).toBe(5);
   });
 
   it('free tier carries NO t1+ coordinate key', () => {
@@ -128,7 +128,12 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     }
   });
 
-  it('t1 adds rising (conditional) + element + private animal + numerology', () => {
+  it('free life path is its own (DOB-derived) coordinate, distinct from the t1 numerology pair', () => {
+    expect(TIER_COORDS.free).toContain('lifePath');
+    expect(TIER_COORDS.free).not.toContain('numerology');
+  });
+
+  it('t1 adds rising (conditional) + element + private animal + numerology (expression/soul-urge pair)', () => {
     expect(TIER_COORDS.t1).toEqual(
       [...TIER_COORDS.free, 'rising', 'element', 'innerAnimal', 'numerology']
     );
@@ -555,9 +560,11 @@ const PROFILE = {
   hourPillar: { animal: 'rat', stemElement: 'wood' },
 };
 
-// Cell keys above each render tier per the §2 locked table.
+// Cell keys above each render tier per the §1.D locked table.
+// §1.D v0.38: life path is free (DOB-derived) — sealed at NO tier;
+// expression/name number + soul urge stay sealed at free.
 const SEALED_AT = {
-  free: ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge',
+  free: ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge',
     'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
   t1: ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
   t2: ['hourPillar'],
@@ -612,8 +619,11 @@ describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () 
       expect(cells[key].val.textContent, `${key} must carry no value at free`).toBe('');
     }
     // The whole rendered cell text at free is exactly the free surface.
+    // §1.D v0.38: life path (PROFILE value 3) is now a free value, so '3'
+    // is no longer a leak marker; soul urge (also 3) stays empty by the
+    // per-cell SEALED_AT check above. nameNumber 8 remains a t1 leak marker.
     const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
-    for (const leaked of ['virgo', 'metal', 'rabbit', '3', '8', '5', '7', '11',
+    for (const leaked of ['virgo', 'metal', 'rabbit', '8', '5', '7', '11',
       'dragon', 'earth', 'rat', 'wood']) {
       expect(allText, `t1+ value "${leaked}" leaked into the free DOM`).not.toContain(leaked);
     }
@@ -695,6 +705,19 @@ describe('tiers — seal iff above tier (§2 locked table)', () => {
     expect(cells.maturity.val.textContent).toBe('11');
     expect(cells.dayPillar.val.textContent).toBe('dragon · earth');
     expect(cells.hourPillar.val.textContent).toBe('rat · wood');
+  });
+
+  it('free render shows the life path value and seals expression + soul urge (§1.D v0.38 split)', () => {
+    const { cells } = installCompartments();
+    renderTierSections(PROFILE, 'free');
+    // life path is free (DOB-derived): carries its value, never sealed.
+    expect(sealed(cells.lifePath)).toBe(false);
+    expect(cells.lifePath.val.textContent).toBe('3');
+    // expression + soul urge are name-derived: sealed (empty) at free.
+    expect(sealed(cells.nameNumber)).toBe(true);
+    expect(cells.nameNumber.val.textContent).toBe('');
+    expect(sealed(cells.soulUrge)).toBe(true);
+    expect(cells.soulUrge.val.textContent).toBe('');
   });
 
   it('the written-entry block is sealed below t3 and open at t3', () => {
@@ -799,8 +822,10 @@ describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LO
 
 describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () => {
   it('newlyEntitledCells: free → t1 flags exactly the t1 delta in DOM order', () => {
+    // §1.D v0.38: life path is already open at free, so it is NOT in the
+    // free → t1 unseal delta; the numerology pair (expression/soul urge) is.
     expect(newlyEntitledCells('free', 't1')).toEqual(
-      ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge']
+      ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']
     );
   });
 
@@ -822,7 +847,7 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     const { cells } = installCompartments();
     primeUnsealBaseline('free');
     renderTierSections(PROFILE, 't1');
-    const flagged = ['element', 'rising', 'innerAnimal', 'lifePath', 'nameNumber', 'soulUrge'];
+    const flagged = ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge'];
     flagged.forEach((key, i) => {
       expect(unsealing(cells[key]), `${key} must unseal on the upgrade render`).toBe(true);
       expect(cells[key].root.style.props['--unseal-delay']).toBe(`${i * 100}ms`);
@@ -897,12 +922,12 @@ describe('tiers — shareRowRefs (§5.D open-coordinates-only snapshot)', () => 
     }
   });
 
-  it('free render: fully sealed rows read hidden — the PNG keeps the 3-row free card', () => {
+  it('free render: fully sealed rows read hidden — the PNG keeps the 4-row free card', () => {
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const hiddenFlags = shareRowRefs().map(row => row.closest('.coord-section').hidden);
-    // arcana, element, sun, animal, numerology, numbers2, day, hour
-    expect(hiddenFlags).toEqual([false, true, false, false, true, true, true, true]);
+    // arcana, element, sun, animal, numerology (life path open §1.D v0.38), numbers2, day, hour
+    expect(hiddenFlags).toEqual([false, true, false, false, false, true, true, true]);
   });
 
   it('free render: pair rows expose only the open value — no sealed value leaks', () => {
@@ -912,8 +937,9 @@ describe('tiers — shareRowRefs (§5.D open-coordinates-only snapshot)', () => 
     expect(rows[0].textContent).toBe('XXI · the world');
     expect(rows[2].textContent).toBe('gemini'); // rising sealed → excluded
     expect(rows[3].textContent).toBe('horse'); // private sealed → excluded
+    expect(rows[4].textContent).toBe('3'); // §1.D v0.38: life path open; expression + soul urge sealed → excluded
     const all = rows.map(row => row.textContent).join('|');
-    for (const leaked of ['virgo', 'rabbit', 'metal', 'dragon', 'rat']) {
+    for (const leaked of ['virgo', 'rabbit', 'metal', 'dragon', 'rat', '8']) {
       expect(all, `sealed value "${leaked}" leaked into the share snapshot`).not.toContain(leaked);
     }
   });
