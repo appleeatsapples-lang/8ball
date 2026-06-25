@@ -374,11 +374,12 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/hour pillar \(with birth time\)/);
   });
 
-  it('free-card copy binds the free coordinates to DOB only (v0.6.0 absorb)', () => {
-    // All four free coordinates are DOB-derived; the name enters the
-    // math at t1 (numerology). Meta + about must not overclaim.
-    expect(aboutSubtree).toMatch(/four coordinates from your date of birth/);
-    expect(html).not.toMatch(/[Ff]our calibrated coordinates from your name/);
+  it('free-card copy binds the free coordinates to DOB only (v0.6.0 absorb / §1.D v0.38)', () => {
+    // All five free coordinates are DOB-derived — life path joined free as
+    // the DOB-derived numerology number; the name enters the math at t1
+    // (expression + soul urge). Meta + about must not overclaim.
+    expect(aboutSubtree).toMatch(/five coordinates from your date of birth/);
+    expect(html).not.toMatch(/[Ff]ive calibrated coordinates from your name/);
   });
 
   it('about-modal: word "subscription" only appears in the negation "no subscription"', () => {
