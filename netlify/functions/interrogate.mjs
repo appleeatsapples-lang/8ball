@@ -5,8 +5,8 @@
 import {
   SYSTEM_PROMPT,
   validateTracePayload,
-  voiceFilterFails,
-  faithfulnessFails,
+  payloadIntegrityFails,
+  postFilterFails,
   buildUserMessage,
 } from '../../lab/interrogate-shared.js';
 
@@ -124,25 +124,23 @@ export async function handler(event) {
     return json(400, { error: validated.error });
   }
 
+  const integrityFail = payloadIntegrityFails(validated.payload);
+  if (integrityFail) {
+    return json(400, { error: 'payload integrity failed', detail: integrityFail });
+  }
+
   const userMessage = buildUserMessage(validated.payload);
 
   try {
     let narration = await callAnthropic(apiKey, userMessage);
-    let voiceFail = voiceFilterFails(narration);
-    let faithFail = faithfulnessFails(narration, validated.payload);
+    let filterFail = postFilterFails(narration, validated.payload);
 
-    if (voiceFail || faithFail) {
-      const reason = voiceFail || faithFail;
-      const rule = voiceFail ? 'voice rules' : 'faithfulness rules';
-      const retryMsg = `${userMessage}\n\nPrevious draft violated ${rule} (${reason}). Rewrite in clerk register, third-person, no advice. Use only numbers from the provided steps; state the recorded value.`;
+    if (filterFail) {
+      const retryMsg = `${userMessage}\n\nPrevious draft violated output rules (${filterFail}). Rewrite in clerk register, third-person, no advice. Use only numbers from the provided steps; state the recorded value. Plain text only, two to four sentences, no markdown or JSON.`;
       narration = await callAnthropic(apiKey, retryMsg);
-      voiceFail = voiceFilterFails(narration);
-      faithFail = faithfulnessFails(narration, validated.payload);
-      if (voiceFail) {
-        return json(422, { error: 'narration failed voice filter', detail: voiceFail });
-      }
-      if (faithFail) {
-        return json(422, { error: 'narration failed faithfulness filter', detail: faithFail });
+      filterFail = postFilterFails(narration, validated.payload);
+      if (filterFail) {
+        return json(422, { error: 'narration failed output filter', detail: filterFail });
       }
     }
 

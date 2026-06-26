@@ -3,6 +3,9 @@
 // interrogation-layer prototype. Imported by netlify/functions/interrogate.mjs
 // and tests. Not part of the live product surface.
 
+import { MAJOR_ARCANA } from '../core/birthcard.js';
+import { SUN_SIGNS, ANIMALS } from '../core/profile.js';
+
 export const SYSTEM_PROMPT = `You are the registrar's clerk for the 8ball specimen registry. Your only job is to narrate how a single coordinate on a filed specimen card was computed.
 
 INPUT YOU RECEIVE (JSON):
@@ -33,6 +36,29 @@ export const FREE_COORDINATE_KEYS = new Set([
   'arcana', 'sun', 'animal', 'lifePath', 'catalog',
 ]);
 
+export const CANONICAL_LABELS = {
+  arcana: 'ARCANA',
+  sun: 'SUN',
+  animal: 'PUBLIC',
+  lifePath: 'LIFE PATH',
+  catalog: 'CATALOG',
+};
+
+const ROMAN = [
+  '0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+  'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI',
+];
+
+const ARCANA_LABELS = new Set(
+  MAJOR_ARCANA.map((name, i) => `${ROMAN[i]} · ${name}`),
+);
+
+const SUN_SIGN_NAMES = new Set(SUN_SIGNS.map(s => s.name));
+const ANIMAL_NAMES = new Set(ANIMALS);
+const LIFE_PATH_VALUE = /^(?:[1-9]|11|22|33)$/;
+const CATALOG_VALUE = /^[ivxlcdm]+$/i;
+const UNRESOLVED_VALUE = '—';
+
 export const BANNED_VOICE_PATTERNS = [
   /\bthe universe\b/i,
   /\byour stars\b/i,
@@ -57,26 +83,82 @@ export const BANNED_VOICE_PATTERNS = [
   /\bsacred\b/i,
   /\byou(?:'re| are)\b/i,
   /\byour\b/i,
+  // Partial semantic-gloss denylist; robust fix is deterministic templates (deferred).
+  /\badministrator\b/i,
+  /\bleader\b/i,
+  /\bleadership\b/i,
+  /\bcreative\b/i,
+  /\bbalanced\b/i,
+  /\bintuitive\b/i,
+  /\bcorrective\b/i,
+  /\bdisposition\b/i,
+  /\btemperament\b/i,
+  /\bcharacter\b/i,
+  /\balways going to\b/i,
+  /\bintends\b/i,
+  /\bmeant to\b/i,
+  /\breveals\b/i,
+  /\bpoints to\b/i,
+  /\bwill follow\b/i,
+  /\blands on\b/i,
+  /\bconsider\b/i,
+  /\bnotice\b/i,
+  /\bremember\b/i,
+  /\bone's\b/i,
+  /\boneself\b/i,
+  /\bthe reader\b/i,
+  /\bthe native\b/i,
+  /\bthe querent\b/i,
+  /\bthough\b/i,
+  /\bmay lean\b/i,
+  /\bsuggests\b/i,
+  /\bleans toward\b/i,
 ];
 
 const MAX_STEPS = 32;
 const MAX_STEP_JSON = 4096;
-const MAX_VALUE_LEN = 120;
-const MAX_LABEL_LEN = 64;
+
+function valueValidForCoordinate(coordinate, value) {
+  if (value === UNRESOLVED_VALUE) return true;
+  if (typeof value !== 'string' || !value) return false;
+  switch (coordinate) {
+    case 'lifePath':
+      return LIFE_PATH_VALUE.test(value);
+    case 'sun':
+      return SUN_SIGN_NAMES.has(value);
+    case 'animal':
+      return ANIMAL_NAMES.has(value);
+    case 'arcana':
+      return ARCANA_LABELS.has(value);
+    case 'catalog':
+      return CATALOG_VALUE.test(value);
+    default:
+      return false;
+  }
+}
+
+function digitSum(n) {
+  return String(Math.abs(n)).split('').reduce((a, c) => a + parseInt(c, 10), 0);
+}
+
+function pythagoreanReduce(from, masters = [11, 22, 33]) {
+  let n = from;
+  while (n > 9 && !masters.includes(n)) {
+    n = digitSum(n);
+  }
+  return n;
+}
 
 export function validateTracePayload(body) {
   if (!body || typeof body !== 'object') {
     return { ok: false, error: 'body must be a JSON object' };
   }
-  const { coordinate, label, value, steps } = body;
+  const { coordinate, value, steps } = body;
   if (typeof coordinate !== 'string' || !FREE_COORDINATE_KEYS.has(coordinate)) {
     return { ok: false, error: 'coordinate must be a free-tier key' };
   }
-  if (typeof label !== 'string' || !label.trim() || label.length > MAX_LABEL_LEN) {
-    return { ok: false, error: 'label invalid' };
-  }
-  if (typeof value !== 'string' || value.length > MAX_VALUE_LEN) {
-    return { ok: false, error: 'value invalid' };
+  if (!valueValidForCoordinate(coordinate, value)) {
+    return { ok: false, error: 'value invalid for coordinate' };
   }
   if (!Array.isArray(steps) || steps.length === 0 || steps.length > MAX_STEPS) {
     return { ok: false, error: 'steps must be a non-empty array' };
@@ -92,8 +174,103 @@ export function validateTracePayload(body) {
   }
   return {
     ok: true,
-    payload: { coordinate, label: label.trim(), value, steps },
+    payload: {
+      coordinate,
+      label: CANONICAL_LABELS[coordinate],
+      value,
+      steps,
+    },
   };
+}
+
+export function payloadIntegrityFails(payload) {
+  const { coordinate, value, steps } = payload;
+  let derived = null;
+  let lastPythagoreanResult = null;
+  let sawFurtherReductionAfterMaster = false;
+
+  for (const step of steps) {
+    switch (step.op) {
+      case 'digit_sum': {
+        const expected = digitSum(Number(step.digits));
+        if (step.sum !== expected) return 'digit_sum contradiction';
+        break;
+      }
+      case 'add': {
+        const sum = step.values.reduce((a, b) => a + b, 0);
+        if (sum !== step.result) return 'add contradiction';
+        break;
+      }
+      case 'reduce_pythagorean': {
+        const masters = step.masters || [11, 22, 33];
+        const expected = pythagoreanReduce(step.from, masters);
+        if (step.result !== expected) return 'reduce_pythagorean contradiction';
+        lastPythagoreanResult = step.result;
+        sawFurtherReductionAfterMaster = false;
+        break;
+      }
+      case 'digit_sum_reduce':
+      case 'digit_sum_reduce_to_22': {
+        const expected = digitSum(step.from);
+        if (step.result !== expected) return `${step.op} contradiction`;
+        if (lastPythagoreanResult !== null && [11, 22, 33].includes(lastPythagoreanResult)) {
+          sawFurtherReductionAfterMaster = true;
+        }
+        break;
+      }
+      case 'cusp_match':
+        if (!SUN_SIGN_NAMES.has(step.sign)) return 'cusp_match contradiction';
+        derived = step.sign;
+        break;
+      case 'animal_lookup':
+        if (!ANIMAL_NAMES.has(step.animal)) return 'animal_lookup contradiction';
+        if (Array.isArray(step.animalList) && step.animalList[step.index] !== step.animal) {
+          return 'animal_lookup contradiction';
+        }
+        derived = step.animal;
+        break;
+      case 'major_arcana_map':
+        if (!ARCANA_LABELS.has(step.label)) return 'major_arcana_map contradiction';
+        derived = step.label;
+        break;
+      case 'roman_numeral':
+        if (!CATALOG_VALUE.test(step.roman)) return 'roman_numeral contradiction';
+        derived = step.roman;
+        break;
+      case 'result': {
+        const terminalFields = {
+          lifePath: 'lifePath',
+          sun: 'sunSign',
+          animal: 'publicAnimal',
+          catalog: 'catalog',
+        };
+        if (step.field === terminalFields[coordinate]) {
+          derived = String(step.value);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  if (derived === null) return 'no terminal value derivable from steps';
+
+  const normalizedDerived = coordinate === 'catalog' ? derived.toLowerCase() : derived;
+  const normalizedValue = coordinate === 'catalog' ? value.toLowerCase() : value;
+  if (normalizedDerived !== normalizedValue) return 'value contradicts steps';
+
+  if (
+    coordinate === 'lifePath'
+    && lastPythagoreanResult !== null
+    && [11, 22, 33].includes(lastPythagoreanResult)
+    && !sawFurtherReductionAfterMaster
+    && String(lastPythagoreanResult) !== value
+  ) {
+    return 'master-number stop contradicts value';
+  }
+
+  return null;
 }
 
 export function voiceFilterFails(text) {
@@ -131,6 +308,28 @@ export function faithfulnessFails(text, payload) {
     if (!allowed.has(n)) return `invented number: ${n}`;
   }
   return null;
+}
+
+export function formatFilterFails(text) {
+  if (typeof text !== 'string' || !text.trim()) return 'empty narration';
+  if (text.includes('{') || text.includes('}')) return 'json-like braces';
+  if (/```/.test(text)) return 'code fence';
+  if (/(?:^|\n)[-*#] /m.test(text)) return 'markdown marker';
+  return null;
+}
+
+export function lengthFilterFails(text) {
+  if (typeof text !== 'string' || !text.trim()) return 'empty narration';
+  const terminators = text.match(/[.?;]/g);
+  if (terminators && terminators.length > 4) return 'too many sentences';
+  return null;
+}
+
+export function postFilterFails(text, payload) {
+  return voiceFilterFails(text)
+    || faithfulnessFails(text, payload)
+    || formatFilterFails(text)
+    || lengthFilterFails(text);
 }
 
 export function buildUserMessage(payload) {
