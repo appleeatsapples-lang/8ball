@@ -104,6 +104,35 @@ export function voiceFilterFails(text) {
   return null;
 }
 
+function extractIntegers(text) {
+  const matches = String(text).match(/\d+/g);
+  if (!matches) return [];
+  return matches.map(m => Number(m));
+}
+
+function allowedNumbersFromPayload(payload) {
+  const allowed = new Set(extractIntegers(JSON.stringify(payload.steps)));
+  for (const n of extractIntegers(payload.value)) {
+    allowed.add(n);
+  }
+  const asNumber = Number(payload.value);
+  if (Number.isInteger(asNumber)) {
+    allowed.add(asNumber);
+  }
+  return allowed;
+}
+
+export function faithfulnessFails(text, payload) {
+  if (typeof text !== 'string' || !text.trim()) return 'empty narration';
+  if (!text.includes(payload.value)) return 'value not stated in narration';
+
+  const allowed = allowedNumbersFromPayload(payload);
+  for (const n of extractIntegers(text)) {
+    if (!allowed.has(n)) return `invented number: ${n}`;
+  }
+  return null;
+}
+
 export function buildUserMessage(payload) {
   return JSON.stringify(payload);
 }

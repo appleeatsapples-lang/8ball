@@ -79,6 +79,119 @@ describe('derive-traces — structure', () => {
     expect(t.steps.some(s => s.op === 'reduce_pythagorean' || s.op === 'digit_sum_reduce')).toBe(true);
   });
 
+  it('Mara Solin (1993-07-24): pins exact steps arrays for all free coordinates', () => {
+    const profile = buildProfile('Mara Solin', '1993-07-24');
+    const traces = buildFreeTraces(profile);
+
+    expect(traces.lifePath.steps).toEqual([
+      { op: 'digit_sum', field: 'year', digits: '1993', sum: 22 },
+      { op: 'digit_sum', field: 'month', digits: '7', sum: 7 },
+      { op: 'digit_sum', field: 'day', digits: '24', sum: 6 },
+      { op: 'add', values: [22, 7, 6], result: 35 },
+      { op: 'reduce_pythagorean', from: 35, masters: [11, 22, 33], result: 8 },
+      { op: 'digit_sum_reduce', from: 35, result: 8 },
+      { op: 'result', field: 'lifePath', value: 8 },
+    ]);
+
+    expect(traces.arcana.steps).toEqual([
+      { op: 'digit_sum', field: 'year', digits: '1993', sum: 22 },
+      { op: 'digit_sum', field: 'month', digits: '7', sum: 7 },
+      { op: 'digit_sum', field: 'day', digits: '24', sum: 6 },
+      { op: 'add', values: [22, 7, 6], result: 35 },
+      { op: 'digit_sum_reduce_to_22', from: 35, result: 8 },
+      {
+        op: 'major_arcana_map',
+        index: 8,
+        roman: 'VIII',
+        name: 'strength',
+        label: 'VIII · strength',
+      },
+    ]);
+
+    expect(traces.sun.steps).toEqual([
+      {
+        op: 'tropical_cusp_lookup',
+        dob: '1993-07-24',
+        system: 'western tropical zodiac',
+      },
+      {
+        op: 'cusp_match',
+        sign: 'leo',
+        start: '07-23',
+        end: '08-22',
+        wrapsYear: false,
+      },
+      { op: 'result', field: 'sunSign', value: 'leo' },
+    ]);
+
+    expect(traces.animal.steps).toEqual([
+      {
+        op: 'lunar_new_year_lookup',
+        gregorianYear: 1993,
+        lnyDate: '1993-01-23',
+        timezone: 'Asia/Shanghai (date-precision)',
+      },
+      {
+        op: 'lunar_year_resolve',
+        dob: '1993-07-24',
+        beforeLny: false,
+        lunarYear: 1993,
+      },
+      {
+        op: 'zodiac_cycle',
+        anchorYear: 2020,
+        anchorAnimal: 'rat',
+        lunarYear: 1993,
+        index: 9,
+      },
+      {
+        op: 'animal_lookup',
+        index: 9,
+        animal: 'rooster',
+        animalList: [
+          'rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake',
+          'horse', 'goat', 'monkey', 'rooster', 'dog', 'pig',
+        ],
+      },
+      {
+        op: 'result',
+        field: 'publicAnimal',
+        value: 'rooster',
+        pillar: 'year-pillar',
+      },
+    ]);
+
+    expect(traces.catalog.steps).toEqual([
+      {
+        op: 'catalog_driver',
+        note: 'catalog index derives from (sunSign, publicAnimal) only',
+        sunSign: 'leo',
+        publicAnimal: 'rooster',
+      },
+      {
+        op: 'sun_row_index',
+        sunSign: 'leo',
+        index: 4,
+        sunOrder: [
+          'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+          'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
+        ],
+      },
+      {
+        op: 'animal_col_index',
+        publicAnimal: 'rooster',
+        index: 9,
+        animalOrder: [
+          'rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake',
+          'horse', 'goat', 'monkey', 'rooster', 'dog', 'pig',
+        ],
+      },
+      { op: 'positional_index', formula: 'sunIdx * 12 + animalIdx + 1', arabic: 58 },
+      { op: 'roman_numeral', arabic: 58, roman: 'lviii' },
+      { op: 'result', field: 'catalog', value: 'lviii' },
+    ]);
+  });
+
   it('animal trace references lunar new year', () => {
     const t = traceAnimal(2021, 2, 3);
     expect(t.value).toBe('rat');

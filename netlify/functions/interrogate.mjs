@@ -6,6 +6,7 @@ import {
   SYSTEM_PROMPT,
   validateTracePayload,
   voiceFilterFails,
+  faithfulnessFails,
   buildUserMessage,
 } from '../../lab/interrogate-shared.js';
 
@@ -17,13 +18,14 @@ const RATE_MAX = 30;
 const rateBuckets = new Map();
 
 function json(status, body) {
-  return new Response(JSON.stringify(body), {
-    status,
+  return {
+    statusCode: status,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
     },
-  });
+    body: JSON.stringify(body),
+  };
 }
 
 function clientIp(event) {
@@ -81,14 +83,15 @@ async function callAnthropic(apiKey, userMessage) {
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
+    return {
+      statusCode: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
-    });
+      body: '',
+    };
   }
 
   if (event.httpMethod !== 'POST') {
@@ -126,13 +129,20 @@ export async function handler(event) {
   try {
     let narration = await callAnthropic(apiKey, userMessage);
     let voiceFail = voiceFilterFails(narration);
+    let faithFail = faithfulnessFails(narration, validated.payload);
 
-    if (voiceFail) {
-      const retryMsg = `${userMessage}\n\nPrevious draft violated voice rules (${voiceFail}). Rewrite in clerk register, third-person, no advice.`;
+    if (voiceFail || faithFail) {
+      const reason = voiceFail || faithFail;
+      const rule = voiceFail ? 'voice rules' : 'faithfulness rules';
+      const retryMsg = `${userMessage}\n\nPrevious draft violated ${rule} (${reason}). Rewrite in clerk register, third-person, no advice. Use only numbers from the provided steps; state the recorded value.`;
       narration = await callAnthropic(apiKey, retryMsg);
       voiceFail = voiceFilterFails(narration);
+      faithFail = faithfulnessFails(narration, validated.payload);
       if (voiceFail) {
         return json(422, { error: 'narration failed voice filter', detail: voiceFail });
+      }
+      if (faithFail) {
+        return json(422, { error: 'narration failed faithfulness filter', detail: faithFail });
       }
     }
 
