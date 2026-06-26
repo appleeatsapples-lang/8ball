@@ -87,7 +87,7 @@ describe('interrogate-shared — validateTracePayload', () => {
       ],
     });
     expect(r.ok).toBe(true);
-    expect(payloadIntegrityFails(r.payload)).toBe('value contradicts steps');
+    expect(payloadIntegrityFails(r.payload)).toBe('result contradicts value');
   });
 
   it('rejects master-number mismatch without further reduction', () => {
@@ -106,7 +106,7 @@ describe('interrogate-shared — validateTracePayload', () => {
     };
     const r = validateTracePayload(masterTrace);
     expect(r.ok).toBe(true);
-    expect(payloadIntegrityFails(r.payload)).toBe('master-number stop contradicts value');
+    expect(payloadIntegrityFails(r.payload)).toBe('result contradicts chain');
   });
 });
 

@@ -149,6 +149,230 @@ function pythagoreanReduce(from, masters = [11, 22, 33]) {
   return n;
 }
 
+function arabicToRoman(n) {
+  if (!Number.isInteger(n) || n < 1 || n > 3999) return null;
+  const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const numerals = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
+  let out = '';
+  let rem = n;
+  for (let i = 0; i < values.length; i++) {
+    while (rem >= values[i]) {
+      out += numerals[i];
+      rem -= values[i];
+    }
+  }
+  return out;
+}
+
+function integrityLifePath(value, steps) {
+  let lastResult = null;
+  let prevOp = null;
+  let prevReduceFrom = null;
+
+  for (const step of steps) {
+    switch (step.op) {
+      case 'digit_sum': {
+        const expected = digitSum(Number(step.digits));
+        if (step.sum !== expected) return 'digit_sum contradiction';
+        break;
+      }
+      case 'add': {
+        const sum = step.values.reduce((a, b) => a + b, 0);
+        if (sum !== step.result) return 'add contradiction';
+        lastResult = step.result;
+        prevOp = step.op;
+        break;
+      }
+      case 'reduce_pythagorean': {
+        if (lastResult !== null && step.from !== lastResult) {
+          return 'reduce_pythagorean chain break';
+        }
+        const masters = step.masters || [11, 22, 33];
+        if (step.result !== pythagoreanReduce(step.from, masters)) {
+          return 'reduce_pythagorean contradiction';
+        }
+        prevReduceFrom = step.from;
+        lastResult = step.result;
+        prevOp = step.op;
+        break;
+      }
+      case 'digit_sum_reduce': {
+        const expectedFrom = prevOp === 'reduce_pythagorean' ? prevReduceFrom : lastResult;
+        if (expectedFrom !== null && step.from !== expectedFrom) {
+          return 'digit_sum_reduce chain break';
+        }
+        if (step.result !== digitSum(step.from)) return 'digit_sum_reduce contradiction';
+        if (prevOp === 'reduce_pythagorean' && step.result !== lastResult) {
+          return 'digit_sum_reduce contradicts reduce_pythagorean';
+        }
+        prevOp = step.op;
+        break;
+      }
+      case 'result': {
+        if (step.field !== 'lifePath') break;
+        const terminal = String(step.value);
+        if (terminal !== value) return 'result contradicts value';
+        if (lastResult !== null && Number(terminal) !== lastResult) {
+          return 'result contradicts chain';
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  const resultStep = steps.find(s => s.op === 'result' && s.field === 'lifePath');
+  if (!resultStep) return 'missing lifePath result';
+  return null;
+}
+
+function integrityArcana(value, steps) {
+  let lastResult = null;
+  let arcanaLabel = null;
+
+  for (const step of steps) {
+    switch (step.op) {
+      case 'digit_sum': {
+        const expected = digitSum(Number(step.digits));
+        if (step.sum !== expected) return 'digit_sum contradiction';
+        break;
+      }
+      case 'add': {
+        const sum = step.values.reduce((a, b) => a + b, 0);
+        if (sum !== step.result) return 'add contradiction';
+        lastResult = step.result;
+        break;
+      }
+      case 'digit_sum_reduce_to_22': {
+        if (lastResult !== null && step.from !== lastResult) {
+          return 'digit_sum_reduce_to_22 chain break';
+        }
+        if (step.result !== digitSum(step.from)) return 'digit_sum_reduce_to_22 contradiction';
+        lastResult = step.result;
+        break;
+      }
+      case 'fool_mapping': {
+        if (lastResult !== null && step.input !== lastResult) {
+          return 'fool_mapping chain break';
+        }
+        break;
+      }
+      case 'major_arcana_map':
+        if (!ARCANA_LABELS.has(step.label)) return 'major_arcana_map contradiction';
+        arcanaLabel = step.label;
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (arcanaLabel === null) return 'missing major_arcana_map';
+  if (arcanaLabel !== value) return 'major_arcana_map contradicts value';
+  return null;
+}
+
+function integritySun(value, steps) {
+  let cuspSign = null;
+  let terminalSign = null;
+
+  for (const step of steps) {
+    if (step.op === 'cusp_match') {
+      if (!SUN_SIGN_NAMES.has(step.sign)) return 'cusp_match contradiction';
+      cuspSign = step.sign;
+    } else if (step.op === 'result' && step.field === 'sunSign') {
+      terminalSign = step.value;
+    }
+  }
+
+  if (cuspSign === null) return 'missing cusp_match';
+  if (terminalSign === null) return 'missing sun result';
+  if (cuspSign !== terminalSign) return 'cusp_match contradicts result';
+  if (terminalSign !== value) return 'value contradicts steps';
+  return null;
+}
+
+function integrityAnimal(value, steps) {
+  let cycleIndex = null;
+  let lookupIndex = null;
+  let lookupAnimal = null;
+  let terminalAnimal = null;
+
+  for (const step of steps) {
+    switch (step.op) {
+      case 'zodiac_cycle':
+        cycleIndex = step.index;
+        break;
+      case 'animal_lookup':
+        lookupIndex = step.index;
+        lookupAnimal = step.animal;
+        if (Array.isArray(step.animalList) && step.animalList[step.index] !== step.animal) {
+          return 'animal_lookup contradiction';
+        }
+        break;
+      case 'result':
+        if (step.field === 'publicAnimal') terminalAnimal = step.value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (cycleIndex === null || lookupIndex === null) return 'missing animal linkage';
+  if (cycleIndex !== lookupIndex) return 'zodiac_cycle contradicts animal_lookup index';
+  if (lookupAnimal !== terminalAnimal) return 'animal_lookup contradicts result';
+  if (terminalAnimal !== value) return 'value contradicts steps';
+  return null;
+}
+
+function integrityCatalog(value, steps) {
+  let sunIndex = null;
+  let animalIndex = null;
+  let positionalArabic = null;
+  let romanArabic = null;
+  let roman = null;
+
+  for (const step of steps) {
+    switch (step.op) {
+      case 'sun_row_index':
+        sunIndex = step.index;
+        break;
+      case 'animal_col_index':
+        animalIndex = step.index;
+        break;
+      case 'positional_index':
+        positionalArabic = step.arabic;
+        if (sunIndex !== null && animalIndex !== null) {
+          const expected = sunIndex * 12 + animalIndex + 1;
+          if (step.arabic !== expected) return 'positional_index contradiction';
+        }
+        break;
+      case 'roman_numeral':
+        romanArabic = step.arabic;
+        roman = step.roman;
+        break;
+      case 'result':
+        if (step.field === 'catalog' && String(step.value).toLowerCase() !== value.toLowerCase()) {
+          return 'result contradicts value';
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (positionalArabic === null || roman === null) return 'missing catalog terminal';
+  if (romanArabic !== null && romanArabic !== positionalArabic) {
+    return 'roman_numeral contradicts positional_index';
+  }
+  if (roman.toLowerCase() !== value.toLowerCase()) return 'roman contradicts value';
+  const encoded = arabicToRoman(positionalArabic);
+  if (encoded === null || encoded !== roman.toLowerCase()) {
+    return 'roman contradicts arabic encoding';
+  }
+  return null;
+}
+
 export function validateTracePayload(body) {
   if (!body || typeof body !== 'object') {
     return { ok: false, error: 'body must be a JSON object' };
@@ -185,92 +409,20 @@ export function validateTracePayload(body) {
 
 export function payloadIntegrityFails(payload) {
   const { coordinate, value, steps } = payload;
-  let derived = null;
-  let lastPythagoreanResult = null;
-  let sawFurtherReductionAfterMaster = false;
-
-  for (const step of steps) {
-    switch (step.op) {
-      case 'digit_sum': {
-        const expected = digitSum(Number(step.digits));
-        if (step.sum !== expected) return 'digit_sum contradiction';
-        break;
-      }
-      case 'add': {
-        const sum = step.values.reduce((a, b) => a + b, 0);
-        if (sum !== step.result) return 'add contradiction';
-        break;
-      }
-      case 'reduce_pythagorean': {
-        const masters = step.masters || [11, 22, 33];
-        const expected = pythagoreanReduce(step.from, masters);
-        if (step.result !== expected) return 'reduce_pythagorean contradiction';
-        lastPythagoreanResult = step.result;
-        sawFurtherReductionAfterMaster = false;
-        break;
-      }
-      case 'digit_sum_reduce':
-      case 'digit_sum_reduce_to_22': {
-        const expected = digitSum(step.from);
-        if (step.result !== expected) return `${step.op} contradiction`;
-        if (lastPythagoreanResult !== null && [11, 22, 33].includes(lastPythagoreanResult)) {
-          sawFurtherReductionAfterMaster = true;
-        }
-        break;
-      }
-      case 'cusp_match':
-        if (!SUN_SIGN_NAMES.has(step.sign)) return 'cusp_match contradiction';
-        derived = step.sign;
-        break;
-      case 'animal_lookup':
-        if (!ANIMAL_NAMES.has(step.animal)) return 'animal_lookup contradiction';
-        if (Array.isArray(step.animalList) && step.animalList[step.index] !== step.animal) {
-          return 'animal_lookup contradiction';
-        }
-        derived = step.animal;
-        break;
-      case 'major_arcana_map':
-        if (!ARCANA_LABELS.has(step.label)) return 'major_arcana_map contradiction';
-        derived = step.label;
-        break;
-      case 'roman_numeral':
-        if (!CATALOG_VALUE.test(step.roman)) return 'roman_numeral contradiction';
-        derived = step.roman;
-        break;
-      case 'result': {
-        const terminalFields = {
-          lifePath: 'lifePath',
-          sun: 'sunSign',
-          animal: 'publicAnimal',
-          catalog: 'catalog',
-        };
-        if (step.field === terminalFields[coordinate]) {
-          derived = String(step.value);
-        }
-        break;
-      }
-      default:
-        break;
-    }
+  switch (coordinate) {
+    case 'lifePath':
+      return integrityLifePath(value, steps);
+    case 'arcana':
+      return integrityArcana(value, steps);
+    case 'sun':
+      return integritySun(value, steps);
+    case 'animal':
+      return integrityAnimal(value, steps);
+    case 'catalog':
+      return integrityCatalog(value, steps);
+    default:
+      return 'unknown coordinate';
   }
-
-  if (derived === null) return 'no terminal value derivable from steps';
-
-  const normalizedDerived = coordinate === 'catalog' ? derived.toLowerCase() : derived;
-  const normalizedValue = coordinate === 'catalog' ? value.toLowerCase() : value;
-  if (normalizedDerived !== normalizedValue) return 'value contradicts steps';
-
-  if (
-    coordinate === 'lifePath'
-    && lastPythagoreanResult !== null
-    && [11, 22, 33].includes(lastPythagoreanResult)
-    && !sawFurtherReductionAfterMaster
-    && String(lastPythagoreanResult) !== value
-  ) {
-    return 'master-number stop contradicts value';
-  }
-
-  return null;
 }
 
 export function voiceFilterFails(text) {
