@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0a">
+<title>8 ball · interrogation lab</title>
+<link rel="stylesheet" href="interrogate.css">
+</head>
+<body>
+
+<div class="prototype-banner">
+  prototype — not production. date digits are sent to the llm for narration when interrogation is online. no link from the live app.
+</div>
+
+<main class="stage">
+
+  <section id="entry-screen">
+    <div class="registry-header">specimen registry · interrogation lab</div>
+    <form id="profile-form" autocomplete="off">
+      <div class="field">
+        <label for="name-input">name</label>
+        <input id="name-input" type="text" required maxlength="60">
+      </div>
+      <div class="field">
+        <label for="dob-input">date of birth</label>
+        <input id="dob-input" type="date" required>
+      </div>
+      <button type="submit" class="btn" id="file-btn">file specimen</button>
+    </form>
+    <p class="disclaimer">stored only on this device. tap any coordinate to interrogate its derivation.</p>
+  </section>
+
+  <section id="result-screen" class="hidden">
+    <article class="card" id="card-face" aria-live="polite">
+      <span class="catalog" id="card-catalog">no. —</span>
+
+      <div class="coord-section" data-key="arcana">
+        <div class="coord-title">ARCANA</div>
+        <button type="button" class="coord-cell" data-key="arcana" aria-label="interrogate arcana">
+          <span class="coord-val" id="val-arcana"></span>
+        </button>
+      </div>
+
+      <div class="coord-section" data-key="sun">
+        <div class="coord-title">SUN</div>
+        <button type="button" class="coord-cell" data-key="sun" aria-label="interrogate sun">
+          <span class="coord-val" id="val-sun"></span>
+        </button>
+      </div>
+
+      <div class="coord-section" data-key="animal">
+        <div class="coord-title">PUBLIC</div>
+        <button type="button" class="coord-cell" data-key="animal" aria-label="interrogate public animal">
+          <span class="coord-val" id="val-animal"></span>
+        </button>
+      </div>
+
+      <div class="coord-section" data-key="lifePath">
+        <div class="coord-title">LIFE PATH</div>
+        <button type="button" class="coord-cell" data-key="lifePath" aria-label="interrogate life path">
+          <span class="coord-val" id="val-lifePath"></span>
+        </button>
+      </div>
+
+      <div class="coord-section" data-key="catalog">
+        <div class="coord-title">CATALOG INDEX</div>
+        <button type="button" class="coord-cell" data-key="catalog" aria-label="interrogate catalog">
+          <span class="coord-val" id="val-catalog"></span>
+        </button>
+      </div>
+    </article>
+
+    <p class="hint">tap a coordinate — clerk narrates the fixed computation</p>
+
+    <aside class="clerk-panel" id="clerk-panel" hidden>
+      <h3 id="clerk-title">derivation</h3>
+      <p class="narration" id="clerk-narration"></p>
+      <p class="status" id="clerk-status"></p>
+      <pre class="trace-raw hidden" id="clerk-trace"></pre>
+    </aside>
+
+    <button type="button" class="btn" id="reset-btn">another specimen</button>
+  </section>
+
+</main>
+
+<script type="module" src="interrogate.js"></script>
+</body>
+</html>

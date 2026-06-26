@@ -1,6 +1,15 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/lab/*"
+  to = "/lab/:splat"
+  status = 200
+  force = false
+
 [[headers]]
   for = "/*"
   [headers.values]
