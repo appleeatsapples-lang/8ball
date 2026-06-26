@@ -45,6 +45,7 @@ export const CANONICAL_LABELS = {
 };
 
 // Catalog row/column order — must match core/engine.js SUN_ORDER / ANIMAL_ORDER.
+// Guarded by tests/lab_sun_order_drift.test.js (drift fails CI if core reorders).
 const SUN_ORDER = [
   'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
   'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
@@ -261,7 +262,6 @@ function majorArcanaTupleFails(step) {
 }
 
 function integrityArcana(value, steps) {
-  // Tuple-internal + canonical-table consistency only; does not bind tuple to DOB.
   let lastResult = null;
   let arcanaLabel = null;
 
@@ -290,11 +290,19 @@ function integrityArcana(value, steps) {
         if (lastResult !== null && step.input !== lastResult) {
           return 'fool_mapping chain break';
         }
+        if (step.majorArcanaIndex !== 0) {
+          return 'fool_mapping majorArcanaIndex contradicts fool rule';
+        }
         break;
       }
       case 'major_arcana_map': {
         const tupleFail = majorArcanaTupleFails(step);
         if (tupleFail) return tupleFail;
+        if (lastResult === null) return 'major_arcana_map missing reduction chain';
+        const expectedIndex = lastResult === 22 ? 0 : lastResult;
+        if (step.index !== expectedIndex) {
+          return 'major_arcana_map index contradicts reduction';
+        }
         arcanaLabel = step.label;
         break;
       }

@@ -85,6 +85,44 @@ describe('payloadIntegrityFails — mutation probes reject', () => {
     expect(payloadIntegrityFails(payload)).toBe('major_arcana_map tuple mismatch');
   });
 
+  it('arcana: arithmetic VIII·strength but map/value IX·the hermit', () => {
+    const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).arcana;
+    const payload = tracePayload({
+      ...trace,
+      value: 'IX · the hermit',
+      steps: trace.steps.map(s => {
+        if (s.op !== 'major_arcana_map') return { ...s };
+        return {
+          ...s,
+          index: 9,
+          roman: 'IX',
+          name: 'the hermit',
+          label: 'IX · the hermit',
+        };
+      }),
+    });
+    expect(payloadIntegrityFails(payload)).toBe('major_arcana_map index contradicts reduction');
+  });
+
+  it('arcana: fool 22 then non-fool canonical tuple', () => {
+    const trace = buildFreeTraces(buildProfile('X', '1900-02-19')).arcana;
+    const payload = tracePayload({
+      ...trace,
+      value: 'IX · the hermit',
+      steps: trace.steps.map(s => {
+        if (s.op !== 'major_arcana_map') return { ...s };
+        return {
+          ...s,
+          index: 9,
+          roman: 'IX',
+          name: 'the hermit',
+          label: 'IX · the hermit',
+        };
+      }),
+    });
+    expect(payloadIntegrityFails(payload)).toBe('major_arcana_map index contradicts reduction');
+  });
+
   it('catalog: sun_row_index.index not matching sunSign', () => {
     const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).catalog;
     const payload = mutate(trace, steps => {
