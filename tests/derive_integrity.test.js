@@ -74,6 +74,35 @@ describe('payloadIntegrityFails — mutation probes reject', () => {
     expect(payloadIntegrityFails(payload)).toBe('major_arcana_map contradicts value');
   });
 
+  it('arcana: index/roman/name/label tuple mismatch', () => {
+    const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).arcana;
+    const payload = mutate(trace, steps => {
+      const map = steps.find(s => s.op === 'major_arcana_map');
+      map.index = 9;
+      map.roman = 'IX';
+      map.name = 'the hermit';
+    });
+    expect(payloadIntegrityFails(payload)).toBe('major_arcana_map tuple mismatch');
+  });
+
+  it('catalog: sun_row_index.index not matching sunSign', () => {
+    const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).catalog;
+    const payload = mutate(trace, steps => {
+      const sun = steps.find(s => s.op === 'sun_row_index');
+      sun.index = 5;
+    });
+    expect(payloadIntegrityFails(payload)).toBe('sun_row_index index contradicts sunSign');
+  });
+
+  it('catalog: animal_col_index.index not matching publicAnimal', () => {
+    const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).catalog;
+    const payload = mutate(trace, steps => {
+      const animal = steps.find(s => s.op === 'animal_col_index');
+      animal.index = 0;
+    });
+    expect(payloadIntegrityFails(payload)).toBe('animal_col_index index contradicts publicAnimal');
+  });
+
   it('catalog: positional_index.arabic vs roman_numeral.roman mismatch', () => {
     const trace = buildFreeTraces(buildProfile('Mara Solin', '1993-07-24')).catalog;
     const payload = mutate(trace, steps => {

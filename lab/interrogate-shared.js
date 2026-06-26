@@ -3,7 +3,7 @@
 // interrogation-layer prototype. Imported by netlify/functions/interrogate.mjs
 // and tests. Not part of the live product surface.
 
-import { MAJOR_ARCANA } from '../core/birthcard.js';
+import { getBirthCard } from '../core/birthcard.js';
 import { SUN_SIGNS, ANIMALS } from '../core/profile.js';
 
 export const SYSTEM_PROMPT = `You are the registrar's clerk for the 8ball specimen registry. Your only job is to narrate how a single coordinate on a filed specimen card was computed.
@@ -44,13 +44,31 @@ export const CANONICAL_LABELS = {
   catalog: 'CATALOG',
 };
 
-const ROMAN = [
-  '0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
-  'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI',
+// Catalog row/column order — must match core/engine.js SUN_ORDER / ANIMAL_ORDER.
+const SUN_ORDER = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
 ];
+const ANIMAL_ORDER = ANIMALS;
 
+function buildCanonicalArcanaByIndex() {
+  const byIndex = new Map();
+  outer:
+  for (let y = 1900; y < 2100; y++) {
+    for (let m = 1; m <= 12; m++) {
+      for (let d = 1; d <= 28; d++) {
+        const card = getBirthCard(y, m, d);
+        if (!byIndex.has(card.number)) byIndex.set(card.number, card);
+        if (byIndex.size === 22) break outer;
+      }
+    }
+  }
+  return byIndex;
+}
+
+const CANONICAL_ARCANA_BY_INDEX = buildCanonicalArcanaByIndex();
 const ARCANA_LABELS = new Set(
-  MAJOR_ARCANA.map((name, i) => `${ROMAN[i]} · ${name}`),
+  [...CANONICAL_ARCANA_BY_INDEX.values()].map(c => c.label),
 );
 
 const SUN_SIGN_NAMES = new Set(SUN_SIGNS.map(s => s.name));
@@ -227,7 +245,23 @@ function integrityLifePath(value, steps) {
   return null;
 }
 
+function majorArcanaTupleFails(step) {
+  const index = step.index;
+  if (!Number.isInteger(index) || index < 0 || index > 21) {
+    return 'major_arcana_map index out of range';
+  }
+  const canonical = CANONICAL_ARCANA_BY_INDEX.get(index);
+  if (!canonical) return 'major_arcana_map missing canonical tuple';
+  if (step.roman !== canonical.roman
+    || step.name !== canonical.name
+    || step.label !== canonical.label) {
+    return 'major_arcana_map tuple mismatch';
+  }
+  return null;
+}
+
 function integrityArcana(value, steps) {
+  // Tuple-internal + canonical-table consistency only; does not bind tuple to DOB.
   let lastResult = null;
   let arcanaLabel = null;
 
@@ -258,10 +292,12 @@ function integrityArcana(value, steps) {
         }
         break;
       }
-      case 'major_arcana_map':
-        if (!ARCANA_LABELS.has(step.label)) return 'major_arcana_map contradiction';
+      case 'major_arcana_map': {
+        const tupleFail = majorArcanaTupleFails(step);
+        if (tupleFail) return tupleFail;
         arcanaLabel = step.label;
         break;
+      }
       default:
         break;
     }
@@ -326,6 +362,7 @@ function integrityAnimal(value, steps) {
 }
 
 function integrityCatalog(value, steps) {
+  // Tuple-internal + canonical-table consistency only; does not bind tuple to DOB.
   let sunIndex = null;
   let animalIndex = null;
   let positionalArabic = null;
@@ -334,12 +371,26 @@ function integrityCatalog(value, steps) {
 
   for (const step of steps) {
     switch (step.op) {
-      case 'sun_row_index':
+      case 'sun_row_index': {
         sunIndex = step.index;
+        if (!Number.isInteger(sunIndex) || sunIndex < 0 || sunIndex >= 12) {
+          return 'sun_row_index out of range';
+        }
+        if (typeof step.sunSign !== 'string' || SUN_ORDER[sunIndex] !== step.sunSign) {
+          return 'sun_row_index index contradicts sunSign';
+        }
         break;
-      case 'animal_col_index':
+      }
+      case 'animal_col_index': {
         animalIndex = step.index;
+        if (!Number.isInteger(animalIndex) || animalIndex < 0 || animalIndex >= 12) {
+          return 'animal_col_index out of range';
+        }
+        if (typeof step.publicAnimal !== 'string' || ANIMAL_ORDER[animalIndex] !== step.publicAnimal) {
+          return 'animal_col_index index contradicts publicAnimal';
+        }
         break;
+      }
       case 'positional_index':
         positionalArabic = step.arabic;
         if (sunIndex !== null && animalIndex !== null) {
