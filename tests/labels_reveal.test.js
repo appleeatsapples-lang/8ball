@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
+const labelsJs = readFileSync(join(__dirname, '..', 'ui', 'labels.js'), 'utf-8');
 
 describe('labels-reveal toggle (v0.2.7)', () => {
   it('toggle button element exists with id', () => {
@@ -86,13 +87,34 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/>HOUR PILLAR</);
   });
 
-  it('localStorage key reference is the canonical labels key', () => {
-    expect(html).toMatch(/eight_ball_labels_revealed_v1/);
+  it('localStorage key lives in ui/labels.js (canonical labels key, §6 split)', () => {
+    // The toggle controller moved out of index.html into ui/labels.js during
+    // the desktop side-rail cycle; the key is now owned there as a bare const
+    // so tests/privacy_scan.test.js's same-file identifier lookup resolves it.
+    expect(labelsJs).toMatch(/const LABELS_KEY = 'eight_ball_labels_revealed_v1'/);
   });
 
   it('about-modal discloses the toggle', () => {
     const m = html.match(/id="about-modal"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
     expect(m, 'about-modal subtree not found').not.toBeNull();
     expect(m[0]).toMatch(/toggle|symbol names|labels/i);
+  });
+});
+
+// DI shape of the extracted controller (DOCTRINE §6 v0.23 — locked split
+// shape: init*UI({refs}, {hooks}) + pure exports testable without jsdom).
+describe('ui/labels.js DI shape (DOCTRINE §6)', () => {
+  it('exports initLabelsUI with (refs, hooks) arity', () => {
+    expect(labelsJs).toMatch(/export function initLabelsUI\s*\(\s*refs\s*,\s*hooks\s*\)/);
+  });
+
+  it('exports the pure persistence helpers', () => {
+    expect(labelsJs).toMatch(/export function isLabelsRevealed\s*\(/);
+    expect(labelsJs).toMatch(/export function setLabelsRevealed\s*\(/);
+  });
+
+  it('index.html boots the labels surface via initLabelsUI', () => {
+    expect(html).toMatch(/import\s*\{[^}]*initLabelsUI[^}]*\}\s*from\s*['"]\.\/ui\/labels\.js['"]/);
+    expect(html).toMatch(/initLabelsUI\(/);
   });
 });
