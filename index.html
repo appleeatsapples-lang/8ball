@@ -154,6 +154,17 @@
   }
   .card.labels-revealed .coord-title { visibility: visible; }
 
+  /* provenance placards (CLP §1.E): per-coordinate derivation note under
+     each row, shown only when labels are revealed (display:none keeps the
+     default card height unchanged). Off-card / off-share: ui/share.js reads
+     .coord-val + .coord-title, never .coord-prov. */
+  .card .coord-prov {
+    font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
+    color: var(--label); text-transform: lowercase;
+    margin-top: 3px; display: none;
+  }
+  .card.labels-revealed .coord-prov { display: block; }
+
   /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
      Full cell structure at every tier; sealed cell = EMPTY value node +
      seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
@@ -995,8 +1006,7 @@ import {
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
-
-const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
+import { initModalsUI, isAgeAcknowledged } from './ui/modals.js';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1015,20 +1025,21 @@ const flipInner = $('flip-inner');
 const cardBack = $('card-back');
 const shakeAgainBtn = $('shake-again-btn');
 const tryAnotherBtn = $('try-another-btn');
-const forgetBtn = $('forget-btn');
-const forgetModal = $('forget-modal');
-const forgetCancel = $('forget-cancel');
-const forgetConfirm = $('forget-confirm');
-const aboutBtn = $('about-btn');
-const aboutModal = $('about-modal');
-const aboutClose = $('about-close');
-const ageGateModal = $('age-gate-modal');
-const ageGateConfirm = $('age-gate-confirm');
 // v0.3.0 paid-surface elements (DOCTRINE §6).
 const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
 initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+// about / forget / 18+ age-gate modals + escape-to-close (ui/modals.js §6 split).
+const modalsUI = initModalsUI(
+  {
+    aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
+    forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'),
+    forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm'),
+    ageGateModal: $('age-gate-modal'), ageGateConfirm: $('age-gate-confirm'),
+  },
+  { clearProfile, resetFormDisplay, onAgeAck: initAfterAck, isPaywallOpen, closePaywall },
+);
 initProfileUI(
   {
     timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
@@ -1391,70 +1402,8 @@ if (window.location.search.includes('sent=1')) {
   }
 }
 
-// ── about modal ───────────────────────────────────────────────────
-function openAbout() {
-  aboutModal.classList.add('open');
-  aboutModal.setAttribute('aria-hidden', 'false');
-}
-function closeAbout() {
-  aboutModal.classList.remove('open');
-  aboutModal.setAttribute('aria-hidden', 'true');
-}
-aboutBtn.addEventListener('click', openAbout);
-aboutClose.addEventListener('click', closeAbout);
-aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAbout(); });
-
-// ── forget-me modal ───────────────────────────────────────────────
-function openForget() {
-  forgetModal.classList.add('open');
-  forgetModal.setAttribute('aria-hidden', 'false');
-}
-function closeForget() {
-  forgetModal.classList.remove('open');
-  forgetModal.setAttribute('aria-hidden', 'true');
-}
-forgetBtn.addEventListener('click', openForget);
-forgetCancel.addEventListener('click', closeForget);
-forgetConfirm.addEventListener('click', () => {
-  // "forget this device" is the full erase: clear stored profile and
-  // return the form to its empty state. Distinct from v0.3.0 "try
-  // another" which clears only the form DOM and keeps the stored
-  // profile so β idempotence holds on re-entry.
-  clearProfile();
-  closeForget();
-  resetFormDisplay();
-});
-forgetModal.addEventListener('click', e => { if (e.target === forgetModal) closeForget(); });
-
-// ── escape closes any open modal ──────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (aboutModal.classList.contains('open')) closeAbout();
-  if (forgetModal.classList.contains('open')) closeForget();
-  if (isPaywallOpen()) closePaywall();
-});
-
-// ── 18+ acknowledgment gate (DOCTRINE.md §4.A) ────────────────────
-function isAgeAcknowledged() {
-  try { return localStorage.getItem(AGE_ACK_KEY) === 'true'; }
-  catch (_) { return false; }
-}
-
-function acknowledgeAge() {
-  try { localStorage.setItem(AGE_ACK_KEY, 'true'); }
-  catch (_) { /* localStorage unavailable; ack survives only this session */ }
-  ageGateModal.classList.remove('open');
-  ageGateModal.setAttribute('aria-hidden', 'true');
-  initAfterAck();
-}
-
-function showAgeGate() {
-  ageGateModal.classList.add('open');
-  ageGateModal.setAttribute('aria-hidden', 'false');
-  ageGateConfirm.focus();
-}
-
-ageGateConfirm.addEventListener('click', acknowledgeAge);
+// about / forget / 18+ age-gate modal handlers + escape-to-close moved to
+// ui/modals.js (§6 split); wired via initModalsUI above.
 
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
@@ -1489,7 +1438,7 @@ if (isAgeAcknowledged()) {
 } else {
   onboarding.classList.add('hidden');
   result.classList.add('hidden');
-  showAgeGate();
+  modalsUI.showAgeGate();
 }
 </script>
 </body>

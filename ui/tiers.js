@@ -142,6 +142,7 @@ export function initTiersUI(refs, hooks) {
       root: val && val.closest ? val.closest('.coord-cell') : null,
     };
   }
+  attachProvenance();
 }
 
 /**
@@ -303,4 +304,60 @@ export function shareRowRefs() {
       });
     },
   }));
+}
+
+// ── provenance placards (Coordinate Legibility Pack, DOCTRINE §1.E) ───
+// One derivation note per coordinate, surfaced per row in the row's cell
+// order (mirroring the .coord-title grammar). Surface-only and TIER-
+// INVARIANT: a coordinate's derivation never changes with seal state, so
+// the note is written ONCE at init, never on render. Catalog-isolated —
+// keyed off CELL_KEYS, never a profile field, so it adds NO coordinate
+// VALUE to the free surface and carries no PII (it names the METHOD, not
+// the value). Clinical derivation grammar only (DOCTRINE §2): the method,
+// never interpretation. Rendered in .coord-prov, OUTSIDE .coord-title, so
+// ui/share.js rowTitleOf never reads it — placards stay out of the §5.D
+// PNG. Gated by the existing .card.labels-revealed toggle (no new key).
+const PROV_NOTE = {
+  arcana: 'digit-sum reduction',
+  element: 'year stem',
+  sun: 'tropical zodiac',
+  rising: 'ascendant',
+  animal: 'lunar new year',
+  innerAnimal: 'solar term',
+  lifePath: 'digit-sum reduction',
+  nameNumber: 'letter-value sum',
+  soulUrge: 'vowel sum',
+  personality: 'consonant sum',
+  birthday: 'day of birth',
+  maturity: 'life-path + name',
+  dayPillar: 'sexagenary cycle',
+  hourPillar: 'five-rats hour',
+};
+
+export { PROV_NOTE };
+
+/** Row provenance text: each cell's derivation note, joined in cell order. */
+export function provText(keys) {
+  return keys.map(k => PROV_NOTE[k] || '').join(' · ');
+}
+
+// Append one .coord-prov node per section, in cell order, reading the
+// section element from each row's first cell. Idempotent (skips a section
+// that already has a placard). Feature-detects a real DOM node via
+// ownerDocument so it is a clean no-op under a non-DOM test mock or when a
+// cell/section is absent.
+function attachProvenance() {
+  for (const keys of SHARE_ROWS) {
+    const lead = _cells && _cells[keys[0]];
+    const section = lead && lead.val && lead.val.closest
+      ? lead.val.closest('.coord-section') : null;
+    const doc = section && section.ownerDocument;
+    if (!doc || typeof doc.createElement !== 'function'
+      || typeof section.appendChild !== 'function') continue;
+    if (section.querySelector && section.querySelector('.coord-prov')) continue;
+    const el = doc.createElement('div');
+    el.className = 'coord-prov';
+    el.textContent = provText(keys);
+    section.appendChild(el);
+  }
 }
