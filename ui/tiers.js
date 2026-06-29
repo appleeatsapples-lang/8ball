@@ -143,6 +143,7 @@ export function initTiersUI(refs, hooks) {
     };
   }
   attachProvenance();
+  attachAtlas();
 }
 
 /**
@@ -359,5 +360,65 @@ function attachProvenance() {
     el.className = 'coord-prov';
     el.textContent = provText(keys);
     section.appendChild(el);
+  }
+}
+
+// ── ATLAS legend (Coordinate Legibility Pack cut 2, under §1.D/§5.D) ──
+// One system NAME per coordinate, surfaced per row in cell order — the
+// gloss that decodes a compressed .coord-title (LIFE·NAME·SOUL → life-path
+// · expression · soul-urge; PUBLIC ⇌ PRIVATE → year animal · month animal).
+// Same rails as the §1.E provenance placard: surface-only · TIER-INVARIANT
+// (a coordinate's system never changes with seal state → written ONCE at
+// init, never on render) · catalog-isolated (keyed off CELL_KEYS via
+// ATLAS_NOTE, never a profile value or the catalog driver; getCard
+// untouched) · adds NO coordinate VALUE (free VALUE count unchanged) · no
+// PII (names the system, never a name/DOB/value). Rendered in .coord-atlas,
+// OUTSIDE .coord-title, so ui/share.js rowTitleOf never reads it — atlas
+// stays out of the §5.D PNG. Gated by the existing .card.labels-revealed
+// toggle (no new key). Only the rows whose title is abbreviated or omits
+// the tradition carry a note: the personality/birthday/maturity row and the
+// day/hour pillar rows already self-name in their .coord-title, so they are
+// deliberately omitted (an atlas line there would only echo the title).
+const ATLAS_NOTE = {
+  arcana: 'tarot arcana',
+  element: 'chinese five-element',
+  sun: 'sun sign',
+  rising: 'rising sign',
+  animal: 'year animal',
+  innerAnimal: 'month animal',
+  lifePath: 'life-path',
+  nameNumber: 'expression',
+  soulUrge: 'soul-urge',
+};
+
+export { ATLAS_NOTE };
+
+/** Row atlas text: each cell's system name, joined in cell order. Empty
+ *  when no cell in the row carries an atlas note (the self-naming rows). */
+export function atlasText(keys) {
+  return keys.map(k => ATLAS_NOTE[k] || '').filter(Boolean).join(' · ');
+}
+
+// Insert one .coord-atlas node per section ABOVE its .coord-cells (so the
+// legend reads directly under the title it decodes), in cell order. Skips a
+// row with no atlas note (self-naming rows) and any section already carrying
+// one (idempotent). Feature-detects a real DOM node via ownerDocument so it
+// is a clean no-op under a non-DOM test mock or when a cell/section is absent.
+function attachAtlas() {
+  for (const keys of SHARE_ROWS) {
+    const text = atlasText(keys);
+    if (!text) continue;
+    const lead = _cells && _cells[keys[0]];
+    const section = lead && lead.val && lead.val.closest
+      ? lead.val.closest('.coord-section') : null;
+    const doc = section && section.ownerDocument;
+    if (!doc || typeof doc.createElement !== 'function'
+      || typeof section.insertBefore !== 'function') continue;
+    if (section.querySelector && section.querySelector('.coord-atlas')) continue;
+    const el = doc.createElement('div');
+    el.className = 'coord-atlas';
+    el.textContent = text;
+    const cells = section.querySelector ? section.querySelector('.coord-cells') : null;
+    section.insertBefore(el, cells || null);
   }
 }
