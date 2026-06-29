@@ -8,7 +8,7 @@
 // value string in the DOM below its tier), seal-iff-above-tier, the F4
 // sealed ≠ unresolvable distinction, the paired-row title grammar, the
 // unseal-trigger decision (pure + β-idempotent), and the §5.D share-row
-// snapshot refs (PNG renders open coordinates only; ui/share.js untouched).
+// snapshot refs (v0.39: per-cell {state, value} → the PNG renders the full sheet).
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
@@ -907,74 +907,84 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// share-row snapshot refs (§5.D — PNG renders open coordinates only;
-// ui/share.js untouched, its refs contract satisfied by proxies)
+// share-row snapshot refs (§5.D v0.39 — full-sheet PNG; per-cell state so
+// ui/share.js renders open values AND sealed compartments, never a value)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('tiers — shareRowRefs (§5.D open-coordinates-only snapshot)', () => {
-  it('returns 8 row refs answering closest/textContent like symbol nodes', () => {
+describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', () => {
+  const flatCells = rows => rows.flatMap(r => r.cells);
+
+  it('returns 8 row refs, each with a title string and a cells array (14 cells total)', () => {
     installCompartments();
     const rows = shareRowRefs();
     expect(rows).toHaveLength(8);
     for (const row of rows) {
-      expect(typeof row.closest).toBe('function');
-      expect(typeof row.textContent).toBe('string');
+      expect(typeof row.title).toBe('string');
+      expect(Array.isArray(row.cells)).toBe(true);
     }
+    expect(flatCells(rows)).toHaveLength(14);
   });
 
-  it('free render: fully sealed rows read hidden — the PNG keeps the 4-row free card', () => {
+  it('free render: 4 open cells, 10 sealed; sealed carry no value, none leak', () => {
     installCompartments();
     renderTierSections(PROFILE, 'free');
-    const hiddenFlags = shareRowRefs().map(row => row.closest('.coord-section').hidden);
-    // arcana, element, sun, animal, numerology (life path open §1.D v0.38), numbers2, day, hour
-    expect(hiddenFlags).toEqual([false, true, false, false, false, true, true, true]);
-  });
-
-  it('free render: pair rows expose only the open value — no sealed value leaks', () => {
-    installCompartments();
-    renderTierSections(PROFILE, 'free');
-    const rows = shareRowRefs();
-    expect(rows[0].textContent).toBe('XXI · the world');
-    expect(rows[2].textContent).toBe('gemini'); // rising sealed → excluded
-    expect(rows[3].textContent).toBe('horse'); // private sealed → excluded
-    expect(rows[4].textContent).toBe('3'); // §1.D v0.38: life path open; expression + soul urge sealed → excluded
-    const all = rows.map(row => row.textContent).join('|');
+    const cells = flatCells(shareRowRefs());
+    expect(cells.filter(c => c.state === 'open')).toHaveLength(4);
+    expect(cells.filter(c => c.state === 'sealed')).toHaveLength(10);
+    for (const c of cells.filter(c => c.state === 'sealed')) {
+      expect(c.value).toBe('');
+    }
+    expect(cells.filter(c => c.state === 'open').map(c => c.value))
+      .toEqual(['XXI · the world', 'gemini', 'horse', '3']);
+    const all = cells.map(c => c.value).join('|');
     for (const leaked of ['virgo', 'rabbit', 'metal', 'dragon', 'rat', '8']) {
       expect(all, `sealed value "${leaked}" leaked into the share snapshot`).not.toContain(leaked);
     }
   });
 
-  it('t1 render: pairs join in the row grammar; triplets stay space-separated (§1.B)', () => {
+  it('free render: mixed rows expose the open cell AND the sealed compartment (P1 fix)', () => {
+    installCompartments();
+    renderTierSections(PROFILE, 'free');
+    const rows = shareRowRefs();
+    expect(rows[2].cells).toEqual([
+      { state: 'open', value: 'gemini' },
+      { state: 'sealed', value: '' },
+    ]);
+    expect(rows[4].cells).toEqual([
+      { state: 'open', value: '3' },
+      { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
+    ]);
+  });
+
+  it('t1 render: pair + triplet cells all open', () => {
     installCompartments();
     renderTierSections(PROFILE, 't1');
     const rows = shareRowRefs();
-    expect(rows[2].textContent).toBe('gemini ↑ virgo');
-    expect(rows[3].textContent).toBe('horse ⇌ rabbit');
-    expect(rows[4].textContent).toBe('3 8 3');
-    expect(rows[1].textContent).toBe('metal');
+    expect(rows[2].cells.map(c => c.value)).toEqual(['gemini', 'virgo']);
+    expect(rows[3].cells.map(c => c.value)).toEqual(['horse', 'rabbit']);
+    expect(rows[4].cells.map(c => c.value)).toEqual(['3', '8', '3']);
+    expect(rows[1].cells.map(c => c.value)).toEqual(['metal']);
+    expect(rows[2].cells.every(c => c.state === 'open')).toBe(true);
   });
 
-  it('unresolved cells drop from pairs but keep the — register on single-cell rows', () => {
+  it('unresolved cells carry state unres + the — field, never a seal (F4)', () => {
     installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined, hourPillar: null }, 't3');
     const rows = shareRowRefs();
-    expect(rows[2].textContent).toBe('gemini'); // no "gemini ↑ —"
-    expect(rows[7].textContent).toBe('—'); // hour pillar empty field, row open
-    expect(rows[7].closest('.coord-section').hidden).toBe(false);
+    expect(rows[2].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising
+    expect(rows[7].cells[0]).toEqual({ state: 'unres', value: '—' }); // hour pillar
   });
 
   it('row titles resolve through the live section (dynamic pair titles reach the PNG)', () => {
     installCompartments();
     renderTierSections(PROFILE, 't1');
-    const rows = shareRowRefs();
-    expect(rows[2].closest('.coord-section').querySelector('.coord-title').textContent)
-      .toBe('SUN ↑ RISING');
+    expect(shareRowRefs()[2].title).toBe('SUN ↑ RISING');
     renderTierSections(PROFILE, 'free');
-    expect(rows[2].closest('.coord-section').querySelector('.coord-title').textContent)
-      .toBe('SUN · RISING');
+    expect(shareRowRefs()[2].title).toBe('SUN · RISING');
   });
 
-  it('index.html wires the share surface through shareRowRefs (ui/share.js untouched)', () => {
+  it('index.html wires the share surface through shareRowRefs', () => {
     expect(html).toMatch(/\] = shareRowRefs\(\)/);
     expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareAnimal/);
   });

@@ -20,12 +20,13 @@
 //     same-tier re-renders flag none (β idempotence — no replay on
 //     shake-again / rehydrate). index.html primes the baseline with the
 //     pre-paid-return tier at boot so a paid-return boot unseals once.
-//   - shareRowRefs — per-row snapshot proxies for ui/share.js (§5.D).
-//     The PNG keeps rendering OPEN coordinates only: a row with no open
-//     cell reads as hidden; row text joins open cell values in the row's
-//     pair grammar (↑ / ⇌ / space), excluding `—` unresolved cells from
-//     pairs. ui/share.js is untouched this cycle — these proxies satisfy
-//     its existing refs contract (closest / textContent / section.hidden).
+//   - shareRowRefs — per-row snapshot refs for ui/share.js (§5.D v0.39).
+//     The PNG renders the FULL sheet per compartment: each row ref carries
+//     its title + per-cell {state, value}. Open cells → value; sealed cells
+//     → a `sealed` state with value forced to '' (share.js draws a hatch,
+//     value never read); unresolved cells → the `—` empty field. A mixed
+//     row surfaces its open value AND its sealed compartment(s). The sealed
+//     VALUE never leaves the DOM (sealed cells hold textContent === '').
 //
 // Does NOT own:
 //   - tier persistence (eight_ball_tier_v1 lives in ui/payments.js)
@@ -81,7 +82,7 @@ export const TIER_COORDS = {
 // entitles it. life path is its own (DOB-derived) coordinate at free;
 // expression/name number and soul urge share the name-derived `numerology`
 // coordinate at t1. The §1.B space-separated guarantee survives in the
-// compartment gaps and in the shareRowRefs join.
+// compartment gaps and in the per-cell share snapshot.
 const CELL_KEYS = [
   'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
   'lifePath', 'nameNumber', 'soulUrge',
@@ -248,57 +249,58 @@ export function renderTierSections(profile, tier) {
   return { cardEntry };
 }
 
-// ── share-row snapshot proxies (§5.D — ui/share.js untouched) ─────
-// One proxy per coordinate row, in DOM order. share.js filters on the
-// row's section.hidden and reads textContent + the section's
-// .coord-title — these proxies answer all three from live cell state:
-// hidden ⇔ no open cell (the PNG renders open coordinates only; the
-// sealed structure stays off the share surface — logged deferral),
-// text = open cell values joined in the row's pair grammar, `—`
-// unresolved cells dropped from pairs (single-cell rows keep the `—`
-// empty-field register, matching the on-screen card).
+// ── share-row snapshot refs (§5.D v0.39 — full-sheet PNG) ─────────
+// One entry per coordinate row, in DOM order. Each carries the row TITLE
+// and its per-cell state (open | sealed | unres) + value, all read from
+// live cell state so ui/share.js renders the FULL compartment sheet:
+// open cells → value, sealed cells → hatch (the value is never read),
+// unres cells → the `—` empty field. Per-cell (not per-row): a mixed row
+// like SUN · RISING surfaces the open sun value AND the sealed rising
+// compartment. The sealed VALUE never leaves the DOM (sealed cells hold
+// textContent === '') and is forced to '' here as a second guarantee.
 const SHARE_ROWS = [
-  { cells: ['arcana'], join: ' ' },
-  { cells: ['element'], join: ' ' },
-  { cells: ['sun', 'rising'], join: ' ↑ ' },
-  { cells: ['animal', 'innerAnimal'], join: ' ⇌ ' },
-  { cells: ['lifePath', 'nameNumber', 'soulUrge'], join: ' ' },
-  { cells: ['personality', 'birthday', 'maturity'], join: ' ' },
-  { cells: ['dayPillar'], join: ' ' },
-  { cells: ['hourPillar'], join: ' ' },
+  ['arcana'],
+  ['element'],
+  ['sun', 'rising'],
+  ['animal', 'innerAnimal'],
+  ['lifePath', 'nameNumber', 'soulUrge'],
+  ['personality', 'birthday', 'maturity'],
+  ['dayPillar'],
+  ['hourPillar'],
 ];
 
-function cellOpen(cell) {
-  return !!(cell && cell.root && cell.root.classList && !cell.root.classList.contains('sealed'));
+function cellStateOf(cell) {
+  const cl = cell && cell.root && cell.root.classList;
+  if (!cl || cl.contains('sealed')) return 'sealed';
+  if (cl.contains('unres')) return 'unres';
+  return 'open';
 }
 
-function rowSnapshotText(row) {
-  const open = row.cells.map(key => _cells && _cells[key]).filter(cellOpen);
-  const vals = open
-    .filter(cell => !cell.root.classList.contains('unres'))
-    .map(cell => (cell.val ? String(cell.val.textContent).trim() : ''))
-    .filter(Boolean);
-  if (vals.length) return vals.join(row.join);
-  return open.length ? '—' : '';
+function rowTitleOf(keys) {
+  const lead = _cells && _cells[keys[0]];
+  const sectionEl = lead && lead.val && lead.val.closest
+    ? lead.val.closest('.coord-section') : null;
+  const titleEl = sectionEl && sectionEl.querySelector
+    ? sectionEl.querySelector('.coord-title') : null;
+  return titleEl ? String(titleEl.textContent).trim() : '';
 }
 
 export function shareRowRefs() {
-  return SHARE_ROWS.map(row => {
-    const section = {
-      get hidden() {
-        return !row.cells.some(key => cellOpen(_cells && _cells[key]));
-      },
-      querySelector(selector) {
-        const lead = _cells && _cells[row.cells[0]];
-        const sectionEl = lead && lead.val && lead.val.closest
-          ? lead.val.closest('.coord-section') : null;
-        return sectionEl && sectionEl.querySelector
-          ? sectionEl.querySelector(selector) : null;
-      },
-    };
-    return {
-      closest: () => section,
-      get textContent() { return rowSnapshotText(row); },
-    };
-  });
+  return SHARE_ROWS.map(keys => ({
+    get title() { return rowTitleOf(keys); },
+    get cells() {
+      return keys.map(key => {
+        const cell = _cells && _cells[key];
+        const state = cellStateOf(cell);
+        return {
+          state,
+          // sealed → '' (the value never reaches the artifact); open/unres
+          // → the live cell text ('—' for unres, per the on-card F4 field).
+          value: state === 'sealed'
+            ? ''
+            : (cell && cell.val ? String(cell.val.textContent).trim() : ''),
+        };
+      });
+    },
+  }));
 }

@@ -110,9 +110,9 @@ describe('render + share wiring (index.html)', () => {
     expect(slice).not.toContain('locked-extras');
   });
 
-  it('share refs lead with the arcana row (PNG matches free card; v0.7.0 row proxies)', () => {
-    // v0.7.0: share refs are per-row snapshot proxies from ui/tiers.js;
-    // the arcana row is index 0 and its id survives for selector continuity.
+  it('share refs lead with the arcana row (PNG matches free card; per-cell share refs)', () => {
+    // share refs are per-row snapshot refs from ui/tiers.js carrying per-cell
+    // {state, value} (§5.D v0.39); the arcana row is index 0, its id survives.
     expect(html).toContain('id="coord-arcana-symbol"');
     expect(html).toMatch(/symbols:\s*\[\s*shareArcana/);
   });
