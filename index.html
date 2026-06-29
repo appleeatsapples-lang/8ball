@@ -345,7 +345,7 @@
     color: var(--rule);
   }
   .field-group[open] summary::before { content: "-"; }
-  .field-group .hint {
+  .field-group .hint, #mechanism-strip {
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
@@ -762,6 +762,7 @@
   <!-- ── welcome screen ──────────────────────────────────────────── -->
   <section class="screen" id="onboarding">
     <div class="registry-header">specimen registry · new entry</div>
+    <p class="hint" id="mechanism-strip">five public coordinates · sealed sheet · stored on this device.</p>
     <form id="profile-form" autocomplete="off">
       <div class="field">
         <label for="name-input">name</label>
@@ -1060,9 +1061,8 @@ initTiersUI({
   },
 }, {});
 
-// v0.4.0 share-surface (§5.D): no profile, no card layer. v0.7.0: rows
-// are snapshot proxies from ui/tiers.js — the PNG keeps rendering open
-// coordinates only (sealed-structure-in-PNG deferred); share.js untouched.
+// share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
+// ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
 const [shareArcana, shareElement, shareSun, shareAnimal,
   shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
 initShareUI(
