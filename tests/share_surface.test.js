@@ -339,6 +339,13 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
     expect(shareJs).not.toMatch(/\.note\b/);
   });
 
+  // CLP §1.E: provenance placards (.coord-prov) are on-screen only. The PNG
+  // builder reads the shareRowRefs snapshot (.coord-val + .coord-title)
+  // never the placard, so the derivation notes stay out of the artifact.
+  it('ui/share.js does not serialize the provenance placard (.coord-prov)', () => {
+    expect(shareJs).not.toMatch(/coord-prov/);
+  });
+
   // §5.D invariant (a)/(b): never name or DOB; no per-result link or
   // query parameter encodes any profile field.
   it('ui/share.js carries no name/DOB profile read', () => {

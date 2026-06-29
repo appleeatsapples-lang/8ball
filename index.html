@@ -154,6 +154,17 @@
   }
   .card.labels-revealed .coord-title { visibility: visible; }
 
+  /* provenance placards (CLP §1.E): per-coordinate derivation note under
+     each row, shown only when labels are revealed (display:none keeps the
+     default card height unchanged). Off-card / off-share: ui/share.js reads
+     .coord-val + .coord-title, never .coord-prov. */
+  .card .coord-prov {
+    font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
+    color: var(--label); text-transform: lowercase;
+    margin-top: 3px; display: none;
+  }
+  .card.labels-revealed .coord-prov { display: block; }
+
   /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
      Full cell structure at every tier; sealed cell = EMPTY value node +
      seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
