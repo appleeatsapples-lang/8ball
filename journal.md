@@ -2,6 +2,18 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-29 — test-tooling hygiene: exclude `.claude/` from Vitest + PII scan — STAGED
+
+**Status: STAGED on the CC worktree branch (`claude/peaceful-rhodes-0696d7`, == `main`); merge to `main` operator-gated per CLAUDE.md.** Durable fix for duplicate test discovery when a CC worktree is checked out under `.claude/worktrees/`.
+
+**What changed (test infra only):**
+- New `vitest.config.js` — `exclude: [...configDefaults.exclude, '.claude/**']`. Without it Vitest's defaults don't skip dotdirs, so a run from the repo root descends into `.claude/worktrees/<wt>/tests/` and discovers a second copy of the suite.
+- `tests/pii_scan.test.js` — added `.claude` to `SKIP_DIRS`. The scanner walks the filesystem (`readdirSync`), so it likewise descended into worktree copies. `.claude/` is gitignored (CC tooling artifacts), and DOCTRINE §11 makes *tracked content* the PII boundary — skipping it aligns the scanner with doctrine. This NARROWS scan coverage (does not widen the allow-list); logged here per the CLAUDE.md scanner-change norm. No allow-list entries added; named-token labeled-DOB coverage unchanged.
+
+**Sibling fix (separate branch):** `prototype/interrogation-layer` was found still carrying the pre-`a15cf8f` labeled-DOB regex (bare `me`, no leading word-boundary) and was red on its root `journal.md` line 21. It received the L53 #4 regex fix it had been missing (drop bare `me`, word-bound the group) — the structural fix already live on `main`, not a prose reword.
+
+**Held invariants:** no backend · no telemetry · no new deps (`vitest/config` is existing dev tooling) · no network surface · no `core/`/`content/`/`fixtures.json` touch · no app-behavior change. **Next:** operator reviews diffs → merges main-line hygiene to `main` → decides whether the prototype regex fix is committed/pushed.
+
 ## 2026-06-25 — v0.38 free life-path split (override #3) · DOCTRINE v0.38 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `a5b9208` (#39), 2026-06-25T21:40:08Z; close-out at the foot of this entry.** Branch `feature/free-lifepath-split` @ `b56220d`. Gate (all green): go-green DONE (1052/1052, 20 files, `npm test` exit 0) → journal entry (§8 DOCTRINE-touch gate) → commit/push/PR #39 → **Codex Procedure 4 AUDIT-CLEARED 9/9, zero corrective edits** (doctrine + free-surface; hooks: §1.D-v0.38-vs-implementation parity, free = DOB-only invariant, catalog isolation `(sunSign, animal)` unchanged, §5.D share-PNG PII basis, L17 lineage, version-truth) → operator merge. Brief: `~/Desktop/8ball/sessions/override3_free_lifepath_split_2026-06-12.md`.

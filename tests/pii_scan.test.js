@@ -14,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
 // Skip these dirs entirely.
-const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', '.vitest-cache', '.netlify']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', '.vitest-cache', '.netlify', '.claude']);
 // Skip the audit doc itself + this test file (their job is to list the patterns).
 const SKIP_FILES = new Set(['LOCAL_PII_AUDIT.md', 'pii_scan.test.js']);
 
