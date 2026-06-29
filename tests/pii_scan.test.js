@@ -14,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
 // Skip these dirs entirely.
-const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', '.vitest-cache', '.netlify']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', '.vitest-cache', '.netlify', '.claude']);
 // Skip the audit doc itself + this test file (their job is to list the patterns).
 const SKIP_FILES = new Set(['LOCAL_PII_AUDIT.md', 'pii_scan.test.js']);
 
@@ -95,7 +95,14 @@ const BANNED = [
     // where alphabetic text sits between the label and the date (e.g.
     // `Muhab test)" with \`dob: "YYYY-MM-DD`). Same 40-char window keeps it
     // line-local and prevents false positives across distant tokens.
-    pattern: /(muhab|akif|operator|owner|founder|me)\b.{0,40}\d{4}-\d{2}-\d{2}/i,
+    // L53 #4 fix: leading \b added + bare `me` dropped. `me\b` had no left
+    // boundary, so it matched the trailing "me" of ordinary words (e.g.
+    // "same day ... 2026-06-25" in journal.md) — a self-label "me" is not a
+    // real operator-DOB tag, and the named tokens already cover the leak
+    // shape. Word-bounding the group also stops e.g. "owner" matching inside
+    // "downer". No true-positive coverage lost (the v0.1.0 leak was tagged
+    // "Muhab", still caught by \bmuhab\b).
+    pattern: /\b(muhab|akif|operator|owner|founder)\b.{0,40}\d{4}-\d{2}-\d{2}/i,
     label: 'labeled-DOB leak',
     allow: [...LABELED_DOB_ALLOW]
   }
