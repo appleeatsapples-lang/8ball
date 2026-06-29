@@ -165,6 +165,17 @@
   }
   .card.labels-revealed .coord-prov { display: block; }
 
+  /* ATLAS legend (CLP cut 2): system-name gloss under the abbreviated
+     title, same labels gate as the placard. display:none keeps the default
+     card height unchanged; off-share like .coord-prov (share reads
+     .coord-val + .coord-title only, never .coord-atlas). */
+  .card .coord-atlas {
+    font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
+    color: var(--label); text-transform: lowercase;
+    margin-bottom: 3px; display: none;
+  }
+  .card.labels-revealed .coord-atlas { display: block; }
+
   /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
      Full cell structure at every tier; sealed cell = EMPTY value node +
      seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
