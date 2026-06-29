@@ -747,6 +747,20 @@
     .stage { padding-left: 16px; padding-right: 16px; }
     .topbar { padding: 0 16px; }
   }
+
+  /* Result screen desktop side rail (≥720px): the card keeps its 5/8
+     specimen proportions while the controls (SHAKE / TRY / SHARE) move into
+     a rail beside it, so SHARE stays above the fold. Every rule is #result-
+     scoped so the shared onboarding screen (same main/.stage/.screen) is
+     untouched. Mobile/narrow stays stacked. */
+  @media (min-width: 720px) {
+    #result { max-width: 760px; }
+    #result .result-main { display: flex; align-items: flex-start; justify-content: center; gap: 40px; }
+    #result .flip-stage { flex: 0 0 360px; margin: 0; }
+    #result .result-rail { flex: 0 1 300px; }
+    #result .labels-toggle { margin: 0 0 16px; }
+    #result .result-controls { margin-top: 0; }
+  }
 </style>
 </head>
 <body>
@@ -796,6 +810,8 @@
   <!-- ── result/shake screen ─────────────────────────────────────── -->
   <section class="screen hidden" id="result">
 
+    <!-- card + controls: stacked column on mobile, side-by-side rail at ≥720px so SHARE clears the fold -->
+    <div class="result-main">
     <div class="flip-stage" id="flip-stage">
       <div class="flip-inner" id="flip-inner">
 
@@ -864,6 +880,7 @@
       </div>
     </div>
 
+    <div class="result-rail">
     <button class="labels-toggle" id="labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>
 
     <div class="result-controls">
@@ -876,6 +893,8 @@
         <button class="text-link" id="forget-btn" type="button">forget this device</button>
       </div>
     </div>
+    </div><!-- /.result-rail -->
+    </div><!-- /.result-main -->
 
     <!-- ── feedback (opt-in, §5.B) ──────────────────────────────── -->
     <details class="feedback-details">
@@ -975,9 +994,9 @@ import {
   populateRisingFields, resetFormDisplay,
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
+import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 
 const AGE_ACK_KEY = 'eight_ball_age_ack_v1';
-const LABELS_KEY = 'eight_ball_labels_revealed_v1';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1042,7 +1061,8 @@ const readsChip = $('reads-chip');
 
 const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
-const labelsToggle = $('labels-toggle');
+// labels-reveal toggle controller (ui/labels.js — §6 split).
+const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle') }, {});
 
 // v0.7.0 compartment card (DOCTRINE §1.D v0.37). Per-cell fill/seal lives
 // in ui/tiers.js; refs are the .coord-val nodes (cell roots resolved there).
@@ -1436,32 +1456,9 @@ function showAgeGate() {
 
 ageGateConfirm.addEventListener('click', acknowledgeAge);
 
-// ── labels-reveal toggle (DOCTRINE.md §5) ─────────────────────────
-function isLabelsRevealed() {
-  try { return localStorage.getItem(LABELS_KEY) === 'true'; }
-  catch (_) { return false; }
-}
-
-function setLabelsRevealed(revealed) {
-  try { localStorage.setItem(LABELS_KEY, revealed ? 'true' : 'false'); }
-  catch (_) { /* localStorage unavailable; preference survives only this session */ }
-}
-
-function applyLabelsState(revealed) {
-  cardFace.classList.toggle('labels-revealed', revealed);
-  labelsToggle.textContent = revealed ? '→ hide labels' : '→ reveal labels';
-  labelsToggle.setAttribute('aria-pressed', revealed ? 'true' : 'false');
-}
-
-labelsToggle.addEventListener('click', () => {
-  const next = !cardFace.classList.contains('labels-revealed');
-  setLabelsRevealed(next);
-  applyLabelsState(next);
-});
-
 // ── boot ──────────────────────────────────────────────────────────
 function initAfterAck() {
-  applyLabelsState(isLabelsRevealed());
+  labelsUI.applyLabelsState(isLabelsRevealed());
   // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
   // paid-return boot unseals exactly the delta; rehydrate unseals nothing.
   primeUnsealBaseline(getRenderTier());
