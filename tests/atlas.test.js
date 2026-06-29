@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ATLAS_NOTE, atlasText, initTiersUI, renderTierSections } from '../ui/tiers.js';
+import { ATLAS_NOTE, atlasText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -255,5 +255,48 @@ describe('ATLAS legend — DOM write (cut-2 wiring)', () => {
       const atlases = sections[s].kids.filter(k => k.className === 'coord-atlas');
       expect(atlases.length, `row ${s} duplicated legend`).toBe(1);
     }
+  });
+});
+
+// ── behavioral guarantees (beyond the static-source pins) ────────────
+// The §5.D exclusion and the value/PII safety hold structurally (atlas is a
+// .coord-atlas sibling outside .coord-title; atlasText takes no profile and
+// reads only the static ATLAS_NOTE). These pin that behaviorally so a future
+// refactor that wired the gloss into the title — or a profile value into the
+// write path — would fail a test, not just slip past a source grep.
+describe('ATLAS legend — behavioral exclusion & profile-independence', () => {
+  const ATLAS_VALUES = Object.values(ATLAS_NOTE);
+
+  it('the §5.D share snapshot never carries the atlas gloss (title or cell value)', () => {
+    buildDom();
+    renderTierSections(PROFILE, 'free');
+    const refs = shareRowRefs();
+    for (const ref of refs) {
+      for (const v of ATLAS_VALUES) {
+        expect(ref.title.includes(v),
+          `share title "${ref.title}" leaked atlas gloss "${v}"`).toBe(false);
+        for (const c of ref.cells) {
+          expect(String(c.value).includes(v),
+            `share cell value "${c.value}" leaked atlas gloss "${v}"`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('the written legend is profile-independent (no value/PII can reach it)', () => {
+    const a = buildDom();
+    renderTierSections(PROFILE, 'free');
+    const textsA = ATLAS_ROWS.map(s => a.sections[s].querySelector('.coord-atlas').textContent);
+    // A second build with entirely different coordinate VALUES must produce
+    // byte-identical legends — the gloss is keyed off ATLAS_NOTE, never the profile.
+    const b = buildDom();
+    const PROFILE_B = {
+      ...PROFILE, sunSign: 'aries', risingSign: 'virgo', animal: 'tiger', innerAnimal: 'snake',
+      chineseElement: 'metal', lifePath: 9, nameNumber: 2, soulUrge: 7,
+      birthCard: { label: 'i · the magician' },
+    };
+    renderTierSections(PROFILE_B, 'free');
+    const textsB = ATLAS_ROWS.map(s => b.sections[s].querySelector('.coord-atlas').textContent);
+    expect(textsB).toEqual(textsA);
   });
 });
