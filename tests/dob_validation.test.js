@@ -82,4 +82,13 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
   it('dobError DOM reference is declared near other field refs', () => {
     expect(html).toMatch(/const\s+dobError\s*=\s*\$\(\s*['"]dob-error['"]\s*\)/);
   });
+
+  it('boot rehydration guards buildProfile so a corrupt stored DOB never crashes boot', () => {
+    // A hand-edited / impossible-date stored profile makes buildProfile throw
+    // (the calc core rejects impossible dates). The boot rehydration must catch
+    // it, clear the bad payload, and fall through to onboarding — not crash.
+    expect(html).toMatch(
+      /try\s*\{[\s\S]*?profileFromPayload\(existing\)[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?clearProfile\(\)/
+    );
+  });
 });

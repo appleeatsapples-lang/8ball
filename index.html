@@ -1455,15 +1455,26 @@ function initAfterAck() {
   // rehydration; density resolves from storage via getRenderTier().
   handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
+  let rehydrated = false;
   if (existing) {
-    populateRisingFields(existing);
-    showResult(profileFromPayload(existing), {
-      tier: getRenderTier(), credits: getCredits(),
-    });
-  } else {
-    // No saved profile. The gate path pre-emptively hides #onboarding so
-    // it doesn't leak behind the modal; un-hide here so the form is
-    // visible on a first-time user's first paint after they tap confirm.
+    try {
+      populateRisingFields(existing);
+      showResult(profileFromPayload(existing), {
+        tier: getRenderTier(), credits: getCredits(),
+      });
+      rehydrated = true;
+    } catch (_) {
+      // Corrupted stored profile — a malformed DOB, or (since the calc core
+      // now rejects them) an impossible-date DOB from a hand-edited payload.
+      // buildProfile throws; don't crash boot — drop the bad payload and fall
+      // through to the onboarding form so the user can re-enter.
+      clearProfile();
+    }
+  }
+  if (!rehydrated) {
+    // No saved profile, or a corrupted one we just cleared. The gate path
+    // pre-emptively hides #onboarding so it doesn't leak behind the modal;
+    // un-hide here so the form is visible on first paint after confirm.
     onboarding.classList.remove('hidden');
   }
 }

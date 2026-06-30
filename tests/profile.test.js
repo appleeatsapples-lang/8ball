@@ -92,6 +92,7 @@ describe('calculation contract', () => {
     expect(() => buildProfile('x', '2000-04-31')).toThrow(); // Apr has 30
     expect(() => buildProfile('x', '2000-06-31')).toThrow(); // Jun has 30
     expect(() => buildProfile('x', '2000-09-31')).toThrow(); // Sep has 30
+    expect(() => buildProfile('x', '2000-11-31')).toThrow(); // Nov has 30 (4th 30-day month)
     expect(() => buildProfile('x', '2001-02-29')).toThrow(); // 2001 not leap
     expect(() => buildProfile('x', '1900-02-29')).toThrow(); // 1900 not leap (÷100, ¬÷400)
   });
@@ -100,6 +101,7 @@ describe('calculation contract', () => {
     expect(() => buildProfile('x', '2000-02-29')).not.toThrow(); // 2000 leap (÷400)
     expect(() => buildProfile('x', '2004-02-29')).not.toThrow(); // 2004 leap
     expect(() => buildProfile('x', '2000-02-28')).not.toThrow(); // Feb 28 always valid
+    expect(() => buildProfile('x', '1900-02-28')).not.toThrow(); // century non-leap, Feb 28 valid
     expect(() => buildProfile('x', '2000-04-30')).not.toThrow(); // Apr 30 valid
     expect(() => buildProfile('x', '2000-01-31')).not.toThrow(); // Jan 31 valid
   });
