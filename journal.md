@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-30 — CLP doc-coherence: §1.F (atlas + density literal coverage) + about-copy · DOCTRINE v0.41 — STAGED
+## 2026-06-30 — CLP doc-coherence: §1.F (atlas + density literal coverage) + about-copy · DOCTRINE v0.41 — SHIPPED
 
-**Status: STAGED on `feature/clp-doc-coherence` (off `main` @ `34314fd`, post-CLP); NOT merged — DOCTRINE touch ⇒ Codex Procedure 4 precedes merge per §10/L48.** Doc/copy tie-off of the now-complete Coordinate Legibility Pack. **Discharges the carried debt:** the cut-2 Codex **Hook 7** flagged that ATLAS (and then DENSITY) shipped clause-free (covered "in substance" by §1.D v0.37 + §5.D v0.39 + the §1.E precedent), recommending a §1.F or §1.E-broaden at the next doctrine-touching cycle for literal coverage. This is that cycle.
+**Status: SHIPPED — squash-merged to `main` as `e22c3f5` ([#45](https://github.com/appleeatsapples-lang/8ball/pull/45)), 2026-06-30T18:47:15Z. Codex Procedure 4 AUDIT-CLEARED 6/6, zero corrective edits.** Branch `feature/clp-doc-coherence` deleted remote+local; `ls-remote` verified `main` + `prototype/interrogation-layer` only; prod smoke HTTP 200 (about-copy live). Doc/copy tie-off of the now-complete Coordinate Legibility Pack. **Discharges the carried debt:** the cut-2 Codex **Hook 7** flagged that ATLAS (and then DENSITY) shipped clause-free (covered "in substance" by §1.D v0.37 + §5.D v0.39 + the §1.E precedent), recommending a §1.F or §1.E-broaden at the next doctrine-touching cycle for literal coverage. This is that cycle.
 
 **What changed (doc/copy only — no code-behavior change beyond the already-shipped cuts 2–3):**
 - **DOCTRINE §1.F (NEW)** — "Legibility surfaces — atlas legend + density census, labeled, surface-only." Gives ATLAS (per-coordinate system-name legend, labels-gated, `.coord-atlas` outside `.coord-title`, off the §5.D PNG) and DENSITY (always-on result-rail aggregate `N of 15 coordinates open · M sealed at paid tiers`, outside `#card-face`, computed purely from `TIER_COORDS`+`CELL_COORD` via `tierDensitySummary`, never a profile; base 15 = 14 cells + catalog numeral so free 5 matches §1.D) their literal clause. Both surface-only · catalog-isolated · no value/PII · no new key · §2 clinical / no-FOMO. §1.E remains the provenance clause.
