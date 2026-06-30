@@ -2,6 +2,25 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-07-01 — §13 rule-kill enactment: 7 AMENDs → DOCTRINE v0.43 (self-firing trigger + §12 P1 + coherence×4) — STAGED
+
+**Status: STAGED on `feature/rule-kill-amends` (branched fresh from `origin/main` @ `2d263ca`) — NOT merged. DOCTRINE.md touch ⇒ Codex Procedure 4 mandatory per §10/L48; PR opened off this branch, awaiting AUDIT-CLEARED before merge.** Enacts the 7 cross-verified AMENDs from the 2026-06-30 §13 rule-kill review (#49 `1bb6c68`), which logged the verdict and queued — not staged — the edits. Routing per the review's recommendation: all 7 bundled into ONE doctrine cut (additive/L17-clean — #48's proven pattern) for a single Codex paste.
+
+**What changed (DOCTRINE.md only, +23/−1 — the one deletion is the v0.42 footer prefix, re-homed byte-identical as a `- v0.42:` lineage entry):**
+- **A1 (§13 + §8) — cadence → event-based self-firing trigger.** The twice-failed monthly date cadence (v0.32) is superseded as the *primary* trigger and retained as the *floor*. New model: every doctrine-touching ship runs the rule-kill review in its §8 gate-8 close-out when the newest rule-kill review entry in `journal.md` is >30 days old (the event accelerator); the monthly date is the no-ship backstop; the >30-day check reads the newest review date mechanically from the journal. Sibling §8 ritual step added (gate 8).
+- **A2 (§12, P1) — uniform [GUARDED] gated-work pass.** Astrology-charts/planetary-aspects reclassified [GUARDED]→[PERMANENT] (they ARE the already-permanently-banned no-oracle/horoscope identity; the only genuinely-guarded astrology surface, optional rising, already shipped §1.A). Multi-language trigger re-keyed off the deleted `traits.v1.js`/`templates.v1.js` system — a condition that can never fire — to a live observable: `cards.v2.*` exists in any language. Corrects a 3-review-inherited error (flagged inaugural 2026-05-15, wrongly reversed 2026-05-30, caught now by cross-verification).
+- **A3 (§7) — Netlify-required-check trigger bound.** "First traction milestone" → the concrete ship-gate proxy (≥5 paid + ≥1 strong divination-niche signal), else restated as an indefinitely-accepted gap while traffic stays at operator-scale.
+- **B1–B4 (coherence / L17-staleness):** §1.A "lands at v0.2.8" → shipped/past-tense; §1.B "three-number triplet" → name-derived pair (life path split free at v0.38); §1.B personality/birthday/maturity "reserved for v0.3.0+" → surfaced at t2 (v0.6.0); §8 gate-8 journal-header example `===== … =====` → the live `## … — STATUS` shape.
+- Footer **v0.42 → v0.43** (v0.42 demoted to lineage verbatim per L17).
+
+**L17 discipline:** every fix is a new dated v0.43 amendment block that supersedes; zero historical or locked text edited (the §1.D operator-locked table left byte-verbatim); §-numbers preserved. Diff = +23/−1, the single deletion re-homed verbatim.
+
+**Adversarial verification (Claude-internal — substitutes for the unavailable overnight cross-model lanes; does NOT replace Codex):** 4-lens + synthesis workflow (`wf_fe3783fe-5b9`) — spec-fidelity, L17-discipline, factual-accuracy (each load-bearing claim re-checked against the live constitution), coherence — returned **CLEAN** (synthesis 0 findings; 2 coherence NITs on the "mechanical read" forward-consistency wording adjudicated non-defects). DOCTRINE deploys to live prod; Codex Procedure 4 stays the merge gate (L48).
+
+**Tests 1115 green** (no test pins DOCTRINE prose; `pii_scan` clean over the DOCTRINE_ALLOW-listed file). Local PII audit clean (71). **Scope (files):** `DOCTRINE.md`, this entry. **UNTOUCHED:** all code, `content/`, `tests/`, `CLAUDE.md`/`8BALL.md`/`README.md`; `package.json` unbumped.
+
+**Next:** Codex Procedure 4 (bundle `~/Desktop/8ball/audits/codex_p4_rule_kill_amends_2026-07-01_PASTE.txt`) → merge on AUDIT-CLEARED → close-out (journal STAGED→SHIPPED, branch delete, prod smoke). The self-firing trigger this cut enacts begins governing the next doctrine-touching ship dated after 2026-07-30 (or the 2026-07-30 monthly floor, whichever comes first).
+
 ## 2026-06-30 — §13 rule-kill review (first monthly, 15d overdue) · cross-verified — SHIPPED · 7 AMENDs queued for next doctrine cut
 
 **Status: SHIPPED — squash-merged to `main` as `1bb6c68` ([#49](https://github.com/appleeatsapples-lang/8ball/pull/49)); docs-only (journal.md + vault artifact), no DOCTRINE.md / code touch ⇒ no Codex P4; CI green, autonomously merged per the standing non-stop mandate, branch cleaned.** The dedicated governance cut #48 explicitly deferred ("a governance pass that deserves a dedicated cut"). Ran after #48 cleared — non-Codex work that clears 15-day-overdue dated debt. Full walk: `~/Desktop/8ball/sessions/rule_kill_review_2026-06-30.md`. **Cross-verified by a 7-agent adversarial workflow** (5 blind clause re-walkers + missed-finding hunter + AMEND/headline stress-test) against the live v0.42 constitution — the verification materially corrected the solo first pass (caught 5 missed AMENDs + 1 P1 inherited error; the solo pass had said "35 KEEP / 2 AMEND").
