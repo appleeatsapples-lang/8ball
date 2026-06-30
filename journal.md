@@ -2,6 +2,21 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-30 — refinement campaign #3: doctrine coherence (current-state anchors + L17 in-doc + §6 counts) · DOCTRINE v0.42 — STAGED
+
+**Status: STAGED on `feature/doctrine-coherence` (off `main` @ `275c307`); DOCTRINE.md touch ⇒ Codex Procedure 4 precedes merge per §10/L48.** Campaign cut #3 — the doctrine half of the scout's coherence findings, scoped to **additive/L17-clean accuracy fixes only** (no historical or operator-locked text edited; no code/content/calc touch; `package.json` unbumped).
+
+**What changed (DOCTRINE.md only, +9/−2):**
+- **§1 current-state anchor** — a bold pointer after the opening line routes the reader to the live composition (free = **five** coordinates on the §1.D compartment sheet; §1.A–§1.F are the per-surface authority) BEFORE the retired v0.2.3/v0.36 "seven coordinates / triplet" lineage prose. Fixes the constitution's most-read clause describing a retired surface in present tense (the reader previously learned the wrong surface twice before reaching the v0.38 correction 70 lines down).
+- **§1.D table-currency note** — the operator-locked 2026-06-11 table is left verbatim; a note under it records the two superseded cells (free is now 5 — life path joined at v0.38; t1 numerology is the name-derived pair).
+- **§6 architecture counts** reconciled to **9 core / 6 ui / 24 tests** (were 7/2/14 "as of v0.3.0"), with the file inventory deferred to `CLAUDE.md` (canonical) so the count cannot re-drift inside the constitution.
+- **§13 codifies L17 in-document** — "Amendment discipline (L17)": supersede-not-edit + §-number preservation, the rule the 12 in-doc "per L17" citations refer to (previously defined only in the journal), with sibling pointers to **L48** (merge gate) and **L53** (PII-scan re-fire). Makes the constitution self-contained.
+- Footer **v0.41 → v0.42** (v0.41 demoted to lineage verbatim per L17).
+
+**Deferred (flagged, NOT done here):** the overdue §13 **rule-kill review** (15 days late) + binding it to a self-firing trigger — a governance pass that deserves a dedicated cut, not the tail of a long session.
+
+**Scope (files):** `DOCTRINE.md`, this entry. **UNTOUCHED:** all code, `content/`, `tests/`, `CLAUDE.md`/`8BALL.md`/`README.md`. **Tests 1115 green** (no test pins DOCTRINE prose; `pii_scan` clean over the DOCTRINE_ALLOW-listed file). PII audit clean (71). **Next (campaign):** the §13 rule-kill review + self-trigger; dead-code removal (`core/` ~560 lines, Codex); index.html a11y + cleanup (Codex); test hardening; reach levers.
+
 ## 2026-06-30 — refinement campaign #2: collapse 8BALL.md §10 to a journal pointer — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `8980271` ([#47](https://github.com/appleeatsapples-lang/8ball/pull/47)); docs-only (8BALL.md), no DOCTRINE.md / code touch ⇒ no Codex P4; CI green, autonomously merged, branch cleaned.** Campaign cut #2, the doc-system root fix (scout doNow): §10 had grown to ~82 lines re-narrating every ship from v0.38 back to v0.1.0 — a second state record duplicating `journal.md` on a slower manual cadence, which is why it rotted (last touched 06-26, six ships behind by 06-30). Two state records on different cadences guarantee the slow one drifts; removing the duplicate cadence kills the drift surface instead of re-syncing it once (pairs with campaign #1's journal-precedence rule).
