@@ -2,6 +2,23 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-30 — CLP doc-coherence: §1.F (atlas + density literal coverage) + about-copy · DOCTRINE v0.41 — STAGED
+
+**Status: STAGED on `feature/clp-doc-coherence` (off `main` @ `34314fd`, post-CLP); NOT merged — DOCTRINE touch ⇒ Codex Procedure 4 precedes merge per §10/L48.** Doc/copy tie-off of the now-complete Coordinate Legibility Pack. **Discharges the carried debt:** the cut-2 Codex **Hook 7** flagged that ATLAS (and then DENSITY) shipped clause-free (covered "in substance" by §1.D v0.37 + §5.D v0.39 + the §1.E precedent), recommending a §1.F or §1.E-broaden at the next doctrine-touching cycle for literal coverage. This is that cycle.
+
+**What changed (doc/copy only — no code-behavior change beyond the already-shipped cuts 2–3):**
+- **DOCTRINE §1.F (NEW)** — "Legibility surfaces — atlas legend + density census, labeled, surface-only." Gives ATLAS (per-coordinate system-name legend, labels-gated, `.coord-atlas` outside `.coord-title`, off the §5.D PNG) and DENSITY (always-on result-rail aggregate `N of 15 coordinates open · M sealed at paid tiers`, outside `#card-face`, computed purely from `TIER_COORDS`+`CELL_COORD` via `tierDensitySummary`, never a profile; base 15 = 14 cells + catalog numeral so free 5 matches §1.D) their literal clause. Both surface-only · catalog-isolated · no value/PII · no new key · §2 clinical / no-FOMO. §1.E remains the provenance clause.
+- **Footer v0.40 → v0.41** (v0.40 demoted to lineage verbatim per L17); **content-version** line gains the atlas + density entries.
+- **`index.html` about-modal "the trick"** — added one sentence to the first paragraph naming what reveal-labels surfaces (each coordinate's derivation + counting system) and the result census (how many of the fifteen coordinates are open vs sealed at paid tiers). Closes the deferred about-copy NIT carried across cuts 1–3. "files five coordinates" + every coordinate name preserved (`prose_coordinate_count` green).
+
+**Scope (files):** `DOCTRINE.md` (§1.F + footer v0.41 + content-version), `index.html` (about-modal copy, one line), this entry. **UNTOUCHED:** all `core/`, `content/`, `ui/`, `tests/`, calc, paywall, network, the localStorage key set — **zero code change** (the atlas + density behavior shipped in cuts 2–3; this only documents them).
+
+**Tests: 1115, 24 files, all green** (no code change; `prose_coordinate_count` + `pii_scan` confirm the copy/doctrine edits are clean). Local PII audit clean (71 files; `DOCTRINE.md` is `DOCTRINE_ALLOW`-listed). index.html **1474/1500** (about-copy is same-line, longer). Browser: about-modal renders the new copy, "files five coordinates" intact.
+
+**Disclosed:** `package.json` not bumped — doc/copy only, no calc/content/contract change. **§13 trigger:** §8 brand-coherence / legibility (doctrine catches up to the shipped legibility surfaces); not a conversion fix.
+
+**Held invariants:** no backend · no telemetry · no new deps · no network · no SIRR strings · catalog driver unchanged · calc untouched · no new localStorage key · index.html ≤1500 · L17 lineage. **Next:** push + PR (no merge) → Codex Procedure 4 (hooks: §1.F↔shipped-implementation parity, L17 footer lineage, about-copy/prose-count consistency, no-code-change confirmation, version-truth) → operator merge on AUDIT-CLEARED → close-out. **This ties off the CLP: doctrine now literally covers provenance (§1.E) + atlas + density (§1.F); the about-copy names all three.**
+
 ## 2026-06-29 — Coordinate Legibility Pack cut 3: paid-tier density strip — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `e6f4fcd` ([#44](https://github.com/appleeatsapples-lang/8ball/pull/44)), 2026-06-30T18:21:29Z; close-out at the foot of this entry. Codex Procedure 4 AUDIT-CLEARED.** The last CLP cut. Design-paneled (`clp-density-design` workflow) + adversarial-reviewed (`clp-density-review`). **No DOCTRINE clause** — ATLAS (cut 2) precedent: journal-note-only + Codex P4 (covered in substance by §1.D v0.37 + §5.D v0.39; the strip is the on-screen counted form of the §5.D `sealed remainder` marker).
