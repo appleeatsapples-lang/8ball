@@ -81,20 +81,22 @@ describe('calculation contract', () => {
     });
   }
 
-  it('rejects malformed DOB', () => {
-    expect(() => buildProfile('x', 'bad-date')).toThrow();
-    expect(() => buildProfile('x', '2020-13-01')).toThrow();
-    expect(() => buildProfile('x', '2020-01-32')).toThrow();
+  it('rejects malformed DOB (message-pinned)', () => {
+    expect(() => buildProfile('x', 'bad-date')).toThrow(/DOB must be YYYY-MM-DD/);
+    expect(() => buildProfile('x', '2020-13-01')).toThrow(/DOB out of range/); // bad month
+    expect(() => buildProfile('x', '2020-01-32')).toThrow(/DOB out of range/); // day > 31
   });
 
-  it('rejects impossible day-of-month (Feb 30, Apr 31, Feb 29 non-leap)', () => {
-    expect(() => buildProfile('x', '2000-02-30')).toThrow(); // Feb never has 30
-    expect(() => buildProfile('x', '2000-04-31')).toThrow(); // Apr has 30
-    expect(() => buildProfile('x', '2000-06-31')).toThrow(); // Jun has 30
-    expect(() => buildProfile('x', '2000-09-31')).toThrow(); // Sep has 30
-    expect(() => buildProfile('x', '2000-11-31')).toThrow(); // Nov has 30 (4th 30-day month)
-    expect(() => buildProfile('x', '2001-02-29')).toThrow(); // 2001 not leap
-    expect(() => buildProfile('x', '1900-02-29')).toThrow(); // 1900 not leap (÷100, ¬÷400)
+  it('rejects impossible day-of-month (Feb 30, Apr 31, Feb 29 non-leap) with the range message', () => {
+    // Message-pinned (per Grok P3): a wrong throw TYPE must not pass — every
+    // impossible-day case throws the same `DOB out of range` as the d>31 guard.
+    expect(() => buildProfile('x', '2000-02-30')).toThrow(/DOB out of range/); // Feb never has 30
+    expect(() => buildProfile('x', '2000-04-31')).toThrow(/DOB out of range/); // Apr has 30
+    expect(() => buildProfile('x', '2000-06-31')).toThrow(/DOB out of range/); // Jun has 30
+    expect(() => buildProfile('x', '2000-09-31')).toThrow(/DOB out of range/); // Sep has 30
+    expect(() => buildProfile('x', '2000-11-31')).toThrow(/DOB out of range/); // Nov has 30 (4th 30-day month)
+    expect(() => buildProfile('x', '2001-02-29')).toThrow(/DOB out of range/); // 2001 not leap
+    expect(() => buildProfile('x', '1900-02-29')).toThrow(/DOB out of range/); // 1900 not leap (÷100, ¬÷400)
   });
 
   it('accepts real boundary dates including leap-day Feb 29', () => {

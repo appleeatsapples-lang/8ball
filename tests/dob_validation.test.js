@@ -83,12 +83,17 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     expect(html).toMatch(/const\s+dobError\s*=\s*\$\(\s*['"]dob-error['"]\s*\)/);
   });
 
-  it('boot rehydration guards buildProfile so a corrupt stored DOB never crashes boot', () => {
+  it('boot rehydration guards buildProfile so a corrupt stored DOB never crashes boot OR leaks its city', () => {
     // A hand-edited / impossible-date stored profile makes buildProfile throw
     // (the calc core rejects impossible dates). The boot rehydration must catch
-    // it, clear the bad payload, and fall through to onboarding — not crash.
+    // it and reset BOTH storage and form state: populateRisingFields runs before
+    // buildProfile throws and sets the module-level selectedCity from the bad
+    // payload's birthplace, so the catch must clearProfile() AND resetFormDisplay()
+    // (which nulls selectedCity) — otherwise the next submission silently inherits
+    // the discarded city's tz/lat/lng (a wrong rising sign). Then fall through to
+    // onboarding — never crash, never leak.
     expect(html).toMatch(
-      /try\s*\{[\s\S]*?profileFromPayload\(existing\)[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?clearProfile\(\)/
+      /try\s*\{[\s\S]*?profileFromPayload\(existing\)[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?clearProfile\(\)[\s\S]*?resetFormDisplay\(\)/
     );
   });
 });
