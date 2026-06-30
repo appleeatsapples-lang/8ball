@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-29 — Coordinate Legibility Pack cut 3: paid-tier density strip — STAGED
+## 2026-06-29 — Coordinate Legibility Pack cut 3: paid-tier density strip — SHIPPED
 
-**Status: STAGED on `feature/clp-density` (off `main` @ `ee42309`, post-cut-2); NOT merged — Codex Procedure 4 precedes merge per §10/L48, no push without operator confirmation per CLAUDE.md.** The last CLP cut. Design-paneled (`clp-density-design` workflow) + adversarial-reviewed (`clp-density-review`). **No DOCTRINE clause** — ATLAS (cut 2) precedent: journal-note-only + Codex P4 (covered in substance by §1.D v0.37 + §5.D v0.39; the strip is the on-screen counted form of the §5.D `sealed remainder` marker).
+**Status: SHIPPED — squash-merged to `main` as `e6f4fcd` ([#44](https://github.com/appleeatsapples-lang/8ball/pull/44)), 2026-06-30T18:21:29Z; close-out at the foot of this entry. Codex Procedure 4 AUDIT-CLEARED.** The last CLP cut. Design-paneled (`clp-density-design` workflow) + adversarial-reviewed (`clp-density-review`). **No DOCTRINE clause** — ATLAS (cut 2) precedent: journal-note-only + Codex P4 (covered in substance by §1.D v0.37 + §5.D v0.39; the strip is the on-screen counted form of the §5.D `sealed remainder` marker).
 
 **§13 trigger (controller-class):** §8 brand-coherence / legibility — the whole-sheet **F1-WATCH** reinforcement (a hatch reads as *withheld-paid*, not broken). **Explicitly NOT a measured conversion fix** (same class as v0.6.0 / v0.7.0 / cuts 1–2).
 
@@ -23,6 +23,8 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 **Disclosed (not silent):** `package.json` NOT bumped — surface-only addition within the 0.7.x line, no calc/content/contract change (mirrors cuts 1–2 / v0.38 / v0.39). **Carried doctrine debt (from cut-2 Codex Hook-7):** the §1.F / §1.E-broaden recommendation for ATLAS's literal coverage — DENSITY ships clause-free (ATLAS precedent), so that §1.F debt carries forward to the next doctrine-touching cycle; flagged here so it is not lost.
 
 **Held invariants:** no backend · no telemetry · no new deps · no network surface · no SIRR strings · catalog driver unchanged · calc untouched · no new localStorage key · index.html ≤1500 (1474) · L17 lineage. **Next:** operator review → push + PR (no merge) → orchestrator stages Codex Procedure 4 (hooks: value-leak/PII, §5.D PNG exclusion, count correctness, no-FOMO copy, no-new-key, version-truth) → optional CiC live-fire → operator merge on AUDIT-CLEARED → close-out. **With cut 3 merged, the Coordinate Legibility Pack (provenance · atlas · density) is complete.**
+
+**Close-out (post-merge):** squash-merged `e6f4fcd` ([#44](https://github.com/appleeatsapples-lang/8ball/pull/44)), 2026-06-30T18:21:29Z. **Codex Procedure 4 AUDIT-CLEARED** (`~/Desktop/8ball/audits/codex_p4_clp_cut3_response_2026-06-29.md`), no corrective edits. Pre-merge also cleared a 7-agent adversarial review (leak/PNG + render dims 0 findings; the P2 count-base mismatch fixed pre-commit + coupled to `prose_coordinate_count`) and a browser pass. Branch `feature/clp-density` deleted remote+local (`--squash` without `--delete-branch` to sidestep the worktree-checkout L), `ls-remote` verified `main` + `prototype/interrogation-layer` only. **Prod smoke HTTP 200** (`#density-strip` live in index.html, `tierDensitySummary` live in `ui/tiers.js`). **CLP cut 3 CLOSED at `e6f4fcd`** — the result screen now states the sheet census (`5 of 15 coordinates open · 10 sealed at paid tiers`) so a hatch reads as withheld-paid, not broken. **The Coordinate Legibility Pack is COMPLETE: cut 1 provenance (§1.E) · cut 2 atlas · cut 3 density.** Carried forward: the cut-2 Codex Hook-7 **§1.F / §1.E-broaden** debt (ATLAS literal doctrine coverage) — discharge at the next doctrine-touching cycle; and the deferred about-modal copy pass (name the placards/atlas/density in "the trick").
 
 ## 2026-06-29 — Coordinate Legibility Pack cut 2: ATLAS legend (system-name placards) — SHIPPED
 
