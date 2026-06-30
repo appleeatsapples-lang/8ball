@@ -36,7 +36,7 @@ Polar latitudes (|lat| > 66.5°, strictly past the polar circles) return `null` 
 
 Pre-1970 dates: `Intl.DateTimeFormat`'s historical-tz coverage falls back to LMT (Local Mean Time) approximation for some timezones in pre-tzdata-coverage periods. This is acknowledged as a precision tradeoff; the about-modal disclosure copy lands at v0.2.8 (calculator-framing rewrite cycle).
 
-**v0.43 coherence note (B1).** The about-modal disclosure copy named above in the future tense ("lands at v0.2.8") shipped long ago and is exercised on every push by `tests/rising_disclosure.test.js` — read it as past-tense (shipped). The LMT-precision tradeoff it discloses is unchanged. Per L17 the original wording is preserved verbatim above.
+**v0.43 coherence note (B1).** The about-modal disclosure copy named above in the future tense ("lands at v0.2.8") shipped long ago — the calculator-framing about-modal copy is pinned on every push by `tests/payments_markup.test.js` (its about-modal "disclosure copy" suite). Read it as past-tense (shipped); the LMT-precision tradeoff it discloses is unchanged. Per L17 the original wording is preserved verbatim above.
 
 The v0.14 wording (fixed UTC offsets per country entry; DST and historical-tz changes "out of scope") is retired by this amendment. The catalog-driver rule (rising surface-only, never entering `getCard` or `resolveBracket`) is unchanged.
 
