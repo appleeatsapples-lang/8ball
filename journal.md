@@ -2,6 +2,19 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-06-30 — refinement campaign #1: doc-drift kill (repo-shape counts + README surface + journal-precedence) — STAGED
+
+**Status: STAGED on `feature/doc-drift-fix` (off `main` @ `6bd504d`); docs-only, no DOCTRINE.md / code touch ⇒ no Codex P4 (not a §10 cross-model trigger).** First cut of the operator's "refine everything" campaign, off the `refine-scout` workflow (7-dimension audit → ranked backlog). This was the backlog's #1 doNow item — 5 of 7 scouts flagged repo-shape drift independently, and CLAUDE.md (auto-loaded first every CC session) was booting on wrong numbers.
+
+**What changed (documentation accuracy — zero code/doctrine):**
+- **Counts corrected to ground truth** (verified 2026-06-30: core/ **9**, ui/ **6**, tests **24 files / 1115 cases**, index.html **1474**): `CLAUDE.md` repo-shape block (core 7→9 +birthcard +pillars; ui list → the real 6: labels/modals/payments/profile/share/tiers; tests 14→24), `8BALL.md` §2 ui row (3→6) + tests row (19→24, 947→1115) + refresh date, `README.md` test count (586→1115), index-line (1455→1474), and the core/ + ui/ + tests/ structure trees.
+- **README surface description rewritten** to the current model — the old "seven baseline coordinates … numerology triplet" prose predated the tier ladder + compartment sheet. Now: free = **5** coordinates on a constant specimen sheet (sealed hatches above tier), three paid rungs, reveal-labels shows derivation + system, the result states the open/sealed census. Catalog-isolation + life-path-bracket note preserved.
+- **Bootstrap precedence rule added** (`CLAUDE.md` Current-state): `journal.md` (newest) is authoritative for CURRENT STATE and **wins over `8BALL.md` §10** when they disagree; `8BALL.md` is canonical for architecture + locked decisions, not the latest ship. Repo-shape counts in `CLAUDE.md` are the canonical inventory; 8BALL/README defer there. (This is the cheap half of the doc-system root-fix; the 8BALL §10 ship-history collapse is the next cut.)
+
+**Scope (files):** `CLAUDE.md`, `8BALL.md`, `README.md`, this entry. **UNTOUCHED:** all code, `DOCTRINE.md`, `content/`, `tests/` logic — pure documentation.
+
+**Tests 1115 green** (no code change; confirms the doc edits broke no `prose_coordinate_count`/`pii_scan` pin). Local PII audit clean (71). **Next (campaign):** 8BALL §10 collapse to a journal pointer; then the doctrine batch (overdue §13 rule-kill review + self-firing trigger + L17-in-doc + §1/§1.D current-state anchors + §6 counts; Codex P4); dead-code removal (`core/countries`+`rising`, ~560 lines); index.html a11y + cleanup; test hardening; reach levers.
+
 ## 2026-06-30 — CLP doc-coherence: §1.F (atlas + density literal coverage) + about-copy · DOCTRINE v0.41 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `e22c3f5` ([#45](https://github.com/appleeatsapples-lang/8ball/pull/45)), 2026-06-30T18:47:15Z. Codex Procedure 4 AUDIT-CLEARED 6/6, zero corrective edits.** Branch `feature/clp-doc-coherence` deleted remote+local; `ls-remote` verified `main` + `prototype/interrogation-layer` only; prod smoke HTTP 200 (about-copy live). Doc/copy tie-off of the now-complete Coordinate Legibility Pack. **Discharges the carried debt:** the cut-2 Codex **Hook 7** flagged that ATLAS (and then DENSITY) shipped clause-free (covered "in substance" by §1.D v0.37 + §5.D v0.39 + the §1.E precedent), recommending a §1.F or §1.E-broaden at the next doctrine-touching cycle for literal coverage. This is that cycle.
