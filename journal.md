@@ -8,7 +8,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **What changed (DOCTRINE.md only, +9/−2):**
 - **§1 current-state anchor** — a bold pointer after the opening line routes the reader to the live composition (free = **five** coordinates on the §1.D compartment sheet; §1.A–§1.F are the per-surface authority) BEFORE the retired v0.2.3/v0.36 "seven coordinates / triplet" lineage prose. Fixes the constitution's most-read clause describing a retired surface in present tense (the reader previously learned the wrong surface twice before reaching the v0.38 correction 70 lines down).
-- **§1.D table-currency note** — the operator-locked 2026-06-11 table is left verbatim; a note under it records the two superseded cells (free is now 5 — life path joined at v0.38; t1 numerology is the name-derived pair).
+- **§1.D table-currency note** — the operator-locked §1.D table is left verbatim; a note under it records the two superseded cells (free is now 5 — life path joined at v0.38; t1 numerology is the name-derived pair).
 - **§6 architecture counts** reconciled to **9 core / 6 ui / 24 tests** (were 7/2/14 "as of v0.3.0"), with the file inventory deferred to `CLAUDE.md` (canonical) so the count cannot re-drift inside the constitution.
 - **§13 codifies L17 in-document** — "Amendment discipline (L17)": supersede-not-edit + §-number preservation, the rule the 12 in-doc "per L17" citations refer to (previously defined only in the journal), with sibling pointers to **L48** (merge gate) and **L53** (PII-scan re-fire). Makes the constitution self-contained.
 - Footer **v0.41 → v0.42** (v0.41 demoted to lineage verbatim per L17).
