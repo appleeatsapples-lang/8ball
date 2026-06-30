@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
 <meta name="description" content="Five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
@@ -302,6 +302,13 @@
   @keyframes revealBack {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
+  }
+  /* reduced-motion: instant card flip + reveal. Defined AFTER the .flip-inner
+     geometry block above so that block stays the first `.flip-inner {` match
+     (payments_markup grid-stack test); do not hoist into an earlier @media. */
+  @media (prefers-reduced-motion: reduce) {
+    .flip-inner { transition: none; }
+    .reveal { animation: none; }
   }
 
   /* ── welcome (specimen registry) ─────────────────────────────── */
@@ -1006,24 +1013,23 @@
 <div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
 
 <script type="module">
-import { searchCities, getCountryName } from './core/cities.js';
+import { searchCities } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
 import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState } from './core/payments.js';
 import {
-  TRIES_KEY, CREDITS_KEY, PENDING_KEY,
   getTriesUsed, setTriesUsed,
   getCredits, setCredits, getRenderTier,
-  getPendingProfile, setPendingProfile, clearPendingProfile,
+  setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
-  showPaidBanner, handlePaidReturn,
+  handlePaidReturn,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary } from './ui/tiers.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
-  optsFromPayload, profileFromPayload,
+  profileFromPayload,
   populateRisingFields, resetFormDisplay,
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';

@@ -2,6 +2,23 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-07-01 — a11y + import hygiene: pinch-zoom WCAG fix · reduced-motion for flip/reveal · 8 dead imports — STAGED
+
+**Status: STAGED on `feature/a11y-cleanup` (off `origin/main` @ `d655911`) — NOT merged.** `index.html`-only (+ this entry); neither DOCTRINE.md nor `content/` ⇒ §8 gate-6 cross-model audit is not mandatory (surface a11y + mechanical import removal), but it IS a product-surface change ⇒ §8 gate-9 live-fire done (below). Operator merges (Codex optional). Picked off the refinement backlog as the next in-lane cut after #50 cleared.
+
+**What changed (`index.html` only, +12/−6):**
+- **Pinch-zoom restored (WCAG 1.4.4 / 1.4.10).** The viewport meta dropped `maximum-scale=1.0, user-scalable=no` → `content="width=device-width, initial-scale=1.0"`. The prior tag suppressed browser zoom — a conformance failure for low-vision users; nothing in the product depended on a fixed scale.
+- **Reduced-motion now covers the card flip + reveal.** A second `@media (prefers-reduced-motion: reduce)` block (`.flip-inner { transition: none }` + `.reveal { animation: none }`) joins the existing unseal-animation block. It is placed AFTER the `.flip-inner` geometry definition on purpose — a comment pins why: the `payments_markup` v0.6.1 grid-stack test matches the first `.flip-inner {` block and asserts `display: grid`, so the reduced-motion override must not be hoisted above it (this bit once during implementation; the comment prevents a re-break).
+- **8 dead imports removed** (each verified 0 uses in `index.html`): `getCountryName` (`core/cities.js`); `TRIES_KEY` / `CREDITS_KEY` / `PENDING_KEY` / `getPendingProfile` / `clearPendingProfile` / `showPaidBanner` (`ui/payments.js`); `optsFromPayload` (`ui/profile.js`). Only the unused import bindings were dropped — every module's export is untouched and still covered by that module's own tests.
+
+**Live-fire (preview, §8 gate-9):** clean boot, **zero console errors**; viewport reads `initial-scale=1.0` with zoom unblocked; the full age-gate → fill → shake → render path works (free card surfaced birth card · sun · animal · life path · catalog `no. xliii`; density rail `5 of 15 coordinates open · 10 sealed`); no layout regression vs the prior compartment sheet.
+
+**Tests 1115 green** (the v0.6.1 flip grid-stack test guided the reduced-motion placement — see above). Local PII audit clean (71). `index.html` 1474 → **1480** (≤1500). **Scope (files):** `index.html`, this entry. **UNTOUCHED:** `core/`, `content/`, `tests/`, `DOCTRINE.md`; `package.json` unbumped.
+
+**Backlog reconciliation (disclosed):** the handoff's "`buildProfilePayload` dedup" item is **stale** — no such symbol exists in `index.html` (already resolved/renamed); nothing to do, dropped. The handoff's "dead-code removal (`core/` ~560 lines)" is **NOT a clean cut and is not pursued**: `getRisingSign` is doctrine-retained (§1.A v0.34, "retained as a low-level fixed-offset helper"), and `COUNTRIES` + `getCountryByCode` are load-bearing in `tests/countries.test.js` — `COUNTRIES.map(c => c.code)` is the independent source-of-truth keyset that validates the LIVE `LEGACY_COUNTRY_TIMEZONES` coverage; removing it would make that coverage check circular (weaker), not tidier. Re-tag in any future backlog: not dead code.
+
+**Next:** operator merge → close-out (journal STAGED→SHIPPED). No Codex required (not doctrine/content); operator may run one anyway since it touches the live surface.
+
 ## 2026-07-01 — §13 rule-kill enactment: 7 AMENDs → DOCTRINE v0.43 (self-firing trigger + §12 P1 + coherence×4) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `a48ec29` (#50); close-out at the foot of this entry. DOCTRINE.md touch ⇒ Codex Procedure 4 AUDIT-CLEARED before merge per §10/L48. Originally STAGED on `feature/rule-kill-amends` (branched fresh from `origin/main` @ `2d263ca`).** Enacts the 7 cross-verified AMENDs from the 2026-06-30 §13 rule-kill review (#49 `1bb6c68`), which logged the verdict and queued — not staged — the edits. Routing per the review's recommendation: all 7 bundled into ONE doctrine cut (additive/L17-clean — #48's proven pattern) for a single Codex paste.
