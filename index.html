@@ -1466,9 +1466,15 @@ function initAfterAck() {
     } catch (_) {
       // Corrupted stored profile — a malformed DOB, or (since the calc core
       // now rejects them) an impossible-date DOB from a hand-edited payload.
-      // buildProfile throws; don't crash boot — drop the bad payload and fall
-      // through to the onboarding form so the user can re-enter.
+      // buildProfile throws AFTER populateRisingFields above may have already
+      // set the module-level selectedCity from the bad payload's birthplace, so
+      // reset BOTH: drop the payload from storage (clearProfile) AND reset the
+      // form (resetFormDisplay nulls selectedCity + clears the stale time/city
+      // fields). Without the reset, the next submission would silently inherit
+      // the discarded city's tz/lat/lng — a wrong rising sign baked into a new
+      // person's profile. Then fall through to onboarding.
       clearProfile();
+      resetFormDisplay();
     }
   }
   if (!rehydrated) {
