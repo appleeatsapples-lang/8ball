@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-30 — refinement campaign #2: collapse 8BALL.md §10 to a journal pointer — STAGED
+## 2026-06-30 — refinement campaign #2: collapse 8BALL.md §10 to a journal pointer — SHIPPED
 
-**Status: STAGED on `feature/8ball-s10-collapse` (off `main` @ `23e9a7d`); docs-only (8BALL.md), no DOCTRINE.md / code touch ⇒ no Codex P4.** Campaign cut #2, the doc-system root fix (scout doNow): §10 had grown to ~82 lines re-narrating every ship from v0.38 back to v0.1.0 — a second state record duplicating `journal.md` on a slower manual cadence, which is why it rotted (last touched 06-26, six ships behind by 06-30). Two state records on different cadences guarantee the slow one drifts; removing the duplicate cadence kills the drift surface instead of re-syncing it once (pairs with campaign #1's journal-precedence rule).
+**Status: SHIPPED — squash-merged to `main` as `8980271` ([#47](https://github.com/appleeatsapples-lang/8ball/pull/47)); docs-only (8BALL.md), no DOCTRINE.md / code touch ⇒ no Codex P4; CI green, autonomously merged, branch cleaned.** Campaign cut #2, the doc-system root fix (scout doNow): §10 had grown to ~82 lines re-narrating every ship from v0.38 back to v0.1.0 — a second state record duplicating `journal.md` on a slower manual cadence, which is why it rotted (last touched 06-26, six ships behind by 06-30). Two state records on different cadences guarantee the slow one drifts; removing the duplicate cadence kills the drift surface instead of re-syncing it once (pairs with campaign #1's journal-precedence rule).
 
 **What changed (8BALL.md §10 only):** deleted the ship-by-ship history (the journal already holds it, newest-on-top) and replaced it with a compact standing-state section that keeps only what is NOT a single journal entry: (1) a pointer that `journal.md` is authoritative for ship-history + current state; (2) the **interrogation-lab BRANCH-ONLY/NEVER-MERGES** status (condensed); (3) the **orchestrator reach-dissent** standing stance; (4) a **repo-history note** (private since v0.2.0, brief past card exposure, tracked-content PII boundary). 8BALL.md 340 → 268 lines; §10 −77/+5.
 
