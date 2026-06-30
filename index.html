@@ -227,6 +227,15 @@
     cursor: pointer;
   }
   .labels-toggle:focus-visible { outline: 1px solid var(--rule); outline-offset: 4px; }
+
+  /* density strip (CLP cut 3): aggregate paid-tier census, always-on in the
+     result rail (outside #card-face → never serialized into the §5.D PNG).
+     Clinical count only, no CTA — register-matched to #mechanism-strip. */
+  .density-strip {
+    font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
+    color: var(--label); text-transform: lowercase; text-align: center;
+    margin: 0 0 16px;
+  }
   /* ── card back (shake state) ─────────────────────────────────── */
   .card-back {
     background: var(--paper);
@@ -905,6 +914,8 @@
     <div class="result-rail">
     <button class="labels-toggle" id="labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>
 
+    <p class="density-strip" id="density-strip"></p>
+
     <div class="result-controls">
       <button class="btn btn-block" id="shake-again-btn">shake again</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
@@ -1008,7 +1019,7 @@ import {
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   showPaidBanner, handlePaidReturn,
 } from './ui/payments.js';
-import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs } from './ui/tiers.js';
+import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary } from './ui/tiers.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1083,6 +1094,7 @@ const readsChip = $('reads-chip');
 
 const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
+const densityStrip = $('density-strip');
 // labels-reveal toggle controller (ui/labels.js — §6 split).
 const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle') }, {});
 
@@ -1207,6 +1219,12 @@ function renderCard(profile, opts) {
   const tier = (opts && opts.tier) || 'free';
   const credits = (opts && typeof opts.credits === 'number') ? opts.credits : 0;
   const { cardEntry } = renderTierSections(profile, tier);
+  // CLP cut 3: aggregate density census from the tier constants (never a
+  // profile value) — resolves through the same `tier` the seals use.
+  const density = tierDensitySummary(tier);
+  densityStrip.textContent = density.sealed > 0
+    ? `${density.open} of ${density.total} coordinates open · ${density.sealed} sealed at paid tiers`
+    : `${density.total} of ${density.total} coordinates open · full sheet`;
   try {
     const card = getCard(profile);
     cardCatalog.textContent = `no. ${card.catalog}`;

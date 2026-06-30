@@ -102,6 +102,28 @@ export function coordsForTier(tier) {
   return new Set(TIER_COORDS[tier] || TIER_COORDS.free);
 }
 
+/**
+ * Aggregate coordinate census for a tier (CLP cut 3 — density strip).
+ * Derived PURELY from the tier constants (CELL_KEYS + CELL_COORD via
+ * coordsForTier) — NEVER from a profile, so it carries no coordinate VALUE
+ * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
+ * a free coordinate per §1.D (always open, never a sealable cell) — so the
+ * base (15) matches the product-wide "five coordinates" free framing
+ * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). The t3 written
+ * entry is a block (cardEntry), not a coordinate, so it is excluded.
+ * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
+ * Returns { open, sealed, total }.
+ */
+export function tierDensitySummary(tier) {
+  const coords = coordsForTier(tier);
+  const cellsOpen = CELL_KEYS.filter(key => coords.has(CELL_COORD[key])).length;
+  return {
+    open: cellsOpen + 1,
+    sealed: CELL_KEYS.length - cellsOpen,
+    total: CELL_KEYS.length + 1,
+  };
+}
+
 /** `animal · stem-element` — the clinical pillar register (e.g. `horse · fire`). */
 export function formatPillar(pillar) {
   return pillar ? `${pillar.animal} · ${pillar.stemElement}` : '—';
