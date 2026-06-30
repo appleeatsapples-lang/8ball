@@ -86,6 +86,23 @@ describe('calculation contract', () => {
     expect(() => buildProfile('x', '2020-13-01')).toThrow();
     expect(() => buildProfile('x', '2020-01-32')).toThrow();
   });
+
+  it('rejects impossible day-of-month (Feb 30, Apr 31, Feb 29 non-leap)', () => {
+    expect(() => buildProfile('x', '2000-02-30')).toThrow(); // Feb never has 30
+    expect(() => buildProfile('x', '2000-04-31')).toThrow(); // Apr has 30
+    expect(() => buildProfile('x', '2000-06-31')).toThrow(); // Jun has 30
+    expect(() => buildProfile('x', '2000-09-31')).toThrow(); // Sep has 30
+    expect(() => buildProfile('x', '2001-02-29')).toThrow(); // 2001 not leap
+    expect(() => buildProfile('x', '1900-02-29')).toThrow(); // 1900 not leap (÷100, ¬÷400)
+  });
+
+  it('accepts real boundary dates including leap-day Feb 29', () => {
+    expect(() => buildProfile('x', '2000-02-29')).not.toThrow(); // 2000 leap (÷400)
+    expect(() => buildProfile('x', '2004-02-29')).not.toThrow(); // 2004 leap
+    expect(() => buildProfile('x', '2000-02-28')).not.toThrow(); // Feb 28 always valid
+    expect(() => buildProfile('x', '2000-04-30')).not.toThrow(); // Apr 30 valid
+    expect(() => buildProfile('x', '2000-01-31')).not.toThrow(); // Jan 31 valid
+  });
 });
 
 describe('calculation contract — 2F-3 additive fields', () => {
