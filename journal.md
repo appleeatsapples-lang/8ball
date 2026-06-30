@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-30 — refinement campaign #3: doctrine coherence (current-state anchors + L17 in-doc + §6 counts) · DOCTRINE v0.42 — STAGED
+## 2026-06-30 — refinement campaign #3: doctrine coherence (current-state anchors + L17 in-doc + §6 counts) · DOCTRINE v0.42 — SHIPPED
 
-**Status: STAGED on `feature/doctrine-coherence` (off `main` @ `275c307`); DOCTRINE.md touch ⇒ Codex Procedure 4 precedes merge per §10/L48.** Campaign cut #3 — the doctrine half of the scout's coherence findings, scoped to **additive/L17-clean accuracy fixes only** (no historical or operator-locked text edited; no code/content/calc touch; `package.json` unbumped).
+**Status: SHIPPED — squash-merged to `main` as `d9755c8` ([#48](https://github.com/appleeatsapples-lang/8ball/pull/48)); Codex Procedure 4 AUDIT-CLEARED 7/7 (2 non-blocking P3: packet-hygiene + pre-existing whole-file journal L53 windows, base==head==10 so #48 introduces none); branch `feature/doctrine-coherence` cleaned remote; prod smoke HTTP 200.** Campaign cut #3 — the doctrine half of the scout's coherence findings, scoped to **additive/L17-clean accuracy fixes only** (no historical or operator-locked text edited; no code/content/calc touch; `package.json` unbumped).
 
 **What changed (DOCTRINE.md only, +9/−2):**
 - **§1 current-state anchor** — a bold pointer after the opening line routes the reader to the live composition (free = **five** coordinates on the §1.D compartment sheet; §1.A–§1.F are the per-surface authority) BEFORE the retired v0.2.3/v0.36 "seven coordinates / triplet" lineage prose. Fixes the constitution's most-read clause describing a retired surface in present tense (the reader previously learned the wrong surface twice before reaching the v0.38 correction 70 lines down).
@@ -16,6 +16,8 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 **Deferred (flagged, NOT done here):** the overdue §13 **rule-kill review** (15 days late) + binding it to a self-firing trigger — a governance pass that deserves a dedicated cut, not the tail of a long session.
 
 **Scope (files):** `DOCTRINE.md`, this entry. **UNTOUCHED:** all code, `content/`, `tests/`, `CLAUDE.md`/`8BALL.md`/`README.md`. **Tests 1115 green** (no test pins DOCTRINE prose; `pii_scan` clean over the DOCTRINE_ALLOW-listed file). PII audit clean (71). **Next (campaign):** the §13 rule-kill review + self-trigger; dead-code removal (`core/` ~560 lines, Codex); index.html a11y + cleanup (Codex); test hardening; reach levers.
+
+**Close-out (post-merge):** squash-merged `d9755c8` ([#48](https://github.com/appleeatsapples-lang/8ball/pull/48)). **Codex Procedure 4 AUDIT-CLEARED 7/7**, zero corrective edits — Hooks 1–7 PASS (locked-text untouched / claims-match-shipped / numbering-intact / file-list `DOCTRINE.md`+`journal.md` only / L17-clause-correct / `package.json` 0.7.0 / no new L53 windows). Two non-blocking P3s recorded, NOT acted on here: (a) the supplied Codex packet carried stale CLP code-diff corpus — packet hygiene, regenerate for record cleanliness next time; (b) the whole-journal L53 scan finds 10 pre-existing operator/role-token-near-ISO-date windows on both base and head — #48 adds none; flagged for a **separate L17/governance pass** (carry to the journal-L53-cleanup backlog item). Branch `feature/doctrine-coherence` deleted remote (`--squash` without `--delete-branch` to sidestep the worktree-checkout L; cleaned explicitly); `ls-remote` verified `main` + `prototype/interrogation-layer` only. **Prod smoke HTTP 200** (DOCTRINE v0.42 is doc-only — no user-visible surface change; the deploy carries the constitution + journal). **The doctrine-coherence cut is CLOSED at `d9755c8`.** The deferred §13 rule-kill review + self-firing trigger is taken up as its own dedicated cut (next journal entry).
 
 ## 2026-06-30 — refinement campaign #2: collapse 8BALL.md §10 to a journal pointer — SHIPPED
 
