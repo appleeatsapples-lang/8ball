@@ -244,6 +244,16 @@ export function buildProfile(name, dobIso, opts) {
   if (m < 1 || m > 12 || d < 1 || d > 31) {
     throw new Error('DOB out of range');
   }
+  // Reject impossible day-of-month (e.g. Feb 30, Apr 31, Feb 29 in a non-leap
+  // year). The UI <input type="date"> already prevents these, but the calc core
+  // validates its own input so no non-UI path (manipulated URL, stored payload,
+  // future caller) can yield a plausible-but-fake reading. Same throw + caught
+  // by the render-path guard, identical to the month/range check above.
+  const isLeapYear = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (d > daysInMonth[m - 1]) {
+    throw new Error('DOB out of range');
+  }
   const cleanName = (name || '').trim();
   // ── Rising sign resolution (IANA-tz path for fresh + legacy profiles)
   //

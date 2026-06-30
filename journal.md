@@ -2,9 +2,25 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-07-01 — a11y + import hygiene: pinch-zoom WCAG fix · reduced-motion for flip/reveal · 8 dead imports — STAGED
+## 2026-07-01 — calc hardening: buildProfile rejects impossible day-of-month (Feb 30 / Apr 31 / Feb-29-non-leap) — STAGED
 
-**Status: STAGED on `feature/a11y-cleanup` (off `origin/main` @ `d655911`) — NOT merged.** `index.html`-only (+ this entry); neither DOCTRINE.md nor `content/` ⇒ §8 gate-6 cross-model audit is not mandatory (surface a11y + mechanical import removal), but it IS a product-surface change ⇒ §8 gate-9 live-fire done (below). Operator merges (Codex optional). Picked off the refinement backlog as the next in-lane cut after #50 cleared.
+**Status: STAGED on `fix/impossible-dob-validation` (off `origin/main` @ `ba79928`) — NOT merged.** Touches `core/profile.js` (calc core) + `tests/profile.test.js`; **no DOCTRINE / `content/` / `fixtures.json` touch, calc-version stays v2** (no algorithm change for valid dates — every existing fixture is byte-identical). A `core/` calc-engine change ⇒ Codex P4 recommended. Operator merges. Picked autonomously under the "keep picking, your call" steer; resolves the morning-queue §B impossible-date decision.
+
+**The call (delegated to me):** chose **reject** over keep-lenient. The calc core validated the month (1–12) but not the day-of-month, so `Feb 30` / `Apr 31` / a non-leap `Feb 29` were accepted and produced a plausible-but-fake reading (e.g. Feb 30 → pisces · dragon · life path 7). A calc core that emits an honest-looking reading for an impossible birth date is worse than one that refuses it; reject also matches the existing month-range guard's `DOB out of range` throw.
+
+**What changed:**
+- **`core/profile.js`** (+10): after the existing `m∈[1,12] / d∈[1,31]` guard, the day is validated against the real length of its month with correct Gregorian leap-year logic (`(y%4===0 && y%100!==0) || y%400===0`) via a `daysInMonth` table; impossible days throw the same `DOB out of range` error.
+- **`tests/profile.test.js`** (+2 cases): extends the "rejects malformed DOB" block — impossible day-of-month (Feb 30, Apr 31, Jun 31, Sep 31, a non-leap Feb 29 in years 2001 and 1900) throw; real boundaries pass, including leap-day Feb 29 in a ÷400 century-leap year and an ordinary leap year, plus Feb 28 / Apr 30 / Jan 31.
+
+**Safety (why reject is non-breaking):** the onboarding `<input type="date">` already blocks impossible dates in-browser, so no live UI path creates them — this is calc-core defense-in-depth for non-UI callers (a manipulated URL, a hand-edited stored payload, a future consumer). `buildProfile` already throws for malformed / out-of-range DOB, and the render path wraps every `buildProfile` call in `try/catch` (`index.html`), so even a hypothetical stored impossible-date profile is caught and falls back gracefully, never crashes.
+
+**Verification:** tests **1117 green** (+2); `tests/fixtures.json` **byte-identical** (no valid-date output changed); adversarial month-boundary probe — for all twelve months the last valid day passes and `last+1` throws, and the leap-year branch is correct (year 2000 leap via ÷400; years 1900 and 2001 non-leap; year 2004 leap); local PII audit clean (71). **Scope (files):** `core/profile.js`, `tests/profile.test.js`, this entry. **UNTOUCHED:** `tests/fixtures.json`, `content/`, `DOCTRINE.md`, `index.html`, `package.json` (unbumped).
+
+**Next:** operator merge (Codex P4 recommended — calc core) → close-out.
+
+## 2026-07-01 — a11y + import hygiene: pinch-zoom WCAG fix · reduced-motion for flip/reveal · 8 dead imports — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `ba79928` (#53); prod smoke HTTP 200, branch deleted remote+local. Closed out here (batched into the impossible-date cut's journal touch to spare a standalone close-out merge). Originally STAGED on `feature/a11y-cleanup` (off `origin/main` @ `d655911`).** `index.html`-only; neither DOCTRINE.md nor `content/` ⇒ §8 gate-6 cross-model audit was not mandatory (surface a11y + mechanical import removal), but it IS a product-surface change ⇒ §8 gate-9 live-fire done (below). Picked off the refinement backlog as the next in-lane cut after #50 cleared.
 
 **What changed (`index.html` only, +12/−6):**
 - **Pinch-zoom restored (WCAG 1.4.4 / 1.4.10).** The viewport meta dropped `maximum-scale=1.0, user-scalable=no` → `content="width=device-width, initial-scale=1.0"`. The prior tag suppressed browser zoom — a conformance failure for low-vision users; nothing in the product depended on a fixed scale.
