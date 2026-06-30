@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-06-30 — refinement campaign #1: doc-drift kill (repo-shape counts + README surface + journal-precedence) — STAGED
+## 2026-06-30 — refinement campaign #1: doc-drift kill (repo-shape counts + README surface + journal-precedence) — SHIPPED
 
-**Status: STAGED on `feature/doc-drift-fix` (off `main` @ `6bd504d`); docs-only, no DOCTRINE.md / code touch ⇒ no Codex P4 (not a §10 cross-model trigger).** First cut of the operator's "refine everything" campaign, off the `refine-scout` workflow (7-dimension audit → ranked backlog). This was the backlog's #1 doNow item — 5 of 7 scouts flagged repo-shape drift independently, and CLAUDE.md (auto-loaded first every CC session) was booting on wrong numbers.
+**Status: SHIPPED — squash-merged to `main` as `1c16eef` ([#46](https://github.com/appleeatsapples-lang/8ball/pull/46)); docs-only, no DOCTRINE.md / code touch ⇒ no Codex P4 (not a §10 cross-model trigger); branch cleaned remote+local, CI green, autonomously merged per the standing non-stop mandate.** First cut of the operator's "refine everything" campaign, off the `refine-scout` workflow (7-dimension audit → ranked backlog). This was the backlog's #1 doNow item — 5 of 7 scouts flagged repo-shape drift independently, and CLAUDE.md (auto-loaded first every CC session) was booting on wrong numbers.
 
 **What changed (documentation accuracy — zero code/doctrine):**
 - **Counts corrected to ground truth** (verified 2026-06-30: core/ **9**, ui/ **6**, tests **24 files / 1115 cases**, index.html **1474**): `CLAUDE.md` repo-shape block (core 7→9 +birthcard +pillars; ui list → the real 6: labels/modals/payments/profile/share/tiers; tests 14→24), `8BALL.md` §2 ui row (3→6) + tests row (19→24, 947→1115) + refresh date, `README.md` test count (586→1115), index-line (1455→1474), and the core/ + ui/ + tests/ structure trees.
