@@ -49,11 +49,11 @@ No build step. Netlify auto-deploys on push to `main`.
 
 ## Repository shape
 
-    core/         pure functions — 7 modules (profile, engine, rising, countries, calendar, cities, payments)
-    ui/           DOM-touching ES modules — payments, profile — init*UI({refs},{hooks}) shape per §6 v0.23
+    core/         pure functions — 9 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments)
+    ui/           DOM-touching ES modules — labels, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23
     content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        14 vitest files + fixtures.json
+    tests/        24 vitest files + fixtures.json
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
@@ -66,5 +66,10 @@ No build step. Netlify auto-deploys on push to `main`.
 
 State changes; this file shouldn't. For what's current — including any
 in-flight pivot, paused work, or open queue — read the newest entry of
-`journal.md` and the §10/§11 sections of `8BALL.md`. Don't treat this
+`journal.md`, which is authoritative for CURRENT STATE and wins over
+`8BALL.md` §10 when they disagree. `8BALL.md` is canonical for
+architecture and locked decisions, not the latest ship. Don't treat this
 file as a state record.
+
+Repository-shape counts above (core/ui/tests) verified 2026-06-30 and are
+the canonical inventory; `8BALL.md` / `README.md` defer here.
