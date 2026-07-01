@@ -42,6 +42,7 @@
 // fields — §5.D invariant (b).
 const SITE_URL = 'https://the-eight-ball.netlify.app';
 const BRAND_WORDMARK = '8ball';
+const DEFAULT_PNG_NAME = '8ball-specimen.png';
 
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
@@ -227,6 +228,17 @@ function buildCaption() {
   });
 }
 
+// §5.D: filename carries only the catalog numeral (same PII basis as the PNG
+// footer) — helps recipients sort attachments; never name/DOB/query params.
+export function sharePngFilename(catalogDisplay) {
+  const raw = String(catalogDisplay == null ? '' : catalogDisplay).trim();
+  const m = raw.match(/^no\.\s*(.+)$/i);
+  const id = m ? m[1].trim() : '';
+  if (!id || id === '—' || id === '-') return DEFAULT_PNG_NAME;
+  const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug ? `8ball-specimen-${slug}.png` : DEFAULT_PNG_NAME;
+}
+
 // ── SVG → PNG Blob ────────────────────────────────────────────────
 // Rasters the SVG string through an Image + offscreen canvas. Fully
 // on-device; the object URL is same-origin (a blob: URL of our own
@@ -306,7 +318,9 @@ async function onShare() {
   // never lands captionless (the paywall-screenshot misread). DOM-derived,
   // no PII.
   const caption = buildCaption();
-  const file = new File([blob], 'eight-ball.png', { type: 'image/png' });
+  const catalogText = _refs && _refs.catalog ? _refs.catalog.textContent.trim() : '';
+  const filename = sharePngFilename(catalogText);
+  const file = new File([blob], filename, { type: 'image/png' });
   if (
     navigator.canShare &&
     navigator.canShare({ files: [file] }) &&
@@ -321,7 +335,7 @@ async function onShare() {
   }
   // Desktop / unsupported fallback: download + clipboard copy of the
   // caption (which carries the bare URL), not the bare URL alone.
-  downloadBlob(blob, 'eight-ball.png');
+  downloadBlob(blob, filename);
   let copied = false;
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     try {

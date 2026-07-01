@@ -10,7 +10,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCardSVGFromSnapshot, buildCaptionFromSnapshot } from '../ui/share.js';
+import {
+  buildCardSVGFromSnapshot,
+  buildCaptionFromSnapshot,
+  sharePngFilename,
+} from '../ui/share.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -257,6 +261,37 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
   it('share.js still imports nothing and knows no tier constant (gating stays in ui/tiers.js)', () => {
     expect(shareJs).not.toMatch(/^\s*import\s/m);
     expect(shareJs).not.toMatch(/TIER_COORDS|eight_ball_tier_v1/);
+  });
+});
+
+describe('share PNG filename (§5.D catalog-only, reach)', () => {
+  it('derives a deterministic slug from the on-card catalog display', () => {
+    expect(sharePngFilename('no. xliii')).toBe('8ball-specimen-xliii.png');
+    expect(sharePngFilename('no. 042')).toBe('8ball-specimen-042.png');
+  });
+
+  it('falls back when the catalog is empty or unresolved', () => {
+    expect(sharePngFilename('no. —')).toBe('8ball-specimen.png');
+    expect(sharePngFilename('')).toBe('8ball-specimen.png');
+    expect(sharePngFilename(null)).toBe('8ball-specimen.png');
+  });
+
+  it('never encodes path segments or profile-shaped tokens', () => {
+    for (const name of [
+      sharePngFilename('no. xliii'),
+      sharePngFilename('no. —'),
+    ]) {
+      expect(name).not.toMatch(/[/\\]/);
+      expect(name).not.toMatch(/\.{2}/);
+      expect(name).not.toMatch(/name|dob|profile/i);
+    }
+  });
+
+  it('share flow uses sharePngFilename for File + download (not a fixed generic name)', () => {
+    expect(shareJs).toMatch(/sharePngFilename\s*\(/);
+    expect(shareJs).toMatch(/new File\(\[blob\],\s*filename/);
+    expect(shareJs).toMatch(/downloadBlob\(blob,\s*filename\)/);
+    expect(shareJs).not.toMatch(/eight-ball\.png/);
   });
 });
 
