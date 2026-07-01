@@ -2,6 +2,21 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-07-01 — MAX EVOLUTION pass (pre-trim): §2 head-clinicalization + WebApplication JSON-LD + reach CI pins · a11y live-regions · rising finite-guard — STAGED
+
+**Status: STAGED on `evolution` (off `origin/main` @ `d83ec99`, built atop the combined test-hardening + reach-hygiene + docs branches) — NOT merged; 3 evolution commits over the staged work. Directed by a direct multi-model review (`relay`: codex gpt-5.5 + grok + claude; gemini keyless). Touches `index.html`, `core/rising.js`, `tests/{rising,density,reach_surface}.test.js`. A `core/` calc touch (E3) ⇒ Codex P4 recommended; the cross-model panel already reviewed it. `package.json` unbumped.**
+
+**Why this pass.** Final expansion before a separate trim/compress pass — strengthen product / reach / UX / reliability / paid-clarity while preserving doctrine. No line-count test enforces the §6 ≤1500 cap (verified by grep), so expansion is permitted and the trim pass reclaims it; `index.html` stays 1499.
+
+**What changed (3 commits):**
+- **E3 — reliability (`8c68ee0`; `core/rising.js` + `tests/rising.test.js`):** `computeRising` and `getRisingSign` guarded coordinates with `typeof lat !== 'number'`, but `typeof NaN === 'number'`, so a NaN coordinate slipped through to `SIGNS[NaN] = undefined`, breaking the documented `string|null` contract. Switched to `Number.isFinite` (also rejects ±Infinity; preserves the string/null rejection). No effect on valid inputs — `buildProfile` range-guards lat/lng — so **`tests/fixtures.json` is byte-identical**; calc-version stays v2.
+- **E2 — accessibility (`b79a5ce`; `index.html` + `tests/density.test.js`):** the density census gets `role="status"` (announced on tier/render change) and `#card-face` gets `aria-label="specimen sheet"`. Additive ARIA over an already-thoughtful surface; pinned so neither regresses.
+- **E1 — reach + §2 fix (`854c7aa`; `index.html` + NEW `tests/reach_surface.test.js`):** the earlier reach copy-unification had propagated "a magic 8-ball that knows you" into the INDEXABLE `<meta name="description">` + JSON-LD — a clinical→predictive regression on the factual/machine-readable surface (flagged independently by all three models). Restored to specimen voice (138 chars, privacy front-loaded, ≤160 SERP); the arcade hook stays only on the og/twitter social cards (§12 carve-out). JSON-LD upgraded `WebSite` → `WebApplication` (honest `EntertainmentApplication`, `isAccessibleForFree`). New `reach_surface.test.js` pins canonical / JSON-LD / robots / sitemap parity AND a §2 voice guard — the indexable meta + JSON-LD description may never carry predictive/mystical phrasing.
+
+**Cross-model review (Phase 4, direct — no packets).** `relay --base origin/main` invoked codex/grok/claude on the full diff (gemini keyless). Consensus caught the §2 leak (fixed E1) + the unpinned reach false-green (fixed E1). Full append-only log + deferred findings: `~/Desktop/8ball/audits/max_evolution_xmodel_review_2026-07-01.md`.
+
+**Verification.** Tests **1145 green** (25 files, +10 vs combined base: E3 +1, E2 +2, E1 +7); local PII audit **clean (74)**; `index.html` **1499** (≤1500); `tests/fixtures.json` byte-identical; no fetch / analytics / new localStorage key. **Scope (files):** `index.html`, `core/rising.js`, `tests/{rising,density,reach_surface}.test.js`, this entry. **UNTOUCHED:** `content/`, `DOCTRINE.md`, other `core/`, `package.json`. **Next:** trim/compress pass — handoff `~/Desktop/8ball/audits/max_evolution_handoff_2026-07-01.md`.
+
 ## 2026-07-01 — reach-surface pass: canonical + robots/sitemap · JSON-LD + unified og copy · share-affordance promotion — STAGED
 
 **Status: STAGED on `reach-hygiene` (off `origin/main` @ `d83ec99`) — NOT merged; 3 commits (`a1be2ef` canonical/robots/sitemap, `82378de` JSON-LD + og copy, `08d4e73` share promotion). Operator merges.** Touches `index.html` + new root `robots.txt` / `sitemap.xml` + `tests/share_surface.test.js` (order-pin lockstep). No DOCTRINE / `content/` / `core/` / `fixtures.json` touch; `package.json` unbumped. Picked under the operator's "reach levers" steer — reach is the §7-verified bottleneck (0 sales). Every lever is DOCTRINE-bounded: no fetch / analytics / new localStorage key / funnel / FOMO (§5 / §12 / §5.C / §2).
