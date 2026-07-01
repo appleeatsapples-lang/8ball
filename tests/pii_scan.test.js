@@ -137,3 +137,46 @@ describe('public-repo PII scan', () => {
     });
   }
 });
+
+// Guard the guard: the scan above is all-negative (asserts zero hits), so a
+// broken regex would read green while silently no longer catching the leak it
+// exists for. These positive-fire sentinels pin that each banned pattern STILL
+// matches the shape it guards. (This file is in SKIP_FILES, so the scan does
+// not scan these example strings.)
+describe('public-repo PII scan — positive-fires sentinels', () => {
+  const labeledDob = BANNED.find(b => b.label === 'labeled-DOB leak').pattern;
+
+  it('labeled-DOB regex fires on the v0.1.0 leak shape it was written for', () => {
+    expect(labeledDob.test('fixture (canonical Muhab test)" with dob: "1990-01-15')).toBe(true);
+    expect(labeledDob.test('owner DOB 1988-03-22')).toBe(true);
+    expect(labeledDob.test('founder — 2001-12-31')).toBe(true);
+  });
+
+  it('labeled-DOB regex does NOT fire on the retired false positives', () => {
+    // bare `me` self-label (dropped in L53 #4) and `owner` inside `downer`
+    // must stay unmatched.
+    expect(labeledDob.test('same day ... 2026-06-25')).toBe(false);
+    expect(labeledDob.test('downer 2026-06-25')).toBe(false);
+  });
+
+  it('every banned pattern except labeled-DOB fires on a sample of its own leak token', () => {
+    // Driven off BANNED so a newly-added pattern with no sample here fails
+    // loudly instead of being silently skipped — covers the two SIRR-vocabulary
+    // patterns that share one label (abjad + hebrew_gematria) too.
+    const samples = [
+      ['operator first name', 'muhab'],
+      ['operator handle', 'muhabakif'],
+      ['operator surname', 'akif'],
+      ['GitHub username', 'appleeatsapples'],
+      ['SIRR cross-reference', 'SIRR'],
+      ['SIRR domain', 'sirr.studio'],
+      ['SIRR vocabulary', 'abjad'],
+      ['SIRR vocabulary', 'hebrew_gematria'],
+    ];
+    for (const { pattern, label } of BANNED) {
+      if (label === 'labeled-DOB leak') continue; // its own positive-fire tests are above
+      const covered = samples.some(([l, tok]) => l === label && pattern.test(tok));
+      expect(covered, `no positive-fire sample matches ${label} ${pattern}`).toBe(true);
+    }
+  });
+});
