@@ -30,7 +30,7 @@ import {
   getLifePath, getLifePathSum,
   getSoulUrge, getSoulUrgeSum
 } from '../core/profile.js';
-import { getCard, resolveBracket } from '../core/engine.js';
+import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 
@@ -353,8 +353,8 @@ describe('engine — resolveBracket', () => {
   }
 
   it('throws on unknown LP value', () => {
-    expect(() => resolveBracket(0)).toThrow();
-    expect(() => resolveBracket(10)).toThrow();
+    expect(() => resolveBracket(0)).toThrow(/Unknown life path value: 0/);
+    expect(() => resolveBracket(10)).toThrow(/Unknown life path value: 10/);
   });
 });
 
@@ -380,6 +380,37 @@ describe('engine — getCard catalog (positional math)', () => {
       expect(resolveBracket(profile.lifePath)).toBe(c.expected.bracket);
     });
   }
+});
+
+describe('engine — getCard MissingCardError (unknown sun/animal)', () => {
+  it('throws MissingCardError naming the bad coordinates, with both allow-lists', () => {
+    let err;
+    try {
+      getCard({ sunSign: 'aries', animal: 'unicorn' });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(MissingCardError);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe('MissingCardError');
+    expect(err.sunSign).toBe('aries');
+    expect(err.animal).toBe('unicorn');
+    expect(err.message).toMatch(/No catalog defined for sun="aries" animal="unicorn"/);
+    expect(err.message).toMatch(/Sun must be one of \[aries, taurus, gemini/);
+    expect(err.message).toMatch(/animal must be one of \[rat, ox, tiger/);
+  });
+
+  it('flags an unknown sun sign even when the animal is valid', () => {
+    let err;
+    try {
+      getCard({ sunSign: 'ophiuchus', animal: 'rat' });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(MissingCardError);
+    expect(err.sunSign).toBe('ophiuchus');
+    expect(err.animal).toBe('rat');
+  });
 });
 
 // BANNED_PATTERNS and BANNED_VOICE_REGISTER remain in this file as the
@@ -426,18 +457,31 @@ describe('calendar — lunar new year + solar-term tables (v2)', () => {
     expect(monthAnimalSolarTerm(1985, 11)).toEqual([1, 5]);
   });
 
-  // Out-of-range guards.
-  it('lunarNewYearDate(1899) throws', () => {
-    expect(() => lunarNewYearDate(1899)).toThrow();
+  // Out-of-range guards — assert the exact message, and pin the
+  // animalIndex guard (distinct from the year-range guard) separately.
+  it('lunarNewYearDate throws the year-range message below 1900', () => {
+    expect(() => lunarNewYearDate(1899))
+      .toThrow(/year out of range \[1900, 2100\]: 1899/);
   });
-  it('lunarNewYearDate(2101) throws', () => {
-    expect(() => lunarNewYearDate(2101)).toThrow();
+  it('lunarNewYearDate throws the year-range message above 2100', () => {
+    expect(() => lunarNewYearDate(2101))
+      .toThrow(/year out of range \[1900, 2100\]: 2101/);
   });
-  it('monthAnimalSolarTerm(1899, 0) throws', () => {
-    expect(() => monthAnimalSolarTerm(1899, 0)).toThrow();
+  it('monthAnimalSolarTerm throws the year-range message out of range', () => {
+    expect(() => monthAnimalSolarTerm(1899, 0))
+      .toThrow(/year out of range \[1900, 2100\]: 1899/);
+    expect(() => monthAnimalSolarTerm(2101, 0))
+      .toThrow(/year out of range \[1900, 2100\]: 2101/);
   });
-  it('monthAnimalSolarTerm(2101, 0) throws', () => {
-    expect(() => monthAnimalSolarTerm(2101, 0)).toThrow();
+  it('monthAnimalSolarTerm rejects an out-of-range animalIndex with its own message', () => {
+    // Distinct guard from the year check; the year is in range here.
+    expect(() => monthAnimalSolarTerm(2000, -1))
+      .toThrow(/animalIndex out of range \[0, 11\]: -1/);
+    expect(() => monthAnimalSolarTerm(2000, 12))
+      .toThrow(/animalIndex out of range \[0, 11\]: 12/);
+    // Boundaries 0 and 11 stay valid (11 = xiaohan, a January date in `year`).
+    expect(monthAnimalSolarTerm(2000, 0)).toEqual([2, 4]);
+    expect(monthAnimalSolarTerm(2000, 11)).toEqual([1, 6]);
   });
 });
 
