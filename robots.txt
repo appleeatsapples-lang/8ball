@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://the-eight-ball.netlify.app/sitemap.xml
