@@ -67,6 +67,46 @@ describe('reach surface — canonical / JSON-LD / robots / sitemap pins', () => 
   });
 });
 
+describe('reach surface — og-image asset parity', () => {
+  // The social unfurl (og/twitter image) is a reach artifact like robots/
+  // sitemap: if the meta URL and the shipped asset drift apart — file
+  // renamed, dimensions changed without the width/height metas following —
+  // every link share silently unfurls broken while the suite stays green.
+  const ogImageUrl = () => {
+    const m = html.match(/<meta property="og:image" content="([^"]*)"/);
+    return m ? m[1] : null;
+  };
+
+  it('og:image and twitter:image agree and live under the site origin', () => {
+    const og = ogImageUrl();
+    expect(og, 'og:image meta missing').not.toBeNull();
+    expect(og.startsWith(`${SITE}/assets/`)).toBe(true);
+    const tw = html.match(/<meta name="twitter:image" content="([^"]*)"/);
+    expect(tw, 'twitter:image meta missing').not.toBeNull();
+    expect(tw[1]).toBe(og);
+  });
+
+  it('the referenced asset exists and its PNG dimensions match the og metas', () => {
+    const og = ogImageUrl();
+    expect(og, 'og:image meta missing').not.toBeNull();
+    const rel = og.slice(SITE.length + 1); // e.g. assets/og-image.png
+    const png = readFileSync(join(__dirname, '..', ...rel.split('/')));
+    // PNG signature + IHDR width/height (big-endian at offsets 16/20;
+    // IHDR is the spec-mandated first chunk, type at bytes 12-15).
+    expect(png.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    );
+    expect(png.subarray(12, 16).toString('ascii')).toBe('IHDR');
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    const metaW = html.match(/<meta property="og:image:width" content="(\d+)"/);
+    const metaH = html.match(/<meta property="og:image:height" content="(\d+)"/);
+    expect(metaW && metaH, 'og:image width/height metas missing').toBeTruthy();
+    expect(width).toBe(Number(metaW[1]));
+    expect(height).toBe(Number(metaH[1]));
+  });
+});
+
 describe('reach surface — §2 clinical voice on the indexable head', () => {
   it('meta description is clinical/specimen (no predictive/mystical phrasing)', () => {
     const d = metaDescription();
