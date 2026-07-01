@@ -231,12 +231,17 @@ function buildCaption() {
 // §5.D: filename carries only the catalog numeral (same PII basis as the PNG
 // footer) — helps recipients sort attachments; never name/DOB/query params.
 export function sharePngFilename(catalogDisplay) {
-  const raw = String(catalogDisplay == null ? '' : catalogDisplay).trim();
+  const raw = String(catalogDisplay ?? '').trim();
   const m = raw.match(/^no\.\s*(.+)$/i);
   const id = m ? m[1].trim() : '';
-  if (!id || id === '—' || id === '-') return DEFAULT_PNG_NAME;
   const slug = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return slug ? `8ball-specimen-${slug}.png` : DEFAULT_PNG_NAME;
+  // Allow-list the catalog shape (roman i…cxliv, or bounded digits), length-capped.
+  // Anything else — including any profile-shaped token — falls back to the generic
+  // name, so the §5.D "catalog numeral only, never name/DOB" contract above is
+  // ENFORCED, not merely asserted (cross-model review hardening: codex + claude).
+  return slug.length <= 8 && /^[ivxlcdm]+$|^\d{1,3}$/.test(slug)
+    ? `8ball-specimen-${slug}.png`
+    : DEFAULT_PNG_NAME;
 }
 
 // ── SVG → PNG Blob ────────────────────────────────────────────────

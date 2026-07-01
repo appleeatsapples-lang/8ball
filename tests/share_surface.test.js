@@ -276,19 +276,24 @@ describe('share PNG filename (§5.D catalog-only, reach)', () => {
     expect(sharePngFilename(null)).toBe('8ball-specimen.png');
   });
 
-  it('never encodes path segments or profile-shaped tokens', () => {
-    for (const name of [
-      sharePngFilename('no. xliii'),
-      sharePngFilename('no. —'),
+  it('rejects non-catalog text (profile tokens / traversal / unicode / overlong) → generic fallback', () => {
+    for (const hostile of [
+      'no. john-1990-01-01',   // profile-shaped (name + DOB)
+      'no. name dob profile',  // literal PII tokens
+      'no. ../../etc/passwd',  // path traversal
+      'no. 名前',               // unicode
+      'no. ' + 'x'.repeat(50), // overlong
     ]) {
-      expect(name).not.toMatch(/[/\\]/);
-      expect(name).not.toMatch(/\.{2}/);
-      expect(name).not.toMatch(/name|dob|profile/i);
+      expect(sharePngFilename(hostile), `must fall back for: ${hostile}`).toBe('8ball-specimen.png');
     }
+    // the legit catalog still resolves, and never carries a separator or PII token
+    const name = sharePngFilename('no. xliii');
+    expect(name).toBe('8ball-specimen-xliii.png');
+    expect(name).not.toMatch(/[/\\]|\.{2}|name|dob|profile/i);
   });
 
   it('share flow uses sharePngFilename for File + download (not a fixed generic name)', () => {
-    expect(shareJs).toMatch(/sharePngFilename\s*\(/);
+    expect(shareJs).toMatch(/const filename = sharePngFilename\(/);
     expect(shareJs).toMatch(/new File\(\[blob\],\s*filename/);
     expect(shareJs).toMatch(/downloadBlob\(blob,\s*filename\)/);
     expect(shareJs).not.toMatch(/eight-ball\.png/);
