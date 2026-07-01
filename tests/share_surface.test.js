@@ -161,6 +161,21 @@ describe('share PNG SVG structure', () => {
     expect(t3).toContain('>DAY PILLAR</text>');
     expect(t3).toContain('>HOUR PILLAR</text>');
   });
+
+  it('escapes &, <, > in DOM-derived catalog and cell values (SVG well-formedness / no markup injection)', () => {
+    const svg = buildCardSVGFromSnapshot({
+      catalog: 'no. <1> & 2',
+      sections: [
+        { title: 'ARCANA', cells: [{ value: 'a & <b>', state: 'open' }] },
+      ],
+    });
+    // Both the catalog and the cell value must be entity-escaped verbatim.
+    expect(svg).toContain('>no. &lt;1&gt; &amp; 2</text>');
+    expect(svg).toContain('>a &amp; &lt;b&gt;</text>');
+    // No raw markup leaks: the unescaped forms must not appear.
+    expect(svg).not.toContain('<b>');
+    expect(svg).not.toContain('& 2</text>');
+  });
 });
 
 describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
@@ -294,6 +309,15 @@ describe('share caption (DOCTRINE §5.D v0.39 / §2 voice / H5)', () => {
     expect(shareJs).toMatch(/navigator\.share\(\{\s*files:\s*\[file\],\s*text:\s*caption\s*\}\)/);
     expect(shareJs).toMatch(/writeText\(caption\)/);
     expect(shareJs).not.toMatch(/writeText\(SITE_URL\)/);
+  });
+
+  it('head grammar is exact: "8ball specimen no. NNN" with catalog, "8ball specimen" without', () => {
+    const withCat = buildCaptionFromSnapshot({ catalog: 'no. 042', sections: [] });
+    expect(withCat).toBe('8ball specimen no. 042\nhttps://the-eight-ball.netlify.app');
+    // Empty catalog: bare wordmark head, no dangling catalog numeral, no stray separator.
+    const noCat = buildCaptionFromSnapshot({});
+    expect(noCat).toBe('8ball specimen\nhttps://the-eight-ball.netlify.app');
+    expect(noCat).not.toContain(' · ');
   });
 });
 

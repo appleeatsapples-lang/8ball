@@ -350,3 +350,18 @@ describe('rising sign — polar latitudes return null (v0.2.7.2 §1.A)', () => {
     });
   }
 });
+
+describe('rising sign — computeRising input guards (null / non-number coords)', () => {
+  it('returns null for missing or null opts', () => {
+    expect(computeRising()).toBe(null);
+    expect(computeRising(null)).toBe(null);
+  });
+
+  it('returns null when lat or lng is not a number', () => {
+    const base = { year: 2000, month: 1, day: 1, hour: 12, minute: 0, tz: 'UTC' };
+    expect(computeRising({ ...base, lat: '51', lng: 0 })).toBe(null);
+    expect(computeRising({ ...base, lat: 51, lng: '0' })).toBe(null);
+    expect(computeRising({ ...base, lat: 51 })).toBe(null);
+    expect(computeRising({ ...base, lng: 0 })).toBe(null);
+  });
+});
