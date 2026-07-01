@@ -5,19 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
 <title>8 ball</title>
-<meta name="description" content="Five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
+<meta name="description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
 
 <!-- favicon -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
 <link rel="shortcut icon" href="/assets/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png">
+<link rel="canonical" href="https://the-eight-ball.netlify.app/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"8ball","url":"https://the-eight-ball.netlify.app/","description":"A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device."}</script>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://the-eight-ball.netlify.app/">
 <meta property="og:title" content="8 ball">
-<meta property="og:description" content="A magic 8-ball that knows you. Five calibrated coordinates from your date of birth, free — three paid rungs reveal the full sheet. Stored only on your device.">
+<meta property="og:description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -26,7 +28,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="8 ball">
-<meta name="twitter:description" content="A magic 8-ball that knows you. Five calibrated coordinates from your date of birth, free — three paid rungs reveal the full sheet. Stored only on your device.">
+<meta name="twitter:description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta name="twitter:image:alt" content="8 ball">
 
@@ -477,8 +479,8 @@
     border-color: var(--label);
     color: var(--label);
     letter-spacing: 0.20em;
-    margin-top: 10px;
   }
+  .result-controls .btn + .btn { margin-top: 10px; }
   .btn-secondary:hover, .btn-secondary:focus {
     border-color: var(--paper);
     color: var(--paper);
@@ -787,7 +789,7 @@
   }
 
   /* Result screen desktop side rail (≥720px): the card keeps its 5/8
-     specimen proportions while the controls (SHAKE / TRY / SHARE) move into
+     specimen proportions while the controls (SHAKE / SHARE / TRY) move into
      a rail beside it, so SHARE stays above the fold. Every rule is #result-
      scoped so the shared onboarding screen (same main/.stage/.screen) is
      untouched. Mobile/narrow stays stacked. */
@@ -925,8 +927,8 @@
 
     <div class="result-controls">
       <button class="btn btn-block" id="shake-again-btn">shake again</button>
+      <button class="btn btn-block" id="share-btn" type="button">share</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
-      <button class="btn btn-block btn-secondary" id="share-btn" type="button">share</button>
       <div class="share-status" id="share-status" hidden></div>
       <div class="disclaimer">stored only on this device.</div>
       <div class="footer-actions">

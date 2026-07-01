@@ -32,13 +32,15 @@ describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
     expect(controls).toMatch(/id="share-btn"/);
   });
 
-  it('#share-btn is the third control, after shake-again and try-another', () => {
+  it('#share-btn is the second control, promoted above try-another (§5.D reach)', () => {
+    // Share PNG is the primary organic reach artifact — the share affordance
+    // sits directly after the primary shake-again action, ahead of try-another.
     const iShake = controls.indexOf('id="shake-again-btn"');
-    const iTry = controls.indexOf('id="try-another-btn"');
     const iShare = controls.indexOf('id="share-btn"');
+    const iTry = controls.indexOf('id="try-another-btn"');
     expect(iShake).toBeGreaterThanOrEqual(0);
-    expect(iTry).toBeGreaterThan(iShake);
-    expect(iShare).toBeGreaterThan(iTry);
+    expect(iShare).toBeGreaterThan(iShake);
+    expect(iTry).toBeGreaterThan(iShare);
   });
 
   it('#share-btn label is "share" and type is button', () => {
@@ -46,6 +48,10 @@ describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
     expect(m, 'share-btn element not found').not.toBeNull();
     expect(m[1]).toMatch(/type="button"/);
     expect(m[2].trim()).toBe('share');
+    // reach promotion (§5.D): pins the primary restyle, not just the order —
+    // share-btn must be a primary .btn-block, never the dim .btn-secondary.
+    expect(m[1]).toMatch(/class="[^"]*\bbtn-block\b[^"]*"/);
+    expect(m[1]).not.toMatch(/btn-secondary/);
   });
 
   it('share-status confirmation node exists', () => {
