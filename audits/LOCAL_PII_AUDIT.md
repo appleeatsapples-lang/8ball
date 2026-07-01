@@ -24,7 +24,6 @@ Example contents (illustrative — yours will differ):
 [MM/DD/YYYY]
 
 # Names
-[your full real name]
 [partner's name]
 [parent names]
 
@@ -39,6 +38,14 @@ Example contents (illustrative — yours will differ):
 
 You author this file once. Update it when your patterns change.
 
+**Pattern-class boundary:** this file should carry only patterns with ZERO
+legitimate tracked occurrences (your DOB, addresses, family names, IDs). The
+operator's own name/handle shapes belong to the PUBLIC scan's banned-pattern +
+allow-list system — they appear legitimately in tracked content (the LICENSE
+copyright line, `MUHAB.md` governance references), so a raw name-grep here
+would false-fire on files the public scan deliberately allows. This audit has
+no allow-list on purpose: a hit must always mean "remove it."
+
 ## How to run
 
 From the repo root:
@@ -50,7 +57,7 @@ bash audits/run_local_audit.sh
 The script:
 
 1. Reads `audits/local_personal_data.txt`.
-2. Greps every tracked file (excluding `node_modules`, `.git`, the data file itself, this doc, the script itself, and `tests/pii_scan.test.js`) for each pattern. The `pii_scan.test.js` exclusion mirrors the public scan's own `SKIP_FILES`: that file carries the banned patterns plus positive-fire sentinel strings that are leak-shaped by design, so scanning it produces false positives, not coverage.
+2. Greps every tracked file (excluding `node_modules`, `.git`, the data file itself, this doc, the script itself, and `tests/pii_scan.test.js`) for each pattern. The `pii_scan.test.js` exclusion mirrors the public scan's own `SKIP_FILES`: that file carries the banned patterns plus positive-fire sentinel strings that are leak-shaped by design, so scanning it produces false positives, not coverage. What is given up: a real personal-data paste into that ONE file would be caught by neither layer — accepted because leak-shaped content is the file's function, edits to it are already high-scrutiny, and the alternative failure mode (weakening sentinels to appease the grep) is strictly worse. Fragmenting the sentinel strings instead would not close the hole: the banned-pattern regex literals themselves carry the same tokens in plain source.
 3. Reports any matches.
 4. Exits 0 on clean, 1 on hits.
 
@@ -87,5 +94,5 @@ Already-pushed leaks are persistent. Treat as incident:
 
 If the audit procedure changes (new pattern classes, new layer, new tooling), update this file and bump a date below.
 
-**Audit doc version:** 2026-07-01 · v0.2 — local scan now skips `tests/pii_scan.test.js`, mirroring the public scan's `SKIP_FILES` (see the journal entry of the same date).
-(prior: 2026-05-08 · v0.1)
+**Audit doc version:** 2026-07-01 · v0.3 — pattern-class boundary + given-up/fragmenting notes; "[your full real name]" removed from the example block (a full-name pattern false-fires on the LICENSE copyright line — name shapes are the public scan's job).
+(prior: 2026-07-01 · v0.2 — local scan now skips `tests/pii_scan.test.js`, mirroring the public scan's `SKIP_FILES`; 2026-05-08 · v0.1)
