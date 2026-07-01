@@ -479,8 +479,8 @@
     border-color: var(--label);
     color: var(--label);
     letter-spacing: 0.20em;
-    margin-top: 10px;
   }
+  .result-controls .btn + .btn { margin-top: 10px; }
   .btn-secondary:hover, .btn-secondary:focus {
     border-color: var(--paper);
     color: var(--paper);
@@ -789,7 +789,7 @@
   }
 
   /* Result screen desktop side rail (≥720px): the card keeps its 5/8
-     specimen proportions while the controls (SHAKE / TRY / SHARE) move into
+     specimen proportions while the controls (SHAKE / SHARE / TRY) move into
      a rail beside it, so SHARE stays above the fold. Every rule is #result-
      scoped so the shared onboarding screen (same main/.stage/.screen) is
      untouched. Mobile/narrow stays stacked. */
@@ -927,8 +927,8 @@
 
     <div class="result-controls">
       <button class="btn btn-block" id="shake-again-btn">shake again</button>
+      <button class="btn btn-block" id="share-btn" type="button">share</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
-      <button class="btn btn-block btn-secondary" id="share-btn" type="button">share</button>
       <div class="share-status" id="share-status" hidden></div>
       <div class="disclaimer">stored only on this device.</div>
       <div class="footer-actions">
