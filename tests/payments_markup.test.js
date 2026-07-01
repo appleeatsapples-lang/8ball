@@ -29,8 +29,12 @@ import {
   CREDITS_KEY,
   PENDING_KEY,
   TRIES_KEY,
+  getCredits,
+  getTriesUsed,
   handlePaidReturn,
   initPaywallUI,
+  setCredits,
+  setTriesUsed,
   showPaidBanner,
 } from '../ui/payments.js';
 
@@ -319,6 +323,60 @@ describe('paid-return banner behavior', () => {
     expect(handlePaidReturn()).toBe(false);
     expect(banner.hidden).toBe(true);
     expect(banner.classList.contains('visible')).toBe(false);
+  });
+});
+
+describe('paid counter storage wrappers', () => {
+  it('getters clamp corrupt stored counters to safe zero', () => {
+    globalThis.localStorage = makeStorage({
+      [CREDITS_KEY]: '-5',
+      [TRIES_KEY]: 'Infinity',
+    });
+
+    expect(getCredits()).toBe(0);
+    expect(getTriesUsed()).toBe(0);
+  });
+
+  it('getters floor fractional stored counters', () => {
+    globalThis.localStorage = makeStorage({
+      [CREDITS_KEY]: '2.9',
+      [TRIES_KEY]: '3.8',
+    });
+
+    expect(getCredits()).toBe(2);
+    expect(getTriesUsed()).toBe(3);
+  });
+
+  it('setters persist normalized non-negative integer strings', () => {
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+
+    setCredits(4.9);
+    setTriesUsed(-2);
+
+    expect(storage.snapshot()).toMatchObject({
+      [CREDITS_KEY]: '4',
+      [TRIES_KEY]: '0',
+    });
+  });
+
+  it('handlePaidReturn repairs corrupt counters before persisting the grant', () => {
+    installPaywallUI();
+    const storage = makeStorage({
+      [CREDITS_KEY]: '-5',
+      [TRIES_KEY]: '-2',
+    });
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t3', pathname: '/return' },
+      history: { replaceState: vi.fn() },
+    };
+
+    expect(handlePaidReturn()).toBe(false);
+    expect(storage.snapshot()).toMatchObject({
+      [CREDITS_KEY]: '3',
+      [TRIES_KEY]: '0',
+    });
   });
 });
 

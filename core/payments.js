@@ -11,6 +11,15 @@
 export const FREE_TRIES_CAP = 3;
 export const CREDITS_PER_PURCHASE = 3;
 
+// Counter inputs are persisted in localStorage by the UI layer and can be
+// hand-edited or corrupted. The state machine only operates on whole,
+// non-negative counters; invalid, negative, or non-finite values read as 0.
+export function normalizeCounter(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
+
 // ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36) ──────────────
 // Three paid rungs reveal progressively more of the coordinate sheet.
 // The ladder is ordered; the stored tier is the HIGHEST rung purchased
@@ -62,8 +71,9 @@ export function maxTier(a, b) {
  * @returns {string} 'free' | 't1' | 't2' | 't3'
  */
 export function resolveRenderTier({ tier, credits }) {
+  const cleanCredits = normalizeCounter(credits);
   if (isTier(tier)) return tier;
-  if (credits > 0) return 't3';
+  if (cleanCredits > 0) return 't3';
   return 'free';
 }
 
@@ -98,24 +108,26 @@ export function isNewPair(input, stored) {
  * @returns {{action: string, triesUsed: number, credits: number}}
  */
 export function nextShakeState({ triesUsed, credits, isNew }) {
+  const cleanTries = normalizeCounter(triesUsed);
+  const cleanCredits = normalizeCounter(credits);
   if (!isNew) {
-    return { action: 'render-idempotent', triesUsed, credits };
+    return { action: 'render-idempotent', triesUsed: cleanTries, credits: cleanCredits };
   }
-  if (credits > 0) {
+  if (cleanCredits > 0) {
     return {
       action: 'render-unlocked',
-      triesUsed: triesUsed + 1,
-      credits: credits - 1,
+      triesUsed: cleanTries + 1,
+      credits: cleanCredits - 1,
     };
   }
-  if (triesUsed < FREE_TRIES_CAP) {
+  if (cleanTries < FREE_TRIES_CAP) {
     return {
       action: 'render-locked',
-      triesUsed: triesUsed + 1,
+      triesUsed: cleanTries + 1,
       credits: 0,
     };
   }
-  return { action: 'show-paywall', triesUsed, credits: 0 };
+  return { action: 'show-paywall', triesUsed: cleanTries, credits: 0 };
 }
 
 /**
@@ -145,20 +157,22 @@ export function nextShakeState({ triesUsed, credits, isNew }) {
  *            tier?: string | null, profile?: object}}
  */
 export function applyPaidReturn({ credits, triesUsed, pendingProfile, tier, purchasedTier }) {
+  const cleanCredits = normalizeCounter(credits);
+  const cleanTries = normalizeCounter(triesUsed);
   const newTier = maxTier(tier, purchasedTier);
-  const newCredits = credits + CREDITS_PER_PURCHASE;
+  const newCredits = cleanCredits + CREDITS_PER_PURCHASE;
   if (!pendingProfile) {
     return {
       action: 'no-pending',
       credits: newCredits,
-      triesUsed,
+      triesUsed: cleanTries,
       tier: newTier,
     };
   }
   return {
     action: 'render-unlocked',
     credits: newCredits - 1,
-    triesUsed: triesUsed + 1,
+    triesUsed: cleanTries + 1,
     profile: pendingProfile,
     tier: newTier,
   };
