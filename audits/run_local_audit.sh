@@ -22,11 +22,15 @@ fi
 # Build the list of files to scan: tracked content excluding the audit data file
 # itself and the audit doc. Include untracked-but-not-ignored files too so a
 # half-built leak is caught before commit.
+# tests/pii_scan.test.js is excluded to mirror the public scan's own SKIP_FILES:
+# that file's job is to carry the banned patterns and their positive-fire
+# sentinel strings (leak-shaped by design), so grepping it is a false-positive
+# generator, not coverage. See journal.md 2026-07-01 for the widening rationale.
 FILES=()
 while IFS= read -r line; do
   FILES+=("$line")
 done < <(git ls-files --cached --others --exclude-standard \
-  | grep -vE '^(audits/local_personal_data\.txt|audits/LOCAL_PII_AUDIT\.md|audits/run_local_audit\.sh|node_modules/|\.git/)')
+  | grep -vE '^(audits/local_personal_data\.txt|audits/LOCAL_PII_AUDIT\.md|audits/run_local_audit\.sh|tests/pii_scan\.test\.js|node_modules/|\.git/)')
 
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "WARN: no files to scan (empty git working tree?)"

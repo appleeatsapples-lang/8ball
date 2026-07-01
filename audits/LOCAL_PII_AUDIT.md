@@ -50,7 +50,7 @@ bash audits/run_local_audit.sh
 The script:
 
 1. Reads `audits/local_personal_data.txt`.
-2. Greps every tracked file (excluding `node_modules`, `.git`, the data file itself, and this doc) for each pattern.
+2. Greps every tracked file (excluding `node_modules`, `.git`, the data file itself, this doc, the script itself, and `tests/pii_scan.test.js`) for each pattern. The `pii_scan.test.js` exclusion mirrors the public scan's own `SKIP_FILES`: that file carries the banned patterns plus positive-fire sentinel strings that are leak-shaped by design, so scanning it produces false positives, not coverage.
 3. Reports any matches.
 4. Exits 0 on clean, 1 on hits.
 
@@ -87,4 +87,5 @@ Already-pushed leaks are persistent. Treat as incident:
 
 If the audit procedure changes (new pattern classes, new layer, new tooling), update this file and bump a date below.
 
-**Audit doc version:** 2026-05-08 · v0.1
+**Audit doc version:** 2026-07-01 · v0.2 — local scan now skips `tests/pii_scan.test.js`, mirroring the public scan's `SKIP_FILES` (see the journal entry of the same date).
+(prior: 2026-05-08 · v0.1)
