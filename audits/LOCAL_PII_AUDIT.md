@@ -73,7 +73,15 @@ strings that exist precisely to test the guard, and the "fix" would corrupt
 either the sentinels or this file's pattern list. `pii_scan.test.js` is guarded
 by review on every diff plus its own BANNED-driven positive-fire discipline
 (a pattern without a firing sample fails loudly), not by grepping its own
-examples. Exclusion journaled 2026-07-01 (local-audit sentinel exclusion).
+examples. What is given up: a real personal-data paste into that ONE file
+would now be caught by neither layer — accepted because leak-shaped content
+is the file's function, edits to it are already high-scrutiny, and the
+alternative failure mode (weakening sentinels to appease the grep) is
+strictly worse. Fragmenting the sentinel strings instead would not close
+the hole: the banned-pattern regex literals themselves carry the same
+tokens in plain source, and obfuscating the canonical pattern list defeats
+the file's documented purpose. Exclusion journaled 2026-07-01 (local-audit
+sentinel exclusion).
 
 If hits are reported, fix them BEFORE pushing. Either:
 
