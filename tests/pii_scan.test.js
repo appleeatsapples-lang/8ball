@@ -108,7 +108,7 @@ const BANNED = [
   }
 ];
 
-const TEXT_EXTS = ['.js', '.json', '.html', '.md', '.toml', '.yml', '.yaml', '.css', '.txt', '.gitignore', '.sh'];
+const TEXT_EXTS = ['.js', '.json', '.html', '.md', '.toml', '.yml', '.yaml', '.css', '.txt', '.xml', '.gitignore', '.sh'];
 function isText(file) {
   if (TEXT_EXTS.some(ext => file.endsWith(ext))) return true;
   if (file.endsWith('LICENSE')) return true;

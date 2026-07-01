@@ -48,6 +48,10 @@ describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
     expect(m, 'share-btn element not found').not.toBeNull();
     expect(m[1]).toMatch(/type="button"/);
     expect(m[2].trim()).toBe('share');
+    // reach promotion (§5.D): pins the primary restyle, not just the order —
+    // share-btn must be a primary .btn-block, never the dim .btn-secondary.
+    expect(m[1]).toMatch(/class="[^"]*\bbtn-block\b[^"]*"/);
+    expect(m[1]).not.toMatch(/btn-secondary/);
   });
 
   it('share-status confirmation node exists', () => {
