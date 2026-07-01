@@ -152,7 +152,10 @@ export function offsetMinutesForWallTime(year, month, day, hour, minute, tz) {
 export function computeRising(opts) {
   if (!opts) return null;
   const { year, month, day, hour, minute, tz, lat, lng } = opts;
-  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  // finite guard: rejects non-numbers AND NaN/±Infinity (typeof NaN==='number'
+  // would slip through to SIGNS[NaN]=undefined, breaking the string|null contract).
+  // No effect on valid inputs — buildProfile range-guards lat/lng.
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (isPolarLatitude(lat)) return null;
   const offset = offsetMinutesForWallTime(year, month, day, hour, minute, tz);
   if (offset === null) return null;
@@ -166,7 +169,7 @@ export function computeRising(opts) {
 // polar safety checks; buildProfile uses computeRising for both fresh
 // city payloads and legacy country payloads.
 export function getRisingSign(year, month, day, hour, minute, utcOffsetMinutes, lat, lng) {
-  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;  // finite guard (see computeRising)
   if (isPolarLatitude(lat)) return null;
   const asc = ascendantDeg(year, month, day, hour, minute, utcOffsetMinutes, lat, lng);
   return SIGNS[Math.floor(asc / 30) % 12];

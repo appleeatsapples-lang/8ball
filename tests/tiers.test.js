@@ -246,6 +246,18 @@ describe('tiers — resolveRenderTier single density rule (remediation R1/R2)', 
     expect(resolveRenderTier({ tier: null, credits: undefined })).toBe('free');
   });
 
+  it('normalizes corrupt credit values before the density decision (codex reliability + review follow-up)', () => {
+    // negative / fractional / non-finite / junk credits floor to 0 → free
+    expect(resolveRenderTier({ tier: null, credits: -5 })).toBe('free');
+    expect(resolveRenderTier({ tier: null, credits: 0.9 })).toBe('free');
+    expect(resolveRenderTier({ tier: null, credits: NaN })).toBe('free');
+    expect(resolveRenderTier({ tier: null, credits: 'abc' })).toBe('free');
+    // a whole-integer string still grandfathers to t3
+    expect(resolveRenderTier({ tier: null, credits: '3' })).toBe('t3');
+    // a stored tier still wins regardless of corrupt credits (grandfather path)
+    expect(resolveRenderTier({ tier: 't1', credits: -5 })).toBe('t1');
+  });
+
   it('the rule takes no action/boot argument — density cannot depend on them', () => {
     expect(resolveRenderTier.length).toBe(1); // single state object
   });

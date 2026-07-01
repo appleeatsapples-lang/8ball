@@ -131,4 +131,14 @@ describe('countries legacy timezone mapping', () => {
       expect(profile.risingSign).not.toBe(tc.fixed);
     }
   });
+
+  it('unknown codes resolve to undefined from both accessors', () => {
+    // The .find()-miss and object-lookup-miss branches: an unrecognized
+    // code must return undefined so buildProfile's rising path falls
+    // through to no-rising rather than crashing on a missing centroid/tz.
+    expect(getCountryByCode('ZZ')).toBeUndefined();
+    expect(getCountryByCode('')).toBeUndefined();
+    expect(getCountryTimeZoneByCode('ZZ')).toBeUndefined();
+    expect(getCountryTimeZoneByCode('')).toBeUndefined();
+  });
 });

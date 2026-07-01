@@ -11,6 +11,7 @@ import {
   nextShakeState,
   applyPaidReturn,
   maxTier,
+  normalizeCounter,
   FREE_TRIES_CAP,
   CREDITS_PER_PURCHASE,
 } from '../core/payments.js';
@@ -35,6 +36,25 @@ describe('payments — constants', () => {
 
   it('CREDITS_PER_PURCHASE is 3 (DOCTRINE §2 arcade-toy: dollars == tries)', () => {
     expect(CREDITS_PER_PURCHASE).toBe(3);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// counter normalization — storage-corruption hardening
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('payments — counter normalization', () => {
+  it('normalizes invalid, negative, and non-finite counters to zero', () => {
+    for (const value of [undefined, null, '', 'not-a-number', -1, '-7', Infinity, 'Infinity', NaN]) {
+      expect(normalizeCounter(value), String(value)).toBe(0);
+    }
+  });
+
+  it('keeps whole non-negative counters and floors fractional values', () => {
+    expect(normalizeCounter(0)).toBe(0);
+    expect(normalizeCounter('3')).toBe(3);
+    expect(normalizeCounter(2.9)).toBe(2);
+    expect(normalizeCounter('4.8')).toBe(4);
   });
 });
 
@@ -157,6 +177,16 @@ describe('payments — nextShakeState transitions', () => {
     const result = nextShakeState({ triesUsed: 5, credits: 1, isNew: true });
     expect(result).toEqual({ action: 'render-unlocked', triesUsed: 6, credits: 0 });
   });
+
+  it('corrupt negative counters are repaired before cap/credit decisions', () => {
+    const result = nextShakeState({ triesUsed: -20, credits: -3, isNew: true });
+    expect(result).toEqual({ action: 'render-locked', triesUsed: 1, credits: 0 });
+  });
+
+  it('same-pair idempotent renders return normalized counters', () => {
+    const result = nextShakeState({ triesUsed: 2.9, credits: '4.8', isNew: false });
+    expect(result).toEqual({ action: 'render-idempotent', triesUsed: 2, credits: 4 });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -267,6 +297,23 @@ describe('payments — applyPaidReturn', () => {
   it('explicit undefined pending profile behaves like null', () => {
     const result = applyPaidReturn({ credits: 0, triesUsed: 0, pendingProfile: undefined });
     expect(result).toEqual({ action: 'no-pending', credits: 3, triesUsed: 0 });
+  });
+
+  it('corrupt negative counters are repaired before a paid return grants credits', () => {
+    const result = applyPaidReturn({ credits: -5, triesUsed: -2, pendingProfile: null, purchasedTier: 't1' });
+    expect(result).toEqual({ action: 'no-pending', credits: 3, triesUsed: 0, tier: 't1' });
+  });
+
+  it('fractional counters are floored before pending-profile consumption', () => {
+    const pending = mk('Counter Case', '1999-09-09');
+    const result = applyPaidReturn({ credits: 2.9, triesUsed: 3.8, pendingProfile: pending });
+    expect(result).toEqual({
+      action: 'render-unlocked',
+      credits: 4,
+      triesUsed: 4,
+      profile: pending,
+      tier: undefined,
+    });
   });
 });
 

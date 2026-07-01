@@ -93,3 +93,17 @@ describe('density strip — §5.D PNG exclusion', () => {
     expect(shareJs).not.toMatch(/density-strip|tierDensitySummary/);
   });
 });
+
+describe('result surface — accessibility pins (evolution pass)', () => {
+  it('density census is a live status region for screen readers', () => {
+    const strip = html.match(/<p class="density-strip" id="density-strip"[^>]*>/);
+    expect(strip, 'density-strip tag not found').not.toBeNull();
+    expect(strip[0]).toMatch(/role="status"/);
+  });
+  it('the specimen sheet region is named + live for assistive tech', () => {
+    const card = html.match(/<article class="card seal-hatch" id="card-face"[^>]*>/);
+    expect(card, 'card-face tag not found').not.toBeNull();
+    expect(card[0]).toMatch(/aria-live="polite"/);
+    expect(card[0]).toMatch(/aria-label="specimen sheet"/);
+  });
+});

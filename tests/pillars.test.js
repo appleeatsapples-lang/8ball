@@ -420,7 +420,7 @@ describe('pre-1900 day pillar (day calc is unbounded; year-pillar gates buildPro
     // through the calendar.js solar/lunar tables (range 1900–2100). Documented
     // boundary + tripwire: if that floor ever drops, add pre-1900 buildProfile
     // dayPillar coverage here.
-    expect(() => buildProfile('Test', '1899-12-31')).toThrow();
+    expect(() => buildProfile('Test', '1899-12-31')).toThrow(/year out of range \[1900, 2100\]: 1899/);
   });
 });
 

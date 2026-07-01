@@ -25,7 +25,7 @@
 // crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
 // target — `ui/*.js` modules — is exactly what §6 specifies.
 
-import { applyPaidReturn, isTier, resolveRenderTier } from '../core/payments.js';
+import { applyPaidReturn, isTier, normalizeCounter, resolveRenderTier } from '../core/payments.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
 // The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY is the
@@ -49,23 +49,24 @@ export const TIER_KEY = 'eight_ball_tier_v1';
 //               one round-trip.
 //
 // Every read defends against a localStorage exception (private mode,
-// quota, etc.) by returning a safe zero/null default. Writes silently
-// no-op on exception — the worst case is that counters reset on the
-// next visit, which is the same shape as a fresh user.
+// quota, etc.) by returning a safe zero/null default. Corrupt counter
+// payloads are normalized to whole non-negative integers before use.
+// Writes silently no-op on exception — the worst case is that counters
+// reset on the next visit, which is the same shape as a fresh user.
 
 export function getTriesUsed() {
-  try { return parseInt(localStorage.getItem(TRIES_KEY) || '0', 10) || 0; }
+  try { return normalizeCounter(localStorage.getItem(TRIES_KEY)); }
   catch (_) { return 0; }
 }
 export function setTriesUsed(n) {
-  try { localStorage.setItem(TRIES_KEY, String(n)); } catch (_) {}
+  try { localStorage.setItem(TRIES_KEY, String(normalizeCounter(n))); } catch (_) {}
 }
 export function getCredits() {
-  try { return parseInt(localStorage.getItem(CREDITS_KEY) || '0', 10) || 0; }
+  try { return normalizeCounter(localStorage.getItem(CREDITS_KEY)); }
   catch (_) { return 0; }
 }
 export function setCredits(n) {
-  try { localStorage.setItem(CREDITS_KEY, String(n)); } catch (_) {}
+  try { localStorage.setItem(CREDITS_KEY, String(normalizeCounter(n))); } catch (_) {}
 }
 // Tier is the highest rung purchased ("t1" | "t2" | "t3"); absent = free.
 // Monotonic — only handlePaidReturn writes it, via the max-rank result of

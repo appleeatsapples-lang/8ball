@@ -10,7 +10,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCardSVGFromSnapshot, buildCaptionFromSnapshot } from '../ui/share.js';
+import {
+  buildCardSVGFromSnapshot,
+  buildCaptionFromSnapshot,
+  sharePngFilename,
+} from '../ui/share.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -32,13 +36,15 @@ describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
     expect(controls).toMatch(/id="share-btn"/);
   });
 
-  it('#share-btn is the third control, after shake-again and try-another', () => {
+  it('#share-btn is the second control, promoted above try-another (§5.D reach)', () => {
+    // Share PNG is the primary organic reach artifact — the share affordance
+    // sits directly after the primary shake-again action, ahead of try-another.
     const iShake = controls.indexOf('id="shake-again-btn"');
-    const iTry = controls.indexOf('id="try-another-btn"');
     const iShare = controls.indexOf('id="share-btn"');
+    const iTry = controls.indexOf('id="try-another-btn"');
     expect(iShake).toBeGreaterThanOrEqual(0);
-    expect(iTry).toBeGreaterThan(iShake);
-    expect(iShare).toBeGreaterThan(iTry);
+    expect(iShare).toBeGreaterThan(iShake);
+    expect(iTry).toBeGreaterThan(iShare);
   });
 
   it('#share-btn label is "share" and type is button', () => {
@@ -46,6 +52,10 @@ describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
     expect(m, 'share-btn element not found').not.toBeNull();
     expect(m[1]).toMatch(/type="button"/);
     expect(m[2].trim()).toBe('share');
+    // reach promotion (§5.D): pins the primary restyle, not just the order —
+    // share-btn must be a primary .btn-block, never the dim .btn-secondary.
+    expect(m[1]).toMatch(/class="[^"]*\bbtn-block\b[^"]*"/);
+    expect(m[1]).not.toMatch(/btn-secondary/);
   });
 
   it('share-status confirmation node exists', () => {
@@ -161,6 +171,21 @@ describe('share PNG SVG structure', () => {
     expect(t3).toContain('>DAY PILLAR</text>');
     expect(t3).toContain('>HOUR PILLAR</text>');
   });
+
+  it('escapes &, <, > in DOM-derived catalog and cell values (SVG well-formedness / no markup injection)', () => {
+    const svg = buildCardSVGFromSnapshot({
+      catalog: 'no. <1> & 2',
+      sections: [
+        { title: 'ARCANA', cells: [{ value: 'a & <b>', state: 'open' }] },
+      ],
+    });
+    // Both the catalog and the cell value must be entity-escaped verbatim.
+    expect(svg).toContain('>no. &lt;1&gt; &amp; 2</text>');
+    expect(svg).toContain('>a &amp; &lt;b&gt;</text>');
+    // No raw markup leaks: the unescaped forms must not appear.
+    expect(svg).not.toContain('<b>');
+    expect(svg).not.toContain('& 2</text>');
+  });
 });
 
 describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
@@ -239,6 +264,42 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
   });
 });
 
+describe('share PNG filename (§5.D catalog-only, reach)', () => {
+  it('derives a deterministic slug from the on-card catalog display', () => {
+    expect(sharePngFilename('no. xliii')).toBe('8ball-specimen-xliii.png');
+    expect(sharePngFilename('no. 042')).toBe('8ball-specimen-042.png');
+  });
+
+  it('falls back when the catalog is empty or unresolved', () => {
+    expect(sharePngFilename('no. —')).toBe('8ball-specimen.png');
+    expect(sharePngFilename('')).toBe('8ball-specimen.png');
+    expect(sharePngFilename(null)).toBe('8ball-specimen.png');
+  });
+
+  it('rejects non-catalog text (profile tokens / traversal / unicode / overlong) → generic fallback', () => {
+    for (const hostile of [
+      'no. john-1990-01-01',   // profile-shaped (name + DOB)
+      'no. name dob profile',  // literal PII tokens
+      'no. ../../etc/passwd',  // path traversal
+      'no. 名前',               // unicode
+      'no. ' + 'x'.repeat(50), // overlong
+    ]) {
+      expect(sharePngFilename(hostile), `must fall back for: ${hostile}`).toBe('8ball-specimen.png');
+    }
+    // the legit catalog still resolves, and never carries a separator or PII token
+    const name = sharePngFilename('no. xliii');
+    expect(name).toBe('8ball-specimen-xliii.png');
+    expect(name).not.toMatch(/[/\\]|\.{2}|name|dob|profile/i);
+  });
+
+  it('share flow uses sharePngFilename for File + download (not a fixed generic name)', () => {
+    expect(shareJs).toMatch(/const filename = sharePngFilename\(/);
+    expect(shareJs).toMatch(/new File\(\[blob\],\s*filename/);
+    expect(shareJs).toMatch(/downloadBlob\(blob,\s*filename\)/);
+    expect(shareJs).not.toMatch(/eight-ball\.png/);
+  });
+});
+
 describe('share caption (DOCTRINE §5.D v0.39 / §2 voice / H5)', () => {
   it('builds a clinical caption: catalog + open coords + sealed remainder + bare URL', () => {
     const cap = buildCaptionFromSnapshot({
@@ -294,6 +355,15 @@ describe('share caption (DOCTRINE §5.D v0.39 / §2 voice / H5)', () => {
     expect(shareJs).toMatch(/navigator\.share\(\{\s*files:\s*\[file\],\s*text:\s*caption\s*\}\)/);
     expect(shareJs).toMatch(/writeText\(caption\)/);
     expect(shareJs).not.toMatch(/writeText\(SITE_URL\)/);
+  });
+
+  it('head grammar is exact: "8ball specimen no. NNN" with catalog, "8ball specimen" without', () => {
+    const withCat = buildCaptionFromSnapshot({ catalog: 'no. 042', sections: [] });
+    expect(withCat).toBe('8ball specimen no. 042\nhttps://the-eight-ball.netlify.app');
+    // Empty catalog: bare wordmark head, no dangling catalog numeral, no stray separator.
+    const noCat = buildCaptionFromSnapshot({});
+    expect(noCat).toBe('8ball specimen\nhttps://the-eight-ball.netlify.app');
+    expect(noCat).not.toContain(' · ');
   });
 });
 
