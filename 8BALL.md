@@ -1,7 +1,7 @@
 # 8BALL.md — Canonical Context
 
 **Audience:** Claude (in any chat) and any other AI working on 8ball, in any role.
-**Last refreshed:** 2026-06-30.
+**Last refreshed:** 2026-07-03.
 **Companion (operator-personal):** `~/MUHAB.md` — read first for cross-project preferences.
 
 This file is the source-of-truth for 8ball project context. Read it at the start of any 8ball work session, after `~/MUHAB.md` §1–§8. Memory is index-only; this file is canonical.
@@ -21,7 +21,7 @@ Mirrors the shape of `~/dev/SIRR/SIRR.md` deliberately. Same discipline. Smaller
 7. Content rules
 8. Workflow & gate sequence
 9. Repo paths & env vars
-10. Current state (dated)
+10. Current state (journal pointer + standing notes)
 11. Open items / next session queue
 12. Where to look next
 13. Refresh discipline
@@ -186,9 +186,9 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 ---
 
-## 10. Current state (as of 2026-06-30)
+## 10. Current state (journal pointer + standing notes)
 
-**`journal.md` (newest entry on top) is authoritative for the ship-by-ship history AND current state — read it first; per CLAUDE.md it wins over this section when they disagree.** §10 no longer re-narrates every ship (that duplicated the journal on a slower cadence and rotted — the v0.32 "prune-discipline" lesson); it keeps only standing state not captured as a single journal entry. At this refresh: the Coordinate Legibility Pack (provenance §1.E · atlas + density §1.F) shipped 2026-06-30, DOCTRINE at **v0.41**, and a documentation-refinement campaign is in flight. For the live `main` SHA and the latest ships, read the journal's newest entries.
+**`journal.md` (newest entry on top) is authoritative for the ship-by-ship history AND current state — read its newest entry first; per CLAUDE.md it wins over this section when they disagree.** §10 carries NO dated state — no "as of" line, no doctrine version, no in-flight campaign. Each of those rotted here on a slower cadence than the journal (the v0.32 "prune-discipline" lesson, re-confirmed by the 2026-07-03 codex full-project audit F04); only the standing branch/lab notes below live in this section. For the live `main` SHA, the current doctrine version, and the latest ships, read the journal's newest entries.
 
 **Interrogation lab — BRANCH-ONLY, NEVER MERGES (closed 2026-06-26).** A derivation-trace + LLM-"clerk" experiment on `prototype/interrogation-layer` (six commits over an old main base; the live surface `index.html`/`core/`/`ui/`/`content/` is **byte-identical to main** — the changed set is 12 lab/config/test files only, runs via a Netlify function with all math computed locally before any model call). Accepted as a **learning artifact only** — it does not move reach and the shipped product stays FROZEN. Hardened across 5 Codex rounds + Grok reports + a ChatGPT red-team (H1–H10 / D1–D6 / E1–E4 / F1–F4 / G1–G2 resolved); **OPEN + ACCEPTED — G3 P2:** 12 of the 45 adversarial-payload probes still slip (stop-rule invoked; every remaining fix would rebuild the engine inside the validator — a forbidden second source of truth — so the residual is subsumed by a future narration-template rewrite). **Promotion to production = a separate §5.B doctrine decision, NEVER a merge of this branch.** Detail: decision log 2026-06-26; audit trail under `~/Desktop/8ball/audits/codex_*_interrogation_layer_*` + the Grok/ChatGPT red-team reports.
 
