@@ -30,11 +30,13 @@ Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 e
 ## Post-merge
 
 - [ ] **Live smoke test** (verifier lane via CiC, or operator-eyes). Run the paths the release touched:
-  - Locked render — name + DOB → shake → 7 coordinates render (chinese five-element / sun / public ⇌ private animal / numerology triplet) + roman catalog index. No console errors.
+  - Free render — name + DOB → shake → the constant compartment specimen sheet renders five free coordinate values (tarot birth card / sun / public animal / life path / roman catalog numeral), every higher-tier cell sealed (hatch + row/label structure, value absent from the DOM). No console errors.
   - 18+ gate — first-load modal blocks form until confirm; `eight_ball_age_ack_v1` persists across reload.
-  - Rising sign — birth time + city autocomplete → 8th coordinate on line 2 as `${sun} ↑ ${rising}`; partial opts fall back to bare sun sign.
-  - Labels toggle — uppercase labels reveal/hide; `eight_ball_labels_revealed_v1` persists.
-  - Paid surface — first 3 reads free; 4th new pair triggers paywall; Gumroad Buy Link href is bare (no `checkout[success_url]` — Gumroad redirects via product Content-tab Button per DOCTRINE §5.B Call 2 v0.28); post-payment `/?paid=t1` lands unlocked render with credits balance; `replaceState` strips query.
+  - Rising sign — birth time + city autocomplete fill; rising stays a sealed cell at free. At t1+: renders when computable; partial inputs render the `—` empty field (sealed ≠ unresolvable, DOCTRINE §1.D v0.37).
+  - Labels toggle — uppercase labels + provenance placards + atlas legend reveal/hide; `eight_ball_labels_revealed_v1` persists.
+  - Density strip — result-rail census reads `N of 15 coordinates open · M sealed at paid tiers` and matches the render tier (5 open at free).
+  - Paid surface — first 3 reads free; 4th new pair triggers the three-rung paywall (t1 $3 / t2 $6 / t3 $9); each Gumroad Buy Link href is bare (no query string — redirect via product Content-tab Button per DOCTRINE §5.B Call 2); post-payment `/?paid=t1|t2|t3` lands the sheet opened to that rung with +3 credits; `replaceState` strips the query.
+  - Paid-return persistence — the stored rung (`eight_ball_tier_v1`) survives reload and re-shake at the entitled density; monotonic (a higher rung bought later upgrades, never downgrades — highest rung bought holds). t3 additionally opens the hour pillar + the written card entry (name/type/habit/bracket note).
   - Feedback surface — submit form → `/?sent=1` redirect → in-page banner swap to "thanks. read." → `replaceState` strips query.
   - **Live-surface scan** (post-deploy, L-watch per chat-22 RUM closure): `curl -s <live-url> | grep -cE '<banned-injection-patterns>'` against any known CDN-injection risk (`netlify-rum`, `cwv-token`, etc.). 0 expected.
 - [ ] **Append to `journal.md`.** Use the `## YYYY-MM-DD — Title:` markdown-header shape (newest-at-top per journal preamble). Document what shipped (with live commit SHA on `main`), what was rejected or deferred, any incident + remediation.

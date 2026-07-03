@@ -168,6 +168,18 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(`${t1}${t2}${t3}`).not.toMatch(/destiny|fate|secret|reveal your/i);
   });
 
+  it('t1 CTA sells the name-derived pair, never the retired triplet (§1.D v0.38 / codex F01)', () => {
+    // v0.38 split life path onto the free surface, so t1's numerology is
+    // the name-derived pair (name number + soul urge). "three numbers" was
+    // the pre-split promise — a purchase button may not sell a coordinate
+    // the free sheet already carries.
+    const subtree = modalSubtree('paywall-modal');
+    const t1 = subtree.match(/id="paywall-cta-t1"[^>]*>([^<]+)<\/a>/)[1];
+    expect(t1).not.toMatch(/three numbers/);
+    expect(t1).toContain('name number');
+    expect(t1).toContain('soul urge');
+  });
+
   it('paywall title and body carry the three-rung framing (v0.6.0)', () => {
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(/three tries · three rungs/);

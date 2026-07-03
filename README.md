@@ -17,7 +17,7 @@ ES modules need an HTTP context — opening `index.html` directly via `file://` 
 ## Test
 
 ```bash
-npm test         # vitest, 1115 cases across 24 files as of v0.7.x
+npm test         # vitest — file count: CLAUDE.md (canonical); case count: newest journal.md entry
 ```
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
@@ -26,7 +26,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and §5.B user-initiated feedback POST / Gumroad Buy Link redirect); no third-party fonts or scripts; system fonts only.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
-5. Single-file rule — `index.html` ≤ 1500 lines (currently 1474).
+5. Single-file rule — `index.html` ≤ 1500 lines (CI-enforced; the current count lives in the newest `journal.md` entry, not here).
 6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState`, `applyPaidReturn` transitions; replay-attack no-pending branch; same-profile idempotence; pending-profile round-trip) plus `tests/feedback_surface.test.js`.
 
 ## Structure
@@ -54,7 +54,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ├── content/
 │   └── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
-├── tests/                   24 test files + fixtures.json (1115 cases)
+├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
 │   ├── profile / rising / cities / countries / birthcard / pillars  core calc + engine pipeline
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
