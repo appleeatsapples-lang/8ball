@@ -17,7 +17,7 @@ ES modules need an HTTP context — opening `index.html` directly via `file://` 
 ## Test
 
 ```bash
-npm test         # vitest — file/case counts live in CLAUDE.md (canonical), not here
+npm test         # vitest — file count: CLAUDE.md (canonical); case count: newest journal.md entry
 ```
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
@@ -54,7 +54,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ├── content/
 │   └── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
-├── tests/                   vitest files + fixtures.json — counts per CLAUDE.md (canonical)
+├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
 │   ├── profile / rising / cities / countries / birthcard / pillars  core calc + engine pipeline
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
