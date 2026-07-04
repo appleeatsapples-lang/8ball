@@ -45,7 +45,7 @@ const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-
 // inflections at end ("auras", "manifesting") while preventing
 // leading-substring collisions inside unrelated English words
 // (e.g. "aura" inside "restaurant").
-const BANNED_VOICE_REGISTER = [
+export const BANNED_VOICE_REGISTER = [
   'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
   'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
   'channel', 'channeling', 'aura', 'karma', 'manifest', 'manifestation',
@@ -54,7 +54,7 @@ const BANNED_VOICE_REGISTER = [
 
 // Slur subset. Fast pre-merge tripwire; the local audit and reviewer
 // diff close the long tail.
-const BANNED_PATTERNS = [
+export const BANNED_PATTERNS = [
   /\bretard(ed|ation)?\b/i,
   /\bidiot\b/i,
   /\b(insane|crazy|mental)\b/i,

@@ -1026,6 +1026,7 @@ import {
   handlePaidReturn,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary } from './ui/tiers.js';
+import { initMeaningsUI } from './ui/meanings.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1120,6 +1121,7 @@ initTiersUI({
     dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
+initMeaningsUI({ cardFace });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
