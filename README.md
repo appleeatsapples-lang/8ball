@@ -2,7 +2,7 @@
 
 > it already knows. you just have to ask.
 
-A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign. Shake. The free card surfaces **five** calibrated coordinates from your date of birth — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**: every coordinate has a cell, and the ones above your tier show as sealed hatches (withheld, not absent). Three paid rungs ($3 / $6 / $9) open the rest of the sheet — your name enters the math at the first rung: rising sign, five-element, private animal, name number, soul urge; then personality, birthday, maturity, day pillar; then the hour pillar and the written 144-card entry. Reveal labels to read each coordinate's name, its derivation, and which counting system it belongs to; the result also states how many of the fifteen coordinates are open versus sealed at paid tiers. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path drives bracket resolution (low/mid/high) within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver.
+A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign. Shake. The free card surfaces **five** calibrated coordinates from your date of birth — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**: every coordinate has a cell, and the ones above your tier show as sealed hatches (withheld, not absent). Four of those five (all but the catalog numeral) are tappable to a static, tradition-cited meaning — what tarot/astrology/Chinese-zodiac/numerology tradition associates with that specific symbol, citation not interpretation. Three paid rungs ($3 / $6 / $9) open the rest of the sheet — your name enters the math at the first rung: rising sign, five-element, private animal, name number, soul urge; then personality, birthday, maturity, day pillar; then the hour pillar and the written 144-card entry. Reveal labels to read each coordinate's name, its derivation, and which counting system it belongs to; the result also states how many of the fifteen coordinates are open versus sealed at paid tiers. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path drives bracket resolution (low/mid/high) within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver.
 
 **The card content ships in the public bundle.** This source tree includes the calculations, the UI, the positional catalog map, and `content/cards.v1.full.js` — 144 entries with name/type/habit/note × low/mid/high brackets. The locked render path shows symbols only; the unlocked render path (gated by paid credits per DOCTRINE §1 v0.22 / §4.B / §5.C) shows the full card content. The deck bytes are inspectable via View Source — the lock is a UI convention, not a vault. Private authoring source is preserved at `~/dev/8ball-private/cards.v1.full.js`.
 
@@ -22,7 +22,7 @@ npm test         # vitest — file count: CLAUDE.md (canonical); case count: new
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
-1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/age_gate.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, and the v0.22 extension that scans `content/cards.v1.full.js` against the banned-voice-register policy.
+1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/age_gate.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 extension that scans `content/cards.v1.full.js` against the banned-voice-register policy, and the v0.44 extension (`tests/meanings_content.test.js`) that runs the same policy tables against `content/meanings.v1.js`.
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and §5.B user-initiated feedback POST / Gumroad Buy Link redirect); no third-party fonts or scripts; system fonts only.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
@@ -44,21 +44,24 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── calendar.js          Meeus lunar new year + solar terms, 1900–2100
 │   ├── cities.js            city autocomplete loader (lazy-loads assets/cities.json)
 │   └── payments.js          pure state machine: isNewPair, nextShakeState, applyPaidReturn
-├── ui/                      6 DOM-touching ES modules — init*UI({refs}, {hooks}) DI shape per §6 v0.23
+├── ui/                      7 DOM-touching ES modules — init*UI({refs}, {hooks}) DI shape per §6 v0.23
 │   ├── tiers.js             compartment-card render + shareRowRefs + provenance/atlas/density
 │   ├── payments.js          paywall modal controller + ?paid=t1|t2|t3 handler
 │   ├── profile.js           profile persistence + form helpers
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
+│   ├── meanings.js          tappable coordinate meanings — injects its own panel/CSS (§1.G v0.44)
 │   └── modals.js            about / forget / 18+-gate controllers + escape-to-close (§6 split)
 ├── content/
-│   └── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
+│   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
+│   └── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
 │   ├── profile / rising / cities / countries / birthcard / pillars  core calc + engine pipeline
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F)
+│   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
 │   ├── share_surface / payments_markup / payments_state / feedback_surface / modals  UI surfaces + state
 │   └── privacy_scan / pii_scan / dependency_discipline / age_gate / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs

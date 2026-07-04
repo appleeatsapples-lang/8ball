@@ -50,10 +50,10 @@ No build step. Netlify auto-deploys on push to `main`.
 ## Repository shape
 
     core/         pure functions — 9 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments)
-    ui/           DOM-touching ES modules — labels, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23
-    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22)
+    ui/           DOM-touching ES modules — labels, meanings, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23 (7 modules; payments.js + tiers.js also carry pure exports)
+    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        25 vitest files + fixtures.json
+    tests/        27 vitest files + fixtures.json
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
@@ -71,5 +71,10 @@ in-flight pivot, paused work, or open queue — read the newest entry of
 architecture and locked decisions, not the latest ship. Don't treat this
 file as a state record.
 
-Repository-shape counts above (core/ui/tests) verified 2026-07-01 and are
-the canonical inventory; `8BALL.md` / `README.md` defer here.
+Repository-shape counts above (core/ui/tests) verified 2026-07-04 and are
+the canonical inventory; `8BALL.md` / `README.md` defer here. **v0.44 note:**
+these counts drifted for ~1 month before the 2026-07-04 drift-sweep caught
+them (last verified 2026-07-01, ui/ and tests/ both stale by the time of
+this check) — if you're reading this more than a few weeks after the date
+above, re-verify with `find core ui -name '*.js' | wc -l` and
+`ls tests/*.test.js | wc -l` rather than trusting the number on sight.
