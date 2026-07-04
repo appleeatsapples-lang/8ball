@@ -2,6 +2,44 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+`next_strategic_read: 2026-07-12`
+`next_analytics_read: 2026-07-12`
+
+## 2026-07-05 — Operator calibration [§14] — gate-6 audit run, revised v0.45→v0.46 — STAGED
+
+**Status: STAGED on `docs/operator-calibration-s14` (off `origin/main` @ `604ec27`) — gate-6 cross-model audit run, findings addressed, not yet pushed, not yet merged. Recommend a confirming re-read before merge given the fixes weren't themselves re-audited.**
+
+**Audit method.** `ai-relay`'s `codex`/`grok` CLIs were logged out on this machine (`relay providers` → both MISSING). Rather than block on fixing auth, the identical review prompt was pasted manually into Grok's `grok build` interface and Codex's interface; both full responses captured in `audits/gate6_operator_calibration_s14_2026-07-05.md`. This is a workaround, not the intended path — the CLI logins are worth restoring so future gate-6 runs use the automated fan-out instead of manual paste.
+
+**Result.** Neither model refused. Grok: PASS with 3 P2 findings. Codex: would not merge untouched, would be comfortable operating under a fixed version; 8 findings (2 P1, 5 P2, 1 P3), citing real line numbers against the committed file. Both converged independently on the same two sharpest issues, which is the strongest signal in this audit: the unanimous-override bullet's "usually right" framing, and the override-risk flags' overclaimed observability. Codex additionally caught an internal contradiction Grok didn't surface: the weekly-analytics-read rule contradicted this same section's own argument for why the strategic-read trigger has to be file-backed rather than calendar-only.
+
+**What changed (v0.45 → v0.46), all in DOCTRINE.md §14:**
+1. Unanimous-override bullet no longer presumes the override was right — states the objective, then judges the override against it, per both models.
+2. Override-risk flags (a)/(b) no longer claim mechanical observability in isolation — checked against message + transcript + doctrine, close call fires the flag.
+3. Terse-trust split into compression-trust (deliberate shorthand, reversible/low-blast-radius, established acceptance criterion) vs. ambiguity, which still gets a clarifying question.
+4. Added operational definitions for "local," "irreversible-adjacent," and "the morning read" (Codex P2).
+5. Evidence-threshold rule now carries an explicit carve-out — cannot waive safety, privacy, or this doctrine's other standing rules (Codex P2).
+6. Weekly analytics read is now file-backed (`next_analytics_read`, added above) instead of an unwatched calendar cadence (Codex P2, the internal-contradiction catch).
+7. Canon-vs-ephemeral scope clarified for audit briefs and relay output (Codex P3) — this is the clause that authorizes this entry's own brief living in `audits/` rather than being pasted whole into this file.
+
+**Not changed / operator's call.** Codex's P1 on narrowing terse-trust to reversible/low-blast-radius work was folded into fix 3 above rather than kept as a separate scope restriction — worth operator review on whether that's a faithful merge of the two Codex P1s or a soft-pedal of one of them.
+
+**Verification.** `npm test`: 1312/1312 unchanged (docs-only). **Scope (files):** `DOCTRINE.md`, `audits/gate6_operator_calibration_s14_2026-07-05.md` (new), this entry. **UNTOUCHED:** everything else, including all of `core/`/`ui/`/`content/`/`tests/`.
+
+## 2026-07-05 — Operator calibration [NEW §14] — STAGED
+
+**Status: STAGED on `docs/operator-calibration-s14` (off `origin/main` @ `604ec27`) — not yet audited, not yet pushed, not yet merged.** Carried in from a Claude-chat session as a standalone "operator calibration" writeup, reviewed there across three passes before landing here: (1) the writeup was checked against this repo's actual history rather than taken at face value, (2) four issues raised (an unobservable drift-detector clause, an undefined evidence threshold, a memory-dependent weekly-check trigger, and the writeup itself risking a second source of truth alongside this file) were fixed in-thread, (3) the fixed version was verified once more against ground truth before this commit — the fix's own worked example ("N≥400… tier_model §8") turned out to be the *sub-threshold* case (`journal.md` 2026-06 tier-ladder entry, unmeasurable-at-N≈400), not the actual named gate, which is the reach/build-B tripwire (`[reach ≥ ~2–3k qualified] OR [≥1 strong signal]`, same entry). Corrected before landing rather than propagated.
+
+**What changed.** `DOCTRINE.md` gains §14 "Operator calibration": objective-gate discipline (declare money/mastery/practice before the first file; <24h feedback loop; name the subtraction), operator-reading heuristics with the drift-detector rewritten to observable-only flags (contradictory asks, mid-thread scope doubling, <2h decision reversal, a past-midnight client timestamp — "typos rising" deleted, unobservable in a chat transcript), Claude self-calibration (named failure mode: executing to avoid questioning, on-record instance #69/#70 same-day L48 repeat; a weekly strategic-read trigger carried as state in this file rather than memory, mirroring the §13 v0.43 self-firing rule-kill pattern exactly), standing laws (a fail-closed evidence-threshold rule — undefined gate = below threshold, not permission — plus the existing prototype-before-batch / one-canonical-file / park-with-a-log-line / WIP-cap-3 set), and build-physics heuristics (generator-first, golden-master, change-class separation, primitives-over-rules). Cross-references §10's controller-authority list and §12/§13's fail-closed/named-trigger discipline rather than duplicating them — the one net-new item is naming "posts" alongside merges/payments/deploys in the circuit-break law, since §10 predates the social-reach work.
+
+**Also caught, not fixed here (flagged for a dedicated coherence pass):** the `doctrine version` footer line for v0.44 still read "audit pending... PR not yet merged" despite v0.44 having shipped as `bdfe2ec` (#70) days ago — corrected in the v0.44 bullet's text as part of moving it into the historical list (v0.45 now occupies the top-line slot), but the fact that a status note went stale in-file after merge is itself worth a rule-kill-style check across older version lines.
+
+**Per CLAUDE.md lane discipline:** this is a 2-file doc change touching no `core/`, so it stayed in the Claude-chat lane rather than being pulled into Claude Code, per the file's own "don't pull work into CC just because CC is open" line.
+
+**Per DOCTRINE §8 gate 6 / CLAUDE.md's don't-do list:** doctrine changes require a cross-model (Codex) audit-cleared signal before merge, and this is a new §-numbered section, not a mechanical edit — so it doesn't skip the gate. Not pushed. Operator's call whether to route this to Codex before opening a PR, and whether to push at all.
+
+**Verification.** `npm test`: unchanged (docs-only, no `core/`/`ui/`/`content/`/`tests/` touch). **Scope (files):** `DOCTRINE.md`, this entry. **UNTOUCHED:** everything else.
+
 ## 2026-07-05 — test-helper de-fork: canonical voice-register + DOM mocks + repo-shape count pin — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `ad64346` ([#75](https://github.com/appleeatsapples-lang/8ball/pull/75)). Originally STAGED on `claude/more-suggestions-n1juc1` (off `origin/main`); close-out at the foot of this entry. Tests + docs only — no `core/` / `ui/` / `index.html` / `content/` / `fixtures.json` / DOCTRINE touch ⇒ no Codex P4; `package.json` unbumped.** Operator asked (on a phone) for "more suggestions"; the returned list recommended the #74 deferred "tests/helpers consolidation" (A1) + a new repo-shape count pin (B5), and the operator said go. Both shipped, then the operator said "pick up the DOM-mock cut next" — so the DOM-mock half of A1 landed in the same branch (see item 4).
@@ -55,7 +93,6 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 **Ritual-gate disclosure:** local PII audit (`audits/run_local_audit.sh`) is not runnable from the remote container (operator-local pattern file); public scans green (pii/privacy/dependency all pass). Operator to run the local audit + live-fire (gate 9 — index.html and core/ touched) before merge. No DOCTRINE / content / fixtures touch anywhere in the branch, so no cross-model gate is triggered; a reviewer diff-read (gate 5) is still owed.
 
 **Close-out (post-merge, same day):** squash-merged `4764f40` ([#74](https://github.com/appleeatsapples-lang/8ball/pull/74)) — merged by the same CC session on explicit operator instruction ("perform audit then merge") after the audit phase: all 6 CI stages green on the PR head (`test` job pass in 22s), suite 1356/1356 locally, §5 network-API + localStorage-key diff scans clean, §4 gates intact, line gate 1452/1500. The gate-5 diff review ran as the 8-angle adversarial pass recorded above (1 CONFIRMED finding, fixed in-branch pre-merge; 10 findings reported, 8 fixed / 2 recorded). Cross-model gate not triggered (no DOCTRINE/content/fixtures touch). **Still owed operator-side:** local PII audit (pattern file is operator-local; public scans green) and the gate-9 live-fire on the deploy — priority paths: modal focus/Tab behavior (all four dialogs), DOB error-message visibility, city autocomplete, rehydrated-birthplace label. **Remote-branch cleanup PENDING:** `claude/todo-implementation-tkjk49` survives on origin — the session's git proxy refuses branch deletion; clear with `git push origin --delete claude/todo-implementation-tkjk49`.
-
 ## 2026-07-04 — drift-sweep absorb: 6 doc-coherence findings from Codex's full-corpus pass — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `011957b` ([#72](https://github.com/appleeatsapples-lang/8ball/pull/72)). Docs-only, no code/test/behavior change; `npm test` unchanged at 1312/1312.** Follow-on to the same-day #70/#71 cycle: after those two shipped, operator asked for a full corpus drift-sweep (`~/Desktop/8ball/audits/codex_DRIFTSWEEP_full_corpus_2026-07-04.md`) covering the whole tracked-doc surface, not just the recent diffs. Codex returned 6 drifts — 0 P0/P1, 2 P2, 4 P3 — all doc-vs-doc or doc-vs-shipped coherence, no functional/privacy/PII findings. Absorbed in one commit per Codex's own "single small absorb, no tier-split" recommendation.
