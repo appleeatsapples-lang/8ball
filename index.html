@@ -924,7 +924,7 @@
     <p class="density-strip" id="density-strip" role="status"></p>
 
     <div class="result-controls">
-      <button class="btn btn-block" id="shake-again-btn">shake again</button>
+      <button class="btn btn-block" id="shake-again-btn">flip again</button>
       <button class="btn btn-block" id="share-btn" type="button">share</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
       <div class="share-status" id="share-status" hidden></div>
@@ -1017,7 +1017,7 @@ import { searchCities } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
 import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
-import { isNewPair, nextShakeState } from './core/payments.js';
+import { isNewPair, nextShakeState, FREE_TRIES_CAP } from './core/payments.js';
 import {
   getTriesUsed, setTriesUsed,
   getCredits, setCredits, getRenderTier,
@@ -1275,14 +1275,14 @@ function renderCard(profile, opts) {
     cardType.textContent = '';
     cardHabit.textContent = cardNote.textContent = '';
   }
-  // §6.5: the chip shows on paid renders (any rung) while credits remain;
-  // the last paid render shows no chip (the lock returns on next shake).
+  // §6.5 + v0.39-candidate: paid credits, or free tries remaining pre-cap.
+  const freeLeft = FREE_TRIES_CAP - ((opts && opts.triesUsed) || 0);
   if (tier !== 'free' && credits > 0) {
-    readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`;
-    readsChip.style.display = 'block';
+    readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`; readsChip.style.display = 'block';
+  } else if (tier === 'free' && freeLeft > 0 && freeLeft < FREE_TRIES_CAP) {
+    readsChip.textContent = freeLeft === 1 ? '1 free read left' : `${freeLeft} free reads left`; readsChip.style.display = 'block';
   } else {
-    readsChip.textContent = '';
-    readsChip.style.display = 'none';
+    readsChip.textContent = ''; readsChip.style.display = 'none';
   }
 }
 
@@ -1309,7 +1309,7 @@ function shakeAgain() {
   // render time (R1) — a paid rung survives the re-flip and the reload.
   flipInner.classList.add('face-up');
   setTimeout(() => {
-    renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits() });
+    renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed() });
     flipInner.classList.remove('face-up');
     flipLocked = false;
   }, 320);
@@ -1391,7 +1391,7 @@ profileForm.addEventListener('submit', e => {
     // every action — render-idempotent, render-locked, render-unlocked
     // alike. Credits/tries decide how many readings (already settled
     // above); the stored tier decides how much sheet.
-    showResult(profile, { tier: getRenderTier(), credits: state.credits });
+    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
