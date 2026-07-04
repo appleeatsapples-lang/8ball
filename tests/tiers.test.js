@@ -305,6 +305,15 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
     expect(html).not.toMatch(/consumedPending\s*\?/);
   });
 
+  it('cold-boot rehydration passes triesUsed — the free-tries chip must survive a reload (Codex audit 2026-07-04, Hook 1)', () => {
+    // Regression pin: the boot rehydrate call originally passed tier+credits
+    // only, so a returning free-tier user who reloaded the page lost the
+    // "N free reads left" chip even though eight_ball_tries_used_v1 persists.
+    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?showResult\(profileFromPayload\(existing\),\s*\{([\s\S]*?)\}\s*\)/);
+    expect(m, 'rehydration showResult call not found').not.toBeNull();
+    expect(m[1]).toMatch(/triesUsed:\s*getTriesUsed\(\)/);
+  });
+
   it('same-pair submit and paid reads render at getRenderTier() — no action-based density', () => {
     const m = html.match(/showResult\(profile,\s*\{\s*tier:\s*getRenderTier\(\)/);
     expect(m, 'submit-path showResult must resolve via getRenderTier').not.toBeNull();

@@ -1462,7 +1462,7 @@ function initAfterAck() {
     try {
       populateRisingFields(existing);
       showResult(profileFromPayload(existing), {
-        tier: getRenderTier(), credits: getCredits(),
+        tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed(),
       });
       rehydrated = true;
     } catch (_) {
