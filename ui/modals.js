@@ -34,6 +34,47 @@ export function isAgeAcknowledged() {
   catch (_) { return false; }
 }
 
+// ── shared modal focus management ────────────────────────────────
+// One modal is open at a time in this app, so a single saved opener
+// suffices. Guards degrade to no-ops under the suite's hand-rolled DOM
+// mocks (node env, no jsdom): a missing document/activeElement/focus
+// just skips the focus move. ui/payments.js imports these for the
+// paywall — the dependency stays one-way (modals.js never imports
+// payments.js; the Escape handler reaches the paywall via hooks).
+
+let _openerEl = null;
+
+export function modalOpened(focusTarget) {
+  _openerEl = (typeof document !== 'undefined' && document.activeElement) || null;
+  if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+}
+
+export function modalClosed() {
+  if (_openerEl && typeof _openerEl.focus === 'function') _openerEl.focus();
+  _openerEl = null;
+}
+
+// Keep Tab inside an open dialog: aria-modal="true" tells assistive tech
+// the page behind is inert, and this enforces it for the keyboard.
+export function trapTab(modalEl) {
+  modalEl.addEventListener('keydown', e => {
+    if (e.key !== 'Tab' || typeof modalEl.querySelectorAll !== 'function') return;
+    const focusables = modalEl.querySelectorAll(
+      'a[href], button:not([disabled]), textarea, input, select'
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
 // ── DOM-touching init ────────────────────────────────────────────
 // Wires the three content modals + the shared Escape handler. Returns
 // showAgeGate (+ the open/close helpers) so the host drives the boot gate.
@@ -49,10 +90,12 @@ export function initModalsUI(refs, hooks) {
   function openAbout() {
     aboutModal.classList.add('open');
     aboutModal.setAttribute('aria-hidden', 'false');
+    modalOpened(aboutClose);
   }
   function closeAbout() {
     aboutModal.classList.remove('open');
     aboutModal.setAttribute('aria-hidden', 'true');
+    modalClosed();
   }
   aboutBtn.addEventListener('click', openAbout);
   aboutClose.addEventListener('click', closeAbout);
@@ -64,10 +107,13 @@ export function initModalsUI(refs, hooks) {
   function openForget() {
     forgetModal.classList.add('open');
     forgetModal.setAttribute('aria-hidden', 'false');
+    // Focus lands on "leave it" so Enter can't erase by accident.
+    modalOpened(forgetCancel);
   }
   function closeForget() {
     forgetModal.classList.remove('open');
     forgetModal.setAttribute('aria-hidden', 'true');
+    modalClosed();
   }
   forgetBtn.addEventListener('click', openForget);
   forgetCancel.addEventListener('click', closeForget);
@@ -82,16 +128,21 @@ export function initModalsUI(refs, hooks) {
   function showAgeGate() {
     ageGateModal.classList.add('open');
     ageGateModal.setAttribute('aria-hidden', 'false');
-    ageGateConfirm.focus();
+    modalOpened(ageGateConfirm);
   }
   function acknowledgeAge() {
     try { localStorage.setItem(AGE_ACK_KEY, 'true'); }
     catch (_) { /* localStorage unavailable; ack survives only this session */ }
     ageGateModal.classList.remove('open');
     ageGateModal.setAttribute('aria-hidden', 'true');
+    modalClosed();
     if (h.onAgeAck) h.onAgeAck();
   }
   ageGateConfirm.addEventListener('click', acknowledgeAge);
+
+  trapTab(aboutModal);
+  trapTab(forgetModal);
+  trapTab(ageGateModal);
 
   // escape closes any open modal (paywall via injected hooks — it lives in
   // ui/payments.js)

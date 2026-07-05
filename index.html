@@ -39,6 +39,11 @@
     --ink: #1a1812;
     --rule: #8a8472;
     --label: #5a5444;
+    /* --label on the dark page chrome sat at 2.63:1 (WCAG AA needs 4.5:1).
+       Same hue lightened to 4.76:1 — still dimmer than --rule (5.30:1) so
+       the label-vs-rule hierarchy holds. --label stays for paper surfaces,
+       where it reads 5.99:1. */
+    --label-on-dark: #837c69;
     --page-bg: #0a0a0a;
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
@@ -235,7 +240,7 @@
      Clinical count only, no CTA — register-matched to #mechanism-strip. */
   .density-strip {
     font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
-    color: var(--label); text-transform: lowercase; text-align: center;
+    color: var(--label-on-dark); text-transform: lowercase; text-align: center;
     margin: 0 0 16px;
   }
   /* ── card back (shake state) ─────────────────────────────────── */
@@ -320,7 +325,7 @@
     margin-bottom: 32px;
     font-size: 11px;
     letter-spacing: 0.28em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
   }
   .field {
@@ -330,7 +335,7 @@
     display: block;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -372,7 +377,7 @@
     list-style: none;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: uppercase;
     margin-bottom: 18px;
     padding: 6px 0;
@@ -389,7 +394,7 @@
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     margin-top: -4px;
   }
@@ -425,7 +430,7 @@
     background: rgba(138,132,114,0.12);
   }
   .city-suggestions li .city-country {
-    color: var(--label);
+    color: var(--label-on-dark);
     letter-spacing: 0.10em;
   }
   .polar-message,
@@ -434,7 +439,7 @@
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     margin-top: 8px;
   }
@@ -476,8 +481,8 @@
   .btn:disabled:hover { background: transparent; color: var(--paper); }
   .btn-block { display: block; width: 100%; }
   .btn-secondary {
-    border-color: var(--label);
-    color: var(--label);
+    border-color: var(--label-on-dark);
+    color: var(--label-on-dark);
     letter-spacing: 0.20em;
   }
   .result-controls .btn + .btn { margin-top: 10px; }
@@ -492,7 +497,7 @@
     margin-top: 18px;
     font-size: 10px;
     letter-spacing: 0.18em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
   }
   .share-status {
@@ -513,7 +518,7 @@
   .text-link {
     background: none;
     border: none;
-    color: var(--label);
+    color: var(--label-on-dark);
     font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.22em;
@@ -542,7 +547,7 @@
     cursor: pointer;
     list-style: none;
     padding: 8px 0;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     user-select: none;
   }
@@ -555,7 +560,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
   }
   .feedback-form textarea,
   .feedback-form input[type="text"] {
@@ -579,7 +584,7 @@
   .feedback-honeypot { display: none; }
   .feedback-fineprint {
     font-size: 11px;
-    color: var(--label);
+    color: var(--label-on-dark);
     margin-top: 4px;
     line-height: 1.4;
   }
@@ -754,8 +759,8 @@
   .modal .modal-disclosure {
     font-size: 9px;
     letter-spacing: 0.04em;
+    /* full-opacity --label: the 0.7-opacity blend sat at ~3.2:1 on paper */
     color: var(--label);
-    opacity: 0.7;
     text-align: center;
     margin-top: 10px;
     line-height: 1.5;
@@ -956,7 +961,7 @@
 
 <!-- ── about modal ─────────────────────────────────────────────── -->
 <div class="modal-bg" id="about-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="about-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
@@ -970,7 +975,7 @@
 
 <!-- ── 18+ acknowledgment modal ──────────────────────────────── -->
 <div class="modal-bg" id="age-gate-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
     <h2 id="age-gate-title">for adults</h2>
     <div class="modal-rule"></div>
     <p id="age-gate-body">8 ball is a toy for adults. tapping confirm acknowledges that you are 18 or older. there is no verification — under-18 users should not enter.</p>
@@ -982,7 +987,7 @@
 
 <!-- ── forget-me modal ─────────────────────────────────────────── -->
 <div class="modal-bg" id="forget-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="forget-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
     <p>removes the saved name and date of birth from local storage on this device. no paperwork exists elsewhere.</p>
@@ -995,7 +1000,7 @@
 
 <!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C v0.36) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="paywall-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
     <h2 id="paywall-title">three tries · three rungs</h2>
     <div class="modal-rule"></div>
     <p>one tap. no account. each rung is a one-time purchase: three more reads with the sheet opened to that rung. the highest rung bought holds.</p>

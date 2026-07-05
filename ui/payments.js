@@ -26,6 +26,9 @@
 // target — `ui/*.js` modules — is exactly what §6 specifies.
 
 import { applyPaidReturn, isTier, normalizeCounter, resolveRenderTier } from '../core/payments.js';
+// Shared modal focus management (save opener / restore on close / Tab
+// trap). One-way dependency: modals.js never imports payments.js.
+import { modalOpened, modalClosed, trapTab } from './modals.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
 // The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY is the
@@ -130,16 +133,21 @@ export function initPaywallUI({ modal, closeBtn, banner }) {
   paywallModal.addEventListener('click', e => {
     if (e.target === paywallModal) closePaywall();
   });
+  trapTab(paywallModal);
 }
 
 export function openPaywall() {
   paywallModal.classList.add('open');
   paywallModal.setAttribute('aria-hidden', 'false');
+  // Focus lands on "maybe later" — dismissal stays one keypress away;
+  // the opener (usually the shake button) is restored on close.
+  modalOpened(paywallClose);
 }
 
 export function closePaywall() {
   paywallModal.classList.remove('open');
   paywallModal.setAttribute('aria-hidden', 'true');
+  modalClosed();
 }
 
 export function isPaywallOpen() {
