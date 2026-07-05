@@ -53,7 +53,7 @@ No build step. Netlify auto-deploys on push to `main`.
     ui/           DOM-touching ES modules — citysearch, labels, meanings, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23 (8 modules; citysearch.js, payments.js + tiers.js also carry pure exports)
     content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        33 vitest files + fixtures.json
+    tests/        33 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
