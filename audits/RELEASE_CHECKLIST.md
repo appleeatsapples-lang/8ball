@@ -10,7 +10,7 @@ Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 e
 - [ ] **Local PII audit clean.** `/bin/bash audits/run_local_audit.sh` from repo root. Zero hits. (`/bin/bash` explicit for macOS bash 3.2 compatibility.)
 - [ ] **Diff review.** Read every line. Ask:
   - [ ] Any new tracked content cross §4 (slurs, medical/diagnostic framing, real-person targets, minor-targeting, card-content strings outside the v0.22 carve-out — `content/cards.v1.full.js` is the ONE permitted tracked deck file)?
-  - [ ] §4.A 18+ acknowledgment gate intact? §4.B three-free-tries cap intact?
+  - [ ] §4.B three-free-tries cap intact? (§4.A 18+ acknowledgment gate retired v0.48, 2026-07-06 — no longer applicable.)
   - [ ] Any new path under `core/` / `ui/` / `content/` / `index.html` cross §5 (persisting more than the v0.21+ allow-list, transmitting out-of-band, introducing `fetch` / `XMLHttpRequest` / `navigator.sendBeacon`)?
   - [ ] Any new §5.B user-initiated network call beyond the two named (Netlify Forms feedback POST + Gumroad Buy Link redirect)?
   - [ ] §5.C content-delivery transparency invariant intact (deck visible in source; lock is convention; about-modal disclosure preserved)?
@@ -31,7 +31,6 @@ Pulled directly from `DOCTRINE.md §8`; reflects §7's 6 CI stages (with v0.22 e
 
 - [ ] **Live smoke test** (verifier lane via CiC, or operator-eyes). Run the paths the release touched:
   - Free render — name + DOB → shake → the constant compartment specimen sheet renders five free coordinate values (tarot birth card / sun / public animal / life path / roman catalog numeral), every higher-tier cell sealed (hatch + row/label structure, value absent from the DOM). No console errors.
-  - 18+ gate — first-load modal blocks form until confirm; `eight_ball_age_ack_v1` persists across reload.
   - Rising sign — birth time + city autocomplete fill; rising stays a sealed cell at free. At t1+: renders when computable; partial inputs render the `—` empty field (sealed ≠ unresolvable, DOCTRINE §1.D v0.37).
   - Labels toggle — uppercase labels + provenance placards + atlas legend reveal/hide; `eight_ball_labels_revealed_v1` persists.
   - Density strip — result-rail census reads `N of 15 coordinates open · M sealed at paid tiers` and matches the render tier (5 open at free).

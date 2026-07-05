@@ -290,7 +290,7 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
   it('cold-boot rehydration renders at getRenderTier() — no boot-circumstance branch', () => {
-    // initAfterAck: the rehydrate showResult call passes the helper output.
+    // boot(): the rehydrate showResult call passes the helper output.
     const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?showResult\(profileFromPayload\(existing\),\s*\{([\s\S]*?)\}\s*\)/);
     expect(m, 'rehydration showResult call not found').not.toBeNull();
     expect(m[1]).toMatch(/tier:\s*getRenderTier\(\)/);

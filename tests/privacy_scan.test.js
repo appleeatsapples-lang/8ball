@@ -68,7 +68,6 @@ const FORBIDDEN = [
 // New keys require doctrine amendment to §5.
 const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_profile_v1',
-  'eight_ball_age_ack_v1',
   'eight_ball_labels_revealed_v1',
   // v0.3.0 paid-tier counters (DOCTRINE §5 v0.22 allow-list extension)
   'eight_ball_tries_used_v1',

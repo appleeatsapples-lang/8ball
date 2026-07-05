@@ -93,7 +93,7 @@ Profile sequence: P1 → P2 → P3 → P4 (clean session between each via "try a
 
 Per-profile checks: form acceptance, shake-completes, card renders, coordinates present, catalog roman numeral correct, numerology triplet formatting, "show labels" toggle, "try another" reset, about-modal copy.
 
-Cross-profile checks: 18+ gate persists, no network calls beyond expected (cities.json lazy-load, feedback POST when explicitly submitted), localStorage keys are allow-listed only, mobile viewport doesn't break.
+Cross-profile checks: no network calls beyond expected (cities.json lazy-load, feedback POST when explicitly submitted), localStorage keys are allow-listed only, mobile viewport doesn't break.
 
 ### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; Gumroad live as of v0.3.0.3 2026-05-16)
 
