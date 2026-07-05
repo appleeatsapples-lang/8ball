@@ -1,9 +1,9 @@
 // tests/meanings_content.test.js
 // content/meanings.v1.js completeness + voice-register scan (DOCTRINE §2/§4).
-// Imports the canonical BANNED_VOICE_REGISTER / BANNED_PATTERNS from
-// profile.test.js rather than duplicating them — no drift possible by
-// construction (contrast tests/lab_sun_order_drift.test.js's approach,
-// which guarded a duplication that no longer exists post-lab-purge).
+// Imports the canonical BANNED_VOICE_REGISTER / BANNED_PATTERNS from the
+// shared tests/helpers/voice-register.js rather than duplicating them — no
+// drift possible by construction (contrast tests/lab_sun_order_drift.test.js's
+// approach, which guarded a duplication that no longer exists post-lab-purge).
 
 import { describe, it, expect } from 'vitest';
 import { SUN_SIGNS, ANIMALS } from '../core/profile.js';
@@ -14,7 +14,7 @@ import {
   ANIMAL_MEANINGS,
   LIFE_PATH_MEANINGS,
 } from '../content/meanings.v1.js';
-import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './profile.test.js';
+import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
 
 const LIFE_PATH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '22', '33'];
 

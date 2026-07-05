@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROV_NOTE, provText, initTiersUI, renderTierSections } from '../ui/tiers.js';
+import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -17,14 +18,10 @@ const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
 // The §2 mysticism/interpretation register enforced on deck content, plus a
-// few interpretation verbs a derivation note must never reach for.
-const BANNED_VOICE = [
-  'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
-  'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
-  'channel', 'channeling', 'aura', 'karma', 'manifest', 'manifestation',
-  'third eye', 'soul mate', 'your guides', 'divine', 'sacred',
-  'reveal', 'reveals', 'meaning', 'predict', 'future',
-];
+// few interpretation verbs a derivation note must never reach for. Both lists
+// are imported from the canonical tables in tests/helpers/voice-register.js
+// so this scan can never drift from the deck scan.
+const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 
 const NOTES = Object.values(PROV_NOTE);
 

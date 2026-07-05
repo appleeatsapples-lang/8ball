@@ -43,6 +43,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makeClassList } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -65,16 +66,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// Same harness shapes as tests/payments_markup.test.js.
-function makeClassList() {
-  const classes = new Set();
-  return {
-    add: cls => classes.add(cls),
-    remove: cls => classes.delete(cls),
-    contains: cls => classes.has(cls),
-  };
-}
-
+// makeClassList comes from ./helpers/dom.js; makeElement/makeStorage stay local
+// (this suite asserts vi.fn call spies, a different idiom from the modal mocks).
 function makeElement(extra = {}) {
   return {
     hidden: true,
