@@ -14,6 +14,15 @@
 // timezones before calling computeRising. That keeps the stored-profile
 // path on the same deterministic codepath as fresh city profiles without
 // eager-loading assets/cities.json.
+//
+// Note on defaultLat/defaultLng: no production codepath reads these two
+// fields directly (buildProfile resolves legacy codes through
+// getCountryTimeZoneByCode / LEGACY_COUNTRY_TIMEZONES below, not through a
+// centroid). They're retained as tests/countries.test.js's fixture for
+// reconstructing the pre-v0.5.2 fixed-offset rising calculation and pinning
+// it against the current unified-IANA result, plus the keyset-parity check
+// against LEGACY_COUNTRY_TIMEZONES. Legacy-payload-support data, not dead
+// weight — don't trim without carrying that test coverage forward.
 
 export const COUNTRIES = [
   { code: 'AF',        name: 'afghanistan',                                 utcOffsetMinutes:  270, defaultLat:  33.0, defaultLng:   65.0 },
