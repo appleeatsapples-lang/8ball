@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initModalsUI, isAgeAcknowledged } from '../ui/modals.js';
+import { makeModalRefs } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -63,26 +64,8 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
   const originalDocument = globalThis.document;
   const originalLocalStorage = globalThis.localStorage;
 
-  function makeClassList() {
-    const classes = new Set();
-    return {
-      add: c => classes.add(c),
-      remove: c => classes.delete(c),
-      contains: c => classes.has(c),
-    };
-  }
-  function makeEl() {
-    const h = {};
-    return {
-      classList: makeClassList(),
-      attrs: {},
-      focused: false,
-      addEventListener: (ev, fn) => { h[ev] = fn; },
-      setAttribute(k, v) { this.attrs[k] = v; },
-      focus() { this.focused = true; },
-      _fire: (ev, arg) => h[ev] && h[ev](arg),
-    };
-  }
+  // makeEl / makeModalRefs come from ./helpers/dom.js; makeStorage stays local
+  // (this suite reads a snapshot rather than asserting vi.fn call spies).
   function makeStorage(initial = {}) {
     const store = new Map(Object.entries(initial));
     return {
@@ -90,13 +73,6 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
       setItem: (k, v) => { store.set(k, String(v)); },
       removeItem: k => { store.delete(k); },
       snapshot: () => Object.fromEntries(store),
-    };
-  }
-  function makeRefs() {
-    return {
-      aboutModal: makeEl(), aboutBtn: makeEl(), aboutClose: makeEl(),
-      forgetModal: makeEl(), forgetBtn: makeEl(), forgetCancel: makeEl(), forgetConfirm: makeEl(),
-      ageGateModal: makeEl(), ageGateConfirm: makeEl(),
     };
   }
 
@@ -113,7 +89,7 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
   it('acknowledgeAge writes the ack key as "true", closes the gate, and fires onAgeAck exactly once', () => {
     const storage = makeStorage();
     globalThis.localStorage = storage;
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     let acked = 0;
     initModalsUI(refs, { onAgeAck: () => acked++ });
 
@@ -128,7 +104,7 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
 
   it('showAgeGate opens the gate and focuses the confirm control', () => {
     globalThis.localStorage = makeStorage();
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const api = initModalsUI(refs, {});
     api.showAgeGate();
     expect(refs.ageGateModal.classList.contains('open')).toBe(true);
@@ -138,7 +114,7 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
 
   it('forget-confirm fires clearProfile then resetFormDisplay and closes the forget modal', () => {
     globalThis.localStorage = makeStorage();
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const order = [];
     const api = initModalsUI(refs, {
       clearProfile: () => order.push('clear'),
@@ -152,7 +128,7 @@ describe('ui/modals.js behavior (DOCTRINE §4.A gate + hook wiring)', () => {
 
   it('Escape closes an open about modal and routes to the injected paywall close', () => {
     globalThis.localStorage = makeStorage();
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     let closedPaywall = 0;
     const api = initModalsUI(refs, {
       isPaywallOpen: () => true,

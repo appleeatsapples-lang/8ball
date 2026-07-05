@@ -15,6 +15,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initModalsUI } from '../ui/modals.js';
 import { initPaywallUI, openPaywall, closePaywall } from '../ui/payments.js';
+import { makeEl, makeModalRefs } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -58,35 +59,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
   const originalDocument = globalThis.document;
   const originalLocalStorage = globalThis.localStorage;
 
-  function makeClassList() {
-    const classes = new Set();
-    return {
-      add: c => classes.add(c),
-      remove: c => classes.delete(c),
-      contains: c => classes.has(c),
-    };
-  }
-  function makeEl(name) {
-    const h = {};
-    return {
-      name,
-      classList: makeClassList(),
-      attrs: {},
-      focusCount: 0,
-      addEventListener(ev, fn) { h[ev] = fn; },
-      setAttribute(k, v) { this.attrs[k] = v; },
-      focus() { this.focusCount++; globalThis.document.activeElement = this; },
-      _fire(ev, arg) { return h[ev] && h[ev](arg); },
-    };
-  }
-  function makeRefs() {
-    return {
-      aboutModal: makeEl('aboutModal'), aboutBtn: makeEl('aboutBtn'), aboutClose: makeEl('aboutClose'),
-      forgetModal: makeEl('forgetModal'), forgetBtn: makeEl('forgetBtn'),
-      forgetCancel: makeEl('forgetCancel'), forgetConfirm: makeEl('forgetConfirm'),
-      ageGateModal: makeEl('ageGateModal'), ageGateConfirm: makeEl('ageGateConfirm'),
-    };
-  }
+  // makeEl / makeModalRefs come from ./helpers/dom.js (the shared modal mock).
 
   beforeEach(() => {
     globalThis.document = {
@@ -103,7 +76,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
   });
 
   it('opening about focuses its close button; closing restores the opener', () => {
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const opener = makeEl('opener');
     initModalsUI(refs, {});
     opener.focus(); // the user was on the ⓘ button
@@ -115,7 +88,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
   });
 
   it('opening forget focuses the non-destructive "leave it" control', () => {
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     initModalsUI(refs, {});
     refs.forgetBtn._fire('click');
     expect(refs.forgetCancel.focusCount).toBe(1);
@@ -123,7 +96,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
   });
 
   it('Tab on the last focusable wraps to the first (and shift+Tab the reverse) while open', () => {
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const first = makeEl('first');
     const last = makeEl('last');
     refs.aboutModal.querySelectorAll = () => [first, last];
@@ -151,7 +124,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     // Closed modals stay in the DOM (hidden via opacity/visibility). If the
     // trap engaged on them, a keyboard user tabbing into a residually
     // focusable control could never Tab out of an invisible dialog.
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const first = makeEl('first');
     const last = makeEl('last');
     refs.aboutModal.querySelectorAll = () => [first, last];
@@ -164,7 +137,7 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
   });
 
   it('stacked modals restore openers in order (opener stack, not a single slot)', () => {
-    const refs = makeRefs();
+    const refs = makeModalRefs();
     const pageBtn = makeEl('pageBtn');
     initModalsUI(refs, {});
     pageBtn.focus();
