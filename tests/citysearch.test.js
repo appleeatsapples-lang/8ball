@@ -16,8 +16,8 @@ vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
 import { searchCities } from '../core/cities.js';
 import {
   initCitySearchUI,
-  formatCityLabel, isPolarLat,
-  MIN_QUERY_LEN, SEARCH_DEBOUNCE_MS, POLAR_LAT_LIMIT,
+  formatCityLabel,
+  MIN_QUERY_LEN, SEARCH_DEBOUNCE_MS,
 } from '../ui/citysearch.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,18 +55,16 @@ describe('ui/citysearch.js pure exports', () => {
     expect(formatCityLabel({ name: 'Somewhere', country: '' })).toBe('Somewhere');
   });
 
-  it('isPolarLat mirrors the computeRising support boundary in both hemispheres', () => {
-    expect(isPolarLat(66.5)).toBe(false);   // boundary itself is supported
-    expect(isPolarLat(66.6)).toBe(true);
-    expect(isPolarLat(-66.5)).toBe(false);
-    expect(isPolarLat(-70)).toBe(true);
-    expect(isPolarLat(0)).toBe(false);
+  it('the polar check is imported from the core authority, not duplicated', () => {
+    // core/rising.js isPolarLatitude owns the 66.5° boundary; this module
+    // must mirror it by import, never by a local copy of the number.
+    expect(cityJs).toMatch(/import\s*\{[^}]*isPolarLatitude[^}]*\}\s*from\s*['"]\.\.\/core\/rising\.js['"]/);
+    expect(cityJs).not.toMatch(/66\.5/);
   });
 
   it('tuning constants hold their shipped values', () => {
     expect(MIN_QUERY_LEN).toBe(2);
     expect(SEARCH_DEBOUNCE_MS).toBe(150);
-    expect(POLAR_LAT_LIMIT).toBe(66.5);
   });
 });
 

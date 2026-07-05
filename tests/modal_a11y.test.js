@@ -36,6 +36,17 @@ describe('modal a11y — markup pins', () => {
     // density strip both sit on the dark page background.
     expect(html).toMatch(/\.field-error\s*\{[^}]*var\(--label-on-dark\)/);
     expect(html).toMatch(/\.density-strip\s*\{[^}]*var\(--label-on-dark\)/);
+    // The pre-2026-07-05 `.field-error { color: var(--ink) }` override made
+    // the error text ~1.1:1 (near-black on black) — it must never return.
+    expect(html).not.toMatch(/\.field-error\s*\{\s*color:\s*var\(--ink\)/);
+  });
+
+  it('closed modals leave the keyboard tab order (visibility, not just opacity)', () => {
+    // opacity:0 elements stay focusable; without visibility:hidden a
+    // keyboard user can Tab into an invisible dialog — and the Tab trap
+    // would pin them there.
+    expect(html).toMatch(/\.modal-bg\s*\{[^}]*visibility:\s*hidden/);
+    expect(html).toMatch(/\.modal-bg\.open\s*\{[^}]*visibility:\s*visible/);
   });
 
   it('modal-disclosure no longer dilutes its AA-passing color with opacity', () => {
@@ -111,12 +122,13 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     expect(refs.forgetConfirm.focusCount).toBe(0);
   });
 
-  it('Tab on the last focusable wraps to the first (and shift+Tab the reverse)', () => {
+  it('Tab on the last focusable wraps to the first (and shift+Tab the reverse) while open', () => {
     const refs = makeRefs();
     const first = makeEl('first');
     const last = makeEl('last');
     refs.aboutModal.querySelectorAll = () => [first, last];
     initModalsUI(refs, {});
+    refs.aboutBtn._fire('click'); // the trap only engages on an OPEN modal
     let prevented = 0;
     const evt = key => ({ key, shiftKey: false, preventDefault: () => prevented++ });
 
@@ -133,6 +145,36 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     // non-Tab keys pass through untouched
     refs.aboutModal._fire('keydown', evt('Enter'));
     expect(prevented).toBe(2);
+  });
+
+  it('a CLOSED modal never traps Tab (regression: invisible keyboard trap)', () => {
+    // Closed modals stay in the DOM (hidden via opacity/visibility). If the
+    // trap engaged on them, a keyboard user tabbing into a residually
+    // focusable control could never Tab out of an invisible dialog.
+    const refs = makeRefs();
+    const first = makeEl('first');
+    const last = makeEl('last');
+    refs.aboutModal.querySelectorAll = () => [first, last];
+    initModalsUI(refs, {});
+    let prevented = 0;
+    globalThis.document.activeElement = last;
+    refs.aboutModal._fire('keydown', { key: 'Tab', shiftKey: false, preventDefault: () => prevented++ });
+    expect(prevented).toBe(0);
+    expect(first.focusCount).toBe(0);
+  });
+
+  it('stacked modals restore openers in order (opener stack, not a single slot)', () => {
+    const refs = makeRefs();
+    const pageBtn = makeEl('pageBtn');
+    initModalsUI(refs, {});
+    pageBtn.focus();
+    refs.aboutBtn._fire('click');        // about opens; saves pageBtn
+    refs.forgetBtn._fire('click');       // forget opens over it; saves aboutClose
+    expect(refs.forgetCancel.focusCount).toBe(1);
+    refs.forgetCancel._fire('click');    // forget closes → focus back to aboutClose
+    expect(refs.aboutClose.focusCount).toBe(2); // open-focus + restore
+    refs.aboutClose._fire('click');      // about closes → focus back to pageBtn
+    expect(pageBtn.focusCount).toBe(2);
   });
 
   it('paywall open focuses "maybe later" and close restores the opener (shake button)', () => {

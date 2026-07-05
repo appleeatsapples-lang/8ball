@@ -34,31 +34,43 @@ export function isAgeAcknowledged() {
   catch (_) { return false; }
 }
 
-// ── shared modal focus management ────────────────────────────────
-// One modal is open at a time in this app, so a single saved opener
-// suffices. Guards degrade to no-ops under the suite's hand-rolled DOM
-// mocks (node env, no jsdom): a missing document/activeElement/focus
-// just skips the focus move. ui/payments.js imports these for the
-// paywall — the dependency stays one-way (modals.js never imports
-// payments.js; the Escape handler reaches the paywall via hooks).
+// ── shared modal open/close + focus management ───────────────────
+// openModal/closeModal own the full coupled triplet — .open class,
+// aria-hidden, and focus save/restore — so a call site can't apply one
+// step and forget the others. Saved openers are a small stack, not a
+// single slot, so a second modal opening over a first (or one Escape
+// closing several) still restores each opener correctly. Guards degrade
+// to no-ops under the suite's hand-rolled DOM mocks (node env, no
+// jsdom). ui/payments.js imports these for the paywall — the dependency
+// stays one-way (modals.js never imports payments.js; the Escape
+// handler reaches the paywall via hooks).
 
-let _openerEl = null;
+const _openers = [];
 
-export function modalOpened(focusTarget) {
-  _openerEl = (typeof document !== 'undefined' && document.activeElement) || null;
+export function openModal(modalEl, focusTarget) {
+  modalEl.classList.add('open');
+  modalEl.setAttribute('aria-hidden', 'false');
+  _openers.push((typeof document !== 'undefined' && document.activeElement) || null);
   if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
 }
 
-export function modalClosed() {
-  if (_openerEl && typeof _openerEl.focus === 'function') _openerEl.focus();
-  _openerEl = null;
+export function closeModal(modalEl) {
+  modalEl.classList.remove('open');
+  modalEl.setAttribute('aria-hidden', 'true');
+  const opener = _openers.pop();
+  if (opener && typeof opener.focus === 'function') opener.focus();
 }
 
-// Keep Tab inside an open dialog: aria-modal="true" tells assistive tech
-// the page behind is inert, and this enforces it for the keyboard.
+// Keep Tab inside an OPEN dialog: aria-modal="true" tells assistive tech
+// the page behind is inert, and this enforces it for the keyboard. The
+// .open check is load-bearing: closed modals are hidden via opacity/
+// visibility, not removed from the DOM, so without it the trap would
+// pin keyboard focus inside an invisible dialog.
 export function trapTab(modalEl) {
   modalEl.addEventListener('keydown', e => {
-    if (e.key !== 'Tab' || typeof modalEl.querySelectorAll !== 'function') return;
+    if (e.key !== 'Tab') return;
+    if (!modalEl.classList.contains('open')) return;
+    if (typeof modalEl.querySelectorAll !== 'function') return;
     const focusables = modalEl.querySelectorAll(
       'a[href], button:not([disabled]), textarea, input, select'
     );
@@ -87,16 +99,8 @@ export function initModalsUI(refs, hooks) {
   const h = hooks || {};
 
   // about
-  function openAbout() {
-    aboutModal.classList.add('open');
-    aboutModal.setAttribute('aria-hidden', 'false');
-    modalOpened(aboutClose);
-  }
-  function closeAbout() {
-    aboutModal.classList.remove('open');
-    aboutModal.setAttribute('aria-hidden', 'true');
-    modalClosed();
-  }
+  function openAbout() { openModal(aboutModal, aboutClose); }
+  function closeAbout() { closeModal(aboutModal); }
   aboutBtn.addEventListener('click', openAbout);
   aboutClose.addEventListener('click', closeAbout);
   aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAbout(); });
@@ -104,17 +108,9 @@ export function initModalsUI(refs, hooks) {
   // forget-me — "forget this device" is the full erase: clear stored profile
   // and return the form to its empty state. Distinct from "try another",
   // which clears only the form DOM and keeps the stored profile.
-  function openForget() {
-    forgetModal.classList.add('open');
-    forgetModal.setAttribute('aria-hidden', 'false');
-    // Focus lands on "leave it" so Enter can't erase by accident.
-    modalOpened(forgetCancel);
-  }
-  function closeForget() {
-    forgetModal.classList.remove('open');
-    forgetModal.setAttribute('aria-hidden', 'true');
-    modalClosed();
-  }
+  // Focus lands on "leave it" so Enter can't erase by accident.
+  function openForget() { openModal(forgetModal, forgetCancel); }
+  function closeForget() { closeModal(forgetModal); }
   forgetBtn.addEventListener('click', openForget);
   forgetCancel.addEventListener('click', closeForget);
   forgetConfirm.addEventListener('click', () => {
@@ -126,16 +122,12 @@ export function initModalsUI(refs, hooks) {
 
   // 18+ acknowledgment gate (DOCTRINE.md §4.A)
   function showAgeGate() {
-    ageGateModal.classList.add('open');
-    ageGateModal.setAttribute('aria-hidden', 'false');
-    modalOpened(ageGateConfirm);
+    openModal(ageGateModal, ageGateConfirm);
   }
   function acknowledgeAge() {
     try { localStorage.setItem(AGE_ACK_KEY, 'true'); }
     catch (_) { /* localStorage unavailable; ack survives only this session */ }
-    ageGateModal.classList.remove('open');
-    ageGateModal.setAttribute('aria-hidden', 'true');
-    modalClosed();
+    closeModal(ageGateModal);
     if (h.onAgeAck) h.onAgeAck();
   }
   ageGateConfirm.addEventListener('click', acknowledgeAge);

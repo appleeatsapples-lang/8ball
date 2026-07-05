@@ -21,6 +21,8 @@
 
 import { buildProfile } from '../core/profile.js';
 import { getCountryName } from '../core/cities.js';
+import { isPolarLatitude } from '../core/rising.js';
+import { formatCityLabel } from './citysearch.js';
 
 // ── localStorage key ─────────────────────────────────────────────
 // Internal-only — only the three persistence helpers in this module
@@ -116,10 +118,10 @@ export function populateRisingFields(obj) {
       pop: 0
     };
     if (_hooks.setSelectedCity) _hooks.setSelectedCity(city);
-    r.cityInput.value = countryName
-      ? city.name + ', ' + countryName
-      : city.name;
-    r.polarMessage.hidden = Math.abs(obj.lat) <= 66.5;
+    // Same formatter + polar authority as a fresh pick in ui/citysearch.js,
+    // so a rehydrated birthplace renders identically to a clicked one.
+    r.cityInput.value = formatCityLabel(city);
+    r.polarMessage.hidden = !isPolarLatitude(obj.lat);
   } else if (hasLegacy) {
     r.legacyHint.hidden = false;
   }

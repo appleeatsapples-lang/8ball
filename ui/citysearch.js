@@ -15,27 +15,24 @@
 //     ui/profile.js)
 //
 // Pure exports (no DOM, vitest-testable without jsdom): MIN_QUERY_LEN,
-// SEARCH_DEBOUNCE_MS, POLAR_LAT_LIMIT, formatCityLabel, isPolarLat.
+// SEARCH_DEBOUNCE_MS, formatCityLabel. The polar check is NOT duplicated
+// here — core/rising.js isPolarLatitude is the single authority for the
+// polar-circle boundary; this module and ui/profile.js both import it.
 
 import { searchCities } from '../core/cities.js';
+import { isPolarLatitude } from '../core/rising.js';
 
 // ── pure exports ─────────────────────────────────────────────────
 // Queries shorter than this never hit the search index.
 export const MIN_QUERY_LEN = 2;
 // Debounce window between keystroke and search dispatch.
 export const SEARCH_DEBOUNCE_MS = 150;
-// |lat| beyond this is polar: computeRising returns null there, and the
-// polar message surfaces proactively at selection time (the UI mirror).
-// ui/profile.js populateRisingFields applies the same threshold on
-// rehydrate; core/rising.js is the calculation-side authority.
-export const POLAR_LAT_LIMIT = 66.5;
 
+// One formatter for the birthplace label — selectCity (fresh pick) and
+// ui/profile.js populateRisingFields (rehydrate from storage, where the
+// country name can legitimately be absent) must render identically.
 export function formatCityLabel(c) {
   return c.country ? c.name + ', ' + c.country : c.name;
-}
-
-export function isPolarLat(lat) {
-  return Math.abs(lat) > POLAR_LAT_LIMIT;
 }
 
 // ── DOM-touching controller (DI injected at boot) ─────────────────
@@ -72,20 +69,23 @@ function renderSuggestions(results) {
 }
 
 function selectCity(c) {
-  _hooks.setSelectedCity(c);
+  if (_hooks.setSelectedCity) _hooks.setSelectedCity(c);
   _refs.cityInput.value = formatCityLabel(c);
   clearSuggestions();
   _refs.legacyHint.hidden = true;
   // Polar latitudes are unsupported — surface the message proactively
   // at selection time so the user knows before submit. computeRising
-  // will also return null at |lat| > POLAR_LAT_LIMIT; this is the UI mirror.
-  _refs.polarMessage.hidden = !isPolarLat(c.lat);
+  // returns null at polar latitudes; this is the UI mirror of the same
+  // core/rising.js check.
+  _refs.polarMessage.hidden = !isPolarLatitude(c.lat);
 }
 
 function onInput() {
   // Typing without selecting clears the selection so stale city state
-  // never silently propagates to buildProfile.
-  _hooks.setSelectedCity(null);
+  // never silently propagates to buildProfile. Guarded like every other
+  // hook call in ui/ — a partial DI object must degrade, not throw from
+  // inside the input handler.
+  if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   _refs.polarMessage.hidden = true;
   if (_debounce) clearTimeout(_debounce);
   const q = _refs.cityInput.value.trim();

@@ -443,7 +443,9 @@
     text-transform: lowercase;
     margin-top: 8px;
   }
-  .field-error { color: var(--ink); }
+  /* (an override here through 2026-07-05 forced the error text to ink —
+     near-black on the black page bg, ~1.1:1. Removed; the group rule
+     above supplies the AA-passing on-dark label color.) */
   .polar-message[hidden],
   .legacy-hint[hidden],
   .field-error[hidden] { display: none; }
@@ -611,9 +613,12 @@
     z-index: 50;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s;
+    /* visibility (not just opacity) so a closed modal's buttons leave the
+       keyboard tab order; the 0.2s delay lets the fade-out finish first. */
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0s linear 0.2s;
   }
-  .modal-bg.open { opacity: 1; pointer-events: auto; }
+  .modal-bg.open { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity 0.2s; }
   .modal {
     background: var(--paper);
     color: var(--ink);
@@ -1074,6 +1079,11 @@ const modalsUI = initModalsUI(
   },
   { clearProfile, resetFormDisplay, onAgeAck: initAfterAck, isPaywallOpen, closePaywall },
 );
+// Host-owned state, declared BEFORE any init*UI call whose injected
+// setters close over these bindings — a setter fired synchronously
+// during boot must not hit the let temporal dead zone.
+let currentProfile = null;
+let selectedCity = null;
 initProfileUI(
   {
     timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
@@ -1143,17 +1153,16 @@ initShareUI(
   {}
 );
 
-let currentProfile = null;
 let flipLocked = false;
 // v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
 // state is kept here — density is resolved from storage at render time
 // via getRenderTier(), the single helper, on every path.
 
 // ── City autocomplete (v0.2.7.2; controller in ui/citysearch.js per §6 v0.23) ──
-// Selected city stays host-owned so the form submit can read tz/lat/lng
-// atomically. The module clears it via the injected setter when the user
-// types without selecting, so stale state never propagates to buildProfile.
-let selectedCity = null;
+// selectedCity stays host-owned (declared with the other host state above
+// the init wiring) so the form submit can read tz/lat/lng atomically. The
+// module clears it via the injected setter when the user types without
+// selecting, so stale state never propagates to buildProfile.
 initCitySearchUI(
   { cityInput, citySuggestions, legacyHint, polarMessage },
   { setSelectedCity: c => { selectedCity = c; } },
