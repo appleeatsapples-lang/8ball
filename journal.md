@@ -5,6 +5,16 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-12`
 `next_analytics_read: 2026-07-12`
 
+## 2026-07-05 — Operator calibration [§14] — confirming re-audit + Grok P2 mechanical closure, v0.46→v0.47 — STAGED
+
+**Status: STAGED on `docs/operator-calibration-s14` (off `origin/main` @ `604ec27`, rebased onto `origin/main` @ `bf00cd5`) — confirming re-audit run against v0.46, one P2 fixed, not yet pushed, not yet merged.**
+
+**Confirming re-audit (scope: verify the two v0.45→v0.46 fixes hold, flag only new contradictions/regressions — no style edits, no expansion).** Codex: **PASS, no qualifying findings.** Grok: **PASS-with-findings** — both convergent fixes explicitly confirmed to hold (override bullet no longer presumes correctness; override-risk flags no longer claim mechanical observability in isolation), plus one new P2: the weekly strategic-read trigger bullet ("if it's overdue the check runs") lacked the explicit missing-line handling its sibling weekly-analytics-read bullet already had ("overdue or missing = read runs now") — despite both bullets claiming to be the same file-backed mechanism ("mirrors... exactly" / "file-backed like the strategic-read trigger above"). Ironically the exact asymmetry class this section argues against (a trigger nobody's watching that can silently never fire), introduced when v0.46's fix 6 added missing-line handling to analytics but didn't retrofit the strategic-read bullet it was modeled on.
+
+**Fix (v0.46 → v0.47), DOCTRINE.md §14 only.** Three-word mechanical closure: `"if it's overdue the check runs before any task work"` → `"if it's overdue or missing the check runs before any task work"`. No new concept, no re-litigation of the four Codex-only v0.46 fixes (not raised again by either model, out of this re-audit's scope). Footer bumped v0.46 → v0.47; v0.46 preserved verbatim as a history line per L17, marked superseded same day.
+
+**Verification.** `npm test`: 1226/1226 unchanged (docs-only, no `core/`/`ui/`/`content/`/`tests/` touch). **Scope (files):** `DOCTRINE.md`, this entry. **UNTOUCHED:** everything else, including the rest of §14's text (all `git diff` lines confirmed limited to the one bullet + footer). **Next:** operator's call whether this single-word-class fix needs its own third audit pass or can ride with v0.46's already-cleared gate-6 signal into the merge decision.
+
 ## 2026-07-05 — Operator calibration [§14] — gate-6 audit run, revised v0.45→v0.46 — STAGED
 
 **Status: STAGED on `docs/operator-calibration-s14` (off `origin/main` @ `604ec27`) — gate-6 cross-model audit run, findings addressed, not yet pushed, not yet merged. Recommend a confirming re-read before merge given the fixes weren't themselves re-audited.**
