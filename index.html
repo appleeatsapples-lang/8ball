@@ -1013,8 +1013,8 @@
 <div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
 
 <script type="module">
-import { searchCities } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
+import { initCitySearchUI } from './ui/citysearch.js';
 import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState, FREE_TRIES_CAP } from './core/payments.js';
@@ -1144,76 +1144,15 @@ let flipLocked = false;
 // state is kept here — density is resolved from storage at render time
 // via getRenderTier(), the single helper, on every path.
 
-// ── City autocomplete (v0.2.7.2) ─────────────────────────────────
-// Selected city is held in module-scoped state so the form submit can
-// read tz/lat/lng atomically. Typing without selecting clears it so
-// stale state never silently propagates to buildProfile.
+// ── City autocomplete (v0.2.7.2; controller in ui/citysearch.js per §6 v0.23) ──
+// Selected city stays host-owned so the form submit can read tz/lat/lng
+// atomically. The module clears it via the injected setter when the user
+// types without selecting, so stale state never propagates to buildProfile.
 let selectedCity = null;
-let citySearchDebounce = null;
-
-function clearSuggestions() {
-  citySuggestions.innerHTML = '';
-}
-
-function renderSuggestions(results) {
-  citySuggestions.innerHTML = '';
-  if (!results.length) return;
-  for (const c of results) {
-    const li = document.createElement('li');
-    li.setAttribute('role', 'option');
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = c.name;
-    const countrySpan = document.createElement('span');
-    countrySpan.className = 'city-country';
-    countrySpan.textContent = ' · ' + c.country;
-    li.appendChild(nameSpan);
-    li.appendChild(countrySpan);
-    li.addEventListener('mousedown', e => {
-      // mousedown fires before the input's blur, so selection survives
-      // the focus shift; preventDefault stops the focus loss outright.
-      e.preventDefault();
-      selectCity(c);
-    });
-    citySuggestions.appendChild(li);
-  }
-}
-
-function selectCity(c) {
-  selectedCity = c;
-  cityInput.value = c.name + ', ' + c.country;
-  clearSuggestions();
-  legacyHint.hidden = true;
-  // Polar latitudes are unsupported — surface the message proactively
-  // at selection time so the user knows before submit. computeRising
-  // will also return null at |lat| > 66.5°; this is the UI mirror.
-  polarMessage.hidden = Math.abs(c.lat) <= 66.5;
-}
-
-cityInput.addEventListener('input', () => {
-  selectedCity = null;
-  polarMessage.hidden = true;
-  if (citySearchDebounce) clearTimeout(citySearchDebounce);
-  const q = cityInput.value.trim();
-  if (q.length < 2) {
-    clearSuggestions();
-    return;
-  }
-  citySearchDebounce = setTimeout(async () => {
-    try {
-      const results = await searchCities(q, 12);
-      // Race guard: drop results if the input has changed since dispatch.
-      if (cityInput.value.trim() !== q) return;
-      renderSuggestions(results);
-    } catch (_) {
-      clearSuggestions();
-    }
-  }, 150);
-});
-
-cityInput.addEventListener('blur', () => {
-  // Brief delay so the mousedown handler can fire and capture the pick.
-  setTimeout(clearSuggestions, 120);
-});
+initCitySearchUI(
+  { cityInput, citySuggestions, legacyHint, polarMessage },
+  { setSelectedCity: c => { selectedCity = c; } },
+);
 
 // ── render card face from profile ─────────────────────────────────
 // v0.6.0 (DOCTRINE §1.D, R1): coordinate rows render up to opts.tier —
