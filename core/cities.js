@@ -117,10 +117,17 @@ export async function loadCities() {
   if (_cache) return _cache;
   if (_loading) return _loading;
   _loading = (async () => {
-    const mod = await import('../assets/cities.json', { with: { type: 'json' } });
-    _cache = mod.default;
-    _loading = null;
-    return _cache;
+    // The finally-reset matters: if the import rejects (transient network
+    // failure on the lazy asset fetch), `_loading` must not keep the
+    // rejected promise, or every later call would be handed the same
+    // rejection and the session could never retry.
+    try {
+      const mod = await import('../assets/cities.json', { with: { type: 'json' } });
+      _cache = mod.default;
+      return _cache;
+    } finally {
+      _loading = null;
+    }
   })();
   return _loading;
 }
