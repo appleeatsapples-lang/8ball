@@ -5,6 +5,18 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-12`
 `next_analytics_read: 2026-07-12`
 
+## 2026-07-06 — repo hygiene: stale branch prune + countries.js legacy-fixture annotation — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `6f9493c` ([#78](https://github.com/appleeatsapples-lang/8ball/pull/78)).** Operator asked for a fresh-eyes "suggestions?" pass; two mechanical items from the #74 close-out's deferred list were picked up: the pending stale-branch cleanup, and the `core/countries.js` centroid-data trim-vs-annotate call.
+
+**What changed.**
+1. **Stale branch pruned.** `claude/todo-implementation-tkjk49` (squash-merged into `main` as `4764f40` via #74 on 2026-07-05) still survived on `origin` per that close-out's "Remote-branch cleanup PENDING" note. Verified its tree was byte-identical to `4764f40` before deleting — both the remote ref and the leftover local branch pointer.
+2. **`core/countries.js` `defaultLat`/`defaultLng` annotated, not trimmed.** The #74 close-out flagged this data as "production-dead since v0.5.2, kept alive only by data-quality tests" and left trim-vs-annotate as an open decision. Traced actual usage before acting: no production codepath reads these two fields (`buildProfile` resolves legacy country/zone codes through `getCountryTimeZoneByCode`/`LEGACY_COUNTRY_TIMEZONES`, a separate export) — but `tests/countries.test.js` uses them to reconstruct the pre-v0.5.2 fixed-offset rising result and pin it against the current unified-IANA result, plus a keyset-parity check against `LEGACY_COUNTRY_TIMEZONES`. Trimming would have silently dropped that regression coverage, so the #74 close-out's "trim" framing was actually the wrong call here — annotated in place instead, with a comment explaining why the fields stay.
+
+**Verification.** `npm test`: 1226/1226 unchanged (comment-only, no `core/` logic, `ui/`, `content/`, `fixtures.json`, or DOCTRINE touch). **Scope (files):** `core/countries.js`, this entry. **UNTOUCHED:** everything else.
+
+**Close-out (post-merge, same day):** squash-merged `6f9493c` ([#78](https://github.com/appleeatsapples-lang/8ball/pull/78)) on explicit operator instruction ("merge it") — CC-run merge. All CI green at merge (`test` job pass + Netlify header/redirect rules + deploy-preview ready), mergeable/CLEAN, no review comments. **Note on branch mechanics:** `gh pr merge --delete-branch`'s local cleanup step failed (`main` was already checked out in the sibling worktree at `~/dev/8ball` — this session runs from a separate CC worktree), but the remote merge itself succeeded via the API; the branch was deleted manually with a follow-up `git push origin --delete`. No cross-model gate triggered (no DOCTRINE touch).
+
 ## 2026-07-05 — Operator calibration [§14] — confirming re-audit + Grok P2 mechanical closure, v0.46→v0.47 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `46585ae` ([#77](https://github.com/appleeatsapples-lang/8ball/pull/77)). Originally STAGED on `docs/operator-calibration-s14` (off `origin/main` @ `604ec27`, rebased onto `origin/main` @ `bf00cd5`); close-out at the foot of this entry.**
