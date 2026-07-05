@@ -1,0 +1,208 @@
+// 8ball / tests / meanings_behavior.test.js
+// ui/meanings.js + ui/labels.js run for real (2026-07-05 standards pass).
+//
+// tests/meanings_ui.test.js and tests/labels_reveal.test.js are source
+// pins — they grep the modules as text and never execute them. This file
+// closes the behavioral gap: the meanings panel open/toggle/close cycle,
+// the arcana "roman · name" key split, the sealed-cell (—) guard, the
+// Enter/Space keyboard path, and the labels toggle's class/copy/
+// aria-pressed round-trip all run against hand-injected DOM mocks
+// (node env, no jsdom — same convention as tests/modals.test.js).
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { initMeaningsUI } from '../ui/meanings.js';
+import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
+import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
+
+const originalDocument = globalThis.document;
+const originalLocalStorage = globalThis.localStorage;
+
+function makeNode(tag = 'div') {
+  const handlers = {};
+  const classes = new Set();
+  const node = {
+    tag,
+    id: '',
+    attrs: {},
+    dataset: {},
+    children: [],
+    textContent: '',
+    className: '',
+    classList: {
+      add: c => classes.add(c),
+      remove: c => classes.delete(c),
+      contains: c => classes.has(c),
+      toggle: (c, force) => { force ? classes.add(c) : classes.delete(c); },
+    },
+    setAttribute(k, v) { this.attrs[k] = v; },
+    appendChild(c) { this.children.push(c); },
+    addEventListener(ev, fn) { handlers[ev] = fn; },
+    _fire(ev, e) { return handlers[ev] && handlers[ev](e); },
+    querySelector(sel) {
+      if (sel.startsWith('#')) {
+        const id = sel.slice(1);
+        if (this._byId && this._byId[id]) return this._byId[id];
+        return this.children.find(c => c.id === id) || null;
+      }
+      return null;
+    },
+  };
+  // ui/meanings.js buildPanel assigns innerHTML then resolves the inner
+  // nodes with querySelector('#id') — mirror that with an id-keyed map.
+  Object.defineProperty(node, 'innerHTML', {
+    set(v) {
+      node._byId = {};
+      for (const m of v.matchAll(/id="([a-z-]+)"/g)) node._byId[m[1]] = makeNode();
+    },
+    get() { return ''; },
+  });
+  return node;
+}
+
+describe('ui/meanings.js behavior', () => {
+  let byId, cardFace, cells, vals;
+
+  function makeCell(key, valueId) {
+    const cell = makeNode('span');
+    const val = makeNode('span');
+    val.id = valueId;
+    // .closest resolves the wrapping cell from the value span (the click
+    // target) or from the cell itself.
+    const closest = sel => (sel.startsWith('.coord-cell') ? cell : null);
+    val.closest = closest;
+    cell.closest = closest;
+    return { cell, val };
+  }
+
+  beforeEach(() => {
+    byId = new Map();
+    cardFace = makeNode('div');
+    cells = {}; vals = {};
+    for (const [key, id] of [
+      ['arcana', 'coord-arcana-symbol'], ['sun', 'coord-sun-symbol'],
+      ['animal', 'coord-animal-symbol'], ['lifePath', 'coord-lifepath-symbol'],
+    ]) {
+      const { cell, val } = makeCell(key, id);
+      cells[key] = cell; vals[key] = val;
+      byId.set(id, val);
+    }
+    globalThis.document = {
+      getElementById: id => byId.get(id) || null,
+      createElement: makeNode,
+      head: { appendChild: node => { if (node.id) byId.set(node.id, node); } },
+    };
+    initMeaningsUI({ cardFace });
+  });
+  afterEach(() => {
+    if (originalDocument === undefined) delete globalThis.document; else globalThis.document = originalDocument;
+  });
+
+  function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
+
+  it('init marks the four free cells interactive and keyboard-reachable', () => {
+    for (const key of ['arcana', 'sun', 'animal', 'lifePath']) {
+      expect(cells[key].classList.contains('has-meaning')).toBe(true);
+      expect(cells[key].attrs.tabindex).toBe('0');
+      expect(cells[key].attrs.role).toBe('button');
+      expect(cells[key].dataset.meaningKey).toBe(key);
+    }
+    expect(panel()).toBeTruthy();
+    expect(byId.get('meanings-style')).toBeTruthy(); // scoped CSS injected once
+  });
+
+  it('tapping a filled cell opens the panel with the cited entry; re-tap closes', () => {
+    vals.sun.textContent = 'aries';
+    const entry = SUN_MEANINGS['aries'];
+    expect(entry).toBeTruthy();
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    expect(p._byId['meaning-head'].textContent).toBe('SUN');
+    expect(p._byId['meaning-title'].textContent).toBe(entry.register);
+    expect(p._byId['meaning-body'].textContent).toBe(entry.body);
+    expect(cells.sun.classList.contains('active')).toBe(true);
+    // toggle-close on the same cell
+    cardFace._fire('click', { target: vals.sun });
+    expect(p.classList.contains('open')).toBe(false);
+    expect(cells.sun.classList.contains('active')).toBe(false);
+  });
+
+  it('arcana looks up by name after splitting the "roman · name" card label', () => {
+    const name = Object.keys(ARCANA_MEANINGS)[0];
+    vals.arcana.textContent = `IX · ${name}`;
+    cardFace._fire('click', { target: vals.arcana });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    expect(p._byId['meaning-body'].textContent).toBe(ARCANA_MEANINGS[name].body);
+  });
+
+  it('sealed (—) and unknown values never open the panel', () => {
+    vals.animal.textContent = '—';
+    cardFace._fire('click', { target: vals.animal });
+    expect(panel().classList.contains('open')).toBe(false);
+    vals.animal.textContent = 'not-a-real-animal';
+    cardFace._fire('click', { target: vals.animal });
+    expect(panel().classList.contains('open')).toBe(false);
+  });
+
+  it('Enter and Space open via the delegated keydown path; other keys pass through', () => {
+    vals.sun.textContent = 'aries';
+    let prevented = 0;
+    cardFace._fire('keydown', { key: 'x', target: vals.sun, preventDefault: () => prevented++ });
+    expect(panel().classList.contains('open')).toBe(false);
+    cardFace._fire('keydown', { key: 'Enter', target: vals.sun, preventDefault: () => prevented++ });
+    expect(prevented).toBe(1);
+    expect(panel().classList.contains('open')).toBe(true);
+  });
+
+  it('the close button closes and deactivates; re-init is a no-op', () => {
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    panel()._byId['meaning-close']._fire('click');
+    expect(panel().classList.contains('open')).toBe(false);
+    expect(cells.sun.classList.contains('active')).toBe(false);
+    initMeaningsUI({ cardFace }); // second init must not duplicate the panel
+    expect(cardFace.children.filter(c => c.id === 'meaning-panel')).toHaveLength(1);
+  });
+});
+
+describe('ui/labels.js behavior', () => {
+  afterEach(() => {
+    if (originalLocalStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = originalLocalStorage;
+  });
+
+  it('toggle click flips class, copy, aria-pressed, and persists the preference', () => {
+    const store = new Map();
+    globalThis.localStorage = {
+      getItem: k => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: k => store.delete(k),
+    };
+    const cardFace = makeNode();
+    const labelsToggle = makeNode('button');
+    const ui = initLabelsUI({ cardFace, labelsToggle }, {});
+
+    labelsToggle._fire('click');
+    expect(cardFace.classList.contains('labels-revealed')).toBe(true);
+    expect(labelsToggle.textContent).toBe('→ hide labels');
+    expect(labelsToggle.attrs['aria-pressed']).toBe('true');
+    expect(isLabelsRevealed()).toBe(true);
+
+    labelsToggle._fire('click');
+    expect(cardFace.classList.contains('labels-revealed')).toBe(false);
+    expect(labelsToggle.textContent).toBe('→ reveal labels');
+    expect(labelsToggle.attrs['aria-pressed']).toBe('false');
+    expect(isLabelsRevealed()).toBe(false);
+
+    // applyLabelsState is the boot path — apply without persisting
+    ui.applyLabelsState(true);
+    expect(cardFace.classList.contains('labels-revealed')).toBe(true);
+    expect(isLabelsRevealed()).toBe(false); // storage untouched by apply
+  });
+
+  it('an unreadable store reads as not-revealed instead of throwing', () => {
+    globalThis.localStorage = { getItem: () => { throw new Error('denied'); } };
+    expect(isLabelsRevealed()).toBe(false);
+  });
+});
