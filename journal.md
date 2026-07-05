@@ -2,9 +2,9 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-## 2026-07-05 — fresh-eyes standards pass: §6 city-search split, a11y package, core dedup, vitest 4 — STAGED
+## 2026-07-05 — fresh-eyes standards pass: §6 city-search split, a11y package, core dedup, vitest 4 — SHIPPED
 
-**Status: STAGED on `claude/todo-implementation-tkjk49` (7 commits, `344dd15..bbaf22a`), not merged.** Operator asked a remote CC session for a fresh-eyes "bring it up to standards" pass. Three parallel review agents (core / ui+index / tests+CI) swept the tree; everything solo-executable and doctrine-safe was implemented; everything behavior-changing or doctrine-touching is recorded below as deferred, not acted on. Suite grew 1312 → **1353 green across 32 files**; `npm audit` 4 findings → **0**; `index.html` 1499 → **1443** against the 1500 gate.
+**Status: SHIPPED — squash-merged to `main` as `4764f40` ([#74](https://github.com/appleeatsapples-lang/8ball/pull/74)), mergedAt 2026-07-05 UTC. Originally STAGED on `claude/todo-implementation-tkjk49` (9 commits, `344dd15..e200eac`); close-out at the foot of this entry.** Operator asked a remote CC session for a fresh-eyes "bring it up to standards" pass. Three parallel review agents (core / ui+index / tests+CI) swept the tree; everything solo-executable and doctrine-safe was implemented; everything behavior-changing or doctrine-touching is recorded below as deferred, not acted on. Suite grew 1312 → **1353 green across 32 files**; `npm audit` 4 findings → **0**; `index.html` 1499 → **1443** against the 1500 gate.
 
 **What shipped (per commit):**
 1. **og:image:alt / twitter:image:alt richer copy** (`344dd15`) — closes the OPEN follow-up from the 2026-07-01 #59 close-out; both alts now describe the specimen-sheet unfurl; new pin keeps them agreeing and non-stub.
@@ -37,6 +37,8 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 - **Recorded, not absorbed:** DOM-mock consolidation across test files (wide, separate cut); `--label-on-dark` as a parallel token vs cascade-scoping `--label` per surface (design decision); the try/finally source pin standing in for a runtime retry test (module-cache friction, disclosed in the test); trapTab re-querying focusables per keypress (static dialogs, negligible); vitest-4 per-expect overhead in the 53k-entry data-quality loop (a failures-array rewrite would restore sub-second runtime).
 
 **Ritual-gate disclosure:** local PII audit (`audits/run_local_audit.sh`) is not runnable from the remote container (operator-local pattern file); public scans green (pii/privacy/dependency all pass). Operator to run the local audit + live-fire (gate 9 — index.html and core/ touched) before merge. No DOCTRINE / content / fixtures touch anywhere in the branch, so no cross-model gate is triggered; a reviewer diff-read (gate 5) is still owed.
+
+**Close-out (post-merge, same day):** squash-merged `4764f40` ([#74](https://github.com/appleeatsapples-lang/8ball/pull/74)) — merged by the same CC session on explicit operator instruction ("perform audit then merge") after the audit phase: all 6 CI stages green on the PR head (`test` job pass in 22s), suite 1356/1356 locally, §5 network-API + localStorage-key diff scans clean, §4 gates intact, line gate 1452/1500. The gate-5 diff review ran as the 8-angle adversarial pass recorded above (1 CONFIRMED finding, fixed in-branch pre-merge; 10 findings reported, 8 fixed / 2 recorded). Cross-model gate not triggered (no DOCTRINE/content/fixtures touch). **Still owed operator-side:** local PII audit (pattern file is operator-local; public scans green) and the gate-9 live-fire on the deploy — priority paths: modal focus/Tab behavior (all four dialogs), DOB error-message visibility, city autocomplete, rehydrated-birthplace label. **Remote-branch cleanup PENDING:** `claude/todo-implementation-tkjk49` survives on origin — the session's git proxy refuses branch deletion; clear with `git push origin --delete claude/todo-implementation-tkjk49`.
 
 ## 2026-07-04 — drift-sweep absorb: 6 doc-coherence findings from Codex's full-corpus pass — SHIPPED
 
