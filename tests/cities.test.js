@@ -54,7 +54,10 @@ describe('cities.json — tz array', () => {
 });
 
 describe('cities.json — city shape', () => {
-  it('every entry is a 6-element array with correctly typed fields', () => {
+  // ~53k entries x ~17 assertions: legitimately >5s under vitest 4's
+  // per-expect overhead. Scoped here so the rest of the suite keeps
+  // the tight default budget.
+  it('every entry is a 6-element array with correctly typed fields', { timeout: 15_000 }, () => {
     const maxTzIdx = data.tz.length - 1;
     for (let i = 0; i < data.cities.length; i++) {
       const c = data.cities[i];

@@ -13,11 +13,9 @@ const SHANGHAI_OFFSET_HOURS = 8;
 const RANGE_MIN = 1900;
 const RANGE_MAX = 2100;
 
-const D2R = Math.PI / 180;
+import { normalizeDeg } from './math.js';
 
-function normalizeAngle(deg) {
-  return ((deg % 360) + 360) % 360;
-}
+const D2R = Math.PI / 180;
 
 // Meeus ch 25 — apparent geocentric solar longitude (degrees).
 // "Low accuracy" formula; better than ~0.01° for 1900–2100.
@@ -33,7 +31,7 @@ function solarLongitude(jde) {
   const trueLon = L0 + C;
   const omega = (125.04 - 1934.136 * T) * D2R;
   const apparent = trueLon - 0.00569 - 0.00478 * Math.sin(omega);
-  return normalizeAngle(apparent);
+  return normalizeDeg(apparent);
 }
 
 // Meeus ch 49 — true new-moon JDE for lunation index k.

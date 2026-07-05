@@ -17,6 +17,7 @@ import { getCountryTimeZoneByCode } from './countries.js';
 import { computeRising } from './rising.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 import { getBirthCard } from './birthcard.js';
+import { mod, sumDigits } from './math.js';
 import { getDayPillar, getHourPillar } from './pillars.js';
 
 export const SUN_SIGNS = [
@@ -76,7 +77,7 @@ function lunarYearOf(year, month, day) {
 export function getAnimal(year, month, day) {
   const y = lunarYearOf(year, month, day);
   // Anchor: 2020 = rat (index 0)
-  const idx = ((y - 2020) % 12 + 12) % 12;
+  const idx = mod(y - 2020, 12);
   return ANIMALS[idx];
 }
 
@@ -84,7 +85,7 @@ export function getChineseElement(year, month, day) {
   const y = lunarYearOf(year, month, day);
   // Anchor: 1924 = wood (start of 60-year sexagenary cycle).
   // Each element holds for 2 consecutive years.
-  const idx = ((Math.floor((y - 1924) / 2) % 5) + 5) % 5;
+  const idx = mod(Math.floor((y - 1924) / 2), 5);
   return ELEMENTS[idx];
 }
 
@@ -146,9 +147,6 @@ export function getInnerAnimal(year, month, day) {
   // Gregorian year the window straddles.
   return 'rat';
 }
-
-const sumDigits = n =>
-  String(Math.abs(n)).split('').reduce((a, c) => a + parseInt(c, 10), 0);
 
 const reduce = n => {
   while (n > 9 && n !== 11 && n !== 22 && n !== 33) {

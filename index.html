@@ -23,14 +23,14 @@
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="8 ball">
+<meta property="og:image:alt" content="Specimen sheet with four open compartments and ten sealed hatches, beside the 8 ball wordmark — a magic 8-ball that knows you.">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="8 ball">
 <meta name="twitter:description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
-<meta name="twitter:image:alt" content="8 ball">
+<meta name="twitter:image:alt" content="Specimen sheet with four open compartments and ten sealed hatches, beside the 8 ball wordmark — a magic 8-ball that knows you.">
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,6 +39,11 @@
     --ink: #1a1812;
     --rule: #8a8472;
     --label: #5a5444;
+    /* --label on the dark page chrome sat at 2.63:1 (WCAG AA needs 4.5:1).
+       Same hue lightened to 4.76:1 — still dimmer than --rule (5.30:1) so
+       the label-vs-rule hierarchy holds. --label stays for paper surfaces,
+       where it reads 5.99:1. */
+    --label-on-dark: #837c69;
     --page-bg: #0a0a0a;
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
@@ -235,7 +240,7 @@
      Clinical count only, no CTA — register-matched to #mechanism-strip. */
   .density-strip {
     font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
-    color: var(--label); text-transform: lowercase; text-align: center;
+    color: var(--label-on-dark); text-transform: lowercase; text-align: center;
     margin: 0 0 16px;
   }
   /* ── card back (shake state) ─────────────────────────────────── */
@@ -320,7 +325,7 @@
     margin-bottom: 32px;
     font-size: 11px;
     letter-spacing: 0.28em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
   }
   .field {
@@ -330,7 +335,7 @@
     display: block;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -372,7 +377,7 @@
     list-style: none;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: uppercase;
     margin-bottom: 18px;
     padding: 6px 0;
@@ -389,7 +394,7 @@
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     margin-top: -4px;
   }
@@ -425,7 +430,7 @@
     background: rgba(138,132,114,0.12);
   }
   .city-suggestions li .city-country {
-    color: var(--label);
+    color: var(--label-on-dark);
     letter-spacing: 0.10em;
   }
   .polar-message,
@@ -434,11 +439,13 @@
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     margin-top: 8px;
   }
-  .field-error { color: var(--ink); }
+  /* (an override here through 2026-07-05 forced the error text to ink —
+     near-black on the black page bg, ~1.1:1. Removed; the group rule
+     above supplies the AA-passing on-dark label color.) */
   .polar-message[hidden],
   .legacy-hint[hidden],
   .field-error[hidden] { display: none; }
@@ -476,8 +483,8 @@
   .btn:disabled:hover { background: transparent; color: var(--paper); }
   .btn-block { display: block; width: 100%; }
   .btn-secondary {
-    border-color: var(--label);
-    color: var(--label);
+    border-color: var(--label-on-dark);
+    color: var(--label-on-dark);
     letter-spacing: 0.20em;
   }
   .result-controls .btn + .btn { margin-top: 10px; }
@@ -492,7 +499,7 @@
     margin-top: 18px;
     font-size: 10px;
     letter-spacing: 0.18em;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
   }
   .share-status {
@@ -513,7 +520,7 @@
   .text-link {
     background: none;
     border: none;
-    color: var(--label);
+    color: var(--label-on-dark);
     font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.22em;
@@ -542,7 +549,7 @@
     cursor: pointer;
     list-style: none;
     padding: 8px 0;
-    color: var(--label);
+    color: var(--label-on-dark);
     text-transform: lowercase;
     user-select: none;
   }
@@ -555,7 +562,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--label);
+    color: var(--label-on-dark);
   }
   .feedback-form textarea,
   .feedback-form input[type="text"] {
@@ -579,7 +586,7 @@
   .feedback-honeypot { display: none; }
   .feedback-fineprint {
     font-size: 11px;
-    color: var(--label);
+    color: var(--label-on-dark);
     margin-top: 4px;
     line-height: 1.4;
   }
@@ -606,9 +613,12 @@
     z-index: 50;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s;
+    /* visibility (not just opacity) so a closed modal's buttons leave the
+       keyboard tab order; the 0.2s delay lets the fade-out finish first. */
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0s linear 0.2s;
   }
-  .modal-bg.open { opacity: 1; pointer-events: auto; }
+  .modal-bg.open { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity 0.2s; }
   .modal {
     background: var(--paper);
     color: var(--ink);
@@ -754,8 +764,8 @@
   .modal .modal-disclosure {
     font-size: 9px;
     letter-spacing: 0.04em;
+    /* full-opacity --label: the 0.7-opacity blend sat at ~3.2:1 on paper */
     color: var(--label);
-    opacity: 0.7;
     text-align: center;
     margin-top: 10px;
     line-height: 1.5;
@@ -956,7 +966,7 @@
 
 <!-- ── about modal ─────────────────────────────────────────────── -->
 <div class="modal-bg" id="about-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="about-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
@@ -970,7 +980,7 @@
 
 <!-- ── 18+ acknowledgment modal ──────────────────────────────── -->
 <div class="modal-bg" id="age-gate-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
     <h2 id="age-gate-title">for adults</h2>
     <div class="modal-rule"></div>
     <p id="age-gate-body">8 ball is a toy for adults. tapping confirm acknowledges that you are 18 or older. there is no verification — under-18 users should not enter.</p>
@@ -982,7 +992,7 @@
 
 <!-- ── forget-me modal ─────────────────────────────────────────── -->
 <div class="modal-bg" id="forget-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="forget-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
     <p>removes the saved name and date of birth from local storage on this device. no paperwork exists elsewhere.</p>
@@ -995,7 +1005,7 @@
 
 <!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C v0.36) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-labelledby="paywall-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
     <h2 id="paywall-title">three tries · three rungs</h2>
     <div class="modal-rule"></div>
     <p>one tap. no account. each rung is a one-time purchase: three more reads with the sheet opened to that rung. the highest rung bought holds.</p>
@@ -1013,8 +1023,8 @@
 <div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
 
 <script type="module">
-import { searchCities } from './core/cities.js';
 import { buildProfile } from './core/profile.js';
+import { initCitySearchUI } from './ui/citysearch.js';
 import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState, FREE_TRIES_CAP } from './core/payments.js';
@@ -1069,6 +1079,11 @@ const modalsUI = initModalsUI(
   },
   { clearProfile, resetFormDisplay, onAgeAck: initAfterAck, isPaywallOpen, closePaywall },
 );
+// Host-owned state, declared BEFORE any init*UI call whose injected
+// setters close over these bindings — a setter fired synchronously
+// during boot must not hit the let temporal dead zone.
+let currentProfile = null;
+let selectedCity = null;
 initProfileUI(
   {
     timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
@@ -1138,82 +1153,20 @@ initShareUI(
   {}
 );
 
-let currentProfile = null;
 let flipLocked = false;
 // v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
 // state is kept here — density is resolved from storage at render time
 // via getRenderTier(), the single helper, on every path.
 
-// ── City autocomplete (v0.2.7.2) ─────────────────────────────────
-// Selected city is held in module-scoped state so the form submit can
-// read tz/lat/lng atomically. Typing without selecting clears it so
-// stale state never silently propagates to buildProfile.
-let selectedCity = null;
-let citySearchDebounce = null;
-
-function clearSuggestions() {
-  citySuggestions.innerHTML = '';
-}
-
-function renderSuggestions(results) {
-  citySuggestions.innerHTML = '';
-  if (!results.length) return;
-  for (const c of results) {
-    const li = document.createElement('li');
-    li.setAttribute('role', 'option');
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = c.name;
-    const countrySpan = document.createElement('span');
-    countrySpan.className = 'city-country';
-    countrySpan.textContent = ' · ' + c.country;
-    li.appendChild(nameSpan);
-    li.appendChild(countrySpan);
-    li.addEventListener('mousedown', e => {
-      // mousedown fires before the input's blur, so selection survives
-      // the focus shift; preventDefault stops the focus loss outright.
-      e.preventDefault();
-      selectCity(c);
-    });
-    citySuggestions.appendChild(li);
-  }
-}
-
-function selectCity(c) {
-  selectedCity = c;
-  cityInput.value = c.name + ', ' + c.country;
-  clearSuggestions();
-  legacyHint.hidden = true;
-  // Polar latitudes are unsupported — surface the message proactively
-  // at selection time so the user knows before submit. computeRising
-  // will also return null at |lat| > 66.5°; this is the UI mirror.
-  polarMessage.hidden = Math.abs(c.lat) <= 66.5;
-}
-
-cityInput.addEventListener('input', () => {
-  selectedCity = null;
-  polarMessage.hidden = true;
-  if (citySearchDebounce) clearTimeout(citySearchDebounce);
-  const q = cityInput.value.trim();
-  if (q.length < 2) {
-    clearSuggestions();
-    return;
-  }
-  citySearchDebounce = setTimeout(async () => {
-    try {
-      const results = await searchCities(q, 12);
-      // Race guard: drop results if the input has changed since dispatch.
-      if (cityInput.value.trim() !== q) return;
-      renderSuggestions(results);
-    } catch (_) {
-      clearSuggestions();
-    }
-  }, 150);
-});
-
-cityInput.addEventListener('blur', () => {
-  // Brief delay so the mousedown handler can fire and capture the pick.
-  setTimeout(clearSuggestions, 120);
-});
+// ── City autocomplete (v0.2.7.2; controller in ui/citysearch.js per §6 v0.23) ──
+// selectedCity stays host-owned (declared with the other host state above
+// the init wiring) so the form submit can read tz/lat/lng atomically. The
+// module clears it via the injected setter when the user types without
+// selecting, so stale state never propagates to buildProfile.
+initCitySearchUI(
+  { cityInput, citySuggestions, legacyHint, polarMessage },
+  { setSelectedCity: c => { selectedCity = c; } },
+);
 
 // ── render card face from profile ─────────────────────────────────
 // v0.6.0 (DOCTRINE §1.D, R1): coordinate rows render up to opts.tier —

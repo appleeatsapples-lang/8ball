@@ -86,6 +86,19 @@ describe('reach surface — og-image asset parity', () => {
     expect(tw[1]).toBe(og);
   });
 
+  it('og:image:alt and twitter:image:alt agree and actually describe the image', () => {
+    // The unfurl image shows the free-tier specimen sheet; a bare wordmark
+    // ("8 ball") as alt text tells a screen-reader user nothing. Pinned after
+    // the #59 refresh shipped with the alt still reading the old stub.
+    const og = html.match(/<meta property="og:image:alt" content="([^"]*)"/);
+    expect(og, 'og:image:alt meta missing').not.toBeNull();
+    const tw = html.match(/<meta name="twitter:image:alt" content="([^"]*)"/);
+    expect(tw, 'twitter:image:alt meta missing').not.toBeNull();
+    expect(tw[1]).toBe(og[1]);
+    expect(og[1].length, `og:image:alt is a stub: "${og[1]}"`).toBeGreaterThan(20);
+    expect(og[1].length, 'og:image:alt exceeds the ~420-char alt budget').toBeLessThanOrEqual(420);
+  });
+
   it('the referenced asset exists and its PNG dimensions match the og metas', () => {
     const og = ogImageUrl();
     expect(og, 'og:image meta missing').not.toBeNull();

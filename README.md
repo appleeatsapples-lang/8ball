@@ -34,7 +34,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ```
 8ball/
 ├── index.html               UI + boot, single file, ES modules (≤1500 LOC per §6)
-├── core/                    9 pure-logic ES modules — no DOM
+├── core/                    10 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution
 │   ├── rising.js            Meeus ascendant — DST + historical-tz aware
@@ -43,15 +43,17 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── countries.js         legacy v0.2.1 fixed-offset entries (backward-compat for stored profiles)
 │   ├── calendar.js          Meeus lunar new year + solar terms, 1900–2100
 │   ├── cities.js            city autocomplete loader (lazy-loads assets/cities.json)
+│   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
 │   └── payments.js          pure state machine: isNewPair, nextShakeState, applyPaidReturn
-├── ui/                      7 DOM-touching ES modules — init*UI({refs}, {hooks}) DI shape per §6 v0.23
+├── ui/                      8 DOM-touching ES modules — init*UI({refs}, {hooks}) DI shape per §6 v0.23
 │   ├── tiers.js             compartment-card render + shareRowRefs + provenance/atlas/density
 │   ├── payments.js          paywall modal controller + ?paid=t1|t2|t3 handler
 │   ├── profile.js           profile persistence + form helpers
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
 │   ├── meanings.js          tappable coordinate meanings — injects its own panel/CSS (§1.G v0.44)
-│   └── modals.js            about / forget / 18+-gate controllers + escape-to-close (§6 split)
+│   ├── modals.js            about / forget / 18+-gate controllers + escape-to-close + focus trap (§6 split)
+│   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
 ├── content/
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 │   └── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
