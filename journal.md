@@ -2,6 +2,36 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
+## 2026-07-05 — fresh-eyes standards pass: §6 city-search split, a11y package, core dedup, vitest 4 — STAGED
+
+**Status: STAGED on `claude/todo-implementation-tkjk49` (7 commits, `344dd15..bbaf22a`), not merged.** Operator asked a remote CC session for a fresh-eyes "bring it up to standards" pass. Three parallel review agents (core / ui+index / tests+CI) swept the tree; everything solo-executable and doctrine-safe was implemented; everything behavior-changing or doctrine-touching is recorded below as deferred, not acted on. Suite grew 1312 → **1353 green across 32 files**; `npm audit` 4 findings → **0**; `index.html` 1499 → **1443** against the 1500 gate.
+
+**What shipped (per commit):**
+1. **og:image:alt / twitter:image:alt richer copy** (`344dd15`) — closes the OPEN follow-up from the 2026-07-01 #59 close-out; both alts now describe the specimen-sheet unfurl; new pin keeps them agreeing and non-stub.
+2. **`ui/citysearch.js` §6 v0.23 split** (`fab50ae`) — index.html sat at 1499/1500 (the "if it would exceed, split" trigger). City autocomplete moved out in the locked shape; `selectedCity` stays host-owned via the injected `setSelectedCity` — the exact setter §6 names as the example. +14 tests including the first behavioral coverage of debounce/race-guard/polar-mirror.
+3. **`core/cities.js` rejected-promise fix** (`10c8ee8`) — a failed lazy dataset import was cached in `_loading` forever; one transient failure killed autocomplete for the session with no retry. Now try/finally-reset. +8 tests: first behavioral coverage of `searchCities` (NFD folding, limit, ranking, `COUNTRY_NAMES` fallback) with the dataset import mocked, preserving cities.test.js's node-version-agnostic rationale.
+4. **A11y package** (`7ab1282`) — `aria-modal="true"` on all four dialogs; shared focus save/trap/restore in `ui/modals.js` (opener saved, primary control focused — non-destructive default on forget/paywall — Tab wraps, focus restored on close), paywall wired via one-way import (modals.js still never imports payments.js); **contrast**: `--label` on the dark chrome read 2.63:1 vs AA 4.5:1 on 14 selectors including `.field-error` — new `--label-on-dark: #837c69` (4.76:1, still dimmer than `--rule`'s 5.30:1 so hierarchy holds; paper surfaces untouched); `.modal-disclosure` opacity-dilution dropped. +7 tests.
+5. **`core/math.js` dedup** (`88b92a2`) — euclidean-mod existed 6× under 3 names (rising `normalizeDeg` and calendar `normalizeAngle` were byte-identical), `sumDigits` 2×. One leaf module, zero behavior change, fixtures untouched, per-module reduction RULES left in place. +3 tests.
+6. **Behavioral tests for `ui/meanings.js` + `ui/labels.js`** (`3c1469a`) — both were source-pin-only (regex over module text, never executed). +8 tests run the panel open/toggle/close, arcana "roman · name" split, sealed-cell guard, Enter/Space path, labels round-trip.
+7. **vitest 1.6.1 → 4.1.9** (`bbaf22a`) — clears all 4 `npm audit` findings (1 critical, 1 high in the bundled esbuild/vite chain). Dev-dep note per dependency_discipline: same single devDependency, version bump only. `testTimeout: 15_000` for the 53k-entry cities loop; `engines.node >=20.19` (vitest 4 floor; CI's setup-node '20' already resolves above it).
+
+**Docs sync:** CLAUDE.md canonical inventory re-verified this date (core 10 / ui 8 / tests 32); README structure tree updated to match.
+
+**Deferred — needs operator decision (behavior-changing, §3 calculation contract):**
+- `core/profile.js` `getMaturity` sums the *unreduced* life-path + name sums and reduces once; the standard tradition adds the already-reduced numbers, diverging exactly when a master number (11/22/33) should survive the intermediate step. Either lock the current definition with a comment (birthcard.js precedent) or change it with fixtures updated in lockstep.
+- `core/rising.js` hemisphere correction uses a [1°,179°] guard band; a true ascendant within ~1° of the meridian gets flipped by six signs. Rare/degenerate window — tighten or document.
+
+**Deferred — recorded, not urgent:**
+- `core/countries.js` centroid/offset data (~277 rows) is production-dead since v0.5.2 (IANA map drives rising); kept alive only by data-quality tests. Decide: trim, or annotate as legacy-payload support only.
+- `#card-face` is an `aria-live="polite"` region wrapping all 14 cells — every render queues the whole sheet to the SR buffer. Scoping it is a UX decision (density.test.js pins the current shape).
+- CSP header in netlify.toml: zero inline `on*=` handlers already, but the inline `<style>`/`<script type="module">` blocks force 'unsafe-inline'; full CSP needs an externalization §6 doesn't currently sanction. Doctrine-touching — needs a §6 conversation.
+- Test-suite hygiene: the hand-rolled DOM mocks are duplicated (and have drifted) across ~5 files; `BANNED_VOICE` is forked in atlas/provenance tests with extra verbs; several exact-string pins (SVG geometry, CSS values, comment-anchored slices) will break on harmless refactors. A `tests/helpers/` consolidation is mechanical but wide — separate cut.
+- ESLint / coverage reporting / jsdom env: all would add dev-deps and (for CI stages) touch §7's pinned 6-stage description — deliberately skipped under §12 minimal-tooling; revisit if the suite keeps growing.
+- `initPaywallUI({modal,closeBtn,banner})` deviates from the `(refs, hooks)` arity; §6 names it as a precedent, so left alone.
+- `getSunSign` unreachable same-month branch + `hourBranchFromHour` redundant `% 12`: harmless defensive code inside the calculation contract; not churned.
+
+**Ritual-gate disclosure:** local PII audit (`audits/run_local_audit.sh`) is not runnable from the remote container (operator-local pattern file); public scans green (pii/privacy/dependency all pass). Operator to run the local audit + live-fire (gate 9 — index.html and core/ touched) before merge. No DOCTRINE / content / fixtures touch anywhere in the branch, so no cross-model gate is triggered; a reviewer diff-read (gate 5) is still owed.
+
 ## 2026-07-04 — drift-sweep absorb: 6 doc-coherence findings from Codex's full-corpus pass — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `011957b` ([#72](https://github.com/appleeatsapples-lang/8ball/pull/72)). Docs-only, no code/test/behavior change; `npm test` unchanged at 1312/1312.** Follow-on to the same-day #70/#71 cycle: after those two shipped, operator asked for a full corpus drift-sweep (`~/Desktop/8ball/audits/codex_DRIFTSWEEP_full_corpus_2026-07-04.md`) covering the whole tracked-doc surface, not just the recent diffs. Codex returned 6 drifts — 0 P0/P1, 2 P2, 4 P3 — all doc-vs-doc or doc-vs-shipped coherence, no functional/privacy/PII findings. Absorbed in one commit per Codex's own "single small absorb, no tier-split" recommendation.
