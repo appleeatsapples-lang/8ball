@@ -33,37 +33,13 @@ import {
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
+// Canonical §2/§4 voice-policy tables. Live in a plain helper (not this file)
+// so the provenance/atlas/meanings scans can import them without re-running
+// this suite — see tests/helpers/voice-register.js.
+import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
-
-// Banned voice-register substrings — DOCTRINE.md §2.
-// Bans the voice register, not the symbol-system nouns: "Aries", "rat",
-// "life path 7", "Pythagorean" all stay legal; "the universe says",
-// "your stars guide you", "destined for greatness" do not.
-// Case-insensitive start-anchored word-boundary match — preserves
-// inflections at end ("auras", "manifesting") while preventing
-// leading-substring collisions inside unrelated English words
-// (e.g. "aura" inside "restaurant").
-export const BANNED_VOICE_REGISTER = [
-  'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
-  'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
-  'channel', 'channeling', 'aura', 'karma', 'manifest', 'manifestation',
-  'third eye', 'soul mate', 'your guides', 'divine', 'sacred'
-];
-
-// Slur subset. Fast pre-merge tripwire; the local audit and reviewer
-// diff close the long tail.
-export const BANNED_PATTERNS = [
-  /\bretard(ed|ation)?\b/i,
-  /\bidiot\b/i,
-  /\b(insane|crazy|mental)\b/i,
-  /\b(faggot|tranny)\b/i,
-  /\bn[i1]gg[ae]r/i
-];
-
-// The regex tables below are the enforced policy source for the deck
-// scans later in this file.
 
 describe('calculation contract', () => {
   for (const c of fixtures.cases) {
@@ -413,8 +389,9 @@ describe('engine — getCard MissingCardError (unknown sun/animal)', () => {
   });
 });
 
-// BANNED_PATTERNS and BANNED_VOICE_REGISTER remain in this file as the
-// canonical policy tables for the deck scans below.
+// BANNED_PATTERNS and BANNED_VOICE_REGISTER are imported from
+// tests/helpers/voice-register.js (the canonical policy tables) and drive the
+// deck scans below.
 
 describe('calendar — lunar new year + solar-term tables (v2)', () => {
   // Sanity locks per v0.2.7.1 brief §4.1 / §4.2. CC's calendar.js

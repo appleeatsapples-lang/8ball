@@ -53,7 +53,7 @@ No build step. Netlify auto-deploys on push to `main`.
     ui/           DOM-touching ES modules — citysearch, labels, meanings, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23 (8 modules; citysearch.js, payments.js + tiers.js also carry pure exports)
     content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        32 vitest files + fixtures.json
+    tests/        33 vitest files + fixtures.json
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
@@ -78,3 +78,7 @@ them (last verified 2026-07-01, ui/ and tests/ both stale by the time of
 this check) — if you're reading this more than a few weeks after the date
 above, re-verify with `find core ui -name '*.js' | wc -l` and
 `ls tests/*.test.js | wc -l` rather than trusting the number on sight.
+As of 2026-07-05 these three counts are also pinned by
+`tests/repo_shape.test.js` — a mismatch now fails CI instead of silently
+drifting, so the count lines above must be updated in the same change that
+adds or removes a `core/`, `ui/`, or test module.

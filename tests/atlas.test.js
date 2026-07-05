@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATLAS_NOTE, atlasText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
+import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -20,14 +21,10 @@ const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
 // The §2 mysticism/interpretation register, plus interpretation verbs a
-// legend label must never reach for. Mirrors provenance.test.js.
-const BANNED_VOICE = [
-  'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
-  'cosmic', 'the cosmos', 'spiritual', 'mystic', 'mystical', 'psychic',
-  'channel', 'channeling', 'aura', 'karma', 'manifest', 'manifestation',
-  'third eye', 'soul mate', 'your guides', 'divine', 'sacred',
-  'reveal', 'reveals', 'meaning', 'predict', 'future',
-];
+// legend label must never reach for. Imported from the canonical tables in
+// tests/helpers/voice-register.js (same extension provenance.test.js applies)
+// so this scan can never drift from the deck scan.
+const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 
 const NOTES = Object.values(ATLAS_NOTE);
 
