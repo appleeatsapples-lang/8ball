@@ -225,9 +225,13 @@ export function getBirthday(day) {
   return reduce(day);
 }
 
-// Maturity: life-path sum plus expression/name-number sum, then reduced.
+// Maturity: reduced life path plus reduced expression/name number, then
+// reduced again. Standard tradition reduces (preserving master numbers
+// 11/22/33) at each step before combining — adding the raw pre-reduction
+// sums instead can fabricate or suppress a master number that wouldn't
+// appear under the standard method (see journal 2026-07-06).
 export function getMaturitySum(year, month, day, name) {
-  return getLifePathSum(year, month, day) + getNameNumberSum(name);
+  return getLifePath(year, month, day) + getNameNumber(name);
 }
 
 export function getMaturity(year, month, day, name) {

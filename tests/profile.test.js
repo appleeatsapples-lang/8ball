@@ -301,14 +301,34 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getBirthday(29)).toBe(11);
   });
 
-  it('getMaturity: simple sum', () => {
-    expect(getMaturitySum(1996, 4, 1, 'Alex Thomas')).toBe(67);
+  it('getMaturity: sums the reduced life path + reduced name number', () => {
+    // Alex Thomas, 1996-04-01: lifePath reduces to 3, nameNumber to 1.
+    expect(getLifePath(1996, 4, 1)).toBe(3);
+    expect(getNameNumber('Alex Thomas')).toBe(1);
+    expect(getMaturitySum(1996, 4, 1, 'Alex Thomas')).toBe(4);
     expect(getMaturity(1996, 4, 1, 'Alex Thomas')).toBe(4);
   });
 
-  it('getMaturity: master-number preservation', () => {
-    expect(getMaturitySum(2000, 1, 7, 'A')).toBe(11);
-    expect(getMaturity(2000, 1, 7, 'A')).toBe(11);
+  it('getMaturity: master-number preservation (both components master)', () => {
+    // Ann, 1970-01-04: lifePath reduces to 22, nameNumber to 11 — both
+    // master numbers, and 22 + 11 = 33 is itself a master number that
+    // needs no further reduction.
+    expect(getLifePath(1970, 1, 4)).toBe(22);
+    expect(getNameNumber('Ann')).toBe(11);
+    expect(getMaturitySum(1970, 1, 4, 'Ann')).toBe(33);
+    expect(getMaturity(1970, 1, 4, 'Ann')).toBe(33);
+  });
+
+  it('getMaturity: does not fabricate a master number from unreduced sums', () => {
+    // Bob, 1970-01-01: raw life-path digit sum is 19 and raw name-number
+    // sum is 10 — 19 + 10 = 29 reduces through 11 if summed unreduced,
+    // which is the bug this fix closes. The standard method reduces each
+    // component first (both land on plain 1) and never sees a master
+    // number here at all.
+    expect(getLifePath(1970, 1, 1)).toBe(1);
+    expect(getNameNumber('Bob')).toBe(1);
+    expect(getMaturitySum(1970, 1, 1, 'Bob')).toBe(2);
+    expect(getMaturity(1970, 1, 1, 'Bob')).toBe(2);
   });
 
   it('buildProfile: exposes new 2G-2 fields', () => {
@@ -317,7 +337,7 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(p.personalitySum).toBe(24);
     expect(p.birthday).toBe(1);
     expect(p.maturity).toBe(4);
-    expect(p.maturitySum).toBe(67);
+    expect(p.maturitySum).toBe(4);
   });
 });
 
