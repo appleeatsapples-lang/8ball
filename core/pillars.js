@@ -31,6 +31,7 @@
 // pillar function is actually invoked.
 
 import { ANIMALS } from './profile.js';
+import { mod } from './math.js';
 
 // Heavenly stems 天干, index 0–9.
 export const STEMS = [
@@ -79,8 +80,6 @@ function julianDayNumber(year, month, day) {
     + Math.floor(y / 400)
     - 32045;
 }
-
-const mod = (n, k) => ((n % k) + k) % k;
 
 // Day pillar from a civil Gregorian date.
 //

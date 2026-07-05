@@ -16,12 +16,10 @@ const SIGNS = [
   'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'
 ];
 
+import { normalizeDeg } from './math.js';
+
 const DEG = Math.PI / 180;
 const POLAR_LAT_LIMIT_DEG = 66.5;
-
-function normalizeDeg(deg) {
-  return ((deg % 360) + 360) % 360;
-}
 
 function utcDateParts(year, month, day, utHours) {
   const dayDelta = Math.floor(utHours / 24);

@@ -14,6 +14,8 @@
 // "fool yes"). Without it, 22 would render as an out-of-range XXII coordinate.
 // Rare in practice, but the mapping guarantees every DOB resolves to a real card.
 
+import { sumDigits } from './math.js';
+
 export const MAJOR_ARCANA = [
   'the fool',          // 0
   'the magician',      // 1
@@ -43,9 +45,6 @@ const ROMAN = [
   '0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
   'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'
 ];
-
-const sumDigits = n =>
-  String(Math.abs(n)).split('').reduce((a, c) => a + parseInt(c, 10), 0);
 
 // Digit-sum reduction to the Major Arcana index range.
 // Reduce until <= 22; map 22 -> 0 (the fool). Result is always 0..21.
