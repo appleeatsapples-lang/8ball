@@ -57,12 +57,11 @@ export function makeEl(name) {
   };
 }
 
-// The nine refs initModalsUI wires: about / forget / 18+ age gate.
+// The seven refs initModalsUI wires: about / forget.
 export function makeModalRefs() {
   return {
     aboutModal: makeEl('aboutModal'), aboutBtn: makeEl('aboutBtn'), aboutClose: makeEl('aboutClose'),
     forgetModal: makeEl('forgetModal'), forgetBtn: makeEl('forgetBtn'),
     forgetCancel: makeEl('forgetCancel'), forgetConfirm: makeEl('forgetConfirm'),
-    ageGateModal: makeEl('ageGateModal'), ageGateConfirm: makeEl('ageGateConfirm'),
   };
 }

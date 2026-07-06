@@ -21,11 +21,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 describe('modal a11y — markup pins', () => {
-  it('all four dialogs carry aria-modal="true" alongside role="dialog"', () => {
+  it('all three dialogs carry aria-modal="true" alongside role="dialog"', () => {
+    // Was four before the 18+ age-gate modal's removal (journal 2026-07-06).
     const dialogs = html.match(/role="dialog"/g) || [];
     const modal = html.match(/role="dialog" aria-modal="true"/g) || [];
-    expect(dialogs).toHaveLength(4);
-    expect(modal).toHaveLength(4);
+    expect(dialogs).toHaveLength(3);
+    expect(modal).toHaveLength(3);
   });
 
   it('the dark-chrome label token exists and the AA-failing pairs are off it', () => {

@@ -970,22 +970,10 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs, counters, the paid rung, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send. first-visit 18+ tap is a click-through, not verification.</p>
+    <p>nothing leaves your device on its own. inputs, counters, the paid rung, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send.</p>
     <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and the trait for your life-path bracket. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── 18+ acknowledgment modal ──────────────────────────────── -->
-<div class="modal-bg" id="age-gate-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="age-gate-title" aria-describedby="age-gate-body">
-    <h2 id="age-gate-title">for adults</h2>
-    <div class="modal-rule"></div>
-    <p id="age-gate-body">8 ball is a toy for adults. tapping confirm acknowledges that you are 18 or older. there is no verification — under-18 users should not enter.</p>
-    <div class="modal-actions">
-      <button class="btn" id="age-gate-confirm" type="button">confirm</button>
     </div>
   </div>
 </div>
@@ -1045,7 +1033,7 @@ import {
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
-import { initModalsUI, isAgeAcknowledged } from './ui/modals.js';
+import { initModalsUI } from './ui/modals.js';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1069,15 +1057,14 @@ const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
 initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
-// about / forget / 18+ age-gate modals + escape-to-close (ui/modals.js §6 split).
+// about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
   {
     aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
     forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'),
     forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm'),
-    ageGateModal: $('age-gate-modal'), ageGateConfirm: $('age-gate-confirm'),
   },
-  { clearProfile, resetFormDisplay, onAgeAck: initAfterAck, isPaywallOpen, closePaywall },
+  { clearProfile, resetFormDisplay, isPaywallOpen, closePaywall },
 );
 // Host-owned state, declared BEFORE any init*UI call whose injected
 // setters close over these bindings — a setter fired synchronously
@@ -1392,32 +1379,28 @@ if (window.location.search.includes('sent=1')) {
   }
 }
 
-// about / forget / 18+ age-gate modal handlers + escape-to-close moved to
-// ui/modals.js (§6 split); wired via initModalsUI above.
+// about / forget modal handlers + escape-to-close moved to ui/modals.js
+// (§6 split); wired via initModalsUI above.
 
 // ── boot ──────────────────────────────────────────────────────────
-function initAfterAck() {
+function boot() {
   labelsUI.applyLabelsState(isLabelsRevealed());
   // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
   // paid-return boot unseals exactly the delta; rehydrate unseals nothing.
   primeUnsealBaseline(getRenderTier());
-  // §6.6 paid-return runs before rehydration so the +3 credits, tier,
-  // and any pending-consumed profile are persisted before
-  // loadSavedProfile() reads them. Sequencing here (post age-gate)
-  // avoids the race where the boot block would otherwise hide the
-  // result behind the gate. R1: a paid-return boot is not special — it
-  // just sets tier+credits and falls into the same render path as any
-  // rehydration; density resolves from storage via getRenderTier().
+  // §6.6 paid-return runs before rehydration so the +3 credits, tier, and
+  // any pending-consumed profile are persisted before loadSavedProfile()
+  // reads them. R1: a paid-return boot is not special — it just sets
+  // tier+credits and falls into the same render path as any rehydration;
+  // density resolves from storage via getRenderTier().
   handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
-  let rehydrated = false;
   if (existing) {
     try {
       populateRisingFields(existing);
       showResult(profileFromPayload(existing), {
         tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed(),
       });
-      rehydrated = true;
     } catch (_) {
       // Corrupted stored profile — a malformed DOB, or (since the calc core
       // now rejects them) an impossible-date DOB from a hand-edited payload.
@@ -1427,26 +1410,15 @@ function initAfterAck() {
       // form (resetFormDisplay nulls selectedCity + clears the stale time/city
       // fields). Without the reset, the next submission would silently inherit
       // the discarded city's tz/lat/lng — a wrong rising sign baked into a new
-      // person's profile. Then fall through to onboarding.
+      // person's profile. #onboarding has no `hidden` class in the static
+      // markup, so it's already visible — nothing else to do here.
       clearProfile();
       resetFormDisplay();
     }
   }
-  if (!rehydrated) {
-    // No saved profile, or a corrupted one we just cleared. The gate path
-    // pre-emptively hides #onboarding so it doesn't leak behind the modal;
-    // un-hide here so the form is visible on first paint after confirm.
-    onboarding.classList.remove('hidden');
-  }
 }
 
-if (isAgeAcknowledged()) {
-  initAfterAck();
-} else {
-  onboarding.classList.add('hidden');
-  result.classList.add('hidden');
-  modalsUI.showAgeGate();
-}
+boot();
 </script>
 </body>
 </html>

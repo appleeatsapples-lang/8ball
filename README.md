@@ -22,7 +22,7 @@ npm test         # vitest — file count: CLAUDE.md (canonical); case count: new
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
-1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/age_gate.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 extension that scans `content/cards.v1.full.js` against the banned-voice-register policy, and the v0.44 extension (`tests/meanings_content.test.js`) that runs the same policy tables against `content/meanings.v1.js`.
+1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 extension that scans `content/cards.v1.full.js` against the banned-voice-register policy, and the v0.44 extension (`tests/meanings_content.test.js`) that runs the same policy tables against `content/meanings.v1.js`.
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and §5.B user-initiated feedback POST / Gumroad Buy Link redirect); no third-party fonts or scripts; system fonts only.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
@@ -52,7 +52,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
 │   ├── meanings.js          tappable coordinate meanings — injects its own panel/CSS (§1.G v0.44)
-│   ├── modals.js            about / forget / 18+-gate controllers + escape-to-close + focus trap (§6 split)
+│   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
 ├── content/
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
@@ -65,7 +65,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F)
 │   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
 │   ├── share_surface / payments_markup / payments_state / feedback_surface / modals  UI surfaces + state
-│   └── privacy_scan / pii_scan / dependency_discipline / age_gate / dob_validation / rising_disclosure  guards
+│   └── privacy_scan / pii_scan / dependency_discipline / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs
 ├── assets/                  cities.json + favicons + og:image
 ├── .github/workflows/ci.yml CI gate (6 stages per §7)

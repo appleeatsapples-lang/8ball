@@ -56,7 +56,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ── helper: extract a modal subtree by id (same shape as age_gate.test) ──
+// ── helper: extract a modal subtree by id ──
 function modalSubtree(id) {
   const re = new RegExp(`id="${id}"[\\s\\S]*?<\\/div>\\s*<\\/div>\\s*<\\/div>`);
   const m = html.match(re);
@@ -456,14 +456,6 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     const occurrences = (aboutSubtree.match(/subscription/g) || []).length;
     const negations = (aboutSubtree.match(/no subscription/g) || []).length;
     expect(occurrences).toBe(negations);
-  });
-
-  it('about-modal: discloses the 18+ acknowledgment gate (§4.A carry)', () => {
-    // The age gate has been live since v0.18 (§4.A). The brief §10.3
-    // disclosure checklist includes the 18+ tap; this test guards
-    // the substring presence in the about-modal body so a future copy
-    // tightening doesn't silently drop the disclosure.
-    expect(aboutSubtree).toMatch(/18\+/);
   });
 
   // 6b. paywall_modal_disclosure ────────────────────────────────────
