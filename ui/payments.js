@@ -173,8 +173,8 @@ export function showPaidBanner() {
 // payload shape). Always strips the query string and shows the banner;
 // returns true iff a pending profile was consumed.
 //
-// Caller is expected to fire this from inside the 18+-gate-cleared
-// boot path so the credits + banner sequence after age-ack, not before.
+// Caller is expected to fire this from inside boot() so the credits +
+// banner sequence runs on every load, including a fresh return-from-payment.
 
 export function handlePaidReturn(onConsumePending) {
   const params = new URLSearchParams(window.location.search);

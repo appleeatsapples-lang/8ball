@@ -38,7 +38,7 @@ export function setLabelsRevealed(revealed) {
 
 // ── DOM-touching init ────────────────────────────────────────────
 // Wires the toggle's click handler and returns applyLabelsState so the
-// host can apply the stored preference at boot (after the §4.A age gate).
+// host can apply the stored preference at boot.
 export function initLabelsUI(refs, hooks) {
   const { cardFace, labelsToggle } = refs;
 
