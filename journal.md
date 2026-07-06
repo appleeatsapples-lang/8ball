@@ -5,6 +5,21 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-12`
 `next_analytics_read: 2026-07-12`
 
+## 2026-07-06 — session close-out: worktree/branch hygiene sweep + live deploy verification — SHIPPED
+
+**Status: SHIPPED — journal-only, no code/DOCTRINE touch.** Tail end of the same CC session that shipped #80 and #81 (below). After both merged, swept the working tree's sibling worktrees and branches for anything else stale, and confirmed the age-gate retirement was actually live, not just merged in git.
+
+**What was found and removed (each verified before deletion, same discipline as the #78 prune).**
+1. `ecstatic-hertz-b9043b` worktree (branch `age-gate-retirement`) — the branch that shipped as #80. Removed post-merge on explicit operator instruction; remote branch had already been deleted as part of the #80 merge.
+2. `xenodochial-chandrasekhar-fdee3f` worktree (branch `claude/xenodochial-chandrasekhar-fdee3f`) — stale, its tip (`bf00cd5`) predated `main` by three already-merged PRs. Removed on explicit operator instruction (the auto-mode classifier initially declined a bare "clean it up too" as not specifically naming this worktree; re-confirmed once the operator pasted the literal `git worktree remove` command).
+3. Local branch `claude/ecstatic-hertz-b9043b` — a pre-reparent duplicate of the #80 work, sitting on an older base. Verified its tree matched the *pre-audit-fix* state exactly (the same 4 stale references the cross-model audit caught) before deleting — fully superseded, no unique content.
+4. Remote branch `origin/claude/claude-md-docs-cm0vye` — tree byte-identical to `bf00cd5`, the already-merged squash commit for #76.
+5. Remote branch `origin/claude/more-suggestions-n1juc1` — tree byte-identical to `ad64346`, the already-merged squash commit for #75.
+
+**Live verification.** Production (`https://the-eight-ball.netlify.app/`) returns HTTP 200; grepped the served HTML for `18+`/`age-gate`/`ageGate` — zero hits, confirming the #80 retirement is deployed, not just merged. CI on `main`: last 5 runs all green, including both this session's merges.
+
+**End state.** `main` @ `57f35f4`. Exactly two worktrees remain: the primary checkout and this session's own active worktree/branch. No other local or remote branches. Nothing queued downstream from this session.
+
 ## 2026-07-06 — DOCTRINE §4.A RETIRED: 18+ acknowledgment gate removed, v0.47→v0.48 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `1a70756` ([#80](https://github.com/appleeatsapples-lang/8ball/pull/80)). Originally STAGED on `age-gate-retirement` (off `origin/main` @ `87e3069`); close-out at the foot of this entry.**
