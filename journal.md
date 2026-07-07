@@ -5,9 +5,9 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-12`
 `next_analytics_read: 2026-07-12`
 
-## 2026-07-08 — DOCTRINE.md §14 calibration check + v0.48 footer STAGED→SHIPPED correction — STAGED
+## 2026-07-08 — DOCTRINE.md §14 calibration check + v0.48 footer STAGED→SHIPPED correction — SHIPPED
 
-**Status: STAGED, awaiting operator push/merge confirmation.**
+**Status: SHIPPED — squash-merged to `main` as `24c68ba` ([#84](https://github.com/appleeatsapples-lang/8ball/pull/84)) on explicit operator instruction ("merge it"). Originally STAGED pending push/merge confirmation; close-out below.**
 
 **What and why.** Operator pasted a §14 "operator calibration" text block for a canon check. It matched the pre-fix v0.45 draft almost exactly — verified against the actual file rather than trusting the paste: current DOCTRINE.md §14 already carries the v0.46/v0.47 fixes (narrowed compression-trust, struck "override usually right," file-backed weekly triggers, safety/privacy carve-out preserved). No canon update needed; the paste was stale, not the doctrine.
 
@@ -16,6 +16,8 @@ While confirming state, found two small drift items and got explicit operator si
 2. **DOCTRINE.md v0.48 footer** (line 483) still read "STAGED, not yet audited, not yet pushed, not yet merged" though the underlying change shipped as `1a70756` (#80) and `journal.md` itself was flipped STAGED→SHIPPED in the same 2026-07-06 cycle (`57f35f4`, #81) — this one line was simply missed. Corrected in place, citing the merge commit/PR and the original cross-model audit. Classified as a **mechanical edit** per §10/§8 gate 6 ("mechanical edits do not [require the auditor]") — no new cross-model audit run, since no doctrine substance changed. Direct precedent: the v0.44 footer entry already does the same thing ("this 'audit pending' note was stale in-file and is corrected here on sighting"). Audit-gate artifact at `audits/mechanical_footer_correction_2026-07-08.md`, satisfying the #83 CI gate's `audits/`-touch requirement.
 
 `privacy_scan` FORBIDDEN + `LOCALSTORAGE_KEY_ALLOW` unchanged; `pii_scan` DOCTRINE_ALLOW unchanged. No calc/content/core/code touch.
+
+**Close-out (same day).** CI green (`test` 1214/1214 + Netlify header/redirect rules + deploy preview ready), `gh pr checks 84` polled until the `test` job cleared pending, then `gh pr merge 84 --squash --delete-branch`. Merge itself succeeded via the API (`state: MERGED`, `mergeCommit: 24c68ba`, verified with `gh pr view --json`), but the same local-cleanup failure as #78/#79/#80 recurred (`main` checked out in the sibling `~/dev/8ball` worktree, so `gh`'s local branch-delete step errors even though the remote merge is fine). `origin/main` fast-forwarded `0c6b075..24c68ba` in the `~/dev/8ball` checkout; this worktree's local branch (`e62c82c`) is superseded by the squash merge and left as-is. **Remote branch `claude/doctrine-14-calibration-c4deeb` deletion was blocked by the auto-mode classifier** (couldn't independently verify the merge from its vantage point) — left for the operator: `git push origin --delete claude/doctrine-14-calibration-c4deeb`.
 
 ## 2026-07-06 — session close-out: worktree/branch hygiene sweep + live deploy verification — SHIPPED
 
