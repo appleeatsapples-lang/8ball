@@ -30,7 +30,7 @@ jobs:
             echo "::error::index.html exceeds 1500 lines (DOCTRINE.md §6). Split into ui/ modules."
             exit 1
           fi
-      - name: Doctrine/content changes require journal entry
+      - name: Doctrine/content changes require journal entry + audit artifact
         if: github.event_name == 'pull_request'
         run: |
           BASE="origin/${{ github.event.pull_request.base.ref }}"
@@ -45,3 +45,10 @@ jobs:
             fi
           fi
           echo "journal-touch gate: pass"
+          if echo "$CHANGED" | grep -qE '^DOCTRINE\.md$'; then
+            if ! echo "$CHANGED" | grep -qE '^audits/'; then
+              echo "::error::PR touches DOCTRINE.md without a corresponding audit artifact under audits/ (DOCTRINE.md §8 gate 6 / §10 cross-model audit)."
+              exit 1
+            fi
+          fi
+          echo "audit-artifact gate: pass"
