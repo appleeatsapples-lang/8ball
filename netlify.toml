@@ -7,7 +7,7 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "accelerometer=(self), gyroscope=(self)"
+    Permissions-Policy = "accelerometer=(), gyroscope=()"
 
 [[redirects]]
   from = "/*"
