@@ -863,8 +863,10 @@
     <div class="flip-stage" id="flip-stage">
       <div class="flip-inner" id="flip-inner">
 
-        <!-- back side (shake state) -->
-        <div class="flip-side back">
+        <!-- back side (shake state); starts inert — the front face is the
+             resting side, and the rotated-away face must leave the focus/AT
+             tree (backface-visibility hides pixels, not tab stops) -->
+        <div class="flip-side back" inert aria-hidden="true">
           <div class="card-back" id="card-back" tabindex="0" aria-label="card back — tap to reveal">
             <div class="glyph">8</div>
             <div class="glyph-label">ball</div>
@@ -1229,16 +1231,29 @@ function renderCard(profile, opts) {
 }
 
 // ── shake / flip control ──────────────────────────────────────────
+// The two flip faces coexist in the DOM; backface-visibility hides the
+// rotated-away one visually but leaves its controls focusable. inert +
+// aria-hidden track the face state so only the visible side is reachable.
+const flipSideBack = flipInner.querySelector('.flip-side.back');
+const flipSideFront = flipInner.querySelector('.flip-side.front');
+function setFaceUp(up) {
+  flipInner.classList.toggle('face-up', up);
+  flipSideBack.inert = !up;
+  flipSideBack.setAttribute('aria-hidden', String(!up));
+  flipSideFront.inert = up;
+  flipSideFront.setAttribute('aria-hidden', String(up));
+}
+
 function showResult(profile, opts) {
   currentProfile = profile;
   onboarding.classList.add('hidden');
   result.classList.remove('hidden');
   result.classList.add('reveal');
   // Land on the back side first; card-back shows for ~300ms before flip.
-  flipInner.classList.add('face-up');
+  setFaceUp(true);
   renderCard(profile, opts);
   setTimeout(() => {
-    flipInner.classList.remove('face-up');
+    setFaceUp(false);
   }, 300);
 }
 
@@ -1249,10 +1264,10 @@ function shakeAgain() {
   // on the same profile is cosmetic and never re-consumes a credit
   // (§6.5/§7.1 β idempotence); density resolves from the stored tier at
   // render time (R1) — a paid rung survives the re-flip and the reload.
-  flipInner.classList.add('face-up');
+  setFaceUp(true);
   setTimeout(() => {
     renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed() });
-    flipInner.classList.remove('face-up');
+    setFaceUp(false);
     flipLocked = false;
   }, 320);
 }
