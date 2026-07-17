@@ -1402,8 +1402,9 @@ cardLockIcon.addEventListener('click', e => {
 
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small
-// confirmation banner and strip the query. No persistent state.
-if (window.location.search.includes('sent=1')) {
+// confirmation banner and strip the query. No persistent state. Exact
+// param match — a substring test also fired on e.g. `?notsent=1`.
+if (new URLSearchParams(window.location.search).get('sent') === '1') {
   const detailsEl = document.querySelector('.feedback-details');
   if (detailsEl) {
     detailsEl.outerHTML = '<div class="feedback-sent">thanks. read.</div>';
