@@ -123,6 +123,9 @@
   }
   .screen { width: 100%; max-width: 380px; }
   .screen.hidden { display: none; }
+  .screen:focus { outline: none; } /* programmatic focus target (tabindex=-1), not a tab stop */
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
   /* ── card (paper specimen) ───────────────────────────────────── */
   .card {
@@ -856,7 +859,10 @@
   </section>
 
   <!-- ── result/shake screen ─────────────────────────────────────── -->
-  <section class="screen hidden" id="result">
+  <section class="screen hidden" id="result" tabindex="-1">
+
+    <!-- polite announcement slot for the form→result transition (M4) -->
+    <p class="sr-only" id="result-announce" role="status"></p>
 
     <!-- card + controls: stacked column on mobile, side-by-side rail at ≥720px so SHARE clears the fold -->
     <div class="result-main">
@@ -1052,6 +1058,7 @@ const polarMessage = $('polar-message');
 const legacyHint = $('legacy-hint');
 const flipInner = $('flip-inner');
 const cardBack = $('card-back');
+const resultAnnounce = $('result-announce');
 const shakeAgainBtn = $('shake-again-btn');
 const tryAnotherBtn = $('try-another-btn');
 // v0.3.0 paid-surface elements (DOCTRINE §6).
@@ -1252,8 +1259,20 @@ function showResult(profile, opts) {
   // Land on the back side first; card-back shows for ~300ms before flip.
   setFaceUp(true);
   renderCard(profile, opts);
+  // M4: on the form→result transition, small viewports (320×568) leave the
+  // result below the fold with focus stranded on the submit button — bring
+  // it into view, move focus, and announce politely once the face lands.
+  // Boot rehydration deliberately skips this: stealing focus and scroll
+  // position on page load is its own defect.
+  const arrive = opts && opts.arrive;
+  if (arrive) {
+    resultAnnounce.textContent = '';
+    result.scrollIntoView({ block: 'start' });
+    result.focus({ preventScroll: true });
+  }
   setTimeout(() => {
     setFaceUp(false);
+    if (arrive) resultAnnounce.textContent = 'specimen sheet ready';
   }, 300);
 }
 
@@ -1348,7 +1367,7 @@ profileForm.addEventListener('submit', e => {
     // every action — render-idempotent, render-locked, render-unlocked
     // alike. Credits/tries decide how many readings (already settled
     // above); the stored tier decides how much sheet.
-    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed });
+    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed, arrive: true });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
