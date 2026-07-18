@@ -69,15 +69,20 @@ afterEach(() => {
 });
 
 describe('ui/profile.js persistence boundary', () => {
-  it('round-trips the allow-listed profile fields and drops unknown or invalid fields', () => {
+  it('round-trips the allow-listed profile fields and drops unknown fields', () => {
     const storage = installStorage();
 
+    // Every persisted field carries a VALID value here — lat gates saved-city
+    // rehydration and country carries the legacy payload shape, so both must
+    // survive the round-trip (PR #89 audit MED: lat was only tested as NaN,
+    // which let a valid-lat/country persistence regression stay green).
     saveProfile('Profile Specimen', '1990-01-01', {
       time: '03:31',
       city: 'Dhahran',
       cc: 'SA',
+      country: 'Saudi Arabia',
       tz: 'Asia/Riyadh',
-      lat: Number.NaN,
+      lat: 26.2361,
       lng: 50.114,
       unexpected: 'must not persist',
     });
@@ -89,10 +94,29 @@ describe('ui/profile.js persistence boundary', () => {
       time: '03:31',
       city: 'Dhahran',
       cc: 'SA',
+      country: 'Saudi Arabia',
       tz: 'Asia/Riyadh',
+      lat: 26.2361,
       lng: 50.114,
     });
     expect(loadSavedProfile()).toEqual(payload);
+  });
+
+  it('drops invalid numeric coordinates while keeping the valid fields', () => {
+    const storage = installStorage();
+
+    saveProfile('Profile Specimen', '1990-01-01', {
+      city: 'Dhahran',
+      lat: Number.NaN,
+      lng: 'not-a-number',
+    });
+
+    const payload = JSON.parse(storage.snapshot()[PROFILE_KEY]);
+    expect(payload).toEqual({
+      name: 'Profile Specimen',
+      dob: '1990-01-01',
+      city: 'Dhahran',
+    });
   });
 
   it.each([
