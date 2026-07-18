@@ -80,6 +80,7 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
       textContent: '',
       className: '',
       setAttribute(k, v) { this.attrs[k] = v; },
+      removeAttribute(k) { delete this.attrs[k]; },
       appendChild(c) { this.children.push(c); },
       addEventListener(ev, fn) { handlers[ev] = fn; },
       _fire(ev, arg) { return handlers[ev] && handlers[ev](arg); },
@@ -140,6 +141,72 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     expect(refs.citySuggestions.children[0].attrs.role).toBe('option');
     expect(refs.citySuggestions.children[0].children[0].textContent).toBe('Oslo');
     expect(refs.citySuggestions.children[0].children[1].textContent).toBe(' · Norway');
+  });
+
+  it('exposes the birthplace field as an ARIA combobox tied to the suggestion list', async () => {
+    expect(refs.cityInput.attrs.role).toBe('combobox');
+    expect(refs.cityInput.attrs['aria-autocomplete']).toBe('list');
+    expect(refs.cityInput.attrs['aria-controls']).toBe('city-suggestions');
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+
+    searchCities.mockResolvedValue([OSLO]);
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('true');
+  });
+
+  it('Arrow keys move the active option and Enter selects it', async () => {
+    searchCities.mockResolvedValue([OSLO, LONGYEARBYEN]);
+    refs.cityInput.value = 'o';
+    refs.cityInput._fire('input');
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+
+    let prevented = 0;
+    const fireKey = key => refs.cityInput._fire('keydown', {
+      key,
+      preventDefault: () => { prevented++; },
+    });
+
+    fireKey('ArrowDown');
+    expect(prevented).toBe(1);
+    expect(refs.citySuggestions.children[0].attrs['aria-selected']).toBe('true');
+    expect(refs.citySuggestions.children[1].attrs['aria-selected']).toBe('false');
+    expect(refs.cityInput.attrs['aria-activedescendant']).toBe('city-option-0');
+
+    fireKey('ArrowDown');
+    expect(refs.citySuggestions.children[0].attrs['aria-selected']).toBe('false');
+    expect(refs.citySuggestions.children[1].attrs['aria-selected']).toBe('true');
+    expect(refs.cityInput.attrs['aria-activedescendant']).toBe('city-option-1');
+
+    fireKey('Enter');
+    expect(prevented).toBe(3);
+    expect(selected).toEqual(LONGYEARBYEN);
+    expect(refs.cityInput.value).toBe('Longyearbyen, Norway');
+    expect(refs.citySuggestions.children).toHaveLength(0);
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.cityInput.attrs['aria-activedescendant']).toBeUndefined();
+  });
+
+  it('ArrowUp starts from the last option and Escape dismisses suggestions', async () => {
+    searchCities.mockResolvedValue([OSLO, LONGYEARBYEN]);
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+
+    let prevented = 0;
+    refs.cityInput._fire('keydown', { key: 'ArrowUp', preventDefault: () => { prevented++; } });
+    expect(refs.citySuggestions.children[1].attrs['aria-selected']).toBe('true');
+    expect(refs.cityInput.attrs['aria-activedescendant']).toBe('city-option-1');
+
+    refs.cityInput._fire('keydown', { key: 'Escape', preventDefault: () => { prevented++; } });
+    expect(prevented).toBe(2);
+    expect(refs.citySuggestions.children).toHaveLength(0);
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.cityInput.attrs['aria-activedescendant']).toBeUndefined();
+    expect(selected).toBeNull();
   });
 
   it('race guard: results are dropped if the input changed since dispatch', async () => {

@@ -35,6 +35,9 @@ function makeNode(tag = 'div') {
       toggle: (c, force) => { force ? classes.add(c) : classes.delete(c); },
     },
     setAttribute(k, v) { this.attrs[k] = v; },
+    focused: false,
+    focusCount: 0,
+    focus() { this.focused = true; this.focusCount++; },
     appendChild(c) { this.children.push(c); },
     addEventListener(ev, fn) { handlers[ev] = fn; },
     _fire(ev, e) { return handlers[ev] && handlers[ev](e); },
@@ -153,6 +156,16 @@ describe('ui/meanings.js behavior', () => {
     cardFace._fire('keydown', { key: 'Enter', target: vals.sun, preventDefault: () => prevented++ });
     expect(prevented).toBe(1);
     expect(panel().classList.contains('open')).toBe(true);
+  });
+
+  it('the close button returns focus to the toggler cell (P2 audit fix)', () => {
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    expect(cells.sun.focusCount).toBe(0);
+    panel()._byId['meaning-close']._fire('click');
+    // Focus must land back on the toggler, never die inside the inert panel.
+    expect(cells.sun.focused).toBe(true);
+    expect(cells.sun.focusCount).toBe(1);
   });
 
   it('the close button closes and deactivates; re-init is a no-op', () => {

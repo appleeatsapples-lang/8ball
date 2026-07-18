@@ -123,6 +123,9 @@
   }
   .screen { width: 100%; max-width: 380px; }
   .screen.hidden { display: none; }
+  .screen:focus { outline: none; } /* programmatic focus target (tabindex=-1), not a tab stop */
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
   /* ── card (paper specimen) ───────────────────────────────────── */
   .card {
@@ -856,15 +859,20 @@
   </section>
 
   <!-- ── result/shake screen ─────────────────────────────────────── -->
-  <section class="screen hidden" id="result">
+  <section class="screen hidden" id="result" tabindex="-1">
+
+    <!-- polite announcement slot for the form→result transition (M4) -->
+    <p class="sr-only" id="result-announce" role="status"></p>
 
     <!-- card + controls: stacked column on mobile, side-by-side rail at ≥720px so SHARE clears the fold -->
     <div class="result-main">
     <div class="flip-stage" id="flip-stage">
       <div class="flip-inner" id="flip-inner">
 
-        <!-- back side (shake state) -->
-        <div class="flip-side back">
+        <!-- back side (shake state); starts inert — the front face is the
+             resting side, and the rotated-away face must leave the focus/AT
+             tree (backface-visibility hides pixels, not tab stops) -->
+        <div class="flip-side back" inert aria-hidden="true">
           <div class="card-back" id="card-back" tabindex="0" aria-label="card back — tap to reveal">
             <div class="glyph">8</div>
             <div class="glyph-label">ball</div>
@@ -1050,6 +1058,7 @@ const polarMessage = $('polar-message');
 const legacyHint = $('legacy-hint');
 const flipInner = $('flip-inner');
 const cardBack = $('card-back');
+const resultAnnounce = $('result-announce');
 const shakeAgainBtn = $('shake-again-btn');
 const tryAnotherBtn = $('try-another-btn');
 // v0.3.0 paid-surface elements (DOCTRINE §6).
@@ -1229,16 +1238,41 @@ function renderCard(profile, opts) {
 }
 
 // ── shake / flip control ──────────────────────────────────────────
+// The two flip faces coexist in the DOM; backface-visibility hides the
+// rotated-away one visually but leaves its controls focusable. inert +
+// aria-hidden track the face state so only the visible side is reachable.
+const flipSideBack = flipInner.querySelector('.flip-side.back');
+const flipSideFront = flipInner.querySelector('.flip-side.front');
+function setFaceUp(up) {
+  flipInner.classList.toggle('face-up', up);
+  flipSideBack.inert = !up;
+  flipSideBack.setAttribute('aria-hidden', String(!up));
+  flipSideFront.inert = up;
+  flipSideFront.setAttribute('aria-hidden', String(up));
+}
+
 function showResult(profile, opts) {
   currentProfile = profile;
   onboarding.classList.add('hidden');
   result.classList.remove('hidden');
   result.classList.add('reveal');
   // Land on the back side first; card-back shows for ~300ms before flip.
-  flipInner.classList.add('face-up');
+  setFaceUp(true);
   renderCard(profile, opts);
+  // M4: on the form→result transition, small viewports (320×568) leave the
+  // result below the fold with focus stranded on the submit button — bring
+  // it into view, move focus, and announce politely once the face lands.
+  // Boot rehydration deliberately skips this: stealing focus and scroll
+  // position on page load is its own defect.
+  const arrive = opts && opts.arrive;
+  if (arrive) {
+    resultAnnounce.textContent = '';
+    result.scrollIntoView({ block: 'start' });
+    result.focus({ preventScroll: true });
+  }
   setTimeout(() => {
-    flipInner.classList.remove('face-up');
+    setFaceUp(false);
+    if (arrive) resultAnnounce.textContent = 'specimen sheet ready';
   }, 300);
 }
 
@@ -1249,10 +1283,10 @@ function shakeAgain() {
   // on the same profile is cosmetic and never re-consumes a credit
   // (§6.5/§7.1 β idempotence); density resolves from the stored tier at
   // render time (R1) — a paid rung survives the re-flip and the reload.
-  flipInner.classList.add('face-up');
+  setFaceUp(true);
   setTimeout(() => {
     renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed() });
-    flipInner.classList.remove('face-up');
+    setFaceUp(false);
     flipLocked = false;
   }, 320);
 }
@@ -1333,7 +1367,7 @@ profileForm.addEventListener('submit', e => {
     // every action — render-idempotent, render-locked, render-unlocked
     // alike. Credits/tries decide how many readings (already settled
     // above); the stored tier decides how much sheet.
-    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed });
+    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed, arrive: true });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1368,8 +1402,9 @@ cardLockIcon.addEventListener('click', e => {
 
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small
-// confirmation banner and strip the query. No persistent state.
-if (window.location.search.includes('sent=1')) {
+// confirmation banner and strip the query. No persistent state. Exact
+// param match — a substring test also fired on e.g. `?notsent=1`.
+if (new URLSearchParams(window.location.search).get('sent') === '1') {
   const detailsEl = document.querySelector('.feedback-details');
   if (detailsEl) {
     detailsEl.outerHTML = '<div class="feedback-sent">thanks. read.</div>';

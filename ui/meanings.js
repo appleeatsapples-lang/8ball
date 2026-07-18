@@ -93,10 +93,27 @@ export function initMeaningsUI(refs) {
   const body = panel.querySelector('#meaning-body');
   let activeCell = null;
 
+  // The collapsed panel is max-height:0/overflow:hidden \u2014 pixels gone, but
+  // its close button stayed in the tab order. `inert` (mirrored by
+  // aria-hidden) takes the whole panel out of the focus/AT tree with state.
+  function setPanelHidden(hidden) {
+    panel.inert = hidden;
+    panel.setAttribute('aria-hidden', String(hidden));
+  }
+  setPanelHidden(true);
+
   function close() {
-    if (activeCell) activeCell.classList.remove('active');
+    const cell = activeCell;
+    if (cell) {
+      cell.classList.remove('active');
+      cell.setAttribute('aria-expanded', 'false');
+    }
     activeCell = null;
     panel.classList.remove('open');
+    setPanelHidden(true);
+    // Focus returns to the toggler cell so it never dies inside the
+    // just-inerted panel (close button is unreachable once hidden).
+    if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
   }
 
   function openFor(key, cell) {
@@ -106,13 +123,18 @@ export function initMeaningsUI(refs) {
     const entry = TABLES[key][lookupKeyFor(key, rawValue)];
     if (!entry) return;
     if (activeCell === cell) { close(); return; }
-    if (activeCell) activeCell.classList.remove('active');
+    if (activeCell) {
+      activeCell.classList.remove('active');
+      activeCell.setAttribute('aria-expanded', 'false');
+    }
     activeCell = cell;
     cell.classList.add('active');
+    cell.setAttribute('aria-expanded', 'true');
     head.textContent = key.toUpperCase();
     title.textContent = entry.register;
     body.textContent = entry.body;
     panel.classList.add('open');
+    setPanelHidden(false);
   }
 
   // Mark the four cells interactive. Delegated click/keydown on cardFace
@@ -125,6 +147,8 @@ export function initMeaningsUI(refs) {
       cell.classList.add('has-meaning');
       cell.setAttribute('tabindex', '0');
       cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-expanded', 'false');
+      cell.setAttribute('aria-controls', 'meaning-panel');
       cell.dataset.meaningKey = key;
     }
   }

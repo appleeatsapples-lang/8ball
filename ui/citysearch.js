@@ -40,17 +40,27 @@ export function formatCityLabel(c) {
 let _refs = null;
 let _hooks = null;
 let _debounce = null;
+let _results = [];
+let _activeIndex = -1;
 
 function clearSuggestions() {
   _refs.citySuggestions.innerHTML = '';
+  _results = [];
+  _activeIndex = -1;
+  _refs.cityInput.setAttribute('aria-expanded', 'false');
+  _refs.cityInput.removeAttribute('aria-activedescendant');
 }
 
 function renderSuggestions(results) {
   clearSuggestions();
   if (!results.length) return;
-  for (const c of results) {
+  _results = results.slice();
+  _refs.cityInput.setAttribute('aria-expanded', 'true');
+  for (const [index, c] of results.entries()) {
     const li = document.createElement('li');
+    li.id = `city-option-${index}`;
     li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
     const nameSpan = document.createElement('span');
     nameSpan.textContent = c.name;
     const countrySpan = document.createElement('span');
@@ -65,6 +75,20 @@ function renderSuggestions(results) {
       selectCity(c);
     });
     _refs.citySuggestions.appendChild(li);
+  }
+}
+
+function setActiveIndex(index) {
+  const options = _refs.citySuggestions.children;
+  if (!options.length) return;
+  _activeIndex = (index + options.length) % options.length;
+  for (let i = 0; i < options.length; i++) {
+    options[i].setAttribute('aria-selected', i === _activeIndex ? 'true' : 'false');
+  }
+  const active = options[_activeIndex];
+  _refs.cityInput.setAttribute('aria-activedescendant', active.id);
+  if (typeof active.scrollIntoView === 'function') {
+    active.scrollIntoView({ block: 'nearest' });
   }
 }
 
@@ -88,9 +112,9 @@ function onInput() {
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   _refs.polarMessage.hidden = true;
   if (_debounce) clearTimeout(_debounce);
+  clearSuggestions();
   const q = _refs.cityInput.value.trim();
   if (q.length < MIN_QUERY_LEN) {
-    clearSuggestions();
     return;
   }
   _debounce = setTimeout(async () => {
@@ -105,10 +129,42 @@ function onInput() {
   }, SEARCH_DEBOUNCE_MS);
 }
 
+function onKeydown(e) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!_results.length) return;
+    e.preventDefault();
+    const step = e.key === 'ArrowDown' ? 1 : -1;
+    const start = _activeIndex === -1
+      ? (step === 1 ? 0 : _results.length - 1)
+      : _activeIndex + step;
+    setActiveIndex(start);
+    return;
+  }
+  if (e.key === 'Enter' && _activeIndex >= 0) {
+    e.preventDefault();
+    selectCity(_results[_activeIndex]);
+    return;
+  }
+  if (e.key === 'Escape' && _results.length) {
+    e.preventDefault();
+    clearSuggestions();
+  }
+}
+
 export function initCitySearchUI(refs, hooks) {
   _refs = refs;
   _hooks = hooks || {};
+  if (_debounce) clearTimeout(_debounce);
+  _debounce = null;
+  _results = [];
+  _activeIndex = -1;
+  if (!refs.citySuggestions.id) refs.citySuggestions.id = 'city-suggestions';
+  refs.cityInput.setAttribute('role', 'combobox');
+  refs.cityInput.setAttribute('aria-autocomplete', 'list');
+  refs.cityInput.setAttribute('aria-controls', refs.citySuggestions.id);
+  refs.cityInput.setAttribute('aria-expanded', 'false');
   refs.cityInput.addEventListener('input', onInput);
+  refs.cityInput.addEventListener('keydown', onKeydown);
   refs.cityInput.addEventListener('blur', () => {
     // Brief delay so the mousedown handler can fire and capture the pick.
     setTimeout(clearSuggestions, 120);

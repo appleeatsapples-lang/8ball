@@ -7,7 +7,18 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "accelerometer=(self), gyroscope=(self)"
+    Permissions-Policy = "accelerometer=(), gyroscope=()"
+
+# assets/cities.json is 2.3MB and static per release; without a rule Netlify
+# serves it max-age=0 must-revalidate. Seven-day cache is the headers-only
+# half of audit M7 — bounded (not immutable) because the URL is unversioned,
+# so a city-data correction can't go stale for more than a week (pre-merge
+# audit P2, 2026-07-18). The versioned asset restores a 1-year immutable
+# rule when the K1-gated index/shard work lands.
+[[headers]]
+  for = "/assets/cities.json"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
 
 [[redirects]]
   from = "/*"
