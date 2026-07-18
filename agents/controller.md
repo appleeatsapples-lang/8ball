@@ -74,7 +74,7 @@ Controller runs the §13 17-step checklist (or release-appropriate equivalent) o
 
 ### 4. End-of-session
 
-When the cycle is closing (or chat context is getting heavy), controller signals via "donzo" / "we're good" / "next chat" etc. Orchestrator writes the handoff file to `~/Desktop/8ball/sessions/handoff_<slug>_<date>.md`, pbcopy's the handoff prompt for the next chat, and confirms what was shipped this session.
+When the cycle is closing (or chat context is getting heavy), controller signals via "donzo" / "we're good" / "next chat" etc. Orchestrator writes the handoff file to `~/8ball/sessions/handoff_<slug>_<date>.md`, pbcopy's the handoff prompt for the next chat, and confirms what was shipped this session.
 
 ### 5. Content-seed routing (added chat-15)
 

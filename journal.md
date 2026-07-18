@@ -3,7 +3,33 @@
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
 `next_strategic_read: 2026-07-12`
-`next_analytics_read: 2026-07-12`
+`next_analytics_read: 2026-07-17`
+
+## 2026-07-18 — 07-17 audit bundle shipped (#86): hidden-focus + mobile-transition a11y, sent=1 exact match, header tightening; doc-truth batch — SHIPPED
+
+**Status: [#86](https://github.com/appleeatsapples-lang/8ball/pull/86) SHIPPED — squash-merged to `main` as `2e0ad557` on explicit in-session merge word, production verified live. The doc-truth batch below is the docs-only commit carrying this entry ([#87](https://github.com/appleeatsapples-lang/8ball/pull/87)), merged same-day on the standing commit word.**
+
+**What shipped (#86).** One bundle from the dispositioned 2026-07-17 Codex full-project audit (`~/8ball/audits/codex_fullproject_audit_2026-07-17_disposition.md` §A/§D), implemented by CC on the pre-existing `codex/fix-discovered-bug-20260716` branch — its tip `b4d583e` (H1, keyboard city-autocomplete, `ui/citysearch.js` + tests) verified present and not reimplemented, then five focused commits:
+
+1. **M3 — hidden controls leave the focus/AT tree with state** (`1278815`). `ui/meanings.js`: the collapsed meanings panel (max-height:0/overflow:hidden — pixels gone, close button still tabbable) now toggles `inert` + `aria-hidden` with open state, and the four toggler cells carry `aria-expanded`/`aria-controls`. `index.html`: new `setFaceUp()` toggles `inert` + `aria-hidden` on both `.flip-side` wrappers alongside the `face-up` class — backface-visibility hides pixels, not tab stops, so the rotated-away face (card-back with `tabindex=0` behind the face, or the face's controls behind the back) was reachable by keyboard.
+2. **M4 — form→result transition scrolls, focuses, announces** (`81e720b`). At 320×568 the submit left the result below the fold with focus stranded on the submit button. `showResult` (submit path only — boot rehydration deliberately skips, stealing focus on page load is its own defect) scrolls `#result` into view, focuses it (`tabindex=-1`, `.screen:focus` outline suppressed), and posts "specimen sheet ready" to a new sr-only polite live region once the face lands.
+3. **L10 — feedback sent-banner exact-param check** (`4ca2047`). `location.search.includes('sent=1')` also matched crafted `?notsent=1`; now `new URLSearchParams(...).get('sent') === '1'`. The `/?sent=1` form action is untouched.
+4. **L11 — Permissions-Policy tightened to deny** (`1833357`). `accelerometer=(), gyroscope=()` — zero devicemotion/Accelerometer/gyroscope usage across `index.html`/`ui/`/`core/`, grep-verified in-session before the edit.
+5. **M7-lite — cities.json cache rule, headers-only half** (`802c5a9`, amended by the audit absorb below). The 2.3MB asset shipped Netlify's default `max-age=0 must-revalidate`. The index/shard half of M7 stays K1-gated — not built.
+
+**Pre-merge audit (author-lane rule).** `b4d583e`'s author lane is Codex, so the gate required a FRESH Codex session — run end-to-end by CC via the local `relay` orchestrator (codex CLI 0.142.5, model pinned `gpt-5.5`; the account-default `gpt-5.6-sol` needs a newer CLI — a first attempt died on that and was disregarded as a non-audit, clean re-run same evening). Codex worked inside the branch worktree with repo read access and ran the suite itself. **Verdict: MERGE WITH FIXES — 0 P0/P1, 2 P2, 1 P3 — all absorbed in `d332c28`** (precedent: the #80 MERGE-WITH-FIXES flow): P2 meanings-close now returns focus to the toggler cell before the panel goes inert (behavior test added, mock gains `focus()`); P2 the cities.json rule is bounded to `public, max-age=604800` — 7 days, no `immutable`, because the URL is unversioned and a data correction must not go stale for a year (K1's versioned asset restores the 1-year immutable rule; noted in the toml comment); P3 regression pin for the sent=1 fix in `tests/feedback_surface.test.js` (asserts the `URLSearchParams` form, bans `location.search.includes(`). Response filed at `~/8ball/audits/codex_pr86_premerge_audit_2026-07-18_response.md` and posted as a PR comment.
+
+**Verification.** Suite **1219/1219 (32 files) under vitest 4.1.9** exact-to-lockfile (+2 audit-demanded tests over the 1217 pre-bundle count; installed via `NODE_ENV=development npm ci --include=dev` per the standing machine note). Live-fire on local server at 320×568 pre-push: submit → result scrolled/focused/announced, card-back unfocusable behind the face, meanings close button unfocusable collapsed / focusable open with correct `aria-expanded` round-trip, `?notsent=1` shows the form while `?sent=1` shows the banner and strips the query, zero console errors; focus-restore re-fired live post-absorb (activeElement lands on the toggler cell). Local PII audit clean twice (main checkout, 90 files, pre-push; branch worktree, 89 files, post-absorb, gitignored baseline copied in per the standing worktree gap). CI green pre-merge; `main` fast-forwarded `70aba60..2e0ad55`; suite green on the merged tree; branch deleted local + remote. **Production verified live:** `permissions-policy: accelerometer=(), gyroscope=()` and cities.json `cache-control: public,max-age=604800` (2.4MB asset).
+
+**Scope (files, #86):** `index.html`, `ui/meanings.js`, `netlify.toml`, `tests/meanings_behavior.test.js`, `tests/feedback_surface.test.js`, plus `ui/citysearch.js` + `tests/citysearch.test.js` from `b4d583e`. **UNTOUCHED:** `core/`, `content/`, `tests/fixtures.json`, DOCTRINE.
+
+**Doc-truth batch (this commit, docs-only).**
+- Netlify plan correction in `8BALL.md` + `README.md`: **Pro $20/mo** — was misdocumented as free tier (correction dated 2026-07-10, parked dirty since).
+- `next_analytics_read` tracker bump 2026-07-12 → 2026-07-17 (read completed; parked dirty with the same batch).
+- **F5 ops-root migration, repo side (executed 2026-07-17):** the ops vault moved from `~/Desktop/8ball` to `~/8ball` (launchd/TCC escape; the Desktop path survives as a Finder-only symlink — machine references must use the real path). Live ops-path references updated in `8BALL.md` and all nine `agents/*.md` docs. **Deliberately untouched:** `DOCTRINE.md` (its `~/Desktop/8ball` references are L17-preserved lineage; any doctrine path-modernization is its own gated cycle) and prior `journal.md` entries (append-only — old entries correctly name the path as it was at the time).
+- `audits/read-only-all-features-architecture-exploration.md` added — the read-only exploration brief that produced the 07-17 Codex full-project audit (disposition lives in the ops vault; this is the repo-side artifact it references).
+
+`privacy_scan` FORBIDDEN + `LOCALSTORAGE_KEY_ALLOW` unchanged; `pii_scan` DOCTRINE_ALLOW unchanged. No calc/content/core touch in the doc-truth batch.
 
 ## 2026-07-08 — DOCTRINE.md §14 calibration check + v0.48 footer STAGED→SHIPPED correction — SHIPPED
 

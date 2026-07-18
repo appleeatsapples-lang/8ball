@@ -2,7 +2,7 @@
 
 > Codifies the agent-team model per DOCTRINE §10 v0.29 extension. Read this file at the start of any cycle that will route across multiple roles.
 
-This folder (`~/dev/8ball/agents/`) is the constitutional surface for the agent-team model. Each role has a doc here. Per-cycle artifacts (briefs, audits, directives, reports) live in `~/Desktop/8ball/` per the artifact-location matrix in `PLATFORMS.md`.
+This folder (`~/dev/8ball/agents/`) is the constitutional surface for the agent-team model. Each role has a doc here. Per-cycle artifacts (briefs, audits, directives, reports) live in `~/8ball/` per the artifact-location matrix in `PLATFORMS.md`.
 
 ## The system in one paragraph
 
@@ -36,7 +36,7 @@ Adjuncts are invoked ad-hoc, not on every cycle. They have no role docs because 
 controller states scope
        │
        ▼
-orchestrator drafts brief  ──────►  ~/Desktop/8ball/sessions/brief_<slug>.md
+orchestrator drafts brief  ──────►  ~/8ball/sessions/brief_<slug>.md
        │
        ▼
 controller paste-relays to CC
@@ -45,25 +45,25 @@ controller paste-relays to CC
 implementer executes ───────────►  branch + commits
        │
        ▼
-orchestrator drafts audit brief ─►  ~/Desktop/8ball/audits/codex_<slug>.md
+orchestrator drafts audit brief ─►  ~/8ball/audits/codex_<slug>.md
        │
        ▼
 controller paste-relays to Codex
        │
        ▼
-auditor returns verdicts ───────►  ~/Desktop/8ball/audits/codex_<slug>_response.md
+auditor returns verdicts ───────►  ~/8ball/audits/codex_<slug>_response.md
        │
        ▼
 orchestrator dispositions hooks
        │
        ▼ (if surface change)
-orchestrator drafts CiC directive ►  ~/Desktop/8ball/controllers/cic_<slug>.md
+orchestrator drafts CiC directive ►  ~/8ball/controllers/cic_<slug>.md
        │
        ▼
 controller paste-relays to CiC
        │
        ▼
-verifier reports findings ───────►  ~/Desktop/8ball/controllers/verifier_report_<slug>.md
+verifier reports findings ───────►  ~/8ball/controllers/verifier_report_<slug>.md
        │
        ▼
 orchestrator dispositions findings
@@ -88,7 +88,7 @@ Not every cycle hits every node. Hygiene cycles skip auditor + verifier. Surface
 See `PLATFORMS.md` "Artifact-location matrix" for the full table. Summary:
 
 - **Repo tracked** (`~/dev/8ball/`) — constitutional + canonical state. Doctrine, role docs, code, tests, audits/RELEASE_CHECKLIST.md, journal.md, 8BALL.md.
-- **Desktop materialization** (`~/Desktop/8ball/`) — per-cycle working artifacts. Briefs, handoffs, audit briefs/responses, CiC directives/reports, session distillates, scope notes. Survives across sessions; does not ship with the repo.
+- **Desktop materialization** (`~/8ball/`) — per-cycle working artifacts. Briefs, handoffs, audit briefs/responses, CiC directives/reports, session distillates, scope notes. Survives across sessions; does not ship with the repo.
 
 The split is intentional: tracked content is the durable-doctrinal surface, Desktop is the per-cycle scratch surface. Per §11 PII rule, operator-personal data + SIRR cross-references stay out of tracked content but can appear in Desktop files (per `audits/LOCAL_PII_AUDIT.md` discipline).
 
@@ -108,4 +108,4 @@ The split keeps the constitutional surface stable while letting operational deta
 ## Audit history (this file)
 
 - 2026-05-12 — File created during the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Index ships alongside `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`, `PLATFORMS.md`. Existing `verifier.md` preamble updated to cite v0.24 extension.
-- 2026-05-16 — chat-29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). Role table extended from 4 core agents + 1 controller → 5 core agents + 1 controller; new Inspector row inserted between Verifier and Controller. Opening "system in one paragraph" updated from four-roles-plus-controller phrasing to five-roles-plus-controller phrasing with new inspector sentence. New role doc landed at `agents/inspector.md`. Sibling tracked-file changes this cycle: `agents/PLATFORMS.md` new H2 "Inspector (operational dashboard read)" section between CiC (verifier) and ChatGPT entries; `DOCTRINE.md` §10 4-row table → 5-row table v0.24 → v0.29 with version footer bump + lineage entry. Promoted from sketch `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` after 9/9 directive-shape firings (8 fired, 7 unambiguously clean across 8 surfaces); all four T1 promotion pillars cleared with 4-firing buffer. Boundary clause (no-strategic-synthesis) inherited verbatim from `agents/verifier.md` via chat-15 c13-c14-c15 L-mitigation bundle.
+- 2026-05-16 — chat-29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). Role table extended from 4 core agents + 1 controller → 5 core agents + 1 controller; new Inspector row inserted between Verifier and Controller. Opening "system in one paragraph" updated from four-roles-plus-controller phrasing to five-roles-plus-controller phrasing with new inspector sentence. New role doc landed at `agents/inspector.md`. Sibling tracked-file changes this cycle: `agents/PLATFORMS.md` new H2 "Inspector (operational dashboard read)" section between CiC (verifier) and ChatGPT entries; `DOCTRINE.md` §10 4-row table → 5-row table v0.24 → v0.29 with version footer bump + lineage entry. Promoted from sketch `~/8ball/sessions/inspector_sketch_2026-05-13.md` after 9/9 directive-shape firings (8 fired, 7 unambiguously clean across 8 surfaces); all four T1 promotion pillars cleared with 4-firing buffer. Boundary clause (no-strategic-synthesis) inherited verbatim from `agents/verifier.md` via chat-15 c13-c14-c15 L-mitigation bundle.

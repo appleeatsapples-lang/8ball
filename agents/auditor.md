@@ -25,7 +25,7 @@ Auditor returns categorized verdicts. It does not implement, does not merge, doe
 
 ## What the orchestrator prepares
 
-An audit brief at `~/Desktop/8ball/audits/codex_<slug>_<date>.md`, anchored with `=== PROMPT START ===` / `=== PROMPT END ===` markers.
+An audit brief at `~/8ball/audits/codex_<slug>_<date>.md`, anchored with `=== PROMPT START ===` / `=== PROMPT END ===` markers.
 
 Audit brief structure (per `codex_v030_full_pr_audit.md` and predecessors):
 
@@ -72,8 +72,8 @@ For each hook:
 
 ## How orchestrator consumes the auditor's return
 
-1. **Save the response** to `~/Desktop/8ball/audits/codex_<slug>_response.md` immediately, full text, no editing.
-2. **Categorize disposition:** P0 → block merge; P1 → fix-before-merge (absorb in same cycle or as follow-up minor); P2 → file to follow-up minor (post-ship if cycle is closing); P3 → backlog (file to `~/Desktop/8ball/sessions/v0X_scope_notes.md`).
+1. **Save the response** to `~/8ball/audits/codex_<slug>_response.md` immediately, full text, no editing.
+2. **Categorize disposition:** P0 → block merge; P1 → fix-before-merge (absorb in same cycle or as follow-up minor); P2 → file to follow-up minor (post-ship if cycle is closing); P3 → backlog (file to `~/8ball/sessions/v0X_scope_notes.md`).
 3. **Each P1+ hook gets a named disposition** in the PR description or follow-up commit. "Hook N P1 — <name> — absorbed at step N+1" or "Hook N P1 — <name> — deferred to v0.X.Y per <reason>".
 4. **Disclosed deviations** from the audit brief (auditor surfaces them) get journal-entry mentions.
 5. **Sequencing rule (L48):** Merge does NOT fire until audit response has been read and dispositioned. The orchestrator opens the PR, prepares the audit brief, surfaces to controller for paste-relay, and waits for the response before clearing controller to merge. Five-minute CI-green-to-merge windows are the L48 failure shape; explicit audit-cleared signal is the gate.
@@ -179,7 +179,7 @@ Closing section: cross-file consistency findings clustering the drifts into stru
 
 **How orchestrator consumes a drift-sweep return:**
 
-1. Save the response to `~/Desktop/8ball/audits/codex_drift_sweep_<slug>_response.md` immediately, full text.
+1. Save the response to `~/8ball/audits/codex_drift_sweep_<slug>_response.md` immediately, full text.
 2. If N > 10 drifts surface, split the corpus by coherence (e.g. tier-1 honesty-critical P0+P1 closing first, tier-2 structural cleanup shipping second). Single-tier-large-N briefs lose implementer focus.
 3. Each tier ships as its own PR, with its own re-audit. Re-audit briefs are constructed via `git show <branch>:<file>` of each post-fix file inlined — corpus paste, not diff paste.
 4. **Pre-budget the absorb commit.** Three firings, three N>0 results on new drifts surfaced post-fix. The rewrite-makes-adjacent-text-salient mechanism is a structural feature of the procedure. Scope the cycle to include either an in-PR absorb (if PR is still open per chat-9 pattern via `39596f7`) or a post-merge absorb on main (if PR has already been merged per chat-10 pattern via `4bb3f77`). Both are valid; the choice depends on merge timing, not on drift severity.

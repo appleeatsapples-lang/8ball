@@ -19,7 +19,7 @@ Verifier does NOT make judgment calls about whether findings block merge. It rep
 
 ## What the orchestrator prepares
 
-A directive file at `~/Desktop/8ball/controllers/cic_<descriptive_slug>_<date>.md`, anchored with `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` markers (matches the project convention; allows clean pbcopy extraction).
+A directive file at `~/8ball/controllers/cic_<descriptive_slug>_<date>.md`, anchored with `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` markers (matches the project convention; allows clean pbcopy extraction).
 
 Structure (per existing artifacts in controllers/):
 
@@ -63,10 +63,10 @@ Structure (per existing artifacts in controllers/):
 
 ## How orchestrator consumes the report
 
-1. Save CiC's report immediately to `~/Desktop/8ball/controllers/verifier_report_<slug>_<date>.md` — full text, no editing. (This mirrors the existing pattern: `verifier_report_v02711_postship.md`.)
+1. Save CiC's report immediately to `~/8ball/controllers/verifier_report_<slug>_<date>.md` — full text, no editing. (This mirrors the existing pattern: `verifier_report_v02711_postship.md`.)
 2. Categorize each finding: **BLOCKER** (cannot merge) / **FIX-BEFORE-MERGE** (P1) / **FILE-FOR-BACKLOG** (P2, future cycle).
 3. BLOCKER / FIX-BEFORE-MERGE findings become new dispositions in the active brief or PR description.
-4. BACKLOG findings file into `~/Desktop/8ball/sessions/v0X_scope_notes.md` for the relevant future version.
+4. BACKLOG findings file into `~/8ball/sessions/v0X_scope_notes.md` for the relevant future version.
 
 ## Synthetic profile pool (use these, never real data)
 
@@ -87,7 +87,7 @@ Most cycles use P1–P4. P5–P6 are reserved for regression-sensitive cycles (c
 
 ### 1. Multi-profile baseline UX check
 
-Most-frequent procedure. Run before doctrine-monster cycles to establish the foundation, and after deploy-preview to confirm new surface. Directive template at `~/Desktop/8ball/controllers/cic_<version>_baseline_<date>.md`.
+Most-frequent procedure. Run before doctrine-monster cycles to establish the foundation, and after deploy-preview to confirm new surface. Directive template at `~/8ball/controllers/cic_<version>_baseline_<date>.md`.
 
 Profile sequence: P1 → P2 → P3 → P4 (clean session between each via "try another" or localStorage clear).
 
@@ -97,7 +97,7 @@ Cross-profile checks: no network calls beyond expected (cities.json lazy-load, f
 
 ### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; Gumroad live as of v0.3.0.3 2026-05-16)
 
-After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. As of v0.3.0.3 (2026-05-16) the live processor is Gumroad; CiC firing #9 cleared the post-cutover live-fire smoke-test (`~/Desktop/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`). LS path permanently retired 2026-05-17 per DOCTRINE v0.30. Procedure runs:
+After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. As of v0.3.0.3 (2026-05-16) the live processor is Gumroad; CiC firing #9 cleared the post-cutover live-fire smoke-test (`~/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`). LS path permanently retired 2026-05-17 per DOCTRINE v0.30. Procedure runs:
 - 3 free tries hitting locked render
 - 4th try hitting paywall (Path A)
 - Lock-tap on a locked card hitting paywall (Path B)
@@ -149,6 +149,6 @@ Even with the domain allowlisted, the verifier's existing boundaries hold: no cr
 
 ## Audit history additions
 
-- 2026-05-11 — Domain-allowlist constraint surfaced when first non-default-domain directive (`cic_ls_store_setup_2026-05-11.md` targeting `app.lemonsqueezy.com`) was blocked at pre-flight. Skill updated with boundaries addendum above. Verifier report at `~/Desktop/8ball/controllers/verifier_report_ls_store_blocked_2026-05-11.md`.
+- 2026-05-11 — Domain-allowlist constraint surfaced when first non-default-domain directive (`cic_ls_store_setup_2026-05-11.md` targeting `app.lemonsqueezy.com`) was blocked at pre-flight. Skill updated with boundaries addendum above. Verifier report at `~/8ball/controllers/verifier_report_ls_store_blocked_2026-05-11.md`.
 - 2026-05-12 — Preamble updated from "v0.22 extension (proposed)" to "v0.24 extension" as part of the agents/ codification cycle (DOCTRINE v0.23 → v0.24). Sibling role docs landed: `orchestrator.md`, `implementer.md`, `auditor.md`, `controller.md`. Index doc `AGENTS.md` + platform notes `PLATFORMS.md` shipped alongside. The role doc's substance was controller-verified locally against the authored state from the prior session to be unchanged in this cycle; only the preamble citation reference and this audit entry were touched. (The file was previously untracked, so this claim is not independently auditable from git history — controller-verified locally is the audit trail.)
-- 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added no-strategic-synthesis bullet to Boundaries (Clause 1, **L50** = `CiC-scope-expansion-into-strategic-content`, promoted at chat-15 close on 2 sightings — chat-13 firing + chat-15 verifier firing #1); added "CiC directive template — standing clauses" H2 with downstream DO-NOT clause (Clause 3, L50 directive-template pair to Clause 1) and upstream-diagnostic gate (Clause 7, chat-14 L-candidate `controller-content-seed-defaults-mainstream` pair to controller.md content-seed routing Procedure 5 + orchestrator.md Procedure 6 register-alignment diagnostic). No DOCTRINE touch this cycle. Sibling clauses landed in same cycle: `controller.md` Procedure 5 (content-seed routing); `orchestrator.md` Procedure 6 (register-alignment diagnostic) + Procedure 7 (paper-design surface sanity check, **L49** = `paper-design-routing-errors`); `PLATFORMS.md` CiC per-tab scope subsection (Clause 2). Inspector sketch (`~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md`) inherits the no-strategic-synthesis boundary; sketch updated in-place per chat-15 mitigation note (not a chat-1 authoring decision).
+- 2026-05-13 — chat-15 L-mitigation cycle (c13-c14-c15 bundle). Added no-strategic-synthesis bullet to Boundaries (Clause 1, **L50** = `CiC-scope-expansion-into-strategic-content`, promoted at chat-15 close on 2 sightings — chat-13 firing + chat-15 verifier firing #1); added "CiC directive template — standing clauses" H2 with downstream DO-NOT clause (Clause 3, L50 directive-template pair to Clause 1) and upstream-diagnostic gate (Clause 7, chat-14 L-candidate `controller-content-seed-defaults-mainstream` pair to controller.md content-seed routing Procedure 5 + orchestrator.md Procedure 6 register-alignment diagnostic). No DOCTRINE touch this cycle. Sibling clauses landed in same cycle: `controller.md` Procedure 5 (content-seed routing); `orchestrator.md` Procedure 6 (register-alignment diagnostic) + Procedure 7 (paper-design surface sanity check, **L49** = `paper-design-routing-errors`); `PLATFORMS.md` CiC per-tab scope subsection (Clause 2). Inspector sketch (`~/8ball/sessions/inspector_sketch_2026-05-13.md`) inherits the no-strategic-synthesis boundary; sketch updated in-place per chat-15 mitigation note (not a chat-1 authoring decision).

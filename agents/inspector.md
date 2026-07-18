@@ -34,7 +34,7 @@ Inspector and verifier are the closest siblings. The boundary holds at the surfa
 
 ## What the orchestrator prepares
 
-A directive file at `~/Desktop/8ball/controllers/cic_<descriptive_slug>_<date>.md`, anchored with `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` markers (matches verifier convention; allows clean pbcopy extraction).
+A directive file at `~/8ball/controllers/cic_<descriptive_slug>_<date>.md`, anchored with `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` markers (matches verifier convention; allows clean pbcopy extraction).
 
 Structure:
 
@@ -113,7 +113,7 @@ All irreversibles continue to live with the controller per DOCTRINE §10.
 
 ## Characterized failure modes (from sketch firing log)
 
-Inherited from `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md` §5 firing log (9 directive-shape firings, 8 fired, 7 unambiguously clean across 8 distinct surfaces). Six distinct failure-mode classes documented:
+Inherited from `~/8ball/sessions/inspector_sketch_2026-05-13.md` §5 firing log (9 directive-shape firings, 8 fired, 7 unambiguously clean across 8 distinct surfaces). Six distinct failure-mode classes documented:
 
 1. **CiC default domain allowlist blocks** payment processors, social authoring surfaces, marketing dashboards. Mitigation: controller adds domain to session allowlist before paste. Examples observed: `app.lemonsqueezy.com` (chat-13), `gumroad.com` (chat-28).
 
@@ -131,11 +131,11 @@ L50 boundary fired once (firing #2 chat-13, MIXED verdict — agent appended ~60
 
 ## How orchestrator consumes the report
 
-1. Save CiC's report immediately to `~/Desktop/8ball/audits/inspector_report_<slug>_<date>.md` (or `~/Desktop/8ball/controllers/inspector_report_<slug>_<date>.md` when artifact lives alongside the directive) — full text, no editing.
+1. Save CiC's report immediately to `~/8ball/audits/inspector_report_<slug>_<date>.md` (or `~/8ball/controllers/inspector_report_<slug>_<date>.md` when artifact lives alongside the directive) — full text, no editing.
 2. Categorize each observation: **GATE-CLOSING** (closes an open ship-gate or state condition) / **STATE-FILL** (canonical files need update) / **BACKLOG** (worth tracking for later).
 3. GATE-CLOSING observations trigger immediate state-fill in `8BALL.md` and journal entry per L51 / Procedure 8 sub-condition discipline (`agents/orchestrator.md`).
 4. STATE-FILL observations update relevant canonical files (`8BALL.md`, journal).
-5. BACKLOG observations file into `~/Desktop/8ball/sessions/v0X_scope_notes.md` or relevant tracking file.
+5. BACKLOG observations file into `~/8ball/sessions/v0X_scope_notes.md` or relevant tracking file.
 
 ## Procedures (this file is the index)
 
@@ -183,4 +183,4 @@ Reasoning: aligned with `verifier.md` upstream-diagnostic gate (chat-15 Clause 7
 
 ## Audit history (this file)
 
-- 2026-05-16 — File created during the v0.29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). T1 tentative-lane promoted to permanent agent role after 9/9 directive-shape firings (8 fired, 7 unambiguously clean) across 8 distinct surfaces (Netlify dashboard, YouTube viewer, LS dashboard, Threads profile, TikTok settings, Gumroad payment-settings × 2 states, Netlify production deploy). All four T1 promotion pillars cleared with 4-firing buffer: ≥3 clean firings + repeatable directive shape across firings + distinct lane boundary against existing roles (four-way test in this file) + characterized failure mode (6 entries). Sketch authored chat-13 2026-05-13 at `~/Desktop/8ball/sessions/inspector_sketch_2026-05-13.md`; L49-candidate discipline (fire first, codify after) preserved throughout sketch period (sketch lived in `~/Desktop/8ball/sessions/`, not `~/dev/8ball/agents/`, until promotion). Boundary clause (no-strategic-synthesis) inherited from `agents/verifier.md` Boundaries (adapted to inspector surface; meaning preserved) via chat-15 c13-c14-c15 L-mitigation bundle. DOCTRINE §10 amended v0.28 → v0.29 (4-row core-agent table → 5-row, inspector inserted between verifier and controller). `agents/PLATFORMS.md` gains new H2 "Inspector (operational dashboard read)" section between CiC (verifier) entry and ChatGPT entry. `agents/AGENTS.md` role table extended from 4 core agents + 1 controller → 5 core agents + 1 controller; opening-paragraph count updated. `tests/pii_scan.test.js` DOCTRINE_ALLOW extended to add `agents/inspector.md` explicitly (sibling-to-existing-role-doc entries from v0.24 cycle); test change is one-line list addition, no logic change. Sketch updated in place with PROMOTED status marker + final firing-log entry pointing at the merged tracked role doc.
+- 2026-05-16 — File created during the v0.29 inspector promotion cycle (DOCTRINE v0.28 → v0.29). T1 tentative-lane promoted to permanent agent role after 9/9 directive-shape firings (8 fired, 7 unambiguously clean) across 8 distinct surfaces (Netlify dashboard, YouTube viewer, LS dashboard, Threads profile, TikTok settings, Gumroad payment-settings × 2 states, Netlify production deploy). All four T1 promotion pillars cleared with 4-firing buffer: ≥3 clean firings + repeatable directive shape across firings + distinct lane boundary against existing roles (four-way test in this file) + characterized failure mode (6 entries). Sketch authored chat-13 2026-05-13 at `~/8ball/sessions/inspector_sketch_2026-05-13.md`; L49-candidate discipline (fire first, codify after) preserved throughout sketch period (sketch lived in `~/8ball/sessions/`, not `~/dev/8ball/agents/`, until promotion). Boundary clause (no-strategic-synthesis) inherited from `agents/verifier.md` Boundaries (adapted to inspector surface; meaning preserved) via chat-15 c13-c14-c15 L-mitigation bundle. DOCTRINE §10 amended v0.28 → v0.29 (4-row core-agent table → 5-row, inspector inserted between verifier and controller). `agents/PLATFORMS.md` gains new H2 "Inspector (operational dashboard read)" section between CiC (verifier) entry and ChatGPT entry. `agents/AGENTS.md` role table extended from 4 core agents + 1 controller → 5 core agents + 1 controller; opening-paragraph count updated. `tests/pii_scan.test.js` DOCTRINE_ALLOW extended to add `agents/inspector.md` explicitly (sibling-to-existing-role-doc entries from v0.24 cycle); test change is one-line list addition, no logic change. Sketch updated in place with PROMOTED status marker + final firing-log entry pointing at the merged tracked role doc.

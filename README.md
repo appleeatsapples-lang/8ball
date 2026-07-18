@@ -78,7 +78,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
 ## Deploy
 
-Netlify, free tier, `main` branch. Auto-deploys on push when the GitHub repo is connected.
+Netlify, **Pro plan ($20/mo — corrected 2026-07-10; earlier docs wrongly said free tier)**, `main` branch. Auto-deploys on push when the GitHub repo is connected.
 
 First-time Netlify setup:
 
