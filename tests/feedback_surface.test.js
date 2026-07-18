@@ -45,6 +45,14 @@ describe('feedback surface (DOCTRINE.md §5.B)', () => {
     expect(tag).toMatch(/\saction="\/\?sent=1"/);
   });
 
+  it('sent-banner detection is an exact URLSearchParams check, not a substring test', () => {
+    // Regression pin for the 07-17 audit L10 fix: `location.search.includes('sent=1')`
+    // also matched crafted queries like `?notsent=1`, showing the thanks banner
+    // without a submission. The exact-param form must not regress.
+    expect(HTML).toMatch(/new URLSearchParams\(window\.location\.search\)\.get\('sent'\) === '1'/);
+    expect(HTML).not.toMatch(/location\.search\.includes\(/);
+  });
+
   it('feedback form does not include profile-data field names', () => {
     const { body } = feedbackForm();
     const offenders = [];

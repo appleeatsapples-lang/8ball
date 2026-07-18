@@ -103,13 +103,17 @@ export function initMeaningsUI(refs) {
   setPanelHidden(true);
 
   function close() {
-    if (activeCell) {
-      activeCell.classList.remove('active');
-      activeCell.setAttribute('aria-expanded', 'false');
+    const cell = activeCell;
+    if (cell) {
+      cell.classList.remove('active');
+      cell.setAttribute('aria-expanded', 'false');
     }
     activeCell = null;
     panel.classList.remove('open');
     setPanelHidden(true);
+    // Focus returns to the toggler cell so it never dies inside the
+    // just-inerted panel (close button is unreachable once hidden).
+    if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
   }
 
   function openFor(key, cell) {
