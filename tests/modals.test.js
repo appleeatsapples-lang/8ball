@@ -73,17 +73,18 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     if (originalLocalStorage === undefined) delete globalThis.localStorage; else globalThis.localStorage = originalLocalStorage;
   });
 
-  it('forget-confirm fires clearProfile then resetFormDisplay and closes the forget modal', () => {
+  it('forget-confirm clears current and saved readings before resetting the form', () => {
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
     const order = [];
     const api = initModalsUI(refs, {
-      clearProfile: () => order.push('clear'),
+      clearProfile: () => order.push('clear-profile'),
+      clearSavedReadings: () => order.push('clear-readings'),
       resetFormDisplay: () => order.push('reset'),
     });
     api.openForget();
     refs.forgetConfirm._fire('click');
-    expect(order).toEqual(['clear', 'reset']);
+    expect(order).toEqual(['clear-profile', 'clear-readings', 'reset']);
     expect(refs.forgetModal.classList.contains('open')).toBe(false);
   });
 
