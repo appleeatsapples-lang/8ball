@@ -174,6 +174,8 @@ describe('Saved Readings host and privacy wiring', () => {
     expect(html).toMatch(/previous readings lets you reopen, rename, delete, or clear that browser-only archive/);
     expect(html).toMatch(/current profile and every saved reading from local storage/);
     expect(readingsJs).toMatch(/saved in this browser only\. no account, sync, or remote copy/);
+    expect(readingsJs).toMatch(/select exactly two saved readings/);
+    expect(readingsJs).toMatch(/compare selected/);
   });
 
   it('revisits through profileFromPayload and showResult without a core import in the controller', () => {

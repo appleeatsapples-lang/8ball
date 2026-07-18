@@ -1049,6 +1049,7 @@ import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
 import { initReadingsUI, clearAllSavedReadings } from './ui/readings.js';
+import { buildConcordance } from './ui/concordance.js';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1108,7 +1109,11 @@ readingsUI = initReadingsUI(
       if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
       showResult(profile, { tier, credits: getCredits(), triesUsed: getTriesUsed(), arrive: true });
       return true;
-    } },
+    },
+    compareReadings: (left, right) => buildConcordance(
+      profileFromPayload(left.profile), profileFromPayload(right.profile),
+      { tier: getRenderTier() },
+    ) },
 );
 // v0.3.0 fix B + step-12 absorb (codex hook 4 P2): clamp the native
 // date picker to today using local-date math, not UTC. toISOString()

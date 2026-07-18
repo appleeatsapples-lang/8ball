@@ -168,19 +168,31 @@ const STYLE = `
 .readings-nav { min-height: 44px; padding: 0 4px; }
 .saved-readings-screen button, #readings-confirm-modal .btn,
 .result-controls #save-reading-btn { min-height: 44px; }
-.saved-readings-screen { max-width: 620px; align-self: center; }
+.saved-readings-screen, .concordance-screen { max-width: 760px; align-self: center; }
 .readings-page-head { display: flex; align-items: center; justify-content: space-between;
   gap: 16px; margin: 10px 0 12px; }
 .readings-page-head h1 { color: var(--paper); font-size: 22px; font-weight: 400;
   letter-spacing: -0.02em; text-transform: lowercase; }
+.readings-page-head .text-link { min-width: 44px; }
 .readings-local-note { color: var(--label-on-dark); font-size: 11px; line-height: 1.65;
   max-width: 62ch; margin-bottom: 20px; }
 .readings-page-status { color: var(--rule); font-size: 11px; line-height: 1.5;
   min-height: 18px; margin-bottom: 8px; }
 .reading-save-status { color: var(--rule); font-size: 10px; line-height: 1.5;
   min-height: 18px; margin-top: 10px; text-align: center; }
+.readings-compare-panel { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  padding: 14px 0; margin-bottom: 18px; display: grid; gap: 10px; }
+.readings-selection-status { color: var(--label-on-dark); font-size: 11px; line-height: 1.5; }
+.readings-compare { width: 100%; }
+.readings-compare:disabled { cursor: not-allowed; opacity: 0.55; }
 .readings-list { list-style: none; display: grid; gap: 12px; }
-.reading-row { border: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; }
+.reading-row { border: 1px solid var(--rule); padding: 16px; display: grid;
+  grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; }
+.reading-select { width: 44px; height: 44px; display: grid; place-items: center;
+  cursor: pointer; align-self: start; }
+.reading-select input { width: 20px; height: 20px; accent-color: var(--paper); }
+.reading-select input:focus-visible { outline: 1px solid var(--paper); outline-offset: 5px; }
+.reading-select input:disabled { cursor: not-allowed; }
 .reading-title { min-width: 0; }
 .reading-open { width: 100%; background: none; border: 0; color: var(--paper);
   font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer;
@@ -190,7 +202,7 @@ const STYLE = `
 .reading-open:focus-visible { outline: 1px solid var(--paper); outline-offset: 4px; }
 .reading-date { color: var(--label-on-dark); font-size: 10px; line-height: 1.5;
   letter-spacing: 0.12em; text-transform: uppercase; display: block; margin-top: 6px; }
-.reading-actions { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.reading-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .reading-actions .text-link { min-height: 44px; text-align: left; }
 .reading-delete { color: var(--label-on-dark); }
 .reading-rename-form { display: grid; gap: 10px; }
@@ -200,10 +212,44 @@ const STYLE = `
 .readings-empty { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
   padding: 28px 0; color: var(--label-on-dark); font-size: 12px; line-height: 1.6; }
 .readings-clear { margin-top: 20px; }
-.saved-readings-screen [hidden], .reading-save-status[hidden] { display: none; }
+.concordance-note { color: var(--label-on-dark); font-size: 11px; line-height: 1.65;
+  max-width: 68ch; margin-bottom: 20px; }
+.concordance-pair-head { border: 1px solid var(--rule); display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-bottom: 18px; }
+.concordance-party { min-width: 0; padding: 14px; color: var(--paper); font-size: 12px;
+  line-height: 1.5; overflow-wrap: anywhere; }
+.concordance-party + .concordance-party { border-left: 1px solid var(--rule); }
+.concordance-list { display: grid; gap: 12px; }
+.concordance-axis { border: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; }
+.concordance-axis-head { display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 10px; }
+.concordance-axis h2 { color: var(--paper); font-size: 12px; font-weight: 400;
+  letter-spacing: 0.12em; text-transform: uppercase; }
+.concordance-status { border: 1px solid currentColor; padding: 5px 8px; color: var(--paper);
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+.concordance-values { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.concordance-value { min-width: 0; color: var(--paper); font-size: 13px; line-height: 1.5;
+  overflow-wrap: anywhere; padding-right: 12px; }
+.concordance-value + .concordance-value { border-left: 1px solid var(--rule); padding-left: 12px; }
+.concordance-value-label { display: block; color: var(--label-on-dark); font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+.concordance-relation { color: var(--paper); font-size: 12px; line-height: 1.6; }
+.concordance-citation { color: var(--label-on-dark); font-size: 10px; line-height: 1.6; }
+.concordance-omitted { border: 1px dashed var(--rule); padding: 14px; color: var(--label-on-dark);
+  font-size: 10px; line-height: 1.6; margin-top: 12px; }
+.concordance-legend { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  margin-top: 20px; padding: 8px 0; color: var(--label-on-dark); font-size: 10px; line-height: 1.6; }
+.concordance-legend summary { min-height: 44px; display: flex; align-items: center;
+  cursor: pointer; color: var(--paper); }
+.concordance-legend dl { display: grid; gap: 8px; padding: 8px 0 12px; }
+.concordance-legend dt { color: var(--paper); text-transform: uppercase; letter-spacing: 0.1em; }
+.saved-readings-screen [hidden], .concordance-screen [hidden],
+.reading-save-status[hidden] { display: none; }
 @media (min-width: 720px) {
-  .reading-row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-  .reading-actions { justify-content: flex-end; }
+  .readings-compare-panel { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .readings-compare { width: auto; min-width: 220px; }
+  .reading-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .reading-actions { grid-column: auto; justify-content: flex-end; }
 }
 @media (max-width: 380px) {
   .topbar-actions { gap: 8px; }
@@ -239,11 +285,36 @@ function buildPage(stage) {
     '<div class="registry-header">specimen registry · saved entries</div>' +
     '<div class="readings-page-head"><h1 id="readings-title" tabindex="-1">previous readings</h1>' +
     '<button class="text-link" id="readings-back" type="button">back</button></div>' +
-    '<p class="readings-local-note">saved in this browser only. no account, sync, or remote copy. open a reading to recompute it through the same calculation pipeline.</p>' +
+    '<p class="readings-local-note">saved in this browser only. no account, sync, or remote copy. open or compare readings to recompute them through the same calculation pipeline. comparisons are not stored.</p>' +
     '<p class="readings-page-status" id="readings-page-status" role="status" aria-live="polite"></p>' +
+    '<div class="readings-compare-panel"><p class="readings-selection-status" id="readings-selection-status" role="status" aria-live="polite">select exactly two saved readings.</p>' +
+    '<button class="btn readings-compare" id="readings-compare" type="button" aria-describedby="readings-selection-status" disabled>compare selected</button></div>' +
     '<ul class="readings-list" id="readings-list"></ul>' +
     '<p class="readings-empty" id="readings-empty">save a completed reading and it will appear here.</p>' +
     '<button class="btn btn-block btn-secondary readings-clear" id="readings-clear" type="button">clear all saved readings</button>';
+  stage.appendChild(page);
+  return page;
+}
+
+function buildComparisonPage(stage) {
+  const page = document.createElement('section');
+  page.className = 'screen hidden concordance-screen';
+  page.id = 'reading-concordance';
+  page.tabIndex = -1;
+  page.setAttribute('aria-labelledby', 'concordance-title');
+  page.innerHTML =
+    '<div class="registry-header">specimen registry · concordance</div>' +
+    '<div class="readings-page-head"><h1 id="concordance-title" tabindex="-1">concordance</h1>' +
+    '<button class="text-link" id="concordance-back" type="button">back to previous readings</button></div>' +
+    '<p class="concordance-note">two saved inputs, recalculated now. this files named structural relations only — no score, forecast, advice, or compatibility claim. the comparison is not stored.</p>' +
+    '<div class="concordance-pair-head" id="concordance-pair-head"></div>' +
+    '<div class="concordance-list" id="concordance-list"></div>' +
+    '<p class="concordance-omitted" id="concordance-omitted" hidden></p>' +
+    '<details class="concordance-legend"><summary>registry statuses</summary><dl>' +
+    '<div><dt>registered</dt><dd>a named registry attests the relation.</dd></div>' +
+    '<div><dt>adjacent</dt><dd>both records can be shown together, but no shared registry is claimed.</dd></div>' +
+    '<div><dt>unfiled</dt><dd>the checked registry contains no named relation for this pair.</dd></div>' +
+    '</dl></details>';
   stage.appendChild(page);
   return page;
 }
@@ -268,6 +339,7 @@ export function initReadingsUI(refs, hooks = {}) {
   if (!openBtn || !saveBtn || !saveStatus || !onboarding || !result || !stage) return null;
   injectStyle();
   const page = buildPage(stage);
+  const comparisonPage = buildComparisonPage(stage);
   const confirmModal = buildConfirmModal();
   const heading = page.querySelector('#readings-title');
   const backBtn = page.querySelector('#readings-back');
@@ -275,6 +347,13 @@ export function initReadingsUI(refs, hooks = {}) {
   const list = page.querySelector('#readings-list');
   const empty = page.querySelector('#readings-empty');
   const clearBtn = page.querySelector('#readings-clear');
+  const selectionStatus = page.querySelector('#readings-selection-status');
+  const compareBtn = page.querySelector('#readings-compare');
+  const comparisonHeading = comparisonPage.querySelector('#concordance-title');
+  const comparisonBack = comparisonPage.querySelector('#concordance-back');
+  const comparisonPairHead = comparisonPage.querySelector('#concordance-pair-head');
+  const comparisonList = comparisonPage.querySelector('#concordance-list');
+  const comparisonOmitted = comparisonPage.querySelector('#concordance-omitted');
   const confirmTitle = confirmModal.querySelector('#readings-confirm-title');
   const confirmCopy = confirmModal.querySelector('#readings-confirm-copy');
   const confirmCancel = confirmModal.querySelector('#readings-confirm-cancel');
@@ -283,6 +362,7 @@ export function initReadingsUI(refs, hooks = {}) {
   let activeId = null;
   let currentReadings = [];
   let pendingAction = null;
+  const selectedIds = new Set();
 
   function setStatus(message) { status.textContent = message || ''; }
   function setSaveStatus(message) {
@@ -310,6 +390,15 @@ export function initReadingsUI(refs, hooks = {}) {
     const article = document.createElement('article');
     article.className = 'reading-row';
     article.dataset.readingId = reading.id;
+    const select = document.createElement('label');
+    select.className = 'reading-select';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = 'reading-comparison';
+    checkbox.value = reading.id;
+    checkbox.checked = selectedIds.has(reading.id);
+    checkbox.setAttribute('aria-label', `select ${reading.title} for comparison`);
+    select.appendChild(checkbox);
     const title = document.createElement('div');
     title.className = 'reading-title';
     const open = document.createElement('button');
@@ -326,15 +415,35 @@ export function initReadingsUI(refs, hooks = {}) {
     const actions = document.createElement('div');
     actions.className = 'reading-actions';
     actions.append(makeAction('rename', 'rename', reading), makeAction('delete', 'delete', reading));
-    article.append(title, actions);
+    article.append(select, title, actions);
     item.appendChild(article);
     return item;
+  }
+
+  function updateCompareControls() {
+    const count = selectedIds.size;
+    compareBtn.disabled = count !== 2;
+    for (const checkbox of list.querySelectorAll('input[name="reading-comparison"]')) {
+      checkbox.disabled = count === 2 && !selectedIds.has(checkbox.value);
+    }
+    if (currentReadings.length < 2) {
+      selectionStatus.textContent = 'save at least two readings to compare.';
+    } else if (count === 0) {
+      selectionStatus.textContent = 'select exactly two saved readings.';
+    } else if (count === 1) {
+      selectionStatus.textContent = '1 selected. select one more.';
+    } else {
+      selectionStatus.textContent = '2 selected. comparison is ready.';
+    }
   }
 
   function renderList(message = '') {
     const loaded = loadSavedReadings();
     currentReadings = loaded.readings;
+    const validIds = new Set(currentReadings.map(reading => reading.id));
+    for (const id of selectedIds) if (!validIds.has(id)) selectedIds.delete(id);
     list.replaceChildren(...currentReadings.map(makeRow));
+    updateCompareControls();
     empty.hidden = currentReadings.length > 0;
     clearBtn.hidden = currentReadings.length === 0 && loaded.status === 'ok';
     if (message) setStatus(message);
@@ -348,6 +457,7 @@ export function initReadingsUI(refs, hooks = {}) {
     origin = result.classList.contains('hidden') ? onboarding : result;
     onboarding.classList.add('hidden');
     result.classList.add('hidden');
+    comparisonPage.classList.add('hidden');
     page.classList.remove('hidden');
     renderList();
     heading.focus();
@@ -355,6 +465,7 @@ export function initReadingsUI(refs, hooks = {}) {
 
   function closePage() {
     page.classList.add('hidden');
+    comparisonPage.classList.add('hidden');
     origin.classList.remove('hidden');
     openBtn.focus();
   }
@@ -415,8 +526,59 @@ export function initReadingsUI(refs, hooks = {}) {
     input.select();
   }
 
+  function renderComparison(comparison, left, right) {
+    comparisonPairHead.replaceChildren();
+    for (const reading of [left, right]) {
+      const party = document.createElement('div');
+      party.className = 'concordance-party';
+      party.textContent = reading.title;
+      comparisonPairHead.appendChild(party);
+    }
+    const rows = comparison.axes.map(axis => {
+      const article = document.createElement('article');
+      article.className = 'concordance-axis';
+      const head = document.createElement('div');
+      head.className = 'concordance-axis-head';
+      const title = document.createElement('h2');
+      title.textContent = axis.label;
+      const badge = document.createElement('span');
+      badge.className = 'concordance-status';
+      badge.textContent = axis.status;
+      head.append(title, badge);
+      const values = document.createElement('div');
+      values.className = 'concordance-values';
+      for (const [reading, value] of [[left, axis.left], [right, axis.right]]) {
+        const cell = document.createElement('p');
+        cell.className = 'concordance-value';
+        const label = document.createElement('span');
+        label.className = 'concordance-value-label';
+        label.textContent = reading.title;
+        cell.append(label, document.createTextNode(value));
+        values.appendChild(cell);
+      }
+      const relation = document.createElement('p');
+      relation.className = 'concordance-relation';
+      relation.textContent = axis.relation;
+      const citation = document.createElement('p');
+      citation.className = 'concordance-citation';
+      citation.textContent = `${axis.registry} · ${axis.citation} · ${axis.qualifier}`;
+      article.append(head, values, relation, citation);
+      return article;
+    });
+    comparisonList.replaceChildren(...rows);
+    comparisonOmitted.hidden = !comparison.omitted.includes('element');
+    comparisonOmitted.textContent = comparisonOmitted.hidden
+      ? ''
+      : 'five-element comparison is omitted because that coordinate is sealed at this device tier.';
+  }
+
   openBtn.addEventListener('click', openPage);
   backBtn.addEventListener('click', closePage);
+  comparisonBack.addEventListener('click', () => {
+    comparisonPage.classList.add('hidden');
+    page.classList.remove('hidden');
+    heading.focus();
+  });
   saveBtn.addEventListener('click', () => {
     const profile = typeof hooks.getCurrentProfile === 'function' ? hooks.getCurrentProfile() : null;
     const outcome = addSavedReading(profile);
@@ -449,6 +611,13 @@ export function initReadingsUI(refs, hooks = {}) {
     else if (button.dataset.action === 'delete') askToDelete(reading);
     else if (button.dataset.action === 'cancel-rename') renderList();
   });
+  list.addEventListener('change', event => {
+    const checkbox = event.target.closest('input[name="reading-comparison"]');
+    if (!checkbox) return;
+    if (checkbox.checked) selectedIds.add(checkbox.value);
+    else selectedIds.delete(checkbox.value);
+    updateCompareControls();
+  });
   list.addEventListener('submit', event => {
     const form = event.target.closest('.reading-rename-form');
     if (!form) return;
@@ -466,6 +635,23 @@ export function initReadingsUI(refs, hooks = {}) {
     if (renamed) renamed.focus();
   });
   clearBtn.addEventListener('click', askToClear);
+  compareBtn.addEventListener('click', () => {
+    const selected = [...selectedIds]
+      .map(id => currentReadings.find(reading => reading.id === id))
+      .filter(Boolean);
+    if (selected.length !== 2) { updateCompareControls(); return; }
+    try {
+      const comparison = typeof hooks.compareReadings === 'function'
+        ? hooks.compareReadings(selected[0], selected[1]) : null;
+      if (!comparison || !Array.isArray(comparison.axes)) throw new TypeError('comparison unavailable');
+      renderComparison(comparison, selected[0], selected[1]);
+      page.classList.add('hidden');
+      comparisonPage.classList.remove('hidden');
+      comparisonHeading.focus();
+    } catch (_) {
+      setStatus('these readings could not be compared. saved entries were not changed.');
+    }
+  });
   confirmCancel.addEventListener('click', closeConfirm);
   confirmDo.addEventListener('click', () => {
     if (!pendingAction) return;
