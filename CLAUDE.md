@@ -53,7 +53,7 @@ No build step. Netlify auto-deploys on push to `main`.
     ui/           DOM-touching ES modules — citysearch, labels, meanings, modals, payments, profile, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23 (8 modules; citysearch.js, payments.js + tiers.js also carry pure exports)
     content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        32 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    tests/        33 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
@@ -71,7 +71,7 @@ in-flight pivot, paused work, or open queue — read the newest entry of
 architecture and locked decisions, not the latest ship. Don't treat this
 file as a state record.
 
-Repository-shape counts above (core/ui/tests) verified 2026-07-05 and are
+Repository-shape counts above (core/ui/tests) verified 2026-07-18 and are
 the canonical inventory; `8BALL.md` / `README.md` defer here. **v0.44 note:**
 these counts drifted for ~1 month before the 2026-07-04 drift-sweep caught
 them (last verified 2026-07-01, ui/ and tests/ both stale by the time of
