@@ -18,21 +18,21 @@ Different artifacts for different downstream lanes. Each artifact has a canonica
 
 | Downstream lane | Artifact type | Canonical path | Anchor markers |
 |---|---|---|---|
-| Implementer (CC) | Implementation brief | `~/Desktop/8ball/sessions/brief_<slug>_<date>.md` | `=== BRIEF START ===` / `=== BRIEF END ===` |
-| Auditor (Codex) | Audit brief | `~/Desktop/8ball/audits/codex_<slug>_<date>.md` | `=== PROMPT START ===` / `=== PROMPT END ===` |
-| Verifier (CiC) | Live-UX directive | `~/Desktop/8ball/controllers/cic_<slug>_<date>.md` | `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` |
-| Adjunct (ChatGPT) | Content-batch review | `~/Desktop/8ball/sessions/content_<slug>_<date>.md` | `=== REVIEW START ===` / `=== REVIEW END ===` |
+| Implementer (CC) | Implementation brief | `~/8ball/sessions/brief_<slug>_<date>.md` | `=== BRIEF START ===` / `=== BRIEF END ===` |
+| Auditor (Codex) | Audit brief | `~/8ball/audits/codex_<slug>_<date>.md` | `=== PROMPT START ===` / `=== PROMPT END ===` |
+| Verifier (CiC) | Live-UX directive | `~/8ball/controllers/cic_<slug>_<date>.md` | `=== DIRECTIVE START ===` / `=== DIRECTIVE END ===` |
+| Adjunct (ChatGPT) | Content-batch review | `~/8ball/sessions/content_<slug>_<date>.md` | `=== REVIEW START ===` / `=== REVIEW END ===` |
 | Controller | Decision request | inline in chat, or `handoff_<slug>_<date>.md` for cross-chat continuity | `=== HANDOFF START ===` / `=== HANDOFF END ===` |
 
 Every artifact written to disk also goes via `pbcopy` to the system clipboard for the operator to paste downstream. The orchestrator surfaces the exact `sed -n '/^=== START ===$/,/^=== END ===$/p' <file> | pbcopy` one-liner alongside the artifact, so the operator can re-extract if the clipboard is clobbered.
 
 ## How orchestrator consumes returns
 
-**From the auditor:** Save the full response to `~/Desktop/8ball/audits/codex_<slug>_response.md` immediately, then categorize each finding: PASS / P0 / P1 / P2 / P3. Absorb P0 + P1 in-cycle; P2 / P3 file to a future-version scope-notes doc. If the audit returns surprising findings (e.g. a missed §5 leak), surface them to the controller before acting.
+**From the auditor:** Save the full response to `~/8ball/audits/codex_<slug>_response.md` immediately, then categorize each finding: PASS / P0 / P1 / P2 / P3. Absorb P0 + P1 in-cycle; P2 / P3 file to a future-version scope-notes doc. If the audit returns surprising findings (e.g. a missed §5 leak), surface them to the controller before acting.
 
 **From the implementer:** Treat the diff as proposed, not committed. Read it; verify it matches the brief; run tests; surface anything that drifted from the brief to the controller. The implementer does not have final-merge authority; the orchestrator dispositions the diff against the brief and routes to controller for approval.
 
-**From the verifier:** Save the report to `~/Desktop/8ball/controllers/verifier_report_<slug>_<date>.md` verbatim. Per verifier.md's "How orchestrator consumes the report" section: categorize each finding BLOCKER / FIX-BEFORE-MERGE / FILE-FOR-BACKLOG, then surface dispositions to the controller.
+**From the verifier:** Save the report to `~/8ball/controllers/verifier_report_<slug>_<date>.md` verbatim. Per verifier.md's "How orchestrator consumes the report" section: categorize each finding BLOCKER / FIX-BEFORE-MERGE / FILE-FOR-BACKLOG, then surface dispositions to the controller.
 
 **From the controller (operator):** Operator output is authoritative. Restating in polished language is friction; act on the directive directly. If the directive is ambiguous, reformulate internally and state interpretation in one line, then proceed with the most defensible reading. Do not block on clarification unless the action is irreversible.
 
@@ -49,7 +49,7 @@ Every artifact written to disk also goes via `pbcopy` to the system clipboard fo
 
 ### 1. Bootstrap a new chat
 
-Every new chat-Claude instance reads, in order: `~/MUHAB.md` (§1–§8 universal block) → `~/dev/8ball/8BALL.md` → `~/dev/8ball/DOCTRINE.md` (header + relevant § for the cycle) → `~/dev/8ball/journal.md` (newest 1–3 entries). If a handoff file exists in `~/Desktop/8ball/sessions/`, read that fifth. Verify position with `git log --oneline -6 && git tag -l` before any substantive action.
+Every new chat-Claude instance reads, in order: `~/MUHAB.md` (§1–§8 universal block) → `~/dev/8ball/8BALL.md` → `~/dev/8ball/DOCTRINE.md` (header + relevant § for the cycle) → `~/dev/8ball/journal.md` (newest 1–3 entries). If a handoff file exists in `~/8ball/sessions/`, read that fifth. Verify position with `git log --oneline -6 && git tag -l` before any substantive action.
 
 ### 2. Compose a brief for a cycle
 
@@ -67,7 +67,7 @@ Audit return arrives. Save to disk (audit trail). Categorize: PASS (carry forwar
 
 ### 4. Sequence a multi-step cycle
 
-For cycles spanning >5 steps, use handoff files at chat boundaries (`~/Desktop/8ball/sessions/handoff_<slug>_<date>.md`). Each handoff captures: current position (HEAD + branch + tag), what closed in the previous chat, what's pending, locked decisions, open audit hooks, first-action sequence for the next chat. Mirrors the v0.3.0 step-6-to-12 handoff pattern.
+For cycles spanning >5 steps, use handoff files at chat boundaries (`~/8ball/sessions/handoff_<slug>_<date>.md`). Each handoff captures: current position (HEAD + branch + tag), what closed in the previous chat, what's pending, locked decisions, open audit hooks, first-action sequence for the next chat. Mirrors the v0.3.0 step-6-to-12 handoff pattern.
 
 ### 5. Post-ship state update
 
@@ -92,7 +92,7 @@ This procedure is the upstream half of the closed loop with `controller.md` Proc
 
 ### 7. Paper-design surface sanity check (added chat-15)
 
-Before treating a paper-design surface (`~/Desktop/8ball/sessions/*.md`, parking docs, brief drafts, review pre-reads) as canonical input to a downstream cycle, run a grep-the-doctrine pass on every § reference in the surface:
+Before treating a paper-design surface (`~/8ball/sessions/*.md`, parking docs, brief drafts, review pre-reads) as canonical input to a downstream cycle, run a grep-the-doctrine pass on every § reference in the surface:
 
 ```
 grep -nE 'PATTERN' ~/dev/8ball/DOCTRINE.md
@@ -107,7 +107,7 @@ The grep produces candidates; the orchestrator pass distinguishes assertion from
 
 **When to invoke.** Any time a paper-design surface is about to be cited / paste-relayed / handed to a downstream cycle as input. Specifically: brief drafts before they reach the implementer, parking docs before they bubble into a doctrine amendment, review pre-reads before the operator runs the review, handoff files before the next chat bootstraps from them.
 
-**Reasoning.** Chat-12 caught the §6.5/§7.1 routing-error in the v0.3.1 facet-reroll parking doc (`~/Desktop/8ball/sessions/v0.3.x_shake_again_facet_reroll.md`); the parking doc framed the doctrine amendment as a "§6.5/§7.1 amendment" against subclauses that don't exist in DOCTRINE.md. Chat-15 caught the same vocabulary inherited into the Friday rule-kill review pre-read (`~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`); the pre-read's v1 inventory table listed §6.5 and §7.1 as rules. Both leaks happened because the paper-design surface was treated as canonical without a sanity-check pass. Two sightings promote the L-candidate `paper-design-routing-errors` from candidate to real **L49** (assigned at chat-16 open). Procedure 7 codifies the pass that would have caught either leak at authoring time. The chat-7 v0.24 cycle pre-allocated "L49-candidate" to `agents-ahead-of-code-and-doctrine` (still 1 sighting); that label is superseded by this L49 assignment — chat-7 candidate retains candidate status, will receive next available number on second-sighting promotion.
+**Reasoning.** Chat-12 caught the §6.5/§7.1 routing-error in the v0.3.1 facet-reroll parking doc (`~/8ball/sessions/v0.3.x_shake_again_facet_reroll.md`); the parking doc framed the doctrine amendment as a "§6.5/§7.1 amendment" against subclauses that don't exist in DOCTRINE.md. Chat-15 caught the same vocabulary inherited into the Friday rule-kill review pre-read (`~/8ball/sessions/friday_rule_kill_review_2026-05-15.md`); the pre-read's v1 inventory table listed §6.5 and §7.1 as rules. Both leaks happened because the paper-design surface was treated as canonical without a sanity-check pass. Two sightings promote the L-candidate `paper-design-routing-errors` from candidate to real **L49** (assigned at chat-16 open). Procedure 7 codifies the pass that would have caught either leak at authoring time. The chat-7 v0.24 cycle pre-allocated "L49-candidate" to `agents-ahead-of-code-and-doctrine` (still 1 sighting); that label is superseded by this L49 assignment — chat-7 candidate retains candidate status, will receive next available number on second-sighting promotion.
 
 **Boundaries.** Procedure 7 is read-only verdict on the paper-design surface. It does not amend DOCTRINE.md when a § reference is missing; if a surface cites a § that should exist but doesn't, the orchestrator surfaces it as a doctrine-amendment candidate to the controller, separate from this procedure's output. Procedure 7 catches the assertion → it doesn't act on the assertion's underlying claim.
 
@@ -147,7 +147,7 @@ In every sighting, the failure shape was identical: **inferring whole-state clos
 
 **Procedure.**
 
-1. **Do not trust a handoff / compaction / prior-session summary as state.** It is a pointer, not the source. Before orienting off it, verify against disk: tail recent `journal.md`, run `git ls-remote --heads origin` (authoritative — `git branch -a` lies via stale tracking refs), and `ls -lt` the relevant `~/Desktop/8ball/` dirs.
+1. **Do not trust a handoff / compaction / prior-session summary as state.** It is a pointer, not the source. Before orienting off it, verify against disk: tail recent `journal.md`, run `git ls-remote --heads origin` (authoritative — `git branch -a` lies via stale tracking refs), and `ls -lt` the relevant `~/8ball/` dirs.
 2. **Grep canonical state for prior coverage of the topic** before drafting. If a prior `journal.md` entry or `audits/*.md` covers it, reference + extend rather than re-derive.
 3. **For time-triggered items** (cadence reviews, scheduled firings), check the date against today *before* reporting "on track" — a silently-lapsed cadence reports as fine only if you never check the clock.
 4. The grep / check is the cost; running it is the discipline.

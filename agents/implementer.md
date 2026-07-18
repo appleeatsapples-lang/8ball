@@ -29,7 +29,7 @@ Implementer is the production-grade execution surface specifically because the o
 
 ## What the orchestrator prepares
 
-An implementation brief at `~/Desktop/8ball/sessions/brief_<slug>_<date>.md`, anchored with `=== BRIEF START ===` / `=== BRIEF END ===` markers.
+An implementation brief at `~/8ball/sessions/brief_<slug>_<date>.md`, anchored with `=== BRIEF START ===` / `=== BRIEF END ===` markers.
 
 Brief structure (per `brief_v030_depth_unlock.md` and predecessors):
 

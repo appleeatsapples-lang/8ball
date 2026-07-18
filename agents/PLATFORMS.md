@@ -7,7 +7,7 @@ Companion to `AGENTS.md` and the role docs in this folder. Each agent runs on a 
 **Surface.** Anthropic web/desktop/mobile chat. Per-conversation context window; no persistent state across chats (memory + canonical files on disk carry state).
 
 **Capabilities present.**
-- Full read access to `~/dev/8ball/` and `~/Desktop/8ball/` via Desktop Commander.
+- Full read access to `~/dev/8ball/` and `~/8ball/` via Desktop Commander.
 - Pragmatic write access for fast initial work (per §10).
 - Shell command execution (read-only verification, git operations, test runs, pbcopy).
 - URL opening: `open -a "Google Chrome" "<url>"`.
@@ -82,7 +82,7 @@ Companion to `AGENTS.md` and the role docs in this folder. Each agent runs on a 
 
 ### CiC per-tab scope (added chat-15)
 
-Claude in Chrome operates per browser tab with a per-session domain allowlist. A CiC directive targets exactly one tab/domain unless explicitly stated otherwise. Multi-tab directives require enumerating each tab + its domain + its STEPS. Sidepanel + conversation context are independent per tab; one directive = one tab; paste must land in the target tab's sidepanel. The L40 firing log (v0.3.0 CiC domain-allowlist block, listed above) is the canonical instance of this constraint asserting itself; the chat-13 per-tab context note at `~/Desktop/8ball/sessions/cic_per_tab_context_2026-05-13.md` is the codified directive-paste discipline (URL-check step 1 in every directive). Cross-tab status synthesis is orchestrator-aggregated from per-tab Inspector / Verifier reports, never a single CiC directive.
+Claude in Chrome operates per browser tab with a per-session domain allowlist. A CiC directive targets exactly one tab/domain unless explicitly stated otherwise. Multi-tab directives require enumerating each tab + its domain + its STEPS. Sidepanel + conversation context are independent per tab; one directive = one tab; paste must land in the target tab's sidepanel. The L40 firing log (v0.3.0 CiC domain-allowlist block, listed above) is the canonical instance of this constraint asserting itself; the chat-13 per-tab context note at `~/8ball/sessions/cic_per_tab_context_2026-05-13.md` is the codified directive-paste discipline (URL-check step 1 in every directive). Cross-tab status synthesis is orchestrator-aggregated from per-tab Inspector / Verifier reports, never a single CiC directive.
 
 ## Inspector (operational dashboard read)
 
@@ -141,19 +141,19 @@ Neither is in the core agent system or used in standard cycle flow. Reserved for
 | Artifact | Path |
 |---|---|
 | Role docs (this folder) | `~/dev/8ball/agents/*.md` |
-| Briefs for implementer | `~/Desktop/8ball/sessions/brief_<slug>_<date>.md` |
-| Handoffs at chat boundaries | `~/Desktop/8ball/sessions/handoff_<slug>_<date>.md` |
-| Audit briefs for Codex | `~/Desktop/8ball/audits/codex_<slug>_<date>.md` |
-| Audit responses from Codex | `~/Desktop/8ball/audits/codex_<slug>_response.md` |
-| Directives for CiC | `~/Desktop/8ball/controllers/cic_<slug>_<date>.md` |
-| Verifier reports from CiC | `~/Desktop/8ball/controllers/verifier_report_<slug>_<date>.md` |
-| Inspector directives (read-only state checks via CiC + adjacents) | `~/Desktop/8ball/controllers/cic_<slug>_<date>.md` (sibling shape to verifier directives; same anchored `=== DIRECTIVE START/END ===` markers) |
-| Inspector reports (operational dashboard state observations) | `~/Desktop/8ball/audits/inspector_report_<slug>_<date>.md` or `~/Desktop/8ball/controllers/inspector_report_<slug>_<date>.md` (artifact lives alongside directive when one-shot; alongside audits when state-fill consumed) |
-| Content-batch reviews for ChatGPT | `~/Desktop/8ball/sessions/content_<slug>_<date>.md` |
-| Session distillates | `~/Desktop/8ball/sessions/session_distillate_<date>.md` |
-| Scope notes for future versions | `~/Desktop/8ball/sessions/v0X_scope_notes.md` |
+| Briefs for implementer | `~/8ball/sessions/brief_<slug>_<date>.md` |
+| Handoffs at chat boundaries | `~/8ball/sessions/handoff_<slug>_<date>.md` |
+| Audit briefs for Codex | `~/8ball/audits/codex_<slug>_<date>.md` |
+| Audit responses from Codex | `~/8ball/audits/codex_<slug>_response.md` |
+| Directives for CiC | `~/8ball/controllers/cic_<slug>_<date>.md` |
+| Verifier reports from CiC | `~/8ball/controllers/verifier_report_<slug>_<date>.md` |
+| Inspector directives (read-only state checks via CiC + adjacents) | `~/8ball/controllers/cic_<slug>_<date>.md` (sibling shape to verifier directives; same anchored `=== DIRECTIVE START/END ===` markers) |
+| Inspector reports (operational dashboard state observations) | `~/8ball/audits/inspector_report_<slug>_<date>.md` or `~/8ball/controllers/inspector_report_<slug>_<date>.md` (artifact lives alongside directive when one-shot; alongside audits when state-fill consumed) |
+| Content-batch reviews for ChatGPT | `~/8ball/sessions/content_<slug>_<date>.md` |
+| Session distillates | `~/8ball/sessions/session_distillate_<date>.md` |
+| Scope notes for future versions | `~/8ball/sessions/v0X_scope_notes.md` |
 
-The split between repo tracked (`~/dev/8ball/`) and Desktop materialization (`~/Desktop/8ball/`) is intentional: tracked = the constitutional + canonical state, Desktop = per-cycle working artifacts that don't need to ship with the repo but need to survive across sessions.
+The split between repo tracked (`~/dev/8ball/`) and Desktop materialization (`~/8ball/`) is intentional: tracked = the constitutional + canonical state, Desktop = per-cycle working artifacts that don't need to ship with the repo but need to survive across sessions.
 
 ## Audit history (this file)
 
