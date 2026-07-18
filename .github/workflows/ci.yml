@@ -58,8 +58,9 @@ jobs:
           BASE="origin/${{ github.event.pull_request.base.ref }}"
           git fetch --no-tags --prune origin "${{ github.event.pull_request.base.ref }}"
           CHANGED=$(git diff --name-only "$BASE"...HEAD)
-          if ! echo "$CHANGED" | grep -qvE '\.md$'; then
-            echo "L48 gate: docs-only PR (every changed file is .md) — exempt"
+          if ! echo "$CHANGED" | grep -qvE '\.md$' \
+             && ! echo "$CHANGED" | grep -qE '^(audits/RELEASE_CHECKLIST\.md|agents/.*\.md)$'; then
+            echo "L48 gate: docs-only PR (no behavior, no governance-gate docs) — exempt"
             exit 0
           fi
           PR='${{ github.event.pull_request.number }}'
