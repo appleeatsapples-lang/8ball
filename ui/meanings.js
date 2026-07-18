@@ -109,11 +109,12 @@ export function initMeaningsUI(refs) {
       cell.setAttribute('aria-expanded', 'false');
     }
     activeCell = null;
+    // Focus moves OUT to the toggler cell FIRST, then the panel goes inert —
+    // hiding a subtree that still contains the focused close button strands
+    // focus, and Chromium blocks aria-hidden on a focused ancestor.
+    if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
     panel.classList.remove('open');
     setPanelHidden(true);
-    // Focus returns to the toggler cell so it never dies inside the
-    // just-inerted panel (close button is unreachable once hidden).
-    if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
   }
 
   function openFor(key, cell) {
