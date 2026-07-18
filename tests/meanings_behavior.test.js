@@ -168,6 +168,25 @@ describe('ui/meanings.js behavior', () => {
     expect(cells.sun.focusCount).toBe(1);
   });
 
+  it('close() moves focus out BEFORE the panel goes inert (ordering pin)', () => {
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p.inert).toBe(false);
+    let inertAtFocusTime = null;
+    const origFocus = cells.sun.focus.bind(cells.sun);
+    cells.sun.focus = function (...args) {
+      inertAtFocusTime = p.inert;
+      return origFocus(...args);
+    };
+    p._byId['meaning-close']._fire('click');
+    expect(cells.sun.focused).toBe(true);
+    // The focus restore must run while the panel is still interactive; the
+    // panel goes inert only after focus has already left its subtree.
+    expect(inertAtFocusTime).toBe(false);
+    expect(p.inert).toBe(true);
+  });
+
   it('the close button closes and deactivates; re-init is a no-op', () => {
     vals.sun.textContent = 'aries';
     cardFace._fire('click', { target: vals.sun });
