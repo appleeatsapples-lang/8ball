@@ -76,11 +76,14 @@ describe('ui/profile.js persistence boundary', () => {
     // rehydration and country carries the legacy payload shape, so both must
     // survive the round-trip (PR #89 audit MED: lat was only tested as NaN,
     // which let a valid-lat/country persistence regression stay green).
+    // country holds the v0.2.1 country/zone CODE, not the display name —
+    // the legacy <select> stored opt.value = c.code (f3666cb:index.html:571;
+    // PR #90 audit MED flipped this fixture from 'Saudi Arabia' to 'SA').
     saveProfile('Profile Specimen', '1990-01-01', {
       time: '03:31',
       city: 'Dhahran',
       cc: 'SA',
-      country: 'Saudi Arabia',
+      country: 'SA',
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
@@ -94,7 +97,7 @@ describe('ui/profile.js persistence boundary', () => {
       time: '03:31',
       city: 'Dhahran',
       cc: 'SA',
-      country: 'Saudi Arabia',
+      country: 'SA',
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
