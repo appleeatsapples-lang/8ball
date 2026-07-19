@@ -2,8 +2,8 @@
 // v0.3.0 paid-surface controller (DOCTRINE §4.B / §5 v0.22 / §6).
 //
 // Owns:
-//   - localStorage keys for tries_used / credits / pending_profile / tier
-//   - getter/setter shims for the three counters + the stored tier
+//   - localStorage keys for tries_used / credits / pending_profile / tier / facet
+//   - getter/setter shims for the counters, stored tier, and current facet
 //   - paywall modal open/close + outside-click + Escape handlers
 //   - paid-return banner fade animation
 //   - the `?paid=t1|t2|t3` redirect handler (handlePaidReturn) which calls
@@ -25,20 +25,28 @@
 // crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
 // target — `ui/*.js` modules — is exactly what §6 specifies.
 
-import { applyPaidReturn, isTier, normalizeCounter, resolveRenderTier } from '../core/payments.js';
+import {
+  anchorFacetIndex, applyPaidReturn, isTier, nextFacetState,
+  normalizeCounter, normalizeFacetIndex, resolveRenderTier,
+} from '../core/payments.js';
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
 import { openModal, closeModal, trapTab } from './modals.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
-// The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY is the
-// v0.6.0 §5 v0.36 allow-list extension. tests/privacy_scan resolves
+// The three v0.3.0 keys are in the §5 v0.22 allow-list; TIER_KEY and
+// FACET_KEY are the v0.6.0 and v0.7.1 extensions. tests/privacy_scan resolves
 // identifier-as-key via same-file `const IDENT = '...'` lookup, so the
 // bare string definitions here are mandatory for the scan.
 export const TRIES_KEY = 'eight_ball_tries_used_v1';
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
 export const TIER_KEY = 'eight_ball_tier_v1';
+export const FACET_KEY = 'eight_ball_facet_index_v1';
+
+// Controller-authorized c.1: reuse immutable v1 note slots positionally.
+// These are render positions, not newly authored lateral copy.
+const FACET_SLOTS = ['low', 'mid', 'high'];
 
 // ── counter shims ─────────────────────────────────────────────────
 // Three counters live in localStorage:
@@ -96,6 +104,40 @@ export function getRenderTier() {
   const resolved = resolveRenderTier({ tier: stored, credits: getCredits() });
   if (!stored && isTier(resolved)) setTier(resolved);
   return resolved;
+}
+export function getFacetIndex() {
+  try { return normalizeFacetIndex(localStorage.getItem(FACET_KEY)); }
+  catch (_) { return null; }
+}
+export function setFacetIndex(index) {
+  const clean = normalizeFacetIndex(index);
+  if (clean === null) return;
+  try { localStorage.setItem(FACET_KEY, String(clean)); } catch (_) {}
+}
+export function clearFacetIndex() {
+  try { localStorage.removeItem(FACET_KEY); } catch (_) {}
+}
+export function ensureFacetIndex(lifePath, { reset = false } = {}) {
+  const stored = reset ? null : getFacetIndex();
+  const resolved = stored === null ? anchorFacetIndex(lifePath) : stored;
+  if (stored === null) setFacetIndex(resolved);
+  return resolved;
+}
+export function getFacetSlot(lifePath) {
+  const stored = getFacetIndex();
+  return FACET_SLOTS[stored === null ? anchorFacetIndex(lifePath) : stored];
+}
+export function consumeFacetShake(lifePath) {
+  const stored = getFacetIndex();
+  const state = nextFacetState({
+    credits: getCredits(),
+    facetIndex: stored === null ? anchorFacetIndex(lifePath) : stored,
+  });
+  if (state.action === 'render-facet') {
+    setCredits(state.credits);
+    setFacetIndex(state.facetIndex);
+  }
+  return state;
 }
 export function getPendingProfile() {
   try {

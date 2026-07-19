@@ -290,10 +290,10 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
   it('cold-boot rehydration renders at getRenderTier() — no boot-circumstance branch', () => {
-    // boot(): the rehydrate showResult call passes the helper output.
-    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?showResult\(profileFromPayload\(existing\),\s*\{([\s\S]*?)\}\s*\)/);
+    // boot(): resolve once through the helper, then pass that exact tier.
+    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
     expect(m, 'rehydration showResult call not found').not.toBeNull();
-    expect(m[1]).toMatch(/tier:\s*getRenderTier\(\)/);
+    expect(m[1]).toMatch(/\btier\s*,/);
     // the paid-return special case is gone: no consumedPending ternary
     expect(html).not.toMatch(/consumedPending\s*\?/);
   });
@@ -302,20 +302,20 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
     // Regression pin: the boot rehydrate call originally passed tier+credits
     // only, so a returning free-tier user who reloaded the page lost the
     // "N free reads left" chip even though eight_ball_tries_used_v1 persists.
-    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?showResult\(profileFromPayload\(existing\),\s*\{([\s\S]*?)\}\s*\)/);
+    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
     expect(m, 'rehydration showResult call not found').not.toBeNull();
     expect(m[1]).toMatch(/triesUsed:\s*getTriesUsed\(\)/);
   });
 
   it('same-pair submit and paid reads render at getRenderTier() — no action-based density', () => {
-    const m = html.match(/showResult\(profile,\s*\{\s*tier:\s*getRenderTier\(\)/);
+    const m = html.match(/const tier = getRenderTier\(\);[\s\S]{0,220}?showResult\(profile,\s*\{\s*tier,/);
     expect(m, 'submit-path showResult must resolve via getRenderTier').not.toBeNull();
     expect(html).not.toMatch(/renderTierFor/);
     expect(html).not.toMatch(/currentRenderTier/);
   });
 
   it('same-card shake renders at getRenderTier()', () => {
-    const m = html.match(/renderCard\(currentProfile,\s*\{\s*tier:\s*getRenderTier\(\)/);
+    const m = html.match(/function shakeAgain\(\)[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?renderCard\(currentProfile,\s*\{\s*tier,/);
     expect(m, 'shakeAgain renderCard must resolve via getRenderTier').not.toBeNull();
   });
 

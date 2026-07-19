@@ -75,7 +75,9 @@ const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_pending_profile_v1',
   // v0.6.0 tier ladder (DOCTRINE §5 v0.36 allow-list extension / §1.D):
   // highest rung purchased, monotonic, written only by handlePaidReturn.
-  'eight_ball_tier_v1'
+  'eight_ball_tier_v1',
+  // v0.7.1 t3 written-entry rotation (§1.H): currently visible v1 slot.
+  'eight_ball_facet_index_v1'
 ]);
 
 // Match: localStorage.setItem('key', ...) or localStorage.setItem("key", ...)
