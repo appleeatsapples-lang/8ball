@@ -25,8 +25,6 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Known limits / migration.** Concordance exists only for valid entries in one browser-local archive; no cross-device/sync/import path is intended. The first registry version deliberately covers matching axes only and does not treat absence from a finite table as evidence about two people. Same-value pairs are unfiled because the consolidated source inventory contains only distinct-pair relations. The element row follows the device's current entitlement rather than storing the tier with an entry. No Saved Readings migration is needed because its key/schema did not change; future registry corrections require `content/concordance.v2.js`, and any persistence expansion requires a new §5 amendment.
 
-## 2026-07-19 — Saved Readings MVP: browser-local save/revisit/rename/delete/clear + doctrine v0.49 — STAGED
-
 ## 2026-07-19 — Saved Readings MVP: browser-local save/revisit/rename/delete/clear + doctrine v0.50 — STAGED
 
 **Status: STAGED on `feature/saved-readings-mvp`; implemented and browser-verified in the branch-local feature commit. Not pushed, no PR opened, not merged, not deployed. Because this is a substantive DOCTRINE amendment, the normal §10/L48 cross-model audit remains a pre-merge gate.**

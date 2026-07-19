@@ -59,7 +59,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ├── content/
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
-│   └── concordance.v1.js    finite named relation registries (§1.H v0.50)
+│   └── concordance.v1.js    finite named relation registries (§1.I v0.51)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
