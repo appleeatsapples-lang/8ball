@@ -6,7 +6,8 @@
 // The state machine is the contract for credit flow + cap enforcement + paid-return
 // consumption + tier-ladder rank/upgrade. UI wiring in index.html reads from
 // localStorage, calls these functions, and writes results back. Unit tests at
-// tests/payments_state.test.js and tests/tiers.test.js.
+// tests/payments_state.test.js, tests/tiers.test.js, and
+// tests/facet_rotation.test.js.
 
 export const FREE_TRIES_CAP = 3;
 export const CREDITS_PER_PURCHASE = 3;
@@ -18,6 +19,57 @@ export function normalizeCounter(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return 0;
   return Math.floor(n);
+}
+
+// ── t3 written-entry rotation (v0.7.1, DOCTRINE §1.H) ─────────────
+// The shipped v1 deck stays immutable. Its three note slots are selected
+// positionally for the explicit t3 `flip again` interaction:
+//   index 0 → low, index 1 → mid, index 2 → high.
+// The index names position only; it does not relabel the v1 copy as newly
+// authored lateral content. Storage I/O remains in ui/payments.js.
+
+export const FACET_COUNT = 3;
+
+const FIRST_FACET_LIFE_PATHS = new Set([1, 2, 3]);
+const SECOND_FACET_LIFE_PATHS = new Set([4, 5, 6]);
+const THIRD_FACET_LIFE_PATHS = new Set([7, 8, 9, 11, 22, 33]);
+
+export function anchorFacetIndex(lifePath) {
+  if (FIRST_FACET_LIFE_PATHS.has(lifePath)) return 0;
+  if (SECOND_FACET_LIFE_PATHS.has(lifePath)) return 1;
+  if (THIRD_FACET_LIFE_PATHS.has(lifePath)) return 2;
+  throw new Error(`Unknown life path value: ${lifePath}`);
+}
+
+export function normalizeFacetIndex(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 && n < FACET_COUNT ? n : null;
+}
+
+export function nextFacetIndex(current) {
+  const clean = normalizeFacetIndex(current);
+  if (clean === null) throw new Error(`Unknown facet index: ${current}`);
+  return (clean + 1) % FACET_COUNT;
+}
+
+/**
+ * One explicit t3 flip. This is deliberately separate from nextShakeState:
+ * submitting the same form pair remains idempotent; only the result-screen
+ * control may spend a credit to advance written content.
+ */
+export function nextFacetState({ credits, facetIndex }) {
+  const cleanCredits = normalizeCounter(credits);
+  const cleanFacet = normalizeFacetIndex(facetIndex);
+  if (cleanFacet === null) throw new Error(`Unknown facet index: ${facetIndex}`);
+  if (cleanCredits === 0) {
+    return { action: 'show-paywall', credits: 0, facetIndex: cleanFacet };
+  }
+  return {
+    action: 'render-facet',
+    credits: cleanCredits - 1,
+    facetIndex: nextFacetIndex(cleanFacet),
+  };
 }
 
 // ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36) ──────────────

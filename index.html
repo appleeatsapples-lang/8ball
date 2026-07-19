@@ -979,7 +979,7 @@
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
     <p>nothing leaves your device on its own. inputs, counters, the paid rung, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and the trait for your life-path bracket. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
+    <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -1021,12 +1021,13 @@
 <script type="module">
 import { buildProfile } from './core/profile.js';
 import { initCitySearchUI } from './ui/citysearch.js';
-import { getCard, MissingCardError, resolveBracket } from './core/engine.js';
+import { getCard, MissingCardError } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState, FREE_TRIES_CAP } from './core/payments.js';
 import {
   getTriesUsed, setTriesUsed,
   getCredits, setCredits, getRenderTier,
+  clearFacetIndex, clearPendingProfile, consumeFacetShake, ensureFacetIndex, getFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   handlePaidReturn,
@@ -1073,7 +1074,7 @@ const modalsUI = initModalsUI(
     forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'),
     forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm'),
   },
-  { clearProfile, resetFormDisplay, isPaywallOpen, closePaywall },
+  { clearProfile: () => { clearProfile(); clearFacetIndex(); }, resetFormDisplay, isPaywallOpen, closePaywall },
 );
 // Host-owned state, declared BEFORE any init*UI call whose injected
 // setters close over these bindings — a setter fired synchronously
@@ -1205,8 +1206,7 @@ function renderCard(profile, opts) {
         cardName.textContent = cell.name;
         cardType.textContent = cell.type;
         cardHabit.textContent = cell.habit;
-        const bracket = resolveBracket(profile.lifePath);
-        cardNote.textContent = cell.note[bracket];
+        cardNote.textContent = cell.note[getFacetSlot(profile.lifePath)];
       } else {
         // Defensive: clear depth slots; unreachable with a 144-cell deck.
         cardName.textContent = '';
@@ -1278,15 +1278,24 @@ function showResult(profile, opts) {
 
 function shakeAgain() {
   if (flipLocked || !currentProfile) return;
+  const tier = getRenderTier();
+  const facetState = tier === 't3' ? consumeFacetShake(currentProfile.lifePath) : null;
+  if (facetState && facetState.action === 'show-paywall') {
+    // A top-up is not a pending reading: returning from checkout grants
+    // credits, then the next explicit flip advances and spends one. Clear
+    // any abandoned Path A/B intent so it cannot consume on this return.
+    clearPendingProfile();
+    openPaywall();
+    return;
+  }
   flipLocked = true;
-  // Flip back to card-back, then re-flip to face after ~320ms. shakeAgain
-  // on the same profile is cosmetic and never re-consumes a credit
-  // (§6.5/§7.1 β idempotence); density resolves from the stored tier at
-  // render time (R1) — a paid rung survives the re-flip and the reload.
+  // Free/t1/t2 flips stay cosmetic. A t3 flip advances the written-entry
+  // slot and spends one credit before the existing 320ms reveal beat.
   setFaceUp(true);
   setTimeout(() => {
-    renderCard(currentProfile, { tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed() });
+    renderCard(currentProfile, { tier, credits: getCredits(), triesUsed: getTriesUsed() });
     setFaceUp(false);
+    if (facetState) resultAnnounce.textContent = `written entry changed · ${facetState.facetIndex + 1} of 3`;
     flipLocked = false;
   }, 320);
 }
@@ -1367,7 +1376,9 @@ profileForm.addEventListener('submit', e => {
     // every action — render-idempotent, render-locked, render-unlocked
     // alike. Credits/tries decide how many readings (already settled
     // above); the stored tier decides how much sheet.
-    showResult(profile, { tier: getRenderTier(), credits: state.credits, triesUsed: state.triesUsed, arrive: true });
+    const tier = getRenderTier();
+    if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNew });
+    showResult(profile, { tier, credits: state.credits, triesUsed: state.triesUsed, arrive: true });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1428,13 +1439,16 @@ function boot() {
   // reads them. R1: a paid-return boot is not special — it just sets
   // tier+credits and falls into the same render path as any rehydration;
   // density resolves from storage via getRenderTier().
-  handlePaidReturn(p => saveProfile(p.name, p.dob, p));
+  const consumedPending = handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
   if (existing) {
     try {
       populateRisingFields(existing);
-      showResult(profileFromPayload(existing), {
-        tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed(),
+      const profile = profileFromPayload(existing);
+      const tier = getRenderTier();
+      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: consumedPending });
+      showResult(profile, {
+        tier, credits: getCredits(), triesUsed: getTriesUsed(),
       });
     } catch (_) {
       // Corrupted stored profile — a malformed DOB, or (since the calc core
@@ -1448,6 +1462,7 @@ function boot() {
       // person's profile. #onboarding has no `hidden` class in the static
       // markup, so it's already visible — nothing else to do here.
       clearProfile();
+      clearFacetIndex();
       resetFormDisplay();
     }
   }

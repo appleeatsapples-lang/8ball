@@ -2,7 +2,7 @@
 
 > it already knows. you just have to ask.
 
-A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign. Shake. The free card surfaces **five** calibrated coordinates from your date of birth — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**: every coordinate has a cell, and the ones above your tier show as sealed hatches (withheld, not absent). Four of those five (all but the catalog numeral) are tappable to a static, tradition-cited meaning — what tarot/astrology/Chinese-zodiac/numerology tradition associates with that specific symbol, citation not interpretation. Three paid rungs ($3 / $6 / $9) open the rest of the sheet — your name enters the math at the first rung: rising sign, five-element, private animal, name number, soul urge; then personality, birthday, maturity, day pillar; then the hour pillar and the written 144-card entry. Reveal labels to read each coordinate's name, its derivation, and which counting system it belongs to; the result also states how many of the fifteen coordinates are open versus sealed at paid tiers. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path drives bracket resolution (low/mid/high) within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver.
+A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign. Shake. The free card surfaces **five** calibrated coordinates from your date of birth — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**: every coordinate has a cell, and the ones above your tier show as sealed hatches (withheld, not absent). Four of those five (all but the catalog numeral) are tappable to a static, tradition-cited meaning — what tarot/astrology/Chinese-zodiac/numerology tradition associates with that specific symbol, citation not interpretation. Three paid rungs ($3 / $6 / $9) open the rest of the sheet — your name enters the math at the first rung: rising sign, five-element, private animal, name number, soul urge; then personality, birthday, maturity, day pillar; then the hour pillar and the written 144-card entry. At t3, each explicit `flip again` spends one read and rotates that entry through its three shipped note positions; flips at lower tiers remain cosmetic. Reveal labels to read each coordinate's name, its derivation, and which counting system it belongs to; the result also states how many of the fifteen coordinates are open versus sealed at paid tiers. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path anchors the first visible note position within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver.
 
 **The card content ships in the public bundle.** This source tree includes the calculations, the UI, the positional catalog map, and `content/cards.v1.full.js` — 144 entries with name/type/habit/note × low/mid/high brackets. The locked render path shows symbols only; the unlocked render path (gated by paid credits per DOCTRINE §1 v0.22 / §4.B / §5.C) shows the full card content. The deck bytes are inspectable via View Source — the lock is a UI convention, not a vault. Private authoring source is preserved at `~/dev/8ball-private/cards.v1.full.js`.
 
@@ -27,7 +27,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
 5. Single-file rule — `index.html` ≤ 1500 lines (CI-enforced; the current count lives in the newest `journal.md` entry, not here).
-6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState`, `applyPaidReturn` transitions; replay-attack no-pending branch; same-profile idempotence; pending-profile round-trip) plus `tests/feedback_surface.test.js`.
+6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState`, `applyPaidReturn` transitions; replay-attack no-pending branch; same-profile idempotence; pending-profile round-trip), `tests/facet_rotation.test.js` (t3-only round-robin note rotation, debit coupling, persistence, zero-credit no-hidden-burn path), plus `tests/feedback_surface.test.js`.
 
 ## Structure
 
@@ -44,10 +44,10 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── calendar.js          Meeus lunar new year + solar terms, 1900–2100
 │   ├── cities.js            city autocomplete loader (lazy-loads assets/cities.json)
 │   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
-│   └── payments.js          pure state machine: isNewPair, nextShakeState, applyPaidReturn
+│   └── payments.js          pure state machines: new-profile reads + t3 facet rotation
 ├── ui/                      8 DOM-touching ES modules — init*UI({refs}, {hooks}) DI shape per §6 v0.23
 │   ├── tiers.js             compartment-card render + shareRowRefs + provenance/atlas/density
-│   ├── payments.js          paywall modal controller + ?paid=t1|t2|t3 handler
+│   ├── payments.js          paywall/paid-return controller + t3 current-facet storage
 │   ├── profile.js           profile persistence + form helpers
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
@@ -64,7 +64,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F)
 │   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
-│   ├── share_surface / payments_markup / payments_state / feedback_surface / modals  UI surfaces + state
+│   ├── share_surface / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
 │   └── privacy_scan / pii_scan / dependency_discipline / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs
 ├── assets/                  cities.json + favicons + og:image
