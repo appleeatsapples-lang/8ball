@@ -14,9 +14,10 @@ CONVERGENT finding set, and its absorb landed as `07e79e9` on a rebased
 feature commit (`ec991ad`) — the current PR head. This lane then
 delta-verified the rebase and every absorb on the new head.
 
-**FINAL VERDICT: MERGE WITH FIXES at head `07e79e9`, sequenced AFTER #94
-per packet §1 — 1 MED open (RC-M5, §1 authority index omits §1.I: one-line
-DOCTRINE fix), everything else closed or non-blocking.** Round 1 on
+**FINAL VERDICT: SAFE TO MERGE at head `b617faa`, sequenced AFTER #94 per
+packet §1.** RC-M5 (§1 authority index omitting §1.I) absorbed in `b617faa`
+on explicit controller word and verified by this lane; everything else
+closed or non-blocking.** Round 1 on
 `efaf8b4`: MERGE WITH FIXES — 4 MED (all doc-register renumber misses),
 2 LOW; all four absorbed in `07e79e9` with two further Codex governance
 items, every absorb verified closed by this lane. RC-M5 arrived via the
@@ -81,7 +82,8 @@ editing an append-only historical entry.)
   `DOCTRINE.md:523` sits inside the demoted v0.49 FOOTER bullet — L17
   lineage that carries its own explicit SHIPPED correction; by design.
 
-**RC-M5 — MED, OPEN — `DOCTRINE.md:11`: §1's own authority index omits
+**RC-M5 — MED — CLOSED (absorbed `b617faa` on explicit controller word;
+verified) — `DOCTRINE.md:11`: §1's own authority index omitted
 §1.I (Grok finding, relay run `20260720-021259-rc-tip`; verified by this
 lane at head `07e79e9`).** The "Current free/paid composition
 (authoritative)" paragraph enumerates "the §1.x clause family — §1.A
@@ -90,9 +92,11 @@ reads "where they disagree with §1.A–§1.H, the clauses win" — both end at
 §1.H, so the newest clause sits outside its own section's authority list.
 Same renumber class as RC-M3; the packet's R-tables never covered line 11
 (as S7 never covered `agents/`) — Codex Lane 1 and this lane's round 1
-both missed it; the third model caught it. **Fix (one line):** append
-"· §1.I registry + concordance" to the clause-family enumeration and widen
-the range to "§1.A–§1.I".
+both missed it; the third model caught it. **Fix as absorbed (`b617faa`):** the
+clause-family enumeration now ends "· §1.H t3 written-entry rotation ·
+§1.I registry + concordance." and the supremacy sentence reads "where they
+disagree with §1.A–§1.I, the clauses win" — both spans verified in-tree;
+suite 1290/1290; local PII audit clean; no test pins the range.
 
 **RC-L1 — LOW, OPEN — `agents/controller.md`'s RC override line embeds the
 operator's absolute home path (the `/Users/<login>/dev/8ball` form of
@@ -199,12 +203,14 @@ stack · repo-shape pins (10 ui / 36 tests) passing.
   host catch, 66/33/10/3/21 pinned). ADDS RC-M5 (§1 authority index) and
   the journal-numbers detail folded into merge-time note (b). Its
   concurrence: MERGE WITH FIXES — "not SAFE TO MERGE until the
-  renumber/version baseline is honest"; with M1–M4 since absorbed and
-  verified, RC-M5 is the remaining item of that set.
+  renumber/version baseline is honest"; with M1–M4 absorbed in `07e79e9`
+  and RC-M5 absorbed in `b617faa`, that set is now closed in full.
 
-**Disposition:** absorb RC-M5 (one line) in-PR — RC-L1's one-word path fix
-can ride the same commit — then this lane has no objection to the merge
-word for #95 AFTER #94 merges (packet §1 order). RC-L2 is a named
-follow-up; merge-time notes (a)/(b) belong to the STAGED→SHIPPED flip.
+**Disposition:** RC-M5 absorbed and verified; this lane has no objection
+to the merge word for #95 AFTER #94 merges (packet §1 order). Still open
+and non-blocking: RC-L1 (one-word tilde-path fix, not worded), RC-L2
+(named follow-up: voice-register scan over the registry strings);
+merge-time notes (a)/(b) belong to the STAGED→SHIPPED flip at the
+post-#94 rebase.
 
 — Claude lane (Claude Code, worktree `sr-rc-audit-brief-b42e71`), 2026-07-19/20
