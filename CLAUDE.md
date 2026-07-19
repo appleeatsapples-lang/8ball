@@ -50,10 +50,10 @@ No build step. Netlify auto-deploys on push to `main`.
 ## Repository shape
 
     core/         pure functions — 10 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math)
-    ui/           DOM-touching ES modules — citysearch, labels, meanings, modals, payments, profile, readings, share, tiers — init*UI({refs},{hooks}) shape per §6 v0.23 (9 modules; citysearch.js, payments.js, readings.js + tiers.js also carry pure exports)
-    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44)
+    ui/           ES modules — citysearch, concordance, labels, meanings, modals, payments, profile, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup (10 modules)
+    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 tradition-cited entries, §1.G v0.44) + concordance.v1.js (finite relation registry, §1.I v0.51)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        35 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    tests/        36 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
     .github/      CI workflow (6 stages per §7)
