@@ -1,4 +1,4 @@
-// modal controllers — about / forget-me + escape-to-close (§6 split).
+// modal controllers — about / forget-device + escape-to-close (§6 split).
 //
 // Owns:
 //   - DOM-touching init: wires the about / forget modals and the shared
@@ -7,8 +7,8 @@
 // Does NOT own:
 //   - the paywall modal (lives in ui/payments.js); the Escape handler closes
 //     it via the injected isPaywallOpen / closePaywall hooks
-//   - profile persistence (clearProfile / resetFormDisplay are injected
-//     hooks from ui/profile.js)
+//   - profile or Saved Readings persistence (clearProfile,
+//     clearSavedReadings, and resetFormDisplay are injected hooks)
 //
 // Extracted from index.html during the Coordinate Legibility Pack cycle to
 // free the line budget for the provenance surface (index.html was 1496/1500).
@@ -89,9 +89,9 @@ export function initModalsUI(refs, hooks) {
   aboutClose.addEventListener('click', closeAbout);
   aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAbout(); });
 
-  // forget-me — "forget this device" is the full erase: clear stored profile
-  // and return the form to its empty state. Distinct from "try another",
-  // which clears only the form DOM and keeps the stored profile.
+  // forget-device is the full erase: clear the current profile plus the
+  // Saved Readings archive, then return the form to its empty state.
+  // Distinct from "try another", which clears only the form DOM.
   // Focus lands on "leave it" so Enter can't erase by accident.
   function openForget() { openModal(forgetModal, forgetCancel); }
   function closeForget() { closeModal(forgetModal); }
@@ -99,6 +99,7 @@ export function initModalsUI(refs, hooks) {
   forgetCancel.addEventListener('click', closeForget);
   forgetConfirm.addEventListener('click', () => {
     if (h.clearProfile) h.clearProfile();
+    if (h.clearSavedReadings) h.clearSavedReadings();
     closeForget();
     if (h.resetFormDisplay) h.resetFormDisplay();
   });

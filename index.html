@@ -819,7 +819,10 @@
 <!-- ── top bar ─────────────────────────────────────────────────── -->
 <header class="topbar">
   <span class="wordmark">8 ball</span>
-  <button class="info-icon" id="about-btn" aria-label="about" type="button">i</button>
+  <div class="topbar-actions">
+    <button class="text-link readings-nav" id="readings-btn" type="button">previous readings</button>
+    <button class="info-icon" id="about-btn" aria-label="about" type="button">i</button>
+  </div>
 </header>
 
 <main class="stage">
@@ -943,8 +946,10 @@
 
     <div class="result-controls">
       <button class="btn btn-block" id="shake-again-btn">flip again</button>
+      <button class="btn btn-block btn-secondary" id="save-reading-btn" type="button">save reading</button>
       <button class="btn btn-block" id="share-btn" type="button">share</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
+      <p class="reading-save-status" id="save-reading-status" role="status" aria-live="polite" hidden></p>
       <div class="share-status" id="share-status" hidden></div>
       <div class="disclaimer">stored only on this device.</div>
       <div class="footer-actions">
@@ -978,7 +983,7 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs, counters, the paid rung, and the show-labels toggle are stored locally. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>nothing leaves your device on its own. inputs, counters, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
     <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
@@ -991,7 +996,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
-    <p>removes the saved name and date of birth from local storage on this device. no paperwork exists elsewhere.</p>
+    <p>removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
     <div class="modal-actions">
       <button class="btn" id="forget-cancel" type="button">leave it</button>
       <button class="btn" id="forget-confirm" type="button">erase it</button>
@@ -1043,6 +1048,7 @@ import {
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
+import { initReadingsUI, clearAllSavedReadings } from './ui/readings.js';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1067,14 +1073,14 @@ const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
 initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+let readingsUI = null;
 // about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
-  {
-    aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
-    forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'),
-    forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm'),
-  },
-  { clearProfile: () => { clearProfile(); clearFacetIndex(); }, resetFormDisplay, isPaywallOpen, closePaywall },
+  { aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
+    forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'), forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm') },
+  { clearProfile: () => { clearProfile(); clearFacetIndex(); },
+    clearSavedReadings: () => { clearAllSavedReadings(); if (readingsUI) readingsUI.setActiveReading(null); },
+    resetFormDisplay, isPaywallOpen, closePaywall },
 );
 // Host-owned state, declared BEFORE any init*UI call whose injected
 // setters close over these bindings — a setter fired synchronously
@@ -1082,14 +1088,27 @@ const modalsUI = initModalsUI(
 let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
-  {
-    timeInput, legacyHint, polarMessage, cityInput, citySuggestions,
-    risingFields, result, onboarding, nameInput, dobInput,
-  },
-  {
-    setSelectedCity: c => { selectedCity = c; },
-    setCurrentProfile: p => { currentProfile = p; },
-  }
+  { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
+);
+readingsUI = initReadingsUI(
+  { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
+    onboarding, result, stage: document.querySelector('.stage') },
+  { getCurrentProfile: loadSavedProfile,
+    openReading: reading => {
+      const payload = reading.profile;
+      const prev = loadSavedProfile();
+      const profile = profileFromPayload(payload);
+      saveProfile(payload.name, payload.dob, payload);
+      populateRisingFields(payload);
+      const tier = getRenderTier();
+      // Archive-open mirrors form-submit facet anchoring (§1.H): a
+      // different pair re-anchors to its life-path slot; reopening the
+      // current pair preserves the visible position, like a reload.
+      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
+      showResult(profile, { tier, credits: getCredits(), triesUsed: getTriesUsed(), arrive: true });
+      return true;
+    } },
 );
 // v0.3.0 fix B + step-12 absorb (codex hook 4 P2): clamp the native
 // date picker to today using local-date math, not UTC. toISOString()
@@ -1376,6 +1395,7 @@ profileForm.addEventListener('submit', e => {
     // every action — render-idempotent, render-locked, render-unlocked
     // alike. Credits/tries decide how many readings (already settled
     // above); the stored tier decides how much sheet.
+    readingsUI.setActiveReading(null);
     const tier = getRenderTier();
     if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNew });
     showResult(profile, { tier, credits: state.credits, triesUsed: state.triesUsed, arrive: true });
@@ -1391,6 +1411,7 @@ tryAnotherBtn.addEventListener('click', () => {
   // only, NOT eight_ball_profile_v1. Re-entering the same (name, dob)
   // remains idempotent and does not consume a free try or a paid
   // credit. To erase the stored profile, use "forget this device".
+  readingsUI.setActiveReading(null);
   resetFormDisplay();
 });
 cardBack.addEventListener('click', shakeAgain);
