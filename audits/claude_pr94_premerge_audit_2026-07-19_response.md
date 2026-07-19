@@ -24,11 +24,12 @@ every round-1 claim, and REFUTED the round-1 "zero runtime findings" with
 one t3 sequence this lane had not exercised — accepted below after
 independent re-verification.
 
-**FINAL VERDICT: MERGE WITH FIXES at head `52b859d` — 1 MED open
-(SR-M2, t3 facet re-anchor on archive open: small host-hook fix + pin, or
-an explicit controller waiver), everything else closed or non-blocking.**
-Round-1 doc MED absorbed and verified; storage/privacy/§5.E surfaces fully
-conformant.
+**FINAL VERDICT: SAFE TO MERGE at head `014dacc`.** Round 1 (`e03aeb2`):
+MERGE WITH FIXES — SR-M1 (doc MED) absorbed in `52b859d` and verified.
+Cross-check round: Grok's SR-M2 (runtime MED) absorbed in `014dacc` on
+explicit controller word and delta-verified by suite, static pin, and a
+live browser run of the exact defect sequence. No findings remain open
+above LOW; storage/privacy/§5.E surfaces fully conformant.
 
 ## Findings
 
@@ -41,9 +42,10 @@ bracketed "[renumbered §5.E v0.50 in the 2026-07-19 spree close-out; record
 wording otherwise preserved]" annotation — better than a token swap for a
 historical evidence record.
 
-**SR-M2 — MED — OPEN — archive-open at t3 renders the written entry at
-the PREVIOUS profile's rotation position, and the next funded flip debits
-from it (Grok finding; this lane re-verified the sequence and accepts the
+**SR-M2 — MED — CLOSED (absorbed `014dacc` on explicit controller word;
+delta-verified) — archive-open at t3 rendered the written entry at the
+PREVIOUS profile's rotation position, and the next funded flip debited
+from it (Grok finding; this lane re-verified the sequence and accepted the
 refutation of its round-1 "zero runtime" claim).** Mechanics: the
 `openReading` host hook (`index.html`, readings wiring) calls
 `profileFromPayload` → `saveProfile` → `showResult` but never
@@ -61,17 +63,20 @@ sequence; Grok did. Severity MED per the in-run reconciler, concurred:
 no PII, crash, storage corruption, or data loss; t3-only; but it is a real
 behavioral divergence on the paid surface with a debit continuing from a
 position the user never established for that profile.
-**Fix (small, submit-path parity):** in `openReading`, capture
-`const prev = loadSavedProfile()` BEFORE `saveProfile(...)`, then after
-building the profile: `if (getRenderTier() === 't3')
-ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });`
-before `showResult` — plus a host pin (readings or facet suite). Same-
-person reopen keeps preserve semantics; different-person reopen re-anchors,
-mirroring §1.H's new-profile rule. ALTERNATIVE: the controller may
-consciously waive for this MVP (grounds above); the waiver word is the
-controller's, not this lane's. Auditor-independence note: per charter §5.E
-this lane files the finding and recipe but does not self-absorb into the
-PR it is auditing — the absorb is implementer-lane work on the word.
+**Fix as absorbed (`014dacc`, submit-path parity):** `openReading` now
+captures `const prev = loadSavedProfile()` BEFORE `saveProfile(...)`, then
+`if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset:
+isNewPair(payload, prev) });` before `showResult`; +1 static pin in
+`tests/readings.test.js` locking capture-before-save, the isNewPair-driven
+reset, and ordering. Authority chain: finding by Grok, recipe by this lane
+(reconciler-upheld), absorb worded explicitly by the controller in-session
+— the auditor implemented its own recipe only on that word; finding origin
+stays cross-model. **Delta verification:** suite 1280/1280 (35 files; +1 =
+the pin); `index.html` 1495/1500; live-fired on the served fix tree —
+boot A (LP 3) anchors slot 0 · funded flip 0→1 debits 3→2 · open B (LP 9)
+re-anchors to B's slot 2 with credits UNCHANGED · reopen A resets to 0 ·
+flip 0→1 debits 2→1 · SAME-pair reopen preserves slot 1, no debit · zero
+console errors. Local PII audit clean (99 files).
 
 **SR-L1 — LOW, OPEN (optional) —** explicit-action-only save is
 code-enforced but not negatively pinned (`addSavedReading` reachable only
