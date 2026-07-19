@@ -1097,10 +1097,16 @@ readingsUI = initReadingsUI(
   { getCurrentProfile: loadSavedProfile,
     openReading: reading => {
       const payload = reading.profile;
+      const prev = loadSavedProfile();
       const profile = profileFromPayload(payload);
       saveProfile(payload.name, payload.dob, payload);
       populateRisingFields(payload);
-      showResult(profile, { tier: getRenderTier(), credits: getCredits(), triesUsed: getTriesUsed(), arrive: true });
+      const tier = getRenderTier();
+      // Archive-open mirrors form-submit facet anchoring (§1.H): a
+      // different pair re-anchors to its life-path slot; reopening the
+      // current pair preserves the visible position, like a reload.
+      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
+      showResult(profile, { tier, credits: getCredits(), triesUsed: getTriesUsed(), arrive: true });
       return true;
     } },
 );
