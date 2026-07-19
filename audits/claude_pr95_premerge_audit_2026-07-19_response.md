@@ -17,7 +17,7 @@ delta-verified the rebase and every absorb on the new head.
 **FINAL VERDICT: SAFE TO MERGE at head `b617faa`, sequenced AFTER #94 per
 packet §1.** RC-M5 (§1 authority index omitting §1.I) absorbed in `b617faa`
 on explicit controller word and verified by this lane; everything else
-closed or non-blocking.** Round 1 on
+closed or non-blocking. Round 1 on
 `efaf8b4`: MERGE WITH FIXES — 4 MED (all doc-register renumber misses),
 2 LOW; all four absorbed in `07e79e9` with two further Codex governance
 items, every absorb verified closed by this lane. RC-M5 arrived via the
