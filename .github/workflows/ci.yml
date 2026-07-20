@@ -52,8 +52,8 @@ jobs:
             fi
           fi
           echo "audit-artifact gate: pass"
-      - name: L48 gate — claude/* PRs require an in-PR audit artifact
-        if: github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'claude/')
+      - name: L48 gate — PRs require an in-PR audit artifact
+        if: github.event_name == 'pull_request'
         run: |
           BASE="origin/${{ github.event.pull_request.base.ref }}"
           git fetch --no-tags --prune origin "${{ github.event.pull_request.base.ref }}"
@@ -67,6 +67,6 @@ jobs:
           if echo "$CHANGED" | grep -qE "^audits/[^/]*pr${PR}[^0-9][^/]*\.md$"; then
             echo "L48 gate: audit artifact naming pr${PR} present — pass"
           else
-            echo "::error::claude/* PR without an in-PR audit artifact (L48). Commit the cross-model verdict response as audits/<model>_pr${PR}_premerge_audit_<date>_response.md, or an explicit override as audits/L48_override_pr${PR}_<date>.md — the override file IS the L48 sighting log."
+            echo "::error::PR without an in-PR audit artifact (L48). Commit the cross-model verdict response as audits/<model>_pr${PR}_premerge_audit_<date>_response.md, or an explicit override as audits/L48_override_pr${PR}_<date>.md — the override file IS the L48 sighting log."
             exit 1
           fi
