@@ -10,7 +10,9 @@ import {
   MASTER_REDUCTION_LINKS,
   SIGNS,
 } from '../content/concordance.v1.js';
+import * as CONCORDANCE_REGISTRY from '../content/concordance.v1.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
+import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -152,5 +154,62 @@ describe('concordance product and privacy contract', () => {
     expect(readingsJs).toMatch(/min-height: 44px/);
     expect(readingsJs).toMatch(/@media \(min-width: 720px\)/);
     expect(readingsJs).toMatch(/comparisons are not stored/);
+  });
+});
+
+// Voice-register + content-policy scan over the registry strings (DOCTRINE
+// §2/§4), same tables the deck (profile.test.js) and meanings
+// (meanings_content.test.js) scans already run. §7 stage-1's enumeration
+// predates this block; every string reachable from the module's exports —
+// source labels, relation names, family notes, citations, the qualifier —
+// must hold the clinical register, and any `concordance.v2.js` revision
+// must carry this scan forward to the new file.
+describe('content/concordance.v1.js — voice register + content policy (DOCTRINE §2/§4)', () => {
+  function* registryStrings(value, path = 'concordance.v1') {
+    if (typeof value === 'string') {
+      yield { path, text: value };
+    } else if (Array.isArray(value)) {
+      for (const [i, item] of value.entries()) yield* registryStrings(item, `${path}[${i}]`);
+    } else if (value && typeof value === 'object') {
+      for (const [key, item] of Object.entries(value)) yield* registryStrings(item, `${path}.${key}`);
+    }
+  }
+
+  it('walks a non-trivial string surface (guards the walker itself)', () => {
+    // If a refactor made the walk yield nothing, the three scans below would
+    // pass vacuously — pin a floor well under the real count so growth is
+    // free but silent emptiness is not.
+    const strings = [...registryStrings(CONCORDANCE_REGISTRY)];
+    expect(strings.length).toBeGreaterThan(50);
+  });
+
+  it('no BANNED_VOICE_REGISTER hits', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings(CONCORDANCE_REGISTRY)) {
+      for (const term of BANNED_VOICE_REGISTER) {
+        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        if (re.test(text)) hits.push(`${path}: matched "${term}" in "${text.slice(0, 80)}"`);
+      }
+    }
+    expect(hits, `Voice-register violations in concordance.v1.js:\n${hits.join('\n')}`).toEqual([]);
+  });
+
+  it('no BANNED_PATTERNS slur hits', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings(CONCORDANCE_REGISTRY)) {
+      for (const re of BANNED_PATTERNS) {
+        if (re.test(text)) hits.push(`${path}: matched ${re}`);
+      }
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('never addresses the reader directly and never reaches for diagnostic framing', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings(CONCORDANCE_REGISTRY)) {
+      if (/\byou\b|\byour\b|\byou're\b/i.test(text)) hits.push(`${path}: second-person address`);
+      if (/\b(diagnos(is|e|ed)|disorder|syndrome)\b/i.test(text)) hits.push(`${path}: diagnostic framing`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
   });
 });

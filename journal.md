@@ -5,13 +5,26 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — housekeeping: spree open-debt flags closed (RC-L1 tilde path · RC-L2 registry voice-scan · 8BALL §11.11 t3 SHIPPED) + L48-entry flip — STAGED
+
+**Status: STAGED on `claude/8ball-handoff-sr-rc-t3-df6ca2`, riding its own claude/* PR; the merge is its own word.**
+
+**What and why.** Four truth/debt items left open at the SR/RC/t3 spree close-out, batched per the handoff's default path before new feature work:
+
+1. **RC-L1 (LOW, PR #95 audit).** `agents/controller.md`'s Registry+Concordance override record carried the absolute `/Users/<login>/dev/8ball` path — CI-legal via `DOCTRINE_ALLOW`, but house style is `~/dev/8ball`. One-word fix; the pii_scan allow-list is file-level and unchanged.
+2. **RC-L2 (LOW, PR #95 audit).** `content/concordance.v1.js` strings sat under NO voice-register scan — §7 stage-1's enumerated scans cover the deck and meanings only. `tests/concordance.test.js` now walks every string reachable from the registry module's exports (source labels, relation names, family notes, citations, qualifier) through the shared `BANNED_VOICE_REGISTER`/`BANNED_PATTERNS` tables plus the second-person and diagnostic-framing checks, with a non-vacuity floor guarding the walker itself. The shipped registry passes with zero content edits (§4 immutability untouched). §7's stage-1 enumeration now under-describes coverage — the safe direction; its one-sentence catch-up rides the next DOCTRINE-touching cycle rather than escalating this batch into the substantive-doctrine gate. Any `concordance.v2.js` must carry the scan forward.
+3. **8BALL.md §11 item 11.** Still claimed t3 was "staged on `codex/t3-facet-rotation`… Independent doctrine audit remains required before merge" — pre-existing staleness flagged in the PR #94 audit, never batched; the branch no longer exists. Corrected to SHIPPED #93 (`0e49773`) with the audit-chain summary, matching the shipped-item style of its neighbors.
+4. **L48-entry flip (on-sighting).** The L48 scope-widening entry below still read STAGED after #98 merged as `eec6fed` — same class as the v0.48/v0.50/v0.51 footer flips; corrected per that mechanical precedent, citing the in-PR override artifact and the #99 verdict closure.
+
+**Verification.** Suite **1295/1295 (36 files)** under vitest 4.1.9 (+4 registry-scan tests over the 1291 spree baseline; no new test file, `repo_shape` pins unchanged). Local PII audit clean (108 files). `index.html` untouched at 1498/1500. **Scope (files):** `agents/controller.md`, `8BALL.md`, `tests/concordance.test.js`, this file (+ the in-PR L48 audit artifact once the PR number exists). **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`.
+
 ## 2026-07-20 — DOCTRINE v0.51 footer STAGED→SHIPPED correction — mechanical edit
 
 One clause: the v0.51 footer head's stale staging status now records the #95 merge (`b1cfd32`) with the on-sighting correction marker, per the v0.48/v0.50 footer precedent. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run for this change; classification note at `audits/mechanical_footer_correction_2026-07-20.md`. The substantive v0.51 change carries its own closed three-model chain (#95's in-repo artifacts). No rule, mechanic, or product text touched.
 
 ## 2026-07-20 — L48 scope widened: audit-artifact gate covers every PR — STAGED
 
-**Status: riding its own claude/* PR; the merge is its own word. Packet §8 promotion rider, on explicit word.**
+**Status: SHIPPED — squash-merged to `main` as `eec6fed` (#98) on 2026-07-20; pre-merge record below preserved verbatim. The widened gate governed its own PR: the in-PR override artifact `audits/L48_override_pr98_2026-07-20.md` satisfied it (L48 sighting #6, the first self-documented one), and the Codex verdict landed ~2 minutes post-merge — SAFE TO MERGE, zero findings — closed via #99 (`8f00bfd`, `audits/codex_pr98_premerge_audit_2026-07-20_response.md`). This status flip is a mechanical on-sighting correction per the v0.44/v0.48/v0.50/v0.51 footer-flip precedent; the packet §8 promotion rider it rode shipped with it.**
 
 **What and why.** The #92 gate triggered on `claude/*` head refs only — lane-A F2 measured that hole as the whole live spree (feature/* ×2 + codex/* dirt = 0/3 covered), and the SR/RC cycle (#94/#95) then ran precisely there: two feature/* PRs whose artifact discipline held by charter choreography alone, not CI. The step's `if:` drops the prefix test (now bare `github.event_name == 'pull_request'`); the step name and `::error` text drop `claude/*`. Docs-only + governance-markdown exemption logic unchanged (already branch-agnostic). Every lane now red-blocks the same way: cross-model verdict response in-PR, or the self-documenting `audits/L48_override_prNN_<date>.md`. Closes lane-A F2; option B (agent-lane-prefix scope) stays the recorded fallback.
 
