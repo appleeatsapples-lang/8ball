@@ -5,6 +5,10 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — DOCTRINE v0.51 footer STAGED→SHIPPED correction — mechanical edit
+
+One clause: the v0.51 footer head's stale staging status now records the #95 merge (`b1cfd32`) with the on-sighting correction marker, per the v0.48/v0.50 footer precedent. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run for this change; classification note at `audits/mechanical_footer_correction_2026-07-20.md`. The substantive v0.51 change carries its own closed three-model chain (#95's in-repo artifacts). No rule, mechanic, or product text touched.
+
 ## 2026-07-20 — L48 scope widened: audit-artifact gate covers every PR — STAGED
 
 **Status: riding its own claude/* PR; the merge is its own word. Packet §8 promotion rider, on explicit word.**
