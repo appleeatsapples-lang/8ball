@@ -66,8 +66,9 @@ export const HARMONY_THEME_ALIASES = {
 };
 
 // Each coordinate has one job in the combined reading and two preferred
-// neighbors. ui/meanings.js falls back to the always-open anchors when a
-// preferred neighbor is sealed or unresolved.
+// neighbors. When a preferred neighbor is sealed or unresolved,
+// ui/meanings.js falls back numerology-only for the six numerology
+// coordinates and to the open anchor coordinates for everything else.
 export const COORDINATE_CONTEXT = {
   arcana: { role: 'the frame of the full reading', partners: ['sun', 'lifePath'] },
   element: { role: 'the material tempo', partners: ['sun', 'animal'] },
