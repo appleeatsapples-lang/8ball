@@ -194,6 +194,57 @@ describe('Saved Readings host and privacy wiring', () => {
     );
   });
 
+  it('archive open is a pure rehydrate — no payment state machine, counters read-only', () => {
+    // P3-3 (post-spree audit): greps alone can be loosened; this extracts the
+    // openReading body and forbids every debit/write path. showResult must
+    // receive getCredits()/getTriesUsed() as display passthrough only.
+    const match = html.match(/openReading:\s*reading\s*=>\s*\{([\s\S]*?)\n\s*\},/);
+    expect(match, 'openReading hook body not found in index.html').toBeTruthy();
+    const body = match[1];
+    for (const banned of [
+      'nextShakeState', 'consumeFacetShake', 'applyPaidReturn',
+      'setCredits', 'setTriesUsed', 'openPaywall', 'setPendingProfile',
+      'clearPendingProfile',
+    ]) {
+      expect(body, `openReading must not call ${banned}`).not.toMatch(new RegExp(banned));
+    }
+    expect(body).toMatch(/credits:\s*getCredits\(\)/);
+    expect(body).toMatch(/triesUsed:\s*getTriesUsed\(\)/);
+    // Facet re-anchor is allowed (SR-M2) but is not a credit/try debit.
+    expect(body).toMatch(/ensureFacetIndex/);
+  });
+
+  it('archive storage ops never mutate tries/credits/tier/facet payment keys', () => {
+    // Behavioral twin to the host-body pin: exercise the readings module
+    // against a shared storage that already holds paid state; after
+    // save/load/rename/delete/clear the payment keys must be byte-identical.
+    const paymentSnap = {
+      eight_ball_tries_used_v1: '2',
+      eight_ball_credits_v1: '3',
+      eight_ball_tier_v1: 't3',
+      eight_ball_facet_index_v1: '1',
+    };
+    const storage = makeStorage({ ...paymentSnap });
+    const first = addSavedReading(mkProfile('Archive A', '1990-01-01'), {
+      storage, now: '2026-07-18T10:00:00.000Z',
+    });
+    expect(first.status).toBe('ok');
+    addSavedReading(mkProfile('Archive B', '1991-02-02'), {
+      storage, now: '2026-07-18T11:00:00.000Z',
+    });
+    const loaded = loadSavedReadings(storage);
+    expect(loaded.status).toBe('ok');
+    expect(loaded.readings.length).toBe(2);
+    renameSavedReading(loaded.readings[0].id, 'Renamed B', { storage });
+    deleteSavedReading(loaded.readings[1].id, { storage });
+    clearAllSavedReadings(storage);
+    for (const [key, value] of Object.entries(paymentSnap)) {
+      expect(storage.getItem(key), key).toBe(value);
+    }
+    // Readings key gone; payment keys still exactly as seeded.
+    expect(storage.getItem(READINGS_KEY)).toBeNull();
+  });
+
   it('injects an accessible confirmation dialog and responsive list styles', () => {
     expect(readingsJs).toMatch(/role="dialog" aria-modal="true"/);
     expect(readingsJs).toMatch(/trapTab\(confirmModal\)/);
