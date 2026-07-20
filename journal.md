@@ -5,6 +5,23 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — §3 row 8 SUPERSESSION: nine terminal numbers (calc v3) — controller word
+- SUPERSEDES, explicitly and by name: (a) the #110 journal record "v0.52–v0.54
+  WIP stack: PARKED" and its resumption conditions — this entry IS the §3 row 8
+  decision amendment that record required; (b) the unmerged record f44255e
+  (claude/masters-decision-record, "masters preserved / v0.54 leg permanently
+  parked") — retired without merging; its text remains in branch history,
+  unmodified.
+- DECISION (controller, 2026-07-20): active-product numerology is exactly nine
+  terminal numbers 1–9. 11→2, 22→4, 33→6 under repeated reduction, across all
+  six axes (life path, name number, soul urge, personality, birthday, maturity).
+  Zero-contributing-letter subsets are unresolved (—), never 0.
+- ACCEPTED COST, named openly: profiles whose former raw path passed through a
+  master re-anchor from the reduced digit; former-master users' note position
+  moves from high to the reduced anchor on first calc-v3 load (see facet
+  migration in this change).
+- Nothing above this entry is rewritten; prior text stands as lineage.
+
 ## 2026-07-20 — strict nine-number numerology + numerology-only harmony + doctrine v0.54 / calc v3 — RESUMED · STAGED
 
 **Status: RESUMED and STAGED on `codex/all-coordinates-clickable` after the controller's later explicit nine-number product decision and explicit instruction to replay onto current main.** The branch was fast-forwarded from the parked pre-#97 base to `6ff11b0` (#110/current `origin/main`) and its preserved worktree snapshot was replayed without rewriting the historical #110 PARKED record below. This entry prospectively supersedes that earlier parking decision; it does not erase it. The branch retains the v0.53 all-coordinate interaction work while replacing its cross-system numerology behavior. No commit, push, PR, merge, deploy, account, or third-party action was authorized or performed; §10/L48 independent cross-model audit remains required before merge.
