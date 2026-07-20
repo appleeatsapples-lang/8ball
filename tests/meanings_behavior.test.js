@@ -176,6 +176,10 @@ describe('ui/meanings.js behavior', () => {
     vals.sun.textContent = 'aries';
     cardFace._fire('click', { target: vals.sun });
     const p = panel();
+    // The open panel must be interactive before the ordering is probed —
+    // the transition labels alone cannot prove a valid open state.
+    expect(p.inert).toBe(false);
+    expect(p.attrs['aria-hidden']).toBe('false');
     const close = p._byId['meaning-close'];
     close.focus();
 
@@ -206,6 +210,11 @@ describe('ui/meanings.js behavior', () => {
 
     expect(transitions).toEqual(['inert:toggler', 'aria-hidden:toggler']);
     expect(globalThis.document.activeElement).toBe(cells.sun);
+    // Terminal closed state pinned independently of the transition log —
+    // a close() that re-activates the panel after the recorded
+    // transitions must fail here, not pass on sequence alone.
+    expect(p.inert).toBe(true);
+    expect(p.attrs['aria-hidden']).toBe('true');
   });
 
   it('the close button closes and deactivates; re-init is a no-op', () => {
