@@ -222,7 +222,10 @@ describe('Saved Readings host and privacy wiring', () => {
       eight_ball_tries_used_v1: '2',
       eight_ball_credits_v1: '3',
       eight_ball_tier_v1: 't3',
+      // Both facet-key generations: the readings module must not perform
+      // the calc-v3 one-shot v1 clear — that belongs to ui/payments reads.
       eight_ball_facet_index_v1: '1',
+      eight_ball_facet_index_v2: '1',
     };
     const storage = makeStorage({ ...paymentSnap });
     const first = addSavedReading(mkProfile('Archive A', '1990-01-01'), {
