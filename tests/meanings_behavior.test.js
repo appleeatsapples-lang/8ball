@@ -93,10 +93,19 @@ describe('ui/meanings.js behavior', () => {
       cells[key] = cell; vals[key] = val;
       byId.set(id, val);
     }
+    const docHandlers = {};
     globalThis.document = {
       getElementById: id => byId.get(id) || null,
       createElement: makeNode,
       head: { appendChild: node => { if (node.id) byId.set(node.id, node); } },
+      querySelector: () => null,
+      addEventListener(ev, fn) {
+        docHandlers[ev] = docHandlers[ev] || [];
+        docHandlers[ev].push(fn);
+      },
+      _fire(ev, e) {
+        for (const fn of docHandlers[ev] || []) fn(e);
+      },
     };
     initMeaningsUI({ cardFace });
   });
@@ -225,6 +234,25 @@ describe('ui/meanings.js behavior', () => {
     expect(cells.sun.classList.contains('active')).toBe(false);
     initMeaningsUI({ cardFace }); // second init must not duplicate the panel
     expect(cardFace.children.filter(c => c.id === 'meaning-panel')).toHaveLength(1);
+  });
+
+  it('Escape closes an open meanings panel and restores focus to the toggler', () => {
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    expect(panel().classList.contains('open')).toBe(true);
+    globalThis.document._fire('keydown', { key: 'Escape' });
+    expect(panel().classList.contains('open')).toBe(false);
+    expect(cells.sun.classList.contains('active')).toBe(false);
+    expect(cells.sun.focused).toBe(true);
+  });
+
+  it('Escape is a no-op when a modal-bg overlay is open (modal wins)', () => {
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    globalThis.document.querySelector = sel =>
+      (sel === '.modal-bg.open' ? { className: 'modal-bg open' } : null);
+    globalThis.document._fire('keydown', { key: 'Escape' });
+    expect(panel().classList.contains('open')).toBe(true);
   });
 });
 
