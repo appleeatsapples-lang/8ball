@@ -625,15 +625,19 @@ describe('content/cards.v1.full.js — v0.3.0 deck contract', () => {
   });
 
   it('scans the exact deck module the runtime imports (scan-target parity)', () => {
-    // PR #101 MED-2: a future cards.v2 deck (§4 — new release = new file)
-    // must not ship unscanned while this file greens on v1. index.html is the
-    // sole runtime importer; when its import moves, this fails until the
-    // scan's static imports move to the same file in the same change.
-    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-    const specifiers = [...html.matchAll(
-      /from\s+['"]\.{1,2}\/content\/(cards\.[\w.]+\.js)['"]/g,
-    )].map(match => match[1]);
-    expect(specifiers.length).toBeGreaterThan(0);
-    for (const specifier of specifiers) expect(specifier).toBe('cards.v1.full.js');
+    // PR #101 MED-2 + PR #104 codex absorb: a future cards.v2 deck (§4 —
+    // new release = new file) must not ship unscanned while this file greens
+    // on v1. The expected specifier is derived from THIS file's own static
+    // deck import — not a free-floating literal — so updating the runtime
+    // (index.html, the sole importer) without moving the scan's import
+    // fails, and vice versa.
+    const family = /from\s+['"]\.{1,2}\/content\/(cards\.[\w.]+\.js)['"]/g;
+    const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
+      .map(match => match[1]);
+    const runtime = [...readFileSync(join(__dirname, '..', 'index.html'), 'utf-8').matchAll(family)]
+      .map(match => match[1]);
+    expect(own.length).toBeGreaterThan(0);
+    expect(runtime.length).toBeGreaterThan(0);
+    for (const specifier of [...own, ...runtime]) expect(specifier).toBe(own[0]);
   });
 });

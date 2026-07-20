@@ -220,15 +220,19 @@ describe('content/concordance.v1.js — voice register + content policy (DOCTRIN
   });
 
   it('scans the exact registry module the runtime imports (scan-target parity)', () => {
-    // PR #101 MED-2: a future concordance.v2.js (§4 — new release = new file)
-    // must not ship unscanned while this file greens on v1. ui/concordance.js
-    // is the sole runtime importer; when its import moves, this fails until
-    // the scan's static imports move to the same file in the same change.
-    const specifiers = [...concordanceJs.matchAll(
-      /from\s+['"]\.{1,2}\/content\/(concordance\.[\w.]+\.js)['"]/g,
-    )].map(match => match[1]);
-    expect(specifiers.length).toBeGreaterThan(0);
-    for (const specifier of specifiers) expect(specifier).toBe('concordance.v1.js');
+    // PR #101 MED-2 + PR #104 codex absorb: a future concordance.v2.js (§4 —
+    // new release = new file) must not ship unscanned while this file greens
+    // on v1. The expected specifier is derived from THIS file's own static
+    // registry imports — not a free-floating literal — so updating the
+    // runtime (ui/concordance.js, the sole importer) without moving the
+    // scan's imports fails, and vice versa.
+    const family = /from\s+['"]\.{1,2}\/content\/(concordance\.[\w.]+\.js)['"]/g;
+    const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
+      .map(match => match[1]);
+    const runtime = [...concordanceJs.matchAll(family)].map(match => match[1]);
+    expect(own.length).toBeGreaterThan(0);
+    expect(runtime.length).toBeGreaterThan(0);
+    for (const specifier of [...own, ...runtime]) expect(specifier).toBe(own[0]);
   });
 });
 
