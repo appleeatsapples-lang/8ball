@@ -5,6 +5,14 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — L48 scope widened: audit-artifact gate covers every PR — STAGED
+
+**Status: riding its own claude/* PR; the merge is its own word. Packet §8 promotion rider, on explicit word.**
+
+**What and why.** The #92 gate triggered on `claude/*` head refs only — lane-A F2 measured that hole as the whole live spree (feature/* ×2 + codex/* dirt = 0/3 covered), and the SR/RC cycle (#94/#95) then ran precisely there: two feature/* PRs whose artifact discipline held by charter choreography alone, not CI. The step's `if:` drops the prefix test (now bare `github.event_name == 'pull_request'`); the step name and `::error` text drop `claude/*`. Docs-only + governance-markdown exemption logic unchanged (already branch-agnostic). Every lane now red-blocks the same way: cross-model verdict response in-PR, or the self-documenting `audits/L48_override_prNN_<date>.md`. Closes lane-A F2; option B (agent-lane-prefix scope) stays the recorded fallback.
+
+**Verification.** Suite 1291/1291 (36 files) unchanged — workflow + journal touch only; local PII audit clean; the PR red-blocks on its own widened gate until its artifact lands (the #92 self-demonstration pattern, now branch-agnostic by construction). **Scope (files):** `.github/workflows/ci.yml`, this entry.
+
 ## 2026-07-19 — Registry + Concordance MVP: transient two-reading structural lookup + doctrine v0.51 — STAGED
 
 **Status: SHIPPED — squash-merged to `main` as `b1cfd32` (#95) on 2026-07-20; pre-merge record below preserved verbatim. Cross-model gate cleared IN-PR before the merge word: Claude-lane round 1 MERGE WITH FIXES — 4 MED renumber misses filed in `audits/claude_pr95_premerge_audit_2026-07-19_response.md`, convergent with the Codex spree cross-check whose absorb (`07e79e9`) closed them plus the §1.I entitlement carve-out and §1.H SHIPPED flip; Grok cross-check confirmed every finding at exact lines and surfaced RC-M5 (§1's authority index omitted §1.I), absorbed at `b617faa` on explicit controller word; final verdict SAFE TO MERGE. Rebased onto post-#94 main per packet §4a with range-diff-proven replay fidelity; the post-rebase suite caught a stack interaction (SR + RC landed index.html exactly at the 1500 cap) compacted at `9c9d85f` — merged tree 1498/1500, suite 1291/1291 (36 files). Originally: STAGED on `feature/registry-concordance-mvp`; implemented, test-clean, and browser-verified in the branch-local feature commit. Not pushed, no PR opened, not merged, not deployed. Because this changes DOCTRINE and adds a versioned content registry, the normal §10/L48 cross-model audit remains a pre-merge gate outside this one-time implementation authorization.**
