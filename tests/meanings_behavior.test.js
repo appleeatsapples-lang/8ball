@@ -37,7 +37,11 @@ function makeNode(tag = 'div') {
     setAttribute(k, v) { this.attrs[k] = v; },
     focused: false,
     focusCount: 0,
-    focus() { this.focused = true; this.focusCount++; },
+    focus() {
+      this.focused = true;
+      this.focusCount++;
+      if (globalThis.document) globalThis.document.activeElement = this;
+    },
     appendChild(c) { this.children.push(c); },
     addEventListener(ev, fn) { handlers[ev] = fn; },
     _fire(ev, e) { return handlers[ev] && handlers[ev](e); },
@@ -168,23 +172,40 @@ describe('ui/meanings.js behavior', () => {
     expect(cells.sun.focusCount).toBe(1);
   });
 
-  it('close() moves focus out BEFORE the panel goes inert (ordering pin)', () => {
+  it('returns focus before making the meanings panel inert and aria-hidden', () => {
     vals.sun.textContent = 'aries';
     cardFace._fire('click', { target: vals.sun });
     const p = panel();
-    expect(p.inert).toBe(false);
-    let inertAtFocusTime = null;
-    const origFocus = cells.sun.focus.bind(cells.sun);
-    cells.sun.focus = function (...args) {
-      inertAtFocusTime = p.inert;
-      return origFocus(...args);
+    const close = p._byId['meaning-close'];
+    close.focus();
+
+    const transitions = [];
+    const focusLabel = () => {
+      if (globalThis.document.activeElement === cells.sun) return 'toggler';
+      if (globalThis.document.activeElement === close) return 'close';
+      return 'other';
     };
-    p._byId['meaning-close']._fire('click');
-    expect(cells.sun.focused).toBe(true);
-    // The focus restore must run while the panel is still interactive; the
-    // panel goes inert only after focus has already left its subtree.
-    expect(inertAtFocusTime).toBe(false);
-    expect(p.inert).toBe(true);
+    let inert = p.inert;
+    Object.defineProperty(p, 'inert', {
+      configurable: true,
+      get: () => inert,
+      set: value => {
+        inert = value;
+        if (value) transitions.push(`inert:${focusLabel()}`);
+      },
+    });
+    const setAttribute = p.setAttribute.bind(p);
+    p.setAttribute = (name, value) => {
+      if (name === 'aria-hidden' && value === 'true') {
+        transitions.push(`aria-hidden:${focusLabel()}`);
+      }
+      setAttribute(name, value);
+    };
+
+    close._fire('click');
+
+    expect(transitions).toEqual(['inert:toggler', 'aria-hidden:toggler']);
+    expect(globalThis.document.activeElement).toBe(cells.sun);
   });
 
   it('the close button closes and deactivates; re-init is a no-op', () => {
