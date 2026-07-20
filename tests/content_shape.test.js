@@ -121,7 +121,12 @@ describe('content shape — velvet lexicon', () => {
       }
     }
     expect(otherHits, `velvet leaked outside names:\n${otherHits.join('\n')}`).toEqual([]);
-    expect(nameHits).toHaveLength(11);
+    expect(nameHits.map((h) => h.name).sort()).toEqual([
+      'the sad velvet', 'the velvet alarm', 'the velvet appetite',
+      'the velvet command', 'the velvet demand', 'the velvet shove',
+      'the velvet spark', 'the velvet storm', 'the velvet strike',
+      'the velvet sulk', 'the velvet trapdoor',
+    ]);
     const headInversions = nameHits.filter(({ name }) => words(name)[2] === 'velvet');
     expect(headInversions.map(h => h.name)).toEqual(['the sad velvet']);
   });
@@ -221,7 +226,9 @@ describe('content shape — names never name their parents', () => {
     const hits = [];
     for (const { sun, animal, cell } of cells()) {
       for (const w of words(cell.name)) {
-        if (identity.has(w.toLowerCase())) hits.push(`${sun}.${animal}: ${cell.name}`);
+        if (identity.has(w.toLowerCase().replace(/[^a-z]/g, ''))) {
+          hits.push(`${sun}.${animal}: ${cell.name}`);
+        }
       }
     }
     expect(hits, hits.join('\n')).toEqual([]);
@@ -229,7 +236,7 @@ describe('content shape — names never name their parents', () => {
 
   it('the word "sun" (the star, not the sign) is licensed exactly once', () => {
     const hits = [...cells()]
-      .filter(({ cell }) => words(cell.name).some((w) => w.toLowerCase() === 'sun'))
+      .filter(({ cell }) => words(cell.name).some((w) => w.toLowerCase().replace(/[^a-z]/g, '') === 'sun'))
       .map(({ sun, animal, cell }) => ({ sun, animal, name: cell.name }));
     expect(hits).toEqual([{ sun: 'leo', animal: 'pig', name: 'the banquet sun' }]);
   });
@@ -317,7 +324,7 @@ describe('content shape — lexical rules', () => {
 
   it('"scale" as an anchor noun is a libra-row injection (×2)', () => {
     const hits = [...cells()]
-      .filter(({ cell }) => /\bscale\b/.test(cell.type))
+      .filter(({ cell }) => words(cell.type.split(' · ')[1]).at(-1) === 'scale')
       .map(({ sun, animal }) => ({ sun, animal }));
     expect(hits).toEqual([
       { sun: 'libra', animal: 'ox' },
@@ -368,29 +375,29 @@ describe('content shape — column formulas (mid payloads and clause signatures)
   const highOf = (animal) => SUN_ORDER.map((sun) => CARDS[sun][animal].note.high);
 
   it('tiger mids argue with the aftermath (10/12; cleanup ×5)', () => {
-    expect(midOf('tiger').filter((t) => /argues with|negotiates/.test(t)).length).toBe(10);
+    expect(midOf('tiger').filter((t) => /\bargues with\b|\bnegotiates\b/.test(t)).length).toBe(10);
     expect(midOf('tiger').filter((t) => /\bcleanup\b/.test(t)).length).toBe(5);
   });
 
   it('horse mids resent the tether (10/12)', () => {
-    expect(midOf('horse').filter((t) => /resents|argues with/.test(t)).length).toBe(10);
+    expect(midOf('horse').filter((t) => /\bresents\b|\bargues with\b/.test(t)).length).toBe(10);
   });
 
   it('dog mids patrol (11/12) and gemini alone prosecutes', () => {
     const patrols = SUN_ORDER.filter((sun) => /\bpatrols\b/.test(CARDS[sun].dog.note.mid));
     expect(patrols).toHaveLength(11);
     expect(patrols).not.toContain('gemini');
-    expect(CARDS.gemini.dog.note.mid).toContain('prosecutes');
+    expect(CARDS.gemini.dog.note.mid).toMatch(/\bprosecutes\b/);
   });
 
   it('goat mids build comfort 12/12', () => {
-    expect(midOf('goat').every((t) => t.startsWith('builds comfort'))).toBe(true);
+    expect(midOf('goat').every((t) => /^builds comfort\b/.test(t))).toBe(true);
   });
 
   it('pig mids build the comfort family 12/12 and defend it (9/12)', () => {
     const objects = midOf('pig').map((t) => words(t)[1]);
     for (const obj of objects) expect(['comfort', 'pleasure', 'ease', 'peace']).toContain(obj);
-    expect(midOf('pig').filter((t) => /defends|resists|struggles/.test(t)).length).toBe(9);
+    expect(midOf('pig').filter((t) => /\bdefends\b|\bresists\b|\bstruggles\b/.test(t)).length).toBe(9);
   });
 
   it('rabbit highs carry the before-clause 11/12; scorpio exits through concealed design', () => {
@@ -423,6 +430,37 @@ describe('content shape — column formulas (mid payloads and clause signatures)
 
   it('pig highs know (11/12)', () => {
     expect(highOf('pig').filter((t) => opener(t) === 'knows').length).toBe(11);
+  });
+});
+
+describe('content shape — sentence discipline', () => {
+  it('every habit and note is one sentence: a single terminal period, no ; ? !', () => {
+    const bad = [];
+    for (const { sun, animal, cell } of cells()) {
+      for (const [field, text] of [
+        ['habit', cell.habit], ['note.low', cell.note.low],
+        ['note.mid', cell.note.mid], ['note.high', cell.note.high],
+      ]) {
+        const periods = (text.match(/\./g) ?? []).length;
+        if (periods !== 1 || !text.endsWith('.') || /[;?!]/.test(text)) {
+          bad.push(`${sun}.${animal}.${field}`);
+        }
+      }
+    }
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+
+  it('the colon-list syntax is licensed exactly once (taurus × dragon high)', () => {
+    const colons = [];
+    for (const { sun, animal, cell } of cells()) {
+      for (const [field, text] of [
+        ['habit', cell.habit], ['note.low', cell.note.low],
+        ['note.mid', cell.note.mid], ['note.high', cell.note.high],
+      ]) {
+        if (text.includes(':')) colons.push({ sun, animal, field });
+      }
+    }
+    expect(colons).toEqual([{ sun: 'taurus', animal: 'dragon', field: 'note.high' }]);
   });
 });
 
