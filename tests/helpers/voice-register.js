@@ -9,6 +9,7 @@
 // Consumers:
 //   - profile.test.js          BANNED_VOICE_REGISTER + BANNED_PATTERNS over the deck
 //   - meanings_content.test.js same, over content/meanings.v1.js
+//   - concordance.test.js      same, over content/concordance.v1.js (RC-L2 / §1.I)
 //   - provenance.test.js       register + INTERPRETATION_VERBS over §1.E placards
 //   - atlas.test.js            register + INTERPRETATION_VERBS over the CLP legend
 

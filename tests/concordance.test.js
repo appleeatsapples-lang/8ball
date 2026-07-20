@@ -5,12 +5,19 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  ANIMAL_RELATION_FAMILIES,
+  CONCORDANCE_QUALIFIER,
   ELEMENTS,
+  ELEMENT_KE,
+  ELEMENT_SHENG,
   MAJOR_ARCANA,
   MASTER_REDUCTION_LINKS,
+  REGISTRY_SOURCES,
+  SIGN_DISTANCE_RELATIONS,
   SIGNS,
 } from '../content/concordance.v1.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
+import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -96,6 +103,66 @@ describe('concordance finite registries', () => {
       'unfiled', 'unfiled', 'unfiled', 'unfiled', 'unfiled',
     ]);
     expect(result.axes.every(item => item.relation === 'no named relation is filed for this pair.')).toBe(true);
+  });
+});
+
+describe('content/concordance.v1.js — voice register + content policy (DOCTRINE §2/§1.I RC-L2)', () => {
+  /** Collect every string the shipped registry may surface or cite. */
+  function* registryStrings() {
+    for (const [key, text] of Object.entries(REGISTRY_SOURCES)) {
+      yield { path: `REGISTRY_SOURCES.${key}`, text };
+    }
+    for (const [dist, rec] of Object.entries(SIGN_DISTANCE_RELATIONS)) {
+      yield { path: `SIGN_DISTANCE_RELATIONS[${dist}].distance`, text: rec.distance };
+      yield { path: `SIGN_DISTANCE_RELATIONS[${dist}].relation`, text: rec.relation };
+    }
+    for (const family of ANIMAL_RELATION_FAMILIES) {
+      yield { path: `ANIMAL_RELATION_FAMILIES.${family.key}.label`, text: family.label };
+      yield { path: `ANIMAL_RELATION_FAMILIES.${family.key}.note`, text: family.note };
+    }
+    for (const name of SIGNS) yield { path: `SIGNS:${name}`, text: name };
+    for (const name of ELEMENTS) yield { path: `ELEMENTS:${name}`, text: name };
+    for (const name of MAJOR_ARCANA) yield { path: `MAJOR_ARCANA:${name}`, text: name };
+    for (const [from, to] of Object.entries(ELEMENT_SHENG)) {
+      yield { path: `ELEMENT_SHENG.${from}`, text: `${from}→${to}` };
+    }
+    for (const [from, to] of Object.entries(ELEMENT_KE)) {
+      yield { path: `ELEMENT_KE.${from}`, text: `${from}→${to}` };
+    }
+    yield { path: 'CONCORDANCE_QUALIFIER', text: CONCORDANCE_QUALIFIER };
+    // Master links are numbers only; still stringify for a complete walk.
+    for (const [i, link] of MASTER_REDUCTION_LINKS.entries()) {
+      yield { path: `MASTER_REDUCTION_LINKS[${i}]`, text: link.join('→') };
+    }
+  }
+
+  it('no BANNED_VOICE_REGISTER hits', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings()) {
+      for (const term of BANNED_VOICE_REGISTER) {
+        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        if (re.test(text)) hits.push(`${path}: matched "${term}" in "${text}"`);
+      }
+    }
+    expect(hits, `Voice-register violations in concordance.v1.js:\n${hits.join('\n')}`).toEqual([]);
+  });
+
+  it('no BANNED_PATTERNS slur hits', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings()) {
+      for (const re of BANNED_PATTERNS) {
+        if (re.test(text)) hits.push(`${path}: matched ${re}`);
+      }
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('never addresses the reader directly ("you"/"your")', () => {
+    const hits = [];
+    for (const { path, text } of registryStrings()) {
+      if (/\byou\b|\byour\b|\byou're\b/i.test(text)) hits.push(`${path}: ${text}`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
   });
 });
 
