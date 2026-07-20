@@ -1,5 +1,6 @@
 // tests/meanings_content.test.js
-// content/meanings.v1.js completeness + voice-register scan (DOCTRINE §2/§4).
+// content/meanings.v1.js + additive meanings.v2.js completeness and
+// voice-register scan (DOCTRINE §2/§4).
 // Imports the canonical BANNED_VOICE_REGISTER / BANNED_PATTERNS from the
 // shared tests/helpers/voice-register.js rather than duplicating them — no
 // drift possible by construction (contrast tests/lab_sun_order_drift.test.js's
@@ -18,6 +19,12 @@ import {
   LIFE_PATH_MEANINGS,
 } from '../content/meanings.v1.js';
 import {
+  ELEMENT_MEANINGS,
+  NUMEROLOGY_MEANINGS,
+  HARMONY_THEME_ALIASES,
+  COORDINATE_CONTEXT,
+} from '../content/meanings.v2.js';
+import {
   BANNED_PATTERNS,
   BANNED_VOICE_REGISTER,
   DIAGNOSTIC_FRAMING_RE,
@@ -30,7 +37,26 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const meaningsUiJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
 
-const LIFE_PATH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '22', '33'];
+const HISTORICAL_LIFE_PATH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '22', '33'];
+const NUMEROLOGY_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+function* currentMeaningStrings() {
+  for (const [key, entry] of Object.entries(ELEMENT_MEANINGS)) {
+    yield { path: `element.${key}.register`, text: entry.register };
+    yield { path: `element.${key}.theme`, text: entry.theme };
+    yield { path: `element.${key}.body`, text: entry.body };
+  }
+  for (const [key, entry] of Object.entries(NUMEROLOGY_MEANINGS)) {
+    yield { path: `numerology.${key}.register`, text: entry.register };
+    yield { path: `numerology.${key}.body`, text: entry.body };
+  }
+  for (const [key, value] of Object.entries(HARMONY_THEME_ALIASES)) {
+    yield { path: `alias.${key}`, text: value };
+  }
+  for (const [key, context] of Object.entries(COORDINATE_CONTEXT)) {
+    yield { path: `context.${key}.role`, text: context.role };
+  }
+}
 
 describe('content/meanings.v1.js — completeness against canonical value lists', () => {
   it('has an entry for every MAJOR_ARCANA name', () => {
@@ -52,10 +78,10 @@ describe('content/meanings.v1.js — completeness against canonical value lists'
     expect(Object.keys(ANIMAL_MEANINGS)).toHaveLength(ANIMALS.length);
   });
 
-  it('has an entry for every canonical life path value (1-9, 11, 22, 33)', () => {
-    const missing = LIFE_PATH_KEYS.filter(k => !(k in LIFE_PATH_MEANINGS));
+  it('retains every historical v1 life-path entry', () => {
+    const missing = HISTORICAL_LIFE_PATH_KEYS.filter(k => !(k in LIFE_PATH_MEANINGS));
     expect(missing, `missing life path entries: ${missing.join(', ')}`).toEqual([]);
-    expect(Object.keys(LIFE_PATH_MEANINGS)).toHaveLength(LIFE_PATH_KEYS.length);
+    expect(Object.keys(LIFE_PATH_MEANINGS)).toHaveLength(HISTORICAL_LIFE_PATH_KEYS.length);
   });
 
   it('every entry has non-empty register + body strings', () => {
@@ -127,17 +153,16 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
   it('scans the exact meanings module the runtime imports (scan-target parity)', () => {
     // PR #101 MED-2 + PR #104 codex absorb: a future meanings.v2.js (§4 —
     // new release = new file) must not ship unscanned while this file greens
-    // on v1. The expected specifier is derived from THIS file's own static
-    // meanings import — not a free-floating literal — so updating the
-    // runtime (ui/meanings.js, the sole importer) without moving the scan's
-    // import fails, and vice versa.
+    // on v1. This file intentionally retains a historical v1 scan while the
+    // currentMeaningStrings walker below scans the active v2 additions.
+    // Runtime imports must therefore resolve exclusively to meanings.v2.js.
     const family = /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g;
     const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
       .map(match => match[1]);
     const runtime = [...meaningsUiJs.matchAll(family)].map(match => match[1]);
-    expect(own.length).toBeGreaterThan(0);
+    expect(own).toContain('meanings.v2.js');
     expect(runtime.length).toBeGreaterThan(0);
-    for (const specifier of [...own, ...runtime]) expect(specifier).toBe(own[0]);
+    expect(new Set(runtime)).toEqual(new Set(['meanings.v2.js']));
   });
 });
 
@@ -208,5 +233,61 @@ describe('voice-register scan — positive-fire sentinels (shared matcher + fram
     expect(voiceRegisterHits('dinner at the restaurant', extended)).toEqual([]);
     // Verbs are opt-in: the default table stays the register alone.
     expect(voiceRegisterHits('this reveals much')).toEqual([]);
+  });
+});
+
+describe('content/meanings.v2.js — all-coordinate context layer', () => {
+  it('exposes exactly the active nine numerology meanings', () => {
+    expect(Object.keys(NUMEROLOGY_MEANINGS)).toEqual(NUMEROLOGY_KEYS);
+    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('11');
+    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('22');
+    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('33');
+  });
+
+  it('covers all five element values', () => {
+    expect(Object.keys(ELEMENT_MEANINGS).sort()).toEqual(
+      ['earth', 'fire', 'metal', 'water', 'wood']
+    );
+    for (const entry of Object.values(ELEMENT_MEANINGS)) {
+      expect(entry.register.trim()).toBeTruthy();
+      expect(entry.theme.trim()).toBeTruthy();
+      expect(entry.body.trim()).toBeTruthy();
+    }
+  });
+
+  it('defines a harmony role and two partners for all 14 sheet coordinates', () => {
+    expect(Object.keys(COORDINATE_CONTEXT)).toHaveLength(14);
+    for (const [key, context] of Object.entries(COORDINATE_CONTEXT)) {
+      expect(context.role, `${key} role`).toMatch(/^the /);
+      expect(context.partners, `${key} partners`).toHaveLength(2);
+      expect(context.partners, `${key} cannot partner with itself`).not.toContain(key);
+    }
+  });
+
+  it('has grammatical harmony aliases for every number register', () => {
+    const registers = Object.values(NUMEROLOGY_MEANINGS).map(entry => entry.register);
+    expect(Object.keys(HARMONY_THEME_ALIASES).sort()).toEqual(registers.sort());
+  });
+
+  it('places every numerology coordinate beside two other numerology coordinates', () => {
+    const axes = ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'];
+    for (const key of axes) {
+      expect(COORDINATE_CONTEXT[key].partners.every(partner => axes.includes(partner))).toBe(true);
+    }
+  });
+
+  it('keeps all new authored strings inside the clinical content policy', () => {
+    const hits = [];
+    for (const { path, text } of currentMeaningStrings()) {
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: voice "${term}" in "${containing}"`);
+      }
+      for (const re of BANNED_PATTERNS) {
+        if (re.test(text)) hits.push(`${path}: ${re}`);
+      }
+      if (SECOND_PERSON_RE.test(text)) hits.push(`${path}: second person`);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
   });
 });

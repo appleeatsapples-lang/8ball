@@ -568,7 +568,7 @@ const PROFILE = {
   soulUrge: 3,
   personality: 5,
   birthday: 7,
-  maturity: 11,
+  maturity: 2,
   birthCard: { label: 'XXI · the world' },
   dayPillar: { animal: 'dragon', stemElement: 'earth' },
   hourPillar: { animal: 'rat', stemElement: 'wood' },
@@ -625,6 +625,23 @@ describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', 
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () => {
+  it('never renders 0 or a retired master as a numerology coordinate', () => {
+    const { cells } = installCompartments();
+    renderTierSections({
+      ...PROFILE,
+      lifePath: 11,
+      nameNumber: 0,
+      soulUrge: null,
+      personality: 22,
+      birthday: 33,
+      maturity: undefined,
+    }, 't2');
+    for (const key of ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity']) {
+      expect(cells[key].val.textContent, `${key} must render unresolved`).toBe('—');
+      expect(unres(cells[key]), `${key} must carry unresolved state`).toBe(true);
+    }
+  });
+
   it('free render: every t1+ value node is the empty string, never opacity-hidden text', () => {
     const { cells } = installCompartments();
     const { cardEntry } = renderTierSections(PROFILE, 'free');
@@ -637,7 +654,7 @@ describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () 
     // is no longer a leak marker; soul urge (also 3) stays empty by the
     // per-cell SEALED_AT check above. nameNumber 8 remains a t1 leak marker.
     const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
-    for (const leaked of ['virgo', 'metal', 'rabbit', '8', '5', '7', '11',
+    for (const leaked of ['virgo', 'metal', 'rabbit', '8', '5', '7', '2',
       'dragon', 'earth', 'rat', 'wood']) {
       expect(allText, `t1+ value "${leaked}" leaked into the free DOM`).not.toContain(leaked);
     }
@@ -650,7 +667,7 @@ describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () 
       expect(cells[key].val.textContent, `${key} must carry no value at t1`).toBe('');
     }
     const allText = CELL_KEYS.map(key => cells[key].val.textContent).join('|');
-    for (const leaked of ['5', '7', '11', 'dragon', 'earth', 'rat', 'wood']) {
+    for (const leaked of ['5', '7', '2', 'dragon', 'earth', 'rat', 'wood']) {
       expect(allText, `t2+ value "${leaked}" leaked into the t1 DOM`).not.toContain(leaked);
     }
   });
@@ -716,7 +733,7 @@ describe('tiers — seal iff above tier (§2 locked table)', () => {
     expect(cells.soulUrge.val.textContent).toBe('3');
     expect(cells.personality.val.textContent).toBe('5');
     expect(cells.birthday.val.textContent).toBe('7');
-    expect(cells.maturity.val.textContent).toBe('11');
+    expect(cells.maturity.val.textContent).toBe('2');
     expect(cells.dayPillar.val.textContent).toBe('dragon · earth');
     expect(cells.hourPillar.val.textContent).toBe('rat · wood');
   });

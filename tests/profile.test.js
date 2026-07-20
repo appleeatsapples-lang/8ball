@@ -179,22 +179,26 @@ describe('calculation contract — 2F-3 additive fields', () => {
     expect(getInnerAnimal(1985, 1, 4)).toBe('rat');
   });
 
-  // Soul urge: vowel sum, Pythagorean values, reduced (master 11/22/33 preserved).
-  it('soul urge of empty name → 0', () => {
-    expect(getSoulUrge('')).toBe(0);
+  // Soul urge: vowel sum, Pythagorean values, reduced into 1..9.
+  it('soul urge of empty name is unresolved, never a displayed zero', () => {
+    expect(getSoulUrge('')).toBeNull();
     expect(getSoulUrgeSum('')).toBe(0);
+  });
+  it('soul urge with no standard vowels is unresolved', () => {
+    expect(getSoulUrgeSum('Rhythm')).toBe(0);
+    expect(getSoulUrge('Rhythm')).toBeNull();
   });
   it('soul urge of "Alex Thomas" → 4 (sum 13, vowels A+E+O+A = 1+5+6+1)', () => {
     expect(getSoulUrgeSum('Alex Thomas')).toBe(13);
     expect(getSoulUrge('Alex Thomas')).toBe(4);
   });
-  it('soul urge preserves master number 11 (vowels of "Aida" = A+I+A = 1+9+1)', () => {
+  it('soul urge reduces 11 to 2 (vowels of "Aida" = A+I+A = 1+9+1)', () => {
     expect(getSoulUrgeSum('Aida')).toBe(11);
-    expect(getSoulUrge('Aida')).toBe(11);
+    expect(getSoulUrge('Aida')).toBe(2);
   });
-  it('soul urge preserves master number 22 ("Aria Stone" vowels A+I+A+O+E = 1+9+1+6+5)', () => {
+  it('soul urge reduces 22 to 4 ("Aria Stone" vowels A+I+A+O+E = 1+9+1+6+5)', () => {
     expect(getSoulUrgeSum('Aria Stone')).toBe(22);
-    expect(getSoulUrge('Aria Stone')).toBe(22);
+    expect(getSoulUrge('Aria Stone')).toBe(4);
   });
   it('soul urge ignores non-letters and consonants', () => {
     expect(getSoulUrgeSum('xyz!')).toBe(0);
@@ -268,8 +272,13 @@ describe('calculation contract — 2F-3 additive fields', () => {
 
 describe('calculation contract — 2G-2 additive fields', () => {
   it('getPersonality: empty input', () => {
-    expect(getPersonality('')).toBe(0);
+    expect(getPersonality('')).toBeNull();
     expect(getPersonalitySum('')).toBe(0);
+  });
+
+  it('getPersonality: a vowel-only name is unresolved', () => {
+    expect(getPersonalitySum('Aei')).toBe(0);
+    expect(getPersonality('Aei')).toBeNull();
   });
 
   it('getPersonality: simple consonants-only sum', () => {
@@ -278,9 +287,9 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getPersonality('Alex Thomas')).toBe(6);
   });
 
-  it('getPersonality: master-number preservation', () => {
+  it('getPersonality: 11 reduces to 2', () => {
     expect(getPersonalitySum('Hal')).toBe(11);
-    expect(getPersonality('Hal')).toBe(11);
+    expect(getPersonality('Hal')).toBe(2);
   });
 
   it('getPersonality: ignores non-letters', () => {
@@ -298,13 +307,13 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getBirthday(31)).toBe(4);
   });
 
-  it('getBirthday: master days preserved', () => {
-    expect(getBirthday(11)).toBe(11);
-    expect(getBirthday(22)).toBe(22);
+  it('getBirthday: all double-digit days reduce into 1..9', () => {
+    expect(getBirthday(11)).toBe(2);
+    expect(getBirthday(22)).toBe(4);
   });
 
-  it('getBirthday: 29 reduces to 11 (master)', () => {
-    expect(getBirthday(29)).toBe(11);
+  it('getBirthday: 29 reduces through 11 to 2', () => {
+    expect(getBirthday(29)).toBe(2);
   });
 
   it('getMaturity: sums the reduced life path + reduced name number', () => {
@@ -315,22 +324,19 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getMaturity(1996, 4, 1, 'Alex Thomas')).toBe(4);
   });
 
-  it('getMaturity: master-number preservation (both components master)', () => {
-    // Ann, 1970-01-04: lifePath reduces to 22, nameNumber to 11 — both
-    // master numbers, and 22 + 11 = 33 is itself a master number that
-    // needs no further reduction.
-    expect(getLifePath(1970, 1, 4)).toBe(22);
-    expect(getNameNumber('Ann')).toBe(11);
-    expect(getMaturitySum(1970, 1, 4, 'Ann')).toBe(33);
-    expect(getMaturity(1970, 1, 4, 'Ann')).toBe(33);
+  it('getMaturity: combines components after each has reduced into 1..9', () => {
+    // Ann, 1970-01-04: raw component paths 22 and 11 become 4 and 2;
+    // maturity therefore combines to 6 inside the same nine-number system.
+    expect(getLifePath(1970, 1, 4)).toBe(4);
+    expect(getNameNumber('Ann')).toBe(2);
+    expect(getMaturitySum(1970, 1, 4, 'Ann')).toBe(6);
+    expect(getMaturity(1970, 1, 4, 'Ann')).toBe(6);
   });
 
-  it('getMaturity: does not fabricate a master number from unreduced sums', () => {
+  it('getMaturity: combines canonical components rather than unreduced sums', () => {
     // Bob, 1970-01-01: raw life-path digit sum is 19 and raw name-number
-    // sum is 10 — 19 + 10 = 29 reduces through 11 if summed unreduced,
-    // which is the bug this fix closes. The standard method reduces each
-    // component first (both land on plain 1) and never sees a master
-    // number here at all.
+    // sum is 10. The calculation reduces each component first (both land
+    // on 1), then combines them to 2.
     expect(getLifePath(1970, 1, 1)).toBe(1);
     expect(getNameNumber('Bob')).toBe(1);
     expect(getMaturitySum(1970, 1, 1, 'Bob')).toBe(2);

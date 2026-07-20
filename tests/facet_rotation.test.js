@@ -39,20 +39,20 @@ describe('pure facet transition', () => {
   it.each([
     [1, 0], [2, 0], [3, 0],
     [4, 1], [5, 1], [6, 1],
-    [7, 2], [8, 2], [9, 2], [11, 2], [22, 2], [33, 2],
+    [7, 2], [8, 2], [9, 2],
   ])('anchors life path %s to position %s', (lifePath, expected) => {
     expect(anchorFacetIndex(lifePath)).toBe(expected);
   });
 
   it('stays in parity with the legacy bracket anchor table', () => {
     const slots = ['low', 'mid', 'high'];
-    for (const lifePath of [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33]) {
+    for (const lifePath of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
       expect(slots[anchorFacetIndex(lifePath)]).toBe(resolveBracket(lifePath));
     }
   });
 
   it('rejects unknown life-path values instead of silently choosing a slot', () => {
-    for (const value of [0, 10, 12, 21, 34, '3', null, undefined]) {
+    for (const value of [0, 10, 11, 22, 33, '3', null, undefined]) {
       expect(() => anchorFacetIndex(value)).toThrow(/Unknown life path value/);
     }
   });

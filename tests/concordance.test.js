@@ -6,11 +6,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ELEMENTS,
+  LIFE_PATH_VALUES,
   MAJOR_ARCANA,
-  MASTER_REDUCTION_LINKS,
   SIGNS,
-} from '../content/concordance.v1.js';
-import * as CONCORDANCE_REGISTRY from '../content/concordance.v1.js';
+} from '../content/concordance.v2.js';
+import * as CONCORDANCE_REGISTRY from '../content/concordance.v2.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
 import {
   BANNED_PATTERNS,
@@ -31,7 +31,7 @@ const ANIMALS = [
 
 function profile(overrides = {}) {
   return {
-    sunSign: 'aries', animal: 'rat', chineseElement: 'wood', lifePath: 11,
+    sunSign: 'aries', animal: 'rat', chineseElement: 'wood', lifePath: 1,
     birthCard: { number: 1, label: 'I · the magician' },
     ...overrides,
   };
@@ -78,14 +78,17 @@ describe('concordance finite registries', () => {
     ).relation).toBe('wood generates fire · sheng cycle');
   });
 
-  it('registers only the three master-number reduction links', () => {
-    const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33];
-    const records = unorderedPairs(values).map(([left, right]) =>
+  it('keeps all 36 distinct nine-number pairs unfiled without inventing a relation', () => {
+    const records = unorderedPairs(LIFE_PATH_VALUES).map(([left, right]) =>
       axis(profile({ lifePath: left }), profile({ lifePath: right }), 'lifePath'));
-    expect(records.filter(record => record.status === 'registered')).toHaveLength(3);
-    for (const [master, base] of MASTER_REDUCTION_LINKS) {
-      expect(axis(profile({ lifePath: master }), profile({ lifePath: base }), 'lifePath'))
-        .toMatchObject({ status: 'registered', relation: `${master} reduces to ${base}` });
+    expect(records).toHaveLength(36);
+    expect(records.every(record => record.status === 'unfiled')).toBe(true);
+  });
+
+  it('rejects life-path values outside the active 1-9 contract', () => {
+    for (const value of [0, 10, 11, 22, 33, '2', null]) {
+      expect(() => axis(profile({ lifePath: value }), profile({ lifePath: 2 }), 'lifePath'))
+        .toThrow(/invalid life path/);
     }
   });
 
@@ -169,8 +172,8 @@ describe('concordance product and privacy contract', () => {
 // source labels, relation names, family notes, citations, the qualifier —
 // must hold the clinical register, and any `concordance.v2.js` revision
 // must carry this scan forward to the new file.
-describe('content/concordance.v1.js — voice register + content policy (DOCTRINE §2/§4)', () => {
-  function* registryStrings(value, path = 'concordance.v1') {
+describe('content/concordance.v2.js — voice register + content policy (DOCTRINE §2/§4)', () => {
+  function* registryStrings(value, path = 'concordance.v2') {
     if (typeof value === 'string') {
       yield { path, text: value };
     } else if (Array.isArray(value)) {
@@ -197,7 +200,7 @@ describe('content/concordance.v1.js — voice register + content policy (DOCTRIN
         hits.push(`${path}: matched "${term}" in "${containing}" ("${text.slice(0, 80)}")`);
       }
     }
-    expect(hits, `Voice-register violations in concordance.v1.js:\n${hits.join('\n')}`).toEqual([]);
+    expect(hits, `Voice-register violations in concordance.v2.js:\n${hits.join('\n')}`).toEqual([]);
   });
 
   it('no BANNED_PATTERNS slur hits', () => {
@@ -240,13 +243,13 @@ describe('concordance assembled output — voice register (P3-4 post-spree)', ()
   // RC content scan covers the registry file; this walks status glosses plus
   // every assembled axis string a t1 compare can emit (relation/citation/
   // qualifier), so ui/concordance.js prose cannot drift into oracle register
-  // while content/concordance.v1.js stays clean.
+  // while the current content/concordance.v2.js registry stays clean.
   function* assembledStrings() {
     for (const [status, gloss] of Object.entries(CONCORDANCE_STATUSES)) {
       yield { path: `CONCORDANCE_STATUSES.${status}`, text: gloss };
     }
     const left = profile({
-      sunSign: 'aries', animal: 'rat', chineseElement: 'wood', lifePath: 11,
+      sunSign: 'aries', animal: 'rat', chineseElement: 'wood', lifePath: 1,
       birthCard: { number: 0, label: '0 · the fool' },
     });
     const right = profile({

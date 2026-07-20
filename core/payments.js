@@ -32,7 +32,7 @@ export const FACET_COUNT = 3;
 
 const FIRST_FACET_LIFE_PATHS = new Set([1, 2, 3]);
 const SECOND_FACET_LIFE_PATHS = new Set([4, 5, 6]);
-const THIRD_FACET_LIFE_PATHS = new Set([7, 8, 9, 11, 22, 33]);
+const THIRD_FACET_LIFE_PATHS = new Set([7, 8, 9]);
 
 export function anchorFacetIndex(lifePath) {
   if (FIRST_FACET_LIFE_PATHS.has(lifePath)) return 0;

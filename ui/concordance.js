@@ -10,12 +10,12 @@ import {
   ELEMENT_KE,
   ELEMENT_SHENG,
   ELEMENTS,
+  LIFE_PATH_VALUES,
   MAJOR_ARCANA,
-  MASTER_REDUCTION_LINKS,
   REGISTRY_SOURCES,
   SIGNS,
   SIGN_DISTANCE_RELATIONS,
-} from '../content/concordance.v1.js';
+} from '../content/concordance.v2.js';
 
 export const CONCORDANCE_STATUSES = Object.freeze({
   registered: 'a named registry attests the relation',
@@ -115,19 +115,10 @@ function compareElement(left, right) {
 }
 
 function compareLifePath(left, right) {
-  if (!Number.isInteger(left) || !Number.isInteger(right)) throw new TypeError('invalid life path');
-  const record = MASTER_REDUCTION_LINKS.find(([master, base]) =>
-    pairKey(master, base) === pairKey(left, right));
-  if (!record || left === right) {
-    return unfiled('lifePath', 'life path', left, right, REGISTRY_SOURCES.lifePath);
+  if (!LIFE_PATH_VALUES.includes(left) || !LIFE_PATH_VALUES.includes(right)) {
+    throw new TypeError('invalid life path');
   }
-  const [master, base] = record;
-  return registered(
-    'lifePath', 'life path', left, right,
-    `${master} reduces to ${base}`,
-    REGISTRY_SOURCES.lifePath,
-    'the sheet keeps the master unreduced; the reduction is the filed link',
-  );
+  return unfiled('lifePath', 'life path', left, right, REGISTRY_SOURCES.lifePath);
 }
 
 function compareBirthCard(left, right) {
