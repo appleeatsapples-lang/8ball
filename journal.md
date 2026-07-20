@@ -5,9 +5,24 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-20 — PR #104 codex-chain closure: verdict filed + parity absorb (post-merge leg) — STAGED
+## 2026-07-20 — provenance/atlas scans routed through the shared matcher (LOW-3 debt clear) + closure-entry flip — STAGED
 
-**Status: STAGED on `claude/pr104-codex-closure`, riding its own claude/* PR; the merge is its own word.**
+**Status: STAGED on `claude/provatlas-matcher-routing`, riding its own claude/* PR; the merge is its own word.**
+
+**What and why.** Clears the named follow-up debt from the #104/#108 codex chain (codex LOW-3, convergent with Grok's residual): the provenance (§1.E placards) and atlas (CLP legend) scans still hand-rolled lowercase `.includes()` and bypassed `SUBSTRING_SAFELIST`, so a safelisted containment (`aural`) passed the canonical matcher but would have tripped those two — a loud-not-silent divergence, now closed. Every voice-policy scan in the suite (deck, meanings, concordance registry + assembled output, provenance, atlas) routes through one matcher.
+
+1. **Matcher parameterized.** `voiceRegisterHits(text, terms = BANNED_VOICE_REGISTER)` — identical substring semantics + safelist for any caller-supplied term table; default unchanged, so the five existing call sites are untouched by the signature change.
+2. **`tests/provenance.test.js` / `tests/atlas.test.js`** route their §2 register scans through the matcher with `[...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS]` — the semantics both scans already ran (substring), now with the safelist applied; failure messages name the containing word. The helper header's consumer list updated to match reality (the #101-follow-up discipline: the comment must describe what the code does).
+3. **Sentinel extended.** The guard-the-guard block now pins the parameterized path: verb terms fire (`reveals`, `predictive`/`future`), the safelist still suppresses under custom term tables, and verbs stay opt-in (the default table is the register alone).
+4. **Closure-entry flip (on-sighting).** The #108 entry below still read STAGED after its explicit-word merge (`ea0bda4`) and branch deletions; flipped per the mechanical footer-flip precedent.
+
+**Pre-merge audit (L48, in-PR, run before any merge word).** Fresh Codex session via relay (codex CLI 0.144.6, `gpt-5.6-sol`, reasoning xhigh) on head `e67b444`, suite reviewer-executed with old-vs-new scan parity confirmed on all 14 provenance + 9 atlas strings: **SAFE TO MERGE, zero blockers** (`audits/codex_pr109_premerge_audit_2026-07-20_response.md`). The nit (helper header overstated "every voice-policy scan" — the framing REs and `BANNED_PATTERNS` are separate regex surfaces) absorbed at `594ec5e`; the Low — the safelist is word-global, not term-keyed, so a custom term equal to a safelist word would self-suppress — is latent-only (the verb extension has zero safelist overlap), fails loud not silent, and rides as **named micro-debt** with its remedy (term-keyed entries + collision sentinel) reserved for any future custom-terms consumer.
+
+**Verification.** Suite **1317/1317 (37 files)** under vitest 4.1.9 (+1 sentinel over the 1316 post-#108 baseline; no new test file — `repo_shape` pins and CLAUDE.md counts unchanged). Local PII audit clean. `git diff --check` clean. **Scope (files):** `tests/helpers/voice-register.js`, `tests/provenance.test.js`, `tests/atlas.test.js`, `tests/meanings_content.test.js`, this file, plus the in-PR L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`.
+
+## 2026-07-20 — PR #104 codex-chain closure: verdict filed + parity absorb (post-merge leg) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `ea0bda4` (#108) on 2026-07-20 on explicit in-session merge word; pre-merge record below preserved verbatim; both stale claude/* branches deleted on the same word. This status flip is a mechanical on-sighting correction per the v0.48/v0.50/v0.51/#98 footer-flip precedent, riding the LOW-3 debt-clear entry above. Originally: STAGED on `claude/pr104-codex-closure`.**
 
 **What and why.** #104 squash-merged (`82430d7`) on the sibling lane's Grok clear while the implementer lane's Codex relay pass — launched early per the L48 clean shape — was still in flight: the codex verdict (**MERGE WITH FIXES**, run `20260720-050805-relay-pr104-worktree`) and its recommended absorb reached the PR branch minutes post-merge, stranded behind the merge. This leg files the codex response in-repo per the #99 post-merge verdict-closure precedent and lands the one absorb it recommended:
 

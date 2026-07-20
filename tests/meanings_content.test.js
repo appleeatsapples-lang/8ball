@@ -21,6 +21,7 @@ import {
   BANNED_PATTERNS,
   BANNED_VOICE_REGISTER,
   DIAGNOSTIC_FRAMING_RE,
+  INTERPRETATION_VERBS,
   SECOND_PERSON_RE,
   SUBSTRING_SAFELIST,
   voiceRegisterHits,
@@ -198,5 +199,14 @@ describe('voice-register scan — positive-fire sentinels (shared matcher + fram
     expect(mental.test('a mental state')).toBe(true);
     expect(mental.test('elemental')).toBe(false);
     expect(mental.test('fundamental habit')).toBe(false);
+  });
+
+  it('parameterized terms (provenance/atlas verb extension) ride the same matcher + safelist', () => {
+    const extended = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
+    expect(voiceRegisterHits('this reveals much', extended).some(hit => hit.term === 'reveal')).toBe(true);
+    expect(voiceRegisterHits('a predictive future', extended).some(hit => hit.term === 'future')).toBe(true);
+    expect(voiceRegisterHits('dinner at the restaurant', extended)).toEqual([]);
+    // Verbs are opt-in: the default table stays the register alone.
+    expect(voiceRegisterHits('this reveals much')).toEqual([]);
   });
 });

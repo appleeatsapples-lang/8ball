@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROV_NOTE, provText, initTiersUI, renderTierSections } from '../ui/tiers.js';
-import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS } from './helpers/voice-register.js';
+import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -42,12 +42,12 @@ describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
   });
 
   it('every note is clinical derivation — no mysticism/interpretation (§2)', () => {
+    // Canonical shared matcher (same substring semantics this scan always
+    // ran, now with SUBSTRING_SAFELIST applied) — #104/#108 LOW-3 debt clear.
     for (const note of NOTES) {
-      const lc = note.toLowerCase();
-      for (const term of BANNED_VOICE) {
-        expect(lc.includes(term),
-          `provenance note "${note}" contains banned term "${term}"`).toBe(false);
-      }
+      const hits = voiceRegisterHits(note, BANNED_VOICE);
+      expect(hits, `provenance note "${note}" hits: ${hits
+        .map(hit => `"${hit.term}" in "${hit.containing}"`).join(', ')}`).toEqual([]);
     }
   });
 

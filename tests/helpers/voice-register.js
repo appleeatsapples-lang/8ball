@@ -21,13 +21,16 @@
 // patterns live in meanings_content.test.js (the pii_scan.test.js
 // guard-the-guard pattern).
 //
-// Consumers:
-//   - profile.test.js          voiceRegisterHits + framing REs + BANNED_PATTERNS over the deck
+// Consumers — every BANNED_VOICE_REGISTER-based scan routes through
+// voiceRegisterHits (the #104/#108 LOW-3 debt clear closed the last two
+// inline forks); the framing REs and BANNED_PATTERNS below are separate
+// voice-policy surfaces with their own (regex) semantics:
+//   - profile.test.js          matcher + framing REs + BANNED_PATTERNS over the deck
 //   - meanings_content.test.js same, over content/meanings.v1.js (+ the sentinels)
-//   - concordance.test.js      same, over content/concordance.v1.js
-//   - provenance.test.js       register + INTERPRETATION_VERBS over §1.E placards
-//                              (inline lowercase-`.includes()` — the same substring semantic)
-//   - atlas.test.js            register + INTERPRETATION_VERBS over the CLP legend (ditto)
+//   - concordance.test.js      same, over content/concordance.v1.js registry
+//                              + the assembled buildConcordance output
+//   - provenance.test.js       matcher with register + INTERPRETATION_VERBS over §1.E placards
+//   - atlas.test.js            matcher with register + INTERPRETATION_VERBS over the CLP legend
 
 export const BANNED_VOICE_REGISTER = [
   'the universe', 'your stars', 'destiny', 'destined', 'fated', 'fate',
@@ -68,15 +71,17 @@ function containingRun(lower, idx, len) {
   return lower.slice(start, end);
 }
 
-// Canonical matcher: every BANNED_VOICE_REGISTER term found as a substring of
-// the lowercased text, reported with its containing word run so a failure
-// message shows WHY it fired. Occurrences whose containing run is safelisted
-// are skipped; a later non-safelisted occurrence of the same term still
-// fires. One hit per term per string keeps failure output readable.
-export function voiceRegisterHits(text) {
+// Canonical matcher: every term found as a substring of the lowercased text,
+// reported with its containing word run so a failure message shows WHY it
+// fired. Occurrences whose containing run is safelisted are skipped; a later
+// non-safelisted occurrence of the same term still fires. One hit per term
+// per string keeps failure output readable. `terms` defaults to the register
+// table; the provenance/atlas placard scans pass the INTERPRETATION_VERBS
+// extension on top so the verbs ride the same semantics + safelist.
+export function voiceRegisterHits(text, terms = BANNED_VOICE_REGISTER) {
   const lower = text.toLowerCase();
   const hits = [];
-  for (const term of BANNED_VOICE_REGISTER) {
+  for (const term of terms) {
     let idx = lower.indexOf(term);
     while (idx !== -1) {
       const containing = containingRun(lower, idx, term.length);
