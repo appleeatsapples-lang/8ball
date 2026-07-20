@@ -5,9 +5,33 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-20 — provenance/atlas scans routed through the shared matcher (LOW-3 debt clear) + closure-entry flip — STAGED
+## 2026-07-20 — post-spree audit sweep (rebuilt on #107, rebased to #109): retroactive #103 verdict · L48 sighting #7 closed · #97 backfill · WIP stack PARKED · lane hygiene record — STAGED
 
-**Status: STAGED on `claude/provatlas-matcher-routing`, riding its own claude/* PR; the merge is its own word.**
+**Status: STAGED on `claude/audit-recent-changes-d9b78a`; merge is its own word. Trigger: the controller asked for a full audit + alignment pass over the late-night spree. The original sweep commit `2635136` (built on `4c272c3`/#103) was rebuilt on `29b69b8`/#107 after the parallel all-in closeout (#104–#107, merged 05:14–05:21) superseded two of its four corrections, then rebased onto `7427cb4` (#109) when #108/#109 landed mid-wait. Session words honored: "all go full in" (decisions below), then the push-time word — push + run the relay audit — which supersedes the interim docs-only relay-waiver this entry briefly carried.**
+
+**Verification record (as of `4c272c3`/#103, pre-closeout — preserved from the original sweep).** Suite **1299/1299 (37 files)** under vitest 4.1.9 in a fresh worktree install; local PII audit **clean (112 files)**; `index.html` 1464/1500; prod served the #103 tree. Spot-checks: #95 registry and #101 voice-scan walker in place; #97's independent Codex verdict on file; #102 confirmed a closed twin of #101 with nothing of substance lost. The #104–#109 tips were verified by their own lanes (#109: 1317/1317).
+
+**Corrections: carried vs superseded.**
+
+1. SUPERSEDED — #103 STAGED→SHIPPED flip: #107 performed it with the fuller same-day-follow-on footer; main's version stands.
+2. SUPERSEDED — `voice-register.js` consumers line (the #102 salvage): the #104/#109 helper rewrite documents the `concordance.test.js` consumer canonically; zero-diff against main.
+3. CARRIED — #97 journal backfill: the sibling-lane meanings transition-pin salvage merged as `25029f5` (#97) on 2026-07-20 with independent Codex verdict `audits/codex_pr97_premerge_audit_2026-07-20_response.md`; no journal record existed until this entry.
+4. CARRIED — retroactive independent #103 review filed at `audits/claude_pr103_retroactive_audit_2026-07-20_response.md`: full-diff read + suite/PII/prod verification, **SAFE TO MERGE (retroactive), zero P0/P1**, per the #89–#91 precedent. **L48 ledger — sighting #7 closed** (#103's in-PR artifact was implementer-authored "self-audit"; merge word ~2 minutes after open). Open question queued, not decided: whether the gate should pin non-author artifact provenance (content vs presence) — same-morning evidence for both sides: #108's first push red-blocked on exactly the PR-number letter of the gate, then closed it with its own artifact.
+5. NEW on rebase — the #109 entry below landed still reading STAGED (its merge word came hours after the entry was authored); flipped SHIPPED on sighting, standing precedent.
+
+**Controller decisions executed in the "all go full in" session.**
+
+- **v0.52–v0.54 WIP stack: PARKED.** `~/8ball/worktrees/codex-all-coordinates-clickable` left untouched (25 dirty entries @ `ef198cd`); loss-protection snapshot verified complete at `~/8ball/audits/wip_snapshot_codex_all_coordinates_2026-07-20/` (23-file `tracked_files.patch` at 603+/195− plus the two untracked v2 content files). Resumption path if ever wanted: 8BALL §3 row 8 decision amendment (masters preserved) through cross-model audit FIRST, then rebase across #97–#109 (`sessions/codex_rebase_note_all_coordinates_clickable_2026-07-20.md` already scopes it). A product-direction call deferred to measured demand, not a bug.
+- **Lane hygiene executed (~05:35).** Worktrees removed: `8ball-handoff-sr-rc-t3-df6ca2` (held `main`), `8ball-session-execution-04653d`, `sr-rc-audit-brief-1f2e65`, `sr-rc-audit-brief-b42e71`; refs pruned. Primary `~/dev/8ball` moved off the parked grok branch onto `main`. Local spent branches deleted ×10; remote spent deleted ×5; `grok/clear-pr104` verified a spent pre-rebase twin of merged #104 before deletion. Post-entry: #108/#109 merged and their remote branches went with their own words; the local `claude/pr104-codex-closure` ref and the #109 lane's worktree are the next batch, not pruned mid-flight by this lane.
+- **Analytics read: STAGED, blocked on dashboard tap.** `next_analytics_read: 2026-07-17` stays unbumped (bump rides read completion, per the 07-12→07-17 precedent). Pasteback skeleton with the exact fields at `~/8ball/reach/analytics_read_2026-07-20_pasteback.md`; the K1 Top-Sources rewording (due 2026-07-27) keys off the same paste.
+
+**L48 note for this PR (verdict landed pre-merge — the clean shape).** Docs-only diff → exempt by the gate's letter; the relay audit ran anyway on the explicit push-time word. Fresh non-author Codex session (codex CLI 0.144.6, `gpt-5.6-sol`, reasoning xhigh) on the PR head `2ec2904` in a dedicated detached worktree, run `20260720-161411-relay-pr110`: **SAFE TO MERGE — findings: none**, every sweep claim reviewer-reproduced (both suite baselines, the PII sets, the 110-second #103 window, the history flips, the WIP snapshot byte-match, the added-line PII grep). Response filed in-repo at `audits/codex_pr110_premerge_audit_2026-07-20_response.md`.
+
+**Scope (files):** this file, `audits/claude_pr103_retroactive_audit_2026-07-20_response.md`, `audits/codex_pr110_premerge_audit_2026-07-20_response.md`. **UNTOUCHED:** everything else. Suite on this branch tip: **1317/1317 (37 files)** under vitest 4.1.9; local PII audit clean (120 files); `git diff --check` clean.
+
+## 2026-07-20 — provenance/atlas scans routed through the shared matcher (LOW-3 debt clear) + closure-entry flip — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `7427cb4` (#109) on 2026-07-20; pre-merge record below preserved verbatim. Flipped on sighting by the audit-sweep entry above per the standing footer-flip precedent.**
 
 **What and why.** Clears the named follow-up debt from the #104/#108 codex chain (codex LOW-3, convergent with Grok's residual): the provenance (§1.E placards) and atlas (CLP legend) scans still hand-rolled lowercase `.includes()` and bypassed `SUBSTRING_SAFELIST`, so a safelisted containment (`aural`) passed the canonical matcher but would have tripped those two — a loud-not-silent divergence, now closed. Every voice-policy scan in the suite (deck, meanings, concordance registry + assembled output, provenance, atlas) routes through one matcher.
 
