@@ -164,4 +164,14 @@ export function initMeaningsUI(refs) {
     if (cell) { e.preventDefault(); openFor(cell.dataset.meaningKey, cell); }
   });
   panel.querySelector('#meaning-close').addEventListener('click', close);
+
+  // Escape parity with about/forget/paywall (P3 post-spree audit). Defer when
+  // any modal-bg overlay is open so modal Escape remains the higher priority.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!panel.classList.contains('open')) return;
+    if (typeof document.querySelector === 'function'
+        && document.querySelector('.modal-bg.open')) return;
+    close();
+  });
 }
