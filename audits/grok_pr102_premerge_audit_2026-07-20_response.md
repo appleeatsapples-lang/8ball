@@ -1,6 +1,6 @@
 # Grok pre-merge audit — PR #102
 
-**PR:** https://github.com/appleeatsapples-lang/8ball/pull/102  
+**PR:** #102  
 **Branch:** `docs/housekeeping-rc-l1-l2-8ball-s11`  
 **Base:** `main` @ `2897bd3`  
 **Head (feature commit):** `3b0f2fa`  
