@@ -5,6 +5,27 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — content_shape PR3: full lint-spec coverage (structure · opener ownership · lexical rules · repeats budget · formula floors · habit bounds) — STAGED
+
+**Status: STAGED on `claude/content-shape-lint-full`; merge is its own word. Executes the explicit "implement it 100%" word on the night study's decision #2: `tests/content_shape.test.js` now covers the whole `~/8ball/content_study/lint_spec_proposal.md`, closing the gap left by PR1/PR2 (#103/#107).**
+
+**What and why.** PR1/PR2 pinned names, the mid-bracket arc, note lengths, deck second-person, and the velvet lexicon. This leg adds the remaining spec sections as +28 tests in the same file (no new test file — `repo_shape` pins and CLAUDE.md counts untouched):
+
+1. **Structure** — 12×12 grid in canonical catalog order (SUN/ANIMAL key order pinned; the positional engine depends on it), every cell carrying name/type/habit/catalog + low/mid/high.
+2. **Identity tokens** — no sun-sign or animal name as a word in any card name; the word `sun` licensed exactly once (`the banquet sun`, leo×pig).
+3. **Type slot** — exactly one ` · ` seam ×144; left half ∈ the frozen 28-token archetype registry (each used ≥1); right half exactly two words (modifier + anchor noun).
+4. **Opener ownership tables** — exact per-column low- and high-opener censuses (goat `enters` 12/12 · rooster `announces` 11/12 with the sagittarius foreman break · dragon `appears` 10/12 with gemini/cancer `arrives` · singletons `rushes`/`speaks` at their aries cells), plus the aries-row high-opener license map (studies ×8; snake's full suppression pinned as `keeps`).
+5. **Lexical rules** — the three defect anchor nouns at their exact cells; `circuit` as an aquarius-row injection (two types + one name — the spec's "×3 types" was corrected against the tree at write time); `scale` libra-row ×2; the dog archive's `old` at exactly five highs with sagittarius's licensed forward-facing cell; `weather` pinned at 13 word-hits as the watch-token (visible-diff policy, no cap).
+6. **Repeats budget** — exactly one cross-column verbatim 4-word high opener ("treats freedom as logistics", virgo×horse + sagittarius×snake); intra-column formula repeats exempt by construction.
+7. **Formula floors** — tiger argue-with-aftermath 10/12 (`cleanup` ×5) · horse resents-the-tether 10/12 · dog patrols 11/12 with gemini's `prosecutes` · goat `builds comfort` 12/12 · pig comfort-family 12/12 + defends 9/12 · rabbit `before` 11/12 (scorpio absent) · snake `until` 9 slot-hits · monkey high `until` at exactly its seven suns · rooster reads+keeps 11/12 · pig `knows` 11/12.
+8. **Habit bounds** — 7–12 words with the four floor cells and two ceiling cells enumerated (the spec's post-hoc amendment from the habit-grammar census).
+
+Every pinned number was re-derived by script against this tree before writing (the qa_spotcheck discipline — that derivation corrected three would-be memory pins: the circuit slot split, the weather total, and the dog-column `old` count already fixed vault-side). Content bytes untouched per §4; the spec's change protocol holds — a future cards.v2 updates these pins in the same PR, visibly.
+
+**Pre-merge audit (L48, in-PR, run before any merge word).** Fresh Codex session via relay on head `c9db03f` in a dedicated detached worktree (run `20260720-214256-relay-pr112`), suite reviewer-executed (1345/1345 independently reproduced, every pin re-derived, scope confirmed test+journal-only by blob-identity): codex **MERGE WITH FIXES — 4 findings**, reconciler **SAFE TO MERGE** (all four are matcher-precision hardening in the new guards, zero content/runtime defects). All four absorbed in-branch anyway: identity/`sun` token checks punctuation-normalized; five formula matchers word-bounded (`renegotiates`/`presents`/`redefends`-class false-greens killed); the `scale` pin now asserts anchor-noun position; and the "full coverage" comment made true by pinning the two spec clauses the reviewer could not see — the one-sentence discipline (single terminal period, no `;?!`, with the colon-list licensed exactly once at taurus×dragon high) and the velvet name-set enumerated exactly. Response filed in-PR at `audits/codex_pr112_premerge_audit_2026-07-20_response.md`.
+
+**Verification.** Suite **1347/1347 (37 files)** under vitest 4.1.9 — +30 over the #111 baseline 1317, all in the extended file (36 there: 28 at audit head + 2 absorb sentinels). Local PII audit clean (122 files). `git diff --check` clean. **Scope (files):** `tests/content_shape.test.js`, this file, plus the in-PR L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`, `repo_shape` pins, CLAUDE.md.
+
 ## 2026-07-20 — housekeeping micro-batch: §7 stage-1 scan-coverage catch-up (#101 debt) + #110 entry flip (#109 leg superseded) — STAGED
 
 **Status: STAGED on `claude/s7-scan-catchup-109-flip` (named for the original two legs), riding its own claude/* PR; the merge is its own word. Rebased onto post-#110 main (`6ff11b0`) pre-PR after the sibling audit-sweep merged mid-audit — see item 2 for the superseded leg.**
