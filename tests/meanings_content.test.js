@@ -6,6 +6,9 @@
 // approach, which guarded a duplication that no longer exists post-lab-purge).
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SUN_SIGNS, ANIMALS } from '../core/profile.js';
 import { MAJOR_ARCANA } from '../core/birthcard.js';
 import {
@@ -14,7 +17,17 @@ import {
   ANIMAL_MEANINGS,
   LIFE_PATH_MEANINGS,
 } from '../content/meanings.v1.js';
-import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
+import {
+  BANNED_PATTERNS,
+  BANNED_VOICE_REGISTER,
+  DIAGNOSTIC_FRAMING_RE,
+  SECOND_PERSON_RE,
+  SUBSTRING_SAFELIST,
+  voiceRegisterHits,
+} from './helpers/voice-register.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const meaningsUiJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
 
 const LIFE_PATH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '22', '33'];
 
@@ -73,11 +86,12 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
   }
 
   it('no BANNED_VOICE_REGISTER hits', () => {
+    // Canonical substring semantics via the shared matcher — see
+    // tests/helpers/voice-register.js (PR #101 MED-1 reconciliation).
     const hits = [];
     for (const { path, text } of meaningStrings()) {
-      for (const term of BANNED_VOICE_REGISTER) {
-        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-        if (re.test(text)) hits.push(`${path}: matched "${term}" in "${text.slice(0, 80)}…"`);
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: matched "${term}" in "${containing}" ("${text.slice(0, 80)}…")`);
       }
     }
     expect(hits, `Voice-register violations in meanings.v1.js:\n${hits.join('\n')}`).toEqual([]);
@@ -96,7 +110,7 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
   it('never addresses the reader directly ("you"/"your")', () => {
     const hits = [];
     for (const { path, text } of meaningStrings()) {
-      if (/\byou\b|\byour\b|\byou're\b/i.test(text)) hits.push(path);
+      if (SECOND_PERSON_RE.test(text)) hits.push(path);
     }
     expect(hits, `Second-person address found in:\n${hits.join('\n')}`).toEqual([]);
   });
@@ -104,8 +118,81 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
   it('no anti-diagnostic-framing terms (DOCTRINE §4)', () => {
     const hits = [];
     for (const { path, text } of meaningStrings()) {
-      if (/\b(diagnos(is|e|ed)|disorder|syndrome)\b/i.test(text)) hits.push(path);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(path);
     }
     expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('scans the exact meanings module the runtime imports (scan-target parity)', () => {
+    // PR #101 MED-2: a future meanings.v2.js (§4 — new release = new file)
+    // must not ship unscanned while this file greens on v1. ui/meanings.js is
+    // the sole runtime importer; when its import moves, this fails until the
+    // scan's static imports move to the same file in the same change.
+    const specifiers = [...meaningsUiJs.matchAll(
+      /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g,
+    )].map(match => match[1]);
+    expect(specifiers.length).toBeGreaterThan(0);
+    for (const specifier of specifiers) expect(specifier).toBe('meanings.v1.js');
+  });
+});
+
+// Guard the guard: every policy scan above (and its siblings over the deck
+// and the concordance registry) is all-negative — it asserts zero hits — so a
+// weakened matcher would read green while silently passing the inflections it
+// exists to catch: the exact false-green class the PR #101 audit (MED-1)
+// proved by mutation against the old word-bounded shape. These positive-fire
+// sentinels pin the shared matcher, the safelist, and both framing patterns.
+// Mirrors the pii_scan.test.js sentinel pattern; sentinel strings live only
+// in this test code — no content file carries them.
+describe('voice-register scan — positive-fire sentinels (shared matcher + framing patterns)', () => {
+  it('substring matcher fires on the suffix inflections the old \\b shape missed', () => {
+    expect(voiceRegisterHits('steeped in mysticism'))
+      .toEqual([{ term: 'mystic', containing: 'mysticism' }]);
+    expect(voiceRegisterHits('collects auras').some(hit => hit.term === 'aura')).toBe(true);
+    expect(voiceRegisterHits('manifesting outcomes').some(hit => hit.term === 'manifest')).toBe(true);
+    expect(voiceRegisterHits('channeled records').some(hit => hit.term === 'channel')).toBe(true);
+    expect(voiceRegisterHits('a fateful pairing').some(hit => hit.term === 'fate')).toBe(true);
+  });
+
+  it('substring matcher still fires on exact terms and multiword terms', () => {
+    expect(voiceRegisterHits('pure karma').some(hit => hit.term === 'karma')).toBe(true);
+    expect(voiceRegisterHits('The Universe provides').some(hit => hit.term === 'the universe')).toBe(true);
+    expect(voiceRegisterHits('a third eye opens').some(hit => hit.term === 'third eye')).toBe(true);
+  });
+
+  it('safelist suppresses only listed benign containments, never a real hit', () => {
+    expect(voiceRegisterHits('dinner at the restaurant')).toEqual([]);
+    expect(voiceRegisterHits('sulfates in the water')).toEqual([]);
+    // A safelisted occurrence must not shadow a later real one.
+    expect(voiceRegisterHits('the restaurant aura').some(hit => hit.term === 'aura')).toBe(true);
+    // Every safelist entry actually contains a banned term — a stale entry
+    // that contains none is dead weight and fails here.
+    for (const word of SUBSTRING_SAFELIST) {
+      expect(
+        BANNED_VOICE_REGISTER.some(term => word.includes(term)),
+        `safelist entry "${word}" contains no banned term`,
+      ).toBe(true);
+    }
+  });
+
+  it('second-person pattern fires on every form including yours/yourself', () => {
+    for (const sample of ['you decide', "you're seen", 'your hand', 'yours alone', 'know yourself', 'do it yourselves']) {
+      expect(SECOND_PERSON_RE.test(sample), sample).toBe(true);
+    }
+    expect(SECOND_PERSON_RE.test('young youths in soulful order')).toBe(false);
+  });
+
+  it('diagnostic pattern fires on the whole diagnos* family plus plurals', () => {
+    for (const sample of ['a diagnostic frame', 'competing diagnoses', 'a diagnosis', 'diagnosed early', 'diagnosing habits', 'mood disorders', 'a syndrome', 'disordered pattern']) {
+      expect(DIAGNOSTIC_FRAMING_RE.test(sample), sample).toBe(true);
+    }
+    expect(DIAGNOSTIC_FRAMING_RE.test('orderly syndicates')).toBe(false);
+  });
+
+  it('BANNED_PATTERNS stay word-bounded — ordinary vocabulary must not trip them', () => {
+    const mental = BANNED_PATTERNS.find(re => re.source.includes('mental'));
+    expect(mental.test('a mental state')).toBe(true);
+    expect(mental.test('elemental')).toBe(false);
+    expect(mental.test('fundamental habit')).toBe(false);
   });
 });

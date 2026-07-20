@@ -33,10 +33,16 @@ import {
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
-// Canonical §2/§4 voice-policy tables. Live in a plain helper (not this file)
-// so the provenance/atlas/meanings scans can import them without re-running
-// this suite — see tests/helpers/voice-register.js.
-import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
+// Canonical §2/§4 voice-policy tables + the canonical substring matcher and
+// framing patterns. Live in a plain helper (not this file) so the other
+// policy scans can import them without re-running this suite — see
+// tests/helpers/voice-register.js.
+import {
+  BANNED_PATTERNS,
+  DIAGNOSTIC_FRAMING_RE,
+  SECOND_PERSON_RE,
+  voiceRegisterHits,
+} from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
@@ -409,9 +415,9 @@ describe('engine — getCard MissingCardError (unknown sun/animal)', () => {
   });
 });
 
-// BANNED_PATTERNS and BANNED_VOICE_REGISTER are imported from
-// tests/helpers/voice-register.js (the canonical policy tables) and drive the
-// deck scans below.
+// BANNED_PATTERNS, the voiceRegisterHits substring matcher, and the framing
+// patterns are imported from tests/helpers/voice-register.js (the canonical
+// policy tables + semantics) and drive the deck scans below.
 
 describe('calendar — lunar new year + solar-term tables (v2)', () => {
   // Sanity locks per v0.2.7.1 brief §4.1 / §4.2. CC's calendar.js
@@ -567,17 +573,13 @@ describe('content/cards.v1.full.js — v0.3.0 deck contract', () => {
   }
 
   it('no BANNED_VOICE_REGISTER hits in deck content (DOCTRINE §2)', () => {
+    // Canonical substring semantics via the shared matcher — see
+    // tests/helpers/voice-register.js (PR #101 MED-1 reconciliation; the
+    // old word-bounded shape here false-greened on suffix inflections).
     const hits = [];
     for (const { path, text } of deckStrings()) {
-      const lower = text.toLowerCase();
-      for (const term of BANNED_VOICE_REGISTER) {
-        // Word-boundary case-insensitive match — same shape as the v0.1.x
-        // scan that historically ran against the private deck.
-        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-        if (re.test(text)) {
-          hits.push(`${path}: matched "${term}" in "${text.slice(0, 80)}…"`);
-          break;
-        }
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: matched "${term}" in "${containing}" ("${text.slice(0, 80)}…")`);
       }
     }
     expect(hits, `Voice-register violations in cards.v1.full.js:\n${hits.join('\n')}`).toEqual([]);
@@ -607,5 +609,31 @@ describe('content/cards.v1.full.js — v0.3.0 deck contract', () => {
       }
     }
     expect(hits, `Date strings in cards.v1.full.js (unexpected):\n${hits.join('\n')}`).toEqual([]);
+  });
+
+  it('never addresses the reader directly and never reaches for diagnostic framing', () => {
+    // §2's register is declarative-observational — card prose describes, it
+    // does not speak TO the reader or borrow clinical authority. Same shared
+    // patterns as the meanings and concordance scans (PR #101 follow-up:
+    // one convention across all three content scans).
+    const hits = [];
+    for (const { path, text } of deckStrings()) {
+      if (SECOND_PERSON_RE.test(text)) hits.push(`${path}: second-person address`);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('scans the exact deck module the runtime imports (scan-target parity)', () => {
+    // PR #101 MED-2: a future cards.v2 deck (§4 — new release = new file)
+    // must not ship unscanned while this file greens on v1. index.html is the
+    // sole runtime importer; when its import moves, this fails until the
+    // scan's static imports move to the same file in the same change.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const specifiers = [...html.matchAll(
+      /from\s+['"]\.{1,2}\/content\/(cards\.[\w.]+\.js)['"]/g,
+    )].map(match => match[1]);
+    expect(specifiers.length).toBeGreaterThan(0);
+    for (const specifier of specifiers) expect(specifier).toBe('cards.v1.full.js');
   });
 });

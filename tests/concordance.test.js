@@ -12,7 +12,12 @@ import {
 } from '../content/concordance.v1.js';
 import * as CONCORDANCE_REGISTRY from '../content/concordance.v1.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
-import { BANNED_VOICE_REGISTER, BANNED_PATTERNS } from './helpers/voice-register.js';
+import {
+  BANNED_PATTERNS,
+  DIAGNOSTIC_FRAMING_RE,
+  SECOND_PERSON_RE,
+  voiceRegisterHits,
+} from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -184,11 +189,12 @@ describe('content/concordance.v1.js — voice register + content policy (DOCTRIN
   });
 
   it('no BANNED_VOICE_REGISTER hits', () => {
+    // Canonical substring semantics via the shared matcher — see
+    // tests/helpers/voice-register.js (PR #101 MED-1 reconciliation).
     const hits = [];
     for (const { path, text } of registryStrings(CONCORDANCE_REGISTRY)) {
-      for (const term of BANNED_VOICE_REGISTER) {
-        const re = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-        if (re.test(text)) hits.push(`${path}: matched "${term}" in "${text.slice(0, 80)}"`);
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: matched "${term}" in "${containing}" ("${text.slice(0, 80)}")`);
       }
     }
     expect(hits, `Voice-register violations in concordance.v1.js:\n${hits.join('\n')}`).toEqual([]);
@@ -207,9 +213,21 @@ describe('content/concordance.v1.js — voice register + content policy (DOCTRIN
   it('never addresses the reader directly and never reaches for diagnostic framing', () => {
     const hits = [];
     for (const { path, text } of registryStrings(CONCORDANCE_REGISTRY)) {
-      if (/\byou\b|\byour\b|\byou're\b/i.test(text)) hits.push(`${path}: second-person address`);
-      if (/\b(diagnos(is|e|ed)|disorder|syndrome)\b/i.test(text)) hits.push(`${path}: diagnostic framing`);
+      if (SECOND_PERSON_RE.test(text)) hits.push(`${path}: second-person address`);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
     }
     expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('scans the exact registry module the runtime imports (scan-target parity)', () => {
+    // PR #101 MED-2: a future concordance.v2.js (§4 — new release = new file)
+    // must not ship unscanned while this file greens on v1. ui/concordance.js
+    // is the sole runtime importer; when its import moves, this fails until
+    // the scan's static imports move to the same file in the same change.
+    const specifiers = [...concordanceJs.matchAll(
+      /from\s+['"]\.{1,2}\/content\/(concordance\.[\w.]+\.js)['"]/g,
+    )].map(match => match[1]);
+    expect(specifiers.length).toBeGreaterThan(0);
+    for (const specifier of specifiers) expect(specifier).toBe('concordance.v1.js');
   });
 });
