@@ -5,6 +5,18 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — PR #104 codex-chain closure: verdict filed + parity absorb (post-merge leg) — STAGED
+
+**Status: STAGED on `claude/pr104-codex-closure`, riding its own claude/* PR; the merge is its own word.**
+
+**What and why.** #104 squash-merged (`82430d7`) on the sibling lane's Grok clear while the implementer lane's Codex relay pass — launched early per the L48 clean shape — was still in flight: the codex verdict (**MERGE WITH FIXES**, run `20260720-050805-relay-pr104-worktree`) and its recommended absorb reached the PR branch minutes post-merge, stranded behind the merge. This leg files the codex response in-repo per the #99 post-merge verdict-closure precedent and lands the one absorb it recommended:
+
+1. **Codex MED (parity literal) absorbed at `8bfa225`.** The three scan-target parity tests compared the runtime import against a free-floating filename literal — a v2 migration updating runtime + literal while the scan kept importing v1 would have stayed green, preserving the exact MED-2 false-green the tests exist to kill. The expected specifier is now derived from each scan file's own static content import (one family regex over both sources, non-vacuity floors on each side, all specifiers must agree). Mutation-verified: flipping `ui/meanings.js` to `meanings.v2.js` reds the parity test (restored, `ui/` untouched).
+2. **Codex HIGH (missing pr104 artifact) closes with `audits/codex_pr104_premerge_audit_2026-07-20_response.md` in this PR** — #104 itself merged gate-legal on Grok's in-PR artifact; the codex response completes the two-reviewer record: codex MERGE WITH FIXES (absorbed/closed) + Grok SAFE TO MERGE, residuals convergent, no unresolved disagreement.
+3. **Codex LOW re-confirmed as named follow-up debt** (Grok's residual too): provenance/atlas placard scans still inline `.includes()` and bypass `SUBSTRING_SAFELIST` — the follow-up routes them through a parameterized `voiceRegisterHits` in its own leg; the divergence fails loud (false positive), not silent, and no colliding word sits on those surfaces today.
+
+**Verification.** Suite **1316/1316 (37 files)** under vitest 4.1.9 on post-#107 `main` + absorb (in-place test rewrites — counts and `repo_shape` pins unchanged). Local PII audit clean. `git diff --check` clean. **Scope (files):** `tests/profile.test.js`, `tests/meanings_content.test.js`, `tests/concordance.test.js`, `audits/codex_pr104_premerge_audit_2026-07-20_response.md`, this file, plus this PR's own L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`.
+
 ## 2026-07-20 — all-in closeout: P3-2/P3-4 · content_shape PR2 · journal truth flips · Netlify ops note — STAGED
 
 **Status: STAGED on `grok/all-in-closeout`; merge is its own word.**
@@ -21,7 +33,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-07-20 — suite-wide voice-register scan-shape reconciliation (PR #101 MED-1 + MED-2 follow-up) — SHIPPED
 
-**Status: SHIPPED — squash-merged to `main` as `82430d7` (#104) on 2026-07-20 after Grok L48 clear + rebase onto post-#105 main. Pre-merge record below preserved verbatim.**
+**Status: SHIPPED — squash-merged to `main` as `82430d7` (#104) on 2026-07-20 after Grok L48 clear + rebase onto post-#105 main. Pre-merge record below preserved verbatim. The Codex leg of the cross-model chain (verdict MERGE WITH FIXES; parity-literal absorb) landed minutes post-merge and files through the codex-chain closure leg (entry above).**
 
 **What and why.** The PR #101 pre-merge audit proved by mutation that the three content scans' word-bounded `\b term \b` matching false-greens on suffix inflections (`mysticism` slipped `mystic`, `yourself` slipped the second-person check, bare `diagnostic` slipped the diagnostic alternation) while the shared helper's header documented `.includes()` substring semantics none of the three actually used — and flagged the scans' v1-filename hard-coding. Both Mediums were dispositioned as one suite-wide follow-up rather than a concordance-only fork (`audits/codex_pr101_premerge_audit_2026-07-20_response.md`); this is that leg.
 
