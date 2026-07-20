@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATLAS_NOTE, atlasText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
-import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS } from './helpers/voice-register.js';
+import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -55,12 +55,12 @@ describe('ATLAS legend (CLP cut 2)', () => {
   });
 
   it('every note is a clinical system name — no mysticism/interpretation (§2)', () => {
+    // Canonical shared matcher (same substring semantics this scan always
+    // ran, now with SUBSTRING_SAFELIST applied) — #104/#108 LOW-3 debt clear.
     for (const note of NOTES) {
-      const lc = note.toLowerCase();
-      for (const term of BANNED_VOICE) {
-        expect(lc.includes(term),
-          `atlas note "${note}" contains banned term "${term}"`).toBe(false);
-      }
+      const hits = voiceRegisterHits(note, BANNED_VOICE);
+      expect(hits, `atlas note "${note}" hits: ${hits
+        .map(hit => `"${hit.term}" in "${hit.containing}"`).join(', ')}`).toEqual([]);
     }
   });
 
