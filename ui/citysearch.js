@@ -35,6 +35,58 @@ export function formatCityLabel(c) {
   return c.country ? c.name + ', ' + c.country : c.name;
 }
 
+// City-list CSS lives here (injected at init) so index.html keeps headroom
+// under the §6 1500-line cap. Shared polar/legacy/field-error rules stay in
+// the shell — they are reused by DOB/profile surfaces and pinned by tests.
+const STYLE = `
+.city-field { position: relative; }
+.city-suggestions {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--paper-bg, #0e0c0a);
+  border: 1px solid var(--rule);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.city-suggestions:empty { display: none; }
+.city-suggestions li {
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(138,132,114,0.15);
+}
+.city-suggestions li:last-child { border-bottom: none; }
+.city-suggestions li:hover,
+.city-suggestions li[aria-selected="true"] {
+  background: rgba(138,132,114,0.12);
+}
+.city-suggestions li .city-country {
+  color: var(--label-on-dark);
+  letter-spacing: 0.10em;
+}
+`;
+
+function injectStyle() {
+  // Vitest unit mocks supply a partial document without head/getElementById;
+  // skip injection there. Live browsers always have a full document.
+  if (typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  if (document.getElementById('citysearch-style')) return;
+  if (!document.head || typeof document.createElement !== 'function') return;
+  const style = document.createElement('style');
+  style.id = 'citysearch-style';
+  style.textContent = STYLE;
+  document.head.appendChild(style);
+}
+
 // ── DOM-touching controller (DI injected at boot) ─────────────────
 
 let _refs = null;
@@ -158,6 +210,7 @@ export function initCitySearchUI(refs, hooks) {
   _debounce = null;
   _results = [];
   _activeIndex = -1;
+  injectStyle();
   if (!refs.citySuggestions.id) refs.citySuggestions.id = 'city-suggestions';
   refs.cityInput.setAttribute('role', 'combobox');
   refs.cityInput.setAttribute('aria-autocomplete', 'list');
