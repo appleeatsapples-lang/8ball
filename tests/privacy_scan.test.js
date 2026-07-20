@@ -1,7 +1,7 @@
 // 8ball / tests / privacy_scan.test.js
 // Privacy primitive enforcement (DOCTRINE.md §5).
-// Scans `core/`, `content/`, and `index.html` for forbidden API surfaces
-// (alternate storage, network, analytics) and verifies that every
+// Scans `core/`, `content/`, `ui/`, and `index.html` for forbidden API
+// surfaces (alternate storage, network, analytics) and verifies that every
 // `localStorage.setItem(...)` call uses a key from the allow-list.
 
 import { describe, it, expect } from 'vitest';
