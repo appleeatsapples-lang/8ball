@@ -21,8 +21,10 @@
 // patterns live in meanings_content.test.js (the pii_scan.test.js
 // guard-the-guard pattern).
 //
-// Consumers — every voice-policy scan routes through voiceRegisterHits
-// (the #104/#108 LOW-3 debt clear closed the last two inline forks):
+// Consumers — every BANNED_VOICE_REGISTER-based scan routes through
+// voiceRegisterHits (the #104/#108 LOW-3 debt clear closed the last two
+// inline forks); the framing REs and BANNED_PATTERNS below are separate
+// voice-policy surfaces with their own (regex) semantics:
 //   - profile.test.js          matcher + framing REs + BANNED_PATTERNS over the deck
 //   - meanings_content.test.js same, over content/meanings.v1.js (+ the sentinels)
 //   - concordance.test.js      same, over content/concordance.v1.js registry
