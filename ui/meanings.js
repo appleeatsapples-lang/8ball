@@ -309,11 +309,6 @@ export function initMeaningsUI(refs) {
     if (cell) openFor(cell.dataset.coordinateKey, cell);
   });
   cardFace.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && activeCell) {
-      e.preventDefault();
-      close();
-      return;
-    }
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const cell = e.target.closest('.coord-cell.has-detail');
     if (cell) { e.preventDefault(); openFor(cell.dataset.coordinateKey, cell); }

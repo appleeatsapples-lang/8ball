@@ -249,9 +249,11 @@ describe('ui/meanings.js behavior', () => {
     cardFace._fire('keydown', { key: 'Enter', target: vals.sun, preventDefault: () => prevented++ });
     expect(prevented).toBe(1);
     expect(panel().classList.contains('open')).toBe(true);
+    // Escape is owned by the document-level listener with modal-bg deferral
+    // (#105) — covered below; the delegated cardFace path must not intercept it.
     cardFace._fire('keydown', { key: 'Escape', target: vals.sun, preventDefault: () => prevented++ });
-    expect(prevented).toBe(2);
-    expect(panel().classList.contains('open')).toBe(false);
+    expect(prevented).toBe(1);
+    expect(panel().classList.contains('open')).toBe(true);
   });
 
   it('the close button returns focus to the toggler cell (P2 audit fix)', () => {
