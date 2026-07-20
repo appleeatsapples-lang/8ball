@@ -5,9 +5,21 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-20 — housekeeping: spree open-debt flags closed (RC-L1 tilde path · RC-L2 registry voice-scan · 8BALL §11.11 t3 SHIPPED) + L48-entry flip — STAGED
+## 2026-07-20 — full-power batch: content_shape pins · index.html headroom · §6 Netlify Pro truth — STAGED
 
-**Status: STAGED on `claude/8ball-handoff-sr-rc-t3-df6ca2`, riding its own claude/* PR; the merge is its own word.**
+**Status: STAGED on `grok/full-power-batch-2026-07-20`; merge is its own word.**
+
+**What and why.** Operator asked for the full continuation set after the spree (ship + audit + content + headroom + reach). Ship leg already closed as #101 (`ff6efda`). This batch lands three implementable legs:
+
+1. **content_shape (tests only).** New `tests/content_shape.test.js` pins three night-study invariants against immutable `content/cards.v1.full.js` (no content edit): 144 unique three-word `the …` names; mid openers `builds` 139/144 with the five licensed aries exceptions; note word counts 8–13 with exactly one 13-word note at virgo×dragon low. CLAUDE.md vitest count 36→37 for `repo_shape`.
+2. **index.html headroom.** City-list CSS moved into `ui/citysearch.js` injectStyle (meanings/readings precedent); shared polar/legacy/field-error rules stay in the shell. **1498 → 1464** lines (~34 free; under the ≥40 target but enough buffer for the next small surface). injectStyle fails soft under the partial-document unit mock.
+3. **DOCTRINE §6 Netlify plan truth (mechanical).** "free tier" → Pro $20/mo to match 8BALL.md/README; classification note at `audits/mechanical_netlify_pro_correction_2026-07-20.md`. No product/rule change.
+
+**UNTOUCHED:** `core/`, `content/` bytes, fixtures, payments, concordance, network. Reach packet + full adversarial audit live off-repo under `~/8ball/` (not staged into the product).
+
+## 2026-07-20 — housekeeping: spree open-debt flags closed (RC-L1 tilde path · RC-L2 registry voice-scan · 8BALL §11.11 t3 SHIPPED) + L48-entry flip — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `ff6efda` (#101) on 2026-07-20. Twin #102 (Grok parallel) closed as superseded. Pre-merge record below preserved verbatim.**
 
 **What and why.** Four truth/debt items left open at the SR/RC/t3 spree close-out, batched per the handoff's default path before new feature work:
 
