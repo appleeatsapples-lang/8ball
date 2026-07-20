@@ -33,6 +33,9 @@ import {
   SUBSTRING_SAFELIST,
   voiceRegisterHits,
 } from './helpers/voice-register.js';
+// Pure exports only (no DOM at import time per §6): the assembled-output
+// scan below runs the real builders, not a reimplementation.
+import * as uiMeanings from '../ui/meanings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const meaningsUiJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
@@ -289,5 +292,94 @@ describe('content/meanings.v2.js — all-coordinate context layer', () => {
       if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
     }
     expect(hits, hits.join('\n')).toEqual([]);
+  });
+});
+
+describe('assembled meaning synthesis — voice register over runtime output (PR #113 audit absorb)', () => {
+  // The concordance scan covers buildConcordance's ASSEMBLED strings; the
+  // meanings layer assembles content at runtime too (harmonyFor's connective
+  // template, pillarEntry bodies). Static-table scans alone would let a
+  // future template edit drift into oracle register with no gate — so scan
+  // the real builders' output across every value each coordinate can hold.
+  const { entryFor, harmonyFor } = uiMeanings;
+
+  const resolvedSheet = {
+    arcana: 'XI · justice',
+    element: 'earth',
+    sun: 'virgo',
+    rising: 'leo',
+    animal: 'horse',
+    innerAnimal: 'snake',
+    lifePath: '2',
+    nameNumber: '6',
+    soulUrge: '4',
+    personality: '8',
+    birthday: '2',
+    maturity: '8',
+    dayPillar: 'tiger · fire',
+    hourPillar: 'rat · water',
+  };
+
+  const pillarValues = Object.keys(ANIMAL_MEANINGS).flatMap(animal =>
+    Object.keys(ELEMENT_MEANINGS).map(element => `${animal} · ${element}`));
+  const VALUE_POOLS = {
+    arcana: Object.keys(ARCANA_MEANINGS),
+    element: Object.keys(ELEMENT_MEANINGS),
+    sun: Object.keys(SUN_MEANINGS),
+    rising: Object.keys(SUN_MEANINGS),
+    animal: Object.keys(ANIMAL_MEANINGS),
+    innerAnimal: Object.keys(ANIMAL_MEANINGS),
+    lifePath: Object.keys(NUMEROLOGY_MEANINGS),
+    nameNumber: Object.keys(NUMEROLOGY_MEANINGS),
+    soulUrge: Object.keys(NUMEROLOGY_MEANINGS),
+    personality: Object.keys(NUMEROLOGY_MEANINGS),
+    birthday: Object.keys(NUMEROLOGY_MEANINGS),
+    maturity: Object.keys(NUMEROLOGY_MEANINGS),
+    dayPillar: pillarValues,
+    hourPillar: pillarValues,
+  };
+
+  function assembledStrings() {
+    const strings = [];
+    for (const [key, pool] of Object.entries(VALUE_POOLS)) {
+      for (const value of pool) {
+        const entry = entryFor(key, value);
+        expect(entry, `${key}:${value} resolves an entry`).toBeTruthy();
+        strings.push({ path: `${key}:${value}:body`, text: entry.body });
+        strings.push({
+          path: `${key}:${value}:harmony`,
+          text: harmonyFor(key, entry, { ...resolvedSheet, [key]: value }),
+        });
+        // Sparse-sheet branch: fewer than two resolvable partners.
+        strings.push({
+          path: `${key}:${value}:harmony-sparse`,
+          text: harmonyFor(key, entry, { [key]: value }),
+        });
+      }
+    }
+    return strings;
+  }
+
+  it('every assembled body and harmony sentence passes the shared scans', () => {
+    const hits = [];
+    for (const { path, text } of assembledStrings()) {
+      expect(typeof text, path).toBe('string');
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: voice "${term}" in "${containing}"`);
+      }
+      for (const re of BANNED_PATTERNS) {
+        if (re.test(text)) hits.push(`${path}: ${re}`);
+      }
+      if (SECOND_PERSON_RE.test(text)) hits.push(`${path}: second person`);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('numerology coordinates assemble numerology-only partners even on a full sheet', () => {
+    for (const key of ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity']) {
+      const sentence = harmonyFor(key, entryFor(key, '5'), { ...resolvedSheet, [key]: '5' });
+      expect(sentence, key).not.toMatch(/outward agenda|public instinct|material tempo|frame of the full reading/);
+    }
   });
 });

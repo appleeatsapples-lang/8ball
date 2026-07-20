@@ -65,6 +65,7 @@ const COORDINATES = {
 
 const UNRESOLVED_COPY = {
   rising: 'no rising value is present yet, so its first-impression meaning cannot be placed beside the sun and personality coordinates. birth time and birthplace complete this part of the sheet.',
+  dayPillar: 'no day-pillar value is present yet, so its date-specific meaning cannot be placed beside the public animal and element coordinates. date of birth completes this part of the sheet.',
   hourPillar: 'no hour-pillar value is present yet, so its time-specific meaning cannot be placed beside the private animal and rising coordinates. birth time completes this part of the sheet.',
   nameNumber: 'no name-number value is present because the entered name supplies no counted letters. this coordinate stays unresolved rather than creating a zero.',
   soulUrge: 'no soul-urge value is present because the entered name supplies no standard vowels. this coordinate stays unresolved rather than creating a zero.',
@@ -152,7 +153,11 @@ function pillarEntry(rawValue) {
   };
 }
 
-function entryFor(key, rawValue) {
+// Exported pure (no DOM): tests/meanings_content.test.js scans the ASSEMBLED
+// runtime output (pillar bodies here, harmony sentences below) through the
+// shared voice-register tables, mirroring the concordance assembled-output
+// scan convention (#101/#107).
+export function entryFor(key, rawValue) {
   if (!rawValue || rawValue === '\u2014') return null;
   if (key === 'dayPillar' || key === 'hourPillar') return pillarEntry(rawValue);
   const table = TABLES[key];
@@ -168,7 +173,7 @@ function readValues() {
   return values;
 }
 
-function harmonyFor(key, entry, values) {
+export function harmonyFor(key, entry, values) {
   const context = COORDINATE_CONTEXT[key];
   if (!context) return '';
   const fallbacks = NUMEROLOGY_KEYS.has(key)
