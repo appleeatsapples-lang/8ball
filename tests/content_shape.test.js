@@ -76,3 +76,44 @@ describe('content shape — note length discipline', () => {
     expect(thirteens).toEqual([{ sun: 'virgo', animal: 'dragon', bracket: 'low' }]);
   });
 });
+
+describe('content shape — voice (deck strings)', () => {
+  function* deckStrings() {
+    for (const { sun, animal, cell } of cells()) {
+      yield { path: `${sun}.${animal}.name`, text: cell.name };
+      yield { path: `${sun}.${animal}.type`, text: cell.type };
+      yield { path: `${sun}.${animal}.habit`, text: cell.habit };
+      for (const bracket of ['low', 'mid', 'high']) {
+        yield { path: `${sun}.${animal}.note.${bracket}`, text: cell.note[bracket] };
+      }
+    }
+  }
+
+  it('never addresses the reader (you/your) in any deck string', () => {
+    const hits = [];
+    for (const { path, text } of deckStrings()) {
+      if (/\byou\b|\byour\b|\byou're\b/i.test(text)) hits.push(path);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+});
+
+describe('content shape — velvet lexicon', () => {
+  it('velvet appears only in names, exactly 11 times, one head inversion', () => {
+    const nameHits = [];
+    const otherHits = [];
+    for (const { sun, animal, cell } of cells()) {
+      if (/\bvelvet\b/i.test(cell.name)) nameHits.push({ sun, animal, name: cell.name });
+      for (const [field, text] of [
+        ['type', cell.type], ['habit', cell.habit],
+        ['note.low', cell.note.low], ['note.mid', cell.note.mid], ['note.high', cell.note.high],
+      ]) {
+        if (/\bvelvet\b/i.test(text)) otherHits.push(`${sun}.${animal}.${field}`);
+      }
+    }
+    expect(otherHits, `velvet leaked outside names:\n${otherHits.join('\n')}`).toEqual([]);
+    expect(nameHits).toHaveLength(11);
+    const headInversions = nameHits.filter(({ name }) => words(name)[2] === 'velvet');
+    expect(headInversions.map(h => h.name)).toEqual(['the sad velvet']);
+  });
+});

@@ -231,3 +231,41 @@ describe('content/concordance.v1.js — voice register + content policy (DOCTRIN
     for (const specifier of specifiers) expect(specifier).toBe('concordance.v1.js');
   });
 });
+
+describe('concordance assembled output — voice register (P3-4 post-spree)', () => {
+  // RC content scan covers the registry file; this walks status glosses plus
+  // every assembled axis string a t1 compare can emit (relation/citation/
+  // qualifier), so ui/concordance.js prose cannot drift into oracle register
+  // while content/concordance.v1.js stays clean.
+  function* assembledStrings() {
+    for (const [status, gloss] of Object.entries(CONCORDANCE_STATUSES)) {
+      yield { path: `CONCORDANCE_STATUSES.${status}`, text: gloss };
+    }
+    const left = profile({
+      sunSign: 'aries', animal: 'rat', chineseElement: 'wood', lifePath: 11,
+      birthCard: { number: 0, label: '0 · the fool' },
+    });
+    const right = profile({
+      sunSign: 'libra', animal: 'ox', chineseElement: 'fire', lifePath: 2,
+      birthCard: { number: 1, label: 'I · the magician' },
+    });
+    const result = buildConcordance(left, right, { tier: 't1' });
+    for (const axis of result.axes) {
+      for (const field of ['relation', 'citation', 'qualifier', 'registry', 'label', 'left', 'right', 'status']) {
+        yield { path: `axis.${axis.key}.${field}`, text: String(axis[field] ?? '') };
+      }
+    }
+  }
+
+  it('no voice-register / second-person / diagnostic hits in assembled output', () => {
+    const hits = [];
+    for (const { path, text } of assembledStrings()) {
+      for (const { term, containing } of voiceRegisterHits(text)) {
+        hits.push(`${path}: voice "${term}" in "${containing}"`);
+      }
+      if (SECOND_PERSON_RE.test(text)) hits.push(`${path}: second-person`);
+      if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic`);
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+});

@@ -5,9 +5,23 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-20 — suite-wide voice-register scan-shape reconciliation (PR #101 MED-1 + MED-2 follow-up) — STAGED
+## 2026-07-20 — all-in closeout: P3-2/P3-4 · content_shape PR2 · journal truth flips · Netlify ops note — STAGED
 
-**Status: STAGED on `claude/youthful-raman-979c22`, riding its own claude/* PR; the merge is its own word.**
+**Status: STAGED on `grok/all-in-closeout`; merge is its own word.**
+
+**What and why.** Operator "go all in" after Netlify inspector snapshot: drain remaining post-spree audit P3s, pin more deck grammar, flip STAGED journal rows for already-merged ships, record the morning SSH deploy-key blip.
+
+1. **P3-2** — `tests/privacy_scan.test.js` header now names `ui/` (SCAN_ROOTS already included it).
+2. **P3-4** — concordance assembled-output voice scan (status glosses + `buildConcordance` axis strings at t1).
+3. **content_shape PR2** — deck second-person zero; velvet names-only ×11 with sole head inversion `the sad velvet`.
+4. **Journal truth** — #103/#104/#105/#106 STAGED→SHIPPED flips in this same file (rows below).
+5. **Ops note (Netlify)** — two failed production builds ~03:55–03:58 AST failed at prepare-repo with `Host key verification failed` (128); later deploys green (self-resolved). Prod must track `main` tip; inspector once saw `4c272c3` while git was already past #105 Escape. No code/secret change; re-auth Netlify↔GitHub only if the fail recurs. Feedback form May spam (`uuuuu`/`wwww`/`yyyy`) noted, not acted on.
+
+**Verification.** Suite run on branch; L48 artifact in-PR. **UNTOUCHED:** `core/`, content bytes, `index.html`, payments, network, DOCTRINE substance.
+
+## 2026-07-20 — suite-wide voice-register scan-shape reconciliation (PR #101 MED-1 + MED-2 follow-up) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `82430d7` (#104) on 2026-07-20 after Grok L48 clear + rebase onto post-#105 main. Pre-merge record below preserved verbatim.**
 
 **What and why.** The PR #101 pre-merge audit proved by mutation that the three content scans' word-bounded `\b term \b` matching false-greens on suffix inflections (`mysticism` slipped `mystic`, `yourself` slipped the second-person check, bare `diagnostic` slipped the diagnostic alternation) while the shared helper's header documented `.includes()` substring semantics none of the three actually used — and flagged the scans' v1-filename hard-coding. Both Mediums were dispositioned as one suite-wide follow-up rather than a concordance-only fork (`audits/codex_pr101_premerge_audit_2026-07-20_response.md`); this is that leg.
 
@@ -20,9 +34,9 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Verification.** Suite **1309/1309 (37 files)** under vitest 4.1.9 (+10 over the 1299 post-#103 baseline: 6 sentinels, 3 parity, 1 deck framing scan; no new test file — the `repo_shape` pin and CLAUDE.md counts moved only with #103's own 37th file and are untouched here). Local PII audit clean. `git diff --check` clean. **Scope (files):** `tests/helpers/voice-register.js`, `tests/profile.test.js`, `tests/meanings_content.test.js`, `tests/concordance.test.js`, this file, plus the in-PR L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`.
 
-## 2026-07-20 — full-power batch: content_shape pins · index.html headroom · §6 Netlify Pro truth — STAGED
+## 2026-07-20 — full-power batch: content_shape pins · index.html headroom · §6 Netlify Pro truth — SHIPPED
 
-**Status: STAGED on `grok/full-power-batch-2026-07-20`; merge is its own word.**
+**Status: SHIPPED — squash-merged to `main` as `4c272c3` (#103) on 2026-07-20. Pre-merge record below preserved verbatim. Same-day follow-ons: #105 Escape a11y (`ce38c55`), #104 voice-register (`82430d7`), #106 SR non-debit pins (`6efa6b7`).**
 
 **What and why.** Operator asked for the full continuation set after the spree (ship + audit + content + headroom + reach). Ship leg already closed as #101 (`ff6efda`). This batch lands three implementable legs:
 
