@@ -5,6 +5,17 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-20 — housekeeping micro-batch: §7 stage-1 scan-coverage catch-up (#101 debt) + #109 entry flip — STAGED
+
+**Status: STAGED on `claude/s7-scan-catchup-109-flip`, riding its own claude/* PR; the merge is its own word.**
+
+**What and why.** The two housekeeping carry-forwards from the voice-scan chain close (handoff 2026-07-20), batched as one docs-only cut:
+
+1. **§7 stage-1 coverage catch-up (open since #101).** One sentence appended to DOCTRINE §7 stage 1: the enumeration under-described the live §2 voice-register surface (the safe direction) — it named only the deck (v0.22) and meanings (v0.44) scans, while shipped reality also scans the concordance registry + assembled output (#101/#107) and the provenance/atlas surfaces, all routed through the shared `voiceRegisterHits()` matcher in `tests/helpers/voice-register.js` since the #104→#109 chain. The sentence documents scans CI already runs; the stale `tests/profile.test.js` table-home attribution in the v0.44 note is superseded in place, older text preserved verbatim per L17. No rule, gate, threshold, or product text changed; no doctrine-version bump (the §6 Netlify-truth precedent, #103).
+2. **#109 entry flip (on-sighting).** The entry below still read STAGED after its explicit-word merge (`7427cb4`) and remote-branch deletion; flipped per the mechanical footer-flip precedent.
+
+**Verification.** Suite **1317/1317 (37 files)** under vitest 4.1.9 — zero test changes (`repo_shape` pins and CLAUDE.md counts untouched). Local PII audit clean. `git diff --check` clean. **Scope (files):** `DOCTRINE.md` (§7 stage 1, one sentence), this file, plus the in-PR audit artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/`, `tests/fixtures.json`.
+
 ## 2026-07-20 — post-spree audit sweep (rebuilt on #107, rebased to #109): retroactive #103 verdict · L48 sighting #7 closed · #97 backfill · WIP stack PARKED · lane hygiene record — STAGED
 
 **Status: STAGED on `claude/audit-recent-changes-d9b78a`; merge is its own word. Trigger: the controller asked for a full audit + alignment pass over the late-night spree. The original sweep commit `2635136` (built on `4c272c3`/#103) was rebuilt on `29b69b8`/#107 after the parallel all-in closeout (#104–#107, merged 05:14–05:21) superseded two of its four corrections, then rebased onto `7427cb4` (#109) when #108/#109 landed mid-wait. Session words honored: "all go full in" (decisions below), then the push-time word — push + run the relay audit — which supersedes the interim docs-only relay-waiver this entry briefly carried.**
