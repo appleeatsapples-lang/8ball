@@ -22,14 +22,33 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect(html).toMatch(/initMeaningsUI\(\{\s*cardFace\s*\}\)/);
   });
 
-  it('excludes catalog from VALUE_IDS — no free meaning for the paid compound card', () => {
+  it('excludes catalog from COORDINATES — no detail trigger for the compound card', () => {
     expect(meaningsJs).not.toMatch(/catalog:\s*'coord-catalog/);
   });
 
-  it('imports all four tables from content/meanings.v1.js, no fifth', () => {
+  it('registers every coordinate value id as interactive', () => {
+    for (const id of [
+      'coord-arcana-symbol', 'coord-element-symbol',
+      'coord-sun-symbol', 'coord-rising-symbol',
+      'coord-animal-symbol', 'coord-inner-symbol',
+      'coord-lifepath-symbol', 'coord-namenumber-symbol', 'coord-soulurge-symbol',
+      'coord-personality-symbol', 'coord-birthday-symbol', 'coord-maturity-symbol',
+      'coord-daypillar-symbol', 'coord-hourpillar-symbol',
+    ]) {
+      expect(meaningsJs).toContain(`valueId: '${id}'`);
+    }
+  });
+
+  it('imports the expanded meaning/context registry from meanings.v2.js', () => {
     expect(meaningsJs).toMatch(
-      /import\s*{\s*ARCANA_MEANINGS,\s*SUN_MEANINGS,\s*ANIMAL_MEANINGS,\s*LIFE_PATH_MEANINGS,?\s*}\s*from\s*'\.\.\/content\/meanings\.v1\.js'/
+      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v2\.js'/
     );
+  });
+
+  it('uses meaning context rather than derivation/provenance copy', () => {
+    expect(meaningsJs).toContain('harmonyFor');
+    expect(meaningsJs).toContain('in this sheet');
+    expect(meaningsJs).not.toMatch(/PROV_NOTE|ATLAS_NOTE|derived by/);
   });
 
   it('injects its own style/panel rather than editing index.html markup/CSS', () => {

@@ -29,7 +29,7 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
   it('each numerology number renders into its own compartment cell (v0.7.0)', () => {
     for (const key of ['lifePath', 'nameNumber', 'soulUrge',
       'personality', 'birthday', 'maturity']) {
-      expect(tiersJs).toMatch(new RegExp(`setCell\\('${key}'`));
+      expect(tiersJs).toMatch(new RegExp(`setNumerologyCell\\('${key}'`));
     }
   });
 
@@ -59,7 +59,7 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     expect(html).not.toMatch(/hasMaster/);
   });
 
-  it('master numbers render whole in their own cells (behavioral lock)', () => {
+  it('all six active numerology coordinates render as single digits 1-9', () => {
     const cells = {};
     for (const key of ['arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
@@ -88,17 +88,17 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     renderTierSections({
       sunSign: 'gemini', risingSign: undefined, chineseElement: 'metal',
       animal: 'horse', innerAnimal: 'rabbit',
-      lifePath: 3, nameNumber: 11, soulUrge: 3,
-      personality: 22, birthday: 7, maturity: 33,
+      lifePath: 1, nameNumber: 2, soulUrge: 3,
+      personality: 4, birthday: 5, maturity: 6,
       birthCard: { label: 'XXI · the world' },
       dayPillar: { animal: 'dragon', stemElement: 'earth' },
       hourPillar: null,
     }, 't2');
-    expect(cells.lifePath.textContent).toBe('3');
-    expect(cells.nameNumber.textContent).toBe('11');
+    expect(cells.lifePath.textContent).toBe('1');
+    expect(cells.nameNumber.textContent).toBe('2');
     expect(cells.soulUrge.textContent).toBe('3');
-    expect(cells.personality.textContent).toBe('22');
-    expect(cells.birthday.textContent).toBe('7');
-    expect(cells.maturity.textContent).toBe('33');
+    expect(cells.personality.textContent).toBe('4');
+    expect(cells.birthday.textContent).toBe('5');
+    expect(cells.maturity.textContent).toBe('6');
   });
 });

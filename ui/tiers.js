@@ -198,6 +198,18 @@ function setCell(key, state, text) {
   }
 }
 
+const isNumerologyValue = value =>
+  Number.isInteger(value) && value >= 1 && value <= 9;
+
+// A numerology cell may display one of exactly nine values. Missing
+// contributing letters resolve as an honest `—`; malformed/legacy values
+// outside 1..9 are never rendered as a tenth number.
+function setNumerologyCell(key, entitled, value) {
+  const resolved = isNumerologyValue(value);
+  setCell(key, entitled ? (resolved ? 'value' : 'unres') : 'sealed',
+    resolved ? String(value) : '');
+}
+
 /**
  * Fill and seal every coordinate cell for (profile, tier). Returns
  * { cardEntry } — true only at t3, where index.html renders the written
@@ -228,14 +240,14 @@ export function renderTierSections(profile, tier) {
   setCell('element', coords.has('element') ? 'value' : 'sealed', profile.chineseElement);
   // Life path is free (DOB-derived); expression + soul urge stay t1
   // (name-derived) — §1.D v0.38 split.
-  setCell('lifePath', coords.has('lifePath') ? 'value' : 'sealed', String(profile.lifePath));
-  const numInner = coords.has('numerology') ? 'value' : 'sealed';
-  setCell('nameNumber', numInner, String(profile.nameNumber));
-  setCell('soulUrge', numInner, String(profile.soulUrge));
-  const num2 = coords.has('numbers2') ? 'value' : 'sealed';
-  setCell('personality', num2, String(profile.personality));
-  setCell('birthday', num2, String(profile.birthday));
-  setCell('maturity', num2, String(profile.maturity));
+  setNumerologyCell('lifePath', coords.has('lifePath'), profile.lifePath);
+  const numInner = coords.has('numerology');
+  setNumerologyCell('nameNumber', numInner, profile.nameNumber);
+  setNumerologyCell('soulUrge', numInner, profile.soulUrge);
+  const num2 = coords.has('numbers2');
+  setNumerologyCell('personality', num2, profile.personality);
+  setNumerologyCell('birthday', num2, profile.birthday);
+  setNumerologyCell('maturity', num2, profile.maturity);
   setCell('dayPillar',
     coords.has('dayPillar') ? (profile.dayPillar ? 'value' : 'unres') : 'sealed',
     formatPillar(profile.dayPillar));

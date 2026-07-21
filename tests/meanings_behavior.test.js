@@ -4,8 +4,8 @@
 // tests/meanings_ui.test.js and tests/labels_reveal.test.js are source
 // pins — they grep the modules as text and never execute them. This file
 // closes the behavioral gap: the meanings panel open/toggle/close cycle,
-// the arcana "roman · name" key split, the sealed-cell (—) guard, the
-// Enter/Space keyboard path, and the labels toggle's class/copy/
+// the arcana "roman · name" key split, resolved/unresolved/sealed detail,
+// the Enter/Space/Escape keyboard path, and the labels toggle's class/copy/
 // aria-pressed round-trip all run against hand-injected DOM mocks
 // (node env, no jsdom — same convention as tests/modals.test.js).
 
@@ -69,6 +69,23 @@ function makeNode(tag = 'div') {
 describe('ui/meanings.js behavior', () => {
   let byId, cardFace, cells, vals;
 
+  const coordinates = [
+    ['arcana', 'coord-arcana-symbol'],
+    ['element', 'coord-element-symbol'],
+    ['sun', 'coord-sun-symbol'],
+    ['rising', 'coord-rising-symbol'],
+    ['animal', 'coord-animal-symbol'],
+    ['innerAnimal', 'coord-inner-symbol'],
+    ['lifePath', 'coord-lifepath-symbol'],
+    ['nameNumber', 'coord-namenumber-symbol'],
+    ['soulUrge', 'coord-soulurge-symbol'],
+    ['personality', 'coord-personality-symbol'],
+    ['birthday', 'coord-birthday-symbol'],
+    ['maturity', 'coord-maturity-symbol'],
+    ['dayPillar', 'coord-daypillar-symbol'],
+    ['hourPillar', 'coord-hourpillar-symbol'],
+  ];
+
   function makeCell(key, valueId) {
     const cell = makeNode('span');
     const val = makeNode('span');
@@ -85,10 +102,7 @@ describe('ui/meanings.js behavior', () => {
     byId = new Map();
     cardFace = makeNode('div');
     cells = {}; vals = {};
-    for (const [key, id] of [
-      ['arcana', 'coord-arcana-symbol'], ['sun', 'coord-sun-symbol'],
-      ['animal', 'coord-animal-symbol'], ['lifePath', 'coord-lifepath-symbol'],
-    ]) {
+    for (const [key, id] of coordinates) {
       const { cell, val } = makeCell(key, id);
       cells[key] = cell; vals[key] = val;
       byId.set(id, val);
@@ -115,12 +129,13 @@ describe('ui/meanings.js behavior', () => {
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
 
-  it('init marks the four free cells interactive and keyboard-reachable', () => {
-    for (const key of ['arcana', 'sun', 'animal', 'lifePath']) {
-      expect(cells[key].classList.contains('has-meaning')).toBe(true);
+  it('init marks all 14 coordinate cells interactive and keyboard-reachable', () => {
+    for (const [key] of coordinates) {
+      expect(cells[key].classList.contains('has-detail')).toBe(true);
       expect(cells[key].attrs.tabindex).toBe('0');
       expect(cells[key].attrs.role).toBe('button');
-      expect(cells[key].dataset.meaningKey).toBe(key);
+      expect(cells[key].attrs['aria-label']).toMatch(/ details$/);
+      expect(cells[key].dataset.coordinateKey).toBe(key);
     }
     expect(panel()).toBeTruthy();
     expect(byId.get('meanings-style')).toBeTruthy(); // scoped CSS injected once
@@ -152,13 +167,78 @@ describe('ui/meanings.js behavior', () => {
     expect(p._byId['meaning-body'].textContent).toBe(ARCANA_MEANINGS[name].body);
   });
 
-  it('sealed (—) and unknown values never open the panel', () => {
-    vals.animal.textContent = '—';
-    cardFace._fire('click', { target: vals.animal });
-    expect(panel().classList.contains('open')).toBe(false);
+  it('a resolved coordinate opens its value meaning in context with partner coordinates', () => {
+    vals.nameNumber.textContent = '6';
+    vals.lifePath.textContent = '3';
+    vals.soulUrge.textContent = '4';
+    cardFace._fire('click', { target: vals.nameNumber });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    expect(p._byId['meaning-head'].textContent).toBe('NAME NUMBER');
+    expect(p._byId['meaning-title'].textContent).toBe('the caretaker');
+    expect(p._byId['meaning-body'].textContent).toContain('responsibility toward others');
+    expect(p._byId['meaning-context-head'].textContent).toBe('with the other numbers');
+    expect(p._byId['meaning-context'].textContent).toContain('care serves as the full-name pattern');
+    expect(p._byId['meaning-context'].textContent).toContain('expression enters as the long route');
+    expect(p._byId['meaning-context'].textContent).toContain('structure as the inward motive');
+    expect(p._byId['meaning-body'].textContent).not.toContain('derived by');
+  });
+
+  it('rejects retired master-number values from the active meaning registry', () => {
+    vals.lifePath.textContent = '11';
+    cardFace._fire('click', { target: vals.lifePath });
+    expect(panel()._byId['meaning-title'].textContent).toBe('meaning not filed');
+  });
+
+  it('an unresolved coordinate opens with the input needed to resolve it', () => {
+    vals.rising.textContent = '—';
+    cardFace._fire('click', { target: vals.rising });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    expect(p._byId['meaning-title'].textContent).toBe('not resolved');
+    expect(p._byId['meaning-body'].textContent).toContain('birth time and birthplace');
+  });
+
+  it('a zero-letter-subset numerology coordinate explains its unresolved dash', () => {
+    vals.soulUrge.textContent = '—';
+    cardFace._fire('click', { target: vals.soulUrge });
+    const p = panel();
+    expect(p._byId['meaning-title'].textContent).toBe('not resolved');
+    expect(p._byId['meaning-body'].textContent).toContain('no standard vowels');
+    expect(p._byId['meaning-body'].textContent).toContain('rather than creating a zero');
+  });
+
+  it('a sealed coordinate opens without leaking its hidden value', () => {
+    cells.element.classList.add('sealed');
+    vals.element.textContent = '';
+    cardFace._fire('click', { target: vals.element });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    expect(p._byId['meaning-title'].textContent).toBe('meaning sealed at this tier');
+    expect(p._byId['meaning-body'].textContent).toContain('meaning cannot yet be read');
+    expect(p._byId['meaning-body'].textContent).not.toContain('derived');
+    expect(p._byId['meaning-body'].textContent).not.toMatch(/undefined|null/);
+  });
+
+  it('an unknown value opens an explicit missing-meaning fallback', () => {
     vals.animal.textContent = 'not-a-real-animal';
     cardFace._fire('click', { target: vals.animal });
-    expect(panel().classList.contains('open')).toBe(false);
+    expect(panel().classList.contains('open')).toBe(true);
+    expect(panel()._byId['meaning-title'].textContent).toBe('meaning not filed');
+    expect(panel()._byId['meaning-body'].textContent).toContain('no meaning entry');
+    expect(panel()._byId['meaning-context'].hidden).toBe(true);
+  });
+
+  it('combines an animal and element into a pillar meaning', () => {
+    vals.dayPillar.textContent = 'tiger · fire';
+    vals.animal.textContent = 'snake';
+    vals.element.textContent = 'earth';
+    cardFace._fire('click', { target: vals.dayPillar });
+    const p = panel();
+    expect(p._byId['meaning-title'].textContent).toBe('boldness · activation');
+    expect(p._byId['meaning-body'].textContent).toContain('tiger register brings boldness');
+    expect(p._byId['meaning-body'].textContent).toContain('fire register adds activation');
+    expect(p._byId['meaning-context'].textContent).toContain('boldness with activation serves as the day register');
   });
 
   it('Enter and Space open via the delegated keydown path; other keys pass through', () => {
@@ -167,6 +247,11 @@ describe('ui/meanings.js behavior', () => {
     cardFace._fire('keydown', { key: 'x', target: vals.sun, preventDefault: () => prevented++ });
     expect(panel().classList.contains('open')).toBe(false);
     cardFace._fire('keydown', { key: 'Enter', target: vals.sun, preventDefault: () => prevented++ });
+    expect(prevented).toBe(1);
+    expect(panel().classList.contains('open')).toBe(true);
+    // Escape is owned by the document-level listener with modal-bg deferral
+    // (#105) — covered below; the delegated cardFace path must not intercept it.
+    cardFace._fire('keydown', { key: 'Escape', target: vals.sun, preventDefault: () => prevented++ });
     expect(prevented).toBe(1);
     expect(panel().classList.contains('open')).toBe(true);
   });

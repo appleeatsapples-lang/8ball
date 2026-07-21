@@ -148,10 +148,12 @@ export function getInnerAnimal(year, month, day) {
   return 'rat';
 }
 
+// Active numerology is a strict nine-number system. Every positive total is
+// reduced by repeated digit sum until it lands in 1..9; historical master
+// values (11/22/33) are not retained as separate outputs.
 const reduce = n => {
-  while (n > 9 && n !== 11 && n !== 22 && n !== 33) {
-    n = sumDigits(n);
-  }
+  if (!Number.isInteger(n) || n <= 0) return null;
+  while (n > 9) n = sumDigits(n);
   return n;
 };
 
@@ -220,18 +222,18 @@ export function getSoulUrge(name) {
   return reduce(getSoulUrgeSum(name));
 }
 
-// Birthday: day-of-month from DOB, reduced with master-number rule preserved.
+// Birthday: day-of-month from DOB, reduced into the active 1..9 system.
 export function getBirthday(day) {
   return reduce(day);
 }
 
 // Maturity: reduced life path plus reduced expression/name number, then
-// reduced again. Standard tradition reduces (preserving master numbers
-// 11/22/33) at each step before combining — adding the raw pre-reduction
-// sums instead can fabricate or suppress a master number that wouldn't
-// appear under the standard method (see journal 2026-07-06).
+// reduced again. Combining the canonical components rather than their raw
+// totals keeps maturity inside the same reproducible nine-number system.
 export function getMaturitySum(year, month, day, name) {
-  return getLifePath(year, month, day) + getNameNumber(name);
+  const lifePath = getLifePath(year, month, day);
+  const nameNumber = getNameNumber(name);
+  return lifePath === null || nameNumber === null ? null : lifePath + nameNumber;
 }
 
 export function getMaturity(year, month, day, name) {

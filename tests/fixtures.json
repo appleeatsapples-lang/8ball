@@ -34,7 +34,7 @@
       "dob": "1990-01-20",
       "expected": {
         "sunSign": "aquarius",
-        "lifePath": 22
+        "lifePath": 4
       }
     },
     {
@@ -131,30 +131,30 @@
       }
     },
     {
-      "label": "Master number 11 preserved (Scorpio Snake)",
+      "label": "Former master path 11 reduces to 2 (Scorpio Snake)",
       "dob": "1989-11-09",
       "expected": {
         "sunSign": "scorpio",
         "animal": "snake",
-        "lifePath": 11
+        "lifePath": 2
       }
     },
     {
-      "label": "Master number 22 preserved (Capricorn Snake)",
+      "label": "Former master path 22 reduces to 4 (Capricorn Snake)",
       "dob": "1990-01-02",
       "expected": {
         "sunSign": "capricorn",
         "animal": "snake",
-        "lifePath": 22
+        "lifePath": 4
       }
     },
     {
-      "label": "Master number 33 preserved (Sagittarius Snake)",
+      "label": "Former master path 33 reduces to 6 (Sagittarius Snake)",
       "dob": "1989-12-12",
       "expected": {
         "sunSign": "sagittarius",
         "animal": "snake",
-        "lifePath": 33,
+        "lifePath": 6,
         "nameNumber": 1
       }
     },
@@ -237,10 +237,10 @@
     },
     {
       "name": "",
-      "expected": 0
+      "expected": null
     }
   ],
-  "_cards_comment": "Engine-output fixtures (Phase-2F-2). Aries × 12 animals (regression coverage from 2F-1) plus 11 representative non-aries fixtures, one per sun row. All three LP brackets are exercised: low (1/2/3), mid (4/5/6), high (7/8/9/11/22/33). DOBs synthetic per §11.",
+  "_cards_comment": "Engine-output fixtures (Phase-2F-2). Aries × 12 animals (regression coverage from 2F-1) plus 11 representative non-aries fixtures, one per sun row. All three LP brackets are exercised: low (1/2/3), mid (4/5/6), high (7/8/9). DOBs synthetic per §11.",
   "cards": [
     {
       "label": "Aries Rat low (LP=3)",
@@ -307,19 +307,19 @@
       }
     },
     {
-      "label": "Aries Dragon high (LP=22)",
+      "label": "Aries Dragon mid (LP=4)",
       "dob": "2024-04-19",
       "expected": {
         "catalog": "v",
-        "bracket": "high"
+        "bracket": "mid"
       }
     },
     {
-      "label": "Aries Monkey high (LP=11)",
+      "label": "Aries Monkey low (LP=2)",
       "dob": "1992-04-04",
       "expected": {
         "catalog": "ix",
-        "bracket": "high"
+        "bracket": "low"
       }
     },
     {
@@ -331,11 +331,11 @@
       }
     },
     {
-      "label": "Aries Pig high (LP=11)",
+      "label": "Aries Pig low (LP=2)",
       "dob": "1995-04-19",
       "expected": {
         "catalog": "xii",
-        "bracket": "high"
+        "bracket": "low"
       }
     },
     {
@@ -409,13 +409,13 @@
       }
     },
     {
-      "label": "Sagittarius Snake high (LP=33)",
+      "label": "Sagittarius Snake mid (LP=6)",
       "dob": "1989-12-12",
       "expected": {
         "sunSign": "sagittarius",
         "animal": "snake",
         "catalog": "cii",
-        "bracket": "high"
+        "bracket": "mid"
       }
     },
     {
@@ -449,7 +449,7 @@
       }
     }
   ],
-  "_bracket_comment": "Direct resolveBracket(lp) cases for all 12 LP values (DOCTRINE §3 master numbers preserved at the final reduce).",
+  "_bracket_comment": "Direct resolveBracket(lp) cases for all nine active life-path values (DOCTRINE §3 strict 1-9 reduction).",
   "brackets": [
     {
       "lp": 1,
@@ -485,18 +485,6 @@
     },
     {
       "lp": 9,
-      "expected": "high"
-    },
-    {
-      "lp": 11,
-      "expected": "high"
-    },
-    {
-      "lp": 22,
-      "expected": "high"
-    },
-    {
-      "lp": 33,
       "expected": "high"
     }
   ]

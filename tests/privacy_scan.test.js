@@ -76,8 +76,11 @@ const LOCALSTORAGE_KEY_ALLOW = new Set([
   // v0.6.0 tier ladder (DOCTRINE §5 v0.36 allow-list extension / §1.D):
   // highest rung purchased, monotonic, written only by handlePaidReturn.
   'eight_ball_tier_v1',
-  // v0.49 t3 written-entry rotation (§1.H): currently visible v1 slot.
+  // v0.49 t3 written-entry rotation (§1.H): currently visible note slot.
+  // v0.54/calc-v3 versioned the key; the v1 name stays allow-listed only
+  // because ui/payments.js still references it for the one-shot clear.
   'eight_ball_facet_index_v1',
+  'eight_ball_facet_index_v2',
   // Saved Readings MVP (§5.E v0.50): array of reconstruction inputs + local metadata.
   'eight_ball_saved_readings_v1'
 ]);

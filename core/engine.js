@@ -60,7 +60,7 @@ export class MissingCardError extends Error {
 
 const LOW = new Set([1, 2, 3]);
 const MID = new Set([4, 5, 6]);
-const HIGH = new Set([7, 8, 9, 11, 22, 33]);
+const HIGH = new Set([7, 8, 9]);
 
 export function resolveBracket(lifePath) {
   if (LOW.has(lifePath)) return 'low';

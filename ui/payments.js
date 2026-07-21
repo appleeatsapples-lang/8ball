@@ -42,7 +42,15 @@ export const TRIES_KEY = 'eight_ball_tries_used_v1';
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
 export const TIER_KEY = 'eight_ball_tier_v1';
-export const FACET_KEY = 'eight_ball_facet_index_v1';
+export const FACET_KEY = 'eight_ball_facet_index_v2';
+// Pre-calc-v3 facet position (v0.49–v0.53). A former-master profile could
+// anchor `high` here; under calc v3 that life path reduces (11→2, 22→4,
+// 33→6), so the stored position may contradict the new anchor. Retired:
+// never read, cleared once on the first facet read after calc-v3 load.
+// Funded flip history is not representable in the single stored index, so
+// the first v3 load re-anchors every device (accepted cost — journal
+// 2026-07-20 §3 row 8 supersession entry).
+export const LEGACY_FACET_KEY = 'eight_ball_facet_index_v1';
 
 // Controller-authorized c.1: reuse immutable v1 note slots positionally.
 // These are render positions, not newly authored lateral copy.
@@ -106,6 +114,9 @@ export function getRenderTier() {
   return resolved;
 }
 export function getFacetIndex() {
+  // One-shot calc-v3 migration: drop any pre-v3 position before reading the
+  // active key, so a stale former-master anchor can never render again.
+  try { localStorage.removeItem(LEGACY_FACET_KEY); } catch (_) {}
   try { return normalizeFacetIndex(localStorage.getItem(FACET_KEY)); }
   catch (_) { return null; }
 }
@@ -116,6 +127,7 @@ export function setFacetIndex(index) {
 }
 export function clearFacetIndex() {
   try { localStorage.removeItem(FACET_KEY); } catch (_) {}
+  try { localStorage.removeItem(LEGACY_FACET_KEY); } catch (_) {}
 }
 export function ensureFacetIndex(lifePath, { reset = false } = {}) {
   const stored = reset ? null : getFacetIndex();

@@ -26,8 +26,9 @@
 // inline forks); the framing REs and BANNED_PATTERNS below are separate
 // voice-policy surfaces with their own (regex) semantics:
 //   - profile.test.js          matcher + framing REs + BANNED_PATTERNS over the deck
-//   - meanings_content.test.js same, over content/meanings.v1.js (+ the sentinels)
-//   - concordance.test.js      same, over content/concordance.v1.js registry
+//   - meanings_content.test.js same, over current content/meanings.v2.js
+//                              (+ sentinels; v1 is imported/re-exported there)
+//   - concordance.test.js      same, over current content/concordance.v2.js registry
 //                              + the assembled buildConcordance output
 //   - provenance.test.js       matcher with register + INTERPRETATION_VERBS over §1.E placards
 //   - atlas.test.js            matcher with register + INTERPRETATION_VERBS over the CLP legend
