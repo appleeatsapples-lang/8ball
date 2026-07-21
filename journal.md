@@ -5,6 +5,10 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-21 — flip-debt sweep: #92/#107/#111/#112 STAGED→SHIPPED + #94/#95/#98 header-suffix correction — mechanical edit
+
+Queue check surfaced seven stale STAGED markers left over from earlier merges. Four were full flip debt (header and status body both still read STAGED despite the branch being merged long ago): §7 stage-1 catch-up + #110 flip (`#111`, merged `5fefb72`), content_shape PR3 (`#112`, merged `1cf9260`), all-in closeout (`#107`, merged `29b69b8`), and L48 promoted at N=5 (`#92`, merged `8682cd2`) — #111/#112 were the two named debts the #113 PR body explicitly deferred ("left for its own leg"); #107/#92 were older instances of the same gap. Three were header-suffix-only nits (status body already correctly read SHIPPED with the merge commit named; only the `— STAGED` title suffix was stale): L48 scope widened (`#98`), Registry + Concordance v0.51 (`#95`), Saved Readings v0.50 (`#94`) — corrected to match their own bodies. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run (journal.md-only, docs-only, L48-exempt). Each entry's own merge already carries its substantive audit trail; no rule, mechanic, or product text touched.
+
 ## 2026-07-21 — PR #113 STAGED→SHIPPED correction — mechanical edit
 
 Three clauses: the v0.52/v0.53/v0.54 entry headers and status lines below now record the #113 squash-merge (`7d3285a`, operator word) with the on-sighting correction marker, per the v0.48/v0.50/v0.51 footer precedent. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run for this change (journal.md-only, docs-only, L48-exempt). PR #113's own pre-merge audit chain (Grok red-team + fresh-Claude-lane re-audit, both filed in-PR) already covers the substantive change. No rule, mechanic, or product text touched.
@@ -54,9 +58,9 @@ Three clauses: the v0.52/v0.53/v0.54 entry headers and status lines below now re
 
 **Verification and scope.** Pre-replay `npm test`: **1296/1296 (36 files)**. Runtime/test scope began in `ui/meanings.js`, `tests/meanings_behavior.test.js`, and `tests/meanings_ui.test.js`; canon synchronized in `DOCTRINE.md`, `README.md`, `8BALL.md`, and this entry. The later v0.53/v0.54 amendments above define the current meaning and calculation behavior.
 
-## 2026-07-20 — content_shape PR3: full lint-spec coverage (structure · opener ownership · lexical rules · repeats budget · formula floors · habit bounds) — STAGED
+## 2026-07-20 — content_shape PR3: full lint-spec coverage (structure · opener ownership · lexical rules · repeats budget · formula floors · habit bounds) — SHIPPED
 
-**Status: STAGED on `claude/content-shape-lint-full`; merge is its own word. Executes the explicit "implement it 100%" word on the night study's decision #2: `tests/content_shape.test.js` now covers the whole `~/8ball/content_study/lint_spec_proposal.md`, closing the gap left by PR1/PR2 (#103/#107).**
+**Status: SHIPPED — squash-merged to `main` as `1cf9260` (#112); the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/#113 footer precedent.** Was: STAGED on `claude/content-shape-lint-full`; merge is its own word. Executes the explicit "implement it 100%" word on the night study's decision #2: `tests/content_shape.test.js` now covers the whole `~/8ball/content_study/lint_spec_proposal.md`, closing the gap left by PR1/PR2 (#103/#107).**
 
 **What and why.** PR1/PR2 pinned names, the mid-bracket arc, note lengths, deck second-person, and the velvet lexicon. This leg adds the remaining spec sections as +28 tests in the same file (no new test file — `repo_shape` pins and CLAUDE.md counts untouched):
 
@@ -75,9 +79,9 @@ Every pinned number was re-derived by script against this tree before writing (t
 
 **Verification.** Suite **1347/1347 (37 files)** under vitest 4.1.9 — +30 over the #111 baseline 1317, all in the extended file (36 there: 28 at audit head + 2 absorb sentinels). Local PII audit clean (122 files). `git diff --check` clean. **Scope (files):** `tests/content_shape.test.js`, this file, plus the in-PR L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`, `repo_shape` pins, CLAUDE.md.
 
-## 2026-07-20 — housekeeping micro-batch: §7 stage-1 scan-coverage catch-up (#101 debt) + #110 entry flip (#109 leg superseded) — STAGED
+## 2026-07-20 — housekeeping micro-batch: §7 stage-1 scan-coverage catch-up (#101 debt) + #110 entry flip (#109 leg superseded) — SHIPPED
 
-**Status: STAGED on `claude/s7-scan-catchup-109-flip` (named for the original two legs), riding its own claude/* PR; the merge is its own word. Rebased onto post-#110 main (`6ff11b0`) pre-PR after the sibling audit-sweep merged mid-audit — see item 2 for the superseded leg.**
+**Status: SHIPPED — squash-merged to `main` as `5fefb72` (#111); the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/#113 footer precedent.** Was: STAGED on `claude/s7-scan-catchup-109-flip` (named for the original two legs), riding its own claude/* PR; the merge is its own word. Rebased onto post-#110 main (`6ff11b0`) pre-PR after the sibling audit-sweep merged mid-audit — see item 2 for the superseded leg.**
 
 **What and why.** The two housekeeping carry-forwards from the voice-scan chain close (handoff 2026-07-20), batched as one docs-only cut:
 
@@ -139,9 +143,9 @@ Every pinned number was re-derived by script against this tree before writing (t
 
 **Verification.** Suite **1316/1316 (37 files)** under vitest 4.1.9 on post-#107 `main` + absorb (in-place test rewrites — counts and `repo_shape` pins unchanged). Local PII audit clean. `git diff --check` clean. **Scope (files):** `tests/profile.test.js`, `tests/meanings_content.test.js`, `tests/concordance.test.js`, `audits/codex_pr104_premerge_audit_2026-07-20_response.md`, this file, plus this PR's own L48 artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/fixtures.json`, `DOCTRINE.md`.
 
-## 2026-07-20 — all-in closeout: P3-2/P3-4 · content_shape PR2 · journal truth flips · Netlify ops note — STAGED
+## 2026-07-20 — all-in closeout: P3-2/P3-4 · content_shape PR2 · journal truth flips · Netlify ops note — SHIPPED
 
-**Status: STAGED on `grok/all-in-closeout`; merge is its own word.**
+**Status: SHIPPED — squash-merged to `main` as `29b69b8` (#107); the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/#113 footer precedent.** Was: STAGED on `grok/all-in-closeout`; merge is its own word.
 
 **What and why.** Operator "go all in" after Netlify inspector snapshot: drain remaining post-spree audit P3s, pin more deck grammar, flip STAGED journal rows for already-merged ships, record the morning SSH deploy-key blip.
 
@@ -199,7 +203,7 @@ Every pinned number was re-derived by script against this tree before writing (t
 
 One clause: the v0.51 footer head's stale staging status now records the #95 merge (`b1cfd32`) with the on-sighting correction marker, per the v0.48/v0.50 footer precedent. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run for this change; classification note at `audits/mechanical_footer_correction_2026-07-20.md`. The substantive v0.51 change carries its own closed three-model chain (#95's in-repo artifacts). No rule, mechanic, or product text touched.
 
-## 2026-07-20 — L48 scope widened: audit-artifact gate covers every PR — STAGED
+## 2026-07-20 — L48 scope widened: audit-artifact gate covers every PR — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `eec6fed` (#98) on 2026-07-20; pre-merge record below preserved verbatim. The widened gate governed its own PR: the in-PR override artifact `audits/L48_override_pr98_2026-07-20.md` satisfied it (L48 sighting #6, the first self-documented one), and the Codex verdict landed ~2 minutes post-merge — SAFE TO MERGE, zero findings — closed via #99 (`8f00bfd`, `audits/codex_pr98_premerge_audit_2026-07-20_response.md`). This status flip is a mechanical on-sighting correction per the v0.44/v0.48/v0.50/v0.51 footer-flip precedent; the packet §8 promotion rider it rode shipped with it.**
 
@@ -207,7 +211,7 @@ One clause: the v0.51 footer head's stale staging status now records the #95 mer
 
 **Verification.** Suite 1291/1291 (36 files) unchanged — workflow + journal touch only; local PII audit clean; the PR red-blocks on its own widened gate until its artifact lands (the #92 self-demonstration pattern, now branch-agnostic by construction). **Scope (files):** `.github/workflows/ci.yml`, this entry.
 
-## 2026-07-19 — Registry + Concordance MVP: transient two-reading structural lookup + doctrine v0.51 — STAGED
+## 2026-07-19 — Registry + Concordance MVP: transient two-reading structural lookup + doctrine v0.51 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `b1cfd32` (#95) on 2026-07-20; pre-merge record below preserved verbatim. Cross-model gate cleared IN-PR before the merge word: Claude-lane round 1 MERGE WITH FIXES — 4 MED renumber misses filed in `audits/claude_pr95_premerge_audit_2026-07-19_response.md`, convergent with the Codex spree cross-check whose absorb (`07e79e9`) closed them plus the §1.I entitlement carve-out and §1.H SHIPPED flip; Grok cross-check confirmed every finding at exact lines and surfaced RC-M5 (§1's authority index omitted §1.I), absorbed at `b617faa` on explicit controller word; final verdict SAFE TO MERGE. Rebased onto post-#94 main per packet §4a with range-diff-proven replay fidelity; the post-rebase suite caught a stack interaction (SR + RC landed index.html exactly at the 1500 cap) compacted at `9c9d85f` — merged tree 1498/1500, suite 1291/1291 (36 files). Originally: STAGED on `feature/registry-concordance-mvp`; implemented, test-clean, and browser-verified in the branch-local feature commit. Not pushed, no PR opened, not merged, not deployed. Because this changes DOCTRINE and adds a versioned content registry, the normal §10/L48 cross-model audit remains a pre-merge gate outside this one-time implementation authorization.**
 
@@ -227,7 +231,7 @@ One clause: the v0.51 footer head's stale staging status now records the #95 mer
 
 **Known limits / migration.** Concordance exists only for valid entries in one browser-local archive; no cross-device/sync/import path is intended. The first registry version deliberately covers matching axes only and does not treat absence from a finite table as evidence about two people. Same-value pairs are unfiled because the consolidated source inventory contains only distinct-pair relations. The element row follows the device's current entitlement rather than storing the tier with an entry. No Saved Readings migration is needed because its key/schema did not change; future registry corrections require `content/concordance.v2.js`, and any persistence expansion requires a new §5 amendment.
 
-## 2026-07-19 — Saved Readings MVP: browser-local save/revisit/rename/delete/clear + doctrine v0.50 — STAGED
+## 2026-07-19 — Saved Readings MVP: browser-local save/revisit/rename/delete/clear + doctrine v0.50 — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `4863cd0` (#94) on 2026-07-20; pre-merge record below preserved verbatim. Cross-model gate cleared IN-PR before the merge word: Claude-lane round 1 MERGE WITH FIXES (`audits/claude_pr94_premerge_audit_2026-07-19_response.md`); the controller-record renumber token absorbed at `52b859d` (Codex spree-crosscheck convergent); Grok cross-check surfaced the archive-open t3 facet re-anchor (SR-M2), absorbed at `014dacc` on explicit controller word and delta-verified (suite 1280/1280, live browser sequence); final verdict SAFE TO MERGE at `0649ac7`. Originally: STAGED on `feature/saved-readings-mvp`; implemented and browser-verified in the branch-local feature commit. Not pushed, no PR opened, not merged, not deployed. Because this is a substantive DOCTRINE amendment, the normal §10/L48 cross-model audit remains a pre-merge gate.**
 
@@ -263,9 +267,9 @@ One clause: the v0.51 footer head's stale staging status now records the #95 mer
 
 **Verification.** Final post-clear suite: **1266/1266 (34 files)** under vitest 4.1.9. Headless Chrome at 320×568 reproducing abandoned pending intent across reload: before top-up the stale pending payload existed; after zero-credit t3 `flip again`, pending was absent, note/index unchanged, paywall open, zero console errors. Earlier full interaction smoke also passed: t3 `facet 0→1` / `credits 2→1`, reload persistence, zero-credit no-mutation, and t2 zero-debit. `index.html`: 1474/1500 lines. `git diff --check`: clean. Local PII audit: clean, 93 files scanned. `git diff origin/main -- content tests/fixtures.json`: empty.
 
-## 2026-07-19 — L48 promoted at N=5: CI-side audit-artifact gate for claude/* PRs — STAGED
+## 2026-07-19 — L48 promoted at N=5: CI-side audit-artifact gate for claude/* PRs — SHIPPED
 
-**Status: STAGED on `claude/cc-handoff-audit-closure-cf5581`, riding the close-out PR together with the doc-truth batch below; merge is its own word. The promotion word landed this session: option B — a CI-side gate per the #83 precedent — chosen over a process-only wait-for-verdict rule.**
+**Status: SHIPPED — squash-merged to `main` as `8682cd2` (#92); the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/#113 footer precedent.** Was: STAGED on `claude/cc-handoff-audit-closure-cf5581`, riding the close-out PR together with the doc-truth batch below; merge is its own word. The promotion word landed this session: option B — a CI-side gate per the #83 precedent — chosen over a process-only wait-for-verdict rule.**
 
 **What and why.** Merge-before-verdict sightings hit N=5 (#69 · #70 · #89 · #90 · #91) against the promote-at-N=3 trigger. Five deliberate, dissent-logged overrides are evidence that a process-only rule does not hold under end-of-night momentum, while #88 (two entries below) proves the clean shape is cheap: launch the relay pass early and the verdict beats the merge word by minutes. The gate converts dissent-then-execute from chat-memory discipline into a merge-blocking artifact while preserving override authority.
 
