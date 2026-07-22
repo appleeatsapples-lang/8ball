@@ -23,7 +23,6 @@ import {
   ANIMAL_MEANINGS,
   NUMEROLOGY_MEANINGS,
   ELEMENT_MEANINGS,
-  HARMONY_THEME_ALIASES,
   COORDINATE_CONTEXT,
 } from '../content/meanings.v2.js';
 
@@ -63,14 +62,19 @@ const COORDINATES = {
   hourPillar: { valueId: 'coord-hourpillar-symbol', label: 'hour pillar' },
 };
 
+// Shared trailing clause for the four name-derived coordinates: an absent
+// contributing letter class resolves as unresolved, never a false zero.
+const zeroGuardCopy = (label, missing) =>
+  `no ${label} value is present because ${missing}. this coordinate stays unresolved rather than creating a zero.`;
+
 const UNRESOLVED_COPY = {
   rising: 'no rising value is present yet, so its first-impression meaning cannot be placed beside the sun and personality coordinates. birth time and birthplace complete this part of the sheet.',
   dayPillar: 'no day-pillar value is present yet, so its date-specific meaning cannot be placed beside the public animal and element coordinates. date of birth completes this part of the sheet.',
   hourPillar: 'no hour-pillar value is present yet, so its time-specific meaning cannot be placed beside the private animal and rising coordinates. birth time completes this part of the sheet.',
-  nameNumber: 'no name-number value is present because the entered name supplies no counted letters. this coordinate stays unresolved rather than creating a zero.',
-  soulUrge: 'no soul-urge value is present because the entered name supplies no standard vowels. this coordinate stays unresolved rather than creating a zero.',
-  personality: 'no personality value is present because the entered name supplies no consonants. this coordinate stays unresolved rather than creating a zero.',
-  maturity: 'no maturity value is present because its required name-number component is unresolved. this coordinate stays unresolved rather than creating a zero.',
+  nameNumber: zeroGuardCopy('name-number', 'the entered name supplies no counted letters'),
+  soulUrge: zeroGuardCopy('soul-urge', 'the entered name supplies no standard vowels'),
+  personality: zeroGuardCopy('personality', 'the entered name supplies no consonants'),
+  maturity: zeroGuardCopy('maturity', 'its required name-number component is unresolved'),
 };
 
 const STYLE = `
@@ -134,9 +138,7 @@ function lookupKeyFor(key, rawValue) {
 }
 
 function themeFor(entry) {
-  if (entry.theme) return entry.theme;
-  return HARMONY_THEME_ALIASES[entry.register]
-    || entry.register.split('\u00b7')[0].trim();
+  return entry.theme || entry.register.split('\u00b7')[0].trim();
 }
 
 function pillarEntry(rawValue) {

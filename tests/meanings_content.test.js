@@ -21,7 +21,6 @@ import {
 import {
   ELEMENT_MEANINGS,
   NUMEROLOGY_MEANINGS,
-  HARMONY_THEME_ALIASES,
   COORDINATE_CONTEXT,
 } from '../content/meanings.v2.js';
 import {
@@ -51,10 +50,8 @@ function* currentMeaningStrings() {
   }
   for (const [key, entry] of Object.entries(NUMEROLOGY_MEANINGS)) {
     yield { path: `numerology.${key}.register`, text: entry.register };
+    yield { path: `numerology.${key}.theme`, text: entry.theme };
     yield { path: `numerology.${key}.body`, text: entry.body };
-  }
-  for (const [key, value] of Object.entries(HARMONY_THEME_ALIASES)) {
-    yield { path: `alias.${key}`, text: value };
   }
   for (const [key, context] of Object.entries(COORDINATE_CONTEXT)) {
     yield { path: `context.${key}.role`, text: context.role };
@@ -267,9 +264,10 @@ describe('content/meanings.v2.js — all-coordinate context layer', () => {
     }
   });
 
-  it('has grammatical harmony aliases for every number register', () => {
-    const registers = Object.values(NUMEROLOGY_MEANINGS).map(entry => entry.register);
-    expect(Object.keys(HARMONY_THEME_ALIASES).sort()).toEqual(registers.sort());
+  it('has a grammatical harmony theme for every number register', () => {
+    for (const entry of Object.values(NUMEROLOGY_MEANINGS)) {
+      expect(entry.theme.trim()).toBeTruthy();
+    }
   });
 
   it('places every numerology coordinate beside two other numerology coordinates', () => {

@@ -15,10 +15,16 @@ export { ARCANA_MEANINGS, SUN_MEANINGS, ANIMAL_MEANINGS, LIFE_PATH_MEANINGS };
 // v1 remains an immutable record of the previously shipped 12-entry table.
 // The active calculation contract is now exactly 1..9, so runtime consumers
 // use this deliberately narrowed view rather than the historical v1 surface.
+// v1's register is a role noun ("the initiator"); v2 supplies its
+// process-language equivalent as `theme` for grammatical synthesis
+// (ui/meanings.js harmony copy).
+const NUMEROLOGY_THEMES = ['initiative', 'cooperation', 'expression', 'structure',
+  'change', 'care', 'analysis', 'command', 'service'];
+
 export const NUMEROLOGY_MEANINGS = Object.freeze(Object.fromEntries(
   Array.from({ length: 9 }, (_, index) => {
     const key = String(index + 1);
-    return [key, LIFE_PATH_MEANINGS[key]];
+    return [key, Object.freeze({ ...LIFE_PATH_MEANINGS[key], theme: NUMEROLOGY_THEMES[index] })];
   })
 ));
 
@@ -48,21 +54,6 @@ export const ELEMENT_MEANINGS = {
     theme: 'adaptability',
     body: 'in five-element tradition, water marks depth and adaptation — movement that changes shape without losing direction.',
   },
-};
-
-// The first term in most v1 registers already works as a harmony theme.
-// Number registers are role nouns, so v2 supplies their process-language
-// equivalents for grammatical synthesis.
-export const HARMONY_THEME_ALIASES = {
-  'the initiator': 'initiative',
-  'the mediator': 'cooperation',
-  'the communicator': 'expression',
-  'the builder': 'structure',
-  'the seeker': 'change',
-  'the caretaker': 'care',
-  'the analyst': 'analysis',
-  'the executive': 'command',
-  'the humanitarian': 'service',
 };
 
 // Each coordinate has one job in the combined reading and two preferred

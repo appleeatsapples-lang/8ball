@@ -55,6 +55,8 @@
 // marks a resolved entitled pair. A bare sun-only title never renders —
 // the rising compartment is always present and always labeled.
 
+import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
+
 // ── TIER_COORDS (LOCKED ladder, DOCTRINE §1.D) ────────────────────
 // Cumulative coordinate keys per tier. Keys name coordinates, not rows:
 // `rising` joins the sun row, `innerAnimal` joins the animal row, and
@@ -198,8 +200,7 @@ function setCell(key, state, text) {
   }
 }
 
-const isNumerologyValue = value =>
-  Number.isInteger(value) && value >= 1 && value <= 9;
+const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
 
 // A numerology cell may display one of exactly nine values. Missing
 // contributing letters resolve as an honest `—`; malformed/legacy values
