@@ -5,6 +5,35 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-22 — Card JPEG hosting for IG/Threads drip (PR #116)
+
+**97 catalog card JPEGs shipped to /cards on prod**, closing the asset-hosting
+prerequisite for the IG + Threads auto-drip pipelines (both fetch by public
+URL only; Meta can't reach local paths).
+
+- **Merged:** PR #116, squash-merged to main at `a9103a7` (2026-07-22T07:24:50Z).
+  Local main synced, tree clean.
+- **Build:** `scripts/build_card_jpegs.py` (new, 209 lines) — deterministic
+  PNG→JPEG renderer (PIL). Each code rendered onto a centered 1080×1350 (4:5)
+  white canvas, q90, sRGB, metadata-stripped, 4:2:0 subsampling. 2:3 sources
+  get 900×1350 content + 90px white padding, no crop. ~6.94 MB total, every
+  file well under the 8 MB shared cap.
+- **Guard:** `tests/cards_hosting.test.js` (new, 163 lines) — pins
+  EXPECTED_CODES to `reach/ig_pipeline/queue.txt`'s superset (exact, ordered);
+  an off-queue code now fails CI instead of passing a bare uniqueness check.
+  Dependency-free JPEG SOF/SOS/EOI parser; `--check` re-renders and diffs
+  byte-for-byte against every tracked JPEG.
+- **L48:** Codex pre-merge relay verdict MERGE WITH FIXES, recorded at
+  `audits/codex_pr116_premerge_audit_2026-07-22_response.md`; all 4 hardening
+  findings applied and re-verified before merge.
+- **Tests:** 38 files / 1369 tests green. CLAUDE.md count 37→38 (repo_shape
+  lockstep).
+- **Scope:** static-only — no UI/route/tracking/backend touched.
+- **Not yet done:** pipelines' `CARD_URL_BASE` still unset — gated on
+  operator-hand Meta credential setup (see follow-up 2), not an agent task.
+
+**HEAD post-this-entry:** `a9103a7`.
+
 ## 2026-07-21 — flip-debt sweep: #92/#107/#111/#112 STAGED→SHIPPED + #94/#95/#98 header-suffix correction — mechanical edit
 
 Queue check surfaced seven stale STAGED markers left over from earlier merges. Four were full flip debt (header and status body both still read STAGED despite the branch being merged long ago): §7 stage-1 catch-up + #110 flip (`#111`, merged `5fefb72`), content_shape PR3 (`#112`, merged `1cf9260`), all-in closeout (`#107`, merged `29b69b8`), and L48 promoted at N=5 (`#92`, merged `8682cd2`) — #111/#112 were the two named debts the #113 PR body explicitly deferred ("left for its own leg"); #107/#92 were older instances of the same gap. Three were header-suffix-only nits (status body already correctly read SHIPPED with the merge commit named; only the `— STAGED` title suffix was stale): L48 scope widened (`#98`), Registry + Concordance v0.51 (`#95`), Saved Readings v0.50 (`#94`) — corrected to match their own bodies. Mechanical edit under §10's amendments-vs-mechanical line — no cross-model audit run (journal.md-only, docs-only, L48-exempt). Each entry's own merge already carries its substantive audit trail; no rule, mechanic, or product text touched.
