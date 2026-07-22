@@ -54,3 +54,7 @@ content/cards.v*.js
 content/cards.*.js
 !content/cards.v1.full.js
 .claude/
+
+# python bytecode (scripts/ build tool)
+__pycache__/
+*.pyc
