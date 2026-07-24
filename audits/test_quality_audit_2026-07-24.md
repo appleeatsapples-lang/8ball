@@ -113,8 +113,11 @@ suite; only the journal-touch diff-gate makes it visible).
 ## 4. Mutation testing — `core/` (Stryker 9.6.1 + vitest runner)
 
 3097 mutants; **overall score 62.0%** (1897 killed, 22 timeout, 1152
-survived, 26 no-coverage). Run 13m54s. Full undetected-mutant listing
-was delivered as a session artifact; regenerate with the recipe in §7.
+survived, 26 no-coverage). Run 13m54s. **All 1178 undetected mutants
+are listed, with line / mutator / original -> replacement, in the
+companion file `audits/mutation_survivors_core_2026-07-24.md`** — the
+evidence is committed, so no finding here requires repeating the
+14-minute run.
 
 | file | score | | file | score |
 |---|--:|---|---|--:|
