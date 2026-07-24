@@ -36,6 +36,10 @@ Also mapped: the ~471-line inline module script in `index.html`
 (renderCard / showResult / shakeAgain / submit handler / boot) has zero
 behavioral coverage — pinned only by source-regex tests.
 
+**The figures in this section are the session-start baseline** (before the
+§5 change). Appendix B carries the complete 25-module table measured after
+it, and is the current one — `ui/share.js` in particular has moved.
+
 Proposed improvement areas (ranked, from the session's first report):
 1. Behavioral tests for the Saved Readings / Concordance controller
    (`initReadingsUI` down — §5.F two-selection rule, delete/clear
@@ -506,3 +510,73 @@ Complete (b)/(c) listing with per-test grep targets:
 
 ### tests/pillars.test.js — 1 test
 - fixtures span more than 50 years (epoch-error guard) — Math over DAY_FIXTURES test-local years only
+
+## Appendix B — full per-file coverage (V8)
+
+Vitest 4.1.9 + `@vitest/coverage-v8` (installed `--no-save`, removed after;
+`package.json` and the lockfile untouched). Measured 2026-07-24 against this
+branch at `da7bc5b` — i.e. *including* the `rowSections` test from `4df1eee`,
+so the `ui/share.js` row is current rather than the pre-change figure quoted
+in section 1. Suite green, 1370/1370.
+
+Committed in full so no figure here depends on re-running the tooling. All 25
+instrumented modules are listed; a text reporter hides the 100% rows, which is
+why section 1 shows only the weak subset.
+
+Regenerate with:
+
+```sh
+npm i --no-save @vitest/coverage-v8@4.1.9
+npx vitest run --coverage --coverage.include='core/**/*.js' \
+  --coverage.include='ui/**/*.js' --coverage.include='content/**/*.js'
+npm ci   # restore node_modules exactly
+```
+
+### core/ — pure calculation
+
+| module | statements | branches | functions | uncovered functions |
+|---|--:|--:|--:|---|
+| `core/rising.js` | 93.8% (76/81) | 81.0% (34/42) | 100.0% (11/11) | — |
+| `core/cities.js` | 96.6% (28/29) | 93.3% (14/15) | 100.0% (5/5) | — |
+| `core/payments.js` | 96.7% (59/61) | 95.5% (42/44) | 100.0% (12/12) | — |
+| `core/engine.js` | 97.1% (34/35) | 93.3% (14/15) | 100.0% (4/4) | — |
+| `core/profile.js` | 97.2% (105/108) | 89.0% (105/118) | 100.0% (18/18) | — |
+| `core/calendar.js` | 97.3% (144/148) | 93.8% (30/32) | 100.0% (12/12) | — |
+| `core/birthcard.js` | 100.0% (10/10) | 100.0% (2/2) | 100.0% (2/2) | — |
+| `core/countries.js` | 100.0% (5/5) | — (0/0) | 100.0% (3/3) | — |
+| `core/math.js` | 100.0% (7/7) | — (0/0) | 100.0% (4/4) | — |
+| `core/pillars.js` | 100.0% (19/19) | 100.0% (6/6) | 100.0% (4/4) | — |
+| **subtotal** | **96.8%** (487/503) | **90.1%** (247/274) | **100.0%** (75/75) | |
+
+### ui/ — DOM controllers
+
+| module | statements | branches | functions | uncovered functions |
+|---|--:|--:|--:|---|
+| `ui/readings.js` | 22.0% (101/459) | 33.2% (72/217) | 33.3% (18/54) | 36 (incl. `(anonymous_32)`, `(anonymous_40)`, `(anonymous_41)`, …) |
+| `ui/share.js` | 52.5% (73/139) | 50.5% (55/109) | 44.0% (11/25) | 14 (incl. `(anonymous_15)`, `(anonymous_16)`, `(anonymous_17)`, …) |
+| `ui/modals.js` | 87.9% (58/66) | 66.7% (34/51) | 84.6% (11/13) | `(anonymous_11)`, `(anonymous_7)` |
+| `ui/citysearch.js` | 88.3% (98/111) | 69.6% (39/56) | 100.0% (12/12) | — |
+| `ui/payments.js` | 89.9% (98/109) | 83.0% (39/47) | 88.0% (22/25) | `(anonymous_17)`, `isPaywallOpen`, `setPendingProfile` |
+| `ui/concordance.js` | 92.1% (70/76) | 88.7% (63/71) | 100.0% (14/14) | — |
+| `ui/meanings.js` | 94.7% (144/152) | 83.0% (78/94) | 100.0% (19/19) | — |
+| `ui/tiers.js` | 98.6% (145/147) | 86.6% (149/172) | 100.0% (25/25) | — |
+| `ui/labels.js` | 100.0% (15/15) | 100.0% (6/6) | 100.0% (5/5) | — |
+| `ui/profile.js` | 100.0% (83/83) | 84.5% (60/71) | 100.0% (8/8) | — |
+| **subtotal** | **65.2%** (885/1357) | **66.6%** (595/894) | **72.5%** (145/200) | |
+
+### content/ — shipped data batches
+
+| module | statements | branches | functions | uncovered functions |
+|---|--:|--:|--:|---|
+| `content/cards.v1.full.js` | 100.0% (1/1) | — (0/0) | — (0/0) | — |
+| `content/concordance.v1.js` | 100.0% (10/10) | — (0/0) | — (0/0) | — |
+| `content/concordance.v2.js` | 100.0% (2/2) | — (0/0) | — (0/0) | — |
+| `content/meanings.v1.js` | 100.0% (4/4) | — (0/0) | — (0/0) | — |
+| `content/meanings.v2.js` | 100.0% (6/6) | — (0/0) | 100.0% (1/1) | — |
+| **subtotal** | **100.0%** (23/23) | **—** (0/0) | **100.0%** (1/1) | |
+
+**All instrumented files:** statements 74.1% (1395/1883) · branches 72.1% (842/1168) · functions 80.1% (221/276).
+
+Line coverage is the weakest of the four signals in this audit — section 4
+shows `core/cities.js` at ~97% lines and 14.8% mutation score. Read this table
+with the mutation listing, not instead of it.
