@@ -19,6 +19,14 @@ const cityData = JSON.parse(
   readFileSync(join(__dirname, '..', 'assets', 'cities.json'), 'utf-8')
 );
 
+// Legacy country centroids — extracted verbatim from core/countries.js rows
+// before the 2026-07-25 deep-clean strip (see the centroid note in that
+// file). Coverage carried forward per the #78 annotation's condition.
+const CENTROIDS = JSON.parse(
+  readFileSync(join(__dirname, 'country_centroids.fixture.json'), 'utf-8')
+);
+const centroid = (code) => CENTROIDS[code];
+
 function largestCityByCountryCode() {
   const firstByCountry = new Map();
   for (const c of cityData.cities) {
@@ -40,21 +48,26 @@ function fixedOffsetSign(code, dob, time) {
   const [hour, minute] = time.split(':').map(Number);
   return getRisingSign(
     year, month, day, hour, minute,
-    c.utcOffsetMinutes, c.defaultLat, c.defaultLng
+    c.utcOffsetMinutes, ...centroid(code)
   );
 }
 
 describe('countries data quality', () => {
+  it('centroid fixture keyset matches COUNTRIES exactly', () => {
+    const codes = COUNTRIES.map((c) => c.code).sort();
+    expect(Object.keys(CENTROIDS).sort()).toEqual(codes);
+  });
   for (const c of COUNTRIES) {
-    it(`${c.code} (${c.name}) has valid defaultLat/defaultLng`, () => {
-      expect(typeof c.defaultLat).toBe('number');
-      expect(c.defaultLat).toBeGreaterThanOrEqual(-90);
-      expect(c.defaultLat).toBeLessThanOrEqual(90);
-      expect(Number(c.defaultLat.toFixed(1))).toBe(c.defaultLat);
-      expect(typeof c.defaultLng).toBe('number');
-      expect(c.defaultLng).toBeGreaterThanOrEqual(-180);
-      expect(c.defaultLng).toBeLessThanOrEqual(180);
-      expect(Number(c.defaultLng.toFixed(1))).toBe(c.defaultLng);
+    it(`${c.code} (${c.name}) has a valid legacy centroid`, () => {
+      const [lat, lng] = centroid(c.code);
+      expect(typeof lat).toBe('number');
+      expect(lat).toBeGreaterThanOrEqual(-90);
+      expect(lat).toBeLessThanOrEqual(90);
+      expect(Number(lat.toFixed(1))).toBe(lat);
+      expect(typeof lng).toBe('number');
+      expect(lng).toBeGreaterThanOrEqual(-180);
+      expect(lng).toBeLessThanOrEqual(180);
+      expect(Number(lng.toFixed(1))).toBe(lng);
     });
   }
 });
@@ -123,8 +136,8 @@ describe('countries legacy timezone mapping', () => {
       const profile = buildProfile('Timezone Specimen', tc.dob, {
         time: tc.time,
         country: tc.code,
-        lat: c.defaultLat,
-        lng: c.defaultLng
+        lat: centroid(tc.code)[0],
+        lng: centroid(tc.code)[1]
       });
       expect(fixedOffsetSign(tc.code, tc.dob, tc.time)).toBe(tc.fixed);
       expect(profile.risingSign).toBe(tc.unified);
