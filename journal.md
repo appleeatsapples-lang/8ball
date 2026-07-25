@@ -202,6 +202,20 @@ Every pinned number was re-derived by script against this tree before writing (t
 
 **Verification.** Suite **1317/1317 (37 files)** under vitest 4.1.9 — zero test changes (`repo_shape` pins and CLAUDE.md counts untouched). Local PII audit clean. `git diff --check` clean. **Scope (files):** `DOCTRINE.md` (§7 stage 1, one sentence), this file, plus the in-PR audit artifact. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `tests/`, `tests/fixtures.json`.
 
+## 2026-07-20 — master-numbers decision: 8BALL §3 row 8 REAFFIRMED, calc v2 stands, v0.54 leg permanently parked — STAGED
+
+**[Salvage note, 2026-07-25 — deep-clean PR-B]:** this entry was authored 2026-07-20 on local branch `claude/masters-decision-record` (`f44255e`) and never pushed; recovered verbatim during the stale-branch disposition sweep and inserted at its chronological position. The #110 flip that rode the same commit was already landed by #111 and is not duplicated here.
+
+**Status: STAGED on `claude/masters-decision-record`; merge is its own word. Trigger: the rested-light review the audit-sweep entry below queued — the controller took the master-numbers decision on exact numbers, not 5 AM momentum.**
+
+**Decision (explicit controller word).** Masters 11/22/33 **stay preserved**. 8BALL §3 row 8 is reaffirmed, not unlocked; calc stays v2; fixtures, brackets, and the §1.H facet anchors are untouched. The parked stack's v0.54 "strict nine-number / calc v3" leg is **permanently parked** — declined under §14's named-signal rule (no user signal exists; the motive was internal grammar coherence), not on craft. Its diff survives as history in the loss-protection snapshot only.
+
+**The deciding numbers (exact, shipped `core/profile.js` over 36,525 DOBs, 1930–2029).** Master life paths: 11 → 8.30%, 22 → 3.21%, 33 → 4.51% — **16.02% of all DOBs carry a master LP on the free surface**, and every one would have shifted note-anchor brackets (11 falls two, HIGH→LOW). Birthday masters (t2 surface): 9.65%. Saved Readings recompute on reopen, so archived master entries would have silently changed values. One in six visitors mis-served against every external numerology reference is exactly the case the "user-visible falsehoods outrank all polish" line exists for.
+
+**The kept path (for the future v0.52/v0.53 interaction rework, its own gated cycle).** Harmony grammar reads masters through their reduced digit (the v0.53 draft's own alias mechanism) while they keep their v1 meaning entries and display identity; optional tradition-backed 11/2-style dual notation; v0.51's master-reduction links stay meaningful as the displayed relation. Any future `meanings.v2.js` carries twelve numerology entries, never nine. Full record + resumption prerequisites: `~/8ball/sessions/master_numbers_decision_brief_2026-07-20.md`. The parked worktree is no longer load-bearing; dismantling rides the next hygiene word.
+
+**Scope (files):** this file only. **UNTOUCHED:** everything else — the decision changes no tracked behavior; it declines a change.
+
 ## 2026-07-20 — post-spree audit sweep (rebuilt on #107, rebased to #109): retroactive #103 verdict · L48 sighting #7 closed · #97 backfill · WIP stack PARKED · lane hygiene record — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `6ff11b0` (#110) on 2026-07-20; record below preserved verbatim; flipped on sighting by the §7 catch-up entry above per the standing footer-flip precedent. Originally: STAGED on `claude/audit-recent-changes-d9b78a`; merge is its own word. Trigger: the controller asked for a full audit + alignment pass over the late-night spree. The original sweep commit `2635136` (built on `4c272c3`/#103) was rebuilt on `29b69b8`/#107 after the parallel all-in closeout (#104–#107, merged 05:14–05:21) superseded two of its four corrections, then rebased onto `7427cb4` (#109) when #108/#109 landed mid-wait. Session words honored: "all go full in" (decisions below), then the push-time word — push + run the relay audit — which supersedes the interim docs-only relay-waiver this entry briefly carried.**

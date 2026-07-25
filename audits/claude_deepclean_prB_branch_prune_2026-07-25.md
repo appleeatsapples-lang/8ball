@@ -25,6 +25,13 @@ artifact gate for its own PR). Merge test against current main: clean,
 full suite green. Disposition: open PR from the existing remote branch;
 Codex pre-merge verdict per L48.
 
+## Local-branch dispositions (same sweep, destination Mac)
+
+| Local branch | Unmerged (patch-id) | Disposition |
+|---|---|---|
+| `claude/calc-v3-rebase-blockers-8d504d` | 0 (tip = merged #112) | **DELETED locally** |
+| `claude/masters-decision-record` | 1 — `f44255e`, 14-line journal decision record, never pushed | **SALVAGED** — entry recovered verbatim into `journal.md` at its chronological position (this PR, second commit); the #110 flip in the same commit was already landed by #111 and not duplicated. Branch deleted locally after recovery. |
+
 ## L48
 This PR is docs/audits-only but not gate-exempt (governance rule since
 #92). Codex verdict pending pre-merge via operator relay.
