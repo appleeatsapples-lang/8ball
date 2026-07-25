@@ -46,7 +46,10 @@ the script exits 1 saying so. That's expected, not a failure to fix.
 
 ## What blocks a merge
 
-`.github/workflows/ci.yml` runs on every push and PR to `main`:
+`.github/workflows/ci.yml` runs on every push and PR to `main` and reports two
+independent checks — **`test`** and **`l48-gate`**. Those are the context names
+to require if branch protection is ever turned on; nothing blocks a merge on a
+red check today, so treat both as advisory-but-binding by convention.
 
 - **`npm test`** — carries §7 stages 1–4 and 6 (calc+pipeline, privacy scan,
   PII scan, dependency discipline, payments state machine).
@@ -56,13 +59,15 @@ the script exits 1 saying so. That's expected, not a failure to fix.
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
   also add a file under `audits/`.
-- **L48 gate** (PR only) — any PR that isn't docs-only must ship an in-PR audit
-  artifact named `audits/<model>_pr<N>_premerge_audit_<YYYY-MM-DD>_response.md`,
+- **L48 gate** (PR only, its own `l48-gate` job) — any PR that isn't docs-only
+  must ship an in-PR audit artifact named
+  `audits/<model>_pr<N>_premerge_audit_<YYYY-MM-DD>_response.md`,
   or an explicit `audits/L48_override_pr<N>_<date>.md` (the override file *is*
   the sighting log). Docs-only means every changed file ends in `.md` and none
   is `audits/RELEASE_CHECKLIST.md` or `agents/*.md`. The filename must contain
   `pr<N>` matching the real PR number, so it can only be finalized once the PR
-  exists.
+  exists. It carries no `needs:`, so it evaluates even when `test` is red — a
+  failing suite no longer hides whether the artifact is present.
 
 Failed CI does not block the Netlify deploy — an accepted gap while traffic is
 operator-scale (§7 v0.43), not a licence to merge red.
