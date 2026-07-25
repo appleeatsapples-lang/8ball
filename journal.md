@@ -5,6 +5,85 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-25 — CLAUDE.md refresh + CI node24 runtime bump (PRs #118, #119)
+
+Two independent ships from one Claude Code session, plus the L48 override
+record the second one owes.
+
+**PR #118 — CLAUDE.md refresh.** Squash-merged to main at `ae7355b`
+(2026-07-25T01:53:39Z). The lane manual had drifted from repo reality on
+load-bearing points:
+
+- The **L48 gate and the journal-touch gate were undocumented** there
+  despite both being hard merge blockers. L48 especially: the artifact
+  filename must embed the real PR number, so it cannot be satisfied
+  without a re-push, and a lane working from the old file would discover
+  that only after opening a PR.
+- `cards/` (97 generated JPEGs + `manifest.json`, pinned by
+  `tests/cards_hosting.test.js`) and `scripts/` added to the repository
+  shape — both shipped in #116 and were absent from the inventory.
+- New **"Editing this file"** section naming the two machine constraints
+  on CLAUDE.md itself: `tests/repo_shape.test.js` regex-parses the three
+  count lines (the `ui/` pattern requires a literal open paren before the
+  number, so a correctly-numbered reword still fails CI), and CLAUDE.md is
+  **not** in the PII scanner's `DOCTRINE_ALLOW` — unlike DOCTRINE.md /
+  8BALL.md / journal.md / README.md — so the name and sibling-project
+  tokens those files may carry are banned in it. Placed after the count
+  block so a later edit there cannot shadow the parsed lines.
+- Reading-order paths made repo-relative; the `~/dev/8ball/...` form does
+  not resolve in a CC worktree or a remote checkout.
+- Smaller: `npm ci` for fresh containers (vitest is not vendored);
+  `index.html` headroom recorded (1464 of 1500); journal header shape per
+  §8 v0.43; `run_local_audit.sh` exits 1 without its gitignored pattern
+  file by design, not as a break to fix; new don't-do entry against
+  hand-editing generated `cards/` output. Count-drift history compressed
+  now that `repo_shape.test.js` pins it mechanically.
+
+Counts re-verified: core 10 / ui 10 / tests 38. Docs-only, L48-exempt by
+the gate's letter — confirmed in the run log, not assumed.
+
+**PR #119 — CI action-runtime bump.** Squash-merged to main at `71f2e7b`
+(2026-07-25T01:53:23Z). `actions/checkout@v4` → `@v5` and
+`actions/setup-node@v4` → `@v5`: the lowest major of each declaring
+`runs.using: node24`, read from each action's `action.yml` at the v5 tag
+rather than inferred from release notes. Pinned to v5 deliberately, not
+the current latest (checkout v7.0.1, setup-node v7.0.0) — the objective
+was the runtime fix, not three majors of unrelated change to the
+machinery that gates every release. `node-version: '20'` untouched: that
+is the Node the project tests against, governed by `engines` (>=20.19),
+and unrelated to the action-runtime deprecation. Neither v5 breaking
+change reaches this repo (no `packageManager` field, so setup-node v5
+auto-caching never engages; the workflow triggers on `pull_request`, not
+`pull_request_target`).
+
+Verified on the PR's own run: the `Node.js 20 is deprecated` warning and
+both `Node 20 is being deprecated` cleanup lines are gone, and
+`fetch-depth: 0` history survives checkout v5 — the journal-touch and L48
+steps both resolve `git diff "$BASE"...HEAD` correctly, which was the
+named risk of the bump.
+
+**L48 — sighting #8, logged retroactively.** #119 is not docs-only, so
+the gate fired and stayed red through the merge; no cross-model read was
+run, commissioned, or in flight. Override record filed at
+`audits/L48_override_pr119_2026-07-25.md`. The implementer lane declined
+to clear the gate itself — in writing, twice, pre-merge — on the grounds
+that a self-authored artifact is the sighting #7 shape and the override
+is the controller's instrument per the #98 precedent. Unlike sighting #6,
+this record is written after the merge rather than at the merge word. The
+gap it names, queued and not decided: the gate blocks the merge button on
+a red check, but nothing blocks a squash-merge performed with the red in
+view, so the artifact the gate exists to force can always be deferred.
+
+**Verification.** Suite **1369/1369 (38 files)** under vitest 4.1.9 on
+merged main and again on this entry's branch. `git diff --check` clean.
+Repo-shape pins unchanged (core 10 / ui 10 / tests 38); no `core/`, `ui/`,
+or test module added or removed. Local PII audit **not run** — its
+gitignored pattern file is absent in the remote container, so that gate
+is still owed controller-side before this entry merges. **Scope (files):**
+`journal.md`, `audits/L48_override_pr119_2026-07-25.md`. **UNTOUCHED:**
+`core/`, `ui/`, `content/`, `index.html`, `tests/`, `DOCTRINE.md`,
+`CLAUDE.md`, `.github/`.
+
 ## 2026-07-22 — Card JPEG hosting for IG/Threads drip (PR #116)
 
 **97 catalog card JPEGs shipped to /cards on prod**, closing the asset-hosting
