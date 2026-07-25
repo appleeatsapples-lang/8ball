@@ -84,6 +84,8 @@ is still owed controller-side before this entry merges. **Scope (files):**
 `core/`, `ui/`, `content/`, `index.html`, `tests/`, `DOCTRINE.md`,
 `CLAUDE.md`, `.github/`.
 
+**HEAD post-this-entry:** `150bfb4`.
+
 ## 2026-07-22 — Card JPEG hosting for IG/Threads drip (PR #116)
 
 **97 catalog card JPEGs shipped to /cards on prod**, closing the asset-hosting
