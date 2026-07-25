@@ -11,10 +11,14 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5 is the lowest major of each action whose runtime is node24. v4
+      # declares node20, which the runner now force-runs on node24 and warns
+      # about. Pinned to v5 rather than latest so the runtime fix carries no
+      # unrelated major-version behavior with it.
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
