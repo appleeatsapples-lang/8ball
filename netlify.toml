@@ -1,5 +1,13 @@
 [build]
   publish = "."
+  # Deep-clean 2026-07-25 (PR-A): the ops layer (journal, doctrine, agent
+  # manuals, audits/, tests/) is public in the repo but must not be served on
+  # the product domain — publish = "." with a non-forced SPA rewrite serves
+  # every tracked file. Netlify runs `command` inside its build copy before
+  # publishing, so these deletions never touch the repo itself.
+  # node_modules guard: adding any build command makes Netlify run npm
+  # install first; delete the result so it can't ship under publish = ".".
+  command = "rm -rf node_modules .netlify journal.md DOCTRINE.md CLAUDE.md AGENTS.md 8BALL.md agents audits tests scripts .github vitest.config.js package.json package-lock.json"
 
 [[headers]]
   for = "/*"
