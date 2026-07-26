@@ -1305,3 +1305,17 @@ EOF
 npx stryker run   # ~14 min; report at reports/mutation/mutation.json
 # cleanup: revert the skip, rm -rf .stryker-tmp reports stryker.config.json, npm ci
 ```
+
+---
+
+## Errata (appended 2026-07-26, per the #126 pre-merge audit — F4; append-only, no silent rewrite above)
+
+- **Companion filename.** The header cites `test_quality_audit_2026-07-24.md`,
+  the pre-rename name; the tracked companion is
+  `audits/test_quality_audit_pr126_2026-07-24.md`.
+- **Two displayed scores round against their counts.** `core/countries.js`
+  displays 61.9% where (killed + timeout) / total = 843/1363 derives
+  61.8%; `core/pillars.js` displays 98.7% where 73/74 derives 98.6%. The
+  counts are authoritative; the displayed rounding came from the tool's
+  clear-text report. Every other row's displayed score matches its
+  count-derived value at one decimal.

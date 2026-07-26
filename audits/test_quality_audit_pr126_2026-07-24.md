@@ -580,3 +580,18 @@ npm ci   # restore node_modules exactly
 Line coverage is the weakest of the four signals in this audit — section 4
 shows `core/cities.js` at ~97% lines and 14.8% mutation score. Read this table
 with the mutation listing, not instead of it.
+
+---
+
+## Errata (appended 2026-07-26, per the #126 pre-merge audit — F3/F4; append-only, no silent rewrite above)
+
+- **Base sha (F4).** The header names `main @ a9103a7`; the audited
+  branch's actual merge-base was `7cd0947` (established by the in-PR
+  audit `codex_pr126_premerge_audit_2026-07-25_response.md`). The header
+  stands uncorrected in place; this erratum is the record.
+- **"Runs in jsdom" framing (F3).** The relay packet framing for this
+  session described the two new suites as running in jsdom. They do not:
+  both use hand-built Node DOM/browser doubles local to each test file.
+  The tests are real — they execute the actual controllers — but HTML
+  parsing/nesting semantics are outside their coverage. Restated inside
+  the tracked record per the F3 disposition.
