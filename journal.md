@@ -11,7 +11,9 @@ Brief: `~/8ball/sessions/cc_brief_pricing_model_v2_2026-07-26.md` (CLEAN v2,
 supersedes the corrections-laden v1 file). Gumroad repriced and recopied
 2026-07-26 — t1 $1 · t2 $2 · t3 $3, all three listings promising "yours for
 good" — so the code catches up to the live commercial reality. Branch
-`claude/pricing-model-1-2-3`, PR number embedded on open per #118 choreography.
+`claude/pricing-model-1-2-3`, PR #127; audit brief filed in-PR as
+`audits/codex_pr127_premerge_audit_2026-07-26_brief.md`, Codex relay fired
+at PR-open, verdict to follow as the `_response.md` sibling.
 
 **The model.** A rung purchase is permanent and unlimited: `applyPaidReturn`
 keeps only the monotonic `tier = max(current, purchased)` write and the
