@@ -67,12 +67,17 @@ byte-untouched. t1/t2 products stay live on Gumroad; `?paid=t1|t2`
 returns still persist their tiers; monotonicity, ownership persistence,
 and the R2 legacy grandfather are unchanged — new adversarial pins in
 `tests/payments_markup.test.js` prove a t2 return persists, a t1 device
-upgrades to t3, and a t2 device replaying a t1 URL never downgrades. The
-about modal deliberately still discloses all three rungs: it is the
-disclosure surface, the disclosure stays true, and t1/t2 owners can read
-what they own.
+upgrades to t3, and a t2 device replaying a t1 URL never downgrades. At
+the initial cut, the about modal deliberately still disclosed all three
+rungs as the disclosure surface; F1 below found that framing internally
+contradictory against the one-offer paywall, and the fix-cycle corrected
+it to the current state: the disclosure surface now honors existing
+lower-rung ownership without presenting t1/t2 as current checkout
+choices (see F1 disposition).
 
-**Tests.** Suite green at 41 files / 1438 tests (main baseline 40/1436).
+**Tests.** Suite green at the initial cut's 41 files / 1438 tests (main
+baseline 40/1436); after the fix cycle and the #129 merge-forward below,
+the merged suite passes 41 files / 1444 tests.
 `payments_markup` re-pinned to the one-offer surface (exactly one CTA,
 `xjpvp` only, `rzqezp`/`neysyv` absent from the modal, one dollar figure,
 specimen-preview labeling, offer-control wiring) + the retained-ownership
@@ -155,7 +160,19 @@ Five findings, all resolved in one further commit on
   diff empty — the higher-order invariant for a fix-only cycle. Carried
   as documentation debt for a separately justified comment-only cycle.
 
-Next: Codex re-audits this fix delta on `claude/revenue-reset-single-offer`
+**Re-audit disposition (2026-07-26, Codex independent re-audit, PR #130).**
+Re-audit at `36cc2ae7330cf2a8db885ce23ce57f60b9fea611` against
+`origin/main@437a1016d5c59aca75abb87ccb97761b727510e7`: verdict MERGE WITH
+FIXES; all five original findings' Medium-severity items (F1–F4) confirmed
+closed as disposed above, F5 confirmed as the expressly non-blocking
+protected-perimeter carry. One new finding, R1 (Low): this entry's own
+About and test-count paragraphs still read the pre-fix state in present
+tense — corrected in place above by this same doc-only commit. Response
+filed at `audits/codex_pr130_premerge_reaudit_2026-07-26_response.md`. Final
+verification (CI + Codex re-check of this journal-only delta) is still
+required on the new head before the verdict can close as plain MERGE.
+
+Next: Codex verifies this doc-only delta on `claude/revenue-reset-single-offer`
 → **merge only on operator word.**
 
 ## 2026-07-26 — F2 fix cycle: `rowSections` fail-closed (§5.D guarantee enforced) + #126 audit errata — STAGED
