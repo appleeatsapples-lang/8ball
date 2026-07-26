@@ -7,11 +7,19 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
 
-**Status: STAGED on `claude/revenue-reset-single-offer` (based on main
-`969e912`), PR to open non-draft against `main`; L48 audit brief filed
-in-PR once the PR number exists; merge only on operator word after the
-Codex verdict. No deploy, no external post — the sprint amendment
-authorizes copy and the operating-law exception, never publishing.**
+**Status: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
+against `main`, base `b459fdab51390f5a8162fafecb1e6119d0cda4e6` (#128
+doctrine v0.55 footer flip); L48 audit brief filed in-PR at
+`audits/codex_pr130_premerge_audit_2026-07-26_brief.md`; head at the
+Codex pre-merge read was `3d05520ed1b6ac337c1fbdf4f51aa036554dd90c`, CI
+green (`test` + `l48-gate` SUCCESS) at that read. Independent Codex
+verdict: MERGE WITH FIXES (3 Medium truth/control-plane findings, 2 Low).
+This fix cycle closes F1–F4 and carries F5 non-blocking (disposition
+below) in one further commit on this branch; response filed at
+`audits/codex_pr130_premerge_audit_2026-07-26_response.md`. **Merge only
+on operator word, now conditioned on a clean Codex re-audit of the fix
+delta.** No deploy, no external post — the sprint amendment authorizes
+copy and the operating-law exception, never publishing.**
 
 Brief: `~/Documents/Codex/2026-07-25/ca/work/claude_revenue_reset_brief_2026-07-26.md`
 (operator approval on record for repo/brief egress to Anthropic, the dated
@@ -86,9 +94,54 @@ receive (specimen preview), what does $3 unlock (offer copy), is it
 permanent ("yours for good · permanently, for every reading on this
 device"). All four true and consistent with the implementation.
 
-Next: push branch → open non-draft PR → file
-`audits/codex_pr<N>_premerge_audit_2026-07-26_brief.md` naming the real
-PR number → CI green → Codex relay → **merge only on operator word.**
+**Fix-cycle disposition (2026-07-26, Codex pre-merge response, PR #130).**
+Five findings, all resolved in one further commit on
+`claude/revenue-reset-single-offer`:
+
+- **F1 (Med, fixed).** About told a current visitor "one, two, or three
+  dollars" opens one of "three paid rungs" while the paywall sells one
+  `$3` complete offer — internally contradictory. `index.html` about-modal
+  rewritten: the coordinate-composition paragraph lists the ladder
+  coordinates without ladder-choice framing; the pricing paragraph now
+  reads "the current offer is the complete sheet for three dollars,
+  once" and explicitly honors existing lower-rung ownership ("devices
+  that already own a lower rung keep it") without presenting t1/t2 as
+  current checkout choices. Every disclosure (calculator-grade, free/
+  unlimited, gumroad, on-device boundary, source visibility, lock
+  convention, no-subscription) survives verbatim. `tests/payments_markup.test.js`
+  re-pinned: the old "one, two, or three dollars" assertion replaced with
+  a "three dollars, once" / not-ladder-priced pin plus a new
+  ownership-without-checkout-choice pin.
+- **F2 (Med, fixed).** This entry — was stale (named "PR to open" while
+  #130 was already open, briefed, and merged forward). See the Status
+  line above for the corrected PR/base/head/CI/verdict state.
+- **F3 (Med, fixed).** `~/8ball/APPROACH.md` §5.1.a and §5.3 were
+  contradictory on disk — §5.1.a authorized a labeled Reddit sprint post
+  with a link, §5.3 held all product links absolutely. §5.3's
+  Link/new-sub hold row now carries an explicit, dated, narrow exception:
+  during 2026-07-26 → 2026-08-08 inclusive, §5.1.a's Reddit carve-out
+  supersedes the link hold only for an already clean-posted community
+  whose current rules explicitly permit owner-disclosed tool promotion;
+  the first-time/new-sub hold stands unchanged; a removal or moderator
+  warning restores the hold immediately; the operator still taps every
+  send and agents still only prepare copy.
+- **F4 (Low, closed with a dated gate).** The single-offer presentation
+  is a law/date, not a runtime mechanism — the shipped static markup does
+  **not** self-revert. Dated owner gate, on record here: **by the end of
+  2026-08-08**, the operator must either explicitly renew the §4.B v0.56
+  amendment, or the implementer must ship the mechanical restoration of
+  the three-CTA ladder presentation (paywall + about-modal + result-rail
+  offer control + test re-pins) as its own dated cycle. No runtime date
+  clock or automated reversion is added or planned.
+- **F5 (Low, carried, non-blocking).** `ui/payments.js` comments at
+  lines 24-25 and 164-167 describe retired presentation facts (lock icon
+  no longer the only paywall trigger; the live modal no longer has three
+  ladder CTAs). Left uncorrected this cycle to keep the protected `ui/`
+  diff empty — the higher-order invariant for a fix-only cycle. Carried
+  as documentation debt for a separately justified comment-only cycle.
+
+Next: Codex re-audits this fix delta on `claude/revenue-reset-single-offer`
+→ **merge only on operator word.**
 
 ## 2026-07-26 — DOCTRINE v0.55 footer flip: STAGED → SHIPPED naming `94cf1bc` (#127) — STAGED
 

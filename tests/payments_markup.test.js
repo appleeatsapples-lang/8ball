@@ -457,9 +457,15 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/calculator-grade/);
   });
 
-  it('about-modal: discloses the v0.55 ladder prices ("one, two, or three dollars")', () => {
-    expect(aboutSubtree).toMatch(/one, two, or three dollars/);
+  it('about-modal: discloses the single sprint offer ("three dollars, once"), not the v0.55 ladder prices (§4.B v0.56)', () => {
+    expect(aboutSubtree).toMatch(/three dollars, once/);
+    expect(aboutSubtree).not.toMatch(/one, two, or three dollars/);
     expect(aboutSubtree).not.toMatch(/three, six, or nine dollars/);
+  });
+
+  it('about-modal: honors existing lower-rung ownership without presenting it as a current checkout choice (§4.B v0.56)', () => {
+    expect(aboutSubtree).toMatch(/devices that already own a lower rung keep it/);
+    expect(aboutSubtree).not.toMatch(/three paid rungs/);
   });
 
   it('about-modal: discloses the open free surface ("free and unlimited")', () => {
