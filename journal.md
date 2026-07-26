@@ -5,6 +5,16 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-26 — l48-gate tightening: response/override shapes only (false-green predicate closed) — STAGED
+
+**Status: STAGED on `claude/l48-gate-response-only`; merge is its own word. The tightened gate applies to this very PR — expected RED after the brief commit, GREEN only once the verdict response lands; that live red-then-green sequence is the acceptance test. Trigger: the follow-up first staged at the #126 audit F1 (a 100%-similarity renamed session record satisfied the old predicate), corroborated by #129's F2 in both relay legs (the brief alone greened the gate).**
+
+**The change.** The l48 job's artifact predicate (`^audits/[^/]*pr<N>[^0-9][^/]*\.md$`) accepted ANY audits file naming the PR — brief, renamed record, anything. It now accepts exactly the two shapes CLAUDE.md's gate letter has documented all along: `audits/<model>_pr<N>_premerge_audit_<YYYY-MM-DD>_response.md` or `audits/L48_override_pr<N>_<YYYY-MM-DD>.md`. The matched artifact is echoed into the job log, and the error text now states explicitly that a brief alone does not satisfy the gate. Docs-only exemption, the no-`needs:` independence, and the journal-touch gate are byte-untouched.
+
+**Predicate verification (local harness running the exact grep line).** brief-only → RED; brief+response → GREEN; override-only → GREEN; the #126 renamed-record shape → RED (the original false-green, closed); a response naming the wrong PR → RED; `pr1290` vs `pr129` boundary → RED; response among code files → GREEN; any lowercase model token → GREEN. Historical sweep: every standard pre-merge response artifact on disk (#92 → #129) matches its own PR under the new predicate; the three non-matching shapes are the #103 retroactive record, the #94/#95 crosscheck, and the pre-gate-era #93 record — none of which should self-satisfy a pre-merge gate.
+
+**Scope (files):** `.github/workflows/ci.yml` (l48 job predicate + comment), this file, in-PR L48 artifacts. **UNTOUCHED:** everything else — CLAUDE.md already documents the tightened letter verbatim (no doc drift created), no code, no tests (nothing in the suite executes workflow YAML).
+
 ## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
 
 **Status: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
