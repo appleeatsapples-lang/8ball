@@ -62,6 +62,11 @@ jobs:
   # `test` it was unreachable whenever an earlier step exited non-zero, so a
   # failing suite hid whether the audit artifact was present. No `needs:` —
   # the independence is the point. No Node either: the gate is git plus grep.
+  # The artifact predicate accepts ONLY the two documented shapes — the
+  # verdict response or the explicit override. A brief, a renamed session
+  # record, or any other audits/*pr<N>*.md file does not green the gate
+  # (#126 audit F1 and #129 audit F2 were both false-greens under the old
+  # any-audits-file predicate).
   l48:
     name: l48-gate
     runs-on: ubuntu-latest
@@ -81,9 +86,11 @@ jobs:
             exit 0
           fi
           PR='${{ github.event.pull_request.number }}'
-          if echo "$CHANGED" | grep -qE "^audits/[^/]*pr${PR}[^0-9][^/]*\.md$"; then
-            echo "L48 gate: audit artifact naming pr${PR} present — pass"
+          ART=$(echo "$CHANGED" | grep -E "^audits/([a-z0-9_]+_pr${PR}_premerge_audit_[0-9]{4}-[0-9]{2}-[0-9]{2}_response|L48_override_pr${PR}_[0-9]{4}-[0-9]{2}-[0-9]{2})\.md$" || true)
+          if [ -n "$ART" ]; then
+            echo "L48 gate: verdict/override artifact present — pass"
+            echo "$ART"
           else
-            echo "::error::PR without an in-PR audit artifact (L48). Commit the cross-model verdict response as audits/<model>_pr${PR}_premerge_audit_<date>_response.md, or an explicit override as audits/L48_override_pr${PR}_<date>.md — the override file IS the L48 sighting log."
+            echo "::error::PR without an in-PR L48 artifact of the required shape — a brief alone does not satisfy the gate. Commit the cross-model verdict response as audits/<model>_pr${PR}_premerge_audit_<date>_response.md, or an explicit override as audits/L48_override_pr${PR}_<date>.md — the override file IS the L48 sighting log."
             exit 1
           fi
