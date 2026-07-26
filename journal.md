@@ -5,6 +5,26 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-26 — DOCTRINE v0.55 footer flip: STAGED → SHIPPED naming `94cf1bc` (#127) — STAGED
+
+**Status: STAGED on `claude/doctrine-v055-footer-flip`; merge is its own word (L48). Trigger: the pending mechanical edit the #127 close-out entry below queued (v0.48–v0.51 footer precedent), run as its own doctrine-gated micro-cycle — path B of the 2026-07-26 post-#127 handoff.**
+
+**The edit.** The v0.55 changelog entry in the DOCTRINE footer still read "STAGED on `claude/pricing-model-1-2-3`; §10/L48 cross-model audit required before merge." — true when written, stale since the merge. Appended (STAGED text left verbatim per L17): a bold SHIPPED sentence naming squash `94cf1bc` (#127), merged 2026-07-26 after the in-PR Codex verdict (MERGE WITH FIXES — 1 Med DECLINED with rationale, 1 Low absorbed in-PR; `audits/codex_pr127_premerge_audit_2026-07-26_response.md`). The version line itself is untouched — it is replaced wholesale at the next version bump, per every prior cycle. No doctrine-version bump: mechanical status flip documenting reality (the v0.51 mechanical-footer-correction precedent).
+
+**Explicitly out of scope.** The R2 sub-unit legacy-credit widening (`Number(value) > 0`) stays DECLINED per the #127 F1 disposition — no word given for it in this cycle; it remains available to the controller as a separate one-line amendment.
+
+**Scope (files):** `DOCTRINE.md` (one appended sentence in the footer changelog v0.55 entry), this file (this entry + the queue-clear record below), plus the in-PR L48 artifacts under `audits/`. **UNTOUCHED:** everything else — no code, no calc, no content, no test change.
+
+## 2026-07-26 — Post-#127 queue clear: #124 (deep-clean PR-B + supersession annotation) and #126 (67 salvaged tests) merged — SHIPPED
+
+**Status: SHIPPED — both squash merges landed on the controller's word, one PR per word, post-merge suite green each time. This entry is the release-log record for two merges whose work-records live in their in-PR audit artifacts (the #97-backfill precedent: no merge without a journal record).**
+
+**#124 — `fc11d61`.** Deep-clean PR-B: the stale-branch disposition record plus the salvaged 2026-07-20 master-numbers decision entry at its chronological position. Pre-merge, the #127 Codex cross-PR note on this PR was closed: a supersession annotation (`90f70a5`) now sits above the salvaged entry stating that the same-dated v0.54 controller correction reversed it — calc v3 current, masters retired as terminal values, v2 registries active; historical text verbatim. Post-merge: suite 38 files / 1360 tests, local PII audit clean (237 files). The three Netlify preview checks that showed stale failures pre-push cleared green on the re-run.
+
+**#126 — `969e912`.** The 2026-07-24 coverage-session salvage: `tests/readings_ui.test.js` (45 behavioral tests — `ui/readings.js` 22.0% → 95.4% statements, 54/54 functions), `tests/share_behavior.test.js` (22 live-path tests — `ui/share.js` 50.4% → 98.6% statements, 25/25 functions), one `share_surface` sealed-value snapshot pin, and the test-quality audit records (mutation-survivor listing + 25-module coverage table). Sole production-code touch: `rowSections` gains an `export` keyword in `ui/share.js` — zero behavior change, deploy user-invisible. In-PR Codex verdict on file (`audits/codex_pr126_premerge_audit_2026-07-25_response.md`). Post-merge: suite **40 files / 1428 tests** — exactly the #127 auditor's cross-PR projection; `repo_shape` green with the in-PR CLAUDE.md 38 → 40 bump; local PII audit clean (242 files). No salvaged test pinned retired credit-model behavior — the projected interference risk did not materialize.
+
+**Open-PR queue: EMPTY as of this entry.**
+
 ## 2026-07-26 — Ownership pricing v2: $1/$2/$3, purchases permanent, free surface open (DOCTRINE v0.55) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `94cf1bc` (#127) on the
