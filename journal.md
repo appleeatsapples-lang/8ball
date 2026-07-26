@@ -5,6 +5,91 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
+
+**Status: STAGED on `claude/revenue-reset-single-offer` (based on main
+`969e912`), PR to open non-draft against `main`; L48 audit brief filed
+in-PR once the PR number exists; merge only on operator word after the
+Codex verdict. No deploy, no external post — the sprint amendment
+authorizes copy and the operating-law exception, never publishing.**
+
+Brief: `~/Documents/Codex/2026-07-25/ca/work/claude_revenue_reset_brief_2026-07-26.md`
+(operator approval on record for repo/brief egress to Anthropic, the dated
+sales amendment, branch push, and PR creation). Commercial context:
+`~/Documents/Codex/2026-07-25/ca/outputs/8ball_revenue_sprint_execution_packet_2026-07-26.md`.
+Diagnosis in one line: the payment path works and has zero outside orders —
+the cold first screen and paywall demanded internal vocabulary, the
+strongest paid output (the complete written card) was never demonstrated
+before checkout, and the three-rung choice added friction while the $1
+rung nets ~$0.07 after fees.
+
+**The patch (§4.B v0.56, presentation-only, window 2026-07-26 →
+2026-08-08 inclusive).** One buyer-facing purchase choice: `complete
+8ball · $3 once` — the existing t3 product `xjpvp` on the existing
+`?paid=t3` return. The paywall carries a labeled fixed specimen preview
+(catalog no. v: the public `/cards/spec_no-v.jpg` complete sheet + that
+cell's written entry filled at boot from the public deck bundle — §5.C
+posture, explicitly never the visitor's result); the result rail gains
+`open the complete sheet · $3 once` sharing the single Path B trigger
+(hidden at t3, the lock icon's rule); the mechanism strip and head
+metadata read plain-English (`name + birth data in. one fixed identity
+sheet out`; `8 ball · specimen registry`), still §2-clinical. Five
+non-forced 200 rewrites in `netlify.toml` (`/r` `/x` `/ig` `/tt` `/pin`)
+give per-channel attribution from the host's own server logs (§5 v0.35 —
+zero client surface).
+
+**What did not move — the load-bearing half.** `core/payments.js`,
+`ui/payments.js`, `ui/tiers.js`, `content/`, `core/`, fixtures: all
+byte-untouched. t1/t2 products stay live on Gumroad; `?paid=t1|t2`
+returns still persist their tiers; monotonicity, ownership persistence,
+and the R2 legacy grandfather are unchanged — new adversarial pins in
+`tests/payments_markup.test.js` prove a t2 return persists, a t1 device
+upgrades to t3, and a t2 device replaying a t1 URL never downgrades. The
+about modal deliberately still discloses all three rungs: it is the
+disclosure surface, the disclosure stays true, and t1/t2 owners can read
+what they own.
+
+**Tests.** Suite green at 41 files / 1438 tests (main baseline 40/1436).
+`payments_markup` re-pinned to the one-offer surface (exactly one CTA,
+`xjpvp` only, `rzqezp`/`neysyv` absent from the modal, one dollar figure,
+specimen-preview labeling, offer-control wiring) + the retained-ownership
+suite; `prose_coordinate_count` meta pin moved from "paid rungs" to the
+sprint offer ($3 · complete); NEW `tests/channel_routes.test.js`
+(rule shape, order above the catch-all, no force/query/conditions, no
+root-entry shadowing, catch-all intact). CLAUDE.md counts 40 → 41 and
+index.html 1401 → 1465 (≤1500) updated in lockstep. No scanner or
+allow-list widened.
+
+**Ops-file sibling (outside this repo).** `~/8ball/APPROACH.md` gains the
+dated 14-day sales-sprint amendment (2026-07-26 → 2026-08-08), approved in
+the same brief: labeled sprint posts may name 8ball with one CTA + one
+channel URL; X stays
+3/day with ≤1 offer post; IG/TikTok/Threads ≤1 offer post per surface per
+week; Reddit only where owner-disclosed promotion is permitted, stop on any
+moderation event; expires automatically unless renewed. It authorizes copy
+preparation only — no agent publishes, sends, schedules, purchases, or
+submits anything externally.
+
+**Bootstrap checks, on record.** §8 A1 rule-kill: last review 2026-06-30,
+26 days old at this ship — under the 30-day accelerator, not run.
+`next_strategic_read: 2026-07-27` — not yet due. `next_analytics_read:
+2026-07-17` — **overdue 9 days**; an operator/inspector dashboard read
+(Netlify + Gumroad), flagged here rather than faked: the sprint's Day-0
+baseline capture (packet requirement) would satisfy it and is an operator
+tap. The K1 Netlify Top Sources read is already on the ops calendar for
+the day after this entry, per APPROACH.md §18. `package.json` held at 0.7.1 per the v0.38–v0.40
+version-truth precedent (Procedure 4 flag stands).
+
+Acceptance test (brief): a cold visitor answers, within one screen and one
+paywall interaction — what does 8ball do (mechanism strip), what will I
+receive (specimen preview), what does $3 unlock (offer copy), is it
+permanent ("yours for good · permanently, for every reading on this
+device"). All four true and consistent with the implementation.
+
+Next: push branch → open non-draft PR → file
+`audits/codex_pr<N>_premerge_audit_2026-07-26_brief.md` naming the real
+PR number → CI green → Codex relay → **merge only on operator word.**
+
 ## 2026-07-26 — Ownership pricing v2: $1/$2/$3, purchases permanent, free surface open (DOCTRINE v0.55) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `94cf1bc` (#127) on the

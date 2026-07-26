@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
-<title>8 ball</title>
-<meta name="description" content="Five calibrated coordinates from your date of birth — free, stored only on your device. Three paid rungs reveal the full specimen sheet.">
+<title>8 ball · specimen registry</title>
+<meta name="description" content="Name + birth data in. One fixed identity sheet out — five calibrated coordinates free; $3 opens the complete sheet, for good. Stored only on your device.">
 
 <!-- favicon -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -13,13 +13,13 @@
 <link rel="shortcut icon" href="/assets/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180.png">
 <link rel="canonical" href="https://the-eight-ball.netlify.app/">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"8ball","url":"https://the-eight-ball.netlify.app/","applicationCategory":"EntertainmentApplication","isAccessibleForFree":true,"description":"Five calibrated coordinates from your date of birth — free, stored only on your device. Three paid rungs reveal the full specimen sheet."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"8ball specimen registry","url":"https://the-eight-ball.netlify.app/","applicationCategory":"EntertainmentApplication","isAccessibleForFree":true,"description":"Name + birth data in. One fixed identity sheet out — five calibrated coordinates free; $3 opens the complete sheet, for good. Stored only on your device."}</script>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://the-eight-ball.netlify.app/">
-<meta property="og:title" content="8 ball">
-<meta property="og:description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
+<meta property="og:title" content="8 ball · specimen registry">
+<meta property="og:description" content="A magic 8-ball that knows you — name + birth data in, one fixed identity sheet out: tarot, western astrology, chinese zodiac, and numerology on one card. Five calibrated coordinates free; $3 opens the complete sheet, for good. Stored only on your device.">
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -27,8 +27,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="8 ball">
-<meta name="twitter:description" content="A magic 8-ball that knows you — five calibrated coordinates from your date of birth, free. Three paid rungs reveal the full specimen sheet. Stored only on your device.">
+<meta name="twitter:title" content="8 ball · specimen registry">
+<meta name="twitter:description" content="A magic 8-ball that knows you — name + birth data in, one fixed identity sheet out: tarot, western astrology, chinese zodiac, and numerology on one card. Five calibrated coordinates free; $3 opens the complete sheet, for good. Stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta name="twitter:image:alt" content="Specimen sheet with four open compartments and ten sealed hatches, beside the 8 ball wordmark — a magic 8-ball that knows you.">
 
@@ -724,6 +724,39 @@
     line-height: 1.5;
   }
 
+  /* paywall specimen preview (§4.B v0.56): one fixed catalog example —
+     collapsed by default so the CTA stays above the fold; the entry text
+     is filled at boot from the public deck bundle, never the visitor's
+     profile or tier. */
+  .paywall-specimen { margin-top: 14px; }
+  .paywall-specimen summary {
+    cursor: pointer; list-style: none; padding: 6px 0;
+    font-size: 11px; letter-spacing: 0.06em;
+    color: var(--label); text-transform: lowercase;
+  }
+  .paywall-specimen summary::-webkit-details-marker { display: none; }
+  .paywall-specimen summary::before { content: "+"; display: inline-block; width: 14px; }
+  .paywall-specimen[open] summary::before { content: "-"; }
+  .paywall-specimen img {
+    display: block; width: 100%; height: auto;
+    border: 1px solid var(--rule); margin: 8px 0 10px;
+  }
+  .paywall-specimen .specimen-entry {
+    font-size: 13px; font-weight: 500; text-transform: lowercase;
+    color: var(--ink); margin-bottom: 4px;
+  }
+  .paywall-specimen .specimen-entry-habit {
+    font-size: 11px; font-style: italic; line-height: 1.5;
+    color: var(--ink); margin-bottom: 4px;
+  }
+  .paywall-specimen .specimen-entry-note {
+    font-size: 12px; line-height: 1.5; color: var(--ink); margin-bottom: 6px;
+  }
+  .paywall-specimen .specimen-caption {
+    font-size: 9px; letter-spacing: 0.04em; line-height: 1.5;
+    color: var(--label); margin-bottom: 0;
+  }
+
   /* paid-return banner — mirrors v0.2.5.x feedback-sent banner shape */
   .paid-banner {
     position: fixed;
@@ -780,7 +813,7 @@
   <!-- ── welcome screen ──────────────────────────────────────────── -->
   <section class="screen" id="onboarding">
     <div class="registry-header">specimen registry · new entry</div>
-    <p class="hint" id="mechanism-strip">five public coordinates · sealed sheet · stored on this device.</p>
+    <p class="hint" id="mechanism-strip">name + birth data in. one fixed identity sheet out — tarot, western astrology, chinese zodiac, and numerology filed on one card.</p>
     <form id="profile-form" autocomplete="off">
       <div class="field">
         <label for="name-input">name</label>
@@ -894,6 +927,7 @@
     <p class="density-strip" id="density-strip" role="status"></p>
 
     <div class="result-controls">
+      <button class="btn btn-block" id="offer-btn" type="button" hidden>open the complete sheet · $3 once</button>
       <button class="btn btn-block" id="shake-again-btn">flip again</button>
       <button class="btn btn-block btn-secondary" id="save-reading-btn" type="button">save reading</button>
       <button class="btn btn-block" id="share-btn" type="button">share</button>
@@ -953,15 +987,21 @@
   </div>
 </div>
 
-<!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C, ownership v0.55) ───── -->
+<!-- ── paywall modal (single complete offer — DOCTRINE §2 / §4.B v0.56 sprint presentation / §5.B Call 2 / §5.C; ownership v0.55: t1/t2 products, ?paid= returns, and stored tiers stay live — only the buyer-facing choice narrows) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
-    <h2 id="paywall-title">three rungs · yours for good</h2>
+    <h2 id="paywall-title">complete 8ball · $3 once</h2>
     <div class="modal-rule"></div>
-    <p>one tap. no account. each rung is a one-time purchase: the sheet opens to that rung on this device, permanently, for every reading. the highest rung bought holds.</p>
-    <a class="modal-cta" id="paywall-cta-t1" href="https://theeightball.gumroad.com/l/rzqezp" target="_self">t1 · rising · five-element · private animal · name number · soul urge — $1</a>
-    <a class="modal-cta" id="paywall-cta-t2" href="https://theeightball.gumroad.com/l/neysyv" target="_self">t2 · + three more numbers · day pillar — $2</a>
-    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">t3 · + hour pillar · the written card entry — $3</a>
+    <p>every coordinate and the written card, permanently, for every reading on this device. one tap. no account. a one-time purchase — yours for good. the highest rung bought holds.</p>
+    <details class="paywall-specimen" id="paywall-specimen">
+      <summary>see a complete specimen — an example, not your sheet</summary>
+      <img src="/cards/spec_no-v.jpg" alt="specimen no. v — a complete sheet, all fifteen coordinates open" loading="lazy" decoding="async" width="1080" height="1350">
+      <p class="specimen-entry"><span id="specimen-entry-name"></span> · <span id="specimen-entry-type"></span></p>
+      <p class="specimen-entry-habit" id="specimen-entry-habit"></p>
+      <p class="specimen-entry-note" id="specimen-entry-note"></p>
+      <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
+    </details>
+    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -1017,6 +1057,7 @@ const cardBack = $('card-back');
 const resultAnnounce = $('result-announce');
 const shakeAgainBtn = $('shake-again-btn');
 const tryAnotherBtn = $('try-another-btn');
+const offerBtn = $('offer-btn');
 // v0.3.0 paid-surface elements (DOCTRINE §6).
 const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
@@ -1166,6 +1207,9 @@ function renderCard(profile, opts) {
   // icon now; the entry slots are constant-skeleton (sealed shell via
   // ui/tiers.js) and MUST be cleared below t3 (§1.D v0.37 DOM purity).
   cardFace.classList.toggle('unlocked', cardEntry);
+  // Sprint offer control (§4.B v0.56): visible below t3, gone once the
+  // device owns the complete sheet — same visibility rule as the lock icon.
+  offerBtn.hidden = cardEntry;
   if (cardEntry) {
     try {
       const sunCells = CARDS[profile.sunSign];
@@ -1327,18 +1371,38 @@ cardBack.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
 });
 
-// ── lock-icon Path B (DOCTRINE §6.7 / §4.B v0.55) ────────────────
-// Tapping the lock icon on the rendered sheet stages the currently-
-// stored profile for the paid round-trip, then opens the paywall —
-// the only paywall trigger. The paid return writes the tier and
-// re-renders the same profile at the bought density.
-cardLockIcon.addEventListener('click', e => {
-  e.preventDefault();
-  e.stopPropagation();
+// ── purchase entry — Path B (DOCTRINE §6.7 / §4.B v0.55–v0.56) ───
+// The lock icon on the sheet and the result-rail offer button are two
+// presentations of the same single trigger: stage the stored profile
+// for the paid round-trip, then open the paywall. The paid return
+// writes the tier and re-renders the same profile at the bought density.
+function openPurchase() {
   const stored = loadSavedProfile();
   if (stored) setPendingProfile(stored);
   openPaywall();
+}
+cardLockIcon.addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  openPurchase();
 });
+offerBtn.addEventListener('click', openPurchase);
+
+// ── paywall specimen preview (§4.B v0.56) ────────────────────────
+// One FIXED catalog cell (no. v = aries × dragon — the same cell the
+// /cards/spec_no-v.jpg sheet shows), rendered from the public deck
+// bundle the page already imports. Constant for every visitor: never
+// the visitor's profile, tier, or facet position. The visitor's own
+// written entry stays t3-gated (§1.D / §5.C).
+{
+  const specimenCell = CARDS.aries && CARDS.aries.dragon;
+  if (specimenCell) {
+    $('specimen-entry-name').textContent = specimenCell.name;
+    $('specimen-entry-type').textContent = specimenCell.type;
+    $('specimen-entry-habit').textContent = specimenCell.habit;
+    $('specimen-entry-note').textContent = specimenCell.note.mid;
+  }
+}
 
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small
