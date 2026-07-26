@@ -6,10 +6,11 @@
 // markup/static or thin DOM smoke tests forward before piling on
 // step 7 copy/UI work.
 //
-// Scope (step-7 forward port):
+// Scope (step-7 forward port; v0.55 ownership re-pins):
 //   1. lock_icon_markup        — DOM existence
-//   2. paywall_modal_markup    — DOM existence + Gumroad Buy Link shape
-//   3. credit_chip_markup      — DOM existence
+//   2. paywall_modal_markup    — DOM existence + Gumroad Buy Link shape +
+//                                $1/$2/$3 ownership copy
+//   3. reads_chip_retired      — the counter chip is gone (v0.55)
 //   4. unlocked_render_markup  — DOM existence
 //   5. paid_query_handler      — URL handling JS pattern (in ui/payments.js)
 //   6. disclosure_in_about_modal + paywall_modal_disclosure — §10.3 copy
@@ -25,16 +26,14 @@ import { afterEach, describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as paymentsUI from '../ui/payments.js';
 import {
   CREDITS_KEY,
   PENDING_KEY,
-  TRIES_KEY,
+  TIER_KEY,
   getCredits,
-  getTriesUsed,
   handlePaidReturn,
   initPaywallUI,
-  setCredits,
-  setTriesUsed,
   showPaidBanner,
 } from '../ui/payments.js';
 
@@ -152,18 +151,25 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     }
   });
 
-  it('ladder copy: each CTA names its rung price and clinical contents (v0.6.0)', () => {
+  it('ladder copy: each CTA names its v0.55 rung price and clinical contents', () => {
     const subtree = modalSubtree('paywall-modal');
     const t1 = subtree.match(/id="paywall-cta-t1"[^>]*>([^<]+)<\/a>/)[1];
     const t2 = subtree.match(/id="paywall-cta-t2"[^>]*>([^<]+)<\/a>/)[1];
     const t3 = subtree.match(/id="paywall-cta-t3"[^>]*>([^<]+)<\/a>/)[1];
-    expect(t1).toContain('$3');
+    expect(t1).toContain('$1');
     expect(t1).toMatch(/rising/);
-    expect(t2).toContain('$6');
+    expect(t2).toContain('$2');
     expect(t2).toMatch(/day pillar/); // clinical label, §2 voice
-    expect(t3).toContain('$9');
+    expect(t3).toContain('$3');
     expect(t3).toMatch(/hour pillar/);
     expect(t3).toMatch(/written card entry/); // t3 carries the content unlock
+    // The 2026-07-26 repricing is total and exact: each CTA carries its one
+    // v0.55 price and no other dollar figure (guards a partial re-label —
+    // note $3 moved rungs: it was t1's price, it is now t3's).
+    const priceOf = text => (text.match(/\$(\d+)/g) || []).join(',');
+    expect(priceOf(t1)).toBe('$1');
+    expect(priceOf(t2)).toBe('$2');
+    expect(priceOf(t3)).toBe('$3');
     // §2 voice: no destiny/unlock-your-X language on the ladder.
     expect(`${t1}${t2}${t3}`).not.toMatch(/destiny|fate|secret|reveal your/i);
   });
@@ -180,33 +186,24 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(t1).toContain('soul urge');
   });
 
-  it('paywall title and body carry the three-rung framing (v0.6.0)', () => {
+  it('paywall title and body carry the ownership framing (v0.55)', () => {
     const subtree = modalSubtree('paywall-modal');
-    expect(subtree).toMatch(/three tries · three rungs/);
-    expect(subtree).toMatch(/three more reads with the sheet opened to that rung/);
+    expect(subtree).toMatch(/three rungs · yours for good/);
+    expect(subtree).toMatch(/the sheet opens to that rung on this device, permanently, for every reading/);
     expect(subtree).toMatch(/the highest rung bought holds/);
+    // The metered framing is gone: no tries, no reads-count promises.
+    expect(subtree).not.toMatch(/three tries/);
+    expect(subtree).not.toMatch(/three more reads/);
   });
 
-  // 3. credit_chip_markup ───────────────────────────────────────────
-  it('reads-chip element exists', () => {
-    expect(html).toMatch(/id="reads-chip"/);
+  // 3. reads chip — RETIRED (v0.55: no counter exists to display) ───
+  it('the reads chip is fully retired — markup, CSS, and wiring', () => {
+    expect(html).not.toMatch(/reads-chip/);
+    expect(html).not.toMatch(/readsChip/);
+    expect(html).not.toMatch(/reads left/);
   });
 
-  it('no inline credit count hardcoded in markup', () => {
-    // The chip should be empty in markup and populated by renderCard at
-    // runtime — guards against a stale "3 reads left" baked into source.
-    const m = html.match(/id="reads-chip"[^>]*>([\s\S]*?)<\/(?:span|div)>/);
-    expect(m, 'reads-chip subtree not found').not.toBeNull();
-    expect(m[1].trim()).toBe('');
-  });
-
-  // 3b. v0.6.1 card geometry — chip in-flow + growable flip stack ───
-  it('reads-chip is in-flow, not absolutely positioned (v0.6.1)', () => {
-    const css = html.match(/\.reads-chip\s*\{([\s\S]*?)\}/);
-    expect(css, '.reads-chip CSS block not found').not.toBeNull();
-    expect(css[1]).not.toMatch(/position:\s*absolute/);
-    expect(css[1]).toMatch(/margin:\s*10px auto 0/);
-  });
+  // 3b. v0.6.1 card geometry — growable flip stack ──────────────────
 
   it('flip faces are grid-stacked so the card can grow at t3 (v0.6.1)', () => {
     const inner = html.match(/\.flip-inner\s*\{([\s\S]*?)\}/);
@@ -247,11 +244,11 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(html).toMatch(/id="card-note"/);
   });
 
-  it('paid-return banner exists hidden-by-default with exact unlock copy', () => {
+  it('paid-return banner exists hidden-by-default with exact ownership copy', () => {
     const m = html.match(/<div([^>]*id="paid-banner"[^>]*)>([\s\S]*?)<\/div>/);
     expect(m, 'paid-banner element not found').not.toBeNull();
     expect(m[1]).toMatch(/\bhidden\b/);
-    expect(m[2].trim()).toBe('three reads unlocked. enjoy.');
+    expect(m[2].trim()).toBe('rung opened. yours for good.');
   });
 
   // 5. paid_query_handler (URL handling lives in ui/payments.js) ────
@@ -293,13 +290,12 @@ describe('paid-return banner behavior', () => {
     expect(banner.hidden).toBe(true);
   });
 
-  it('handlePaidReturn shows the banner and persists the paid state', () => {
+  it('handlePaidReturn shows the banner and persists exactly the tier (v0.55)', () => {
     vi.useFakeTimers();
     const banner = installPaywallUI();
     const pending = mk('Paid Path', '1999-09-09');
     const storage = makeStorage({
       [CREDITS_KEY]: '0',
-      [TRIES_KEY]: '3',
       [PENDING_KEY]: JSON.stringify(pending),
     });
     const replaceState = vi.fn();
@@ -315,10 +311,11 @@ describe('paid-return banner behavior', () => {
     expect(consumed).toBe(true);
     expect(onConsume).toHaveBeenCalledWith(pending);
     expect(storage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '2',
-      [TRIES_KEY]: '4',
+      [TIER_KEY]: 't1',
+      [CREDITS_KEY]: '0', // no grant, no decrement — the write IS the tier
     });
     expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
+    expect(storage.snapshot()).not.toHaveProperty('eight_ball_tries_used_v1');
     expect(replaceState).toHaveBeenCalledWith({}, '', '/return');
     expect(banner.hidden).toBe(false);
     expect(banner.classList.contains('visible')).toBe(true);
@@ -338,46 +335,37 @@ describe('paid-return banner behavior', () => {
   });
 });
 
-describe('paid counter storage wrappers', () => {
-  it('getters clamp corrupt stored counters to safe zero', () => {
-    globalThis.localStorage = makeStorage({
-      [CREDITS_KEY]: '-5',
-      [TRIES_KEY]: 'Infinity',
-    });
-
+describe('legacy-credit storage wrapper (read-only R2 signal, v0.55)', () => {
+  it('getCredits clamps corrupt stored legacy values to safe zero', () => {
+    globalThis.localStorage = makeStorage({ [CREDITS_KEY]: '-5' });
     expect(getCredits()).toBe(0);
-    expect(getTriesUsed()).toBe(0);
   });
 
-  it('getters floor fractional stored counters', () => {
-    globalThis.localStorage = makeStorage({
-      [CREDITS_KEY]: '2.9',
-      [TRIES_KEY]: '3.8',
-    });
-
+  it('getCredits floors fractional stored legacy values', () => {
+    globalThis.localStorage = makeStorage({ [CREDITS_KEY]: '2.9' });
     expect(getCredits()).toBe(2);
-    expect(getTriesUsed()).toBe(3);
   });
 
-  it('setters persist normalized non-negative integer strings', () => {
-    const storage = makeStorage();
-    globalThis.localStorage = storage;
-
-    setCredits(4.9);
-    setTriesUsed(-2);
-
-    expect(storage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '4',
-      [TRIES_KEY]: '0',
-    });
+  it('the counter mutation surface is retired — no setter or tries accessor exports', () => {
+    expect(paymentsUI.setCredits).toBeUndefined();
+    expect(paymentsUI.getTriesUsed).toBeUndefined();
+    expect(paymentsUI.setTriesUsed).toBeUndefined();
+    expect(paymentsUI.TRIES_KEY).toBeUndefined();
   });
 
-  it('handlePaidReturn repairs corrupt counters before persisting the grant', () => {
+  it('ui/payments.js never writes the credits or retired tries keys (source pin)', () => {
+    // The bare CREDITS_KEY string must survive for the privacy scan and
+    // the R2 read, but no setItem against it may exist; the tries key
+    // string must be gone from executable source entirely (a comment
+    // documenting the retirement is fine — the scan resolves calls).
+    expect(paymentsJs).not.toMatch(/setItem\(\s*CREDITS_KEY/);
+    expect(paymentsJs).not.toMatch(/const TRIES_KEY/);
+    expect(paymentsJs).not.toMatch(/setItem\([^)]*tries/i);
+  });
+
+  it('handlePaidReturn leaves corrupt legacy credits exactly as it found them', () => {
     installPaywallUI();
-    const storage = makeStorage({
-      [CREDITS_KEY]: '-5',
-      [TRIES_KEY]: '-2',
-    });
+    const storage = makeStorage({ [CREDITS_KEY]: '-5' });
     globalThis.localStorage = storage;
     globalThis.window = {
       location: { search: '?paid=t3', pathname: '/return' },
@@ -386,8 +374,8 @@ describe('paid counter storage wrappers', () => {
 
     expect(handlePaidReturn()).toBe(false);
     expect(storage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '3',
-      [TRIES_KEY]: '0',
+      [CREDITS_KEY]: '-5', // untouched garbage — reads clamp, writes never happen
+      [TIER_KEY]: 't3',
     });
   });
 });
@@ -404,8 +392,14 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/calculator-grade/);
   });
 
-  it('about-modal: discloses the ladder prices ("three, six, or nine dollars")', () => {
-    expect(aboutSubtree).toMatch(/three, six, or nine dollars/);
+  it('about-modal: discloses the v0.55 ladder prices ("one, two, or three dollars")', () => {
+    expect(aboutSubtree).toMatch(/one, two, or three dollars/);
+    expect(aboutSubtree).not.toMatch(/three, six, or nine dollars/);
+  });
+
+  it('about-modal: discloses the open free surface ("free and unlimited")', () => {
+    expect(aboutSubtree).toMatch(/readings are free and unlimited, on the free sheet/);
+    expect(aboutSubtree).not.toMatch(/first three readings are free/);
   });
 
   it('about-modal: names gumroad (case-insensitive)', () => {
@@ -426,14 +420,17 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/the lock is a convention, not a vault/);
   });
 
-  it('about-modal: discloses what a rung buys ("three more reads with the sheet opened to that rung")', () => {
-    expect(aboutSubtree).toMatch(/three more reads with the sheet opened to that rung/);
+  it('about-modal: discloses what a rung buys — permanent density, not reads (v0.55)', () => {
+    expect(aboutSubtree).toMatch(/opens the sheet to that rung on this device — permanently, for every reading/);
+    expect(aboutSubtree).not.toMatch(/three more reads/);
+    expect(aboutSubtree).not.toMatch(/adds three more reads/);
   });
 
-  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.6.0)', () => {
-    expect(aboutSubtree).toMatch(/the nine-dollar rung carries the written card entry/);
+  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.55)', () => {
+    expect(aboutSubtree).toMatch(/the three-dollar rung carries the written card entry/);
     expect(aboutSubtree).toMatch(/the paid rung/); // §5 storage disclosure
     expect(aboutSubtree).toMatch(/upgrades the sheet/);
+    expect(aboutSubtree).toMatch(/what you bought stays bought/);
   });
 
   it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
@@ -480,19 +477,21 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
 
 describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
   // pending_profile_write ────────────────────────────────────────────
-  // Both Path A (form submit → show-paywall) and Path B (lock icon
-  // click) must stage the typed profile via setPendingProfile BEFORE
-  // openPaywall fires. Order matters: the paid-return handler reads
-  // the pending profile from localStorage, so it must exist on disk
-  // before the redirect.
+  // Path B (lock icon click) must stage the stored profile via
+  // setPendingProfile BEFORE openPaywall fires. Order matters: the
+  // paid-return handler reads the pending profile from localStorage,
+  // so it must exist on disk before the redirect. Path A (form submit
+  // → show-paywall) is retired at v0.55: submits always render, so the
+  // lock-tap is the ONLY paywall trigger left.
 
-  it('setPendingProfile is called immediately before openPaywall (Path A + Path B)', () => {
+  it('setPendingProfile is called immediately before openPaywall (Path B, the only path)', () => {
     const matches = html.match(
       /setPendingProfile\([^)]*\)\s*;\s*\n\s*(?:if[^\n]*\n\s*)?openPaywall\(\s*\)/g
     );
     expect(matches, 'setPendingProfile → openPaywall sequence not found').not.toBeNull();
-    // Path A (form submit) + Path B (lock icon click) = two sequences.
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+    expect(matches.length).toBe(1);
+    // And the submit handler carries no paywall branch at all.
+    expect(html).not.toMatch(/show-paywall/);
   });
 
   it('the actual localStorage write for the pending profile lives in ui/payments.js', () => {

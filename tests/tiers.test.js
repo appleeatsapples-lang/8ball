@@ -1,8 +1,10 @@
 // 8ball / tests / tiers.test.js
 // v0.7.0 compartment-card contract (DOCTRINE §1 / §1.D v0.37 / §4.B;
-// brief §5). Covers: TIER_COORDS composition per tier, tier rank/
-// monotonic-upgrade math, the generalized ?paid=t1|t2|t3 handler,
-// unknown-param replay safety — all carried from v0.6.0 unchanged —
+// ownership model v0.55). Covers: TIER_COORDS composition per tier —
+// UNCHANGED by v0.55; these suites are the proof the density ladder
+// survived the ownership cutover — tier rank/monotonic-upgrade math,
+// the generalized ?paid=t1|t2|t3 handler (tier write only, no grant),
+// unknown-param replay safety, the R2 legacy grandfather,
 // plus the v0.7.0 compartment render: constant skeleton (rows never
 // hidden), DOM purity (sealed cells carry EMPTY value nodes — no paid
 // value string in the DOM below its tier), seal-iff-above-tier, the F4
@@ -32,7 +34,6 @@ import {
 import {
   TIER_KEY,
   CREDITS_KEY,
-  TRIES_KEY,
   PENDING_KEY,
   getTier,
   setTier,
@@ -290,21 +291,24 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
   it('cold-boot rehydration renders at getRenderTier() — no boot-circumstance branch', () => {
-    // boot(): resolve once through the helper, then pass that exact tier.
+    // boot(): resolve once through the helper, then pass exactly that tier
+    // and nothing else (v0.55: the render opts ARE the tier).
     const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
     expect(m, 'rehydration showResult call not found').not.toBeNull();
-    expect(m[1]).toMatch(/\btier\s*,/);
+    expect(m[1].trim()).toBe('tier');
     // the paid-return special case is gone: no consumedPending ternary
     expect(html).not.toMatch(/consumedPending\s*\?/);
   });
 
-  it('cold-boot rehydration passes triesUsed — the free-tries chip must survive a reload (Codex audit 2026-07-04, Hook 1)', () => {
-    // Regression pin: the boot rehydrate call originally passed tier+credits
-    // only, so a returning free-tier user who reloaded the page lost the
-    // "N free reads left" chip even though eight_ball_tries_used_v1 persists.
-    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
-    expect(m, 'rehydration showResult call not found').not.toBeNull();
-    expect(m[1]).toMatch(/triesUsed:\s*getTriesUsed\(\)/);
+  it('no render path passes counter opts — tries/credits are retired from the render contract (v0.55)', () => {
+    // Ownership model: renderCard/showResult take {tier} (+ arrive); the
+    // reads chip and both counters are deleted. Any resurfacing counter
+    // opt is a regression toward the retired metered model.
+    expect(html).not.toMatch(/triesUsed\s*:/);
+    expect(html).not.toMatch(/credits\s*:/);
+    expect(html).not.toMatch(/getTriesUsed|setTriesUsed|getCredits|setCredits/);
+    expect(html).not.toMatch(/reads-chip|readsChip/);
+    expect(html).not.toMatch(/FREE_TRIES_CAP|CREDITS_PER_PURCHASE/);
   });
 
   it('same-pair submit and paid reads render at getRenderTier() — no action-based density', () => {
@@ -315,7 +319,7 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
   });
 
   it('same-card shake renders at getRenderTier()', () => {
-    const m = html.match(/function shakeAgain\(\)[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?renderCard\(currentProfile,\s*\{\s*tier,/);
+    const m = html.match(/function shakeAgain\(\)[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?renderCard\(currentProfile,\s*\{\s*tier\s*\}/);
     expect(m, 'shakeAgain renderCard must resolve via getRenderTier').not.toBeNull();
   });
 
@@ -338,41 +342,26 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
 // applyPaidReturn tier extension + upgrade path
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('tiers — applyPaidReturn upgrade path', () => {
-  it('first purchase sets the tier and grants +3 credits', () => {
-    const r = applyPaidReturn({
-      credits: 0, triesUsed: 3, pendingProfile: null,
-      tier: null, purchasedTier: 't1',
-    });
-    expect(r).toEqual({ action: 'no-pending', credits: 3, triesUsed: 3, tier: 't1' });
+describe('tiers — applyPaidReturn upgrade path (ownership v0.55)', () => {
+  it('first purchase sets the tier — the write IS the grant, nothing else lands', () => {
+    const r = applyPaidReturn({ pendingProfile: null, tier: null, purchasedTier: 't1' });
+    expect(r).toEqual({ action: 'no-pending', tier: 't1' });
   });
 
-  it('a t1 owner later buying t3 → tier upgrades + 3 credits', () => {
-    const r = applyPaidReturn({
-      credits: 1, triesUsed: 5, pendingProfile: null,
-      tier: 't1', purchasedTier: 't3',
-    });
-    expect(r).toEqual({ action: 'no-pending', credits: 4, triesUsed: 5, tier: 't3' });
+  it('a t1 owner later buying t3 → tier upgrades', () => {
+    const r = applyPaidReturn({ pendingProfile: null, tier: 't1', purchasedTier: 't3' });
+    expect(r).toEqual({ action: 'no-pending', tier: 't3' });
   });
 
-  it('a t3 owner replaying a t1 return keeps t3 (never downgrades) and still gets credits', () => {
-    const r = applyPaidReturn({
-      credits: 0, triesUsed: 6, pendingProfile: null,
-      tier: 't3', purchasedTier: 't1',
-    });
-    expect(r).toEqual({ action: 'no-pending', credits: 3, triesUsed: 6, tier: 't3' });
+  it('a t3 owner replaying a t1 return keeps t3 (never downgrades)', () => {
+    const r = applyPaidReturn({ pendingProfile: null, tier: 't3', purchasedTier: 't1' });
+    expect(r).toEqual({ action: 'no-pending', tier: 't3' });
   });
 
-  it('pending profile consumption is tier-orthogonal (credits 3-1, tries+1, tier raised)', () => {
+  it('pending profile consumption is tier-orthogonal (profile handed back, tier raised)', () => {
     const pending = mk('Sam Carter', '1990-05-15');
-    const r = applyPaidReturn({
-      credits: 0, triesUsed: 3, pendingProfile: pending,
-      tier: null, purchasedTier: 't2',
-    });
-    expect(r).toEqual({
-      action: 'render-unlocked', credits: 2, triesUsed: 4,
-      profile: pending, tier: 't2',
-    });
+    const r = applyPaidReturn({ pendingProfile: pending, tier: null, purchasedTier: 't2' });
+    expect(r).toEqual({ action: 'render-unlocked', profile: pending, tier: 't2' });
   });
 });
 
@@ -380,34 +369,46 @@ describe('tiers — applyPaidReturn upgrade path', () => {
 // ?paid=t1|t2|t3 parsing + unknown-param replay safety (ui/payments.js)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36)', () => {
-  it.each(['t1', 't2', 't3'])('?paid=%s grants +3 credits and stores the tier', purchased => {
+describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, ownership v0.55)', () => {
+  it.each(['t1', 't2', 't3'])('?paid=%s stores the tier and grants NOTHING else', purchased => {
     installPaywallUI();
-    const storage = makeStorage({ [CREDITS_KEY]: '0', [TRIES_KEY]: '3' });
+    const storage = makeStorage({ [CREDITS_KEY]: '0' });
     globalThis.localStorage = storage;
     installWindow(`?paid=${purchased}`);
 
     expect(handlePaidReturn()).toBe(false); // no pending profile
-    expect(storage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '3',
-      [TIER_KEY]: purchased,
-    });
+    expect(storage.snapshot()[TIER_KEY]).toBe(purchased);
+    // v0.55: no credit grant — the legacy key is untouched by a purchase.
+    expect(storage.snapshot()[CREDITS_KEY]).toBe('0');
   });
 
   it('tier storage is monotonic across handler invocations (t2 then t1 keeps t2)', () => {
     installPaywallUI();
-    const storage = makeStorage({ [TIER_KEY]: 't2', [CREDITS_KEY]: '0', [TRIES_KEY]: '3' });
+    const storage = makeStorage({ [TIER_KEY]: 't2', [CREDITS_KEY]: '0' });
     globalThis.localStorage = storage;
     installWindow('?paid=t1');
 
     handlePaidReturn();
     expect(storage.snapshot()[TIER_KEY]).toBe('t2');
-    expect(storage.snapshot()[CREDITS_KEY]).toBe('3');
+    expect(storage.snapshot()[CREDITS_KEY]).toBe('0');
   });
 
-  it('unknown ?paid= values are ignored — no credits, no tier, no query strip (replay-safe)', () => {
+  it('a paid return never writes the retired tries key or mutates legacy credits (v0.55)', () => {
+    installPaywallUI();
+    const storage = makeStorage({ [CREDITS_KEY]: '2' }); // legacy pre-v0.55 balance
+    globalThis.localStorage = storage;
+    installWindow('?paid=t2');
+
+    handlePaidReturn();
+    const snap = storage.snapshot();
+    expect(snap[TIER_KEY]).toBe('t2');
+    expect(snap[CREDITS_KEY]).toBe('2'); // frozen, not granted, not spent
+    expect(snap).not.toHaveProperty('eight_ball_tries_used_v1');
+  });
+
+  it('unknown ?paid= values are ignored — no tier, no query strip (replay-safe)', () => {
     const banner = installPaywallUI();
-    const storage = makeStorage({ [CREDITS_KEY]: '0', [TRIES_KEY]: '3' });
+    const storage = makeStorage({ [CREDITS_KEY]: '0' });
     globalThis.localStorage = storage;
     installWindow('?paid=t9');
 
@@ -422,7 +423,7 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36)'
     installPaywallUI();
     const pending = mk('Paid Path', '1999-09-09');
     const storage = makeStorage({
-      [CREDITS_KEY]: '0', [TRIES_KEY]: '3',
+      [CREDITS_KEY]: '0',
       [PENDING_KEY]: JSON.stringify(pending),
     });
     globalThis.localStorage = storage;
@@ -432,8 +433,7 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36)'
     expect(handlePaidReturn(onConsume)).toBe(true);
     expect(onConsume).toHaveBeenCalledWith(pending);
     expect(storage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '2',
-      [TRIES_KEY]: '4',
+      [CREDITS_KEY]: '0',
       [TIER_KEY]: 't3',
     });
     expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);

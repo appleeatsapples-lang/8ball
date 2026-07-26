@@ -1,20 +1,19 @@
 // core/payments.js
-// Pure state machine for the paid surface (DOCTRINE §2 / §4.B / §5.B / §5.C
-// v0.22; tier ladder §1.D / §4.B v0.36, v0.6.0).
+// Pure state machine for the paid surface (DOCTRINE §2 / §4.B / §5.B / §5.C;
+// tier ladder §1.D v0.36; ownership model §1.D / §2 / §4.B v0.55).
 //
 // No DOM. No localStorage. No timers. No side effects. Inputs in, outputs out.
-// The state machine is the contract for credit flow + cap enforcement + paid-return
-// consumption + tier-ladder rank/upgrade. UI wiring in index.html reads from
-// localStorage, calls these functions, and writes results back. Unit tests at
-// tests/payments_state.test.js, tests/tiers.test.js, and
-// tests/facet_rotation.test.js.
+// The state machine is the contract for the ownership model: renders are
+// unlimited at every tier (free included), a purchase is the permanent,
+// monotonic tier write — no credits, no caps, no counters. UI wiring in
+// index.html reads from localStorage, calls these functions, and writes
+// results back. Unit tests at tests/payments_state.test.js,
+// tests/tiers.test.js, and tests/facet_rotation.test.js.
 
-export const FREE_TRIES_CAP = 3;
-export const CREDITS_PER_PURCHASE = 3;
-
-// Counter inputs are persisted in localStorage by the UI layer and can be
-// hand-edited or corrupted. The state machine only operates on whole,
-// non-negative counters; invalid, negative, or non-finite values read as 0.
+// Legacy credit values persisted by pre-v0.55 code can be hand-edited or
+// corrupted. The one surviving read (the §1.D R2 grandfather inside
+// resolveRenderTier) only operates on whole, non-negative values; invalid,
+// negative, or non-finite values read as 0.
 export function normalizeCounter(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return 0;
@@ -56,18 +55,14 @@ export function nextFacetIndex(current) {
 /**
  * One explicit t3 flip. This is deliberately separate from nextShakeState:
  * submitting the same form pair remains idempotent; only the result-screen
- * control may spend a credit to advance written content.
+ * control advances written content. Ownership model (§1.H v0.55): t3 is
+ * owned, so the flip always advances — nothing is spent, nothing gates it.
  */
-export function nextFacetState({ credits, facetIndex }) {
-  const cleanCredits = normalizeCounter(credits);
+export function nextFacetState({ facetIndex }) {
   const cleanFacet = normalizeFacetIndex(facetIndex);
   if (cleanFacet === null) throw new Error(`Unknown facet index: ${facetIndex}`);
-  if (cleanCredits === 0) {
-    return { action: 'show-paywall', credits: 0, facetIndex: cleanFacet };
-  }
   return {
     action: 'render-facet',
-    credits: cleanCredits - 1,
     facetIndex: nextFacetIndex(cleanFacet),
   };
 }
@@ -106,18 +101,21 @@ export function maxTier(a, b) {
 }
 
 /**
- * The single density rule (v0.6.0 remediation R1, PR #36 Codex inv. 5+11):
- * render density = f(stored tier, credit state) at render time — never a
- * function of boot circumstance or shake action.
+ * The single density rule (v0.6.0 remediation R1, PR #36 Codex inv. 5+11;
+ * ownership amendment §1.D v0.55): render density = f(stored tier, legacy
+ * credit signal) at render time — never a function of boot circumstance or
+ * shake action.
  *
  *   - a stored tier governs every render of any card on the device;
- *   - credits held with NO stored tier are the pre-v0.6.0 purchase shape:
- *     that product sold the written-entry unlock, which now lives at t3,
- *     so the device is grandfathered to t3 (R2 — deterministic, total,
- *     never downgrades; the caller persists it on first detection);
+ *   - legacy credits held with NO stored tier are the pre-v0.6.0 purchase
+ *     shape: that product sold the written-entry unlock, which now lives at
+ *     t3, so the device is grandfathered to t3 (R2 — deterministic, total,
+ *     never downgrades; the caller persists it on first detection, after
+ *     which the credits are ignored forever);
  *   - neither → the free card.
  *
- * Credits/tries govern how many readings, never density (§1.D v0.36).
+ * Nothing governs how many readings — quantity is unlimited at every tier
+ * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
  * @returns {string} 'free' | 't1' | 't2' | 't3'
@@ -144,87 +142,52 @@ export function isNewPair(input, stored) {
 }
 
 /**
- * Compute the next state for a shake against (input, stored, counters).
- * Pure: returns an action and the next counters; caller writes them back.
+ * Compute the next state for a shake against (input, stored).
+ * Pure: returns an action; the caller renders at the device's entitled
+ * tier (getRenderTier) either way.
  *
- * Transitions:
- *   - same pair                                  -> 'render-idempotent', no mutation
- *   - new pair AND credits > 0                   -> 'render-unlocked',  credits-1, tries+1
- *   - new pair AND credits=0 AND tries < cap     -> 'render-locked',    tries+1
- *   - new pair AND credits=0 AND tries >= cap    -> 'show-paywall',     no mutation
+ * Transitions (ownership model, §1.D / §4.B v0.55):
+ *   - same pair  -> 'render-idempotent'  (β idempotence — facet position
+ *                                         and stored profile survive)
+ *   - new pair   -> 'render'             (always; no counter, no cap,
+ *                                         no paywall — the free surface
+ *                                         is open and paid tiers are owned)
  *
- * Note: credits > 0 takes precedence over the cap (paid credits override the
- * three-free-tries gate; that's the whole point of paying).
- *
- * @param {{triesUsed: number, credits: number, isNew: boolean}} state
- * @returns {{action: string, triesUsed: number, credits: number}}
+ * @param {{isNew: boolean}} state
+ * @returns {{action: string}}
  */
-export function nextShakeState({ triesUsed, credits, isNew }) {
-  const cleanTries = normalizeCounter(triesUsed);
-  const cleanCredits = normalizeCounter(credits);
-  if (!isNew) {
-    return { action: 'render-idempotent', triesUsed: cleanTries, credits: cleanCredits };
-  }
-  if (cleanCredits > 0) {
-    return {
-      action: 'render-unlocked',
-      triesUsed: cleanTries + 1,
-      credits: cleanCredits - 1,
-    };
-  }
-  if (cleanTries < FREE_TRIES_CAP) {
-    return {
-      action: 'render-locked',
-      triesUsed: cleanTries + 1,
-      credits: 0,
-    };
-  }
-  return { action: 'show-paywall', triesUsed: cleanTries, credits: 0 };
+export function nextShakeState({ isNew }) {
+  return { action: isNew ? 'render' : 'render-idempotent' };
 }
 
 /**
  * Compute the post-return state when the page loads with ?paid=t1|t2|t3.
  *
- * Always grants +CREDITS_PER_PURCHASE (=3) — every rung buys three reads;
- * the rungs price coordinate density, not try count (DOCTRINE §2 v0.36).
- * If a pending profile is present (the Path-A / Path-B paywall trigger
- * wrote it before redirect), consume one credit to render that profile at
- * the new tier; otherwise the credits sit waiting for the user's next shake.
+ * Ownership model (§1.D / §2 / §5.B v0.55): a purchase is permanent and
+ * unlimited. The only state a paid return writes is the monotonic tier —
+ * max(current, purchased) by ladder order, never downgrades. A t1 owner
+ * later buying t3 upgrades; a t3 owner replaying a t1 URL keeps t3. No
+ * credits are granted; nothing is consumed on later renders.
  *
- * v0.6.0 tier extension: `tier` is the currently stored tier (null when
- * free), `purchasedTier` the rung the user just bought. The returned tier
- * is max(current, purchased) by ladder order — monotonic, never
- * downgrades. A t1 owner later buying t3 upgrades; a t3 owner replaying a
- * t1 URL keeps t3. Both fields are optional so the pre-tier call shape
- * stays byte-compatible (tries/credits semantics unchanged).
+ * If a pending profile is present (the Path-B lock-tap wrote it before
+ * redirect), it is handed back for render at the new tier.
  *
  * The 'no-pending' branch is reserved for replay-attack (manual /?paid=tN
  * URL entry without payment) and browser-closed-mid-checkout edge cases.
  * Per DOCTRINE §5.C this is acceptable: the redirect is unsigned, the
  * arcade-toy model is trust-based.
  *
- * @param {{credits: number, triesUsed: number, pendingProfile: object | null,
+ * @param {{pendingProfile: object | null,
  *          tier?: string | null, purchasedTier?: string | null}} state
- * @returns {{action: string, credits: number, triesUsed: number,
- *            tier?: string | null, profile?: object}}
+ * @returns {{action: string, tier: string | null, profile?: object}}
  */
-export function applyPaidReturn({ credits, triesUsed, pendingProfile, tier, purchasedTier }) {
-  const cleanCredits = normalizeCounter(credits);
-  const cleanTries = normalizeCounter(triesUsed);
+export function applyPaidReturn({ pendingProfile, tier, purchasedTier }) {
   const newTier = maxTier(tier, purchasedTier);
-  const newCredits = cleanCredits + CREDITS_PER_PURCHASE;
   if (!pendingProfile) {
-    return {
-      action: 'no-pending',
-      credits: newCredits,
-      triesUsed: cleanTries,
-      tier: newTier,
-    };
+    return { action: 'no-pending', tier: newTier };
   }
   return {
     action: 'render-unlocked',
-    credits: newCredits - 1,
-    triesUsed: cleanTries + 1,
     profile: pendingProfile,
     tier: newTier,
   };
