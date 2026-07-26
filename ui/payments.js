@@ -21,8 +21,8 @@
 //     this module passes the consumed pending profile back via callback)
 //   - the unlocked-render branch in renderCard (lives in index.html
 //     because it shares cardFace + the symbol-render state)
-//   - the lock-icon Path B click handler or the form-submit Path A
-//     branch (both call openPaywall directly from index.html)
+//   - the lock-icon Path B click handler (the only paywall trigger,
+//     §4.B v0.55 — it calls openPaywall directly from index.html)
 //
 // Extracted from index.html at step 6/12 of v0.3.0 because index.html
 // crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
@@ -41,8 +41,9 @@ import { openModal, closeModal, trapTab } from './modals.js';
 // FACET_KEY are the v0.6.0 and v0.7.1 extensions. tests/privacy_scan resolves
 // identifier-as-key via same-file `const IDENT = '...'` lookup, so the
 // bare string definitions here are mandatory for the scan.
-// `eight_ball_tries_used_v1` is RETIRED (§5 v0.55) — never read or written;
-// stale values on old devices are inert, per the v0.48 retired-key precedent.
+// The v0.3.0 tries counter is RETIRED (§5 v0.55) — its key is named
+// nowhere in runtime source, never read or written; stale values on old
+// devices are inert, per the v0.48 retired-key precedent.
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
 export const TIER_KEY = 'eight_ball_tier_v1';

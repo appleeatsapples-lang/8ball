@@ -634,7 +634,7 @@
   .modal .modal-actions .btn:active,
   .modal .modal-actions .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
-  /* ── v0.3.0 paid surface — lock icon, dimmed bars, credit chip, unlocked render */
+  /* ── paid surface — lock icon + unlocked render (v0.55 ownership) */
   .card .lock-icon {
     position: absolute;
     top: clamp(14px, 4vw, 18px);
@@ -1315,10 +1315,10 @@ profileForm.addEventListener('submit', e => {
 // ── shake interactions ────────────────────────────────────────────
 shakeAgainBtn.addEventListener('click', shakeAgain);
 tryAnotherBtn.addEventListener('click', () => {
-  // v0.3.0 (DOCTRINE §6.8 / §7.1 β try-counting): clears the form DOM
-  // only, NOT eight_ball_profile_v1. Re-entering the same (name, dob)
-  // remains idempotent and does not consume a free try or a paid
-  // credit. To erase the stored profile, use "forget this device".
+  // DOCTRINE §6.8 (β idempotence): clears the form DOM only, NOT
+  // eight_ball_profile_v1. Re-entering the same (name, dob) remains
+  // idempotent — the facet position survives. To erase the stored
+  // profile, use "forget this device".
   readingsUI.setActiveReading(null);
   resetFormDisplay();
 });
@@ -1327,11 +1327,11 @@ cardBack.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
 });
 
-// ── lock-icon Path B (DOCTRINE §6.7) ──────────────────────────────
-// Tapping the lock icon on a rendered locked card stages the
-// currently-stored profile for the paid round-trip, then opens the
-// paywall. Paid return consumes one credit and re-renders the same
-// profile unlocked.
+// ── lock-icon Path B (DOCTRINE §6.7 / §4.B v0.55) ────────────────
+// Tapping the lock icon on the rendered sheet stages the currently-
+// stored profile for the paid round-trip, then opens the paywall —
+// the only paywall trigger. The paid return writes the tier and
+// re-renders the same profile at the bought density.
 cardLockIcon.addEventListener('click', e => {
   e.preventDefault();
   e.stopPropagation();

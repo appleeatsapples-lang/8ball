@@ -27,7 +27,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
 5. Single-file rule — `index.html` ≤ 1500 lines (CI-enforced; the current count lives in the newest `journal.md` entry, not here).
-6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState`, `applyPaidReturn` transitions; replay-attack no-pending branch; same-profile idempotence; pending-profile round-trip), `tests/facet_rotation.test.js` (t3-only round-robin note rotation, debit coupling, persistence, zero-credit no-hidden-burn path), plus `tests/feedback_surface.test.js`.
+6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState` render/render-idempotent, `applyPaidReturn` monotonic tier write + pending render with no credit grant; replay-attack no-pending branch; same-profile idempotence), `tests/facet_rotation.test.js` (t3-only round-robin note rotation, owned and unfunded per §1.H v0.55, persistence), plus `tests/feedback_surface.test.js`.
 
 ## Structure
 
