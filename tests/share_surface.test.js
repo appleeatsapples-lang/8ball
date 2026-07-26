@@ -436,6 +436,28 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
     expect(sections[0].cells[0]).toEqual({ state: 'sealed', value: '' });
   });
 
+  // #129 audit F1: own DATA properties only. An inherited state/value, a
+  // getter-backed cell, or a mixed own/inherited shape must seal — checked
+  // end-to-end through the SVG and caption builders, not just the snapshot.
+  it('rowSections ignores inherited and getter-backed state/value — own data properties only (§5.D a)', () => {
+    const inherited = Object.create({ state: 'open', value: 'PROTO_SECRET' });
+    const getterBacked = {};
+    Object.defineProperty(getterBacked, 'state', { get: () => 'open', enumerable: true });
+    Object.defineProperty(getterBacked, 'value', { get: () => 'GETTER_SECRET', enumerable: true });
+    const ownValueOnly = Object.assign(Object.create({ state: 'open' }), { value: 'PROTO_MIX_SECRET' });
+    const sections = rowSections([
+      { title: 'FIVE-ELEMENT', cells: [inherited, getterBacked, ownValueOnly] },
+    ]);
+    expect(JSON.stringify(sections)).not.toContain('SECRET');
+    for (const cell of sections[0].cells) {
+      expect(cell).toEqual({ state: 'sealed', value: '' });
+    }
+    const svg = buildCardSVGFromSnapshot({ catalog: 'IX', sections });
+    const caption = buildCaptionFromSnapshot({ catalog: 'IX', sections });
+    expect(svg).not.toContain('SECRET');
+    expect(caption).not.toContain('SECRET');
+  });
+
   it('ui/share.js introduces no network surface (fetch / XHR / sendBeacon)', () => {
     expect(shareJs).not.toMatch(/fetch\s*\(/);
     expect(shareJs).not.toMatch(/XMLHttpRequest/);

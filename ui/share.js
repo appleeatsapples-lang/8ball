@@ -179,12 +179,20 @@ export function buildCardSVGFromSnapshot(snapshot) {
 // whitelist (#126 audit F2): exactly 'open' carries its value and exactly
 // 'unres' carries the — empty field; any other, missing, or malformed
 // state — whatever produced it — coerces to a sealed cell with no value.
+// #129 audit F1: state and value are read as OWN DATA properties only —
+// an inherited or getter-backed property never influences the artifact
+// (and a getter is never invoked). Guards malformed/buggy snapshot data;
+// a same-realm hostile script is out of scope (it owns the DOM anyway).
 export function rowSections(rows) {
   return rows.map(row => ({
     title: row ? row.title : '',
     cells: (row && Array.isArray(row.cells) ? row.cells : []).map(c => {
-      const state = c ? c.state : null;
-      if (state === 'open') return { state: 'open', value: c.value };
+      const ownData = k => {
+        const d = c ? Object.getOwnPropertyDescriptor(c, k) : undefined;
+        return d && 'value' in d ? d.value : undefined;
+      };
+      const state = ownData('state');
+      if (state === 'open') return { state: 'open', value: ownData('value') };
       if (state === 'unres') return { state: 'unres', value: '—' };
       return { state: 'sealed', value: '' };
     }),
