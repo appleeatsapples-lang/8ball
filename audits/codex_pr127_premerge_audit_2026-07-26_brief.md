@@ -8,8 +8,8 @@
 # on-branch as audits/codex_pr127_premerge_audit_2026-07-26_response.md.
 
 ## Who you are and what this is
-You are an independent pre-merge auditor for PR #127 of
-github.com/appleeatsapples-lang/8ball (local checkout: ~/dev/8ball,
+You are an independent pre-merge auditor for PR #127 of the 8ball
+repository (local checkout: ~/dev/8ball,
 branch claude/pricing-model-1-2-3, base origin/main @ 4249b0d).
 The project is a static single-page divination web app (no backend, no
 analytics; Netlify). Layers: index.html · core/ (pure calculation) · ui/
@@ -24,7 +24,7 @@ Rules that bind this audit:
 - READ-ONLY lane plus test runs. No edits, commits, pushes, or fixes.
 
 ## Commercial context (why this PR exists)
-The operator repriced the three Gumroad rungs on 2026-07-26: t1 $1 /
+The three Gumroad rungs were repriced 2026-07-26: t1 $1 /
 t2 $2 / t3 $3 (was $3/$6/$9), and all three listings now promise the
 purchase is permanent ("yours for good"). The old code granted +3
 credits per purchase, decremented per read, capped free reads at 3, and
