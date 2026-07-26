@@ -175,14 +175,27 @@ export function buildCardSVGFromSnapshot(snapshot) {
 
 // §5.D v0.39: render every row's every cell. The refs (from ui/tiers.js
 // shareRowRefs) carry per-cell {state, value}; sealed cells carry no value,
-// so a paid coordinate value cannot reach the artifact.
+// so a paid coordinate value cannot reach the artifact. Fail-closed state
+// whitelist (#126 audit F2): exactly 'open' carries its value and exactly
+// 'unres' carries the — empty field; any other, missing, or malformed
+// state — whatever produced it — coerces to a sealed cell with no value.
+// #129 audit F1: state and value are read as OWN DATA properties only —
+// an inherited or getter-backed property never influences the artifact
+// (and a getter is never invoked). Guards malformed/buggy snapshot data;
+// a same-realm hostile script is out of scope (it owns the DOM anyway).
 export function rowSections(rows) {
   return rows.map(row => ({
     title: row ? row.title : '',
-    cells: (row && Array.isArray(row.cells) ? row.cells : []).map(c => ({
-      state: c ? c.state : 'open',
-      value: c && c.state === 'sealed' ? '' : (c ? c.value : ''),
-    })),
+    cells: (row && Array.isArray(row.cells) ? row.cells : []).map(c => {
+      const ownData = k => {
+        const d = c ? Object.getOwnPropertyDescriptor(c, k) : undefined;
+        return d && 'value' in d ? d.value : undefined;
+      };
+      const state = ownData('state');
+      if (state === 'open') return { state: 'open', value: ownData('value') };
+      if (state === 'unres') return { state: 'unres', value: '—' };
+      return { state: 'sealed', value: '' };
+    }),
   }));
 }
 

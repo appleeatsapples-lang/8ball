@@ -8,8 +8,8 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 ## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
 
 **Status: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
-against `main`, base `b459fdab51390f5a8162fafecb1e6119d0cda4e6` (#128
-doctrine v0.55 footer flip); L48 audit brief filed in-PR at
+against `main`, original base `b459fdab51390f5a8162fafecb1e6119d0cda4e6`
+(#128 doctrine v0.55 footer flip); L48 audit brief filed in-PR at
 `audits/codex_pr130_premerge_audit_2026-07-26_brief.md`; head at the
 Codex pre-merge read was `3d05520ed1b6ac337c1fbdf4f51aa036554dd90c`, CI
 green (`test` + `l48-gate` SUCCESS) at that read. Independent Codex
@@ -20,6 +20,21 @@ below) in one further commit on this branch; response filed at
 on operator word, now conditioned on a clean Codex re-audit of the fix
 delta.** No deploy, no external post — the sprint amendment authorizes
 copy and the operating-law exception, never publishing.**
+
+**Merge-forward (2026-07-26, post-fix-cycle).** `origin/main` advanced past
+this PR's base to `437a101...` (#129, `rowSections` fail-closed +
+#126 audit errata — entry immediately below) while this fix cycle was in
+flight; PR #130 became conflicting on `journal.md` only (every other file
+auto-merged clean). This entry's branch now carries a merge commit bringing
+`origin/main@437a101` into `claude/revenue-reset-single-offer` — both lines
+of work preserved in full substance, #129's fail-closed share fix
+byte-identical, this PR's one-$3-offer patch byte-identical. New base is
+`437a101d5c59aca75abb87ccb97761b727510e7`; new head is the tip of this
+branch after that merge commit (exact sha visible on the PR once pushed —
+not self-cited here per this repo's own-commit-sha convention). **CI and
+the Codex re-audit must both run fresh against this merged state — neither
+has run against it yet, and nothing in this entry claims the merge is
+audited, approved, or deployed.**
 
 Brief: `~/Documents/Codex/2026-07-25/ca/work/claude_revenue_reset_brief_2026-07-26.md`
 (operator approval on record for repo/brief egress to Anthropic, the dated
@@ -142,6 +157,20 @@ Five findings, all resolved in one further commit on
 
 Next: Codex re-audits this fix delta on `claude/revenue-reset-single-offer`
 → **merge only on operator word.**
+
+## 2026-07-26 — F2 fix cycle: `rowSections` fail-closed (§5.D guarantee enforced) + #126 audit errata — STAGED
+
+**Status: STAGED on `claude/share-rowsections-fail-closed`; merge is its own word (L48 — code PR; the in-PR verdict is required by CLAUDE.md's gate letter and is filed on-branch, with the caveat that the live gate regex passed on the brief alone — the queued tightening debt, corroborated again by this cycle's verdict F2). Trigger: the open F2 recorded by the #128 queue-clear amendment; the controller's "F2 fix cycle" word executes the fix the #126 audit staged.**
+
+**The fix.** `ui/share.js rowSections` becomes a fail-closed state whitelist: exactly `open` carries its value, exactly `unres` carries the `—` empty field, and any other, missing, or malformed state — including a null cell, which previously coerced to `open` — coerces to a sealed cell with no value. Closes #126 audit F2 (only exact `sealed` stripped; a missing/unknown/`unres` state wrongly carrying a value passed it into the §5.D share snapshot). Well-formed producer output is byte-identical: `shareRowRefs` emits `open` with live cell text, `unres` with `—`, `sealed` with `''` — all three round-trip unchanged through the new whitelist, pinned by the untouched share suites staying green.
+
+**Pins.** Five adversarial cases added beside the existing sealed-strip pin in `tests/share_surface.test.js` — the #126 audit's staged four (missing state, unknown state, `unres`-with-value, null cell) plus the round-2 pin below. Suite 40 files / 1433 tests (+5; no new test file, so `repo_shape` and the CLAUDE.md counts are untouched).
+
+**Round-2 absorb (#129 in-PR verdict, MERGE WITH FIXES — 2 Med, both absorbed/settled pre-merge).** The relay's first two-leg run since the reconciler seat re-auth: codex found, and the reconciler independently REPRODUCED, F1 — the round-1 whitelist read `state`/`value` through the prototype chain, so a cell inheriting `state:'open'` with an own value still leaked into SVG and caption. Absorbed: `rowSections` now reads both fields as own DATA properties only (`Object.getOwnPropertyDescriptor`, data descriptor required — inherited and getter-backed shapes excluded, getters never invoked), pinned by a fifth adversarial case asserted end-to-end through both builders. F2 — the brief's "gate RED until the response lands" expectation was wrong: the live l48 regex accepted the brief alone (this entry's Status line corrected in place pre-merge); the response artifact is filed on-branch regardless, and the regex tightening stays the queued follow-up CI PR.
+
+**Errata (same audit's F3/F4, staged for this same fix commit).** Append-only errata blocks landed on both #126 records: the session record's base sha (`a9103a7` → actual merge-base `7cd0947`) plus the "runs in jsdom" framing restatement; the survivor record's pre-rename companion filename plus the two displayed scores that round against their counts (61.9% → count-derived 61.8%; 98.7% → 98.6%). The #126 response's F2/F4 disposition rows flip to FIXED per their own pre-authorized wording. Still owed from that audit: the l48-gate tightening (accept only `*_premerge_audit_*_response.md` / explicit-override artifact shapes) — its own CI PR, its own word.
+
+**Scope (files):** `ui/share.js` (one function), `tests/share_surface.test.js` (+5 pins), errata appends on `audits/test_quality_audit_pr126_2026-07-24.md` + `audits/mutation_survivors_core_2026-07-24.md`, disposition flips in `audits/codex_pr126_premerge_audit_2026-07-25_response.md`, this file, plus the in-PR L48 artifacts. **UNTOUCHED:** `core/`, `content/`, `index.html`, `ui/tiers.js`, `tests/fixtures.json`, `DOCTRINE.md` — the fix enforces what §5.D already claims, so no amendment is needed.
 
 ## 2026-07-26 — DOCTRINE v0.55 footer flip: STAGED → SHIPPED naming `94cf1bc` (#127) — STAGED
 
