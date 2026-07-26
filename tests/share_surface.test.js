@@ -400,6 +400,42 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
     expect(sections[0].cells[1].value).toBe('gemini');
   });
 
+  // #126 audit F2: rowSections is fail-closed. Only the exact 'open' state
+  // carries a value and only exact 'unres' carries the — field; a missing,
+  // unknown, or malformed state must coerce to sealed with no value, so a
+  // wrongly-carried value can never reach the SVG or the caption.
+  it('rowSections coerces a missing state carrying a value to sealed+empty (§5.D a, fail-closed)', () => {
+    const sections = rowSections([
+      { title: 'DAY PILLAR', cells: [{ value: 'ox · wood' }] },
+    ]);
+    expect(sections[0].cells[0]).toEqual({ state: 'sealed', value: '' });
+    expect(JSON.stringify(sections)).not.toContain('ox');
+  });
+
+  it('rowSections coerces an unknown state carrying a value to sealed+empty (§5.D a, fail-closed)', () => {
+    const sections = rowSections([
+      { title: 'HOUR PILLAR', cells: [{ state: 'locked', value: 'rat · water' }] },
+    ]);
+    expect(sections[0].cells[0]).toEqual({ state: 'sealed', value: '' });
+    expect(JSON.stringify(sections)).not.toContain('rat');
+  });
+
+  it('rowSections strips a value wrongly present on an unres cell — the — field renders instead (§5.D a)', () => {
+    const sections = rowSections([
+      { title: 'SUN · RISING', cells: [{ state: 'unres', value: 'scorpio' }, { state: 'unres', value: '—' }] },
+    ]);
+    expect(JSON.stringify(sections)).not.toContain('scorpio');
+    expect(sections[0].cells[0]).toEqual({ state: 'unres', value: '—' });
+    expect(sections[0].cells[1]).toEqual({ state: 'unres', value: '—' });
+  });
+
+  it('rowSections coerces a null cell to sealed+empty, never open (§5.D a, fail-closed)', () => {
+    const sections = rowSections([
+      { title: 'LIFE · NAME · SOUL', cells: [null] },
+    ]);
+    expect(sections[0].cells[0]).toEqual({ state: 'sealed', value: '' });
+  });
+
   it('ui/share.js introduces no network surface (fetch / XHR / sendBeacon)', () => {
     expect(shareJs).not.toMatch(/fetch\s*\(/);
     expect(shareJs).not.toMatch(/XMLHttpRequest/);

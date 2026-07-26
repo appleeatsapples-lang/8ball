@@ -5,6 +5,18 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-26 — F2 fix cycle: `rowSections` fail-closed (§5.D guarantee enforced) + #126 audit errata — STAGED
+
+**Status: STAGED on `claude/share-rowsections-fail-closed`; merge is its own word (L48 — code PR, so the l48-gate requires the in-PR verdict by its letter). Trigger: the open F2 recorded by the #128 queue-clear amendment; the controller's "F2 fix cycle" word executes the fix the #126 audit staged.**
+
+**The fix.** `ui/share.js rowSections` becomes a fail-closed state whitelist: exactly `open` carries its value, exactly `unres` carries the `—` empty field, and any other, missing, or malformed state — including a null cell, which previously coerced to `open` — coerces to a sealed cell with no value. Closes #126 audit F2 (only exact `sealed` stripped; a missing/unknown/`unres` state wrongly carrying a value passed it into the §5.D share snapshot). Well-formed producer output is byte-identical: `shareRowRefs` emits `open` with live cell text, `unres` with `—`, `sealed` with `''` — all three round-trip unchanged through the new whitelist, pinned by the untouched share suites staying green.
+
+**Pins.** Four adversarial cases added beside the existing sealed-strip pin in `tests/share_surface.test.js` — the audit's staged list verbatim: missing state, unknown state, `unres`-with-value, null cell. Suite 40 files / 1432 tests (+4; no new test file, so `repo_shape` and the CLAUDE.md counts are untouched).
+
+**Errata (same audit's F3/F4, staged for this same fix commit).** Append-only errata blocks landed on both #126 records: the session record's base sha (`a9103a7` → actual merge-base `7cd0947`) plus the "runs in jsdom" framing restatement; the survivor record's pre-rename companion filename plus the two displayed scores that round against their counts (61.9% → count-derived 61.8%; 98.7% → 98.6%). The #126 response's F2/F4 disposition rows flip to FIXED per their own pre-authorized wording. Still owed from that audit: the l48-gate tightening (accept only `*_premerge_audit_*_response.md` / explicit-override artifact shapes) — its own CI PR, its own word.
+
+**Scope (files):** `ui/share.js` (one function), `tests/share_surface.test.js` (+4 pins), errata appends on `audits/test_quality_audit_pr126_2026-07-24.md` + `audits/mutation_survivors_core_2026-07-24.md`, disposition flips in `audits/codex_pr126_premerge_audit_2026-07-25_response.md`, this file, plus the in-PR L48 artifacts. **UNTOUCHED:** `core/`, `content/`, `index.html`, `ui/tiers.js`, `tests/fixtures.json`, `DOCTRINE.md` — the fix enforces what §5.D already claims, so no amendment is needed.
+
 ## 2026-07-26 — DOCTRINE v0.55 footer flip: STAGED → SHIPPED naming `94cf1bc` (#127) — STAGED
 
 **Status: STAGED on `claude/doctrine-v055-footer-flip`; merge is its own word (L48). Trigger: the pending mechanical edit the #127 close-out entry below queued (v0.48–v0.51 footer precedent), run as its own doctrine-gated micro-cycle — path B of the 2026-07-26 post-#127 handoff.**
