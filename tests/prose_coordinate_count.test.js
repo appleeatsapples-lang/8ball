@@ -99,9 +99,12 @@ describe('prose coordinate-count copy (v0.6.0 free surface)', () => {
       metaContent('twitter:description'),
     ]) {
       expect(text.toLowerCase()).toContain(expected);
-      // The free card is the demo; the rungs are the disclosed offer.
+      // The free card is the demo; the sprint's single complete offer is
+      // the disclosed price (§4.B v0.56 — supersedes the "paid rungs"
+      // phrasing pinned here through v0.55).
       expect(text.toLowerCase()).toContain('free');
-      expect(text.toLowerCase()).toContain('paid rungs');
+      expect(text).toContain('$3');
+      expect(text.toLowerCase()).toContain('complete');
     }
   });
 

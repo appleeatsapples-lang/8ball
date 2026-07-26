@@ -15,6 +15,176 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Scope (files):** `.github/workflows/ci.yml` (l48 job predicate + comment), this file, in-PR L48 artifacts. **UNTOUCHED:** everything else — CLAUDE.md already documents the tightened letter verbatim (no doc drift created), no code, no tests (nothing in the suite executes workflow YAML).
 
+## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
+
+**Status: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
+against `main`, original base `b459fdab51390f5a8162fafecb1e6119d0cda4e6`
+(#128 doctrine v0.55 footer flip); L48 audit brief filed in-PR at
+`audits/codex_pr130_premerge_audit_2026-07-26_brief.md`; head at the
+Codex pre-merge read was `3d05520ed1b6ac337c1fbdf4f51aa036554dd90c`, CI
+green (`test` + `l48-gate` SUCCESS) at that read. Independent Codex
+verdict: MERGE WITH FIXES (3 Medium truth/control-plane findings, 2 Low).
+This fix cycle closes F1–F4 and carries F5 non-blocking (disposition
+below) in one further commit on this branch; response filed at
+`audits/codex_pr130_premerge_audit_2026-07-26_response.md`. **Merge only
+on operator word, now conditioned on a clean Codex re-audit of the fix
+delta.** No deploy, no external post — the sprint amendment authorizes
+copy and the operating-law exception, never publishing.**
+
+**Merge-forward (2026-07-26, post-fix-cycle).** `origin/main` advanced past
+this PR's base to `437a101...` (#129, `rowSections` fail-closed +
+#126 audit errata — entry immediately below) while this fix cycle was in
+flight; PR #130 became conflicting on `journal.md` only (every other file
+auto-merged clean). This entry's branch now carries a merge commit bringing
+`origin/main@437a101` into `claude/revenue-reset-single-offer` — both lines
+of work preserved in full substance, #129's fail-closed share fix
+byte-identical, this PR's one-$3-offer patch byte-identical. New base is
+`437a101d5c59aca75abb87ccb97761b727510e7`; new head is the tip of this
+branch after that merge commit (exact sha visible on the PR once pushed —
+not self-cited here per this repo's own-commit-sha convention). **CI and
+the Codex re-audit must both run fresh against this merged state — neither
+has run against it yet, and nothing in this entry claims the merge is
+audited, approved, or deployed.**
+
+Brief: `~/Documents/Codex/2026-07-25/ca/work/claude_revenue_reset_brief_2026-07-26.md`
+(operator approval on record for repo/brief egress to Anthropic, the dated
+sales amendment, branch push, and PR creation). Commercial context:
+`~/Documents/Codex/2026-07-25/ca/outputs/8ball_revenue_sprint_execution_packet_2026-07-26.md`.
+Diagnosis in one line: the payment path works and has zero outside orders —
+the cold first screen and paywall demanded internal vocabulary, the
+strongest paid output (the complete written card) was never demonstrated
+before checkout, and the three-rung choice added friction while the $1
+rung nets ~$0.07 after fees.
+
+**The patch (§4.B v0.56, presentation-only, window 2026-07-26 →
+2026-08-08 inclusive).** One buyer-facing purchase choice: `complete
+8ball · $3 once` — the existing t3 product `xjpvp` on the existing
+`?paid=t3` return. The paywall carries a labeled fixed specimen preview
+(catalog no. v: the public `/cards/spec_no-v.jpg` complete sheet + that
+cell's written entry filled at boot from the public deck bundle — §5.C
+posture, explicitly never the visitor's result); the result rail gains
+`open the complete sheet · $3 once` sharing the single Path B trigger
+(hidden at t3, the lock icon's rule); the mechanism strip and head
+metadata read plain-English (`name + birth data in. one fixed identity
+sheet out`; `8 ball · specimen registry`), still §2-clinical. Five
+non-forced 200 rewrites in `netlify.toml` (`/r` `/x` `/ig` `/tt` `/pin`)
+give per-channel attribution from the host's own server logs (§5 v0.35 —
+zero client surface).
+
+**What did not move — the load-bearing half.** `core/payments.js`,
+`ui/payments.js`, `ui/tiers.js`, `content/`, `core/`, fixtures: all
+byte-untouched. t1/t2 products stay live on Gumroad; `?paid=t1|t2`
+returns still persist their tiers; monotonicity, ownership persistence,
+and the R2 legacy grandfather are unchanged — new adversarial pins in
+`tests/payments_markup.test.js` prove a t2 return persists, a t1 device
+upgrades to t3, and a t2 device replaying a t1 URL never downgrades. At
+the initial cut, the about modal deliberately still disclosed all three
+rungs as the disclosure surface; F1 below found that framing internally
+contradictory against the one-offer paywall, and the fix-cycle corrected
+it to the current state: the disclosure surface now honors existing
+lower-rung ownership without presenting t1/t2 as current checkout
+choices (see F1 disposition).
+
+**Tests.** Suite green at the initial cut's 41 files / 1438 tests (main
+baseline 40/1436); after the fix cycle and the #129 merge-forward below,
+the merged suite passes 41 files / 1444 tests.
+`payments_markup` re-pinned to the one-offer surface (exactly one CTA,
+`xjpvp` only, `rzqezp`/`neysyv` absent from the modal, one dollar figure,
+specimen-preview labeling, offer-control wiring) + the retained-ownership
+suite; `prose_coordinate_count` meta pin moved from "paid rungs" to the
+sprint offer ($3 · complete); NEW `tests/channel_routes.test.js`
+(rule shape, order above the catch-all, no force/query/conditions, no
+root-entry shadowing, catch-all intact). CLAUDE.md counts 40 → 41 and
+index.html 1401 → 1465 (≤1500) updated in lockstep. No scanner or
+allow-list widened.
+
+**Ops-file sibling (outside this repo).** `~/8ball/APPROACH.md` gains the
+dated 14-day sales-sprint amendment (2026-07-26 → 2026-08-08), approved in
+the same brief: labeled sprint posts may name 8ball with one CTA + one
+channel URL; X stays
+3/day with ≤1 offer post; IG/TikTok/Threads ≤1 offer post per surface per
+week; Reddit only where owner-disclosed promotion is permitted, stop on any
+moderation event; expires automatically unless renewed. It authorizes copy
+preparation only — no agent publishes, sends, schedules, purchases, or
+submits anything externally.
+
+**Bootstrap checks, on record.** §8 A1 rule-kill: last review 2026-06-30,
+26 days old at this ship — under the 30-day accelerator, not run.
+`next_strategic_read: 2026-07-27` — not yet due. `next_analytics_read:
+2026-07-17` — **overdue 9 days**; an operator/inspector dashboard read
+(Netlify + Gumroad), flagged here rather than faked: the sprint's Day-0
+baseline capture (packet requirement) would satisfy it and is an operator
+tap. The K1 Netlify Top Sources read is already on the ops calendar for
+the day after this entry, per APPROACH.md §18. `package.json` held at 0.7.1 per the v0.38–v0.40
+version-truth precedent (Procedure 4 flag stands).
+
+Acceptance test (brief): a cold visitor answers, within one screen and one
+paywall interaction — what does 8ball do (mechanism strip), what will I
+receive (specimen preview), what does $3 unlock (offer copy), is it
+permanent ("yours for good · permanently, for every reading on this
+device"). All four true and consistent with the implementation.
+
+**Fix-cycle disposition (2026-07-26, Codex pre-merge response, PR #130).**
+Five findings, all resolved in one further commit on
+`claude/revenue-reset-single-offer`:
+
+- **F1 (Med, fixed).** About told a current visitor "one, two, or three
+  dollars" opens one of "three paid rungs" while the paywall sells one
+  `$3` complete offer — internally contradictory. `index.html` about-modal
+  rewritten: the coordinate-composition paragraph lists the ladder
+  coordinates without ladder-choice framing; the pricing paragraph now
+  reads "the current offer is the complete sheet for three dollars,
+  once" and explicitly honors existing lower-rung ownership ("devices
+  that already own a lower rung keep it") without presenting t1/t2 as
+  current checkout choices. Every disclosure (calculator-grade, free/
+  unlimited, gumroad, on-device boundary, source visibility, lock
+  convention, no-subscription) survives verbatim. `tests/payments_markup.test.js`
+  re-pinned: the old "one, two, or three dollars" assertion replaced with
+  a "three dollars, once" / not-ladder-priced pin plus a new
+  ownership-without-checkout-choice pin.
+- **F2 (Med, fixed).** This entry — was stale (named "PR to open" while
+  #130 was already open, briefed, and merged forward). See the Status
+  line above for the corrected PR/base/head/CI/verdict state.
+- **F3 (Med, fixed).** `~/8ball/APPROACH.md` §5.1.a and §5.3 were
+  contradictory on disk — §5.1.a authorized a labeled Reddit sprint post
+  with a link, §5.3 held all product links absolutely. §5.3's
+  Link/new-sub hold row now carries an explicit, dated, narrow exception:
+  during 2026-07-26 → 2026-08-08 inclusive, §5.1.a's Reddit carve-out
+  supersedes the link hold only for an already clean-posted community
+  whose current rules explicitly permit owner-disclosed tool promotion;
+  the first-time/new-sub hold stands unchanged; a removal or moderator
+  warning restores the hold immediately; the operator still taps every
+  send and agents still only prepare copy.
+- **F4 (Low, closed with a dated gate).** The single-offer presentation
+  is a law/date, not a runtime mechanism — the shipped static markup does
+  **not** self-revert. Dated owner gate, on record here: **by the end of
+  2026-08-08**, the operator must either explicitly renew the §4.B v0.56
+  amendment, or the implementer must ship the mechanical restoration of
+  the three-CTA ladder presentation (paywall + about-modal + result-rail
+  offer control + test re-pins) as its own dated cycle. No runtime date
+  clock or automated reversion is added or planned.
+- **F5 (Low, carried, non-blocking).** `ui/payments.js` comments at
+  lines 24-25 and 164-167 describe retired presentation facts (lock icon
+  no longer the only paywall trigger; the live modal no longer has three
+  ladder CTAs). Left uncorrected this cycle to keep the protected `ui/`
+  diff empty — the higher-order invariant for a fix-only cycle. Carried
+  as documentation debt for a separately justified comment-only cycle.
+
+**Re-audit disposition (2026-07-26, Codex independent re-audit, PR #130).**
+Re-audit at `36cc2ae7330cf2a8db885ce23ce57f60b9fea611` against
+`origin/main@437a1016d5c59aca75abb87ccb97761b727510e7`: verdict MERGE WITH
+FIXES; all five original findings' Medium-severity items (F1–F4) confirmed
+closed as disposed above, F5 confirmed as the expressly non-blocking
+protected-perimeter carry. One new finding, R1 (Low): this entry's own
+About and test-count paragraphs still read the pre-fix state in present
+tense — corrected in place above by this same doc-only commit. Response
+filed at `audits/codex_pr130_premerge_reaudit_2026-07-26_response.md`. Final
+verification (CI + Codex re-check of this journal-only delta) is still
+required on the new head before the verdict can close as plain MERGE.
+
+Next: Codex verifies this doc-only delta on `claude/revenue-reset-single-offer`
+→ **merge only on operator word.**
+
 ## 2026-07-26 — F2 fix cycle: `rowSections` fail-closed (§5.D guarantee enforced) + #126 audit errata — STAGED
 
 **Status: STAGED on `claude/share-rowsections-fail-closed`; merge is its own word (L48 — code PR; the in-PR verdict is required by CLAUDE.md's gate letter and is filed on-branch, with the caveat that the live gate regex passed on the brief alone — the queued tightening debt, corroborated again by this cycle's verdict F2). Trigger: the open F2 recorded by the #128 queue-clear amendment; the controller's "F2 fix cycle" word executes the fix the #126 audit staged.**
