@@ -28,6 +28,39 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
+# Channel entry paths (DOCTRINE §4.B v0.56 sprint / §5 v0.35): first-party
+# attribution read from the host's own server-side logs — no client event,
+# no cookie, no query param, no redirect hop. Each path serves the app AT
+# its own path (200 rewrite) so Netlify analytics counts it as a distinct
+# page. Exact-match and non-forced: a real static file always wins, and
+# /assets, /cards, /core, /ui, /content are untouched. Rules are evaluated
+# top-to-bottom, so these must stay above the SPA catch-all.
+# Validated by tests/channel_routes.test.js.
+[[redirects]]
+  from = "/r"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/x"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/ig"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tt"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/pin"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

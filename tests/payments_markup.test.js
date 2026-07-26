@@ -128,72 +128,92 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     );
   });
 
-  it('paywall ladder carries exactly three Gumroad CTAs with the locked product URLs (v0.6.0)', () => {
-    // Gumroad Buy Link redirect mechanism (DOCTRINE §5.B Call 2 v0.36).
-    // Gumroad does not accept a URL-encoded success_url query parameter
-    // on the Buy Link href; post-purchase redirect to /?paid=t1|t2|t3 is
-    // handled by each product's Content-tab Button on Gumroad's side
-    // (single-source redirect). Locks the exact product URL per rung and
-    // the bare-URL shape — guards against accidental UTM tag addition /
-    // tracking param leakage and against rung→product mismatches.
+  it('sprint paywall carries exactly one Gumroad CTA — the t3 complete offer (v0.56)', () => {
+    // Gumroad Buy Link redirect mechanism (DOCTRINE §5.B Call 2 v0.36 as
+    // repriced v0.55). The 14-day sprint presentation (§4.B v0.56,
+    // 2026-07-26 → 2026-08-08) narrows the buyer-facing surface to ONE
+    // purchase choice: the existing t3 product on its existing URL. The
+    // t1/t2 products, their ?paid= return handling, and stored-tier
+    // rendering all stay live — only the modal's choice set narrows.
+    // Locks the exact product URL and the bare-URL shape — guards against
+    // accidental UTM tag addition / tracking param leakage and against a
+    // rung→product mismatch.
     const subtree = modalSubtree('paywall-modal');
     const ctaRe = /<a class="modal-cta" id="paywall-cta-(t[123])" href="([^"]+)"/g;
     const ctas = {};
     let m;
     while ((m = ctaRe.exec(subtree)) !== null) ctas[m[1]] = m[2];
     expect(ctas).toEqual({
-      t1: 'https://theeightball.gumroad.com/l/rzqezp',
-      t2: 'https://theeightball.gumroad.com/l/neysyv',
       t3: 'https://theeightball.gumroad.com/l/xjpvp',
     });
     for (const href of Object.values(ctas)) {
       expect(href, 'Buy Link hrefs must stay bare — no query string').not.toMatch(/[?&]/);
     }
+    // No buyer-facing t1/t2 choice anywhere in the modal — ids and product
+    // URLs alike (the rungs stay purchasable and honored, just not offered).
+    expect(subtree).not.toMatch(/paywall-cta-t1|paywall-cta-t2/);
+    expect(subtree).not.toMatch(/rzqezp|neysyv/);
   });
 
-  it('ladder copy: each CTA names its v0.55 rung price and clinical contents', () => {
+  it('offer copy: the single CTA names the $3 price, the complete contents, no other price (v0.56)', () => {
     const subtree = modalSubtree('paywall-modal');
-    const t1 = subtree.match(/id="paywall-cta-t1"[^>]*>([^<]+)<\/a>/)[1];
-    const t2 = subtree.match(/id="paywall-cta-t2"[^>]*>([^<]+)<\/a>/)[1];
     const t3 = subtree.match(/id="paywall-cta-t3"[^>]*>([^<]+)<\/a>/)[1];
-    expect(t1).toContain('$1');
-    expect(t1).toMatch(/rising/);
-    expect(t2).toContain('$2');
-    expect(t2).toMatch(/day pillar/); // clinical label, §2 voice
     expect(t3).toContain('$3');
-    expect(t3).toMatch(/hour pillar/);
-    expect(t3).toMatch(/written card entry/); // t3 carries the content unlock
-    // The 2026-07-26 repricing is total and exact: each CTA carries its one
-    // v0.55 price and no other dollar figure (guards a partial re-label —
-    // note $3 moved rungs: it was t1's price, it is now t3's).
+    expect(t3).toMatch(/every coordinate/);
+    expect(t3).toMatch(/written card/); // t3 carries the content unlock
+    // Exactly one dollar figure on the CTA (guards a partial re-label).
     const priceOf = text => (text.match(/\$(\d+)/g) || []).join(',');
-    expect(priceOf(t1)).toBe('$1');
-    expect(priceOf(t2)).toBe('$2');
     expect(priceOf(t3)).toBe('$3');
-    // §2 voice: no destiny/unlock-your-X language on the ladder.
-    expect(`${t1}${t2}${t3}`).not.toMatch(/destiny|fate|secret|reveal your/i);
+    // §2 voice: no destiny/unlock-your-X language on the offer.
+    expect(t3).not.toMatch(/destiny|fate|secret|reveal your/i);
   });
 
-  it('t1 CTA sells the name-derived pair, never the retired triplet (§1.D v0.38 / codex F01)', () => {
-    // v0.38 split life path onto the free surface, so t1's numerology is
-    // the name-derived pair (name number + soul urge). "three numbers" was
-    // the pre-split promise — a purchase button may not sell a coordinate
-    // the free sheet already carries.
+  it('paywall title and body carry the single-offer ownership framing (v0.56)', () => {
     const subtree = modalSubtree('paywall-modal');
-    const t1 = subtree.match(/id="paywall-cta-t1"[^>]*>([^<]+)<\/a>/)[1];
-    expect(t1).not.toMatch(/three numbers/);
-    expect(t1).toContain('name number');
-    expect(t1).toContain('soul urge');
-  });
-
-  it('paywall title and body carry the ownership framing (v0.55)', () => {
-    const subtree = modalSubtree('paywall-modal');
-    expect(subtree).toMatch(/three rungs · yours for good/);
-    expect(subtree).toMatch(/the sheet opens to that rung on this device, permanently, for every reading/);
+    expect(subtree).toMatch(/complete 8ball · \$3 once/);
+    expect(subtree).toMatch(/every coordinate and the written card, permanently, for every reading on this device/);
+    expect(subtree).toMatch(/yours for good/);
+    // A t1/t2 owner keeps what they bought — monotonicity stays disclosed.
     expect(subtree).toMatch(/the highest rung bought holds/);
     // The metered framing is gone: no tries, no reads-count promises.
     expect(subtree).not.toMatch(/three tries/);
     expect(subtree).not.toMatch(/three more reads/);
+  });
+
+  it('specimen preview is a labeled fixed example, never the visitor result (v0.56)', () => {
+    const subtree = modalSubtree('paywall-modal');
+    // The preview demonstrates the complete result before checkout: the
+    // complete-sheet image plus the written entry for the SAME fixed
+    // catalog cell (no. v = aries × dragon), rendered from the public
+    // deck bundle (§5.C posture) — never derived from the visitor.
+    expect(subtree).toMatch(/id="paywall-specimen"/);
+    expect(subtree).toMatch(/an example, not your sheet/);
+    expect(subtree).toMatch(/src="\/cards\/spec_no-v\.jpg"/);
+    for (const id of ['specimen-entry-name', 'specimen-entry-type', 'specimen-entry-habit', 'specimen-entry-note']) {
+      expect(subtree).toContain(`id="${id}"`);
+    }
+    expect(subtree).toMatch(/your sheet files your own coordinates/);
+    // The entry slots ship EMPTY in static markup — content strings stay in
+    // content/cards.v1.full.js (§4), filled at boot from the deck import.
+    expect(subtree).toMatch(/<span id="specimen-entry-name"><\/span>/);
+    expect(html).toMatch(/CARDS\.aries && CARDS\.aries\.dragon/);
+    // The preview image URL is same-origin-relative and bare.
+    const src = subtree.match(/src="([^"]+)"/)[1];
+    expect(src.startsWith('/cards/')).toBe(true);
+    expect(src).not.toMatch(/[?&]/);
+  });
+
+  it('result-rail offer control mirrors the lock icon: present, priced, one staging path (v0.56)', () => {
+    // The offer button is a second presentation of the SAME Path B
+    // trigger (stage pending profile → open paywall) — hidden markup
+    // default; renderCard shows it below t3 and hides it at t3, the
+    // lock icon visibility rule.
+    const m = html.match(/<button([^>]*id="offer-btn"[^>]*)>([\s\S]*?)<\/button>/);
+    expect(m, 'offer button not found').not.toBeNull();
+    expect(m[1]).toMatch(/\bhidden\b/);
+    expect(m[2]).toContain('$3');
+    expect(html).toMatch(/offerBtn\.hidden = cardEntry/);
+    expect(html).toMatch(/offerBtn\.addEventListener\(\s*['"]click['"]\s*,\s*openPurchase\s*\)/);
   });
 
   // 3. reads chip — RETIRED (v0.55: no counter exists to display) ───
@@ -335,6 +355,51 @@ describe('paid-return banner behavior', () => {
   });
 });
 
+describe('retained t1/t2 ownership — the sprint presentation never touches entitlement (v0.56)', () => {
+  // The buyer-facing modal offers only t3 during the sprint, but the t1/t2
+  // return paths and stored tiers are load-bearing compatibility surfaces:
+  // every existing buyer keeps exactly the access they own.
+
+  it('a ?paid=t2 return still persists tier t2 (no CTA required to honor a purchase)', () => {
+    installPaywallUI();
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t2', pathname: '/' },
+      history: { replaceState: vi.fn() },
+    };
+
+    handlePaidReturn();
+    expect(storage.snapshot()).toMatchObject({ [TIER_KEY]: 't2' });
+  });
+
+  it('a stored t1 device buying the t3 complete offer upgrades monotonically', () => {
+    installPaywallUI();
+    const storage = makeStorage({ [TIER_KEY]: 't1' });
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t3', pathname: '/' },
+      history: { replaceState: vi.fn() },
+    };
+
+    handlePaidReturn();
+    expect(storage.snapshot()).toMatchObject({ [TIER_KEY]: 't3' });
+  });
+
+  it('a stored t2 device replaying a t1 URL is never downgraded', () => {
+    installPaywallUI();
+    const storage = makeStorage({ [TIER_KEY]: 't2' });
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t1', pathname: '/' },
+      history: { replaceState: vi.fn() },
+    };
+
+    handlePaidReturn();
+    expect(storage.snapshot()).toMatchObject({ [TIER_KEY]: 't2' });
+  });
+});
+
 describe('legacy-credit storage wrapper (read-only R2 signal, v0.55)', () => {
   it('getCredits clamps corrupt stored legacy values to safe zero', () => {
     globalThis.localStorage = makeStorage({ [CREDITS_KEY]: '-5' });
@@ -392,9 +457,15 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/calculator-grade/);
   });
 
-  it('about-modal: discloses the v0.55 ladder prices ("one, two, or three dollars")', () => {
-    expect(aboutSubtree).toMatch(/one, two, or three dollars/);
+  it('about-modal: discloses the single sprint offer ("three dollars, once"), not the v0.55 ladder prices (§4.B v0.56)', () => {
+    expect(aboutSubtree).toMatch(/three dollars, once/);
+    expect(aboutSubtree).not.toMatch(/one, two, or three dollars/);
     expect(aboutSubtree).not.toMatch(/three, six, or nine dollars/);
+  });
+
+  it('about-modal: honors existing lower-rung ownership without presenting it as a current checkout choice (§4.B v0.56)', () => {
+    expect(aboutSubtree).toMatch(/devices that already own a lower rung keep it/);
+    expect(aboutSubtree).not.toMatch(/three paid rungs/);
   });
 
   it('about-modal: discloses the open free surface ("free and unlimited")', () => {
