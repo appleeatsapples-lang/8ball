@@ -5,7 +5,16 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-26 — Ownership pricing v2: $1/$2/$3, purchases permanent, free surface open (DOCTRINE v0.55) — STAGED
+## 2026-07-26 — Ownership pricing v2: $1/$2/$3, purchases permanent, free surface open (DOCTRINE v0.55) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `94cf1bc` (#127) on the
+controller's merge word, after the in-PR Codex pre-merge verdict (MERGE
+WITH FIXES: 1 Med declined with rationale, 1 Low absorbed in-PR — see
+`audits/codex_pr127_premerge_audit_2026-07-26_response.md`). The STAGED
+language and the "Next:" choreography below are superseded by that merge.
+Pending mechanical edit for the next doctrine-touching cycle, per the
+v0.48/v0.49 footer precedent: flip the DOCTRINE v0.55 footer entry's
+"STAGED on `claude/pricing-model-1-2-3`" clause to name this merge.**
 
 Brief: `~/8ball/sessions/cc_brief_pricing_model_v2_2026-07-26.md` (CLEAN v2,
 supersedes the corrections-laden v1 file). Gumroad repriced and recopied
