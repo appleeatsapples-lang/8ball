@@ -69,8 +69,11 @@ const FORBIDDEN = [
 const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_profile_v1',
   'eight_ball_labels_revealed_v1',
-  // v0.3.0 paid-tier counters (DOCTRINE §5 v0.22 allow-list extension)
-  'eight_ball_tries_used_v1',
+  // v0.3.0 paid-tier keys (DOCTRINE §5 v0.22 allow-list extension).
+  // v0.55 ownership model: `eight_ball_tries_used_v1` is RETIRED (never
+  // read or written — removed here per the v0.48 retired-key precedent);
+  // `eight_ball_credits_v1` survives as the read-only §1.D R2 legacy
+  // grandfather signal — reads only, no setItem call exists.
   'eight_ball_credits_v1',
   'eight_ball_pending_profile_v1',
   // v0.6.0 tier ladder (DOCTRINE §5 v0.36 allow-list extension / §1.D):

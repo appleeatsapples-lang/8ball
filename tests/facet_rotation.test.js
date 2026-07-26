@@ -73,21 +73,31 @@ describe('pure facet transition', () => {
     expect(nextFacetIndex(nextFacetIndex(nextFacetIndex(1)))).toBe(1);
   });
 
-  it('a funded t3 flip advances once and debits once', () => {
-    expect(nextFacetState({ credits: 3, facetIndex: 1 })).toEqual({
-      action: 'render-facet', credits: 2, facetIndex: 2,
+  it('a t3 flip advances once — owned, nothing debited (§1.H v0.55)', () => {
+    expect(nextFacetState({ facetIndex: 1 })).toEqual({
+      action: 'render-facet', facetIndex: 2,
     });
   });
 
-  it('zero credits opens the paywall without changing the visible position', () => {
-    expect(nextFacetState({ credits: 0, facetIndex: 2 })).toEqual({
-      action: 'show-paywall', credits: 0, facetIndex: 2,
-    });
+  it('the flip carries no funding state — action and position only', () => {
+    const result = nextFacetState({ facetIndex: 2 });
+    expect(Object.keys(result).sort()).toEqual(['action', 'facetIndex']);
+    expect(result).toEqual({ action: 'render-facet', facetIndex: 0 });
   });
 
-  it('counter normalization cannot mint a facet read', () => {
-    for (const credits of [-1, NaN, 'junk']) {
-      expect(nextFacetState({ credits, facetIndex: 0 }).action).toBe('show-paywall');
+  it('legacy credit fields cannot gate or alter the flip', () => {
+    // Pre-v0.55 callers passed {credits, facetIndex}; any credits value —
+    // including the old zero-credit paywall state — now just advances.
+    for (const credits of [0, 3, -1, NaN, 'junk']) {
+      expect(nextFacetState({ credits, facetIndex: 0 })).toEqual({
+        action: 'render-facet', facetIndex: 1,
+      });
+    }
+  });
+
+  it('an unknown position still throws instead of minting one', () => {
+    for (const facetIndex of [null, undefined, -1, 3, 'junk']) {
+      expect(() => nextFacetState({ facetIndex })).toThrow(/Unknown facet index/);
     }
   });
 });
@@ -126,28 +136,28 @@ describe('facet storage and v1 slot selection', () => {
     }
   });
 
-  it('consumeFacetShake couples credit debit and visible-position advance', () => {
-    globalThis.localStorage = makeStorage({ [CREDITS_KEY]: 3, [FACET_KEY]: 0 });
+  it('consumeFacetShake advances and persists the visible position — no credit coupling (v0.55)', () => {
+    globalThis.localStorage = makeStorage({ [FACET_KEY]: 0 });
     expect(consumeFacetShake(1)).toEqual({
-      action: 'render-facet', credits: 2, facetIndex: 1,
+      action: 'render-facet', facetIndex: 1,
     });
-    expect(localStorage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '2', [FACET_KEY]: '1',
-    });
+    expect(localStorage.snapshot()).toMatchObject({ [FACET_KEY]: '1' });
   });
 
-  it('zero-credit top-up path mutates neither counter nor position', () => {
+  it('legacy credits are never consulted or mutated by a flip', () => {
     globalThis.localStorage = makeStorage({ [CREDITS_KEY]: 0, [FACET_KEY]: 1 });
-    expect(consumeFacetShake(5).action).toBe('show-paywall');
+    expect(consumeFacetShake(5)).toEqual({ action: 'render-facet', facetIndex: 2 });
     expect(localStorage.snapshot()).toMatchObject({
-      [CREDITS_KEY]: '0', [FACET_KEY]: '1',
+      [CREDITS_KEY]: '0', [FACET_KEY]: '2',
     });
   });
 
-  it('zero-credit top-up does not materialize a missing position', () => {
-    globalThis.localStorage = makeStorage({ [CREDITS_KEY]: 0 });
-    expect(consumeFacetShake(5).action).toBe('show-paywall');
-    expect(localStorage.snapshot()).not.toHaveProperty(FACET_KEY);
+  it('a flip with no stored position anchors from life path, then advances', () => {
+    // Life path 5 anchors mid (1); the explicit flip advances to high (2)
+    // and persists it — the pre-v0.55 zero-credit dead-end is gone.
+    globalThis.localStorage = makeStorage({});
+    expect(consumeFacetShake(5)).toEqual({ action: 'render-facet', facetIndex: 2 });
+    expect(localStorage.snapshot()[FACET_KEY]).toBe('2');
   });
 
   it('forget removes the position', () => {
@@ -220,16 +230,17 @@ describe('calc-v3 facet-key migration (one-shot v1 clear)', () => {
 });
 
 describe('t3-only host wiring', () => {
-  it('only t3 calls the credit-consuming facet transition', () => {
+  it('only t3 calls the facet transition — lower tiers stay cosmetic', () => {
     expect(html).toMatch(/const facetState = tier === 't3' \? consumeFacetShake\(currentProfile\.lifePath\) : null/);
   });
 
-  it('zero-credit rotation opens the paywall without staging pending intent', () => {
-    const block = html.match(/if \(facetState && facetState\.action === 'show-paywall'\) \{([\s\S]*?)\n  \}/);
-    expect(block).not.toBeNull();
-    expect(block[1]).toMatch(/clearPendingProfile\(\)[\s\S]*openPaywall\(\)/);
-    expect(block[1]).toMatch(/openPaywall\(\)/);
-    expect(block[1]).not.toMatch(/setPendingProfile/);
+  it('rotation never opens the paywall or touches pending intent (v0.55)', () => {
+    // The zero-credit branch is gone: shakeAgain carries no paywall exit,
+    // no pending-profile clear, and no facetState action gate.
+    expect(html).not.toMatch(/facetState && facetState\.action === 'show-paywall'/);
+    const shakeBlock = html.match(/function shakeAgain\(\)[\s\S]*?\n\}/);
+    expect(shakeBlock).not.toBeNull();
+    expect(shakeBlock[0]).not.toMatch(/openPaywall|PendingProfile/);
   });
 
   it('renders the written note from the persisted current position', () => {

@@ -695,22 +695,6 @@
     margin-top: 6px;
   }
 
-  /* credit chip — paid-state only, bottom-center */
-  .reads-chip {
-    width: max-content;
-    margin: 10px auto 0;
-    font-size: 9px;
-    letter-spacing: 0.18em;
-    text-transform: lowercase;
-    color: var(--label);
-    padding: 4px 10px;
-    border: 1px solid rgba(26, 24, 18, 0.2);
-    background: transparent;
-    pointer-events: none;
-  }
-  /* v0.6.0: chip visibility is JS-driven (paid renders at any tier). */
-  .card .reads-chip { display: none; }
-
   /* paywall modal — shares .modal-bg / .modal base, adds CTA + disclosure */
   .modal .modal-cta {
     display: block;
@@ -898,7 +882,6 @@
               <div class="card-note" id="card-note"></div>
               <span class="coord-seal" aria-hidden="true"></span>
             </div>
-            <div class="reads-chip" id="reads-chip"></div>
           </article>
         </div>
 
@@ -949,8 +932,8 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. three paid rungs open the rest of the sheet — your name enters the math from the first rung: rising sign (with birth time + place), five-element, private animal, name number, soul urge; personality, birthday, maturity and the day pillar at the second; the hour pillar (with birth time) and the written card entry at the third. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs, counters, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>first three readings are free, on the free sheet. after that, three, six, or nine dollars buys three more reads with the sheet opened to that rung — the nine-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. a higher rung bought later upgrades the sheet and adds three more reads. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
+    <p>nothing leaves your device on its own. inputs, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>readings are free and unlimited, on the free sheet. one, two, or three dollars opens the sheet to that rung on this device — permanently, for every reading — the three-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. a higher rung bought later upgrades the sheet; what you bought stays bought. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -970,15 +953,15 @@
   </div>
 </div>
 
-<!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C v0.36) ───── -->
+<!-- ── paywall modal (v0.6.0 tier ladder — DOCTRINE §2 / §4.B / §5.B Call 2 / §5.C, ownership v0.55) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
-    <h2 id="paywall-title">three tries · three rungs</h2>
+    <h2 id="paywall-title">three rungs · yours for good</h2>
     <div class="modal-rule"></div>
-    <p>one tap. no account. each rung is a one-time purchase: three more reads with the sheet opened to that rung. the highest rung bought holds.</p>
-    <a class="modal-cta" id="paywall-cta-t1" href="https://theeightball.gumroad.com/l/rzqezp" target="_self">t1 · rising · five-element · private animal · name number · soul urge — $3</a>
-    <a class="modal-cta" id="paywall-cta-t2" href="https://theeightball.gumroad.com/l/neysyv" target="_self">t2 · + three more numbers · day pillar — $6</a>
-    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">t3 · + hour pillar · the written card entry — $9</a>
+    <p>one tap. no account. each rung is a one-time purchase: the sheet opens to that rung on this device, permanently, for every reading. the highest rung bought holds.</p>
+    <a class="modal-cta" id="paywall-cta-t1" href="https://theeightball.gumroad.com/l/rzqezp" target="_self">t1 · rising · five-element · private animal · name number · soul urge — $1</a>
+    <a class="modal-cta" id="paywall-cta-t2" href="https://theeightball.gumroad.com/l/neysyv" target="_self">t2 · + three more numbers · day pillar — $2</a>
+    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">t3 · + hour pillar · the written card entry — $3</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -986,19 +969,18 @@
   </div>
 </div>
 
-<!-- ── paid-return banner (v0.3.0) ─────────────────────────────── -->
-<div class="paid-banner" id="paid-banner" hidden>three reads unlocked. enjoy.</div>
+<!-- ── paid-return banner (v0.3.0; ownership copy v0.55) ────────── -->
+<div class="paid-banner" id="paid-banner" hidden>rung opened. yours for good.</div>
 
 <script type="module">
 import { buildProfile } from './core/profile.js';
 import { initCitySearchUI } from './ui/citysearch.js';
 import { getCard, MissingCardError } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
-import { isNewPair, nextShakeState, FREE_TRIES_CAP } from './core/payments.js';
+import { isNewPair, nextShakeState } from './core/payments.js';
 import {
-  getTriesUsed, setTriesUsed,
-  getCredits, setCredits, getRenderTier,
-  clearFacetIndex, clearPendingProfile, consumeFacetShake, ensureFacetIndex, getFacetSlot,
+  getRenderTier,
+  clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   handlePaidReturn,
@@ -1071,7 +1053,7 @@ readingsUI = initReadingsUI(
       const tier = getRenderTier();
       // Archive-open mirrors submit-path facet anchoring (§1.H): a different pair re-anchors; the same pair preserves, like a reload.
       if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
-      showResult(profile, { tier, credits: getCredits(), triesUsed: getTriesUsed(), arrive: true });
+      showResult(profile, { tier, arrive: true });
       return true;
     },
     compareReadings: (left, right) => buildConcordance(
@@ -1097,7 +1079,6 @@ const cardName = $('card-name');
 const cardType = $('card-type');
 const cardHabit = $('card-habit');
 const cardNote = $('card-note');
-const readsChip = $('reads-chip');
 
 const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
@@ -1163,7 +1144,6 @@ initCitySearchUI(
 
 function renderCard(profile, opts) {
   const tier = (opts && opts.tier) || 'free';
-  const credits = (opts && typeof opts.credits === 'number') ? opts.credits : 0;
   const { cardEntry } = renderTierSections(profile, tier);
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
@@ -1214,15 +1194,8 @@ function renderCard(profile, opts) {
     cardType.textContent = '';
     cardHabit.textContent = cardNote.textContent = '';
   }
-  // §6.5 + v0.39-candidate: paid credits, or free tries remaining pre-cap.
-  const freeLeft = FREE_TRIES_CAP - ((opts && opts.triesUsed) || 0);
-  if (tier !== 'free' && credits > 0) {
-    readsChip.textContent = credits === 1 ? '1 read left' : `${credits} reads left`; readsChip.style.display = 'block';
-  } else if (tier === 'free' && freeLeft > 0 && freeLeft < FREE_TRIES_CAP) {
-    readsChip.textContent = freeLeft === 1 ? '1 free read left' : `${freeLeft} free reads left`; readsChip.style.display = 'block';
-  } else {
-    readsChip.textContent = ''; readsChip.style.display = 'none';
-  }
+  // Ownership model (§1.D / §4.B v0.55): no reads counter exists — renders
+  // are unlimited at every tier; the density strip above is the only meter.
 }
 
 // ── shake / flip control ──────────────────────────────────────────
@@ -1267,21 +1240,13 @@ function showResult(profile, opts) {
 function shakeAgain() {
   if (flipLocked || !currentProfile) return;
   const tier = getRenderTier();
-  const facetState = tier === 't3' ? consumeFacetShake(currentProfile.lifePath) : null;
-  if (facetState && facetState.action === 'show-paywall') {
-    // A top-up is not a pending reading: returning from checkout grants
-    // credits, then the next explicit flip advances and spends one. Clear
-    // any abandoned Path A/B intent so it cannot consume on this return.
-    clearPendingProfile();
-    openPaywall();
-    return;
-  }
-  flipLocked = true;
   // Free/t1/t2 flips stay cosmetic. A t3 flip advances the written-entry
-  // slot and spends one credit before the existing 320ms reveal beat.
+  // slot — owned, unlimited (§1.H v0.55) — before the 320ms reveal beat.
+  const facetState = tier === 't3' ? consumeFacetShake(currentProfile.lifePath) : null;
+  flipLocked = true;
   setFaceUp(true);
   setTimeout(() => {
-    renderCard(currentProfile, { tier, credits: getCredits(), triesUsed: getTriesUsed() });
+    renderCard(currentProfile, { tier });
     setFaceUp(false);
     if (facetState) resultAnnounce.textContent = `written entry changed · ${facetState.facetIndex + 1} of 3`;
     flipLocked = false;
@@ -1289,12 +1254,13 @@ function shakeAgain() {
 }
 
 // ── form submit ───────────────────────────────────────────────────
-// v0.3.0 (DOCTRINE §4.B / §6 / §7): the typed payload is compared to
-// the last-rendered profile via isNewPair, then nextShakeState picks
-// one of four actions: render-idempotent, render-unlocked (credit
-// burn), render-locked (free try burn), show-paywall. Only the first
-// three persist the profile and counters; show-paywall (Path A)
-// writes the pending profile and aborts the render.
+// Ownership model (DOCTRINE §4.B v0.55 / §6 / §7): the typed payload is
+// compared to the last-rendered profile via isNewPair, then
+// nextShakeState picks render (new pair) or render-idempotent (same
+// pair — β idempotence: the facet position survives). Every submit
+// renders at the device's entitled tier; there is no counter, no cap,
+// and no submit-time paywall (Path A retired — the paywall opens only
+// from the Path B lock-tap on the rendered sheet).
 profileForm.addEventListener('submit', e => {
   e.preventDefault();
   const name = nameInput.value.trim();
@@ -1328,46 +1294,19 @@ profileForm.addEventListener('submit', e => {
 
   const stored = loadSavedProfile();
   const isNew = isNewPair({ name, dob }, stored);
-  const state = nextShakeState({
-    triesUsed: getTriesUsed(),
-    credits: getCredits(),
-    isNew
-  });
-
-  if (state.action === 'show-paywall') {
-    // Path A (DOCTRINE §6.7): typed-but-not-yet-rendered profile is
-    // staged for the paid round-trip. eight_ball_profile_v1 is not
-    // touched; tries_used does not increment.
-    const pendingPayload = { name, dob };
-    if (opts.time) pendingPayload.time = opts.time;
-    if (opts.city) pendingPayload.city = opts.city;
-    if (opts.cc) pendingPayload.cc = opts.cc;
-    if (typeof opts.tz === 'string') pendingPayload.tz = opts.tz;
-    if (typeof opts.lat === 'number' && !isNaN(opts.lat)) pendingPayload.lat = opts.lat;
-    if (typeof opts.lng === 'number' && !isNaN(opts.lng)) pendingPayload.lng = opts.lng;
-    setPendingProfile(pendingPayload);
-    openPaywall();
-    return;
-  }
+  const state = nextShakeState({ isNew });
 
   try {
     const profile = buildProfile(name, dob, opts);
     saveProfile(name, dob, opts);
-    // render-idempotent leaves counters unchanged; the other two write
-    // the post-shake counters before render so the chip + lock state
-    // match the persisted truth.
-    if (state.action !== 'render-idempotent') {
-      setTriesUsed(state.triesUsed);
-      setCredits(state.credits);
-    }
     // §6.3/§6.5 + §1.D (R1): density is the device's entitled tier on
-    // every action — render-idempotent, render-locked, render-unlocked
-    // alike. Credits/tries decide how many readings (already settled
-    // above); the stored tier decides how much sheet.
+    // every action — render and render-idempotent alike. Nothing decides
+    // how many readings; the stored tier decides how much sheet. The
+    // action only gates the facet reset below (β idempotence).
     readingsUI.setActiveReading(null);
     const tier = getRenderTier();
     if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNew });
-    showResult(profile, { tier, credits: state.credits, triesUsed: state.triesUsed, arrive: true });
+    showResult(profile, { tier, arrive: true });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
   }
@@ -1424,10 +1363,10 @@ function boot() {
   // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
   // paid-return boot unseals exactly the delta; rehydrate unseals nothing.
   primeUnsealBaseline(getRenderTier());
-  // §6.6 paid-return runs before rehydration so the +3 credits, tier, and
+  // §6.6 paid-return runs before rehydration so the monotonic tier and
   // any pending-consumed profile are persisted before loadSavedProfile()
-  // reads them. R1: a paid-return boot is not special — it just sets
-  // tier+credits and falls into the same render path as any rehydration;
+  // reads them. R1: a paid-return boot is not special — it just sets the
+  // tier and falls into the same render path as any rehydration;
   // density resolves from storage via getRenderTier().
   const consumedPending = handlePaidReturn(p => saveProfile(p.name, p.dob, p));
   const existing = loadSavedProfile();
@@ -1437,9 +1376,7 @@ function boot() {
       const profile = profileFromPayload(existing);
       const tier = getRenderTier();
       if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: consumedPending });
-      showResult(profile, {
-        tier, credits: getCredits(), triesUsed: getTriesUsed(),
-      });
+      showResult(profile, { tier });
     } catch (_) {
       // Corrupted stored profile — a malformed DOB, or (since the calc core
       // now rejects them) an impossible-date DOB from a hand-edited payload.

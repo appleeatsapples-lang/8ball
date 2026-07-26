@@ -194,30 +194,33 @@ describe('Saved Readings host and privacy wiring', () => {
     );
   });
 
-  it('archive open is a pure rehydrate — no payment state machine, counters read-only', () => {
+  it('archive open is a pure rehydrate — no payment state machine, no counter surface (v0.55)', () => {
     // P3-3 (post-spree audit): greps alone can be loosened; this extracts the
-    // openReading body and forbids every debit/write path. showResult must
-    // receive getCredits()/getTriesUsed() as display passthrough only.
+    // openReading body and forbids every state-machine/write path. Under the
+    // ownership model there is no counter passthrough either — the render
+    // opts are the resolved tier alone.
     const match = html.match(/openReading:\s*reading\s*=>\s*\{([\s\S]*?)\n\s*\},/);
     expect(match, 'openReading hook body not found in index.html').toBeTruthy();
     const body = match[1];
     for (const banned of [
       'nextShakeState', 'consumeFacetShake', 'applyPaidReturn',
-      'setCredits', 'setTriesUsed', 'openPaywall', 'setPendingProfile',
-      'clearPendingProfile',
+      'setCredits', 'setTriesUsed', 'getCredits', 'getTriesUsed',
+      'openPaywall', 'setPendingProfile', 'clearPendingProfile',
     ]) {
       expect(body, `openReading must not call ${banned}`).not.toMatch(new RegExp(banned));
     }
-    expect(body).toMatch(/credits:\s*getCredits\(\)/);
-    expect(body).toMatch(/triesUsed:\s*getTriesUsed\(\)/);
-    // Facet re-anchor is allowed (SR-M2) but is not a credit/try debit.
+    expect(body).toMatch(/getRenderTier\(\)/);
+    expect(body).toMatch(/showResult\(profile,\s*\{\s*tier,\s*arrive:\s*true\s*\}\s*\)/);
+    // Facet re-anchor is allowed (SR-M2) but debits nothing.
     expect(body).toMatch(/ensureFacetIndex/);
   });
 
-  it('archive storage ops never mutate tries/credits/tier/facet payment keys', () => {
+  it('archive storage ops never mutate legacy/tier/facet payment keys', () => {
     // Behavioral twin to the host-body pin: exercise the readings module
     // against a shared storage that already holds paid state; after
     // save/load/rename/delete/clear the payment keys must be byte-identical.
+    // The tries key is retired from the product (v0.55) but may still sit
+    // in a real user's storage — the archive must leave even that alone.
     const paymentSnap = {
       eight_ball_tries_used_v1: '2',
       eight_ball_credits_v1: '3',

@@ -5,6 +5,77 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-26 — Ownership pricing v2: $1/$2/$3, purchases permanent, free surface open (DOCTRINE v0.55) — STAGED
+
+Brief: `~/8ball/sessions/cc_brief_pricing_model_v2_2026-07-26.md` (CLEAN v2,
+supersedes the corrections-laden v1 file). Gumroad repriced and recopied
+2026-07-26 — t1 $1 · t2 $2 · t3 $3, all three listings promising "yours for
+good" — so the code catches up to the live commercial reality. Branch
+`claude/pricing-model-1-2-3`, PR number embedded on open per #118 choreography.
+
+**The model.** A rung purchase is permanent and unlimited: `applyPaidReturn`
+keeps only the monotonic `tier = max(current, purchased)` write and the
+pending-profile render. `nextShakeState` renders unconditionally (`render` /
+`render-idempotent` — β idempotence survives). The free surface is open:
+unlimited readings and profiles at free density; Path A (fourth-pair paywall)
+is retired, the Path B lock-tap is the only paywall trigger left. The t3
+`flip again` is owned — always advances, never debits, never opens the
+paywall (§1.H v0.55). Deleted outright: `FREE_TRIES_CAP`,
+`CREDITS_PER_PURCHASE`, `triesUsed` + its key (allow-list retirement per the
+v0.48 precedent), all credit grants/debits, the reads chip, the
+`render-locked` / `show-paywall` shake actions. `eight_ball_credits_v1` is
+frozen read-only as the §1.D R2 grandfather signal — a device holding legacy
+credits with no stored tier still persists as t3 on first render then
+ignores credits forever; the one $9 t3 buyer on record is never downgraded.
+
+**Load-bearing constraint (brief §D) held.** `ui/tiers.js` is byte-untouched;
+the four density surfaces are provably unchanged — free = 5 of 15 · t1 = 10 ·
+t2 = 14 · t3 = 15 + `cardEntry` — pinned by the unchanged `TIER_COORDS` /
+`SEALED_AT` / share-snapshot suites in `tests/tiers.test.js`. Depth is now
+the only thing money buys; quantity is free at every tier.
+
+**Doctrine (v0.54 → v0.55, all L17 supersede-style).** New dated amendment
+blocks at §1.D (ownership + table-currency price note), §1.H (owned flip),
+§2 (third arcade-toy re-amendment: `fixed-credit` superseded), §4.B (cap
+retired), §5 (counters retired; credits frozen), §5.B Call 2 (repricing; no
+grant), §5.C (tier-flag gate), §7 stages 2+6 (scanner + suite notes); footer
+version line + v0.55 changelog entry. Operator-locked/historical text
+untouched. Brief §-label discrepancies found and implemented against the
+real locations: the three-free-tries lines live in §4.B (brief said §5.B),
+the "$3 / $6 / $9 rungs" carve-out line lives in §2 (brief said §5.C).
+
+**Copy.** Paywall: "three rungs · yours for good", CTAs $1/$2/$3 (hrefs and
+order untouched: rzqezp/neysyv/xjpvp). Banner: "rung opened. yours for
+good." About-modal: "readings are free and unlimited" / "one, two, or three
+dollars" / "what you bought stays bought". README + 8BALL.md current-state
+paragraphs reconciled (historical entries verbatim per L17). index.html
+1464 → 1401 lines.
+
+**Tests.** `payments_state` and `tiers` rewritten to the ownership contract;
+`payments_markup`, `facet_rotation`, `readings`, `privacy_scan` re-pinned.
+Suite green at 38 files / 1359 tests pre-rebase (baseline arithmetic: main
+sat at 1369 — the brief's 1437 was the unmerged #126 branch count; the
+ownership contract needs ~10 fewer cases than the credit flow did). New
+adversarial pins: exact per-CTA price mapping (guards the $3-moved-rungs
+trap), no-grant paid returns, retired-action unreachability, frozen legacy
+credits, chip fully gone.
+
+**Precondition deviations, on record.** Brief preconditions named PRs
+#123–#126 merged; at session start all four were OPEN — proceeded on the
+operator's explicit implement-now instruction (flagged in-session), from a
+green main at 7a9de2a. Mid-session the operator merged #123 + #125; this
+branch rebases onto that main before the PR opens. Working tree was found
+sitting on main mid-session with the changes uncommitted (operator caught
+it); moved to `claude/pricing-model-1-2-3` before any commit.
+
+Out of scope per brief: dyad (t4) / triad (t5), Gumroad edits, new tiers,
+`package.json` bump (0.7.1 held; version-truth flagged for Procedure 4 as
+v0.38–v0.40 precedent).
+
+Next: PR open → Codex relay fired immediately (L48 — verdict lands
+pre-merge) → audits/ artifact naming the PR → CI green → **merge only on
+operator word.**
+
 ## 2026-07-25 — CLAUDE.md refresh + CI node24 runtime bump (PRs #118, #119)
 
 Two independent ships from one Claude Code session, plus the L48 override
