@@ -176,7 +176,7 @@ export function buildCardSVGFromSnapshot(snapshot) {
 // §5.D v0.39: render every row's every cell. The refs (from ui/tiers.js
 // shareRowRefs) carry per-cell {state, value}; sealed cells carry no value,
 // so a paid coordinate value cannot reach the artifact.
-function rowSections(rows) {
+export function rowSections(rows) {
   return rows.map(row => ({
     title: row ? row.title : '',
     cells: (row && Array.isArray(row.cells) ? row.cells : []).map(c => ({

@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   buildCardSVGFromSnapshot,
   buildCaptionFromSnapshot,
+  rowSections,
   sharePngFilename,
 } from '../ui/share.js';
 
@@ -388,6 +389,17 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
   // §5.D invariant (c): no network call of any kind. Belt-and-suspenders
   // with tests/privacy_scan.test.js (which scans ui/ too) — asserted here
   // explicitly so the share module carries its own guard.
+  it('rowSections strips a sealed value present in a live row ref — it never reaches the snapshot (§5.D a)', () => {
+    // Adversarial refs: a sealed cell that (wrongly) still carries its value.
+    // The snapshot layer itself must drop it, whatever ui/tiers.js produced.
+    const sections = rowSections([
+      { title: 'FIVE-ELEMENT', cells: [{ state: 'sealed', value: 'metal' }, { state: 'open', value: 'gemini' }] },
+    ]);
+    expect(JSON.stringify(sections)).not.toContain('metal');
+    expect(sections[0].cells[0]).toEqual({ state: 'sealed', value: '' });
+    expect(sections[0].cells[1].value).toBe('gemini');
+  });
+
   it('ui/share.js introduces no network surface (fetch / XHR / sendBeacon)', () => {
     expect(shareJs).not.toMatch(/fetch\s*\(/);
     expect(shareJs).not.toMatch(/XMLHttpRequest/);
