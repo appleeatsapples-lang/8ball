@@ -293,30 +293,188 @@ describe('rising sign — buildProfile integration', () => {
   });
 });
 
-describe('rising sign — edge cases (legacy getRisingSign, returns valid sign)', () => {
+describe('rising sign — edge cases (legacy getRisingSign)', () => {
   // Boundary latitudes (|lat| == 66.5°) stay valid per v0.2.7.2 §1.A
   // amendment: the polar-circle rule is strict greater-than 66.5°.
   // Pre-1970 dates and far-future dates remain in the supported window.
+  //
+  // These carried only `VALID_SIGNS.has(sign)` until now, which passes for
+  // all twelve signs — so the block could not fail. The two day-rollover
+  // cases in particular (Beijing pre-1970 and west-of-IDL) were the repo's
+  // ONLY coverage of utcDateParts' dayDelta arithmetic, and a rollover that
+  // landed on the wrong day still yields a valid sign.
+  //
+  // PROVENANCE, explicitly: the `sign`/`ascendant` columns below are frozen
+  // from the current implementation. They are characterization pins — they
+  // catch drift, they are not an independent check of correctness, and
+  // unlike the operator live-fire referenceCases at the top of this file
+  // they carry no astro.com verification. The rollover invariants in the
+  // block underneath are the part that does not depend on a frozen value.
   const cases = [
-    ['equator',                    2000, 1,  1, 12, 0,    0,    0,      0],
-    ['northern boundary (66.5)',   2000, 1,  1, 12, 0,    0,   66.5,   10],
-    ['southern boundary (-66.5)',  2000, 1,  1, 12, 0,    0,  -66.5,   10],
-    ['east of IDL',                2000, 1,  1, 12, 0,  720,    0,    179.99],
-    ['west of IDL',                2000, 1,  1, 12, 0, -720,    0,   -179.99],
-    ['pre-1970 Beijing anchor',    1924, 2,  4,  0, 0,  480,   39.9,  116.4],
-    ['post-2050 future date',      2099,12, 31, 23, 59,   0,   51.5,   -0.1]
+    ['equator',                    2000, 1,  1, 12, 0,    0,    0,      0,      'aries',    11.3779],
+    ['northern boundary (66.5)',   2000, 1,  1, 12, 0,    0,   66.5,   10,      'cancer',   98.9774],
+    ['southern boundary (-66.5)',  2000, 1,  1, 12, 0,    0,  -66.5,   10,      'aries',    11.1446],
+    ['east of IDL',                2000, 1,  1, 12, 0,  720,    0,    179.99,   'aries',    10.8330],
+    ['west of IDL',                2000, 1,  1, 12, 0, -720,    0,   -179.99,   'aries',    11.9224],
+    ['pre-1970 Beijing anchor',    1924, 2,  4,  0, 0,  480,   39.9,  116.4,    'scorpio', 211.0139],
+    ['post-2050 future date',      2099,12, 31, 23, 59,   0,   51.5,   -0.1,    'libra',   187.3266]
   ];
 
-  for (const [label, y, m, d, h, min, offset, lat, lng] of cases) {
-    it(`${label}: returns a valid sign`, () => {
+  for (const [label, y, m, d, h, min, offset, lat, lng, sign, ascendant] of cases) {
+    it(`${label}: ${sign}`, () => {
       const asc = ascendantDeg(y, m, d, h, min, offset, lat, lng);
-      const sign = getRisingSign(y, m, d, h, min, offset, lat, lng);
-      expect(Number.isNaN(asc)).toBe(false);
+      expect(asc).toBeCloseTo(ascendant, 4);
       expect(asc).toBeGreaterThanOrEqual(0);
       expect(asc).toBeLessThan(360);
-      expect(VALID_SIGNS.has(sign)).toBe(true);
+      expect(getRisingSign(y, m, d, h, min, offset, lat, lng)).toBe(sign);
     });
   }
+});
+
+// The independent half of the rollover cases above. A frozen sign proves
+// the answer did not change; these prove the answer is right, with no
+// ephemeris and no frozen value: a wall time plus an offset names one UTC
+// instant, and expressing that same instant directly must give the same
+// ascendant. That catches a regression in how utHours is derived from the
+// offset — a dropped or sign-flipped `- utcOffsetMinutes / 60`.
+//
+// What it does NOT do, stated plainly rather than implied: guard
+// utcDateParts. That function's day/hour split has no observable effect at
+// all. julianDay is linear in `day + utHours / 24` and the Meeus formula
+// stays continuous for out-of-range day values, so splitting Feb 4 at −8h
+// into Feb 3 at +16h and then recombining is exact arithmetic identity.
+// Bypassing utcDateParts entirely leaves the ascendant unchanged at all
+// 270,144 points of a 1900–2100 × all-months × ±720min grid — max delta 0.
+// Setting its dayDelta to 0, or swapping floor for trunc, is likewise
+// undetectable. It is normalization for readability, not for the result;
+// the tests below would pass without it.
+describe('rising sign — wall time and UTC instant agree across midnight', () => {
+  const rollovers = [
+    {
+      label: 'backward across midnight (utHours < 0) — Beijing +8, 1924-02-04 00:00',
+      wall: [1924, 2, 4, 0, 0, 480], utc: [1924, 2, 3, 16, 0, 0],
+      lat: 39.9, lng: 116.4
+    },
+    {
+      label: 'forward across midnight (utHours == 24) — west of IDL, 2000-01-01 12:00',
+      wall: [2000, 1, 1, 12, 0, -720], utc: [2000, 1, 2, 0, 0, 0],
+      lat: 0, lng: -179.99
+    },
+    {
+      label: 'exactly on the boundary (utHours == 0) — east of IDL, 2000-01-01 12:00',
+      wall: [2000, 1, 1, 12, 0, 720], utc: [2000, 1, 1, 0, 0, 0],
+      lat: 0, lng: 179.99
+    },
+    {
+      label: 'backward across a year boundary — 2000-01-01 00:30 at +13',
+      wall: [2000, 1, 1, 0, 30, 780], utc: [1999, 12, 31, 11, 30, 0],
+      lat: -36.85, lng: 174.76
+    },
+    {
+      label: 'forward across a year boundary — 1999-12-31 23:30 at −11',
+      wall: [1999, 12, 31, 23, 30, -660], utc: [2000, 1, 1, 10, 30, 0],
+      lat: -14.28, lng: -170.7
+    }
+  ];
+
+  for (const r of rollovers) {
+    it(r.label, () => {
+      const viaWall = ascendantDeg(...r.wall, r.lat, r.lng);
+      const viaUtc = ascendantDeg(...r.utc, r.lat, r.lng);
+      expect(viaWall).toBeCloseTo(viaUtc, 10);
+      expect(getRisingSign(...r.wall, r.lat, r.lng))
+        .toBe(getRisingSign(...r.utc, r.lat, r.lng));
+      // and the sign is a real one, not an undefined from an out-of-range index
+      expect(VALID_SIGNS.has(getRisingSign(...r.wall, r.lat, r.lng))).toBe(true);
+    });
+  }
+});
+
+// The two-pass DST correction at core/rising.js:139-143. Pass 1 treats the
+// wall time as UTC and asks Intl what offset applied at that instant; pass 2
+// subtracts that guess and re-asks. Every DST case elsewhere in this file is
+// a mid-July date where both passes agree, so deleting pass 2 left the suite
+// green. These are the wall times where the two passes disagree.
+describe('rising sign — two-pass DST offset resolution', () => {
+  it('one hour after spring-forward resolves to EDT, not EST', () => {
+    // 2020-03-08 03:00 in New York is EDT (−240). A single-pass
+    // implementation returns −300: at 03:00 *UTC* on that date New York
+    // was still EST, because the transition is at 07:00 UTC.
+    expect(offsetMinutesForWallTime(2020, 3, 8, 3, 0, 'America/New_York')).toBe(-240);
+  });
+
+  it('one hour before spring-forward is still EST', () => {
+    expect(offsetMinutesForWallTime(2020, 3, 8, 1, 0, 'America/New_York')).toBe(-300);
+  });
+
+  it('the physically ambiguous and nonexistent wall-times resolve deterministically', () => {
+    // core/rising.js:110-111 names these as accepted-ambiguous. Which side
+    // is chosen was never pinned, so it could drift silently; these lock
+    // the current answer rather than argue for it.
+    // 02:30 on spring-forward day does not exist (the clock jumps 02:00→03:00).
+    expect(offsetMinutesForWallTime(2020, 3, 8, 2, 30, 'America/New_York')).toBe(-240);
+    // 01:30 on fall-back day happens twice; the resolver takes the first (EDT).
+    expect(offsetMinutesForWallTime(2020, 11, 1, 1, 30, 'America/New_York')).toBe(-240);
+  });
+});
+
+// The guard block at core/profile.js:275-296, which has its own documented
+// result legend: `undefined` = required inputs missing or invalid (line 2
+// falls back to bare sun), `null` = polar latitude (the UI says "rising
+// unavailable"). Nothing tested the difference, and nothing reached the
+// guards at all: tests/pillars.test.js passes malformed times but no
+// lat/lng, so it bails at the coordinate check before the time regex runs.
+describe('rising sign — buildProfile input guards (undefined vs null)', () => {
+  const LONDON = { lat: 51.5074, lng: -0.1278, tz: 'Europe/London' };
+  const rising = opts => buildProfile('Test', '1990-06-15', opts).risingSign;
+
+  it('resolves with well-formed inputs (the control)', () => {
+    expect(rising({ ...LONDON, time: '12:00' })).toBe('virgo');
+  });
+
+  // Every row here returns undefined — "we could not resolve this" — and
+  // the fallback is a bare sun sign. A regression that let any of them
+  // through would put a wrong rising sign on a real reading.
+  const unresolvable = [
+    ['no opts at all',              undefined],
+    ['time missing',               { ...LONDON }],
+    ['time empty string',          { ...LONDON, time: '' }],
+    ['time without a colon',       { ...LONDON, time: '1200' }],
+    ['time with a 1-digit minute', { ...LONDON, time: '2:5' }],
+    ['time with seconds',          { ...LONDON, time: '12:00:00' }],
+    ['time with a leading space',  { ...LONDON, time: ' 12:00' }],
+    ['hour above 23',              { ...LONDON, time: '25:30' }],
+    ['minute above 59',            { ...LONDON, time: '12:75' }],
+    ['lat above +90',              { ...LONDON, time: '12:00', lat: 95 }],
+    ['lat below −90',              { ...LONDON, time: '12:00', lat: -95 }],
+    ['lng above +180',             { ...LONDON, time: '12:00', lng: 200 }],
+    ['lng below −180',             { ...LONDON, time: '12:00', lng: -200 }],
+    ['lat as a string',            { ...LONDON, time: '12:00', lat: '51.5' }],
+    ['empty tz and no country',    { ...LONDON, time: '12:00', tz: '' }],
+    ['neither tz nor country',     { lat: 51.5074, lng: -0.1278, time: '12:00' }],
+    ['an unknown country code',    { lat: 51.5074, lng: -0.1278, time: '12:00', country: 'ZZ' }]
+  ];
+
+  for (const [label, opts] of unresolvable) {
+    it(`${label} → undefined`, () => {
+      expect(rising(opts)).toBeUndefined();
+    });
+  }
+
+  // The `time with seconds` row is not hypothetical: <input type="time">
+  // emits HH:MM:SS whenever its `step` is not a multiple of 60. index.html
+  // sets no step today, so this pins the day someone adds one.
+  it('the HH:MM regex is what rejects an HH:MM:SS value', () => {
+    expect(rising({ ...LONDON, time: '12:00:00' })).toBeUndefined();
+    expect(rising({ ...LONDON, time: '12:00' })).toBe('virgo');
+  });
+
+  it('a polar latitude is null, not undefined — a resolved "unavailable"', () => {
+    expect(rising({ ...LONDON, time: '12:00', lat: 90 })).toBeNull();
+    expect(rising({ ...LONDON, time: '12:00', lat: 66.6 })).toBeNull();
+    // and the boundary itself stays resolvable (strict greater-than)
+    expect(rising({ ...LONDON, time: '12:00', lat: 66.5 })).toBe('virgo');
+  });
 });
 
 describe('rising sign — polar latitudes return null (v0.2.7.2 §1.A)', () => {

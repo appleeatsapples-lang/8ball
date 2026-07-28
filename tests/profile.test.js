@@ -431,10 +431,21 @@ describe('calendar — lunar new year + solar-term tables (v2)', () => {
   // see journal entry) MUST match these dates exactly. If any fails,
   // the calc base is wrong — block merge.
 
-  // Lunar new year locks (10 entries spanning 1900–2025).
+  // Lunar new year locks (13 entries spanning 1900–2100).
+  //
+  // The 2033/2034 pair is the reason this table grew. core/calendar.js:255-256
+  // documents the leap-suì branch (`lunations !== 12`, which searches offsets
+  // 1..12 for the zhongqi-free month and picks lnyOffset 3 instead of 2) as
+  // mattering for exactly one suì in the whole supported 1900–2100 window:
+  // 2033/2034, where LNY 2034 falls on Feb 19 rather than the Jan 20 a naive
+  // twelfth-lunation rule gives. That is the module's hardest branch and the
+  // table did not reach it. Both dates are the canonical Chinese New Year
+  // dates for those years, so this is a correctness lock, not a
+  // characterization pin. 1900 and 2100 close the two range ends.
   const lnyLocks = [
     [1900, 1, 31], [1924, 2, 5], [1950, 2, 17], [1985, 2, 20], [1990, 1, 27],
-    [2000, 2, 5], [2010, 2, 14], [2020, 1, 25], [2024, 2, 10], [2025, 1, 29]
+    [2000, 2, 5], [2010, 2, 14], [2020, 1, 25], [2024, 2, 10], [2025, 1, 29],
+    [2033, 1, 31], [2034, 2, 19], [2100, 2, 9]
   ];
   for (const [year, month, day] of lnyLocks) {
     it(`lunarNewYearDate(${year}) → [${month}, ${day}]`, () => {
