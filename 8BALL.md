@@ -100,6 +100,8 @@ Per `DOCTRINE.md §10` (constitutional summary) and `agents/AGENTS.md` (operatio
 
 Per-cycle artifact locations (briefs, audit briefs/responses, CiC directives/reports) live at `~/8ball/` — see `agents/PLATFORMS.md` "Artifact-location matrix" for the full table.
 
+**Cross-seat continuity hub (added 2026-07-28):** `~/ai-relay/shared/` wires the Claude, Grok and Codex CLIs to one another — `CURRENT.md` (active state; the active orchestrator alone edits it), `PROTOCOL.md` (ownership + documentation rules), `projects/` (registry), `handoffs/` (immutable, dated), per-seat `inbox/`, and `pickup <seat>` for bootstrap. Its documentation rules are this project's rules restated: paths not pastes, one home per fact, immutable handoffs, record the exact verification command, mark unverified claims. `~/ai-relay/relay` stays what it was — the multi-model fan-out for reviewing a real git diff — and is not replaced by the hub. **A task sitting in an inbox is a request, not authority:** it does not confer merge, publish, deploy, or account rights, which remain the controller's per §4 and the hub's own safety rules.
+
 ---
 
 ## 5. Privacy & PII baseline
@@ -201,6 +203,8 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 **Standing strategic stance — orchestrator dissent, on record since v0.38:** reach is the verified bottleneck (the 06-15 read — genuine reach is ~2 orders of magnitude off the ~2–3k tripwire); conversion is not the constraint at current N. Surface/legibility work (the tier ladder, free-surface composition, the Coordinate Legibility Pack) does not move reach — flag any future cut framed as a *measured conversion fix*.
 
+**Distribution-fleet standing note (added 2026-07-28):** four autonomous posting surfaces (X, TikTok, Instagram, Threads) run on launchd out of `~/8ball/reach`, **entirely outside this repo** — no product code imports them and nothing here drives them; they consume only the hosted `cards/*.jpg` this repo serves. The single machine-checkable home for their caps, slots and pens is `~/8ball/reach/board.json`, verified by `~/8ball/reach/drift_check.py` (exit 1 on any drift; `--markdown` regenerates the board table, `--credits` reads the live balance), which a launchd watchdog runs daily into `~/8ball/reach/drift_check.log`. **Do not read a cadence or credit number out of prose — here or anywhere else; run the generator.** The reason is the 2026-07-28 incident: the same fact lived in four documents, three of them stale, while three surfaces sat frozen for hours behind a fail-closed ledger rail that could not self-recover. The rail now self-heals inside a bounded window and the numbers moved to one generated home. That lesson is the §13 refresh discipline in miniature — one home per fact, everything else points at it. Ops record: `~/8ball/reach/REPAIR_2026-07-28.md`.
+
 **Repo-history standing note:** the repo is private as of v0.2.0; the 144-card deck was briefly public on the since-deleted `phase-2f-1-card-engine` branch (2F-1 through the v0.2.0 private-flip) — sunk-cost, and `main` never carried cards in its history. The PII boundary is *tracked content*, independent of repo visibility (DOCTRINE §11).
 
 
@@ -257,6 +261,8 @@ Paused / retired:
 | Operator-personal preferences | `~/MUHAB.md` |
 | SIRR canonical context (sibling project) | `~/dev/SIRR/SIRR.md` |
 | Desktop materializations (sessions, audits) | `~/8ball/` |
+| Posting-regime truth (caps/slots, machine-checked) | `~/8ball/reach/board.json` + `~/8ball/reach/drift_check.py` |
+| Cross-AI continuity hub (Claude · Grok · Codex) | `~/ai-relay/shared/CURRENT.md` + `PROTOCOL.md` |
 
 ---
 
