@@ -9,7 +9,7 @@
 // focus save/trap/restore logic with hand mocks (node env, no jsdom),
 // mirroring tests/modals.test.js.
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -163,5 +163,82 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     closePaywall();
     expect(shakeBtn.focusCount).toBe(2);
     expect(modal.classList.contains('open')).toBe(false);
+  });
+});
+
+// ── the opener stack under imbalance ─────────────────────────────────
+// `_openers` (ui/modals.js:34) is module-level state shared by both
+// content modals AND the paywall in ui/payments.js. The stacked-restore
+// case above covers the balanced path. What follows covers the pop from
+// an EMPTY stack (ui/modals.js:46-47), which no test reached — and which
+// is reachable in production, because initPaywallUI wires closeBtn
+// straight to closePaywall, so a click on the paywall's close control
+// before anything opened it pops an opener that was never pushed.
+//
+// Each test takes a fresh module so the stack is provably empty at the
+// start rather than merely balanced by the tests that ran before it.
+describe('modal focus — opener-stack underflow', () => {
+  const originalDocument = globalThis.document;
+
+  beforeEach(() => {
+    globalThis.document = { activeElement: null, addEventListener() {} };
+  });
+  afterEach(() => {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  });
+
+  it('closing a modal that was never opened is a no-op, not a throw', async () => {
+    vi.resetModules();
+    const fresh = await import('../ui/modals.js');
+    const stray = makeEl('strayModal');
+
+    expect(() => fresh.closeModal(stray)).not.toThrow();
+    // the coupled triplet still applies — class off, aria-hidden on
+    expect(stray.classList.contains('open')).toBe(false);
+    expect(stray.attrs['aria-hidden']).toBe('true');
+    // and nothing was focused, because there was no opener to restore
+    expect(globalThis.document.activeElement).toBe(null);
+  });
+
+  it('a double close pops an opener that belongs to another dialog', async () => {
+    // Pinning the hazard rather than blessing it: one unbalanced close
+    // shifts every saved opener by one, so the dialog still open loses
+    // its restore target. If closeModal ever grows an emptiness guard or
+    // a paired-open assertion, this expectation is what should change.
+    vi.resetModules();
+    const fresh = await import('../ui/modals.js');
+    const pageBtn = makeEl('pageBtn');
+    const modalA = makeEl('modalA');
+    const closeA = makeEl('closeA');
+    const modalB = makeEl('modalB');
+    const closeB = makeEl('closeB');
+
+    pageBtn.focus();
+    fresh.openModal(modalA, closeA);   // pushes pageBtn
+    fresh.openModal(modalB, closeB);   // pushes closeA
+    fresh.closeModal(modalB);          // pops closeA — correct
+    expect(closeA.focusCount).toBe(2); // open-focus + restore
+
+    fresh.closeModal(modalB);          // stray second close: pops pageBtn
+    expect(pageBtn.focusCount).toBe(2);
+
+    // modalA is still open, but its opener has already been consumed
+    fresh.closeModal(modalA);
+    expect(pageBtn.focusCount).toBe(2); // no further restore — it was taken
+  });
+
+  it('openModal survives a focus target that cannot take focus', async () => {
+    // ui/modals.js:40 — the `typeof focusTarget.focus === 'function'`
+    // arm. Both production call sites always pass a real control, so the
+    // falsy arm never ran.
+    vi.resetModules();
+    const fresh = await import('../ui/modals.js');
+    const modal = makeEl('modal');
+
+    expect(() => fresh.openModal(modal, undefined)).not.toThrow();
+    expect(() => fresh.openModal(modal, { nodeName: 'DIV' })).not.toThrow();
+    expect(modal.classList.contains('open')).toBe(true);
+    expect(modal.attrs['aria-hidden']).toBe('false');
   });
 });
