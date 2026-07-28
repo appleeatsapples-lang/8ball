@@ -35,6 +35,7 @@ import {
   getPendingProfile,
   handlePaidReturn,
   initPaywallUI,
+  setPendingProfile,
   showPaidBanner,
 } from '../ui/payments.js';
 
@@ -668,6 +669,61 @@ describe('pending-profile validation (ui/payments.js:145-153)', () => {
   it('returns null rather than throwing when storage is blocked', () => {
     globalThis.localStorage = makeThrowingStorage();
     expect(getPendingProfile()).toBe(null);
+  });
+});
+
+// The write half of the same key (ui/payments.js:154-157). setPendingProfile
+// had no callers in the suite at all — the paid-return tests seed PENDING_KEY
+// by hand through makeStorage rather than going through the writer — so the
+// only function in the module that puts a profile into storage was never run.
+describe('pending-profile write (ui/payments.js:154-157)', () => {
+  it('serializes the payload under the pending key', () => {
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+    const pending = mk('Lock Tap', '1999-09-09');
+
+    setPendingProfile(pending);
+
+    expect(storage.setItem).toHaveBeenCalledWith(PENDING_KEY, JSON.stringify(pending));
+    expect(JSON.parse(storage.snapshot()[PENDING_KEY])).toEqual(pending);
+  });
+
+  it('round-trips through the reader — the pair agrees on the shape', () => {
+    // The Path B lock-tap writes here and the ?paid=tN return reads there;
+    // if the two ever disagree about the payload shape the purchase renders
+    // nothing, and each side's own tests would still pass.
+    globalThis.localStorage = makeStorage();
+    const pending = mk('Round Trip', '2001-02-03');
+
+    setPendingProfile(pending);
+
+    expect(getPendingProfile()).toEqual(pending);
+  });
+
+  it('no-ops instead of throwing when storage is blocked', () => {
+    // The documented contract at the top of the module: "Writes silently
+    // no-op on exception — the worst case is state resetting on the next
+    // visit." This is the last of its write paths to be exercised.
+    const storage = makeThrowingStorage();
+    globalThis.localStorage = storage;
+
+    expect(() => setPendingProfile(mk('Private Mode', '1999-09-09'))).not.toThrow();
+    expect(storage.setItem).toHaveBeenCalled(); // it tried; storage refused
+  });
+
+  it('no-ops when the payload itself cannot be serialized', () => {
+    // JSON.stringify sits INSIDE the try, so a payload that cannot be
+    // serialized is swallowed like a storage failure. Hoisting the
+    // stringify out of the try — a plausible tidy-up — would turn this
+    // into an uncaught throw on the lock-tap path.
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+    const circular = mk('Circular', '1999-09-09');
+    circular.self = circular;
+
+    expect(() => setPendingProfile(circular)).not.toThrow();
+    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
   });
 });
 
