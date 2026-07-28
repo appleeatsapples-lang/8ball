@@ -164,6 +164,58 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     expect(shakeBtn.focusCount).toBe(2);
     expect(modal.classList.contains('open')).toBe(false);
   });
+
+  // ── paywall backdrop ───────────────────────────────────────────────
+  // ui/payments.js:178-180, the last uncovered function in that module.
+  // Same shape as the two content-modal backdrops, and the same reason
+  // it matters: the false arm of `e.target === paywallModal` is what
+  // stops a tap on the dialog's own padding — right next to a Buy link —
+  // from dismissing the offer out from under the visitor.
+  it('paywall: a click on the backdrop itself dismisses and restores focus', () => {
+    const modal = makeEl('paywallModal');
+    const closeBtn = makeEl('paywallClose');
+    const shakeBtn = makeEl('shakeBtn');
+    initPaywallUI({ modal, closeBtn, banner: makeEl('banner') });
+    shakeBtn.focus();
+    openPaywall();
+    expect(modal.classList.contains('open')).toBe(true);
+
+    modal._fire('click', { target: modal });
+
+    expect(modal.classList.contains('open')).toBe(false);
+    expect(modal.attrs['aria-hidden']).toBe('true');
+    expect(shakeBtn.focusCount).toBe(2); // initial + restore
+  });
+
+  it('paywall: a click INSIDE the dialog leaves the offer up', () => {
+    const modal = makeEl('paywallModal');
+    const closeBtn = makeEl('paywallClose');
+    const buyLink = makeEl('buyLink');
+    initPaywallUI({ modal, closeBtn, banner: makeEl('banner') });
+    openPaywall();
+
+    modal._fire('click', { target: buyLink });
+    expect(modal.classList.contains('open')).toBe(true);
+    modal._fire('click', { target: closeBtn });
+    expect(modal.classList.contains('open')).toBe(true);
+    expect(modal.attrs['aria-hidden']).toBe('false');
+
+    // leave the shared opener stack as we found it
+    closePaywall();
+  });
+
+  it('paywall: the close button dismisses it', () => {
+    // paywallClose is wired straight to closePaywall at
+    // ui/payments.js:177 — no test had ever fired that listener, only
+    // called closePaywall() directly.
+    const modal = makeEl('paywallModal');
+    const closeBtn = makeEl('paywallClose');
+    initPaywallUI({ modal, closeBtn, banner: makeEl('banner') });
+    openPaywall();
+
+    closeBtn._fire('click');
+    expect(modal.classList.contains('open')).toBe(false);
+  });
 });
 
 // ── the opener stack under imbalance ─────────────────────────────────
