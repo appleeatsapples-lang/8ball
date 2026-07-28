@@ -47,7 +47,11 @@ Codex read the repo and ran its own checks rather than trusting the brief:
 - `cards/manifest.json` gained `external` + `external_count`: the ten codes **with their URLs**, so cards + external together cover all 298 queued codes.
 - `tests/cards_hosting.test.js` gained `EXPECTED_EXTERNAL` (pinned) and a new test asserting: the external list matches exactly, `external_count` agrees, every URL is a string starting `https://`, every external code is **not** rendered locally, and the union covers all 298.
 
-**Stated limit.** Reachability is *not* asserted in CI — DOCTRINE §5 forbids network in tests. The guard catches an untracked, missing, or malformed URL; it cannot catch a URL that 404s later. Live reachability was checked by hand at audit time (10/10 → 200) and is recorded here as evidence, not as a standing control.
+**Stated limit.** Reachability is *not* asserted in CI — DOCTRINE §5 forbids network in tests. The guard catches an untracked, missing, or malformed URL; it cannot catch a URL that 404s later.
+
+**Live reachability, checked by hand at audit time:** a full HEAD sweep of every registered extra returned **12/12 → HTTP 200**, zero unreachable or malformed — the 10 queued codes above plus `spec_no-lxvi` and `spec_no-xcv`, which are N-18-retired from the queues but still hosted. Recorded as point-in-time evidence, **not** as a standing control.
+
+*Provenance note, because this artifact's own standard demands it:* the sweep was started at audit time but had not finished when this section was first written; the figure then rested on one spot-checked URL plus DNS resolution, and was stated more confidently than the evidence supported. The completed sweep confirms it. Corrected here rather than left standing on an extrapolation.
 
 ## F2 · P2 — missing queue files were silently ignored
 
@@ -72,7 +76,7 @@ Codex read the repo and ran its own checks rather than trusting the brief:
 | 97 pre-existing JPEGs | byte-identical, determinism unaffected by the fixes |
 | `bash audits/run_local_audit.sh` | clean, **443 files** |
 | P2 guard | fires correctly on a missing queue |
-| Extras reachability (manual, not CI) | 10/10 → HTTP 200 |
+| Extras reachability (manual, not CI) | **12/12 → HTTP 200** (10 queued + 2 retired-but-hosted), full sweep |
 | Manifest coverage | 288 rendered + 10 external = **298 = every queued code** |
 
 **Flake note, disclosed:** one `npm test` run failed on `tests/cities.test.js` — a 15s **timeout**, on a machine simultaneously running a 288-image render and a relay review. It passes on a quiet re-run and is unrelated to this change. Recorded rather than silently re-run.
