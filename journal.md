@@ -5,6 +5,47 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-28 — boot sequence extracted to `ui/boot.js` (§6 split) — STAGED
+
+**Status: STAGED on `claude/test-coverage-analysis-qdsbh3`, alongside the
+test-coverage work on the same branch. Merge is the operator's word. No
+deploy — the branch is not `main`.**
+
+**Why.** The boot sequence was the last part of the app with zero execution
+coverage: it lived in `index.html`'s inline module, which the suite reads as
+text but never runs. Its individual steps each had unit tests; the ORDER did
+not, and the order is what had previously broken (the corrupt-payload
+`resetFormDisplay` comment records that failure). Three regex scans —
+`tiers.test.js` ×2, `dob_validation.test.js` ×1, plus two in
+`facet_rotation.test.js` — stood in for real coverage, and a scan proves two
+statements are present, not that one runs before the other.
+
+**The change.** `runBoot({...14 hooks})` in a new `ui/boot.js`, called from
+`index.html` with everything injected from that scope. Not a DOM controller,
+so like `ui/concordance.js` it takes hooks alone rather than the
+`init*UI({refs},{hooks})` shape of §6 v0.23. The sequence and every
+load-bearing comment moved verbatim — no behavior change was intended and
+none was observed. `index.html` 1465 → 1447 lines (more headroom under the
+§7 stage-5 rule). `ui/` 10 → 11 modules, `tests/` 41 → 42; CLAUDE.md counts
+updated in the same change per `tests/repo_shape.test.js`.
+
+**Verification.** Suite 1511 → 1530, green. The five displaced scans were
+retargeted at `ui/boot.js` rather than deleted, and `tests/boot.test.js`
+adds the behavioral half they could not carry — step order, the paid-return
+callback, the t3-only facet anchor, and the corrupt-payload reset. Because
+the suite still cannot execute `index.html`, the refactor was additionally
+checked in a real browser (Chromium via Playwright, installed `--no-save`;
+`package.json` untouched, §12 unchanged): cold boot, submit, reload
+rehydration, a corrupt stored payload, and a `?paid=t3` return. The same
+checks were run against pre-refactor `HEAD` and returned byte-identical
+results, which is the evidence that the extraction is behavior-preserving.
+
+**Scope (files):** new `ui/boot.js`, new `tests/boot.test.js`, `index.html`,
+`CLAUDE.md` (counts), `tests/{tiers,dob_validation,facet_rotation}.test.js`
+(scan retargeting), this file. **UNTOUCHED:** `core/`, `content/`,
+`DOCTRINE.md`, fixtures, every other `ui/` module, no new dependency, no new
+`localStorage` key, no network call.
+
 ## 2026-07-26 — l48-gate tightening: response/override shapes only (false-green predicate closed) — STAGED
 
 **Status: STAGED on `claude/l48-gate-response-only`; merge is its own word. The tightened gate applies to this very PR — expected RED after the brief commit, GREEN only once the verdict response lands; that live red-then-green sequence is the acceptance test. Trigger: the follow-up first staged at the #126 audit F1 (a 100%-similarity renamed session record satisfied the old predicate), corroborated by #129's F2 in both relay legs (the brief alone greened the gate).**

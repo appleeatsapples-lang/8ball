@@ -13,6 +13,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+// The boot sequence moved to ui/boot.js in the §6 split; the rehydration
+// guard below reads it there. tests/boot.test.js carries the behavioral
+// half — this stays as the shape pin it always was.
+const bootJs = readFileSync(join(__dirname, '..', 'ui', 'boot.js'), 'utf-8');
 
 describe('DOB validation markup (v0.3.0 fix B)', () => {
   it('dob-error element exists with id, class, and hidden attribute', () => {
@@ -92,7 +96,7 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     // (which nulls selectedCity) — otherwise the next submission silently inherits
     // the discarded city's tz/lat/lng (a wrong rising sign). Then fall through to
     // onboarding — never crash, never leak.
-    expect(html).toMatch(
+    expect(bootJs).toMatch(
       /try\s*\{[\s\S]*?profileFromPayload\(existing\)[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?clearProfile\(\)[\s\S]*?resetFormDisplay\(\)/
     );
   });

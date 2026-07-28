@@ -48,6 +48,10 @@ import { makeClassList } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+// The boot sequence moved to ui/boot.js in the §6 split. The two R1/unseal
+// wiring pins below follow it there; tests/boot.test.js asserts the same
+// orderings behaviorally, which a source scan cannot do.
+const bootJs = readFileSync(join(__dirname, '..', 'ui', 'boot.js'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 
 // Same labeled-DOB-regex dodge as tests/payments_state.test.js: the pii
@@ -291,12 +295,15 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
   it('cold-boot rehydration renders at getRenderTier() — no boot-circumstance branch', () => {
-    // boot(): resolve once through the helper, then pass exactly that tier
-    // and nothing else (v0.55: the render opts ARE the tier).
-    const m = html.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
+    // runBoot(): resolve once through the helper, then pass exactly that
+    // tier and nothing else (v0.55: the render opts ARE the tier).
+    const m = bootJs.match(/const existing = loadSavedProfile\(\);[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?showResult\(profile,\s*\{([\s\S]*?)\}\s*\)/);
     expect(m, 'rehydration showResult call not found').not.toBeNull();
     expect(m[1].trim()).toBe('tier');
-    // the paid-return special case is gone: no consumedPending ternary
+    // the paid-return special case is gone: no consumedPending ternary.
+    // consumedPending lives in ui/boot.js now, so that is where the check
+    // bites; index.html is asserted too so it can never come back there.
+    expect(bootJs).not.toMatch(/consumedPending\s*\?/);
     expect(html).not.toMatch(/consumedPending\s*\?/);
   });
 
@@ -926,12 +933,12 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     }
   });
 
-  it('index.html primes the baseline BEFORE handlePaidReturn applies the purchase', () => {
-    const m = html.match(/primeUnsealBaseline\(getRenderTier\(\)\);[\s\S]{0,900}?handlePaidReturn\(/);
+  it('ui/boot.js primes the baseline BEFORE handlePaidReturn applies the purchase', () => {
+    const m = bootJs.match(/primeUnsealBaseline\(getRenderTier\(\)\);[\s\S]{0,900}?handlePaidReturn\(/);
     expect(m, 'baseline must be primed ahead of the paid return').not.toBeNull();
     // and never the other way around
-    const primeIdx = html.indexOf('primeUnsealBaseline(getRenderTier())');
-    const returnIdx = html.indexOf('handlePaidReturn(p =>');
+    const primeIdx = bootJs.indexOf('primeUnsealBaseline(getRenderTier())');
+    const returnIdx = bootJs.indexOf('handlePaidReturn(p =>');
     expect(primeIdx).toBeGreaterThan(-1);
     expect(primeIdx).toBeLessThan(returnIdx);
   });

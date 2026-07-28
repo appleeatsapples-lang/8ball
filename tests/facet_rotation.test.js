@@ -19,6 +19,9 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf8');
+// The boot half of the facet wiring moved to ui/boot.js in the §6 split;
+// the submit/shake half stayed in index.html. Both are pinned below.
+const bootJs = readFileSync(join(__dirname, '..', 'ui', 'boot.js'), 'utf8');
 const paymentsUi = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf8');
 
 function makeStorage(initial = {}) {
@@ -294,12 +297,17 @@ describe('t3-only host wiring', () => {
   });
 
   it('new profiles and consumed pending profiles explicitly reset to the anchor', () => {
+    // submit path stayed in index.html; the boot path moved to ui/boot.js
     expect(html).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: isNew \}\)/);
-    expect(html).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: consumedPending \}\)/);
+    expect(bootJs).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: consumedPending \}\)/);
   });
 
   it('forget and corrupt-profile cleanup clear the facet position', () => {
-    expect(html.match(/clearFacetIndex\(\)/g)).toHaveLength(2);
+    // Still exactly two call sites, now one per file: forget-device stays
+    // with the modal hooks in index.html, corrupt-profile cleanup went to
+    // ui/boot.js with the rest of the rehydration guard.
+    expect(html.match(/clearFacetIndex\(\)/g)).toHaveLength(1);
+    expect(bootJs.match(/clearFacetIndex\(\)/g)).toHaveLength(1);
   });
 
   it('mechanical c.1 mapping is explicit and does not claim v2 content', () => {

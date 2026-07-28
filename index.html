@@ -1038,6 +1038,7 @@ import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
 import { initReadingsUI, clearAllSavedReadings } from './ui/readings.js';
 import { buildConcordance } from './ui/concordance.js';
+import { runBoot } from './ui/boot.js';
 
 const $ = id => document.getElementById(id);
 const onboarding = $('onboarding');
@@ -1422,44 +1423,25 @@ if (new URLSearchParams(window.location.search).get('sent') === '1') {
 // (§6 split); wired via initModalsUI above.
 
 // ── boot ──────────────────────────────────────────────────────────
-function boot() {
-  labelsUI.applyLabelsState(isLabelsRevealed());
-  // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
-  // paid-return boot unseals exactly the delta; rehydrate unseals nothing.
-  primeUnsealBaseline(getRenderTier());
-  // §6.6 paid-return runs before rehydration so the monotonic tier and
-  // any pending-consumed profile are persisted before loadSavedProfile()
-  // reads them. R1: a paid-return boot is not special — it just sets the
-  // tier and falls into the same render path as any rehydration;
-  // density resolves from storage via getRenderTier().
-  const consumedPending = handlePaidReturn(p => saveProfile(p.name, p.dob, p));
-  const existing = loadSavedProfile();
-  if (existing) {
-    try {
-      populateRisingFields(existing);
-      const profile = profileFromPayload(existing);
-      const tier = getRenderTier();
-      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: consumedPending });
-      showResult(profile, { tier });
-    } catch (_) {
-      // Corrupted stored profile — a malformed DOB, or (since the calc core
-      // now rejects them) an impossible-date DOB from a hand-edited payload.
-      // buildProfile throws AFTER populateRisingFields above may have already
-      // set the module-level selectedCity from the bad payload's birthplace, so
-      // reset BOTH: drop the payload from storage (clearProfile) AND reset the
-      // form (resetFormDisplay nulls selectedCity + clears the stale time/city
-      // fields). Without the reset, the next submission would silently inherit
-      // the discarded city's tz/lat/lng — a wrong rising sign baked into a new
-      // person's profile. #onboarding has no `hidden` class in the static
-      // markup, so it's already visible — nothing else to do here.
-      clearProfile();
-      clearFacetIndex();
-      resetFormDisplay();
-    }
-  }
-}
-
-boot();
+// The ordered sequence itself lives in ui/boot.js (§6 split) so its ORDER
+// is testable rather than only greppable — see tests/boot.test.js. Every
+// step is injected from this scope; that module touches no DOM of its own.
+runBoot({
+  applyLabelsState: labelsUI.applyLabelsState,
+  isLabelsRevealed,
+  primeUnsealBaseline,
+  getRenderTier,
+  handlePaidReturn,
+  saveProfile,
+  loadSavedProfile,
+  populateRisingFields,
+  profileFromPayload,
+  ensureFacetIndex,
+  showResult,
+  clearProfile,
+  clearFacetIndex,
+  resetFormDisplay,
+});
 </script>
 </body>
 </html>
