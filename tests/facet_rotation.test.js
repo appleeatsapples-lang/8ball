@@ -136,6 +136,52 @@ describe('facet storage and v1 slot selection', () => {
     }
   });
 
+  // The pure `normalizes only integer positions 0, 1, and 2` test above
+  // pins normalizeFacetIndex itself. What follows pins the storage-layer
+  // consequence at ui/payments.js:120 — the early return that keeps a
+  // rejected value from reaching localStorage at all. Nothing exercised
+  // it: every setFacetIndex call in the suite passes a valid position, so
+  // the guard could have been deleted and the writer would have happily
+  // stored 'NaN', '-1' or 'undefined' under the facet key.
+  const rejected = [null, undefined, '', -1, 3, 1.5, NaN, 'junk'];
+
+  it.each(rejected.map(v => [String(v), v]))(
+    'setFacetIndex(%s) writes nothing at all',
+    (_label, value) => {
+      setFacetIndex(value);
+      expect(localStorage.snapshot()).not.toHaveProperty(FACET_KEY);
+      expect(getFacetIndex()).toBeNull();
+    }
+  );
+
+  it('a rejected position never clobbers the one already stored', () => {
+    // The failure this guards: a stray setFacetIndex(undefined) on a t3
+    // device would otherwise persist a value getFacetIndex then reads back
+    // as null, silently re-anchoring the reader to their life-path slot and
+    // losing the position they had rotated to.
+    setFacetIndex(2);
+    for (const value of rejected) setFacetIndex(value);
+    expect(getFacetIndex()).toBe(2);
+    expect(localStorage.snapshot()[FACET_KEY]).toBe('2');
+    expect(getFacetSlot(1)).toBe('high');
+  });
+
+  it('the accept/reject boundary tracks FACET_COUNT', () => {
+    // 0..FACET_COUNT-1 store; one either side does not. Couples the
+    // storage guard to the constant so widening the ladder cannot leave
+    // the writer pinned to three positions.
+    for (const valid of [0, FACET_COUNT - 1]) {
+      globalThis.localStorage = makeStorage();
+      setFacetIndex(valid);
+      expect(getFacetIndex()).toBe(valid);
+    }
+    for (const invalid of [-1, FACET_COUNT]) {
+      globalThis.localStorage = makeStorage();
+      setFacetIndex(invalid);
+      expect(getFacetIndex()).toBeNull();
+    }
+  });
+
   it('consumeFacetShake advances and persists the visible position — no credit coupling (v0.55)', () => {
     globalThis.localStorage = makeStorage({ [FACET_KEY]: 0 });
     expect(consumeFacetShake(1)).toEqual({
