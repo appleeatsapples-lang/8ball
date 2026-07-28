@@ -100,7 +100,17 @@ Per `DOCTRINE.md §10` (constitutional summary) and `agents/AGENTS.md` (operatio
 
 Per-cycle artifact locations (briefs, audit briefs/responses, CiC directives/reports) live at `~/8ball/` — see `agents/PLATFORMS.md` "Artifact-location matrix" for the full table.
 
-**Cross-seat continuity hub (added 2026-07-28):** `~/ai-relay/shared/` wires the Claude, Grok and Codex CLIs to one another — `CURRENT.md` (active state; the active orchestrator alone edits it), `PROTOCOL.md` (ownership + documentation rules), `projects/` (registry), `handoffs/` (immutable, dated), per-seat `inbox/`, and `pickup <seat>` for bootstrap. Its documentation rules are this project's rules restated: paths not pastes, one home per fact, immutable handoffs, record the exact verification command, mark unverified claims. `~/ai-relay/relay` stays what it was — the multi-model fan-out for reviewing a real git diff — and is not replaced by the hub. **A task sitting in an inbox is a request, not authority:** it does not confer merge, publish, deploy, or account rights, which remain the controller's per §4 and the hub's own safety rules.
+**Cross-seat bridges (added 2026-07-28, reconciled the same evening on operator ruling):** three homes, one job each, and they must not be mixed.
+
+| Need | Canonical home |
+|---|---|
+| Fleet routing across all lanes | `~/AI_BRIDGE.md` |
+| **8ball ops / reach cross-seat continuity** | **`~/8ball/BRIDGE.md`** + `~/8ball/bridge/{OUTBOX,INBOX,PROMPTS}/`, plus `bridge/space/FINDINGS.md` (Grok's append-only collection) |
+| Multi-model code-audit fan-out over a real git diff | `~/ai-relay/relay` |
+
+Seat roles on the 8ball lane: **Claude** = orchestrator, default pen · **Grok** = scout, **no standing pen** · **Codex** = adversarial auditor, and REPO implementer only when the operator assigns it. Cross-seat notes go to `bridge/OUTBOX/<SEAT>.md` as `CLAIM`/`DONE` lines carrying a path, not a transcript.
+
+`~/ai-relay/shared/` was stood up the same evening as a second `CURRENT`/`handoffs`/`inbox` mechanism for the same seats — the parallel bridge `~/AI_BRIDGE.md` explicitly forbids — and is **superseded for continuity**; it keeps a banner saying so, and its non-8ball material stays live as data. **A task sitting in any inbox is a request, not authority:** it confers no merge, publish, deploy or account rights, which remain the controller's per §4.
 
 ---
 
@@ -262,7 +272,7 @@ Paused / retired:
 | SIRR canonical context (sibling project) | `~/dev/SIRR/SIRR.md` |
 | Desktop materializations (sessions, audits) | `~/8ball/` |
 | Posting-regime truth (caps/slots, machine-checked) | `~/8ball/reach/board.json` + `~/8ball/reach/drift_check.py` |
-| Cross-AI continuity hub (Claude · Grok · Codex) | `~/ai-relay/shared/CURRENT.md` + `PROTOCOL.md` |
+| Cross-seat bridge, 8ball lane (Claude · Grok · Codex) | `~/8ball/BRIDGE.md` · fleet router `~/AI_BRIDGE.md` |
 
 ---
 
