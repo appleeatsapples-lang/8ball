@@ -32,6 +32,7 @@ import {
   PENDING_KEY,
   TIER_KEY,
   getCredits,
+  getPendingProfile,
   handlePaidReturn,
   initPaywallUI,
   showPaidBanner,
@@ -90,6 +91,18 @@ function makeStorage(initial = {}) {
     setItem: vi.fn((key, value) => { store.set(key, String(value)); }),
     removeItem: vi.fn(key => { store.delete(key); }),
     snapshot: () => Object.fromEntries(store),
+  };
+}
+
+// Private mode / quota: every localStorage entry point throws. The
+// ui/payments.js header (§ "Every read defends against a localStorage
+// exception") states this is survivable; nothing exercised it until the
+// storage-boundary block at the bottom of this file.
+function makeThrowingStorage() {
+  return {
+    getItem: vi.fn(() => { throw new Error('denied'); }),
+    setItem: vi.fn(() => { throw new Error('denied'); }),
+    removeItem: vi.fn(() => { throw new Error('denied'); }),
   };
 }
 
@@ -616,5 +629,152 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
 
   it('profile.publicAnimal is not referenced anywhere in index.html', () => {
     expect(html).not.toMatch(/profile\.publicAnimal/);
+  });
+});
+
+// ── The storage boundary on the paid path ────────────────────────────
+// The happy path above is well covered; these are the arms underneath it
+// that were not. `getPendingProfile` had zero references anywhere in the
+// suite — it was reached only through handlePaidReturn, and only ever
+// with a well-formed JSON.stringify payload — so its validation and
+// catch arms (ui/payments.js:150-152) never ran. Neither did any of the
+// tier/pending catch arms, because every makeStorage in the suite is a
+// non-throwing Map. (tests/facet_rotation.test.js does pin the facet
+// side of the same contract; the money side was the gap.)
+describe('pending-profile validation (ui/payments.js:145-153)', () => {
+  const cases = [
+    { label: 'a name with no dob', raw: JSON.stringify({ name: 'Half Payload' }) },
+    { label: 'a dob with no name', raw: JSON.stringify({ dob: '1999-09-09' }) },
+    { label: 'truncated / corrupt JSON', raw: '{"name":"Cut Off","do' },
+    { label: 'a JSON null', raw: 'null' },
+    { label: 'an empty string', raw: '' },
+  ];
+
+  for (const c of cases) {
+    it(`rejects ${c.label}`, () => {
+      globalThis.localStorage = makeStorage({ [PENDING_KEY]: c.raw });
+      expect(getPendingProfile()).toBe(null);
+    });
+  }
+
+  it('accepts a well-formed payload unchanged', () => {
+    const pending = mk('Whole Payload', '1999-09-09');
+    globalThis.localStorage = makeStorage({
+      [PENDING_KEY]: JSON.stringify(pending),
+    });
+    expect(getPendingProfile()).toEqual(pending);
+  });
+
+  it('returns null rather than throwing when storage is blocked', () => {
+    globalThis.localStorage = makeThrowingStorage();
+    expect(getPendingProfile()).toBe(null);
+  });
+});
+
+describe('paid return survives a malformed pending profile', () => {
+  // What this pins, precisely: the purchase itself is honoured — the tier
+  // lands and persists, so the buyer keeps the density they paid for on
+  // every later render. What is lost is the in-flight profile: the
+  // payload is cleared at ui/payments.js:234 on the way through, so the
+  // immediate unlocked render does not happen and the visitor has to
+  // re-enter their details behind an already-granted tier.
+  //
+  // That clearing is deliberate on the happy path (the pending payload's
+  // lifetime is one round-trip) but it is not obviously right on the
+  // failure path — a payload that failed to parse is exactly the case
+  // where surviving one reload would let the render retry. Pinned as-is
+  // rather than changed: this is a product decision, and the test exists
+  // so the current answer cannot drift without someone noticing.
+  for (const [label, raw] of [
+    ['name without dob', JSON.stringify({ name: 'Half Payload' })],
+    ['corrupt JSON', '{"name":"Cut Off","do'],
+  ]) {
+    it(`${label}: tier still lands, pending is dropped, no unlocked render`, () => {
+      vi.useFakeTimers();
+      const banner = installPaywallUI();
+      const storage = makeStorage({ [PENDING_KEY]: raw });
+      const replaceState = vi.fn();
+      globalThis.localStorage = storage;
+      globalThis.window = {
+        location: { search: '?paid=t3', pathname: '/return' },
+        history: { replaceState },
+      };
+      const onConsume = vi.fn();
+
+      const consumed = handlePaidReturn(onConsume);
+
+      // no unlocked render — the caller is never handed a profile
+      expect(consumed).toBe(false);
+      expect(onConsume).not.toHaveBeenCalled();
+      // but the purchase is still honoured, permanently
+      expect(storage.snapshot()).toMatchObject({ [TIER_KEY]: 't3' });
+      // and the unusable payload is cleared rather than left to rot
+      expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
+      // the return still completes: query stripped, banner shown
+      expect(replaceState).toHaveBeenCalledWith({}, '', '/return');
+      expect(banner.hidden).toBe(false);
+      expect(banner.classList.contains('visible')).toBe(true);
+    });
+  }
+});
+
+describe('paid return survives a blocked localStorage (private mode / quota)', () => {
+  it('does not throw, still strips the query and shows the banner', () => {
+    vi.useFakeTimers();
+    const banner = installPaywallUI();
+    const storage = makeThrowingStorage();
+    const replaceState = vi.fn();
+    globalThis.localStorage = storage;
+    globalThis.window = {
+      location: { search: '?paid=t3', pathname: '/return' },
+      history: { replaceState },
+    };
+
+    // The failure this guards against: an uncaught throw from setTier
+    // would abort handlePaidReturn before clearPendingProfile,
+    // replaceState and showPaidBanner — leaving a paying visitor with a
+    // console exception and a ?paid=t3 URL stuck in the address bar.
+    expect(() => handlePaidReturn(vi.fn())).not.toThrow();
+    expect(replaceState).toHaveBeenCalledWith({}, '', '/return');
+    expect(banner.hidden).toBe(false);
+    expect(banner.classList.contains('visible')).toBe(true);
+    // the write was attempted — it is the storage that refused, not a
+    // branch that skipped the grant
+    expect(storage.setItem).toHaveBeenCalledWith(TIER_KEY, 't3');
+  });
+
+  it('reports no tier rather than throwing when the tier read is blocked', () => {
+    globalThis.localStorage = makeThrowingStorage();
+    expect(paymentsUI.getTier()).toBe(null);
+    expect(getCredits()).toBe(0);
+    expect(paymentsUI.getRenderTier()).toBe('free');
+  });
+});
+
+describe('isPaywallOpen before the paywall is wired (ui/payments.js:195)', () => {
+  // The `paywallModal != null` half of the guard is the entire reason
+  // this is a function and not a bare classList read: index.html wires
+  // isPaywallOpen into the Escape handler, which can fire before
+  // initPaywallUI has run. Every existing reference to isPaywallOpen in
+  // the suite is either a source-text regex or an injected stub, so the
+  // real implementation never executed.
+  it('is false before init, and tracks open/close after', async () => {
+    vi.resetModules();
+    const fresh = await import('../ui/payments.js');
+
+    expect(fresh.isPaywallOpen()).toBe(false);
+
+    fresh.initPaywallUI({
+      modal: makeElement(),
+      closeBtn: makeElement(),
+      banner: makeElement(),
+    });
+    expect(fresh.isPaywallOpen()).toBe(false);
+
+    fresh.openPaywall();
+    expect(fresh.isPaywallOpen()).toBe(true);
+
+    fresh.closePaywall();
+    expect(fresh.isPaywallOpen()).toBe(false);
   });
 });

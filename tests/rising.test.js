@@ -19,7 +19,8 @@ import {
   getRisingSign,
   gmstDeg,
   julianDay,
-  obliquityDeg
+  obliquityDeg,
+  offsetMinutesForWallTime
 } from '../core/rising.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -373,5 +374,119 @@ describe('rising sign — computeRising input guards (null / non-number coords)'
     // legacy getRisingSign shares the guard — no undefined leaks through
     expect(getRisingSign(2000, 1, 1, 12, 0, 0, NaN, 0)).toBe(null);
     expect(getRisingSign(2000, 1, 1, 12, 0, 0, 51, Infinity)).toBe(null);
+  });
+});
+
+// ── Fractional-offset timezones ──────────────────────────────────────
+// The `:MM` group in the GMT±HH:MM parse at core/rising.js:129 (`m[3]`)
+// was load-bearing but unpinned: every tz literal reaching computeRising
+// elsewhere in this file is whole-hour (London, NYC, Riyadh, Chicago,
+// Indianapolis, Moscow). The two fractional zones that do appear in the
+// suite — Australia/Adelaide and America/St_Johns in countries.test.js —
+// are asserted only as strings and never fed to the rising math, so
+// dropping `m[3]` entirely would have left the whole suite green.
+//
+// These cases carry no externally-sourced expected signs. The parity
+// cases above were operator live-fire vs astro.com (brief §5); nothing
+// here claims that provenance. Correctness is established instead by an
+// invariant that needs no ephemeris:
+//
+//   a wall time in a fractional-offset zone names one UTC instant, and
+//   the ascendant at that instant does not depend on which offset label
+//   was used to reach it.
+//
+// So computeRising(wall time, tz) must equal getRisingSign at the same
+// instant expressed against UTC. The offsets below are written as
+// literals — never read back from offsetMinutesForWallTime — so the
+// invariant cannot pass by agreeing with a regressed parser. Each block
+// also pins one hour where truncating to the whole hour changes the
+// sign, which is what stops the invariant from holding vacuously.
+describe('rising sign — fractional-offset timezones (GMT±HH:MM minutes)', () => {
+  const zones = [
+    {
+      label: 'Asia/Kolkata (+5:30) — Delhi 1990-06-15',
+      tz: 'Asia/Kolkata', offsetMinutes: 330, truncatedMinutes: 300,
+      year: 1990, month: 6, day: 15, lat: 28.6139, lng: 77.2090,
+      // hour where the :30 is the difference between two signs
+      pin: { hour: 2, correct: 'aries', ifMinutesDropped: 'taurus' }
+    },
+    {
+      label: 'Asia/Kathmandu (+5:45) — Kathmandu 1995-08-20',
+      tz: 'Asia/Kathmandu', offsetMinutes: 345, truncatedMinutes: 300,
+      year: 1995, month: 8, day: 20, lat: 27.7172, lng: 85.3240,
+      pin: { hour: 1, correct: 'gemini', ifMinutesDropped: 'cancer' }
+    },
+    {
+      label: 'America/St_Johns (−3:30 NST) — St John’s 1990-01-15',
+      tz: 'America/St_Johns', offsetMinutes: -210, truncatedMinutes: -180,
+      year: 1990, month: 1, day: 15, lat: 47.5615, lng: -52.7126,
+      pin: { hour: 4, correct: 'sagittarius', ifMinutesDropped: 'scorpio' }
+    },
+    {
+      // DST *and* a fractional base offset — NDT is −2:30, so this also
+      // proves the two-pass DST correction preserves the minutes.
+      label: 'America/St_Johns (−2:30 NDT, summer) — St John’s 1990-07-15',
+      tz: 'America/St_Johns', offsetMinutes: -150, truncatedMinutes: -120,
+      year: 1990, month: 7, day: 15, lat: 47.5615, lng: -52.7126,
+      pin: { hour: 0, correct: 'aries', ifMinutesDropped: 'pisces' }
+    }
+  ];
+
+  for (const z of zones) {
+    describe(z.label, () => {
+      it('resolves the offset to the exact minute', () => {
+        expect(
+          offsetMinutesForWallTime(z.year, z.month, z.day, 12, 0, z.tz)
+        ).toBe(z.offsetMinutes);
+      });
+
+      it('agrees with the same UTC instant at every quarter hour of the day', () => {
+        for (let hour = 0; hour < 24; hour++) {
+          for (const minute of [0, 15, 30, 45]) {
+            // getRisingSign folds minute/60 into UT hours, so passing
+            // `minute - offset` expresses the identical instant against
+            // UTC; utcDateParts absorbs the day rollover either way.
+            const viaUtc = getRisingSign(
+              z.year, z.month, z.day,
+              hour, minute - z.offsetMinutes, 0,
+              z.lat, z.lng
+            );
+            const viaTz = computeRising({
+              year: z.year, month: z.month, day: z.day,
+              hour, minute, tz: z.tz, lat: z.lat, lng: z.lng
+            });
+            expect(viaTz, `${hour}:${String(minute).padStart(2, '0')}`).toBe(viaUtc);
+          }
+        }
+      });
+
+      it('the offset minutes change the sign — the invariant is not vacuous', () => {
+        const { hour, correct, ifMinutesDropped } = z.pin;
+        expect(computeRising({
+          year: z.year, month: z.month, day: z.day,
+          hour, minute: 0, tz: z.tz, lat: z.lat, lng: z.lng
+        })).toBe(correct);
+        // the same wall time with the minutes truncated away
+        expect(getRisingSign(
+          z.year, z.month, z.day, hour, -z.truncatedMinutes, 0, z.lat, z.lng
+        )).toBe(ifMinutesDropped);
+        expect(correct).not.toBe(ifMinutesDropped);
+      });
+    });
+  }
+
+  // Scale of the exposure, so a future reader can weigh the guard: over a
+  // full day of quarter-hour births in Delhi, a quarter of them land on a
+  // different sign if the minutes are lost.
+  it('losing the minutes would move a quarter of Delhi births to another sign', () => {
+    let moved = 0;
+    for (let hour = 0; hour < 24; hour++) {
+      for (const minute of [0, 15, 30, 45]) {
+        const correct = getRisingSign(1990, 6, 15, hour, minute - 330, 0, 28.6139, 77.2090);
+        const dropped = getRisingSign(1990, 6, 15, hour, minute - 300, 0, 28.6139, 77.2090);
+        if (correct !== dropped) moved++;
+      }
+    }
+    expect(moved).toBe(24); // of 96
   });
 });
