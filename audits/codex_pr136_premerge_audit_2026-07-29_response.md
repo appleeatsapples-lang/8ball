@@ -1,10 +1,14 @@
 # Codex pre-merge audit — PR #136 · L48 response
 
-**PR:** [#136](https://github.com/appleeatsapples-lang/8ball/pull/136) — `feat(cards): render all four surface queues — 97 → 288 hosted JPEGs`
+**PR:** #136 — `feat(cards): render all four surface queues — 97 → 288 hosted JPEGs`
 **Auditor:** Codex (`gpt-5.6-sol`, reasoning effort xhigh, sandbox read-only) via `~/ai-relay/relay --models codex --base origin/main`
 **Run:** `~/ai-relay/runs/20260729-004554-8ball/` · 225,689 tokens
 **Date:** 2026-07-29
 **Implementer:** CC lane. Audit and implementation are separate seats, per L48.
+
+*(Bare PR numbers only: `audits/*.md` is tracked content and is **not** in the PII scanner's
+`DOCTRINE_ALLOW`, so a full GitHub URL here fails `tests/pii_scan.test.js` on the repo owner's
+handle. That is exactly how the first push of this artifact went red.)*
 
 ---
 
