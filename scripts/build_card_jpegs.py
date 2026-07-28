@@ -55,7 +55,19 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO_ROOT / "cards"
 
 VAULT = Path(os.environ.get("VAULT", str(Path.home() / "8ball")))
-QUEUE = VAULT / "reach" / "ig_pipeline" / "queue.txt"
+
+# Every autonomous surface queue, not just one. Until 2026-07-29 this read the
+# IG queue alone, on the documented assumption that it was a superset of the
+# others. The B-7 ruling made the four queues DISJOINT, which killed that
+# assumption: covering IG now covers roughly a quarter of the corpus, and the
+# surfaces whose codes went unrendered stall on "hosted JPEG not reachable"
+# with no ledger row, retrying the same code every slot forever.
+QUEUES = [
+    VAULT / "reach" / "x_pipeline" / "queue.txt",
+    VAULT / "reach" / "tiktok_pipeline" / "queue.txt",
+    VAULT / "reach" / "ig_pipeline" / "queue.txt",
+    VAULT / "reach" / "threads_pipeline" / "queue.txt",
+]
 
 # Canonical source directories, in priority order (first match wins). The
 # specimen block ships pre-rendered in the x_pipeline assets; the base catalog
@@ -68,18 +80,37 @@ SOURCE_DIRS = [
 
 
 def read_queue_codes() -> list[str]:
-    """Return catalog codes from the IG pipeline queue, in queue order.
+    """Return catalog codes across every surface queue, in queue order.
 
-    Skips blank and '#'-comment lines. This queue is the superset of the
-    Threads queue, so covering it covers both pipelines.
+    Skips blank and '#'-comment lines, and de-duplicates while preserving first
+    appearance. Reads all four queues because they are disjoint (B-7,
+    2026-07-29): no single queue is a superset of the others any more, so
+    rendering from one would silently leave three surfaces without images.
     """
     codes: list[str] = []
-    for line in QUEUE.read_text().splitlines():
+    seen: set[str] = set()
+    lines: list[str] = []
+    for queue in QUEUES:
+        if queue.is_file():
+            lines.extend(queue.read_text().splitlines())
+    for line in lines:
         s = line.strip()
-        if not s or s.startswith("#"):
+        if not s or s.startswith("#") or s in seen:
             continue
+        seen.add(s)
         codes.append(s)
     return codes
+
+
+def extra_specimen_codes() -> set[str]:
+    """Codes the vault hosts itself, via extra_specimens/manifest.json."""
+    manifest = VAULT / "reach" / "extra_specimens" / "manifest.json"
+    if not manifest.is_file():
+        return set()
+    try:
+        return set(json.loads(manifest.read_text()).get("assets", {}))
+    except (ValueError, TypeError):
+        return set()
 
 
 def resolve_sources() -> dict[str, Path]:
@@ -131,6 +162,12 @@ def main() -> int:
 
     codes = read_queue_codes()
     sources = resolve_sources()
+
+    # Extras carry their own hosted publicUrl in the vault manifest, and the
+    # pipelines prefer that URL over cards/{code}.jpg (image_url_for). They have
+    # no local PNG here by design, so they are not this script's to render.
+    extras = extra_specimen_codes()
+    codes = [c for c in codes if c not in extras]
 
     missing = [c for c in codes if c not in sources]
     if missing:
