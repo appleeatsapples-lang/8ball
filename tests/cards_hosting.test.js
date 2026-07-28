@@ -25,7 +25,7 @@
 // segment stream (DOCTRINE §5 — no new runtime or test deps).
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +35,20 @@ const cardsDir = join(__dirname, '..', 'cards');
 const CANVAS_W = 1080;
 const CANVAS_H = 1350;
 const MAX_BYTES = 8 * 1024 * 1024;
+
+// Queued codes hosted OFF-SITE by the vault's extra_specimens manifest: no
+// local cards/{code}.jpg is rendered for them, because image_url_for() prefers
+// their publicUrl. Pinned so the tracked guard covers all 298 queued codes, not
+// just the 288 rendered ones — an untracked code whose URL goes stale falls back
+// to a cards/ file that does not exist, and the surface then stalls on it every
+// slot forever with no ledger row while CI stays green (Codex L48 P1, PR #136).
+// Reachability itself is NOT asserted here: DOCTRINE §5 forbids network in tests.
+const EXPECTED_EXTERNAL = Object.freeze([
+  'spec_archive_no-cxx', 'spec_archive_no-viii', 'spec_extended_hierophant-1990',
+  'spec_archive_no-cxl', 'spec_extended_empress-1975', 'spec_extended_lovers-2000',
+  'spec_archive_no-lxvii', 'spec_extended_hanged-man-1988', 'spec_archive_no-cxv',
+  'spec_extended_hanged-man-1996',
+]);
 
 // Union of all four surface queues, in queue order. See header for the protocol.
 const EXPECTED_CODES = Object.freeze([
@@ -151,6 +165,21 @@ describe('cards hosting — shared IG + Threads safe shape', () => {
     expect(manifest.count).toBe(codes.length);
     expect(codes).toEqual([...EXPECTED_CODES]); // ordered, exact — no off-queue swaps
     expect(new Set(codes).size).toBe(288);
+  });
+
+  it('manifest tracks every queued code — rendered locally or hosted off-site', () => {
+    const external = manifest.external ?? [];
+    expect(external.map((e) => e.code)).toEqual([...EXPECTED_EXTERNAL]);
+    expect(manifest.external_count).toBe(external.length);
+    for (const { code, url } of external) {
+      // A malformed/absent URL makes image_url_for() fall back to
+      // cards/{code}.jpg, which is deliberately not rendered for these.
+      expect(typeof url, `${code}: url must be a string`).toBe('string');
+      expect(url.startsWith('https://'), `${code}: url must be https`).toBe(true);
+      expect(existsSync(join(cardsDir, `${code}.jpg`)), `${code}: must NOT be rendered locally`).toBe(false);
+    }
+    const covered = new Set([...manifest.cards.map((c) => c.code), ...external.map((e) => e.code)]);
+    expect(covered.size).toBe(EXPECTED_CODES.length + EXPECTED_EXTERNAL.length);
   });
 
   it('every manifest code is a complete, metadata-free 1080x1350 JPEG <= 8 MB', () => {
