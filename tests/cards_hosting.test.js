@@ -64,7 +64,11 @@ const EXPECTED_CODES = Object.freeze([
   'ss43_leo-x-capricorn', 'ss47_virgo-x-scorpio', 'ss51_virgo-x-pisces', 'ss55_libra-x-aquarius', 'ss59_scorpio-x-aquarius',
   'ss63_sagittarius-x-pisces', 'nt01_number-1-x-the-magician', 'nt05_number-5-x-the-hierophant', 'nt09_number-9-x-the-hermit', 'nn01_number-11-x-number-2',
   'tt02_the-magician-x-the-high-priestess', 'tt06_the-hierophant-x-the-lovers', 'tt10_the-hermit-x-wheel-of-fortune', 'tt14_death-x-temperance', 'tt18_the-star-x-the-moon',
-  'st01_aries-x-the-emperor', 'st05_leo-x-strength', 'st09_sagittarius-x-temperance', 'aa08_ox-x-horse', 'aa10_ox-x-rooster',
+  'st01_aries-x-the-emperor', 'st05_leo-x-strength', 'st09_sagittarius-x-temperance', 'spec_extended_hierophant-1965', 'spec_extended_lovers-1985',
+  'spec_extended_strength-1991', 'spec_extended_moon-2003', 'spec_extended_justice-1981', 'spec_extended_chariot-1951', 'spec_extended_world-1953',
+  'spec_extended_justice-1956', 'spec_extended_chariot-1959', 'spec_extended_hermit-1962', 'spec_extended_chariot-1964', 'spec_extended_chariot-1967',
+  'spec_extended_empress-1969', 'spec_extended_strength-1972', 'spec_extended_chariot-1974', 'spec_extended_hanged-man-1977', 'spec_extended_hanged-man-1979',
+  'spec_extended_empress-1983', 'spec_extended_strength-1986', 'spec_extended_emperor-1988', 'aa08_ox-x-horse', 'aa10_ox-x-rooster',
   'aa12_tiger-x-snake', 'aa16_tiger-x-pig', 'aa20_rabbit-x-dog', 'aa24_dragon-x-dog', 'aa28_horse-x-goat',
   'aa32_monkey-x-pig', 'ss05_aries-x-virgo', 'ss16_taurus-x-libra', 'ss20_taurus-x-aquarius', 'ss24_gemini-x-virgo',
   'ss28_gemini-x-capricorn', 'ss32_cancer-x-virgo', 'ss36_cancer-x-capricorn', 'ss40_leo-x-libra', 'ss44_leo-x-aquarius',
@@ -87,7 +91,11 @@ const EXPECTED_CODES = Object.freeze([
   'aex27_horse-x-metal', 'aex31_goat-x-metal', 'aex35_monkey-x-earth', 'aex39_rooster-x-earth', 'aex43_dog-x-metal',
   'aex47_pig-x-earth', 'nt02_number-2-x-the-high-priestess', 'nt06_number-6-x-the-lovers', 'nt10_number-11-x-justice', 'nn02_number-22-x-number-4',
   'tt03_the-high-priestess-x-the-empress', 'tt07_the-lovers-x-the-chariot', 'tt11_wheel-of-fortune-x-justice', 'tt15_temperance-x-the-devil', 'tt19_the-moon-x-the-sun',
-  'st02_taurus-x-the-hierophant', 'st06_virgo-x-the-hermit', 'st10_capricorn-x-the-devil', 'aa01_rat-x-ox', 'aa02_rat-x-rabbit',
+  'st02_taurus-x-the-hierophant', 'st06_virgo-x-the-hermit', 'st10_capricorn-x-the-devil', 'spec_extended_hanged-man-1993', 'spec_extended_hierophant-1999',
+  'spec_extended_strength-1987', 'spec_extended_emperor-1968', 'spec_extended_hermit-1997', 'spec_extended_fool-1951', 'spec_extended_justice-1954',
+  'spec_extended_hierophant-1957', 'spec_extended_justice-1960', 'spec_extended_strength-1962', 'spec_extended_lovers-1965', 'spec_extended_empress-1967',
+  'spec_extended_strength-1970', 'spec_extended_chariot-1972', 'spec_extended_emperor-1975', 'spec_extended_hermit-1978', 'spec_extended_chariot-1980',
+  'spec_extended_chariot-1984', 'spec_extended_justice-1987', 'spec_extended_hanged-man-1989', 'aa01_rat-x-ox', 'aa02_rat-x-rabbit',
   'aa03_rat-x-dragon', 'aa04_rat-x-horse', 'aa05_rat-x-goat', 'aa06_rat-x-monkey', 'ss06_aries-x-libra',
   'ss08_aries-x-sagittarius', 'ss10_aries-x-aquarius', 'ss12_taurus-x-gemini', 'ee02_fire-x-earth', 'ee06_wood-x-earth',
   'ee10_water-x-fire', 'aed04_rabbit-x-wood', 'aed08_goat-x-earth', 'aed12_pig-x-water', 'aex04_rat-x-metal',
@@ -99,7 +107,11 @@ const EXPECTED_CODES = Object.freeze([
   'ss53_libra-x-sagittarius', 'ss57_scorpio-x-sagittarius', 'ss61_sagittarius-x-capricorn', 'ss65_capricorn-x-pisces', 'nt03_number-3-x-the-empress',
   'nt07_number-7-x-the-chariot', 'nt11_number-22-x-the-fool', 'nn03_number-33-x-number-6', 'tt04_the-empress-x-the-emperor', 'tt08_the-chariot-x-strength',
   'tt12_justice-x-the-hanged-man', 'tt16_the-devil-x-the-tower', 'tt20_the-sun-x-judgement', 'st03_gemini-x-the-lovers', 'st07_libra-x-justice',
-  'st11_aquarius-x-the-star', 'ee03_earth-x-metal', 'ee07_fire-x-metal', 'aed01_rat-x-water', 'aed05_dragon-x-earth',
+  'st11_aquarius-x-the-star', 'spec_extended_emperor-1978', 'spec_extended_devil-2001', 'spec_extended_justice-1958', 'spec_extended_empress-1962',
+  'spec_extended_lovers-1994', 'spec_extended_sun-1950', 'spec_extended_justice-1952', 'spec_extended_hierophant-1955', 'spec_extended_lovers-1957',
+  'spec_extended_chariot-1960', 'spec_extended_chariot-1963', 'spec_extended_empress-1965', 'spec_extended_strength-1968', 'spec_extended_hierophant-1971',
+  'spec_extended_empress-1973', 'spec_extended_hermit-1976', 'spec_extended_chariot-1978', 'spec_extended_empress-1981', 'spec_extended_wheel-of-fortune-1985',
+  'spec_extended_hanged-man-1987', 'ee03_earth-x-metal', 'ee07_fire-x-metal', 'aed01_rat-x-water', 'aed05_dragon-x-earth',
   'aed09_monkey-x-metal', 'aex01_rat-x-wood', 'aex05_ox-x-wood', 'aex09_tiger-x-fire', 'aex13_rabbit-x-fire',
   'aex17_dragon-x-wood', 'aex21_snake-x-wood', 'aex25_horse-x-wood', 'aex29_goat-x-wood', 'aex33_monkey-x-wood',
   'aex37_rooster-x-wood', 'aex41_dog-x-wood', 'aex45_pig-x-wood', 'aa07_ox-x-snake', 'aa09_ox-x-goat',
@@ -109,7 +121,11 @@ const EXPECTED_CODES = Object.freeze([
   'ss46_virgo-x-libra', 'ss50_virgo-x-aquarius', 'ss54_libra-x-capricorn', 'ss58_scorpio-x-capricorn', 'ss62_sagittarius-x-aquarius',
   'ss66_aquarius-x-pisces', 'nt04_number-4-x-the-emperor', 'nt08_number-8-x-strength', 'nt12_number-33-x-the-lovers', 'tt01_the-fool-x-the-magician',
   'tt05_the-emperor-x-the-hierophant', 'tt09_strength-x-the-hermit', 'tt13_the-hanged-man-x-death', 'tt17_the-tower-x-the-star', 'tt21_judgement-x-the-world',
-  'st04_cancer-x-the-chariot', 'st08_scorpio-x-death', 'st12_pisces-x-the-moon',
+  'st04_cancer-x-the-chariot', 'st08_scorpio-x-death', 'st12_pisces-x-the-moon', 'spec_extended_strength-1982', 'spec_extended_chariot-1970',
+  'spec_extended_chariot-1973', 'spec_extended_wheel-of-fortune-1976', 'spec_extended_hermit-1959', 'spec_extended_justice-1950', 'spec_extended_chariot-1953',
+  'spec_extended_fool-1955', 'spec_extended_strength-1958', 'spec_extended_lovers-1961', 'spec_extended_wheel-of-fortune-1964', 'spec_extended_strength-1966',
+  'spec_extended_emperor-1969', 'spec_extended_empress-1971', 'spec_extended_strength-1974', 'spec_extended_chariot-1976', 'spec_extended_emperor-1979',
+  'spec_extended_emperor-1983', 'spec_extended_justice-1985', 'spec_extended_chariot-1988',
 ]);
 
 const manifest = JSON.parse(
@@ -164,7 +180,7 @@ describe('cards hosting — shared IG + Threads safe shape', () => {
     const codes = manifest.cards.map((c) => c.code);
     expect(manifest.count).toBe(codes.length);
     expect(codes).toEqual([...EXPECTED_CODES]); // ordered, exact — no off-queue swaps
-    expect(new Set(codes).size).toBe(288);
+    expect(new Set(codes).size).toBe(368);
   });
 
   it('manifest tracks every queued code — rendered locally or hosted off-site', () => {
