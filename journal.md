@@ -5,7 +5,86 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — §3 label-only fixture carve-out (doctrine v0.61) — STAGED
+
+**Status: STAGED on `claude/rising-sign-mutation-fixtures-rvaocg`. Merge is its
+own word, and per §10/L48 this one wants a real cross-model read rather than an
+override — the clause's entire effect is to widen what may bypass a gate, which
+is the wrong shape to self-clear. Brief filed at
+`audits/doctrine_v060_label_carveout_2026-07-29_brief.md`; it clears nothing and
+says so in its own status line.**
+
+**Renumbered v0.60 → v0.61 mid-flight, and the collision is worth naming.** This
+clause was written and pushed as v0.60. While the PR sat open, #178/#182/#183
+landed and took v0.60 for the §1.D public-rung retirement, so the rebase
+collided on `DOCTRINE.md` and this became v0.61. That is the same
+read-modify-write race #177 had just fixed for L48 sighting numbers — read the
+current maximum, claim the next one, with no lock and no uniqueness pin — and
+the doctrine version list has no equivalent guard. Not proposed here, because
+this PR is already a gate-relaxing doctrine change and should not also carry an
+unrelated one; recorded so the next collision is not surprising.
+
+**What it does.** A change to `tests/fixtures.json` confined to `label` string
+values and top-level `_`-prefixed documentation keys is **not a fixture change**
+under §3: no `core/profile.js` lockstep, no calc-version bump, and it does not
+trip §3's closing same-commit rejection clause.
+
+**Why.** Both §3's closing paragraph and CLAUDE.md's don't-do entry are written
+for changes to what a fixture *asserts*, and both fire literally on an edit that
+changes only what a fixture is *called*. #162 hit this correcting a label from
+`LMT` to `MMT` (tzdata gives `Asia/Kolkata` `+05:21:10` as Madras Mean Time, not
+Local Mean Time). Its audit's F7 recommended writing the carve-out down rather
+than re-litigating it on every future label fix; this is that.
+
+**The carve-out is by FIELD, not by intent.** Any input field (`dob`, `time`,
+`tz`, `lat`, `lng`, `utcOffsetMinutes`, `lp`, `name`) or anything under
+`expected` remains a fixture change whatever the commit claims it is doing. The
+reviewer verifies the claim by confirming the diff is confined to the two
+exempt field classes — not by accepting the assertion.
+
+**Three scope facts, verified against the tree rather than asserted.** Named in
+the clause so they can be re-derived: `tests/fixtures.json` is read by exactly
+two test files through explicitly named keys, with nothing enumerating the
+object (so `_`-keys are read by nothing); `label` appears in those consumers
+only as the vitest `it()` name or an assertion *message*, never as an asserted
+value or a selector — the `.label` assertion in `birthcard.test.js` and the
+`label ===` lookup in `pii_scan.test.js` are against those files' own in-file
+arrays; and no runtime module reads the file at all.
+
+**§11 is explicitly not relaxed, and this was probed rather than reasoned.**
+`tests/fixtures.json` is inside the PII walk, `label` values included: planting
+a labeled-DOB-shaped string in a label reds `tests/pii_scan.test.js` naming
+`tests/fixtures.json:7`. **The first probe was a false negative** — it used the
+word "born", which the `labeled-DOB leak` pattern does not contain — and for a
+moment suggested the file was unscanned. Recorded because
+that near-miss is the reason the clause states the scan coverage as a verified
+fact rather than an assumption, and because a wrong answer there would have
+turned the carve-out into a free-text channel into a tracked file.
+
+**The clause states its own expiry.** If a future test asserts on a fixture
+`label`, selects a fixture by `label`, or enumerates the file's keys, the
+carve-out lapses for that field and §3's ordinary contract resumes until the
+clause is rewritten. Whether that expiry list is complete is hook 2 in the
+brief — a snapshot test over the parsed object, or a uniqueness assertion over
+labels, would not obviously be caught by the current wording.
+
+**Scope.** `DOCTRINE.md` (§3 amendment + version block + version list), this
+file, and the audit brief. No code, test, fixture value, or calc behavior
+changes. Suite unaffected: 45 files / 1583 tests green. `CLAUDE.md` is
+deliberately **not** edited — whether its absolute don't-do entry now needs a
+pointer to the exception is hook 4 in the brief, and CLAUDE.md sits outside the
+PII scanner's `DOCTRINE_ALLOW`, which constrains what may be written into it.
+
+**Named on the record: the alternative was to do nothing.** Each label fix could
+have carried a one-line doctrine note instead — a sentence per occurrence,
+keeping the gate absolute. The brief asks the auditor to argue that side, because
+the lane proposing a gate relaxation is not the one that should decide it is
+worth its own risk.
+
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
+
 
 **Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
 2026-07-29, on explicit controller word; `test` and `l48-gate` both passed on the merged head. **No cross-model audit was
@@ -152,6 +231,7 @@ file). **Not verified:** the deployed site, still unreachable from here.
 **Scope (files):** `ui/payments.js` (one comment), `CLAUDE.md` (live-fire recipe under Commands), `journal.md` (this entry
 plus the corrected sentence in the #157 entry), the L48 artifact. **UNTOUCHED:** `core/`, `content/`, `index.html`,
 `DOCTRINE.md`, `package.json`, every test, every scanner list.
+
 
 ## 2026-07-29 — rising-sign mutation coverage: three mutants killed, four claims tested, two of them wrong — SHIPPED
 
