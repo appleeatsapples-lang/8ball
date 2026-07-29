@@ -175,6 +175,27 @@ once and neither cancels the other.
 the three. Local PII audit **not run** — its gitignored pattern file is absent
 in the remote container; still owed controller-side.
 
+## 2026-07-29 — A false premise reached `main` inside a proposed constitutional amendment — SHIPPED
+
+**Status: SHIPPED — the draft merged as `3ec1e87` (#166), its correction as `a0d577c` (#170), both 2026-07-29. Written SHIPPED rather than flipped, since both merges preceded the entry. No doctrine was applied; `DOCTRINE.md` was never touched by either PR. The correction is `audits/correction_s10_draft_codex_premise_2026-07-29.md`, and the draft keeps its original text verbatim behind a `⚠ CORRECTED — DO NOT APPLY` banner per the lineage-preserving convention.**
+
+**What happened.** This lane read sighting #14 (`audits/L48_override_pr144_2026-07-29.md`), which states *"Codex is retired; no other lane was commissioned, and none is in flight"*, quoting an operator brief that said *"Codex is dead."* It took that as fact, told the controller both open audit briefs were addressed to a lane that no longer existed and should not be relayed, and then drafted a **§10 constitutional amendment** whose entire finding section rests on the retirement. The draft merged. The premise was false.
+
+**Codex was never retired.** Two genuine relay verdicts, dated the same day, were already in `audits/` — `codex_pr136_premerge_audit_2026-07-29_response.md` (run `20260729-004554`, 225,689 tokens, **MERGE WITH FIXES** with three findings) and `codex_pr150_postmerge_audit_2026-07-29_response.md` (run `20260729-080131`, 340,311 tokens, **SAFE TO MERGE**, plus a substantive PII observation about JPEG coordinates being reconstructable). Both name `gpt-5.6-sol` via `~/ai-relay/relay`. Neither is a stub.
+
+**The timeline decides whether the claim was overtaken or simply wrong.** Local +03:00: Codex ran at **00:45** for #136, which merged at **01:28** carrying its verdict into `audits/`; sighting #14 asserted the retirement at **07:42**; Codex ran again at **08:01**; #157 at **09:38** used a multi-agent read instead. The assertion came seven hours after a successful run whose verdict was already committed to the directory the override was being written into, and nineteen minutes before the next. **It was false when written.**
+
+**Two lanes, one error, and this one's is worse.** The parallel lane was quoting an operator brief — a reason to believe a claim, not a licence to assert it into a governance record unchecked. This lane then propagated it into a proposed amendment to the constitution, with the contradicting artifact sitting on `main`, in a directory it had been reading and writing all session, already printed in its own earlier `ls audits/` output. The check that would have caught it — `ls audits/ | grep codex` — is the same check this lane applied that day to R1's closure, to #131's red-then-green legs, to #129's F1 fix in the shipped source, and to every SHA in two fire-line headers. It was skipped on the one claim that reshaped its recommendations.
+
+**What died, and what survived.** Dead: the urgency argument. For sightings #14, #15 and #16 a cross-model read was **available and not used**, so the override was chosen rather than forced. Surviving untouched: the design argument, since naming a vendor in the constitution is fragile whether or not the vendor is alive, and `agents/auditor.md` still hard-codes both the tool and a paste-relay workflow the artifacts show was superseded by `~/ai-relay/relay` with a real checkout; the §10:430 / §8:403 *"amendment"* vs *"change"* scope ambiguity, independently verified; and every mechanical claim, including that the `l48-gate` predicate's `[a-z0-9_]+` token already accepts any lane name, so no workflow change was ever required.
+
+**The finding that outlived the premise, and is sharper than it.** The override instrument was used three consecutive times **while the alternative existed**. That is a worse observation than "the rule became unsatisfiable", because no wording change fixes it — an amendment cannot make a lane check whether the auditor is reachable before declaring it gone.
+
+**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
+
+**Recorded because the alternative is worse.** This entry exists so the §10 draft is never read without its correction, and so the pattern is on the record rather than in a chat log: a lane that spent the day verifying other lanes' claims did not verify its own, and the one it skipped was the one with the largest blast radius. **Recommendation attached: treat "the auditor lane is unavailable" as a claim requiring evidence, the same as any other claim in an L48 artifact.**
+
+
 ## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `6a6d327` ([#168](https://github.com/appleeatsapples-lang/8ball/pull/168)) on
