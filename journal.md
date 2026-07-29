@@ -5,6 +5,176 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — l48-gate cross-read: a P0 in the gate itself, its fix, and the commission — SHIPPED
+
+**Status: SHIPPED — all three squash-merged to `main` on 2026-07-29:**
+**#159** (audit) `d2ea821` · **#160** (fix) `968d004` · **#165** (commission)
+`53f3388`. Each SHA verified to resolve and to be an ancestor of `main` before
+being written here. The merges were executed by the implementer lane on an
+explicit, twice-given controller merge word — recorded because §10 reserves
+merge authority to the controller, and who pressed the button is part of the
+record even when the authority is not in question.
+
+*Was:* **STAGED.** All three PRs are open at the time of writing and none has
+merged: **#159** (audit, head `f034db8`), **#160** (fix, head `39c1dad`),
+**#165** (commission, head `2dc1307`). Each is green. This entry flips to
+SHIPPED naming the squash SHAs when they land; written now on controller word
+rather than after, so the record exists before the merge rather than as debt.
+Preserved verbatim per L17.
+
+**What this cycle is.** The `l48-gate` predicate had been rewritten three times
+in two weeks — #131's shape narrowing, #133's added-not-renamed, #142's
+`edited` trigger — each closing a false-green that had already shipped, and
+each verified by the lane that wrote it. That is the coupling L48 exists to
+break. This cycle commissioned an outside read of the gate, fixed what it
+found, and then commissioned a real outside read of the fix.
+
+### #159 — the audit (`audits/claude_l48_predicate_crossread_2026-07-29.md`)
+
+Five Claude instances in fresh contexts (opus / sonnet / fable) across five
+lenses — bypass, git/shell runtime, event surface, claim-vs-code, ledger —
+each **executing the gate's own shell against throwaway git fixtures** rather
+than reasoning about it, then an adversarial refutation pass told to kill each
+finding and re-run its repro. 22 findings raised → 8 verified → **6 confirmed,
+2 killed** (1×P0, 1×P1, 4×P2). Fourteen never reached verification and are
+recorded as **unverified, not cleared**.
+
+The document states in its own second section that it is **not** a §10
+cross-model audit: Claude checking Claude, same lineage, same blind spots. Its
+filename is deliberately outside the gate's SHAPE predicate — verified by
+running the predicate against it — so a standing audit cannot green anyone's PR
+by sitting in `audits/`.
+
+**Recorded rather than omitted:** two refuter lanes hit an unguarded `cd` into
+a scratch path the sandbox had dropped and committed to the working clone.
+Both reset; containment independently verified (stray commits unreachable from
+`origin/main`, nothing pushed, tree clean, no symlinks, 67 audit files present).
+Root cause was the audit's own commissioning — temp-dir work required but `cd`
+not forbidden — not the subject under audit. The `git -C` / no-`cd` rule is now
+a standing instruction in the brief shape.
+
+### #160 — the fix (P0 + P1)
+
+**P0.** Both `CHANGED=` computations ran `git diff --name-only` with no
+`--no-renames`. Git enables rename detection by default (`diff.renames`, since
+2.9) and a detected rename prints **only the destination path**, so renaming
+any non-`.md` file to a `.md` path made the changeset read as documentation and
+the docs-only branch fired. A PR could delete the gate's own regression pins,
+`tests/pii_scan.test.js`, or `dependency_discipline` + `privacy_scan` with both
+checks green and no artifact. The same defect at the `test` job's `CHANGED=`
+blinded the journal-touch and audit-artifact gates simultaneously; both sites
+are fixed.
+
+The two diffs now carry **deliberately opposite settings**, commented at both
+sites and pinned in both directions: `CHANGED=` takes `--no-renames` for the
+true file list, while `ADDED=` keeps `--find-renames --find-copies-harder` so a
+recycled artifact stays `R`/`C` and is dropped by `--diff-filter=A`.
+Homogenising them re-opens #133.
+
+**P1.** The `ADDED=` pin was `/--diff-filter=A[^\n]*--name-only/` — `[^\n]*`
+made it a prefix match, so `ACMR`, `AR`, `AC`, `AM` all satisfied it and the
+revision range was unpinned. Now an exact-string assertion.
+
+**Mutation-tested rather than asserted.** Baseline 24/24; reverting
+`--no-renames` fails the new `CHANGED` pin; widening to `ACMR` fails the
+tightened `ADDED` pin — a mutation that **passed 22/22 before this change**;
+adding `--no-renames` to `ADDED=` fails both. Each mutation caught by the
+intended pin and no other. The fix then validated itself in CI on its own PR:
+red without the artifact (reaching the artifact-shape error, not the exemption)
+and green with it, via the artifact branch both times.
+
+Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
+
+### #165 — the commission
+
+`audits/codex_pr160_premerge_audit_2026-07-29_brief.md`, filed pre-merge so a
+verdict can land before the merge word. Its lead hook is the risk the override
+names as unexamined: `--no-renames` changes what **every** `CHANGED=` consumer
+sees, and only the permissive direction was tested — nobody has checked whether
+a legitimate rename-bearing PR is now wrongly blocked. Five fixtures named. It
+instructs the auditor to treat the #159 audit as a claim to check, never as
+evidence.
+
+**Why it matters more than the usual commission.** The whole chain behind #160
+is single-vendor: Claude found the defect, judged it, wrote the fix, and wrote
+the mutation tests certifying the fix. A wrong fix that passes its own author's
+mutation tests is exactly what that arrangement cannot detect.
+
+**Correction, found while merging: the lane this brief names is retired.**
+`audits/L48_override_pr144_2026-07-29.md` (sighting #14) already records
+*"Codex is retired; no other lane was commissioned, and none is in flight"*,
+and #166 (`3ec1e87`) drafts the §10 amendment that follows from it — the role
+was hard-coded to a vendor, so the vendor's departure left the role vacant and
+the override became the only reachable path. This lane recommended the relay
+repeatedly, including inside the brief itself, without checking that the lane
+still existed. The brief is not wasted: #166 verifies the gate's `[a-z0-9_]+`
+model token already accepts `gemini`, `chatgpt`, `claude`, `multiagent`, so the
+packet re-targets to any lane meeting the independence test by changing the
+filename prefix of its response. What it cannot do is be run against Codex.
+
+### Two bookkeeping defects found in passing
+
+- **Sighting-number collision.** #160's override first claimed #16, colliding
+  with `L48_override_pr157_2026-07-29.md` which took #16 on a concurrent lane
+  while #160 was open. Corrected to #17 on sighting. The mechanism is the
+  finding: numbers are assigned by reading the directory, a read-modify-write
+  race whenever two lanes file overrides the same day, and **nothing in CI
+  would catch a duplicate** — the predicate matches filenames and never opens
+  the file. Verified no duplicates remain (#6, #8–#17).
+- **Override-vs-verdict ratio.** 11 of 17 sightings now clear by override, and
+  8 of the artifacts filed on this date are overrides rather than verdict
+  responses. The #159 ledger lens raised it: the override is becoming the
+  default path rather than the exception. Filed as an observation, not a
+  judgement.
+
+### A third finding, observed while merging: a PR head can carry no run at all
+
+Flipping this entry surfaced a live instance of the failure `ci.yml`'s trigger
+comment already names — *"an absent check is visually indistinguishable from a
+pending one"* — in a form the `edited` fix does not cover.
+
+A force-push on this entry's own branch (`aebc2e5` → `714efa4`) produced **no
+`ci.yml` run for the new head**. Neither did a subsequent PR-body edit
+(`edited`), nor a close/reopen (`reopened`) — the remedy #133 needed. Three
+trigger paths, no run: `list_workflow_runs` for the branch stayed at
+`total_count: 1` with `head_sha` pinned to the pre-push commit throughout,
+while Netlify built `714efa4` normally, so the push was visible to GitHub.
+
+**The sharp part is not the missing run, it is what the PR displays instead.**
+That single stale run's `display_title` updated to the new commit's message and
+its `pull_requests[].head.sha` reads `714efa4`, while the run's own `head_sha`
+remains `aebc2e5`. A green result computed against one commit is presented
+against another. #133's version was zero checks — legible as *something is
+wrong*. This version reads as a normal green PR.
+
+Consequences worth carrying: under branch protection a required check that
+never reports blocks forever, and without it the PR simply looks mergeable;
+either way the displayed state is not evidence about the head. The lane
+declined to merge on the stale green and forced a new head instead — which is
+what this paragraph is. **`head_sha` is the only trustworthy field**; the PR
+checks UI is not, and no gate in this repo verifies that a run's `head_sha`
+matches the head it is shown against.
+
+### Deliberately still open
+
+Four P2s untouched — symlink artifact greening the gate, sub-threshold copy
+defeating anti-recycling, ledger deletion under the docs-only exemption, and
+the `DOCTRINE.md` predicate asymmetry (the one governed surface still covered
+by the any-`audits/`-file predicate that #131 removed as unsafe). Plus the 14
+unverified findings. Each wants its own change and its own read.
+
+**And the standing gap this cycle does not close:** a red check still does not
+block a merge. Branch protection requiring `test` and `l48-gate` is repo-admin
+and unset; the implementer lane's token returns 403 on the protection endpoint.
+This cycle hardened a gate that nothing yet enforces — both facts are true at
+once and neither cancels the other.
+
+**Verification.** Suite green on each branch at its own head (1566 for #159,
+1568 for #160 with its +2 pins, 1577 on the #165 base as main moved). No
+`core/`, `ui/`, `content/`, `index.html`, or `DOCTRINE.md` touched by any of
+the three. Local PII audit **not run** — its gitignored pattern file is absent
+in the remote container; still owed controller-side.
+
 ## 2026-07-29 — A false premise reached `main` inside a proposed constitutional amendment — SHIPPED
 
 **Status: SHIPPED — the draft merged as `3ec1e87` (#166), its correction as `a0d577c` (#170), both 2026-07-29. Written SHIPPED rather than flipped, since both merges preceded the entry. No doctrine was applied; `DOCTRINE.md` was never touched by either PR. The correction is `audits/correction_s10_draft_codex_premise_2026-07-29.md`, and the draft keeps its original text verbatim behind a `⚠ CORRECTED — DO NOT APPLY` banner per the lineage-preserving convention.**
@@ -24,6 +194,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 **What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
 
 **Recorded because the alternative is worse.** This entry exists so the §10 draft is never read without its correction, and so the pattern is on the record rather than in a chat log: a lane that spent the day verifying other lanes' claims did not verify its own, and the one it skipped was the one with the largest blast radius. **Recommendation attached: treat "the auditor lane is unavailable" as a claim requiring evidence, the same as any other claim in an L48 artifact.**
+
 
 ## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — SHIPPED
 
