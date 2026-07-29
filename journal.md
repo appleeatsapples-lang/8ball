@@ -5,6 +5,101 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `b5cc119` ([#144](https://github.com/appleeatsapples-lang/8ball/pull/144)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. The STAGED language below is
+superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **No cross-model read was run —
+none before merge, none commissioned, none in flight.** The gate was cleared by `audits/L48_override_pr144_2026-07-29.md`
+(L48 sighting #14), which enumerates what it does not cover and recommends a read *before any surfacing change* rather than
+merely before merge; that recommendation is now live. Two controller rulings landed on the branch after it opened — the
+nine-mode collapse and the `lifePath` rename — and what they left open is larger than what they closed: the mode of work is
+selected by a coordinate the free sheet already shows (spec §6.1). Nothing renders any of it; nothing imports
+`core/public.js`. Was: STAGED on `claude/8ball-public-engine-me9rhr`. This is additive: five new files, two count lines in
+`CLAUDE.md`, and this entry. No existing module, test, fixture, or doctrine clause is modified.**
+
+**What this is.** The computation engine for the ladder rung the brief calls **public** — deterministic, offline,
+table-driven, no model call at runtime or anywhere else. From a birth **date alone** it returns three ranked domain
+families, one anti-fit family, and one shape-of-role line. Four steps: day-master element + strength → favourable /
+unfavourable elements; favourable element → domain families; expression number → mode of work (which ranks them);
+tarot birth card → role posture. Spec at `PUBLIC_TIER_SPEC.md`.
+
+**Reuse over reimplementation, on purpose.** The day master is the shipped `core/pillars.js` day pillar (calibrated
+offsets). The season is the shipped `getInnerAnimal` solar-term path (calc v3.1). The posture indexes the shipped
+`core/birthcard.js` arcana. The sheng/ke cycles are imported from the immutable `content/concordance.v1.js` rather than
+redefined — one wuxing table in the repo. The nine mode themes for 1–9 are the same vocabulary `content/meanings.v2.js`
+ships, pinned by a cross-check test — and after the two rulings below, the mode driver is the shipped `lifePath` itself
+rather than a second implementation of it. The only new tables are the ten favourability entries, fifteen domain
+families, nine modes of work, and twenty-two role postures.
+
+**Three things a reviewer should press on, named here rather than left to be found.**
+
+- **Two controller rulings, same day, and between them they changed what this coordinate IS.** (1) **Collapse.** The
+  first draft called the driver an *expression number* and retained the 11 and 22 stops, because the brief specified
+  eleven modes; §1.B v0.54 fixed active Pythagorean numerology at exactly nine terminal values, and the constitution won.
+  (2) **Rename.** Collapsing exposed that a date digit sum reduced strictly to 1..9 is the **life path** — same sum, same
+  reduction, free-surface since §1.D v0.38 — so `expression` named neither §1.B's name-derived coordinate nor any
+  distinct value, and one sheet would have carried two labels for one number. The driver is `lifePath` throughout; the
+  output block is `mode`, carrying `{ lifePath, lifePathSum, theme, register, method }`; the table is `WORK_MODES`, keyed
+  by life path; `EXPRESSION_MODES` is gone rather than aliased. The tier now holds no number function at all —
+  `buildPublicReading` reads `getLifePath` / `getLifePathSum` from `core/profile.js` directly, and the mode domain is
+  asserted against `LIFE_PATH_VALUES` from `content/concordance.v2.js` rather than restated. **What is genuinely open,
+  and now the whole of spec §6.1:** the mode of work is selected by a coordinate the free sheet already shows, so nothing
+  about it is new information. Whether this rung wants a driver the free surface does not already give away is a design
+  question nobody outside this lane has read.
+- **Strength is the seasonal-state model, month branch only.** 旺相休囚死 against the month-branch element, collapsed to
+  strong/weak. A full BaZi read weighs roots, hidden stems and the rest of the chart. It is the largest place a
+  practitioner would disagree with the output, and it is the reason the accepted-but-unused hour is worth keeping as a
+  future amendment rather than quietly wiring in.
+- **First `core/` → `content/` import edge.** Every other `core/` module carries its own constants; this one is
+  explicitly table-driven and §6 puts versioned static data in `content/`. One-way, no new runtime capability, but new.
+
+**Missing context, stated plainly.** The brief's reading list named four sources outside this repository — a personal
+context file, an approach document, a sibling development checkout, and the newest session handoff. **None exists in this
+container**, which carries a fresh clone of this repo and nothing else. Everything was derived from `8BALL.md`,
+`DOCTRINE.md`, `journal.md`, `CLAUDE.md` and the shipped modules. The brief also describes the ladder as restructured to
+**exposure radius** (private · comparative · public) at $3 / $6 / $9, which no tracked file records: §1.D still describes
+a density ladder at $1 / $2 / $3, with the §4.B v0.56 single-$3-offer sprint live to 2026-08-08. **That contradiction is
+not resolved here and this PR takes no position on it** — no price, no param, no rung is named in code.
+
+**Out of scope, untouched, and pinned as untouched.** No UI, no surface, no `TIER_COORDS` entry, no sealed cell. No
+price, Gumroad product, `?paid=` param, entitlement, or paywall path. No `core/payments.js`, `ui/*`, `index.html`,
+`content/cards.v1.full.js`, `tests/fixtures.json`, or `DOCTRINE.md` change. Nothing in the repository imports
+`core/public.js` — a test asserts that, so wiring can never happen silently, and a scan asserts the module names no
+tier/price/credit/entitlement token. Any surfacing needs a doctrine amendment under §10 first.
+
+**Verification.** Full suite **44 files / 1542 tests** green (base 43 / 1504 after merging `origin/main` — #142/#143 — into this branch; +38, all in the new file). The five required
+properties each have their own block: 100-run byte-identity, coverage with no gaps (every element × strength, every
+element × life path, all 22 postures, all 25 element pairs, plus a 1900–2100 sweep at a 37-day stride), the date-only
+path, anti-fit never a fit family (structurally and across the sweep), and 16 snapshot fixtures (regenerated for the
+two rulings; they cover all nine life-path values, including the three sums — 11, 22, 33 — that no longer stop early). Because a snapshot
+regenerated from the implementation cannot catch an implementation that was wrong when it was taken, four independent
+anchors carry that weight: the three calibrated day pillars from `tests/pillars.test.js`, a hand-walked `2000-01-01` case
+asserted field by field, all ten favourability entries re-derived from the sheng/ke cycles, and season/posture re-derived
+from `getInnerAnimal` / `getBirthCard`. The canonical voice-register, second-person, diagnostic-framing and slur tables
+run over every table string and over assembled output across the sweep, plus a CTA scan. **Not verified:** the local PII
+audit did not run — it needs `audits/local_personal_data.txt`, gitignored and absent in a fresh container. The CI PII
+scan passes in-suite; the pre-push audit is a controller-side item.
+
+**Scope (files):** `core/public.js` (new), `content/public.v1.js` (new), `tests/public.test.js` (new),
+`tests/public_tier.fixture.json` (new), `PUBLIC_TIER_SPEC.md` (new), `CLAUDE.md` (core/ 10 → 11, tests/ 43 → 44 +
+content line, `repo_shape` lockstep), this file, and the in-PR L48 artifact. **UNTOUCHED:** every other `core/` module,
+all of `ui/`, `index.html`, `DOCTRINE.md`, `tests/fixtures.json`, every scanner allow-list, `package.json`,
+dependencies, localStorage keys.
+
+**Merge-forward.** `origin/main` advanced past this branch's base while the work was in flight (#142 CI `edited` trigger, #143 its journal entry). This branch carries a merge commit bringing `origin/main` in; the only conflict was `journal.md` (both sides added a top entry) and both are preserved in full, this one above the #142 entry. The suite was re-run green against the merged state. Note the collision it caused in the sighting log: #142's override took **L48 sighting #13**, so this PR's artifact is **#14**.
+
+**Two rulings, two commits, both in-branch and both filed separately from the original so the record shows what was
+overruled.** (1) *Collapse* — the mode table loses its `11` and `22` entries and the master-stop predicate goes entirely,
+in favour of delegation to `core/profile.js`. (2) *Rename* — `EXPRESSION_MODES` → `WORK_MODES` keyed by life path, output
+`expression` → `mode { lifePath, lifePathSum, … }`, `PUBLIC_SOURCES.mode` reads `life path, nine-number system`, the two
+delegating wrappers deleted rather than re-labelled, and the mode domain asserted against `LIFE_PATH_VALUES`. Fixtures
+regenerated on each; spec §1/§3.4/§4/§6/§8 rewritten. Test count in the new file 36 → 37 → 38: the reduction test became
+a delegation pin, and the rename added a live-code label ban (comment lines excluded on purpose — the modules keep their
+history notes per L17). No file outside this PR's own set moves.
+
+**Rollback.** Delete the five new files and restore the two `CLAUDE.md` counts. Nothing else references them.
+
 ## 2026-07-29 — CI trigger: `edited` added so a retargeted PR still draws checks — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `0235a6f` (#142) on 2026-07-29, written SHIPPED rather than flipped, since the merge preceded the entry. `test` and `l48-gate` both green on the PR head and again on the merged commit; **the gate was cleared by an explicit controller override, not a cross-model verdict** — `audits/L48_override_pr142_2026-07-29.md` (L48 sighting #13). No second model read this change.**
@@ -48,6 +143,14 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 **Scope (files):** `core/calendar.js` (the only source file), `tests/fixtures.json` (+2 pre-1929 boundary cases per §3 step 1; all 25 re-verified against `core/profile.js`), `tests/calendar.test.js` (1916 leaves `ICU_DIVERGENCES` and gains an explicit `[2, 3]` regression pin), `DOCTRINE.md` (§3 calc v3.1 note, version history, version header → v0.57), this file, and the evidence packet. **UNTOUCHED:** `ui/`, `content/`, `index.html`, `core/profile.js`, every scanner list, dependencies, localStorage keys. Suite **43 files / 1500 tests** green.
 
 **Named limit, on the record.** DOCTRINE §3 names the Hong Kong Observatory tables as the calibration authority. `hko.gov.hk` is blocked by this environment's egress policy (403 on CONNECT from the proxy, whose README forbids retrying policy denials), so HKO could not be consulted. Three-library unanimity across 151 consecutive years is the substitute and is not plausibly coincidental — but it is a substitute, and the four dates want HKO re-confirmation from an environment that can reach it. The evidence packet lists three further things a reviewer should press on, including that the 1929 threshold itself is stated differently by some implementations (immaterial here: no offset-sensitive date falls in 1928).
+
+**Follow-ups closed and left open (appended 2026-07-29, after this entry's own merge).** Two things this entry queued have moved, and are recorded here rather than as a new entry so the #140 record stays in one place.
+
+**(a) The cross-model read is commissioned.** Sighting #12 recommended it after merge if not before; the packet is `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md`, merged as `a9957b5` (#145). It is named `retroactive_audit`, **not** `premerge_audit`, and that is load-bearing rather than cosmetic: the `l48-gate` predicate accepts only the premerge-response or override shapes, so a verdict filed against this brief cannot retroactively green any gate or launder a merge that already happened — verified against the shipped regex. Self-contained per `agents/auditor.md` (Codex is paste-relay only, no filesystem access). Ten adversarial hooks; HKO re-confirmation of the four dates is the one worth most. **The verdict is outstanding — commissioning is not reading, and nothing here closes sighting #12.**
+
+**(b) A new finding, from this lane auditing its own merged work.** ΔT (TT−UT) is not applied anywhere in `core/calendar.js`: `newMoonJDE` and `solarLongitudeCrossingJDE` return TT-based JDE, civil time is UT = TT − ΔT, and `jdeToShanghaiDate` adds the civil offset without subtracting it — so every cusp sits ΔT *later* than truth, the same failure direction as the defect this entry fixed. The in-source comment inherited from calc v2 claims *"For 1900–2100 the TT−UT delta is < 70 s"*; that holds only to about 2005, against ~168 s at 2085 and ~196 s at 2097 on the standard Espenak/Meeus fit. Measured: of **2613** cusp instants in range, **six** sit closer to local midnight than ΔT at their year, and applying ΔT changes exactly **one** date — **2084 mangzhong, June 5 → June 4**. Unreachable today, since future DOBs are rejected (v0.3.0 fix B). Stated so it is not mistaken for cleared: #140's clean 2051–2100 sweep against sxtwl does **not** rule this out — at these margins that is equally consistent with sxtwl making the same simplification, or with luck. Filed as hook 4 of the brief for the auditor to verify, not as a settled result.
+
+**(c) The DOCTRINE v0.57 footer clause is corrected.** It shipped reading `STAGED on claude/calendar-pre1929-lmt-fix` and *"a cross-model audit is REQUIRED before merge"*, both false after the merge. Corrected per the v0.48/v0.50/v0.51/v0.55 precedent — appended, not rewritten — and the correction says the requirement was **overridden rather than met**, so the flip does not quietly convert a bypassed rule into a satisfied one. Mechanical-edit note at `audits/mechanical_footer_correction_2026-07-29.md`. **Still stale and deliberately out of scope:** the v0.56 changelog line carries the same clause and #130 merged on 2026-07-26; v0.52–v0.54 carry similar language, unverified. Each belongs to its own footer-flip cycle per the house pattern, not bundled into this one.
 
 ## 2026-07-29 — advisory coverage report: `@vitest/coverage-v8` dev dep + CI step — STAGED
 
