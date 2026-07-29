@@ -27,9 +27,7 @@ import {
   getSeasonalState,
   getSeason,
   getFavorability,
-  getExpressionSum,
-  getExpressionNumber,
-  getExpressionMode,
+  getWorkMode,
   rankDomainFamilies,
   getAntiFitFamily,
   getRolePosture,
@@ -45,11 +43,12 @@ import {
   ELEMENT_FAVORABILITY,
   DOMAIN_FAMILIES,
   FAMILY_CHARACTERS,
-  EXPRESSION_MODES,
+  WORK_MODES,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
 } from '../content/public.v1.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
 import { ANIMALS, buildProfile, getInnerAnimal, getLifePath, getLifePathSum } from '../core/profile.js';
 import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
 import { MAJOR_ARCANA, getBirthCard } from '../core/birthcard.js';
@@ -67,7 +66,10 @@ const fixture = JSON.parse(
 );
 const publicSrc = readFileSync(join(REPO_ROOT, 'core', 'public.js'), 'utf-8');
 
-const EXPRESSION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+// The mode driver's domain is the shipped nine-number life-path registry —
+// imported, not restated, so this tier can never disagree with §1.B about
+// which values exist.
+const LIFE_PATHS = LIFE_PATH_VALUES;
 
 // A deterministic sweep across the whole supported solar-term range. The
 // stride is prime so it walks every month and every weekday position rather
@@ -86,6 +88,12 @@ function* sweepDates(strideDays = 37) {
     ].join('-');
   }
 }
+
+// Source with `//` comment lines dropped. The modules deliberately keep
+// history notes naming the retired `expression` vocabulary (why the rename
+// happened, per L17 supersede-don't-erase); the label bans below are about
+// live code, so they scan this, not the raw file.
+const codeOnly = src => src.split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
 
 // Every string reachable from a value, for the register scans.
 function collectStrings(value, path = '', out = []) {
@@ -147,9 +155,9 @@ describe('public tier — coverage, no gaps', () => {
     }
   });
 
-  it('every element × expression number ranks three distinct families and an anti-fit', () => {
+  it('every element × life path ranks three distinct families and an anti-fit', () => {
     for (const element of ELEMENTS) {
-      for (const n of EXPRESSION_VALUES) {
+      for (const n of LIFE_PATHS) {
         const ranked = rankDomainFamilies(element, n);
         expect(ranked, `${element} × ${n}`).toHaveLength(3);
         expect(new Set(ranked.map(f => f.key)).size).toBe(3);
@@ -161,12 +169,12 @@ describe('public tier — coverage, no gaps', () => {
     }
   });
 
-  it('every expression number has a mode whose priority is a permutation of the characters', () => {
-    expect(Object.keys(EXPRESSION_MODES).map(Number).sort((a, b) => a - b))
-      .toEqual(EXPRESSION_VALUES);
-    for (const n of EXPRESSION_VALUES) {
-      const mode = getExpressionMode(n);
-      expect(mode.number).toBe(n);
+  it('every life path has a mode whose priority is a permutation of the characters', () => {
+    expect(Object.keys(WORK_MODES).map(Number).sort((a, b) => a - b))
+      .toEqual([...LIFE_PATHS]);
+    for (const n of LIFE_PATHS) {
+      const mode = getWorkMode(n);
+      expect(mode.lifePath).toBe(n);
       expect([...mode.priority].sort()).toEqual([...FAMILY_CHARACTERS].sort());
       expect(mode.theme.length).toBeGreaterThan(0);
       expect(mode.method.length).toBeGreaterThan(0);
@@ -200,7 +208,7 @@ describe('public tier — coverage, no gaps', () => {
     for (const dob of sweepDates()) {
       const r = buildPublicReading(dob);
       count += 1;
-      expect(EXPRESSION_VALUES, dob).toContain(r.expression.number);
+      expect(LIFE_PATHS, dob).toContain(r.mode.lifePath);
       expect(r.posture.number, dob).toBeGreaterThanOrEqual(0);
       expect(r.posture.number, dob).toBeLessThanOrEqual(21);
       expect(r.families, dob).toHaveLength(3);
@@ -217,7 +225,7 @@ describe('public tier — date-only input', () => {
     const r = buildPublicReading('1984-02-02');
     expect(Object.keys(r)).toEqual([
       'dob', 'dayMaster', 'season', 'strength', 'favorable', 'unfavorable',
-      'primaryFavorable', 'primaryUnfavorable', 'favorabilityNote', 'expression',
+      'primaryFavorable', 'primaryUnfavorable', 'favorabilityNote', 'mode',
       'posture', 'families', 'antiFit', 'roleLine', 'sources',
     ]);
     expect(r.dayMaster.element).toBeTruthy();
@@ -263,12 +271,12 @@ describe('public tier — date-only input', () => {
 });
 
 describe('public tier — anti-fit is never a fit family', () => {
-  it('holds for every element × expression combination', () => {
+  it('holds for every element × life-path combination', () => {
     for (const element of ELEMENTS) {
       for (const strength of ['strong', 'weak']) {
         const { favorable, unfavorable } = getFavorability(element, strength);
         expect(favorable).not.toContain(unfavorable[0]);
-        for (const n of EXPRESSION_VALUES) {
+        for (const n of LIFE_PATHS) {
           const fit = rankDomainFamilies(favorable[0], n).map(f => f.key);
           const anti = getAntiFitFamily(unfavorable[0], n).key;
           expect(fit, `${element}/${strength} × ${n}`).not.toContain(anti);
@@ -295,8 +303,8 @@ describe('public tier — snapshot fixtures', () => {
     expect(new Set(readings.map(r => r.dayMaster.element)).size).toBe(5);
     expect(new Set(readings.map(r => r.strength)).size).toBe(2);
     expect(new Set(readings.map(r => r.season.state)).size).toBe(5);
-    expect([...new Set(readings.map(r => r.expression.number))].sort((a, b) => a - b))
-      .toEqual(EXPRESSION_VALUES);
+    expect([...new Set(readings.map(r => r.mode.lifePath))].sort((a, b) => a - b))
+      .toEqual([...LIFE_PATHS]);
     for (const c of fixture.cases) expect(c.note.length).toBeGreaterThan(10);
   });
 
@@ -333,7 +341,7 @@ describe('public tier — independent anchors', () => {
   //     → rat → water season
   //   earth controls water (ke) → 囚 qiu → weak
   //   earth weak → favourable [fire, earth], unfavourable [wood, metal, water]
-  //   expression 2+0+0+0 + 1 + 1 = 4 → mode 4 (structure),
+  //   life path 2+0+0+0 + 1 + 1 = 4 → mode 4 (structure),
   //     priority [stewardship, origination, transmission]
   //   fire families by that priority → energy, tech, media
   //   anti-fit = wood's transmission family → teaching
@@ -349,7 +357,7 @@ describe('public tier — independent anchors', () => {
     expect(r.strength).toBe('weak');
     expect(r.favorable).toEqual(['fire', 'earth']);
     expect(r.unfavorable).toEqual(['wood', 'metal', 'water']);
-    expect(r.expression).toMatchObject({ sum: 4, number: 4, theme: 'structure' });
+    expect(r.mode).toMatchObject({ lifePathSum: 4, lifePath: 4, theme: 'structure' });
     expect(r.posture).toMatchObject({ number: 4, roman: 'IV', arcana: 'the emperor' });
     expect(r.families.map(f => f.key)).toEqual(['energy', 'tech', 'media']);
     expect(r.antiFit.key).toBe('teaching');
@@ -374,29 +382,28 @@ describe('public tier — independent anchors', () => {
     }
   });
 
-  it('reduces the date digit sum strictly to 1..9 — no master stop survives', () => {
-    // Controller ruling 2026-07-29: nine modes, per DOCTRINE §1.B v0.54.
-    // These three dates are the ones whose sums used to stop early.
-    expect(getExpressionSum(1919, 1, 1)).toBe(22);
-    expect(getExpressionNumber(1919, 1, 1)).toBe(4);  // 22 → 2+2
-    expect(getExpressionSum(2000, 5, 4)).toBe(11);
-    expect(getExpressionNumber(2000, 5, 4)).toBe(2);  // 11 → 1+1
-    expect(getExpressionSum(1930, 9, 29)).toBe(33);
-    expect(getExpressionNumber(1930, 9, 29)).toBe(6); // 33 → 3+3
-    expect(getExpressionSum(2000, 1, 1)).toBe(4);
-    expect(getExpressionNumber(2000, 1, 1)).toBe(4);
-  });
-
-  it('delegates the number to core/profile.js rather than forking its rule', () => {
-    // Reduced strictly to 1..9, the date digit sum IS the life path. The tier
-    // must not carry a second implementation of it — if these ever diverge,
-    // one of the two changed alone, which is the drift this pins against.
+  it('the mode driver IS the shipped life path — no second implementation', () => {
+    // Two controller rulings on 2026-07-29: collapse to nine, then rename.
+    // core/public.js exports no number function at all now; the reading reads
+    // its driver from core/profile.js. If these ever diverge, one of the two
+    // changed alone, which is the drift this pins against.
+    expect(codeOnly(publicSrc)).not.toMatch(/reduceExpression|getExpressionNumber|getExpressionSum/);
     for (const dob of sweepDates(23)) {
       const [y, m, d] = dob.split('-').map(Number);
-      expect(getExpressionSum(y, m, d), dob).toBe(getLifePathSum(y, m, d));
-      expect(getExpressionNumber(y, m, d), dob).toBe(getLifePath(y, m, d));
-      expect(buildPublicReading(dob).expression.number, dob).toBe(getLifePath(y, m, d));
+      const { mode } = buildPublicReading(dob);
+      expect(mode.lifePath, dob).toBe(getLifePath(y, m, d));
+      expect(mode.lifePathSum, dob).toBe(getLifePathSum(y, m, d));
     }
+  });
+
+  it('carries the master stops through to their reduced values', () => {
+    // The three dates whose sums used to stop early, before the collapse.
+    expect(buildPublicReading('1919-01-01').mode)
+      .toMatchObject({ lifePathSum: 22, lifePath: 4 });  // 22 → 2+2
+    expect(buildPublicReading('2000-05-04').mode)
+      .toMatchObject({ lifePathSum: 11, lifePath: 2 });  // 11 → 1+1
+    expect(buildPublicReading('1930-09-29').mode)
+      .toMatchObject({ lifePathSum: 33, lifePath: 6 });  // 33 → 3+3
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
@@ -416,7 +423,7 @@ describe('public tier — independent anchors', () => {
       expect(r.posture.number, dob).toBe(card.number);
       expect(r.posture.roman, dob).toBe(card.roman);
       expect(r.posture.arcana, dob).toBe(card.name);
-      expect(r.roleLine, dob).toBe(getRoleLine(r.expression.number, card.number));
+      expect(r.roleLine, dob).toBe(getRoleLine(r.mode.lifePath, card.number));
     }
   });
 });
@@ -456,32 +463,44 @@ describe('public tier — table integrity', () => {
   it('the modes are exactly nine and reuse the meanings.v2 theme vocabulary', () => {
     // No master-number entries survive the 2026-07-29 collapse, and the tier
     // introduces no numerology vocabulary of its own.
-    expect(Object.keys(EXPRESSION_MODES)).toHaveLength(9);
-    expect(EXPRESSION_MODES[11]).toBeUndefined();
-    expect(EXPRESSION_MODES[22]).toBeUndefined();
-    expect(() => getExpressionMode(11)).toThrow('No expression mode');
+    expect(Object.keys(WORK_MODES)).toHaveLength(9);
+    expect(WORK_MODES[11]).toBeUndefined();
+    expect(WORK_MODES[22]).toBeUndefined();
+    expect(() => getWorkMode(11)).toThrow('No work mode');
     for (let n = 1; n <= 9; n++) {
-      expect(EXPRESSION_MODES[n].theme, `mode ${n}`).toBe(NUMEROLOGY_MEANINGS[String(n)].theme);
+      expect(WORK_MODES[n].theme, `mode ${n}`).toBe(NUMEROLOGY_MEANINGS[String(n)].theme);
     }
+  });
+
+  it('no table or output field carries the retired "expression" label', () => {
+    // The rename ruling: one value, one name. `expression/name number` stays
+    // §1.B's name-derived coordinate and this tier does not borrow the word.
+    // meanings.v2's theme for 3 is legitimately the English word, so the scan
+    // is over KEYS, not values.
+    const contentSrc = readFileSync(join(REPO_ROOT, 'content', 'public.v1.js'), 'utf-8');
+    expect(codeOnly(contentSrc)).not.toMatch(/EXPRESSION_MODES|expression:/);
+    expect(codeOnly(publicSrc)).not.toMatch(/expression:/);
+    const keys = new Set(collectStrings(buildPublicReading('2000-01-01')).map(s => s.path.split('.')[0]));
+    expect([...keys]).not.toContain('expression');
   });
 
   it('every table is frozen — no runtime consumer can mutate the content layer', () => {
     for (const table of [
       BRANCH_ELEMENTS, SEASONAL_STATES, ELEMENT_FAVORABILITY, DOMAIN_FAMILIES,
-      EXPRESSION_MODES, ROLE_POSTURES, PUBLIC_SOURCES, FAMILY_CHARACTERS,
+      WORK_MODES, ROLE_POSTURES, PUBLIC_SOURCES, FAMILY_CHARACTERS,
     ]) {
       expect(Object.isFrozen(table)).toBe(true);
     }
     expect(Object.isFrozen(DOMAIN_FAMILIES.wood[0])).toBe(true);
     expect(Object.isFrozen(ELEMENT_FAVORABILITY.wood_weak.favorable)).toBe(true);
-    expect(Object.isFrozen(EXPRESSION_MODES[1].priority)).toBe(true);
+    expect(Object.isFrozen(WORK_MODES[1].priority)).toBe(true);
   });
 });
 
 describe('public tier — voice register (§2 / §4)', () => {
   const tables = {
     PUBLIC_SOURCES, SEASONAL_STATES, ELEMENT_FAVORABILITY,
-    DOMAIN_FAMILIES, EXPRESSION_MODES, ROLE_POSTURES,
+    DOMAIN_FAMILIES, WORK_MODES, ROLE_POSTURES,
   };
   const strings = collectStrings(tables);
 

@@ -27,7 +27,7 @@ export const PUBLIC_SOURCES = Object.freeze({
   dayMaster: 'bazi · day-pillar heavenly stem',
   strength: 'wuxing seasonal states · 旺相休囚死',
   favorability: 'bazi · yongshen favourable-element convention',
-  expression: 'pythagorean numerology · date digit sum, nine-number system',
+  mode: 'pythagorean numerology · life path, nine-number system',
   posture: 'major arcana · project birth-card reduction',
   families: 'wuxing · classical industry categories',
 });
@@ -235,12 +235,18 @@ export const DOMAIN_FAMILIES = Object.freeze({
   ]),
 });
 
-// ── Expression modes (9 entries) ────────────────────────────────────────────
-// Keyed by the date digit sum reduced strictly to 1..9, per DOCTRINE §1.B
-// v0.54 (calc v3) — controller ruling 2026-07-29, collapsing the eleven-entry
-// first draft that retained the 11 and 22 stops. `theme` is the same nine-term
-// vocabulary content/meanings.v2.js already ships, pinned by a cross-check in
-// tests/public.test.js, so the tier adds no numerology vocabulary of its own.
+// ── Modes of work (9 entries) ───────────────────────────────────────────────
+// Keyed by LIFE PATH, 1..9 — the shipped DOB-derived coordinate
+// (core/profile.js getLifePath, free-surface per DOCTRINE §1.D v0.38), whose
+// domain is exactly the nine values §1.B v0.54 fixed.
+//
+// Two controller rulings on 2026-07-29 produced that key. The first collapsed
+// an eleven-entry draft that retained the 11 and 22 stops; the second renamed
+// the driver once collapsing revealed it was the life path and nothing else.
+// `EXPRESSION_MODES` was the old name and is gone rather than aliased — the
+// tier does not carry a second word for a coordinate the project already
+// names. `theme` is the same nine-term vocabulary content/meanings.v2.js
+// ships, pinned by a cross-check in tests/public.test.js.
 //
 // `priority` ranks the three family characters for this mode. It is a
 // permutation of FAMILY_CHARACTERS: priority[0] takes rank 1 among the fit
@@ -249,49 +255,49 @@ export const DOMAIN_FAMILIES = Object.freeze({
 //
 // `method` is the second clause of the shape-of-role line. It describes how
 // work of this mode is carried out, in the third person, as a category note.
-export const EXPRESSION_MODES = Object.freeze({
+export const WORK_MODES = Object.freeze({
   1: Object.freeze({
-    number: 1, theme: 'initiative', register: 'the opening move',
+    lifePath: 1, theme: 'initiative', register: 'the opening move',
     priority: Object.freeze(['origination', 'transmission', 'stewardship']),
     method: 'worked from a standing start, one line at a time',
   }),
   2: Object.freeze({
-    number: 2, theme: 'cooperation', register: 'the second hand',
+    lifePath: 2, theme: 'cooperation', register: 'the second hand',
     priority: Object.freeze(['stewardship', 'transmission', 'origination']),
     method: 'worked in pairs, at the pace of the slower party',
   }),
   3: Object.freeze({
-    number: 3, theme: 'expression', register: 'the open draft',
+    lifePath: 3, theme: 'expression', register: 'the open draft',
     priority: Object.freeze(['transmission', 'origination', 'stewardship']),
     method: 'worked in public drafts, revised where they can be seen',
   }),
   4: Object.freeze({
-    number: 4, theme: 'structure', register: 'the fixed plan',
+    lifePath: 4, theme: 'structure', register: 'the fixed plan',
     priority: Object.freeze(['stewardship', 'origination', 'transmission']),
     method: 'worked to a plan, in fixed stages',
   }),
   5: Object.freeze({
-    number: 5, theme: 'change', register: 'the short cycle',
+    lifePath: 5, theme: 'change', register: 'the short cycle',
     priority: Object.freeze(['transmission', 'origination', 'stewardship']),
     method: 'worked in short cycles, re-scoped as conditions move',
   }),
   6: Object.freeze({
-    number: 6, theme: 'care', register: 'the standing duty',
+    lifePath: 6, theme: 'care', register: 'the standing duty',
     priority: Object.freeze(['stewardship', 'transmission', 'origination']),
     method: 'worked at the pace of the people it is for',
   }),
   7: Object.freeze({
-    number: 7, theme: 'analysis', register: 'the closed study',
+    lifePath: 7, theme: 'analysis', register: 'the closed study',
     priority: Object.freeze(['stewardship', 'origination', 'transmission']),
     method: 'worked from the record, slowly, to a stated confidence',
   }),
   8: Object.freeze({
-    number: 8, theme: 'command', register: 'the wide operation',
+    lifePath: 8, theme: 'command', register: 'the wide operation',
     priority: Object.freeze(['origination', 'stewardship', 'transmission']),
     method: 'worked at scale, through delegated hands',
   }),
   9: Object.freeze({
-    number: 9, theme: 'service', register: 'the standing obligation',
+    lifePath: 9, theme: 'service', register: 'the standing obligation',
     priority: Object.freeze(['transmission', 'stewardship', 'origination']),
     method: 'worked to an obligation already accepted, on request',
   }),

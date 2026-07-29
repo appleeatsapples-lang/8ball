@@ -36,7 +36,7 @@ import {
   SEASONAL_STATES,
   ELEMENT_FAVORABILITY,
   DOMAIN_FAMILIES,
-  EXPRESSION_MODES,
+  WORK_MODES,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
 } from '../content/public.v1.js';
@@ -120,38 +120,34 @@ export function getFavorability(dayMasterElement, strength) {
   return entry;
 }
 
-// ── 2. Expression number → mode of work ─────────────────────────────────────
+// ── 2. Life path → mode of work ─────────────────────────────────────────────
 //
-// NINE modes, not eleven. The first draft of this tier retained the 11 and 22
-// stops, which made the table eleven entries and diverged from the strict
-// nine-number reduction DOCTRINE §1.B v0.54 (calc v3) fixed. Controller ruling
-// 2026-07-29: collapse to nine. The brief specified eleven; the constitution
-// wins, and this comment is the record that the brief was overruled rather
-// than misread.
+// NINE modes, not eleven, and driven by the LIFE PATH, not by anything this
+// tier computes for itself. Two controller rulings, both 2026-07-29, recorded
+// here because both overruled the brief rather than interpreted it:
 //
-// CONSEQUENCE, stated because it is not obvious and it matters. A date digit
-// sum reduced strictly to 1..9 IS the life path — the same sum, the same
-// reduction, already shipped on the free surface as `lifePath`
-// (DOCTRINE §1.D v0.38). So this tier's mode driver is no longer a distinct
-// number, and these two functions do not reimplement it: they delegate to
-// core/profile.js, which owns that calculation. Keeping a private copy would
-// have been a fork of an identical rule, the exact drift risk core/math.js's
-// header names. A test pins the delegation across the whole date range.
+//   1. The first draft retained the 11 and 22 stops, making the mode table
+//      eleven entries and diverging from the strict nine-number reduction
+//      DOCTRINE §1.B v0.54 (calc v3) fixed. Ruling: collapse to nine.
+//   2. Collapsing exposed that a date digit sum reduced strictly to 1..9 IS
+//      the life path — the same sum under the same reduction that
+//      core/profile.js already ships and §1.D v0.38 puts on the free surface.
+//      The field was still called `expression`, which by then named neither
+//      §1.B's name-derived expression/name number nor any distinct number.
+//      Ruling: rename. The driver is `lifePath` everywhere, and the block it
+//      selects is `mode` — the mode of work — which records the life-path
+//      value that chose it.
 //
-// The label is now doubly wrong — this is neither §1.B's name-derived
-// expression/name number nor a new number — and renaming it before anything
-// surfaces is open question 1 in PUBLIC_TIER_SPEC.md §6.
-export function getExpressionSum(year, month, day) {
-  return getLifePathSum(year, month, day);
-}
+// There is deliberately no wrapper here. An earlier draft kept
+// getExpressionSum / getExpressionNumber delegating to core/profile.js; with
+// the honest name there is nothing left for them to do, so buildPublicReading
+// calls getLifePath / getLifePathSum directly. A private copy of a rule
+// core/profile.js owns is the drift risk core/math.js's header names, and a
+// wrapper that exists only to re-label it is the same risk with a nicer face.
 
-export function getExpressionNumber(year, month, day) {
-  return getLifePath(year, month, day);
-}
-
-export function getExpressionMode(expressionNumber) {
-  const mode = EXPRESSION_MODES[expressionNumber];
-  if (!mode) throw new Error(`No expression mode for number=${expressionNumber}`);
+export function getWorkMode(lifePath) {
+  const mode = WORK_MODES[lifePath];
+  if (!mode) throw new Error(`No work mode for life path=${lifePath}`);
   return mode;
 }
 
@@ -160,10 +156,10 @@ export function getExpressionMode(expressionNumber) {
 // Rank an element's three families by the mode's character priority. Each
 // element carries exactly one family per character, so the sort is a total
 // order with no tie-break and no positional bias.
-export function rankDomainFamilies(element, expressionNumber) {
+export function rankDomainFamilies(element, lifePath) {
   const families = DOMAIN_FAMILIES[element];
   if (!families) throw new Error(`No domain families for element="${element}"`);
-  const { priority } = getExpressionMode(expressionNumber);
+  const { priority } = getWorkMode(lifePath);
   return families
     .map(family => ({ family, rank: priority.indexOf(family.character) }))
     .sort((a, b) => a.rank - b.rank)
@@ -176,10 +172,10 @@ export function rankDomainFamilies(element, expressionNumber) {
 // never also the unfavourable one — pinned in tests/public.test.js) and
 // families never cross elements, the anti-fit can never collide with a fit
 // family.
-export function getAntiFitFamily(element, expressionNumber) {
+export function getAntiFitFamily(element, lifePath) {
   const families = DOMAIN_FAMILIES[element];
   if (!families) throw new Error(`No domain families for element="${element}"`);
-  const { priority } = getExpressionMode(expressionNumber);
+  const { priority } = getWorkMode(lifePath);
   const lastCharacter = priority[priority.length - 1];
   const family = families.find(f => f.character === lastCharacter);
   if (!family) {
@@ -197,10 +193,10 @@ export function getRolePosture(arcanaNumber) {
 }
 
 // One line, assembled from exactly two table fields: the posture's stance
-// (from the birth card) and the mode's method (from the expression number).
-// No adjectives are computed, nothing is generated — the line is a join.
-export function getRoleLine(expressionNumber, arcanaNumber) {
-  return `${getRolePosture(arcanaNumber).stance}, ${getExpressionMode(expressionNumber).method}.`;
+// (from the birth card) and the mode's method (from the life path). No
+// adjectives are computed, nothing is generated — the line is a join.
+export function getRoleLine(lifePath, arcanaNumber) {
+  return `${getRolePosture(arcanaNumber).stance}, ${getWorkMode(lifePath).method}.`;
 }
 
 // ── Assembly ────────────────────────────────────────────────────────────────
@@ -222,9 +218,9 @@ export function buildPublicReading(dobIso, _opts = {}) {
   const primaryFavorable = favorability.favorable[0];
   const primaryUnfavorable = favorability.unfavorable[0];
 
-  const expressionSum = getExpressionSum(year, month, day);
-  const expressionNumber = getExpressionNumber(year, month, day);
-  const mode = getExpressionMode(expressionNumber);
+  const lifePathSum = getLifePathSum(year, month, day);
+  const lifePath = getLifePath(year, month, day);
+  const mode = getWorkMode(lifePath);
 
   const birthCard = getBirthCard(year, month, day);
   const posture = getRolePosture(birthCard.number);
@@ -251,9 +247,9 @@ export function buildPublicReading(dobIso, _opts = {}) {
     primaryFavorable,
     primaryUnfavorable,
     favorabilityNote: favorability.body,
-    expression: {
-      sum: expressionSum,
-      number: expressionNumber,
+    mode: {
+      lifePath,
+      lifePathSum,
       theme: mode.theme,
       register: mode.register,
       method: mode.method,
@@ -265,10 +261,10 @@ export function buildPublicReading(dobIso, _opts = {}) {
       register: posture.register,
       stance: posture.stance,
     },
-    families: rankDomainFamilies(primaryFavorable, expressionNumber)
+    families: rankDomainFamilies(primaryFavorable, lifePath)
       .map((family, index) => ({ rank: index + 1, ...family })),
-    antiFit: { ...getAntiFitFamily(primaryUnfavorable, expressionNumber) },
-    roleLine: getRoleLine(expressionNumber, birthCard.number),
+    antiFit: { ...getAntiFitFamily(primaryUnfavorable, lifePath) },
+    roleLine: getRoleLine(lifePath, birthCard.number),
     sources: PUBLIC_SOURCES,
   };
 }

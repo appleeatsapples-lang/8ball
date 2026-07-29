@@ -42,7 +42,7 @@ The four inputs to that output, in order:
 
 1. **Day master element + strength** → favourable / unfavourable elements
 2. **Favourable element** → the domain families in play
-3. **Expression number** → the mode of work, which ranks them
+3. **Life path** → the mode of work, which ranks them
 4. **Tarot birth card** → the role posture
 
 Steps 1–2 produce the families and the anti-fit. Steps 3–4 produce the role
@@ -150,25 +150,35 @@ One family per character per element is load-bearing, not decorative: it makes
 the ranking a total order with no tie-break and no positional bias, and it
 makes the anti-fit selection single-valued.
 
-### §3.4 Expression number and mode — 9 entries
+### §3.4 Life path and mode of work — 9 entries
 
-The expression number is the digit sum of the date, reduced by repeated digit
-sum to exactly `1..9` — no master stop. The domain is nine values, nine modes.
+The mode of work is selected by the **life path** — `core/profile.js`'s
+shipped DOB coordinate, free-surface since §1.D v0.38, whose domain is exactly
+the nine values §1.B v0.54 fixed. Nine values, nine modes.
 
-**This was eleven, and a controller ruling on 2026-07-29 collapsed it.** The
-first draft retained the 11 and 22 stops because the brief specified eleven
-modes; DOCTRINE §1.B v0.54 (calc v3) fixed active Pythagorean numerology at
-exactly nine terminal values, and the constitution won. Recorded here rather
-than quietly re-specified: the brief was overruled, not misread.
+**Two controller rulings on 2026-07-29 produced that sentence, and both
+overruled the brief rather than interpreted it.** Recorded here rather than
+quietly re-specified:
 
-**The consequence is that this number is the life path.** A date digit sum
-reduced strictly to 1..9 is the same sum under the same reduction that
-`core/profile.js` already ships as `lifePath`, free-surface since §1.D v0.38.
-So the tier no longer computes a distinct number, and it does not
-reimplement one: `getExpressionSum` and `getExpressionNumber` delegate to
-`getLifePathSum` / `getLifePath`, with a test pinning the delegation across
-the date range. A private copy of an identical rule is the drift risk
-`core/math.js`'s header names, and this tier does not take it.
+1. **Collapse.** The first draft called this the *expression number* and
+   retained the 11 and 22 stops, because the brief specified eleven modes.
+   §1.B v0.54 (calc v3) fixed active Pythagorean numerology at exactly nine
+   terminal values, and the constitution won.
+2. **Rename.** Collapsing exposed what the number had become: a date digit sum
+   reduced strictly to 1..9 is the life path — same sum, same reduction, a
+   coordinate the free sheet already shows. `expression` by then named neither
+   §1.B's name-derived expression/name number nor any distinct value, so one
+   sheet would have carried two labels for one number. The driver is
+   `lifePath` throughout; the block it selects is `mode`, which records the
+   life-path value that chose it.
+
+The tier therefore computes no number of its own here and holds no wrapper
+around one: `buildPublicReading` calls `getLifePath` / `getLifePathSum`
+directly, `WORK_MODES` is keyed by life path, and a test pins the reading's
+`mode.lifePath` against `core/profile.js` across the date range. A private
+copy of a rule `core/profile.js` owns is the drift risk `core/math.js`'s
+header names — and a wrapper that exists only to re-label it is the same risk
+with a nicer face.
 
 Each mode carries a `theme`, a `register`, a `method` (the second clause of
 the role line), and a `priority` — a permutation of the three characters.
@@ -176,8 +186,10 @@ the role line), and a `priority` — a permutation of the three characters.
 anti-fit. All six permutations are still used across the nine modes.
 
 Themes are the same nine-term vocabulary `content/meanings.v2.js` already
-ships (pinned by a cross-check test), so the tier introduces no numerology
-vocabulary of its own.
+ships (pinned by a cross-check test), and the mode domain is asserted against
+`LIFE_PATH_VALUES` from `content/concordance.v2.js` rather than restated, so
+the tier introduces no numerology vocabulary and no numerology domain of its
+own.
 
 ### §3.5 Ranking, anti-fit, role posture, role line
 
@@ -209,7 +221,7 @@ vocabulary of its own.
 | `favorable` / `unfavorable` | ranked element arrays, together always all five |
 | `primaryFavorable` / `primaryUnfavorable` | the two selectors |
 | `favorabilityNote` | the table's one-line note for this entry |
-| `expression` | `{ sum, number, theme, register, method }` |
+| `mode` | `{ lifePath, lifePathSum, theme, register, method }` |
 | `posture` | `{ number, roman, arcana, register, stance }` |
 | `families` | three entries, `{ rank, key, element, label, character, body }` |
 | `antiFit` | one entry, same shape minus `rank` |
@@ -238,20 +250,16 @@ and the season and posture are re-derived from `getInnerAnimal` and
 
 ## §6. Open questions — controller decisions, not implementer ones
 
-1. **The field name is now wrong twice, and this is the open one.** With the
-   nine-mode collapse, `expression` is neither §1.B's name-derived
-   expression/name number nor a distinct number of its own — it is the life
-   path (§3.4). Two labels on one sheet for one value is the failure mode, and
-   it is cheap to fix now and expensive after anything renders. The
-   recommendation is to rename the output field to `lifePath` (or to something
-   naming its job here, e.g. `modeDriver`) before any surfacing change. Not
-   done in this PR because the ruling asked for the collapse, not the rename;
-   it is a field name, three test references, and a fixture regeneration.
-2. **Ruled 2026-07-29: nine modes, not eleven** (§3.4). Kept in this list as a
-   record rather than a question. What follows from it and is *not* settled:
-   whether a driver that duplicates an already-free coordinate is the right
-   input for the mode of work at all, or whether this tier wants a number the
-   free sheet does not already show.
+1. **Ruled 2026-07-29, both legs: nine modes, and the driver is named
+   `lifePath`** (§3.4). Kept in this list as a record, not a question. What
+   the two rulings leave genuinely open, and what a reviewer should actually
+   argue with: **the mode of work is now selected by a coordinate the free
+   sheet already shows.** Nothing about the public tier's mode is new
+   information — it is a re-reading of `lifePath` against the domain families.
+   Whether that is the right input at all, or whether this rung wants a driver
+   the free surface does not already give away, is a design question no one
+   outside this lane has looked at. It is also the cheapest thing to change
+   while nothing renders: the mode table is keyed by one integer.
 3. **Strength is month-branch only** (§3.1), and the hour is accepted but
    unused (§2). Both are honest simplifications for a date-only tier; both
    are the obvious first amendments if a practitioner reviews the output and
@@ -277,12 +285,12 @@ a test pins that, so wiring it can never happen silently.
 
 Before any of it is shown to anyone, in this order: a doctrine amendment
 defining the rung under §1.D (or its successor) with cross-model review per
-§10, the §6.1 rename, and a §5.D pass on what a public-tier share surface
-would carry.
+§10, a design read on §6.1 (a mode driver the free sheet already shows), and
+a §5.D pass on what a public-tier share surface would carry.
 
 ## §8. Test map
 
-`tests/public.test.js` (37 tests) — determinism · coverage with no gaps ·
+`tests/public.test.js` (38 tests) — determinism · coverage with no gaps ·
 date-only path · anti-fit never a fit family · snapshot fixtures · independent
 anchors · table integrity · voice register (the canonical
 `BANNED_VOICE_REGISTER` / second-person / diagnostic-framing / slur tables,
@@ -292,7 +300,7 @@ plus a CTA scan) · surface isolation.
 three day-pillar calibration anchors, the calc v3.1 correction dates, the
 three sums that used to stop at a master value, a leap day, and both ends of
 the 1900–2100 solar-term table. They cover all five day-master elements, both
-strengths, all five seasonal states, and all nine expression values —
+strengths, all five seasonal states, and all nine life-path values —
 including the three digit sums (11, 22, 33) that no longer stop early.
 
 ## §9. Rollback

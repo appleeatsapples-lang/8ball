@@ -1,7 +1,7 @@
 {
-  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in content/public.v1.js fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 for the nine-mode collapse (controller ruling; DOCTRINE §1.B v0.54).",
+  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in content/public.v1.js fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 for the nine-mode collapse and again for the lifePath rename — two controller rulings, same day (DOCTRINE §1.B v0.54, §1.D v0.38).",
   "_pii_rule": "Fixture dates MUST be synthetic — calendar/calibration anchors chosen for the calc path they exercise, never a real person’s date of birth. See DOCTRINE.md §11.",
-  "_coverage": "The 16 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine expression values (1–9), including the three digit sums (11, 22, 33) that no longer stop early.",
+  "_coverage": "The 16 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine life-path values (1–9), including the three digit sums (11, 22, 33) that no longer stop early.",
   "cases": [
     {
       "dob": "1900-01-01",
@@ -39,9 +39,9 @@
         "primaryFavorable": "fire",
         "primaryUnfavorable": "water",
         "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
-        "expression": {
-          "sum": 12,
-          "number": 3,
+        "mode": {
+          "lifePath": 3,
+          "lifePathSum": 12,
           "theme": "expression",
           "register": "the open draft",
           "method": "worked in public drafts, revised where they can be seen"
@@ -91,7 +91,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -133,9 +133,9 @@
         "primaryFavorable": "earth",
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
-        "expression": {
-          "sum": 23,
-          "number": 5,
+        "mode": {
+          "lifePath": 5,
+          "lifePathSum": 23,
           "theme": "change",
           "register": "the short cycle",
           "method": "worked in short cycles, re-scoped as conditions move"
@@ -185,7 +185,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -227,9 +227,9 @@
         "primaryFavorable": "water",
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
-        "expression": {
-          "sum": 22,
-          "number": 4,
+        "mode": {
+          "lifePath": 4,
+          "lifePathSum": 22,
           "theme": "structure",
           "register": "the fixed plan",
           "method": "worked to a plan, in fixed stages"
@@ -279,7 +279,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -287,7 +287,7 @@
     },
     {
       "dob": "1919-01-01",
-      "note": "digit sum 22, which the pre-collapse draft stopped on; reduces to 4 under the nine-number rule. Birth card still reduces to 22 → 0 · the fool",
+      "note": "digit sum 22, which the pre-collapse draft stopped on; reduces to life path 4 under the nine-number rule. Birth card still reduces to 22 → 0 · the fool",
       "reading": {
         "dob": {
           "year": 1919,
@@ -321,9 +321,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
-        "expression": {
-          "sum": 22,
-          "number": 4,
+        "mode": {
+          "lifePath": 4,
+          "lifePathSum": 22,
           "theme": "structure",
           "register": "the fixed plan",
           "method": "worked to a plan, in fixed stages"
@@ -373,7 +373,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -415,9 +415,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
-        "expression": {
-          "sum": 33,
-          "number": 6,
+        "mode": {
+          "lifePath": 6,
+          "lifePathSum": 33,
           "theme": "care",
           "register": "the standing duty",
           "method": "worked at the pace of the people it is for"
@@ -467,7 +467,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -509,9 +509,9 @@
         "primaryFavorable": "water",
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
-        "expression": {
-          "sum": 26,
-          "number": 8,
+        "mode": {
+          "lifePath": 8,
+          "lifePathSum": 26,
           "theme": "command",
           "register": "the wide operation",
           "method": "worked at scale, through delegated hands"
@@ -561,7 +561,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -569,7 +569,7 @@
     },
     {
       "dob": "1970-05-05",
-      "note": "expression 9; wood day master out of season (xiu)",
+      "note": "life path 9; wood day master out of season (xiu)",
       "reading": {
         "dob": {
           "year": 1970,
@@ -603,9 +603,9 @@
         "primaryFavorable": "water",
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a wood day master outside its season; the open side is what feeds and joins it before anything draws on it.",
-        "expression": {
-          "sum": 27,
-          "number": 9,
+        "mode": {
+          "lifePath": 9,
+          "lifePathSum": 27,
           "theme": "service",
           "register": "the standing obligation",
           "method": "worked to an obligation already accepted, on request"
@@ -655,7 +655,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -697,9 +697,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "water",
         "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
-        "expression": {
-          "sum": 26,
-          "number": 8,
+        "mode": {
+          "lifePath": 8,
+          "lifePathSum": 26,
           "theme": "command",
           "register": "the wide operation",
           "method": "worked at scale, through delegated hands"
@@ -749,7 +749,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -791,9 +791,9 @@
         "primaryFavorable": "fire",
         "primaryUnfavorable": "wood",
         "favorabilityNote": "an earth day master outside its season; the open side is warmth and bulk before any call on either.",
-        "expression": {
-          "sum": 4,
-          "number": 4,
+        "mode": {
+          "lifePath": 4,
+          "lifePathSum": 4,
           "theme": "structure",
           "register": "the fixed plan",
           "method": "worked to a plan, in fixed stages"
@@ -843,7 +843,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -885,9 +885,9 @@
         "primaryFavorable": "earth",
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
-        "expression": {
-          "sum": 15,
-          "number": 6,
+        "mode": {
+          "lifePath": 6,
+          "lifePathSum": 15,
           "theme": "care",
           "register": "the standing duty",
           "method": "worked at the pace of the people it is for"
@@ -937,7 +937,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -945,7 +945,7 @@
     },
     {
       "dob": "2000-05-04",
-      "note": "digit sum 11, which the pre-collapse draft stopped on; reduces to 2 under the nine-number rule",
+      "note": "digit sum 11, which the pre-collapse draft stopped on; reduces to life path 2 under the nine-number rule",
       "reading": {
         "dob": {
           "year": 2000,
@@ -979,9 +979,9 @@
         "primaryFavorable": "metal",
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a water day master outside its season; the open side is the source and the body of water it joins.",
-        "expression": {
-          "sum": 11,
-          "number": 2,
+        "mode": {
+          "lifePath": 2,
+          "lifePathSum": 11,
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -1031,7 +1031,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1039,7 +1039,7 @@
     },
     {
       "dob": "2020-08-08",
-      "note": "expression 2 from a sum that never stopped; water day master in its own season",
+      "note": "life path 2 from a sum that never stopped; water day master in its own season",
       "reading": {
         "dob": {
           "year": 2020,
@@ -1073,9 +1073,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
-        "expression": {
-          "sum": 20,
-          "number": 2,
+        "mode": {
+          "lifePath": 2,
+          "lifePathSum": 20,
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -1125,7 +1125,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1167,9 +1167,9 @@
         "primaryFavorable": "fire",
         "primaryUnfavorable": "water",
         "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
-        "expression": {
-          "sum": 11,
-          "number": 2,
+        "mode": {
+          "lifePath": 2,
+          "lifePathSum": 11,
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -1219,7 +1219,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1261,9 +1261,9 @@
         "primaryFavorable": "earth",
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
-        "expression": {
-          "sum": 19,
-          "number": 1,
+        "mode": {
+          "lifePath": 1,
+          "lifePathSum": 19,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -1313,7 +1313,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1355,9 +1355,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
-        "expression": {
-          "sum": 25,
-          "number": 7,
+        "mode": {
+          "lifePath": 7,
+          "lifePathSum": 25,
           "theme": "analysis",
           "register": "the closed study",
           "method": "worked from the record, slowly, to a stated confidence"
@@ -1407,7 +1407,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1449,9 +1449,9 @@
         "primaryFavorable": "wood",
         "primaryUnfavorable": "water",
         "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
-        "expression": {
-          "sum": 10,
-          "number": 1,
+        "mode": {
+          "lifePath": 1,
+          "lifePathSum": 10,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -1501,7 +1501,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "expression": "pythagorean numerology · date digit sum, nine-number system",
+          "mode": "pythagorean numerology · life path, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
