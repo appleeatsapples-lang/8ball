@@ -13,8 +13,14 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 defects a review actually found, and the one that records why the review was needed three merges earlier. **The fix for the
 live defect is verified structurally, never in a browser.** §8 gate 9 live-fire is still outstanding and F1 is precisely the
 class it exists to catch; `curl` to the product domain is blocked by this environment's egress policy, so no claim is made
-here about what the deployed site now serves. **The single most valuable next action is a human opening the paywall and
-confirming one CTA.** Was: STAGED on `claude/8ball-public-engine-me9rhr`.**
+here about what the deployed site now serves. **§8 gate 9 SATISFIED for the paywall surface, 2026-07-29:** the controller ran the live-fire pass on the deployed page and
+confirmed **one CTA**. That closes F1 with the only instrument that could close it — the suite cannot evaluate a cascade
+(§12, no jsdom), so until this pass the fix was verified structurally and no further. It is also the second time gate 9 has
+caught or cleared this exact defect class, after the `.polar-message[hidden]` cycle; the gate is earning its place in §8.
+**Scope of the confirmation, stated so the record does not overclaim:** the paywall CTA count, and nothing else. The sealed
+`DOMAIN FIT` block's rendering, the density strip's new tail, and the 320px-viewport question raised by the cross-read's
+completeness critic were NOT part of it and remain unverified in a browser. Was: STAGED on
+`claude/8ball-public-engine-me9rhr`.**
 
 **F1 (HIGH, live). The "fail-closed" t4 CTA was never hidden.** `#paywall-cta-t4` ships the `hidden` attribute and
 `applyT4Offer` re-asserts `anchor.hidden = true` and strips `href` — but `[hidden] { display: none }` is a **UA-origin**
