@@ -5,6 +5,76 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No cross-model read has been run — the
+L48 artifact filed with this PR is an explicit override, not a verdict, and it says so. This is additive: five new files,
+two count lines in `CLAUDE.md`, and this entry. No existing module, test, fixture, or doctrine clause is modified.**
+
+**What this is.** The computation engine for the ladder rung the brief calls **public** — deterministic, offline,
+table-driven, no model call at runtime or anywhere else. From a birth **date alone** it returns three ranked domain
+families, one anti-fit family, and one shape-of-role line. Four steps: day-master element + strength → favourable /
+unfavourable elements; favourable element → domain families; expression number → mode of work (which ranks them);
+tarot birth card → role posture. Spec at `PUBLIC_TIER_SPEC.md`.
+
+**Reuse over reimplementation, on purpose.** The day master is the shipped `core/pillars.js` day pillar (calibrated
+offsets). The season is the shipped `getInnerAnimal` solar-term path (calc v3.1). The posture indexes the shipped
+`core/birthcard.js` arcana. The sheng/ke cycles are imported from the immutable `content/concordance.v1.js` rather than
+redefined — one wuxing table in the repo. The nine mode themes for 1–9 are the same vocabulary `content/meanings.v2.js`
+ships, pinned by a cross-check test. The only new tables are the ten favourability entries, fifteen domain families,
+eleven expression modes, and twenty-two role postures.
+
+**Three things a reviewer should press on, named here rather than left to be found.**
+
+- **The eleven expression modes diverge from calc v3.** §1.B v0.54 fixed active Pythagorean numerology at exactly nine
+  terminal values. This tier's expression number is the date digit sum with the 11 and 22 stops **retained**, which is
+  what makes the table eleven entries. The argument for it: the brief specifies eleven modes, and this number is a
+  date-derived driver private to the tier, never rendered as the `expression/name number` coordinate §1.B governs. The
+  argument against it is that §1.B's language is about the active surface, not about one field's provenance. **This is a
+  controller ruling, not an implementer one.** Collapsing to nine modes is one predicate plus two table entries, then a
+  fixture regeneration. The name also collides with §1.B's coordinate and would need relabelling before either reaches a
+  surface.
+- **Strength is the seasonal-state model, month branch only.** 旺相休囚死 against the month-branch element, collapsed to
+  strong/weak. A full BaZi read weighs roots, hidden stems and the rest of the chart. It is the largest place a
+  practitioner would disagree with the output, and it is the reason the accepted-but-unused hour is worth keeping as a
+  future amendment rather than quietly wiring in.
+- **First `core/` → `content/` import edge.** Every other `core/` module carries its own constants; this one is
+  explicitly table-driven and §6 puts versioned static data in `content/`. One-way, no new runtime capability, but new.
+
+**Missing context, stated plainly.** The brief's reading list named four sources outside this repository — a personal
+context file, an approach document, a sibling development checkout, and the newest session handoff. **None exists in this
+container**, which carries a fresh clone of this repo and nothing else. Everything was derived from `8BALL.md`,
+`DOCTRINE.md`, `journal.md`, `CLAUDE.md` and the shipped modules. The brief also describes the ladder as restructured to
+**exposure radius** (private · comparative · public) at $3 / $6 / $9, which no tracked file records: §1.D still describes
+a density ladder at $1 / $2 / $3, with the §4.B v0.56 single-$3-offer sprint live to 2026-08-08. **That contradiction is
+not resolved here and this PR takes no position on it** — no price, no param, no rung is named in code.
+
+**Out of scope, untouched, and pinned as untouched.** No UI, no surface, no `TIER_COORDS` entry, no sealed cell. No
+price, Gumroad product, `?paid=` param, entitlement, or paywall path. No `core/payments.js`, `ui/*`, `index.html`,
+`content/cards.v1.full.js`, `tests/fixtures.json`, or `DOCTRINE.md` change. Nothing in the repository imports
+`core/public.js` — a test asserts that, so wiring can never happen silently, and a scan asserts the module names no
+tier/price/credit/entitlement token. Any surfacing needs a doctrine amendment under §10 first.
+
+**Verification.** Full suite **44 files / 1536 tests** green (was 43 / 1500; +36 all in the new file). The five required
+properties each have their own block: 100-run byte-identity, coverage with no gaps (every element × strength, every
+element × expression, all 22 postures, all 25 element pairs, plus a 1900–2100 sweep at a 37-day stride), the date-only
+path, anti-fit never a fit family (structurally and across the sweep), and 16 snapshot fixtures. Because a snapshot
+regenerated from the implementation cannot catch an implementation that was wrong when it was taken, four independent
+anchors carry that weight: the three calibrated day pillars from `tests/pillars.test.js`, a hand-walked `2000-01-01` case
+asserted field by field, all ten favourability entries re-derived from the sheng/ke cycles, and season/posture re-derived
+from `getInnerAnimal` / `getBirthCard`. The canonical voice-register, second-person, diagnostic-framing and slur tables
+run over every table string and over assembled output across the sweep, plus a CTA scan. **Not verified:** the local PII
+audit did not run — it needs `audits/local_personal_data.txt`, gitignored and absent in a fresh container. The CI PII
+scan passes in-suite; the pre-push audit is a controller-side item.
+
+**Scope (files):** `core/public.js` (new), `content/public.v1.js` (new), `tests/public.test.js` (new),
+`tests/public_tier.fixture.json` (new), `PUBLIC_TIER_SPEC.md` (new), `CLAUDE.md` (core/ 10 → 11, tests/ 43 → 44 +
+content line, `repo_shape` lockstep), this file, and the in-PR L48 artifact. **UNTOUCHED:** every other `core/` module,
+all of `ui/`, `index.html`, `DOCTRINE.md`, `tests/fixtures.json`, every scanner allow-list, `package.json`,
+dependencies, localStorage keys.
+
+**Rollback.** Delete the five new files and restore the two `CLAUDE.md` counts. Nothing else references them.
+
 ## 2026-07-29 — calc v3.1: era-correct cusp offset — the 1916 lunar-new-year defect — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `8b51c38` (#140) on 2026-07-29; the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **The cross-model audit this entry said was REQUIRED was not run.** The gate was cleared instead by an explicit controller override, `audits/L48_override_pr140_2026-07-29.md` (L48 sighting #12), written on instruction after this lane objected that a verdict rather than an override is the right artifact for a change touching both the calculation core and `DOCTRINE.md`. That override opens by calling itself the weakest use of the instrument in this chain and records that one author wrote the change, its evidence and its clearance; it recommends a cross-model read after merge if not before, and that recommendation is now live. The evidence packet at `audits/calc_v3_1_pre1929_offset_evidence_2026-07-29.md` remains explicitly not a verdict, and the Hong Kong Observatory re-confirmation of 1916/1954/2027/2030 stays open — this is the first merge of the run that changes a rendered coordinate rather than test or CI machinery.** Was: STAGED on `claude/calendar-pre1929-lmt-fix`; merge is its own word. This touches `DOCTRINE.md` AND the calculation core, so per §10 and the CLAUDE.md don't-do list a cross-model audit is REQUIRED before merge — an L48 override is not an appropriate substitute here, unlike the tests-only cuts that preceded it. Evidence packet (explicitly not a verdict) at `audits/calc_v3_1_pre1929_offset_evidence_2026-07-29.md`.

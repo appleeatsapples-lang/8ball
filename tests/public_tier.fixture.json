@@ -1,0 +1,1511 @@
+{
+  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in content/public.v1.js fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4).",
+  "_pii_rule": "Fixture dates MUST be synthetic — calendar/calibration anchors chosen for the calc path they exercise, never a real person’s date of birth. See DOCTRINE.md §11.",
+  "_coverage": "The 16 cases cover all five day-master elements, both strengths, all five seasonal states, and all eleven expression values (1–9, 11, 22).",
+  "cases": [
+    {
+      "dob": "1900-01-01",
+      "note": "table floor — first date of the 1900–2100 solar-term range; wood day master supported by a water season (xiang)",
+      "reading": {
+        "dob": {
+          "year": 1900,
+          "month": 1,
+          "day": 1
+        },
+        "dayMaster": {
+          "stem": "jia",
+          "polarity": "yang",
+          "element": "wood",
+          "branchAnimal": "dog"
+        },
+        "season": {
+          "monthAnimal": "rat",
+          "element": "water",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "fire",
+          "earth",
+          "metal"
+        ],
+        "unfavorable": [
+          "water",
+          "wood"
+        ],
+        "primaryFavorable": "fire",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
+        "expression": {
+          "sum": 12,
+          "number": 3,
+          "theme": "expression",
+          "register": "the open draft",
+          "method": "worked in public drafts, revised where they can be seen"
+        },
+        "posture": {
+          "number": 12,
+          "roman": "XII",
+          "arcana": "the hanged man",
+          "register": "the suspended view",
+          "stance": "a role held in deliberate suspension"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "media",
+            "element": "fire",
+            "label": "media",
+            "character": "transmission",
+            "body": "signal and circulation — work that carries a public message at volume."
+          },
+          {
+            "rank": 2,
+            "key": "tech",
+            "element": "fire",
+            "label": "tech",
+            "character": "origination",
+            "body": "apparatus and invention — work that builds an instrument and puts it into use."
+          },
+          {
+            "rank": 3,
+            "key": "energy",
+            "element": "fire",
+            "label": "energy",
+            "character": "stewardship",
+            "body": "supply and load — work that keeps a current running under demand."
+          }
+        ],
+        "antiFit": {
+          "key": "logistics",
+          "element": "water",
+          "label": "logistics",
+          "character": "stewardship",
+          "body": "movement and schedule — work that keeps goods arriving in order."
+        },
+        "roleLine": "a role held in deliberate suspension, worked in public drafts, revised where they can be seen.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1911-05-06",
+      "note": "pre-1929 lixia boundary moved by calc v3.1; fire day master in its own season (wang)",
+      "reading": {
+        "dob": {
+          "year": 1911,
+          "month": 5,
+          "day": 6
+        },
+        "dayMaster": {
+          "stem": "bing",
+          "polarity": "yang",
+          "element": "fire",
+          "branchAnimal": "rat"
+        },
+        "season": {
+          "monthAnimal": "snake",
+          "element": "fire",
+          "state": "wang",
+          "stateHan": "旺",
+          "stateLabel": "in season",
+          "relation": "the season carries the day master · own element"
+        },
+        "strength": "strong",
+        "favorable": [
+          "earth",
+          "metal",
+          "water"
+        ],
+        "unfavorable": [
+          "wood",
+          "fire"
+        ],
+        "primaryFavorable": "earth",
+        "primaryUnfavorable": "wood",
+        "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
+        "expression": {
+          "sum": 23,
+          "number": 5,
+          "theme": "change",
+          "register": "the short cycle",
+          "method": "worked in short cycles, re-scoped as conditions move"
+        },
+        "posture": {
+          "number": 5,
+          "roman": "V",
+          "arcana": "the hierophant",
+          "register": "the transmitter",
+          "stance": "a role held as the passing on of an established practice"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "advisory",
+            "element": "earth",
+            "label": "advisory",
+            "character": "transmission",
+            "body": "counsel on record — work that reads a situation and files a position on it."
+          },
+          {
+            "rank": 2,
+            "key": "construction",
+            "element": "earth",
+            "label": "construction",
+            "character": "origination",
+            "body": "assembly on ground — work that raises a structure where none stood."
+          },
+          {
+            "rank": 3,
+            "key": "property",
+            "element": "earth",
+            "label": "property",
+            "character": "stewardship",
+            "body": "holding and tenancy — work that keeps ground in productive hands."
+          }
+        ],
+        "antiFit": {
+          "key": "health",
+          "element": "wood",
+          "label": "health",
+          "character": "stewardship",
+          "body": "condition and recovery — work that keeps a body running rather than remaking it."
+        },
+        "roleLine": "a role held as the passing on of an established practice, worked in short cycles, re-scoped as conditions move.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1916-02-03",
+      "note": "the calc v3.1 lunar-new-year correction date; metal day master, pre-lichun ox month",
+      "reading": {
+        "dob": {
+          "year": 1916,
+          "month": 2,
+          "day": 3
+        },
+        "dayMaster": {
+          "stem": "geng",
+          "polarity": "yang",
+          "element": "metal",
+          "branchAnimal": "horse"
+        },
+        "season": {
+          "monthAnimal": "ox",
+          "element": "earth",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "water",
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "water",
+        "primaryUnfavorable": "earth",
+        "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
+        "expression": {
+          "sum": 22,
+          "number": 22,
+          "theme": "construction",
+          "register": "the long build",
+          "method": "worked as a long build, in load-bearing order"
+        },
+        "posture": {
+          "number": 0,
+          "roman": "0",
+          "arcana": "the fool",
+          "register": "the open brief",
+          "stance": "a role held open before it is defined"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "trade",
+            "element": "water",
+            "label": "trade",
+            "character": "origination",
+            "body": "exchange opened — work that makes a market between parties who had none."
+          },
+          {
+            "rank": 2,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
+          },
+          {
+            "rank": 3,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          }
+        ],
+        "antiFit": {
+          "key": "advisory",
+          "element": "earth",
+          "label": "advisory",
+          "character": "transmission",
+          "body": "counsel on record — work that reads a situation and files a position on it."
+        },
+        "roleLine": "a role held open before it is defined, worked as a long build, in load-bearing order.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1919-01-01",
+      "note": "expression sum lands exactly on the retained 22 stop; birth card reduces to 22 → 0 · the fool",
+      "reading": {
+        "dob": {
+          "year": 1919,
+          "month": 1,
+          "day": 1
+        },
+        "dayMaster": {
+          "stem": "gui",
+          "polarity": "yin",
+          "element": "water",
+          "branchAnimal": "ox"
+        },
+        "season": {
+          "monthAnimal": "rat",
+          "element": "water",
+          "state": "wang",
+          "stateHan": "旺",
+          "stateLabel": "in season",
+          "relation": "the season carries the day master · own element"
+        },
+        "strength": "strong",
+        "favorable": [
+          "wood",
+          "fire",
+          "earth"
+        ],
+        "unfavorable": [
+          "metal",
+          "water"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
+        "expression": {
+          "sum": 22,
+          "number": 22,
+          "theme": "construction",
+          "register": "the long build",
+          "method": "worked as a long build, in load-bearing order"
+        },
+        "posture": {
+          "number": 0,
+          "roman": "0",
+          "arcana": "the fool",
+          "register": "the open brief",
+          "stance": "a role held open before it is defined"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 2,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 3,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          }
+        ],
+        "antiFit": {
+          "key": "law",
+          "element": "metal",
+          "label": "law",
+          "character": "transmission",
+          "body": "code and argument — work that carries a rule into a contested room."
+        },
+        "roleLine": "a role held open before it is defined, worked as a long build, in load-bearing order.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1930-09-29",
+      "note": "expression sum 33 — the stop NOT retained; reduces past it to 6",
+      "reading": {
+        "dob": {
+          "year": 1930,
+          "month": 9,
+          "day": 29
+        },
+        "dayMaster": {
+          "stem": "ren",
+          "polarity": "yang",
+          "element": "water",
+          "branchAnimal": "horse"
+        },
+        "season": {
+          "monthAnimal": "rooster",
+          "element": "metal",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "wood",
+          "fire",
+          "earth"
+        ],
+        "unfavorable": [
+          "metal",
+          "water"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
+        "expression": {
+          "sum": 33,
+          "number": 6,
+          "theme": "care",
+          "register": "the standing duty",
+          "method": "worked at the pace of the people it is for"
+        },
+        "posture": {
+          "number": 6,
+          "roman": "VI",
+          "arcana": "the lovers",
+          "register": "the pairing",
+          "stance": "a role held as a choice between two commitments"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 2,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 3,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          }
+        ],
+        "antiFit": {
+          "key": "engineering",
+          "element": "metal",
+          "label": "engineering",
+          "character": "origination",
+          "body": "specification and tolerance — work that fixes a design to measured limits."
+        },
+        "roleLine": "a role held as a choice between two commitments, worked at the pace of the people it is for.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1966-01-21",
+      "note": "day-pillar calibration anchor (geng-dragon) shared with tests/pillars.test.js",
+      "reading": {
+        "dob": {
+          "year": 1966,
+          "month": 1,
+          "day": 21
+        },
+        "dayMaster": {
+          "stem": "geng",
+          "polarity": "yang",
+          "element": "metal",
+          "branchAnimal": "dragon"
+        },
+        "season": {
+          "monthAnimal": "ox",
+          "element": "earth",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "water",
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "water",
+        "primaryUnfavorable": "earth",
+        "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
+        "expression": {
+          "sum": 26,
+          "number": 8,
+          "theme": "command",
+          "register": "the wide operation",
+          "method": "worked at scale, through delegated hands"
+        },
+        "posture": {
+          "number": 8,
+          "roman": "VIII",
+          "arcana": "strength",
+          "register": "the handler",
+          "stance": "a role held as steady pressure on strong material"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "trade",
+            "element": "water",
+            "label": "trade",
+            "character": "origination",
+            "body": "exchange opened — work that makes a market between parties who had none."
+          },
+          {
+            "rank": 2,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
+          },
+          {
+            "rank": 3,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          }
+        ],
+        "antiFit": {
+          "key": "advisory",
+          "element": "earth",
+          "label": "advisory",
+          "character": "transmission",
+          "body": "counsel on record — work that reads a situation and files a position on it."
+        },
+        "roleLine": "a role held as steady pressure on strong material, worked at scale, through delegated hands.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1970-05-05",
+      "note": "expression 9; wood day master out of season (xiu)",
+      "reading": {
+        "dob": {
+          "year": 1970,
+          "month": 5,
+          "day": 5
+        },
+        "dayMaster": {
+          "stem": "yi",
+          "polarity": "yin",
+          "element": "wood",
+          "branchAnimal": "rooster"
+        },
+        "season": {
+          "monthAnimal": "dragon",
+          "element": "earth",
+          "state": "qiu",
+          "stateHan": "囚",
+          "stateLabel": "held",
+          "relation": "the day master controls the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "water",
+          "wood"
+        ],
+        "unfavorable": [
+          "metal",
+          "fire",
+          "earth"
+        ],
+        "primaryFavorable": "water",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a wood day master outside its season; the open side is what feeds and joins it before anything draws on it.",
+        "expression": {
+          "sum": 27,
+          "number": 9,
+          "theme": "service",
+          "register": "the standing obligation",
+          "method": "worked to an obligation already accepted, on request"
+        },
+        "posture": {
+          "number": 9,
+          "roman": "IX",
+          "arcana": "the hermit",
+          "register": "the examiner",
+          "stance": "a role held apart, at working distance"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          },
+          {
+            "rank": 2,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
+          },
+          {
+            "rank": 3,
+            "key": "trade",
+            "element": "water",
+            "label": "trade",
+            "character": "origination",
+            "body": "exchange opened — work that makes a market between parties who had none."
+          }
+        ],
+        "antiFit": {
+          "key": "engineering",
+          "element": "metal",
+          "label": "engineering",
+          "character": "origination",
+          "body": "specification and tolerance — work that fixes a design to measured limits."
+        },
+        "roleLine": "a role held apart, at working distance, worked to an obligation already accepted, on request.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1984-02-02",
+      "note": "fire day master generating its earth season (xiu) — the weak-side branch",
+      "reading": {
+        "dob": {
+          "year": 1984,
+          "month": 2,
+          "day": 2
+        },
+        "dayMaster": {
+          "stem": "bing",
+          "polarity": "yang",
+          "element": "fire",
+          "branchAnimal": "tiger"
+        },
+        "season": {
+          "monthAnimal": "ox",
+          "element": "earth",
+          "state": "xiu",
+          "stateHan": "休",
+          "stateLabel": "retiring",
+          "relation": "the day master generates the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "water",
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
+        "expression": {
+          "sum": 26,
+          "number": 8,
+          "theme": "command",
+          "register": "the wide operation",
+          "method": "worked at scale, through delegated hands"
+        },
+        "posture": {
+          "number": 8,
+          "roman": "VIII",
+          "arcana": "strength",
+          "register": "the handler",
+          "stance": "a role held as steady pressure on strong material"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 2,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 3,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          }
+        ],
+        "antiFit": {
+          "key": "communication",
+          "element": "water",
+          "label": "communication",
+          "character": "transmission",
+          "body": "relay and routing — work that keeps a line open between distant points."
+        },
+        "roleLine": "a role held as steady pressure on strong material, worked at scale, through delegated hands.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2000-01-01",
+      "note": "day-pillar calibration anchor (wu-horse); earth day master controlling a water season (qiu)",
+      "reading": {
+        "dob": {
+          "year": 2000,
+          "month": 1,
+          "day": 1
+        },
+        "dayMaster": {
+          "stem": "wu",
+          "polarity": "yang",
+          "element": "earth",
+          "branchAnimal": "horse"
+        },
+        "season": {
+          "monthAnimal": "rat",
+          "element": "water",
+          "state": "qiu",
+          "stateHan": "囚",
+          "stateLabel": "held",
+          "relation": "the day master controls the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "fire",
+          "earth"
+        ],
+        "unfavorable": [
+          "wood",
+          "metal",
+          "water"
+        ],
+        "primaryFavorable": "fire",
+        "primaryUnfavorable": "wood",
+        "favorabilityNote": "an earth day master outside its season; the open side is warmth and bulk before any call on either.",
+        "expression": {
+          "sum": 4,
+          "number": 4,
+          "theme": "structure",
+          "register": "the fixed plan",
+          "method": "worked to a plan, in fixed stages"
+        },
+        "posture": {
+          "number": 4,
+          "roman": "IV",
+          "arcana": "the emperor",
+          "register": "the administrator",
+          "stance": "a role held as the setting of order"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "energy",
+            "element": "fire",
+            "label": "energy",
+            "character": "stewardship",
+            "body": "supply and load — work that keeps a current running under demand."
+          },
+          {
+            "rank": 2,
+            "key": "tech",
+            "element": "fire",
+            "label": "tech",
+            "character": "origination",
+            "body": "apparatus and invention — work that builds an instrument and puts it into use."
+          },
+          {
+            "rank": 3,
+            "key": "media",
+            "element": "fire",
+            "label": "media",
+            "character": "transmission",
+            "body": "signal and circulation — work that carries a public message at volume."
+          }
+        ],
+        "antiFit": {
+          "key": "teaching",
+          "element": "wood",
+          "label": "teaching",
+          "character": "transmission",
+          "body": "instruction and transfer — work that moves a discipline into other hands."
+        },
+        "roleLine": "a role held as the setting of order, worked to a plan, in fixed stages.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2000-02-29",
+      "note": "leap day; fire day master generated by a wood season (xiang)",
+      "reading": {
+        "dob": {
+          "year": 2000,
+          "month": 2,
+          "day": 29
+        },
+        "dayMaster": {
+          "stem": "ding",
+          "polarity": "yin",
+          "element": "fire",
+          "branchAnimal": "snake"
+        },
+        "season": {
+          "monthAnimal": "tiger",
+          "element": "wood",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "earth",
+          "metal",
+          "water"
+        ],
+        "unfavorable": [
+          "wood",
+          "fire"
+        ],
+        "primaryFavorable": "earth",
+        "primaryUnfavorable": "wood",
+        "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
+        "expression": {
+          "sum": 15,
+          "number": 6,
+          "theme": "care",
+          "register": "the standing duty",
+          "method": "worked at the pace of the people it is for"
+        },
+        "posture": {
+          "number": 15,
+          "roman": "XV",
+          "arcana": "the devil",
+          "register": "the bound term",
+          "stance": "a role held under a binding arrangement"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "property",
+            "element": "earth",
+            "label": "property",
+            "character": "stewardship",
+            "body": "holding and tenancy — work that keeps ground in productive hands."
+          },
+          {
+            "rank": 2,
+            "key": "advisory",
+            "element": "earth",
+            "label": "advisory",
+            "character": "transmission",
+            "body": "counsel on record — work that reads a situation and files a position on it."
+          },
+          {
+            "rank": 3,
+            "key": "construction",
+            "element": "earth",
+            "label": "construction",
+            "character": "origination",
+            "body": "assembly on ground — work that raises a structure where none stood."
+          }
+        ],
+        "antiFit": {
+          "key": "growth",
+          "element": "wood",
+          "label": "growth",
+          "character": "origination",
+          "body": "cultivation and yield — work that develops a living stock across seasons."
+        },
+        "roleLine": "a role held under a binding arrangement, worked at the pace of the people it is for.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2000-05-04",
+      "note": "expression sum lands exactly on the retained 11 stop; water day master controlled by an earth season (si)",
+      "reading": {
+        "dob": {
+          "year": 2000,
+          "month": 5,
+          "day": 4
+        },
+        "dayMaster": {
+          "stem": "ren",
+          "polarity": "yang",
+          "element": "water",
+          "branchAnimal": "dog"
+        },
+        "season": {
+          "monthAnimal": "dragon",
+          "element": "earth",
+          "state": "si",
+          "stateHan": "死",
+          "stateLabel": "out of season",
+          "relation": "the season controls the day master"
+        },
+        "strength": "weak",
+        "favorable": [
+          "metal",
+          "water"
+        ],
+        "unfavorable": [
+          "earth",
+          "wood",
+          "fire"
+        ],
+        "primaryFavorable": "metal",
+        "primaryUnfavorable": "earth",
+        "favorabilityNote": "a water day master outside its season; the open side is the source and the body of water it joins.",
+        "expression": {
+          "sum": 11,
+          "number": 11,
+          "theme": "projection",
+          "register": "the long sight",
+          "method": "worked toward a stated horizon, ahead of the evidence for it"
+        },
+        "posture": {
+          "number": 11,
+          "roman": "XI",
+          "arcana": "justice",
+          "register": "the assessor",
+          "stance": "a role held as the weighing of a case"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "law",
+            "element": "metal",
+            "label": "law",
+            "character": "transmission",
+            "body": "code and argument — work that carries a rule into a contested room."
+          },
+          {
+            "rank": 2,
+            "key": "engineering",
+            "element": "metal",
+            "label": "engineering",
+            "character": "origination",
+            "body": "specification and tolerance — work that fixes a design to measured limits."
+          },
+          {
+            "rank": 3,
+            "key": "finance",
+            "element": "metal",
+            "label": "finance",
+            "character": "stewardship",
+            "body": "custody and allocation — work that holds a stock of value and places it."
+          }
+        ],
+        "antiFit": {
+          "key": "property",
+          "element": "earth",
+          "label": "property",
+          "character": "stewardship",
+          "body": "holding and tenancy — work that keeps ground in productive hands."
+        },
+        "roleLine": "a role held as the weighing of a case, worked toward a stated horizon, ahead of the evidence for it.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2020-08-08",
+      "note": "expression 2; water day master in its own season",
+      "reading": {
+        "dob": {
+          "year": 2020,
+          "month": 8,
+          "day": 8
+        },
+        "dayMaster": {
+          "stem": "gui",
+          "polarity": "yin",
+          "element": "water",
+          "branchAnimal": "goat"
+        },
+        "season": {
+          "monthAnimal": "monkey",
+          "element": "metal",
+          "state": "xiang",
+          "stateHan": "相",
+          "stateLabel": "supported",
+          "relation": "the season generates the day master"
+        },
+        "strength": "strong",
+        "favorable": [
+          "wood",
+          "fire",
+          "earth"
+        ],
+        "unfavorable": [
+          "metal",
+          "water"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
+        "expression": {
+          "sum": 20,
+          "number": 2,
+          "theme": "cooperation",
+          "register": "the second hand",
+          "method": "worked in pairs, at the pace of the slower party"
+        },
+        "posture": {
+          "number": 20,
+          "roman": "XX",
+          "arcana": "judgement",
+          "register": "the auditor",
+          "stance": "a role held as the calling of a reckoning"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 2,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 3,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          }
+        ],
+        "antiFit": {
+          "key": "engineering",
+          "element": "metal",
+          "label": "engineering",
+          "character": "origination",
+          "body": "specification and tolerance — work that fixes a design to measured limits."
+        },
+        "roleLine": "a role held as the calling of a reckoning, worked in pairs, at the pace of the slower party.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2024-02-10",
+      "note": "day-pillar calibration anchor (jia-dragon) and a lunar-new-year date; wood in wood season (wang)",
+      "reading": {
+        "dob": {
+          "year": 2024,
+          "month": 2,
+          "day": 10
+        },
+        "dayMaster": {
+          "stem": "jia",
+          "polarity": "yang",
+          "element": "wood",
+          "branchAnimal": "dragon"
+        },
+        "season": {
+          "monthAnimal": "tiger",
+          "element": "wood",
+          "state": "wang",
+          "stateHan": "旺",
+          "stateLabel": "in season",
+          "relation": "the season carries the day master · own element"
+        },
+        "strength": "strong",
+        "favorable": [
+          "fire",
+          "earth",
+          "metal"
+        ],
+        "unfavorable": [
+          "water",
+          "wood"
+        ],
+        "primaryFavorable": "fire",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
+        "expression": {
+          "sum": 11,
+          "number": 11,
+          "theme": "projection",
+          "register": "the long sight",
+          "method": "worked toward a stated horizon, ahead of the evidence for it"
+        },
+        "posture": {
+          "number": 11,
+          "roman": "XI",
+          "arcana": "justice",
+          "register": "the assessor",
+          "stance": "a role held as the weighing of a case"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "media",
+            "element": "fire",
+            "label": "media",
+            "character": "transmission",
+            "body": "signal and circulation — work that carries a public message at volume."
+          },
+          {
+            "rank": 2,
+            "key": "tech",
+            "element": "fire",
+            "label": "tech",
+            "character": "origination",
+            "body": "apparatus and invention — work that builds an instrument and puts it into use."
+          },
+          {
+            "rank": 3,
+            "key": "energy",
+            "element": "fire",
+            "label": "energy",
+            "character": "stewardship",
+            "body": "supply and load — work that keeps a current running under demand."
+          }
+        ],
+        "antiFit": {
+          "key": "logistics",
+          "element": "water",
+          "label": "logistics",
+          "character": "stewardship",
+          "body": "movement and schedule — work that keeps goods arriving in order."
+        },
+        "roleLine": "a role held as the weighing of a case, worked toward a stated horizon, ahead of the evidence for it.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2050-06-15",
+      "note": "forward range, fire day master at seasonal peak",
+      "reading": {
+        "dob": {
+          "year": 2050,
+          "month": 6,
+          "day": 15
+        },
+        "dayMaster": {
+          "stem": "bing",
+          "polarity": "yang",
+          "element": "fire",
+          "branchAnimal": "tiger"
+        },
+        "season": {
+          "monthAnimal": "horse",
+          "element": "fire",
+          "state": "wang",
+          "stateHan": "旺",
+          "stateLabel": "in season",
+          "relation": "the season carries the day master · own element"
+        },
+        "strength": "strong",
+        "favorable": [
+          "earth",
+          "metal",
+          "water"
+        ],
+        "unfavorable": [
+          "wood",
+          "fire"
+        ],
+        "primaryFavorable": "earth",
+        "primaryUnfavorable": "wood",
+        "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
+        "expression": {
+          "sum": 19,
+          "number": 1,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
+        },
+        "posture": {
+          "number": 19,
+          "roman": "XIX",
+          "arcana": "the sun",
+          "register": "the exhibit",
+          "stance": "a role held in full view"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "construction",
+            "element": "earth",
+            "label": "construction",
+            "character": "origination",
+            "body": "assembly on ground — work that raises a structure where none stood."
+          },
+          {
+            "rank": 2,
+            "key": "advisory",
+            "element": "earth",
+            "label": "advisory",
+            "character": "transmission",
+            "body": "counsel on record — work that reads a situation and files a position on it."
+          },
+          {
+            "rank": 3,
+            "key": "property",
+            "element": "earth",
+            "label": "property",
+            "character": "stewardship",
+            "body": "holding and tenancy — work that keeps ground in productive hands."
+          }
+        ],
+        "antiFit": {
+          "key": "health",
+          "element": "wood",
+          "label": "health",
+          "character": "stewardship",
+          "body": "condition and recovery — work that keeps a body running rather than remaking it."
+        },
+        "roleLine": "a role held in full view, worked from a standing start, one line at a time.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2077-11-07",
+      "note": "forward range, yin water day master in a water season",
+      "reading": {
+        "dob": {
+          "year": 2077,
+          "month": 11,
+          "day": 7
+        },
+        "dayMaster": {
+          "stem": "gui",
+          "polarity": "yin",
+          "element": "water",
+          "branchAnimal": "ox"
+        },
+        "season": {
+          "monthAnimal": "pig",
+          "element": "water",
+          "state": "wang",
+          "stateHan": "旺",
+          "stateLabel": "in season",
+          "relation": "the season carries the day master · own element"
+        },
+        "strength": "strong",
+        "favorable": [
+          "wood",
+          "fire",
+          "earth"
+        ],
+        "unfavorable": [
+          "metal",
+          "water"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
+        "expression": {
+          "sum": 25,
+          "number": 7,
+          "theme": "analysis",
+          "register": "the closed study",
+          "method": "worked from the record, slowly, to a stated confidence"
+        },
+        "posture": {
+          "number": 7,
+          "roman": "VII",
+          "arcana": "the chariot",
+          "register": "the driver",
+          "stance": "a role held as forward motion under control"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 2,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 3,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          }
+        ],
+        "antiFit": {
+          "key": "law",
+          "element": "metal",
+          "label": "law",
+          "character": "transmission",
+          "body": "code and argument — work that carries a rule into a contested room."
+        },
+        "roleLine": "a role held as forward motion under control, worked from the record, slowly, to a stated confidence.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "2100-12-31",
+      "note": "table ceiling — last date of the 1900–2100 solar-term range",
+      "reading": {
+        "dob": {
+          "year": 2100,
+          "month": 12,
+          "day": 31
+        },
+        "dayMaster": {
+          "stem": "ding",
+          "polarity": "yin",
+          "element": "fire",
+          "branchAnimal": "goat"
+        },
+        "season": {
+          "monthAnimal": "rat",
+          "element": "water",
+          "state": "si",
+          "stateHan": "死",
+          "stateLabel": "out of season",
+          "relation": "the season controls the day master"
+        },
+        "strength": "weak",
+        "favorable": [
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "water",
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
+        "expression": {
+          "sum": 10,
+          "number": 1,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
+        },
+        "posture": {
+          "number": 10,
+          "roman": "X",
+          "arcana": "wheel of fortune",
+          "register": "the cycle reader",
+          "stance": "a role held across the turns of a cycle"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 2,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 3,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          }
+        ],
+        "antiFit": {
+          "key": "logistics",
+          "element": "water",
+          "label": "logistics",
+          "character": "stewardship",
+          "body": "movement and schedule — work that keeps goods arriving in order."
+        },
+        "roleLine": "a role held across the turns of a cycle, worked from a standing start, one line at a time.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "expression": "pythagorean numerology · date digit sum, 11/22 retained",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    }
+  ]
+}
