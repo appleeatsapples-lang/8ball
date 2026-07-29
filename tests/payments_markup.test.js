@@ -244,7 +244,8 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   it('compartment cells and seal layers are present (v0.7.0)', () => {
     expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
     // 14 cell seals + 1 written-entry block seal.
-    expect((html.match(/class="coord-seal"/g) || []).length).toBe(15);
+    // 14 cells + the t3 entry block + the t4 public block (§1.D v0.58).
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(16);
     expect(html).toMatch(/id="card-entry"/);
   });
 

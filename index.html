@@ -216,6 +216,10 @@
   .unsealing .coord-val,
   .card-entry.unsealing .card-habit,
   .card-entry.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
+  /* sealed public-read block (t4, §1.D v0.58) — same seal treatment */
+  .public-read { position: relative; min-height: 52px; }
+  .public-title { font-size: 10px; letter-spacing: .14em; opacity: .55; margin-bottom: 4px; }
+  .public-read .coord-seal { inset: 16px 10% 4px; }
   @keyframes sealOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
   @keyframes valIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
@@ -915,6 +919,14 @@
               <div class="card-note" id="card-note"></div>
               <span class="coord-seal" aria-hidden="true"></span>
             </div>
+            <div class="public-read" id="public-read">
+              <div class="card-prose-rule"></div>
+              <div class="public-title">DOMAIN FIT</div>
+              <div class="card-habit" id="public-families"></div>
+              <div class="card-note" id="public-antifit"></div>
+              <div class="card-note" id="public-roleline"></div>
+              <span class="coord-seal" aria-hidden="true"></span>
+            </div>
           </article>
         </div>
 
@@ -1002,6 +1014,7 @@
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
     <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
+      <a class="modal-cta" id="paywall-cta-t4" target="_self" hidden>buy public — the complete sheet, read as domains of work — $9</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -1023,9 +1036,10 @@ import {
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
-  handlePaidReturn,
+  handlePaidReturn, applyT4Offer,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary } from './ui/tiers.js';
+import { initPublicUI, renderPublicRead } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import {
   initProfileUI,
@@ -1143,6 +1157,9 @@ initTiersUI({
     dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
+initPublicUI({ root: $('public-read'), families: $('public-families'),
+  antiFit: $('public-antifit'), roleLine: $('public-roleline') });
+applyT4Offer($('paywall-cta-t4'));
 initMeaningsUI({ cardFace });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1207,6 +1224,9 @@ function renderCard(profile, opts) {
   // icon now; the entry slots are constant-skeleton (sealed shell via
   // ui/tiers.js) and MUST be cleared below t3 (§1.D v0.37 DOM purity).
   cardFace.classList.toggle('unlocked', cardEntry);
+  // t4 public read (§1.D v0.58) — entitlement resolved HERE, from the same
+  // `tier` the seals use, never inside ui/public.js.
+  renderPublicRead(profile, { entitled: tier === 't4' });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;

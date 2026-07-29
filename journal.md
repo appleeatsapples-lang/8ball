@@ -5,6 +5,67 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Public rung wired: fourth ladder rung t4 · $9, fail-closed (DOCTRINE v0.58) — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. This touches `DOCTRINE.md` AND the paid
+ladder, so per §10 and the CLAUDE.md don't-do list a cross-model audit is what this asks for — none has been run, on this
+or on the engine it wires (#144). The L48 artifact filed with this PR is an explicit controller override, sighting #15.**
+
+**What shipped.** The public-tier engine merged unwired in #144 (`b5cc119`). On controller instruction it is now wired to a
+**fourth rung**: `t4`, `?paid=t4`, **$9**, defined by a new §1.D v0.58 amendment. The rung reveals the public read — three
+ranked domain families, one anti-fit, one shape-of-role line — as a sealed **block**, not a coordinate.
+
+**The append is the whole mechanical footprint.** `TIER_ORDER` becomes `['t1','t2','t3','t4']`. Every existing rung keeps
+its rank, every stored tier keeps its entitlement, monotonicity and the replay-safe `no-pending` branch are unchanged, and
+**no t1/t2/t3 owner is affected**. The one place the ladder is deliberately NOT generalised is the **R2 legacy
+grandfather**: a device with legacy credits and no stored tier still resolves to `t3`, because that product sold the
+written entry, not a rung that did not exist when it was bought. `tests/public_surface.test.js` pins that so a later rung
+cannot silently widen it.
+
+**A block, not a coordinate — so the census does not move.** The sheet is complete at t3 (15 of 15). `publicRead` joins
+`cardEntry` as a block: no compartment in the 14-cell grid, excluded from the §1.F census, so `tierDensitySummary('t4')`
+is byte-identical to t3's. The §1.D v0.37 sealed-DOM rule governs it unchanged — below t4 the value nodes are **emptied**,
+absent rather than hidden, pinned by a test that renders entitled and then re-renders sealed and asserts nothing survives.
+
+**Commercially not live, and fail-closed rather than half-built.** The Gumroad product does not exist and creating it is a
+controller action, never an agent's. `T4_PRODUCT_URL` ships **empty**; while it is empty the t4 CTA carries no `href` and
+stays hidden, so no visitor can reach a dead checkout. Filling that one constant is the whole of what makes the rung
+buyable. The **§4.B v0.56 single-$3 sprint is byte-untouched** while it runs to 2026-08-08 — the result-rail offer, the
+paywall headline and the t3 product are unchanged, and the about-modal copy is deliberately NOT updated: it describes what
+a visitor can actually buy, and advertising an unbuyable rung would be the wrong kind of accurate.
+
+**Three things a reviewer should press on, none of them cosmetic.**
+
+- **The rung's mode driver is the life path — a coordinate the FREE sheet already shows.** Nothing in the t4 read is new
+  information; it is a re-reading of open coordinates against fixed tables. Whether that is a defensible basis for a paid
+  rung is a design question no one outside this lane has read (`PUBLIC_TIER_SPEC.md` §6.1), and it is now behind a price.
+- **The $9 does not fit the shipped price column.** §1.D v0.55 superseded the Price column to $1 / $2 / $3. The $9 comes
+  from the commissioning brief's exposure-radius ladder, which **no tracked file records** and which this amendment
+  explicitly does not adopt. The clause defines the rung's mechanics and price and takes no position on re-pricing or
+  retiring t1–t3; reconciling the two ladders stays open doctrine work.
+- **Strength is still the month-branch seasonal-state model only**, and no practitioner has read it.
+
+**Verification.** Full suite **45 files / 1560 tests** green (was 44 / 1543; +17, all in the new
+`tests/public_surface.test.js`). `index.html` **1485** lines, inside the 1500 rule with 15 to spare — the render logic went
+into `ui/public.js` per §6 rather than into the page. Four existing pins were updated **deliberately, not loosened**: the
+ladder and `isTier` pins in `tests/tiers.test.js`, the seal count 15 → 16 in that file and in `tests/payments_markup.test.js`
+(one new block seal, cell count unmoved at 14), and the engine's own surface-isolation assertion, which was written to fail
+the moment a surface appeared and now pins that **`ui/public.js` is the only importer** — moved, not deleted. The block
+header uses a `public-title` class, not `coord-title`, so the labels-reveal toggle and the prose coordinate census are
+untouched. **Not verified:** the local PII audit did not run (needs the gitignored pattern file, absent in a fresh
+container); no live-fire pass on a deploy preview (§8 gate 9) — this touches `index.html`, so that gate is outstanding.
+
+**Scope (files):** `core/payments.js` (TIER_ORDER + docs), `ui/tiers.js` (T4_COORDS + unseal), `ui/public.js` (new),
+`ui/payments.js` (fail-closed offer), `index.html` (block, CSS, CTA, boot), `DOCTRINE.md` (§1.D v0.58, footer → v0.58),
+`PUBLIC_TIER_SPEC.md` (§7 rewritten, original preserved per L17), `CLAUDE.md` (ui/ 10 → 11, tests/ 44 → 45),
+`tests/public_surface.test.js` (new), `tests/{tiers,payments_markup,public}.test.js`, this file, the L48 artifact.
+**UNTOUCHED:** `core/public.js` and `content/public.v1.js` (the engine and its tables are byte-identical to #144),
+`content/cards.v1.full.js`, `tests/fixtures.json`, every scanner allow-list, `core/profile.js`, dependencies, localStorage
+keys — no new key, no new network call, no new payment host in tracked source.
+
+**Rollback.** Revert this PR: the rung disappears, `TIER_ORDER` drops back to three, the block markup goes, and the engine
+returns to the unwired state #144 merged. No stored tier needs migration — nobody can have bought t4.
+
 ## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `b5cc119` ([#144](https://github.com/appleeatsapples-lang/8ball/pull/144)) on

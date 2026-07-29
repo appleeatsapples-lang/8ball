@@ -67,12 +67,18 @@ export function nextFacetState({ facetIndex }) {
   };
 }
 
-// ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36) ──────────────
-// Three paid rungs reveal progressively more of the coordinate sheet.
+// ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36; t4 added §1.D v0.58) ──
+// Four paid rungs reveal progressively more of the coordinate sheet.
 // The ladder is ordered; the stored tier is the HIGHEST rung purchased
 // and is monotonic — applyPaidReturn never downgrades it.
+//
+// t4 (public · $9, §1.D v0.58) is APPENDED, which is the whole of its
+// mechanical footprint: every existing rung keeps its rank, every stored
+// tier keeps its meaning, and no t1/t2/t3 owner is affected in any way.
+// The one place the ladder is NOT generalised is the R2 legacy grandfather
+// below — see the note there.
 
-export const TIER_ORDER = ['t1', 't2', 't3'];
+export const TIER_ORDER = ['t1', 't2', 't3', 't4'];
 
 /**
  * True iff the value is a known paid tier. Unknown ?paid= values are
@@ -83,8 +89,8 @@ export function isTier(value) {
 }
 
 /**
- * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3. Anything that is
- * not a known tier (null / undefined / garbage) ranks 0 — the free tier.
+ * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3, t4 → 4. Anything
+ * that is not a known tier (null / undefined / garbage) ranks 0 — free.
  */
 export function tierRank(tier) {
   return TIER_ORDER.indexOf(tier) + 1;
@@ -94,7 +100,8 @@ export function tierRank(tier) {
  * The higher-ranked of two tiers. Used by applyPaidReturn to keep the
  * stored tier monotonic: tier = max(current, purchased) by ladder order.
  * A non-tier argument ranks 0, so maxTier(null, 't1') === 't1' and
- * maxTier('t3', 't1') === 't3'.
+ * maxTier('t3', 't1') === 't3'. A t3 owner buying t4 upgrades; a t4 owner
+ * replaying any lower ?paid= URL keeps t4.
  */
 export function maxTier(a, b) {
   return tierRank(b) > tierRank(a) ? b : a;
@@ -111,14 +118,17 @@ export function maxTier(a, b) {
  *     shape: that product sold the written-entry unlock, which now lives at
  *     t3, so the device is grandfathered to t3 (R2 — deterministic, total,
  *     never downgrades; the caller persists it on first detection, after
- *     which the credits are ignored forever);
+ *     which the credits are ignored forever). This stays 't3' and must NOT
+ *     follow the top of the ladder: those buyers paid for the written entry,
+ *     not for a public rung that did not exist when they bought. Pinned by
+ *     tests/payments_state.test.js so a later rung cannot silently widen it;
  *   - neither → the free card.
  *
  * Nothing governs how many readings — quantity is unlimited at every tier
  * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
- * @returns {string} 'free' | 't1' | 't2' | 't3'
+ * @returns {string} 'free' | 't1' | 't2' | 't3' | 't4'
  */
 export function resolveRenderTier({ tier, credits }) {
   const cleanCredits = normalizeCounter(credits);
@@ -161,7 +171,7 @@ export function nextShakeState({ isNew }) {
 }
 
 /**
- * Compute the post-return state when the page loads with ?paid=t1|t2|t3.
+ * Compute the post-return state when the page loads with ?paid=t1|t2|t3|t4.
  *
  * Ownership model (§1.D / §2 / §5.B v0.55): a purchase is permanent and
  * unlimited. The only state a paid return writes is the monotonic tier —
