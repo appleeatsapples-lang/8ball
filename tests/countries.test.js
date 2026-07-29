@@ -57,19 +57,45 @@ describe('countries data quality', () => {
     const codes = COUNTRIES.map((c) => c.code).sort();
     expect(Object.keys(CENTROIDS).sort()).toEqual(codes);
   });
-  for (const c of COUNTRIES) {
-    it(`${c.code} (${c.name}) has a valid legacy centroid`, () => {
-      const [lat, lng] = centroid(c.code);
-      expect(typeof lat).toBe('number');
-      expect(lat).toBeGreaterThanOrEqual(-90);
-      expect(lat).toBeLessThanOrEqual(90);
-      expect(Number(lat.toFixed(1))).toBe(lat);
-      expect(typeof lng).toBe('number');
-      expect(lng).toBeGreaterThanOrEqual(-180);
-      expect(lng).toBeLessThanOrEqual(180);
-      expect(Number(lng.toFixed(1))).toBe(lng);
-    });
-  }
+  // One test over all 276 countries rather than 276 near-identical ones.
+  // This checks two properties; as a per-country loop it generated 38% of
+  // the entire suite's test count, which made the headline number a poor
+  // proxy for how much of the app is actually covered. Same assertions,
+  // same signal — every offender is still named individually in the
+  // failure message — via the collected-failures idiom already used in
+  // tests/privacy_scan.test.js:105-125.
+  //
+  // Two things a collected loop must do that a per-item loop got for free:
+  // catch throws so one bad row cannot hide the rows after it, and assert
+  // the loop actually ran, since an empty COUNTRIES would otherwise report
+  // zero failures and pass.
+  it('every country has a valid legacy centroid', () => {
+    const bad = [];
+    let checked = 0;
+    for (const c of COUNTRIES) {
+      try {
+        const why = [];
+        const pair = centroid(c.code);
+        if (!Array.isArray(pair)) {
+          why.push(`no centroid fixture entry`);
+        } else {
+          const [lat, lng] = pair;
+          for (const [axis, v, limit] of [['lat', lat, 90], ['lng', lng, 180]]) {
+            if (typeof v !== 'number') why.push(`${axis} is ${typeof v}`);
+            else if (v < -limit || v > limit) why.push(`${axis} ${v} outside ±${limit}`);
+            else if (Number(v.toFixed(1)) !== v) why.push(`${axis} ${v} exceeds 1 decimal place`);
+          }
+        }
+        if (why.length) bad.push(`${c.code} (${c.name}): ${why.join('; ')}`);
+        checked++;
+      } catch (err) {
+        bad.push(`${c.code} (${c.name}): threw — ${err.message}`);
+      }
+    }
+    expect(checked, 'centroid loop did not run over every country').toBe(COUNTRIES.length);
+    expect(COUNTRIES.length).toBeGreaterThan(200);
+    expect(bad, `invalid legacy centroids:\n${bad.join('\n')}`).toEqual([]);
+  });
 });
 
 describe('countries legacy timezone mapping', () => {
@@ -78,15 +104,32 @@ describe('countries legacy timezone mapping', () => {
       .toEqual(COUNTRIES.map(c => c.code).sort());
   });
 
-  for (const c of COUNTRIES) {
-    it(`${c.code} (${c.name}) maps to a valid representative IANA timezone`, () => {
+  // Collapsed for the same reason as the centroid loop above, with the
+  // same guarantees: every offender named, throws captured rather than
+  // aborting the sweep, and the iteration count asserted so an empty
+  // COUNTRIES cannot pass as "no failures".
+  it('every country maps to a valid representative IANA timezone', () => {
+    const bad = [];
+    let checked = 0;
+    for (const c of COUNTRIES) {
       const tz = getCountryTimeZoneByCode(c.code);
-      expect(typeof tz).toBe('string');
-      expect(tz.length).toBeGreaterThan(0);
-      expect(() => new Intl.DateTimeFormat('en', { timeZone: tz }), tz)
-        .not.toThrow();
-    });
-  }
+      if (typeof tz !== 'string') {
+        bad.push(`${c.code} (${c.name}): tz is ${typeof tz}`);
+      } else if (tz.length === 0) {
+        bad.push(`${c.code} (${c.name}): tz is empty`);
+      } else {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: tz });
+        } catch (err) {
+          bad.push(`${c.code} (${c.name}): Intl rejects "${tz}" — ${err.message}`);
+        }
+      }
+      checked++;
+    }
+    expect(checked, 'timezone loop did not run over every country').toBe(COUNTRIES.length);
+    expect(COUNTRIES.length).toBeGreaterThan(200);
+    expect(bad, `invalid representative timezones:\n${bad.join('\n')}`).toEqual([]);
+  });
 
   it('alpha-2 mappings follow the largest-city timezone when city data exists', () => {
     const firstByCountry = largestCityByCountryCode();
