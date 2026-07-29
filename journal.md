@@ -5,6 +5,24 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Second, independent live-fire pass — 10/10, and one of them was mine passing vacuously — SHIPPED
+
+**Status: SHIPPED — the pass is complete and its findings are below; this entry is the record of it. Run by the implementer lane against **local** `main` at `61d2077` in Chromium 141, served from `python3 -m http.server 5173`, driver in `/tmp/lf` with `package.json` byte-untouched (0 playwright references) per the §7 stage-4 devDependency cap. It does **not** re-verify the deployed page: egress policy blocks the product domain from here, and that limit is real — it is the one this lane spent a day mistaking for "no browser at all".**
+
+**Why a second pass was worth running.** The entry below records the first, and the correction that made it possible. That pass was run by the lane that wrote the fix. This one was run by a lane that did not, over the same surface, with its own probes — which is the only thing a second pass adds, and the reason it is filed rather than assumed redundant.
+
+**Result: 10/10.** F1 confirmed dead in a rendering engine rather than in CSS text — `#paywall-cta-t4` computes `display:none`, has zero client rects and no `href`, and the paywall shows **exactly one** visible CTA (`paywall-cta-t3`). No console errors and no failed subresource requests across boot and submit, so `ui/*.js` genuinely loads rather than being swallowed by the catch-all rewrite. The three t4 value slots are empty at free tier. At 320px, `scrollWidth` equals `clientWidth` — no overflow.
+
+**The finding that matters is against this lane's own probe.** The `#offer-btn` check reported PASS while testing nothing. Its assertion carried a guard clause — `!offer.hiddenAttr || (display === 'none' && rects === 0)` — and because the probe completed a reading first, the offer control had legitimately appeared, `hiddenAttr` was `false`, and the whole assertion short-circuited to true without ever exercising the `[hidden]` rule. **A green line that proves nothing is the exact defect class this repo has been bitten by three times** (#126 F1, #129 F2, and the `.modal-cta` cascade itself), and it appeared inside the pass sent to catch it.
+
+Re-run properly with a **negative control**: on a fresh page `#offer-btn` ships hidden and computes `display:none`; deleting `.btn-block[hidden] { display: none }` from the live stylesheet flips it to `display: block`. The guard is load-bearing, proven by removal rather than by its presence — which is the standard the shipped test-suite pins were held to and this probe initially was not.
+
+**Carried across from the first pass:** its recorded false positive — a substring probe firing on *"remediation"* containing *"media"* — so the sealed-DOM check here uses a text-node walk plus explicit empty-slot assertions, never substring matching.
+
+**A pattern this lane should own, on the record.** Three times on 2026-07-29 it asserted a capability was unavailable without checking: that Codex was retired (contradicted by two verdicts in a directory it had itself listed), that live-fire needed the operator's machine (contradicted by its own environment notes all session), and only on the third — the relay — did it verify before answering, and only because the first two had already gone wrong. Facts about *artifacts* were checked relentlessly this session: every SHA, every quotation, R1's closure, four mutation-tested CI pins. Facts about *capabilities* were taken as premises. That asymmetry cost a wrong recommendation twice and a false premise inside a proposed constitutional amendment once.
+
+**Scope (files):** this file. **UNTOUCHED:** everything else — no code, no doctrine, no test, no `package.json`. Suite 1583 green, unchanged by this pass.
+
 ## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
 
 **Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
