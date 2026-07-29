@@ -253,7 +253,7 @@
       }
     },
     {
-      "label": "Asia/Kolkata pre-1906 LMT (1905-12-31 21:00): o2 falls on the seconds-precision LMT string and fails to parse, offset falls back to o1 (IST)",
+      "label": "Asia/Kolkata pre-1906 MMT (1905-12-31 21:00): o2 falls on the seconds-precision Madras Mean Time string (GMT+05:21:10) and fails to parse, offset falls back to o1 (IST)",
       "dob": "1905-12-31",
       "time": "21:00",
       "tz": "Asia/Kolkata",
