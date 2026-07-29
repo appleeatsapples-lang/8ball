@@ -33,4 +33,42 @@ describe('core/math.js primitives', () => {
     expect(normalizeDeg(725)).toBe(5);
     expect(normalizeDeg(0)).toBe(0);
   });
+
+  // 2026-07-29: guards the trailing `% k` in mod(). The obvious
+  // "simplification" — `const r = n % k; return r < 0 ? r + k : r` — is
+  // WRONG for tiny negative inputs: `r + k` rounds up to exactly k in
+  // float64, returning 360 instead of 0 and breaking the range contract
+  // the whole module advertises. Every case below returns 0 under the
+  // real implementation and 360 under the shortened one, so this test
+  // fails loudly if anyone reaches for that edit. See core/math.js.
+  it('normalizeDeg folds tiny negative angles to 0, never to 360', () => {
+    for (const tiny of [-1e-20, -1e-18, -1e-16, -1e-15, -1e-14, -1e-30, -Number.MIN_VALUE]) {
+      const out = normalizeDeg(tiny);
+      expect(out, `normalizeDeg(${tiny}) must fold to 0, not 360`).toBe(0);
+      expect(out).toBeLessThan(360);
+    }
+  });
+
+  it('normalizeDeg holds the [0, 360) range contract across magnitudes', () => {
+    // Sweep the negative-exponent range where the shortened form breaks
+    // (verified: 276 of these 320 magnitudes return exactly 360 under it).
+    const violations = [];
+    for (let e = 1; e <= 320; e++) {
+      const out = normalizeDeg(-Math.pow(2, -e));
+      if (!(out >= 0 && out < 360)) violations.push(`-2^-${e} -> ${out}`);
+    }
+    expect(violations, `normalizeDeg left [0,360):\n${violations.join('\n')}`).toEqual([]);
+  });
+
+  it('mod keeps the [0, k) contract for tiny negatives at other moduli', () => {
+    // Not 360-specific — the same rounding applies at every modulus the
+    // repo uses (10 and 12 for the pillar/animal cycles).
+    for (const k of [10, 12, 360]) {
+      for (const tiny of [-1e-20, -1e-16, -1e-14]) {
+        const out = mod(tiny, k);
+        expect(out, `mod(${tiny}, ${k}) must stay below ${k}`).toBeLessThan(k);
+        expect(out).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
 });

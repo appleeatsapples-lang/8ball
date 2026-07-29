@@ -82,6 +82,35 @@ export function ascendantDeg(year, month, day, hour, minute, utcOffsetMinutes, l
   const xDen = Math.sin(eps) * Math.tan(phi) + Math.cos(eps) * Math.sin(theta);
   let asc = normalizeDeg(Math.atan2(yNum, xDen) / DEG);
 
+  // Quadrant correction. atan2 returns the ascendant modulo 180°; this
+  // forces it into the 180° arc east of the meridian, where the rising
+  // point actually is.
+  //
+  // Verified domain (2026-07-29, swept over |lat| <= 66.5 x LST [0,360)
+  // with the obliquity this file's own obliquityDeg() yields per epoch):
+  // for any birth year >= 1533 the condition is ALWAYS true — min diff is
+  // 184.35° at year 2000, rising with epoch — so the correction is in
+  // practice unconditional and the branch is a tautology for every input
+  // the product can receive. That is why mutating this condition (or
+  // either arm) survives the suite: those are equivalent mutants over the
+  // reachable domain, not coverage gaps.
+  //
+  // It is NOT a tautology in the limit. At year <= 1532 the obliquity has
+  // grown enough that diff collapses toward 0 at exactly |lat| = 66.5,
+  // and the correction stops matching the geometry (threshold bisected to
+  // 1532 breaks / 1533 holds). Nothing in the product reaches that: the
+  // <input type="date"> carries no lower bound, but the polar rule
+  // already excludes |lat| > 66.5, the failure needs the boundary value
+  // itself, and Intl's pre-1970 offsets are disclosed as approximate in
+  // §1.A regardless. Recorded so the tautology above is not mistaken for
+  // an unconditional truth if this formula is ever reused.
+  //
+  // `asc + 180` (not `- 180`): astronomically identical under normalizeDeg,
+  // but the two differ in the last bits for ~24% of inputs (max 5.7e-14°,
+  // i.e. ~2e-10 arcsec). No test pins that difference — the ephemeris
+  // itself is only good to ~0.003° — so mutating the sign here also
+  // survives by design. Keep the `+` form for parity with the reference
+  // cases the anchors were computed against.
   const diff = normalizeDeg(asc - LST);
   if (diff < 1 || diff > 179) {
     asc = normalizeDeg(asc + 180);
