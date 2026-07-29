@@ -141,8 +141,11 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     expect(TIER_COORDS.t2).toEqual([...TIER_COORDS.t1, 'numbers2', 'dayPillar']);
   });
 
-  it('t3 adds hour pillar (four pillars complete) + the written card entry', () => {
-    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry']);
+  it('t3 adds hour pillar (four pillars complete) + the written entry + the public read', () => {
+    // §1.D v0.60 folded the public read into t3 rather than selling it as a
+    // fourth rung. Both ceiling additions are BLOCKS, not compartments, so
+    // the cell grid and the §1.F census are unmoved by either.
+    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead']);
   });
 
   it('the ladder is strictly cumulative — every tier is a superset of the one below', () => {
@@ -176,11 +179,12 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
-  it('TIER_ORDER is the t1 < t2 < t3 < t4 ladder (§1.D v0.58 appends t4)', () => {
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't4']);
-    // The append is the point: every pre-existing rung keeps its rank, so
-    // no stored tier changes meaning and no owner is affected.
-    expect(TIER_ORDER.slice(0, 3)).toEqual(['t1', 't2', 't3']);
+  it('TIER_ORDER is the locked t1 < t2 < t3 ladder', () => {
+    // Four rungs for part of 2026-07-29 (§1.D v0.58); t4 was folded into t3
+    // rather than sold (§1.D v0.60), so the ladder is three again. A device
+    // that stored 't4' from the unsigned return is migrated, not downgraded
+    // — pinned in tests/public_surface.test.js.
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
   });
 
   it('tierRank: free/garbage rank 0; rungs rank 1..3 in order', () => {
@@ -193,12 +197,13 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(tierRank('t3')).toBe(3);
   });
 
-  it('isTier accepts exactly the four rungs', () => {
+  it('isTier accepts exactly the three rungs', () => {
     expect(isTier('t1')).toBe(true);
     expect(isTier('t2')).toBe(true);
     expect(isTier('t3')).toBe(true);
-    expect(isTier('t4')).toBe(true);
-    for (const bad of ['t0', 't5', 'free', '', null, undefined, 'T2', 1]) {
+    // 't4' is retired, NOT current — it must not pass isTier, and the
+    // retirement table is what keeps its holders whole.
+    for (const bad of ['t0', 't4', 't5', 'free', '', null, undefined, 'T2', 1]) {
       expect(isTier(bad), `${String(bad)} must not be a tier`).toBe(false);
     }
   });
@@ -874,9 +879,9 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     );
   });
 
-  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus the entry block', () => {
+  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus both ceiling blocks', () => {
     expect(newlyEntitledCells('t1', 't3')).toEqual(
-      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry']
+      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead']
     );
   });
 

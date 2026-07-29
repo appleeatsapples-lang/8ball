@@ -67,18 +67,40 @@ export function nextFacetState({ facetIndex }) {
   };
 }
 
-// ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36; t4 added §1.D v0.58) ──
-// Four paid rungs reveal progressively more of the coordinate sheet.
+// ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36) ──────────────
+// Three paid rungs reveal progressively more of the coordinate sheet.
 // The ladder is ordered; the stored tier is the HIGHEST rung purchased
 // and is monotonic — applyPaidReturn never downgrades it.
-//
-// t4 (public · $9, §1.D v0.58) is APPENDED, which is the whole of its
-// mechanical footprint: every existing rung keeps its rank, every stored
-// tier keeps its meaning, and no t1/t2/t3 owner is affected in any way.
-// The one place the ladder is NOT generalised is the R2 legacy grandfather
-// below — see the note there.
 
-export const TIER_ORDER = ['t1', 't2', 't3', 't4'];
+export const TIER_ORDER = ['t1', 't2', 't3'];
+
+// ── retired rungs (§1.D v0.60) ────────────────────────────────────
+// `t4` existed on `main` for part of 2026-07-29 (§1.D v0.58) and was folded
+// into t3 rather than sold. It was never buyable — its product URL never
+// held a value — but the `?paid=t4` return was live and unsigned (§5.C), so
+// devices CAN hold a stored 't4'.
+//
+// Dropping an unrecognised stored tier to free would DOWNGRADE those
+// devices, and the sharp case is worse than it first looks: the stored tier
+// is the only record of a purchase, so a real t3 BUYER who tried the t4 URL
+// once would lose the rung they paid for. §1.D v0.55 says a purchase is
+// permanent; that has to survive the retirement of a rung above it.
+//
+// So a retired rung resolves to the rung that absorbed it, and the caller
+// persists the rewrite on first detection — the same shape as the R2
+// legacy-credit grandfather below, and pinned by tests/public_surface.test.js.
+export const RETIRED_TIERS = Object.freeze({ t4: 't3' });
+
+/**
+ * Map a stored tier through the retirement table. Unknown and current
+ * values pass through untouched, so this is safe to apply anywhere a
+ * stored tier is read.
+ */
+export function normalizeTier(tier) {
+  return Object.prototype.hasOwnProperty.call(RETIRED_TIERS, tier)
+    ? RETIRED_TIERS[tier]
+    : tier;
+}
 
 /**
  * True iff the value is a known paid tier. Unknown ?paid= values are
@@ -89,8 +111,8 @@ export function isTier(value) {
 }
 
 /**
- * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3, t4 → 4. Anything
- * that is not a known tier (null / undefined / garbage) ranks 0 — free.
+ * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3. Anything that is
+ * not a known tier (null / undefined / garbage) ranks 0 — the free tier.
  */
 export function tierRank(tier) {
   return TIER_ORDER.indexOf(tier) + 1;
@@ -100,8 +122,7 @@ export function tierRank(tier) {
  * The higher-ranked of two tiers. Used by applyPaidReturn to keep the
  * stored tier monotonic: tier = max(current, purchased) by ladder order.
  * A non-tier argument ranks 0, so maxTier(null, 't1') === 't1' and
- * maxTier('t3', 't1') === 't3'. A t3 owner buying t4 upgrades; a t4 owner
- * replaying any lower ?paid= URL keeps t4.
+ * maxTier('t3', 't1') === 't3'.
  */
 export function maxTier(a, b) {
   return tierRank(b) > tierRank(a) ? b : a;
@@ -113,7 +134,8 @@ export function maxTier(a, b) {
  * credit signal) at render time — never a function of boot circumstance or
  * shake action.
  *
- *   - a stored tier governs every render of any card on the device;
+ *   - a stored tier governs every render of any card on the device, after
+ *     the retirement table maps any withdrawn rung onto its successor;
  *   - legacy credits held with NO stored tier are the pre-v0.6.0 purchase
  *     shape: that product sold the written-entry unlock, which now lives at
  *     t3, so the device is grandfathered to t3 (R2 — deterministic, total,
@@ -128,11 +150,12 @@ export function maxTier(a, b) {
  * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
- * @returns {string} 'free' | 't1' | 't2' | 't3' | 't4'
+ * @returns {string} 'free' | 't1' | 't2' | 't3'
  */
 export function resolveRenderTier({ tier, credits }) {
   const cleanCredits = normalizeCounter(credits);
-  if (isTier(tier)) return tier;
+  const stored = normalizeTier(tier);
+  if (isTier(stored)) return stored;
   if (cleanCredits > 0) return 't3';
   return 'free';
 }
@@ -171,7 +194,7 @@ export function nextShakeState({ isNew }) {
 }
 
 /**
- * Compute the post-return state when the page loads with ?paid=t1|t2|t3|t4.
+ * Compute the post-return state when the page loads with ?paid=t1|t2|t3.
  *
  * Ownership model (§1.D / §2 / §5.B v0.55): a purchase is permanent and
  * unlimited. The only state a paid return writes is the monotonic tier —
@@ -192,7 +215,9 @@ export function nextShakeState({ isNew }) {
  * @returns {{action: string, tier: string | null, profile?: object}}
  */
 export function applyPaidReturn({ pendingProfile, tier, purchasedTier }) {
-  const newTier = maxTier(tier, purchasedTier);
+  // The stored side goes through the retirement table first: a device
+  // holding a withdrawn rung must not be downgraded by buying a lower one.
+  const newTier = maxTier(normalizeTier(tier), purchasedTier);
   if (!pendingProfile) {
     return { action: 'no-pending', tier: newTier };
   }

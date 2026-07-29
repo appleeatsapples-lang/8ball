@@ -34,7 +34,7 @@ Rules that bind this audit:
 This is not a routine second look. The **entire chain behind this PR is one
 vendor**: Claude found the defect, Claude judged its severity, Claude wrote the
 fix, and Claude wrote the mutation tests that certify the fix works. The
-override clearing it (`audits/L48_override_pr160_2026-07-29.md`, sighting #17)
+override clearing it (`audits/L48_override_pr160_2026-07-29.md`, sighting #19)
 says so explicitly and names that as its central weakness.
 
 You are the first independent party to look at any of it. **A wrong fix that
@@ -126,7 +126,8 @@ asymmetry) and 14 unverified findings. Is any of those actually P0/P1 — i.e. i
 shipping this fix without it unsafe? Flag if so; do not fix.
 
 **I. The override and the ledger.** `audits/L48_override_pr160_2026-07-29.md`
-claims sighting #17 after a collision with #157's #16. Is the ledger internally
+claims sighting #19 after two successive collisions (#16 with pr157, then
+#17 with pr168). Is the ledger internally
 consistent? Note that nothing in CI checks sighting numbers — the predicate
 matches filenames and never opens the file.
 

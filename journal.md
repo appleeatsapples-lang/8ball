@@ -5,9 +5,95 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
+**Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both passed on the merged head. **No cross-model audit was
+run on any link in this chain** — five `DOCTRINE.md` changes in one day, all cleared by override. **The migration is now
+live and untested against a real device:** the first genuine exercise of `RETIRED_TIERS` will be the controller reloading
+the page on the device that was told to open `?paid=t4`. If that device shows the free sheet rather than the complete one,
+the migration is wrong and this entry is the place to start. Was: STAGED. L48 artifact is an explicit controller override,
+sighting #20 — renumbered from #19 after another lane claimed that number concurrently, caught by the sighting-ledger
+uniqueness guard `tests/l48_gate.test.js` gained today. Second such collision in this chain; first one a test caught
+rather than a human.**
+
+**The rung shipped this morning and is withdrawn this afternoon, on controller ruling, after this lane was asked directly
+whether $9 was worth it and answered no.** §1.D v0.58 added `t4` at $9; v0.59 corrected its driver; **v0.60 retires it.**
+`TIER_ORDER` is `['t1','t2','t3']` again, `?paid=t4` is no longer a tier, and the public read becomes a **t3 ceiling
+block** beside the written card entry — still a BLOCK, so the §1.F census is unmoved at 15 of 15.
+
+**The three grounds, recorded because this document defended the rung two clauses ago.**
+
+- **It was named for an exposure radius it never delivered.** The commissioning brief called the tier *"you + the world;
+  work is its legible instance"*. The block renders privately, is absent from the §5.D share surface, and cannot be shown
+  to anyone. What shipped was a **depth** increment priced as a **radius** increment — `ui/share.js` contains zero
+  references to it, which is the whole argument in one grep.
+- **The price ordering could not be defended.** t3 sells fifteen coordinates plus the written 144-card entry for $3. t4
+  sold five derived strings for $9 and computed **no new coordinate** — it is a lookup over values the t3 buyer already
+  sees on the same sheet.
+- **There are no sales to build on.** The revenue-reset diagnosis on record (this file, the 2026-07-26 entry) is that the
+  payment path *"works and has zero outside orders"*. A fourth rung above a price that has never converted optimizes the
+  end that is not binding; the same entry names reach as the verified bottleneck.
+
+**Nobody is downgraded, and that took explicit work rather than luck.** The rung was never buyable — its product URL never
+held a value — but the unsigned `?paid=t4` return was live (§5.C), so devices **can** hold a stored `'t4'`. The naive
+retirement drops those devices to **free**, because `isTier('t4')` becomes false and resolution falls through to the
+credits check. **The sharp case is worse than that sounds:** the stored tier is the only record of a purchase, so a
+genuine **t3 buyer who opened the t4 URL once** would have their paid rung cashed in by the withdrawal — and this lane
+told the controller to open exactly that URL a few messages earlier. `RETIRED_TIERS = { t4: 't3' }` maps the withdrawn
+rung onto the one that absorbed it, `getRenderTier` persists the rewrite on first detection (the R2 grandfather's shape),
+and `tests/public_surface.test.js` pins the stranded state as a **literal** — it cannot be produced by today's code, since
+`applyPaidReturn` now normalizes the stored side, but it is exactly what sits in a real device's localStorage.
+
+**A contradiction leaves with the rung.** §1.D v0.58 put a $9 rung into a clause whose Price column reads **$1 / $2 / $3** —
+a contradiction v0.58 named in its own text and did not resolve. The column is correct again, and the exposure-radius
+ladder remains adopted by no clause of this constitution.
+
+**What survives.** The engine (`core/public.js`), its tables (`content/public.v1.js` + `v2.js`), the render module
+(`ui/public.js`), the sealed block and its §1.D v0.37 treatment, the birthday keying from v0.59, and every test that
+covers them. Only the rung, its price and its never-opened offer are withdrawn. The §4.B v0.56 single-$3 sprint is
+byte-untouched and is again the only purchase surface; `gumroad.com` appears exactly once in `index.html`, pinned.
+
+**What this does NOT resolve.** Whether a re-reading of open coordinates is worth selling **at all** is answered only in
+the narrow sense that it is no longer sold separately. The §5.D share pass — the thing that would actually make a public
+tier public — has still never been done, and is now the named prerequisite if the exposure rung is ever built for real.
+
+**Verification.** Suite **45 files / 1587 tests** green after rebasing onto a `main` that gained the sighting-ledger guard (was 1583 pre-rebase; +2 net — the retirement/migration block replaces the
+fourth-rung block). `index.html` **1493 of 1500**. Four existing pins were updated deliberately: the ladder and `isTier`
+pins in `tests/tiers.test.js`, the t3 composition, and the `newlyEntitledCells` t1 → t3 delta, which now carries both
+ceiling blocks. **Not verified:** the local PII audit (gitignored pattern file absent); no browser pass this cycle — the
+block's markup and CSS are byte-unchanged, only its entitlement moved.
+
+**Scope (files):** `core/payments.js`, `ui/payments.js`, `ui/tiers.js`, `index.html`, `DOCTRINE.md` (§1.D v0.60, footer →
+v0.60), `PUBLIC_TIER_SPEC.md` (header + §7 rewritten, both prior texts superseded per L17), `CLAUDE.md`,
+`tests/{tiers,public_surface}.test.js`, this file, the L48 artifact. **UNTOUCHED:** `core/public.js`, `content/`,
+`ui/public.js`, `tests/public.test.js`, `tests/public_tier.fixture.json`, `tests/fixtures.json`, every scanner list.
+
+**Rollback.** Revert this PR and the rung returns with its $9 price and its unopened offer. Note that the migration is
+NOT symmetrical: devices already normalized from `t4` to `t3` stay at `t3`, which is correct — they never bought a fourth
+rung.
+
+## 2026-07-29 — Second, independent live-fire pass — 10/10, and one of them was mine passing vacuously — SHIPPED
+
+**Status: SHIPPED — the pass is complete and its findings are below; this entry is the record of it. Run by the implementer lane against **local** `main` at `61d2077` in Chromium 141, served from `python3 -m http.server 5173`, driver in `/tmp/lf` with `package.json` byte-untouched (0 playwright references) per the §7 stage-4 devDependency cap. It does **not** re-verify the deployed page: egress policy blocks the product domain from here, and that limit is real — it is the one this lane spent a day mistaking for "no browser at all".**
+
+**Why a second pass was worth running.** The entry below records the first, and the correction that made it possible. That pass was run by the lane that wrote the fix. This one was run by a lane that did not, over the same surface, with its own probes — which is the only thing a second pass adds, and the reason it is filed rather than assumed redundant.
+
+**Result: 10/10.** F1 confirmed dead in a rendering engine rather than in CSS text — `#paywall-cta-t4` computes `display:none`, has zero client rects and no `href`, and the paywall shows **exactly one** visible CTA (`paywall-cta-t3`). No console errors and no failed subresource requests across boot and submit, so `ui/*.js` genuinely loads rather than being swallowed by the catch-all rewrite. The three t4 value slots are empty at free tier. At 320px, `scrollWidth` equals `clientWidth` — no overflow.
+
+**The finding that matters is against this lane's own probe.** The `#offer-btn` check reported PASS while testing nothing. Its assertion carried a guard clause — `!offer.hiddenAttr || (display === 'none' && rects === 0)` — and because the probe completed a reading first, the offer control had legitimately appeared, `hiddenAttr` was `false`, and the whole assertion short-circuited to true without ever exercising the `[hidden]` rule. **A green line that proves nothing is the exact defect class this repo has been bitten by three times** (#126 F1, #129 F2, and the `.modal-cta` cascade itself), and it appeared inside the pass sent to catch it.
+
+Re-run properly with a **negative control**: on a fresh page `#offer-btn` ships hidden and computes `display:none`; deleting `.btn-block[hidden] { display: none }` from the live stylesheet flips it to `display: block`. The guard is load-bearing, proven by removal rather than by its presence — which is the standard the shipped test-suite pins were held to and this probe initially was not.
+
+**Carried across from the first pass:** its recorded false positive — a substring probe firing on *"remediation"* containing *"media"* — so the sealed-DOM check here uses a text-node walk plus explicit empty-slot assertions, never substring matching.
+
+**A pattern this lane should own, on the record.** Three times on 2026-07-29 it asserted a capability was unavailable without checking: that Codex was retired (contradicted by two verdicts in a directory it had itself listed), that live-fire needed the operator's machine (contradicted by its own environment notes all session), and only on the third — the relay — did it verify before answering, and only because the first two had already gone wrong. Facts about *artifacts* were checked relentlessly this session: every SHA, every quotation, R1's closure, four mutation-tested CI pins. Facts about *capabilities* were taken as premises. That asymmetry cost a wrong recommendation twice and a false premise inside a proposed constitutional amendment once.
+
+**Scope (files):** this file. **UNTOUCHED:** everything else — no code, no doctrine, no test, no `package.json`. Suite 1583 green, unchanged by this pass.
+
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `9a40e1d` (#173) on 2026-07-29; the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/v0.55 footer precedent. Cleared by L48 override, sighting #18. **Flipped by a different lane from the one that wrote it, and its claims independently verified rather than taken on the entry's word** — which is worth stating because the entry's own subject is a claim this repo believed for a day without checking. Confirmed: Chromium 141 does launch in a container (`/opt/pw-browsers/chromium --version`, run rather than inferred from the env var); the browser pass reproduces — a second, independent run over the same surface returned 10/10 on F1's death in a rendering engine, one visible paywall CTA, empty t4 value slots at free tier, clean console, and no 320px overflow, recorded in the entry above; the `CLAUDE.md` live-fire recipe is present on `main`; and the scope claim holds against the diff — `CLAUDE.md`, `audits/L48_override_pr173_…`, `journal.md`, and `ui/payments.js`, whose change is comment text only, so "no code behaviour changes" is accurate. The one thing **not** re-verified is the deployed page, which stays outside any container's reach.** Was: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
 `CLAUDE.md` recipe, one correction-on-sighting, and this entry. The substance is a **false claim this lane made repeatedly**
 and the browser pass that disproves it.**
 
@@ -300,7 +386,13 @@ intended pin and no other. The fix then validated itself in CI on its own PR:
 red without the artifact (reaching the artifact-shape error, not the exemption)
 and green with it, via the artifact branch both times.
 
-Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
+Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #19**.
+*(Filed as #17; renumbered on sighting after it collided with
+`L48_override_pr168_2026-07-29.md`, which took #17 twenty seconds later and
+reached `main` first-noticed. This record moved rather than pr168's because
+pr168's number is cited in `DOCTRINE.md`'s v0.59 footer, and editing the
+constitution to fix a bookkeeping collision would itself require an audit lane
+that does not exist. `tests/l48_gate.test.js` now pins uniqueness.)*
 
 ### #165 — the commission
 

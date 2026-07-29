@@ -262,3 +262,47 @@ describe('L48 gate — a recycled artifact cannot supply the verdict', () => {
     expect(job).toMatch(/FILENAME gate/);
   });
 });
+
+describe('L48 sighting ledger — numbers must be unique', () => {
+  // Sighting numbers are assigned by reading audits/ and taking the next one
+  // free. That is a read-modify-write race with no lock: two lanes filing an
+  // override on the same day both read the same maximum and both claim it.
+  // It happened three times on 2026-07-29 — #16 (caught pre-merge), #17
+  // (pr160 vs pr168, landed), #18 (pr173 vs the pr137 override) — and the
+  // l48-gate predicate cannot catch any of them, because it matches filenames
+  // and never opens the file. This is the only check that reads the contents.
+  const overrides = readdirSync(join(REPO_ROOT, 'audits'))
+    .filter((f) => /^L48_override_pr\d+_\d{4}-\d{2}-\d{2}\.md$/.test(f));
+
+  const claimed = overrides.map((file) => {
+    const m = /sighting\s+#(\d+)/i.exec(readFileSync(join(REPO_ROOT, 'audits', file), 'utf-8'));
+    return { file, n: m ? Number(m[1]) : null };
+  });
+
+  it('finds a sighting number in every override artifact', () => {
+    // An override with no number is invisible to the duplicate check below,
+    // so absence has to fail here rather than silently weaken the guard.
+    expect(claimed.filter((c) => c.n === null).map((c) => c.file)).toEqual([]);
+  });
+
+  it('assigns each sighting number to exactly one artifact', () => {
+    const byNumber = new Map();
+    for (const { file, n } of claimed) {
+      if (n === null) continue;
+      if (!byNumber.has(n)) byNumber.set(n, []);
+      byNumber.get(n).push(file);
+    }
+    const collisions = [...byNumber.entries()]
+      .filter(([, files]) => files.length > 1)
+      .map(([n, files]) => `#${n}: ${files.join(' + ')}`);
+    expect(collisions, 'two lanes claimed the same sighting number').toEqual([]);
+  });
+
+  // Deliberately NOT pinned: that the numbers are contiguous, or that they run
+  // in the order the sightings occurred. #7 is absent by design (it is a
+  // journal-recorded sighting with no override file), and the #17/#18
+  // corrections moved numbers rather than resequencing every record — editing
+  // pr168's would have meant editing DOCTRINE.md's v0.59 footer to fix a
+  // bookkeeping collision. After those corrections the number is a unique
+  // identifier, not a timeline; commit dates are the record of ordering.
+});

@@ -71,19 +71,20 @@ import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
 const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
 const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
-const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry'];
-// §1.D v0.58 — the public rung. `publicRead` is a BLOCK, not a cell: like
-// `cardEntry` it has no compartment in the 14-cell sheet and is excluded
-// from the density census, so t4's open/sealed/total census is identical to
-// t3's. The sheet is complete at t3; t4 adds a reading of it.
-const T4_COORDS = [...T3_COORDS, 'publicRead'];
+// §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
+// It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
+// 14-cell sheet and is excluded from the density census, so t3's
+// open/sealed/total census is unchanged by carrying it. It briefly had its
+// own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
+// so the ladder is three rungs again and the block is the t3 ceiling
+// alongside the written entry.
+const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
 
 export const TIER_COORDS = {
   free: FREE_COORDS,
   t1: T1_COORDS,
   t2: T2_COORDS,
   t3: T3_COORDS,
-  t4: T4_COORDS,
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
