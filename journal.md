@@ -93,9 +93,9 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Scope (files):** `.github/workflows/ci.yml` (l48 job predicate + comment), this file, in-PR L48 artifacts. **UNTOUCHED:** everything else — CLAUDE.md already documents the tightened letter verbatim (no doc drift created), no code, no tests (nothing in the suite executes workflow YAML).
 
-## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — STAGED
+## 2026-07-26 — Revenue reset: single $3 complete offer + cold-visitor legibility + channel paths (DOCTRINE v0.56) — SHIPPED
 
-**Status: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
+**Status: SHIPPED — squash-merged to `main` as `c471e92` (#130) on 2026-07-26; the OPEN language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/v0.55 footer precedent. **The condition this entry set was actually met.** It made the merge conditional on "a clean Codex re-audit of the fix delta", and that re-audit exists: the first verdict was MERGE WITH FIXES (3 Medium, 2 Low; `audits/codex_pr130_premerge_audit_2026-07-26_response.md`), all three Mediums closed in the in-branch fix cycle, then the re-audit returned MERGE WITH FIXES with a single Low (`audits/codex_pr130_premerge_reaudit_2026-07-26_response.md`) — R1, this entry's own pre-fix snapshots stated in present tense — which was reconciled in place as initial-state → corrected-state history, where the Tests paragraph below now reads. That makes this the cleanest flip in the current correction run and the direct contrast to v0.57's, which was cleared by override rather than by a reader. DOCTRINE's v0.56 clause is corrected in the same change; mechanical-edit note at `audits/mechanical_footer_correction_v056_2026-07-29.md`. **Live queue item, not staleness: the sprint presentation this entry defines expires 2026-08-08 unless renewed — ten days out at the time of this correction. Revert is mechanical.**** Was: OPEN as PR #130 (`https://github.com/appleeatsapples-lang/8ball/pull/130`)
 against `main`, original base `b459fdab51390f5a8162fafecb1e6119d0cda4e6`
 (#128 doctrine v0.55 footer flip); L48 audit brief filed in-PR at
 `audits/codex_pr130_premerge_audit_2026-07-26_brief.md`; head at the
