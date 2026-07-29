@@ -1319,3 +1319,74 @@ npx stryker run   # ~14 min; report at reports/mutation/mutation.json
   counts are authoritative; the displayed rounding came from the tool's
   clear-text report. Every other row's displayed score matches its
   count-derived value at one decimal.
+
+---
+
+## Re-measurement after the value pins (appended 2026-07-27)
+
+The three weakest modules above were value-pinned — ICU cross-checks for the
+two country-name tables, an ICU Chinese-calendar cross-check plus canonical
+jieqi windows for the ephemeris, and cities.json-based sign checks. Stryker
+re-run over exactly those three, same configuration:
+
+| module | before | after | undetected before → after |
+|---|--:|--:|---|
+| `core/cities.js` | 14.8% | **96.3%** | 230 → 10 |
+| `core/countries.js` | 61.8% | **91.6%** | 520 → 114 |
+| `core/calendar.js` | 42.7% | **52.4%** | 248 → 206 |
+| **combined (these three)** | **51.7%** | **84.0%** | **998 → 330** |
+
+2066 valid mutants across the three, unchanged between runs; the tool's own
+all-files figure for the re-run reads 84.03%. Percentages here are derived
+from the counts at full precision, not by re-rounding the tool's display
+values — the defect the errata above records.
+
+**The listing remains complete.** Mutant generation is deterministic and the
+three sources were untouched between runs — only tests were added — so the
+330 that still survive are a subset of the rows already listed. Verified by
+set comparison: no `(file, line, mutator)` triple survives now that was
+absent before.
+
+**Scope caveat — `core/countries.js` numbers predate the centroid strip.**
+Both its figures were measured against the module as it stood before the
+2026-07-25 deep-clean moved `defaultLat`/`defaultLng` out to
+`tests/country_centroids.fixture.json`. That removed roughly half the
+module's mutable surface, so neither number is reproducible against current
+`main`, and the module's true score there is unmeasured. `core/cities.js` and
+`core/calendar.js` are byte-identical to the measured versions, so their
+figures stand. The centroid pins have been rebased accordingly: they now
+guard the fixture — which still feeds product code through the legacy rising
+replay — rather than fields the module no longer has.
+
+### What still survives, and why
+
+**`core/countries.js` — 114, all `UnaryOperator` sign flips, every one at the
+boundary of the oracle rather than a gap in the tests:** 109 in countries
+carrying fewer than three cities in `assets/cities.json` (Anguilla,
+Antarctica, the split `AU-CT`-style rows), where there is nothing to
+cross-check against; 5 in equatorial countries, where the latitude check is
+deliberately exempt (`|lat| < 5`) because a flip there is genuinely ambiguous
+against city data; 0 categorized as reachable-but-uncovered.
+
+**`core/cities.js` — 10:** the `loadCities` caching / `_loading` branches, the
+`json` import attribute, and the `normalize` method expression.
+
+**`core/calendar.js` — 206 (147 arithmetic).** The honest limit of the
+approach, and why this module moved least. The ICU cross-check and the
+canonical jieqi windows kill gross drift; they cannot kill a perturbation
+that moves a solar term by hours while leaving it inside a ±2-day window.
+Killing those needs exact per-year date pins, which — absent the Hong Kong
+Observatory tables named in DOCTRINE §3 — would be a golden snapshot of the
+implementation asserting itself. Left at 52.4% rather than manufacturing a
+circular 95%.
+
+### Finding raised by the calendar oracle — unresolved
+
+Cross-checking `lunarNewYearDate` against ICU's Chinese calendar across all
+201 years surfaced **four one-day disagreements: 1916, 1954, 2027, 2030**.
+None is covered by the ten Hong Kong Observatory checkpoints in
+`tests/profile.test.js` (1900/1924/1950/1985/1990/2000/2010/2020/2024/2025),
+so which implementation is correct is **unresolved**. Both values are
+recorded in `tests/calendar.test.js` (`ICU_DIVERGENCES`), which locks the
+other 197 years and fails loudly if any of the four moves. Resolving it means
+checking those four years against the HKO tables.
