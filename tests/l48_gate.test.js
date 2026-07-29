@@ -201,7 +201,15 @@ describe('L48 gate — a recycled artifact cannot supply the verdict', () => {
   const job = workflow.slice(workflow.indexOf('\n  l48:'));
 
   it('matches the shape against files ADDED by the PR', () => {
-    expect(job).toMatch(/ADDED=\$\(git diff --diff-filter=A[^\n]*--name-only/);
+    // Pinned as the EXACT invocation, not a prefix. The previous pattern was
+    // /--diff-filter=A[^\n]*--name-only/, which `[^\n]*` turned into a prefix
+    // match on the filter set: --diff-filter=ACMR, AR, AC and AM all satisfied
+    // it, and the revision range was never pinned at all. Widening the filter
+    // is precisely how this guard stops guarding, and audits/
+    // L48_override_pr133_2026-07-29.md names that as the shape to watch for.
+    expect(job).toContain(
+      'ADDED=$(git diff --diff-filter=A --find-renames --find-copies-harder --name-only "$BASE"...HEAD)'
+    );
     const artLine = job.split('\n').find(l => l.includes('ART=') && l.includes('grep'));
     expect(artLine).toContain('$ADDED');
     expect(artLine).not.toContain('$CHANGED');
@@ -217,6 +225,34 @@ describe('L48 gate — a recycled artifact cannot supply the verdict', () => {
     // that exists but was not added means it was renamed or copied in.
     expect(job).toMatch(/RECYCLED=\$\(echo "\$CHANGED"/);
     expect(job).toContain('was NOT added by this PR');
+  });
+
+  it('reads the true file list — rename detection off for CHANGED', () => {
+    // git enables rename detection by default (diff.renames, since 2.9) and a
+    // detected rename prints ONLY the destination path. Without --no-renames,
+    // `git mv tests/l48_gate.test.js audits/archive.md` makes the changeset
+    // read as documentation, the docs-only branch fires, and the PR deletes
+    // this very file with a green gate and no artifact. Reproduced against
+    // the shipped predicate; see audits/claude_l48_predicate_crossread_2026-07-29.md.
+    const changedLines = workflow
+      .split('\n')
+      .filter(l => l.includes('CHANGED=$(git diff'));
+    // Both gates compute it — the l48 job and the journal/audit step in `test`.
+    expect(changedLines).toHaveLength(2);
+    changedLines.forEach(l => expect(l).toContain('--no-renames'));
+  });
+
+  it('keeps rename detection ON for ADDED — the two settings are opposites', () => {
+    // The inverse of the pin above, and the reason they cannot be homogenised:
+    // ADDED= NEEDS rename/copy detection so a recycled artifact is classified
+    // R/C and dropped by --diff-filter=A. Putting --no-renames here would
+    // reclassify a recycled verdict as a plain addition and re-open #133.
+    const addedLine = workflow
+      .split('\n')
+      .find(l => l.includes('ADDED=$(git diff'));
+    expect(addedLine).toBeDefined();
+    expect(addedLine).not.toContain('--no-renames');
+    expect(addedLine).toContain('--find-renames');
   });
 
   it('keeps recording that this does not by itself close #126 F1', () => {
