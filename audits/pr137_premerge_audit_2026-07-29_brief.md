@@ -1,9 +1,20 @@
-# CODEX PRE-MERGE AUDIT PACKET — PR #137 (test-coverage audit + P1–P9) — 2026-07-29
+# PRE-MERGE AUDIT PACKET — PR #137 (test-coverage audit + P1–P9) — 2026-07-29
+#
+# WHICH LANE — the independence test, not a vendor (#172, #175). This packet
+# may be run by any lane that is NOT the lane that authored the change and NOT
+# the lane that authored this brief. Both are Claude Code, so **Claude does not
+# satisfy the test for this PR** — a Claude-run verdict would be the same
+# lineage checking itself, which is exactly what the adversarial pass recorded
+# below already is. Any other lane qualifies, Codex included: the "Codex is
+# retired" premise behind sighting #14 was **false when written** and is
+# corrected on main by #170 (`a0d577c`), which cites two genuine relay verdicts
+# dated the same day. The vendor prefix is dropped here because hard-coding any
+# lane is the defect #166 names, not because a particular lane is unavailable.
 
 ## Who you are and what this is
 You are an independent pre-merge auditor for PR #137 of the 8ball
 repository (branch `claude/test-coverage-analysis-qdsbh3`, base
-origin/main @ a9957b5, head after the merge commit resolving it).
+origin/main @ current, head `288b5b4` or later — verify against the PR).
 This PR is a 12-stage test-coverage initiative: an audit document,
 then P1–P9 against that document's own findings. 20+ files, ~2600
 insertions, one product behavior change.
@@ -115,4 +126,7 @@ agreement as evidence; re-derive independently.
 - Then: the exact commands you ran and what they returned.
 - State explicitly how many of the 39 mutation claims you verified.
 Zero findings is acceptable only after you actually ran the checks.
-- File as `audits/codex_pr137_premerge_audit_2026-07-29_response.md`.
+- File as `audits/<lane>_pr137_premerge_audit_<YYYY-MM-DD>_response.md`, using
+  the lane that actually ran it. The l48-gate predicate accepts any
+  `[a-z0-9_]+` prefix, so the filename records provenance rather than
+  satisfying a hard-coded vendor.
