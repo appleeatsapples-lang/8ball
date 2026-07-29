@@ -5,6 +5,223 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
+`CLAUDE.md` recipe, one correction-on-sighting, and this entry. The substance is a **false claim this lane made repeatedly**
+and the browser pass that disproves it.**
+
+**The correction.** Across the #157 cycle this lane wrote that a browser pass "cannot be answered from here at all" and that
+the F1 fix was "verified structurally, never in a browser" as though that were a ceiling rather than a choice. **It was
+false.** Chromium and Playwright are pre-installed in this container (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`), and a
+local pass over `index.html` was available from the moment the t4 block existed. What is genuinely blocked is the
+*deployed* domain — egress policy 403s it at the proxy — and that true limitation was allowed to stand in for a false one.
+**F1 (the $9 CTA rendering in the live paywall) could have been caught here, before it ever reached a visitor.** The
+superseded sentence is preserved in place per L17 with a pointer to this entry.
+
+**The pass, run properly this time.** Static server on the repo, Chromium driven headless, three viewports, four scenarios:
+
+- **F1 confirmed fixed in a browser**, corroborating the controller's live check: the t4 anchor computes `display: none`,
+  reports zero client rects, and carries no `href`. Exactly one CTA is visible in the paywall.
+- **The t4 block renders**: `1 tech · 2 media · 3 energy` / `anti-fit · health` / the role line, wrapping to two lines at
+  1280px and three at 320px. Tier stored `t4`, block unsealed, `aria-label="domain fit"`, **zero console errors** — which
+  also proves the `/ui/public.js` module actually loads rather than being swallowed by the catch-all rewrite, an open
+  question from the cross-read's completeness critic.
+- **Sealed-DOM purity verified rather than inferred** (§1.D v0.37): at free tier the block carries the hatch and its three
+  value nodes are empty strings; a text-node walk over the rendered body finds **zero** occurrences of any entitled string.
+  The density strip reads `5 of 15 coordinates open · 10 sealed at paid tiers · domain fit sealed`.
+- **The 320px question is answered: no overflow.** `scrollWidth` 320 = `clientWidth` 320, the card does not overflow its
+  stage, the block occupies 133px and the role line wraps cleanly. The completeness critic's concern does not reproduce.
+- **The label follows the labels-reveal convention** — `visibility: hidden` until `reveal labels`, `visible` after.
+
+**A false positive worth recording, because it is the same species as a shipped defect.** The first leak probe reported an
+entitled string present at free tier. The match was the word "re**media**tion" inside an inline comment — a substring
+match without word boundaries, precisely the error `tests/helpers/voice-register.js`'s `SUBSTRING_SAFELIST` exists to
+prevent ("restaurant" ⊃ "aura"). It was chased down before being reported rather than after. A crude probe that fires
+wrongly is cheap; a crude probe that is *believed* is how F1 shipped.
+
+**The systemic fix, which matters more than the pass.** `CLAUDE.md` now documents the live-fire recipe under Commands, with
+the constraint that makes it safe: **the driver goes in a scratch directory, never in `package.json`** — §7 stage 4 caps
+devDependencies and this repo vendors no browser tooling (`playwright-core` was installed under `/tmp` for this pass;
+`package.json` is byte-untouched). §8 gate 9 was being treated as operator-only because nothing in the repo said otherwise.
+Now something does.
+
+**Also in this change.** The comment above `handlePaidReturn` in `ui/payments.js` read `Reads ?paid=t1|t2|t3` — stale since
+§1.D v0.58 appended t4, though the code below always gated on `isTier` and honoured t4 correctly. Folded in here on
+controller instruction rather than shipped as its own PR. It is rewritten to point at the gate instead of enumerating
+rungs, so a fifth rung cannot re-stale it — the enumeration was the defect, not the missing letter.
+
+**Verification.** Suite **45 files / 1583 tests** green — the same count with and without this change, since no behaviour
+moved. (This number moved twice while the PR was open — 1578 from memory, 1580 on `main` when first counted, 1583 after a rebase
+over three more lanes' merges. Counted at each step rather than recalled, which is the discipline the two defects above
+both broke. A test count written from memory is stale the moment another lane merges.) Live-fire evidence is four
+screenshots and a JSON probe report, held outside the repo (they carry a rendered specimen sheet and belong in no tracked
+file). **Not verified:** the deployed site, still unreachable from here.
+
+**Scope (files):** `ui/payments.js` (one comment), `CLAUDE.md` (live-fire recipe under Commands), `journal.md` (this entry
+plus the corrected sentence in the #157 entry), the L48 artifact. **UNTOUCHED:** `core/`, `content/`, `index.html`,
+`DOCTRINE.md`, `package.json`, every test, every scanner list.
+
+## 2026-07-29 — rising-sign mutation coverage: three mutants killed, four claims tested, two of them wrong — SHIPPED
+
+**Status: SHIPPED — both squash-merged to `main` on 2026-07-29: #152 `e658078`
+(fixtures) · #162 `1513ad8` (follow-ups + audit). Both SHAs verified to resolve
+and to be ancestors of `main` before being written here. Merges executed by the
+implementer lane on explicit controller word, recorded per §10.**
+
+**This entry is the back-pointer #162's audit asked for (F8).** #152's commit
+message is permanent history on `main` and contains two claims #162 disproves.
+Nothing above or below is rewritten; the corrections are stated here and in
+`core/`, and the original text stands as lineage per L17.
+
+**What this cycle is.** A Stryker run scored `core/rising.js` at 79.0% mutation
+against 96.8% line coverage, with 39 undetected mutants. The brief named three
+survivor clusters to kill. Two of the three turned out to be **equivalent
+mutants** — unkillable by any honest test — and the third was real and is now
+dead. The follow-up leg then tested four claims arising from that work and
+found **two of them wrong**, one of which would have shipped a defect.
+
+### #152 — the fixtures (`e658078`)
+
+Mutation score on `core/rising.js` **79.03% → 85.48%** (147→159 killed,
+39→27 survived, 186 total), via three tz-aware fixtures in a new
+`rising_tz_cases` array plus a tz-guard block. The existing `rising_cases`
+could not express them: it has no `tz` field and is consumed only through the
+legacy fixed-offset `getRisingSign`, which never reaches the two-pass
+DST-resolution path at all.
+
+- **America/New_York 2023-03-12 02:30** — the skipped spring-forward hour;
+  resolves via the o2/EDT pass, not the o1/EST guess. Kills all three L143
+  ternary mutants and all three L141 arithmetic mutants.
+- **Asia/Kolkata 1905-12-31 21:00** — a genuine `o2 === null`: the era's offset
+  string carries seconds (`GMT+05:21:10`) that the `HH:MM` regex cannot match,
+  so resolution correctly falls back to o1. Kills the one L143 mutant NY could
+  not, plus L130 and an L129 anchor variant incidentally.
+- **Asia/Kathmandu 1995-05-15 12:00** — fractional `+05:45`; kills the
+  fractional-offset arithmetic mutant.
+
+**Expected values were sourced externally, per the brief's central
+constraint** — never by running the implementation, since a fixture whose
+expectation came from the code under test proves nothing. astro.com returned a
+403 policy denial from the build environment's egress proxy (confirmed via the
+proxy's own diagnostic endpoint, not inferred from the failure). Substituted
+pyswisseph — the Swiss Ephemeris, the engine astro.com's own charts run on —
+validated first against the three existing astro.com-anchored reference cases
+(agreement <0.003°), then against 2000 random valid inputs versus an
+independently written from-formula implementation (0 disagreements >1°). Offset
+and which-pass-wins values were traced by hand against directly probed
+`Intl.DateTimeFormat` output.
+
+**Two of the three named targets were equivalent mutants, not gaps.** The
+`asc + 180` → `asc - 180` flip and the entire `diff < 1 || diff > 179` guard
+survive because no reachable input distinguishes them — `normalizeDeg` reduces
+mod 360, and the guard is a tautology over the product's real domain. The
+brief's fixture (a), "a birth where the +180 correction is load-bearing," was
+already satisfied trivially by every pre-existing rising fixture; no new one
+could have moved the result. Recorded rather than papered over, because the
+alternative — writing a test that appears to close a gap that does not exist —
+is worse than the survivor.
+
+**L48 BREACH, recorded here because it is otherwise unrecorded.** #152 merged
+with **`l48-gate` red and no artifact of any kind** — there is no
+`audits/*_pr152_*_response.md` and no `audits/L48_override_pr152_*.md`. The
+`test` job was green; the gate was not. This is the failure shape L48 names,
+and it is the first in this chain to leave no trace in `audits/` at all — the
+override path at least produces a sighting file. **No sighting number is
+assigned here**: the ledger already carries a collision (`#17` appears against
+both `L48_override_pr160` and `L48_override_pr168`), and numbering is the
+controller's to reconcile, not this lane's to extend.
+
+### #162 — four claims tested, two wrong (`1513ad8`)
+
+Comment-only in `core/` (zero non-comment lines changed; 42 added lines, all
+`//`), plus three `tests/math.test.js` guards and one fixture label.
+
+1. **`normalizeDeg` "single-mod tightening" — REFUTED, and reversed into a
+   guard.** The proposal was to drop `mod`'s trailing `% k` as a redundant
+   second reduction. It is load-bearing: for `|n|` below 2⁻⁴⁵ (the half-ulp of
+   360) `r + k` rounds up to **exactly k**, so the shortened form returns 360 —
+   outside the `[0, 360)` range the module's own doc comment promises. Breaks
+   276 of the 320 magnitudes `-2^-1..-2^-320`; the real form breaks none.
+   **The reason this matters beyond the arithmetic:** the blast-radius
+   measurement taken *before* the change was rejected showed it was invisible
+   to the entire suite — **0 deltas across 82,673 probes** (lunar-new-year
+   dates, solar terms 1900–2100, day/hour pillars, rising signs). A 1580-test
+   suite could not see it. That is why the range invariant now has explicit
+   tests rather than a comment.
+2. **Quadrant-guard tautology — CONFIRMED, and #152's claim corrected.** #152
+   said the tautology holds across "the entire valid (non-polar, |lat|≤66.5)
+   domain." That sweep pinned obliquity at its J2000 value and so never
+   covered the corner it claimed. Re-swept per epoch: holds for every birth
+   year **≥1533** (min diff 184.35° at year 2000, rising with epoch), breaks
+   below, where the condition is `|lat| ≥ 90 − ε(epoch)` rather than the 66.5
+   boundary specifically. Unreachable in product.
+3. **Kolkata fixture label `LMT` → `MMT`.** tzdata's `Asia/Kolkata` is LMT
+   +05:53:28 until 1854, HMT until 1870, then **MMT +05:21:10** until 1906. The
+   fixture's offset is Madras Mean Time. Label only; no expectation moved.
+4. **`asc ± 180` — downgraded, not defended.** #152 called it a strict
+   equivalent mutant; that was imprecise. It is technically distinguishable
+   (16.6% of geometry-derived ascendants differ, max 5.7e-14°). Deliberately
+   still not killed: any test that killed it would assert an exact float64 bit
+   pattern, pinning this arrangement of trig operations rather than behavior,
+   and would break on a legitimate refactor. The delta is ~5.3×10¹⁰ times
+   smaller than this routine's own omitted-nutation error.
+
+### The audit, and what it caught
+
+`audits/claude_pr162_premerge_audit_2026-07-29_response.md` — independent lane,
+detached worktree, no sight of the authoring conversation. Verdict **MERGE WITH
+FIXES**, no P0. Every headline number reproduced to the digit (276/320, the
+2⁻⁴⁵ boundary, 184.35°, the 1532/1533 bisection, 85312/360000, the tzdata
+offsets, 1580 vs 1577).
+
+Both substantive findings were against **#162's own new comments** — fitting,
+since its entire deliverable is prose in `core/`, which no test can check:
+
+- **F1 (P1)** — "mutating this condition (or either arm) survives the suite"
+  was **false**. Against 12 mutation operators, four are *killed* at 22 tests
+  each (`||`→`&&`, condition→`false`, dropping `|| diff > 179`, second-arm
+  flip), because a tautology only forces survival for mutations that *preserve*
+  it. A maintainer trusting that line would have deleted a strongly-pinned arm.
+- **F2 (P2)** — the "reachable hazard" claim cited the wrong call site: over
+  2,881,440 swept points `asc − LST` never comes within fourteen orders of
+  magnitude of the window. The site where in-window values do occur is line 83.
+
+All eight findings absorbed, none disputed, including all six P3s. **The
+auditor's sharpest point is the one worth keeping:** F1 and F4 repeat *the same
+error class this PR exists to correct in #152* — a result measured over a
+narrow set, then stated as a general truth. The lane that set out to correct
+that habit committed it twice in the correction itself.
+
+**Honest limit on what this audit is.** It was a fresh Claude lane, and per
+#159's own second section that is **not** a §10 cross-model audit: Claude
+checking Claude, same lineage, same blind spots. It should not be read as one.
+Note also that the "Codex is retired" premise in sighting #14 was itself
+**found false** (see the 07-29 entry below — Codex ran at 00:45 and again at
+08:01), so a genuine second-vendor relay may in fact have been reachable for
+both PRs and was not attempted.
+
+### Open, not closed
+
+- **Audit F7 — doctrine carve-out.** §3's closing clause and CLAUDE.md's
+  don't-do list both fire literally on a *label-only* fixture edit. The audit
+  discharges them for #162 by verification (comment-stripped code hashes
+  identical; 82,673 output probes unchanged), but no carve-out is written: that
+  is a `DOCTRINE.md` change with its own journal and audit gates, and the
+  controller's call. It will be re-litigated on the next label fix.
+- **The #152 gate breach** needs a sighting number and a decision on whether a
+  retroactive read is wanted, per the #89–#91 / #103 retroactive precedent.
+- `next_strategic_read: 2026-07-27` and `next_analytics_read: 2026-07-17` both
+  remain stale at the top of this file; untouched by this cycle.
+
+**Verification.** Suite **45 files / 1580 tests green** (baseline 1577; the +3
+are the new math guards), independently reproduced by the auditor at both
+revisions. `test` and `l48-gate` green on #162's head and again after the
+absorb. No files added or removed — `repo_shape` pins and CLAUDE.md counts
+untouched. Stryker was installed `--no-save` for the scoped runs and fully
+removed; `package.json` and the lockfile are byte-identical throughout.
+**UNTOUCHED:** `ui/`, `content/`, `index.html`, `DOCTRINE.md`.
+
 ## 2026-07-29 — l48-gate cross-read: a P0 in the gate itself, its fix, and the commission — SHIPPED
 
 **Status: SHIPPED — all three squash-merged to `main` on 2026-07-29:**
@@ -195,7 +412,7 @@ in the remote container; still owed controller-side.
 
 **The finding that outlived the premise, and is sharper than it.** The override instrument was used three consecutive times **while the alternative existed**. That is a worse observation than "the rule became unsatisfiable", because no wording change fixes it — an amendment cannot make a lane check whether the auditor is reachable before declaring it gone.
 
-**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
+**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/pr140_retroactive_audit_2026-07-29_brief.md` and `audits/pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
 
 **Recorded because the alternative is worse.** This entry exists so the §10 draft is never read without its correction, and so the pattern is on the record rather than in a chat log: a lane that spent the day verifying other lanes' claims did not verify its own, and the one it skipped was the one with the largest blast radius. **Recommendation attached: treat "the auditor lane is unavailable" as a claim requiring evidence, the same as any other claim in an L48 artifact.**
 
@@ -334,7 +551,13 @@ storage key, and the engine and its tables are byte-unchanged from #144.
 **Still open, and NOT closed by this cycle.** §8 gate 9 live-fire has still not run, and F1 is precisely the class of
 defect only a live-fire pass catches — the fix is verified structurally, not visually. The 320px-viewport question the
 critic raised (an always-visible block with a `min-height` floor inside a fixed-aspect card) cannot be answered from here
-at all. `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
+at all. **[CORRECTED 2026-07-29, see the entry at the top of this file: that last sentence was false. Chromium and
+Playwright are pre-installed in this container; a local live-fire pass over `index.html` was available the whole time, and
+when finally run it answered the 320px question in one command — no overflow. The claim is preserved per L17 and
+superseded there.]** **[CORRECTED 2026-07-29, see the entry at the top of this file: that last sentence was false. Chromium and
+Playwright are pre-installed in this container; a local live-fire pass over `index.html` was available the whole time, and
+when finally run it answered the 320px question in one command — no overflow. The claim is preserved per L17 and
+superseded there.]** `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
 `curl` to the deployed site is blocked by this environment's egress policy (403 at the proxy), so no claim is made here
 about what the live deploy currently serves.
 
@@ -557,7 +780,7 @@ history notes per L17). No file outside this PR's own set moves.
 
 **Follow-ups closed and left open (appended 2026-07-29, after this entry's own merge).** Two things this entry queued have moved, and are recorded here rather than as a new entry so the #140 record stays in one place.
 
-**(a) The cross-model read is commissioned.** Sighting #12 recommended it after merge if not before; the packet is `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md`, merged as `a9957b5` (#145). It is named `retroactive_audit`, **not** `premerge_audit`, and that is load-bearing rather than cosmetic: the `l48-gate` predicate accepts only the premerge-response or override shapes, so a verdict filed against this brief cannot retroactively green any gate or launder a merge that already happened — verified against the shipped regex. Self-contained per `agents/auditor.md` (Codex is paste-relay only, no filesystem access). Ten adversarial hooks; HKO re-confirmation of the four dates is the one worth most. **The verdict is outstanding — commissioning is not reading, and nothing here closes sighting #12.**
+**(a) The cross-model read is commissioned.** Sighting #12 recommended it after merge if not before; the packet is `audits/pr140_retroactive_audit_2026-07-29_brief.md`, merged as `a9957b5` (#145). **Path note:** it shipped in #145 as `codex_pr140_retroactive_audit_2026-07-29_brief.md` and was renamed lane-neutral later the same day, alongside `codex_pr146_pr147_… → pr146_pr147_…`, following the pattern #172 set — a packet addressed to one vendor repeats, one level down, the defect of naming a vendor in the constitution. Pointers in this file, the correction artifact and the mechanical-edit note were updated; the **superseded** DOCTRINE v0.57 clause and the verbatim quote of it inside the #146/#147 packet still carry the old path, deliberately, because lineage-preserved text is not rewritten to chase a filename. This note is the mapping. It is named `retroactive_audit`, **not** `premerge_audit`, and that is load-bearing rather than cosmetic: the `l48-gate` predicate accepts only the premerge-response or override shapes, so a verdict filed against this brief cannot retroactively green any gate or launder a merge that already happened — verified against the shipped regex. Self-contained per `agents/auditor.md` (Codex is paste-relay only, no filesystem access). Ten adversarial hooks; HKO re-confirmation of the four dates is the one worth most. **The verdict is outstanding — commissioning is not reading, and nothing here closes sighting #12.**
 
 **(b) A new finding, from this lane auditing its own merged work.** ΔT (TT−UT) is not applied anywhere in `core/calendar.js`: `newMoonJDE` and `solarLongitudeCrossingJDE` return TT-based JDE, civil time is UT = TT − ΔT, and `jdeToShanghaiDate` adds the civil offset without subtracting it — so every cusp sits ΔT *later* than truth, the same failure direction as the defect this entry fixed. The in-source comment inherited from calc v2 claims *"For 1900–2100 the TT−UT delta is < 70 s"*; that holds only to about 2005, against ~168 s at 2085 and ~196 s at 2097 on the standard Espenak/Meeus fit. Measured: of **2613** cusp instants in range, **six** sit closer to local midnight than ΔT at their year, and applying ΔT changes exactly **one** date — **2084 mangzhong, June 5 → June 4**. Unreachable today, since future DOBs are rejected (v0.3.0 fix B). Stated so it is not mistaken for cleared: #140's clean 2051–2100 sweep against sxtwl does **not** rule this out — at these margins that is equally consistent with sxtwl making the same simplification, or with luck. Filed as hook 4 of the brief for the auditor to verify, not as a settled result.
 

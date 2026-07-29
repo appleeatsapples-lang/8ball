@@ -233,7 +233,10 @@ export function showPaidBanner() {
 }
 
 // ── paid-return handler (§5.B Call 2 / §6.6 / §7.2; ownership v0.55) ──
-// Reads `?paid=t1|t2|t3` (v0.6.0 generalization) and runs applyPaidReturn.
+// Reads `?paid=<rung>` and runs applyPaidReturn. The accepted set is
+// whatever `isTier` accepts — deliberately NOT enumerated here, because the
+// enumeration is what went stale when §1.D v0.58 appended t4 (this comment
+// said `t1|t2|t3` for a day while the code below already honoured t4).
 // The purchase is permanent: the stored tier rises to max(current,
 // purchased) and never downgrades — that write is the entire grant; no
 // credits exist. Unknown ?paid= values are ignored — the replay-safe

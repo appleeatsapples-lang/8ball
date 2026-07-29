@@ -1,9 +1,17 @@
-# CODEX RETROACTIVE AUDIT PACKET — PRs #146 + #147 (DOCTRINE v0.57 / v0.56 footer corrections) — 2026-07-29
+# RETROACTIVE AUDIT PACKET — PRs #146 + #147 (DOCTRINE v0.57 / v0.56 footer corrections) — 2026-07-29
 #
-# Fire line (from any terminal):
+# WHICH LANE — the independence test, not a vendor. This packet may be run by
+# any lane that is NOT the lane that authored the changes and NOT the lane that
+# authored this brief. Both are Claude Code, so **Claude does not satisfy the
+# test for these PRs**. Sharper here than for the #140 packet: hook 3 asks
+# whether this lane's own asymmetric framing of its two corrections is earned
+# or rhetorically constructed, which a same-lineage reader is least equipped
+# to answer. Any other lane qualifies.
+#
+# Fire line (from any terminal), substituting the lane you actually have:
 #   cd ~/dev/8ball && git checkout main && git pull && \
-#   ~/ai-relay/relay --models codex \
-#     "$(cat audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md)"
+#   ~/ai-relay/relay --models <lane> \
+#     "$(cat audits/pr146_pr147_retroactive_audit_2026-07-29_brief.md)"
 #
 # NOTE — deliberately NO `--base`. Both PRs are merged, so `origin/main` yields
 # an empty diff; and unlike the #140 packet, a single range CANNOT isolate this
@@ -21,9 +29,11 @@
 #     git show e3bb407     # PR #147 — v0.56
 #
 # The verdict files as
-# audits/codex_pr146_pr147_retroactive_audit_2026-07-29_response.md — the
-# `retroactive_audit` shape, verified rejected by the l48-gate predicate for
-# both pr146 and pr147, so it cannot green any gate. Save it verbatim per
+# audits/<lane>_pr146_pr147_retroactive_audit_2026-07-29_response.md, where
+# <lane> matches [a-z0-9_]+ and the file ends `_response.md`. The
+# `retroactive_audit` shape is verified rejected by the l48-gate predicate for
+# both pr146 and pr147, so no verdict filed against this brief can green any
+# gate regardless of which lane runs it. Save it verbatim per
 # agents/auditor.md procedure 1.
 #
 # The packet below is self-contained: both appended clauses and the §10 text are
