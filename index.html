@@ -1172,14 +1172,16 @@ initMeaningsUI({ cardFace });
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
 const [shareArcana, shareElement, shareSun, shareAnimal,
-  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
+  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar,
+  shareDomainFit] = shareRowRefs();
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
     symbols: [shareArcana, shareElement, shareSun, shareAnimal,
-      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar],
+      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar,
+      shareDomainFit],
   },
   {}
 );

@@ -17,6 +17,7 @@
 // 1900–2100 solar-term table. No real person's date of birth.
 
 import { describe, it, expect } from 'vitest';
+import { codeOnly } from './helpers/source.js';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,11 +93,9 @@ function* sweepDates(strideDays = 37) {
   }
 }
 
-// Source with `//` comment lines dropped. The modules deliberately keep
-// history notes naming the retired `expression` vocabulary (why the rename
-// happened, per L17 supersede-don't-erase); the label bans below are about
-// live code, so they scan this, not the raw file.
-const codeOnly = src => src.split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
+// codeOnly is shared (tests/helpers/source.js) — the modules deliberately
+// keep history notes naming the retired `expression` vocabulary per L17, and
+// three separate bans fired on their own comments before it was de-forked.
 
 // Every string reachable from a value, for the register scans.
 function collectStrings(value, path = '', out = []) {

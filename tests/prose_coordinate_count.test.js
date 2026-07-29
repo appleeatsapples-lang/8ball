@@ -131,6 +131,10 @@ describe('prose coordinate-count copy (v0.6.0 free surface)', () => {
   });
 
   it('share export refs stay coupled to rendered coordinate rows', () => {
-    expect(shareSymbolRefCount()).toBe(renderedCoordinateTitles().length);
+    // +1 for the fit-family row (§5.D v0.61). It is a BLOCK, not a
+    // coordinate: it carries a `.public-title`, not a `.coord-title`, so it
+    // is absent from renderedCoordinateTitles() by design and the census
+    // and free-surface counts are unaffected.
+    expect(shareSymbolRefCount()).toBe(renderedCoordinateTitles().length + 1);
   });
 });

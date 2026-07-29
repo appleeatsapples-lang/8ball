@@ -167,10 +167,12 @@ export function initTiersUI(refs, hooks) {
   _hooks = hooks || {};
   _entry = (refs && refs.entry) || null;
   _publicRoot = (refs && refs.publicRead) || null;
-  // §5.D v0.61 — ONLY the fit-family node is held for the share snapshot.
-  // The anti-fit and role-line nodes are deliberately never passed to this
-  // module, so their text cannot reach the artifact by any code path: the
-  // omission is structural, not a filter that a later edit could drop.
+  // §5.D v0.61 — only the fit-family node is held for the share snapshot.
+  // The anti-fit and role-line nodes are never passed to this module. That
+  // is a convention held by source-level pins, NOT an impossibility: the
+  // block root above is also held (for the unseal class) and every line is
+  // its descendant, and #public-antifit is this node's nextElementSibling.
+  // tests/share_surface.test.js pins that nothing traverses to either.
   _publicFamilies = (refs && refs.publicFamilies) || null;
   _lastRenderedTier = null;
   _cells = {};
@@ -349,10 +351,18 @@ function rowTitleOf(keys) {
 // sealed read produces an empty value here and a hatch in the artifact. No
 // tier constant and no profile object is consulted.
 function publicFamiliesRow() {
-  const text = _publicFamilies ? String(_publicFamilies.textContent).trim() : '';
   return {
     title: 'DOMAIN FIT',
-    cells: [text ? { state: 'open', value: text } : { state: 'sealed', value: '' }],
+    // GETTER, like every sibling row — and the reason is a defect this very
+    // change shipped in its first draft: index.html calls shareRowRefs()
+    // ONCE at boot and destructures the result, so an eagerly-computed row
+    // freezes at boot state (the block is empty then, so it would hatch
+    // forever, even at t3 with the value on screen). Rows 0–7 avoid that
+    // with getters; this one must too.
+    get cells() {
+      const text = _publicFamilies ? String(_publicFamilies.textContent).trim() : '';
+      return [text ? { state: 'open', value: text } : { state: 'sealed', value: '' }];
+    },
   };
 }
 

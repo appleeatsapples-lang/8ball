@@ -7,6 +7,7 @@
 // scan can prove (no network surface, no paid-content read, no PII).
 
 import { describe, it, expect } from 'vitest';
+import { codeOnly } from './helpers/source.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -246,11 +247,21 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     expect(svg).not.toContain('url(#seal-hatch)');
   });
 
-  it('index.html passes all eight coordinate rows to initShareUI', () => {
+  it('index.html passes all NINE rows to initShareUI — 8 coordinate rows + the fit-family row', () => {
+    // This pin caught nothing when the fit-family row was added, because it
+    // asserted the OLD count and the row was silently dropped at the
+    // destructure: shareRowRefs() returned 9, index.html took 8, and the
+    // artifact was byte-identical to pre-change while doctrine claimed
+    // otherwise. Counting both sides is what makes it a guard.
     const m = html.match(/symbols:\s*\[([^\]]+)\]/);
     expect(m, 'initShareUI symbols array not found').not.toBeNull();
     const refs = m[1].split(',').map(s => s.trim()).filter(Boolean);
-    expect(refs).toHaveLength(8);
+    expect(refs).toHaveLength(9);
+    expect(refs).toContain('shareDomainFit');
+    // and the destructure must bind as many names as shareRowRefs returns
+    const destructure = html.match(/const \[([^\]]+)\] = shareRowRefs\(\);/);
+    expect(destructure, 'shareRowRefs destructure not found').not.toBeNull();
+    expect(destructure[1].split(',').map(x => x.trim()).filter(Boolean)).toHaveLength(9);
   });
 
   it('the builder renders per-cell from the row refs, not a hidden-filter', () => {
@@ -538,8 +549,11 @@ describe('share surface — fit families (§5.D v0.61)', () => {
     expect(initCall[0]).toContain("publicFamilies: $('public-families')");
     expect(initCall[0]).not.toContain('public-antifit');
     expect(initCall[0]).not.toContain('public-roleline');
-    expect(tiersSrc).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
-    expect(shareSrc).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
+    // codeOnly: the modules deliberately NAME the retired vocabulary in
+    // comments, to record why the omission exists (L17). The ban is about
+    // live code — see tests/helpers/source.js for why this is shared.
+    expect(codeOnly(tiersSrc)).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
+    expect(codeOnly(shareSrc)).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
   });
 
   it('nothing reads text THROUGH the block root — the guarantee this rests on', () => {
@@ -550,8 +564,8 @@ describe('share surface — fit families (§5.D v0.61)', () => {
     // `_publicRoot.textContent` alone would concatenate the lot. What
     // actually holds the line is that nothing reads through that root.
     // Pinned here because a one-line edit is all it would take.
-    expect(tiersSrc).not.toMatch(/_publicRoot\s*\.\s*(textContent|innerText|innerHTML)/);
-    expect(tiersSrc).not.toMatch(/_publicRoot\s*\.\s*(querySelector|children|firstChild|childNodes)/);
+    expect(codeOnly(tiersSrc)).not.toMatch(/_publicRoot\s*\.\s*(textContent|innerText|innerHTML)/);
+    expect(codeOnly(tiersSrc)).not.toMatch(/_publicRoot\s*\.\s*(querySelector|children|firstChild|childNodes)/);
     // the share row must read the dedicated node, not the root
     expect(tiersSrc).toMatch(/_publicFamilies\s*\?\s*String\(_publicFamilies\.textContent\)/);
   });
@@ -569,7 +583,7 @@ describe('share surface — fit families (§5.D v0.61)', () => {
   it('the artifact builder was not taught a new concept', () => {
     // The row rides the existing {title, cells:[{state,value}]} shape, so
     // every invariant already governing the artifact still governs it.
-    expect(shareSrc).not.toMatch(/DOMAIN FIT|publicRead|publicFamilies/);
+    expect(codeOnly(shareSrc)).not.toMatch(/DOMAIN FIT|publicRead|publicFamilies/);
   });
 
   it('renders the families as an open value, and hatches when sealed', () => {
@@ -607,18 +621,51 @@ describe('share surface — fit families (§5.D v0.61)', () => {
     expect(caption).not.toMatch(/\d{4}-\d{2}-\d{2}/);   // no DOB shape
   });
 
-  it('an anti-fit or role-line string cannot reach the artifact even if injected', () => {
-    // Defence in depth: if a future edit wrongly passed one through, it
-    // would still have to survive rowSections' own-data read. This asserts
-    // the omission at the level that matters — nothing in the pipeline
-    // knows those strings — rather than proving a filter exists.
-    const svg = buildCardSVGFromSnapshot({
+  it('nothing in publicFamiliesRow may traverse to a sibling, parent or descendant', () => {
+    // Guarantee (i) of the §5.D v0.61 clause. The earlier version of this
+    // pin only asserted that the correct read is PRESENT, which cannot
+    // exclude an additional one — and #public-antifit is the immediate
+    // nextElementSibling of #public-families, so one sibling read would put
+    // `anti-fit · health` on the public artifact while naming no forbidden
+    // identifier, never touching the block root, and leaving the initTiersUI
+    // call byte-identical. That defeats pins (ii) and (iii) together, so
+    // exclusivity has to be pinned here or nowhere.
+    const src = codeOnly(tiersSrc);
+    const body = src.slice(
+      src.indexOf('function publicFamiliesRow'),
+      src.indexOf('export function shareRowRefs'),
+    );
+    // Guard the guard: indices must come from the SAME string that is
+    // sliced. They did not in the first draft — comment-stripped source,
+    // raw-source offsets — and the scan silently ran over an empty body,
+    // which is a ban that bans nothing.
+    expect(body.length).toBeGreaterThan(50);
+    expect(body).toContain('_publicFamilies');
+    for (const walk of [
+      'nextElementSibling', 'previousElementSibling', 'nextSibling', 'previousSibling',
+      'parentNode', 'parentElement', 'closest', 'querySelector', 'children', 'childNodes',
+    ]) {
+      expect(body, `publicFamiliesRow traverses via ${walk}`).not.toContain(walk);
+    }
+  });
+
+  it('a sealed cell blanks ANY value, and an open one is passed straight through', () => {
+    // The previous version of this test fed a SEALED cell and concluded the
+    // pipeline "does not know" the anti-fit string — but ui/share.js blanks
+    // every non-open cell unconditionally, so it passed for any input and
+    // proved only sealed-blanking. Injecting an OPEN cell shows the real
+    // shape: nothing downstream filters by content, which is exactly why
+    // the exclusivity pin above has to hold upstream.
+    const sealed = buildCardSVGFromSnapshot({
       catalog: 'no. cxii',
-      sections: rowSections([
-        { title: 'DOMAIN FIT', cells: [{ state: 'sealed', value: 'anti-fit · health' }] },
-      ]),
+      sections: rowSections([{ title: 'DOMAIN FIT', cells: [{ state: 'sealed', value: 'anti-fit · health' }] }]),
     });
-    expect(svg).not.toContain('anti-fit');
-    expect(svg).not.toContain('health');
+    expect(sealed).not.toContain('anti-fit');
+
+    const open = buildCardSVGFromSnapshot({
+      catalog: 'no. cxii',
+      sections: rowSections([{ title: 'DOMAIN FIT', cells: [{ state: 'open', value: 'anti-fit · health' }] }]),
+    });
+    expect(open).toContain('anti-fit · health');
   });
 });
