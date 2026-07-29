@@ -1,4 +1,14 @@
-# CODEX PRE-MERGE AUDIT PACKET — PR #160 (`--no-renames` on both `CHANGED=` computations) — 2026-07-29
+# PRE-MERGE AUDIT PACKET — PR #160 (`--no-renames` on both `CHANGED=` computations) — 2026-07-29
+
+**Lane-neutral by construction.** This packet names no vendor. It was originally
+addressed to Codex; Codex is retired (`audits/L48_override_pr144_2026-07-29.md`,
+sighting #14), and hard-coding a vendor is what left the auditor role vacant in
+the first place — see the §10 amendment draft at
+`audits/doctrine_s10_auditor_lane_amendment_draft_2026-07-29.md`. Run it in any
+lane that meets the independence test: **not the lane that authored the change,
+and not the lane that authored the audit the change is based on.** That
+excludes Claude Code and any Claude context for this particular PR, since both
+the defect and the fix came from there.
 
 ## Who you are and what this is
 
@@ -132,8 +142,15 @@ matches filenames and never opens the file.
 ## Required output shape (so the verdict files cleanly)
 
 Return a single markdown document. It will be filed verbatim as
-`audits/codex_pr160_premerge_audit_<date>_response.md`, which is the artifact
-that satisfies this repo's L48 gate — so it must stand on its own.
+`audits/<lane>_pr160_premerge_audit_<date>_response.md` — substitute the lane
+that actually ran it (`gemini`, `chatgpt`, `grok`, …). That file is the artifact
+which satisfies this repo's L48 gate, so it must stand on its own.
+
+Two constraints on the name, both verified against the shipped predicate:
+`<lane>` must match `[a-z0-9_]+`, and the file must end `_response.md` — a
+`_brief.md` is deliberately rejected, which is why this packet cannot green
+anything by sitting in `audits/`. Name the lane honestly; the prefix is the
+only record of who actually read the change.
 
 1. **Overall verdict**, one of: `SAFE TO MERGE` / `MERGE WITH FIXES` /
    `DO NOT MERGE`.

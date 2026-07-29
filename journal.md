@@ -87,8 +87,12 @@ Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
 
 ### #165 — the commission
 
-`audits/codex_pr160_premerge_audit_2026-07-29_brief.md`, filed pre-merge so a
-verdict can land before the merge word. Its lead hook is the risk the override
+`audits/pr160_premerge_audit_2026-07-29_brief.md`, filed pre-merge so a
+verdict can land before the merge word. *(Shipped as
+`codex_pr160_premerge_audit_2026-07-29_brief.md`; renamed lane-neutral on
+sighting once the retirement above was confirmed, since hard-coding a vendor is
+the defect #166 names. Path corrected here rather than left dangling; the
+packet's content is unchanged but for its addressing.)* Its lead hook is the risk the override
 names as unexamined: `--no-renames` changes what **every** `CHANGED=` consumer
 sees, and only the permissive direction was tested — nobody has checked whether
 a legitimate rename-bearing PR is now wrongly blocked. Five fixtures named. It
