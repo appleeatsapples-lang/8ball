@@ -5,11 +5,19 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — STAGED
+## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. Touches `DOCTRINE.md`, so §10 asks for a
-cross-model audit; none has been run on this or on anything else in this chain. The L48 artifact is an explicit controller
-override, sighting #17.**
+**Status: SHIPPED — squash-merged to `main` as `6a6d327` ([#168](https://github.com/appleeatsapples-lang/8ball/pull/168)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS. Cleared by
+`audits/L48_override_pr168_2026-07-29.md` (L48 sighting #17) — **the fourth `DOCTRINE.md` change in this chain merged with
+no cross-model reader**, and the override says so in those words. The one honest mitigation, stated without inflating it:
+the objection this PR closes came from this lane's own adversarial process — written into the spec before the rung shipped,
+repeated in #153 and sighting #15, and independently re-derived by the post-merge cross-read as its most likely finding. A
+lane arguing with itself in public and losing is better than a lane not arguing; it is not a second reader. **What stays
+open and is not touched by this merge:** whether re-reading open coordinates is worth $9 at all (the deeper half of §6.1),
+the $9 price still contradicting §1.D's own column, and the month-branch-only strength model. The override's recommendation
+stands — if one thing gets a cross-model read, make it §1.D v0.58 and v0.59 as a **pair**, a rung and its own correction
+authored hours apart by one lane. Was: STAGED on `claude/8ball-public-engine-me9rhr`.**
 
 **This closes the objection this lane raised before the rung shipped.** §1.D v0.58 keyed the t4 mode of work by the **life
 path** — free-surface since §1.D v0.38 — so a $9 rung's only new content was a re-reading of a coordinate every visitor
