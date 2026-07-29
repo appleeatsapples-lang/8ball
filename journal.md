@@ -9,7 +9,9 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. Touches `DOCTRINE.md`, so §10 asks for a
 cross-model audit; none has been run on any link in this chain. L48 artifact is an explicit controller override,
-sighting #19.**
+sighting #20 — renumbered from #19 after another lane claimed that number concurrently, caught by the sighting-ledger
+uniqueness guard `tests/l48_gate.test.js` gained today. Second such collision in this chain; first one a test caught
+rather than a human.**
 
 **The rung shipped this morning and is withdrawn this afternoon, on controller ruling, after this lane was asked directly
 whether $9 was worth it and answered no.** §1.D v0.58 added `t4` at $9; v0.59 corrected its driver; **v0.60 retires it.**
@@ -52,7 +54,7 @@ byte-untouched and is again the only purchase surface; `gumroad.com` appears exa
 the narrow sense that it is no longer sold separately. The §5.D share pass — the thing that would actually make a public
 tier public — has still never been done, and is now the named prerequisite if the exposure rung is ever built for real.
 
-**Verification.** Suite **45 files / 1585 tests** green (was 1583; +2 net — the retirement/migration block replaces the
+**Verification.** Suite **45 files / 1587 tests** green after rebasing onto a `main` that gained the sighting-ledger guard (was 1583 pre-rebase; +2 net — the retirement/migration block replaces the
 fourth-rung block). `index.html` **1493 of 1500**. Four existing pins were updated deliberately: the ladder and `isTier`
 pins in `tests/tiers.test.js`, the t3 composition, and the `newlyEntitledCells` t1 → t3 delta, which now carries both
 ceiling blocks. **Not verified:** the local PII audit (gitignored pattern file absent); no browser pass this cycle — the
