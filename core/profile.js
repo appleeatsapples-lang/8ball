@@ -1,7 +1,8 @@
 // 8ball / core / profile.js
 // Pure functions. No DOM, no globals, no I/O.
 // Breaking algorithm changes (modifying existing outputs) MUST update
-// tests/fixtures.json in lockstep. Additive changes (new exports, new
+// tests/fixtures.json in lockstep. (A label-only fixture edit is not a
+// fixture change and needs no edit here — DOCTRINE.md §3 v0.61.) Additive changes (new exports, new
 // buildProfile fields) require direct unit tests; existing fixtures
 // stay byte-identical. v0.2.2 additively extends the numerology surface
 // with personality, birthday, and maturity fields. v0.2.7.1 (calc v2)

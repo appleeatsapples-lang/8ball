@@ -22,7 +22,7 @@ npm test         # vitest — file count: CLAUDE.md (canonical); case count: new
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
-1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over both `content/meanings.v1.js` and the additive `content/meanings.v2.js` context layer.
+1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)) — except label-only edits, which §3 v0.61 carves out. These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over both `content/meanings.v1.js` and the additive `content/meanings.v2.js` context layer.
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and §5.B user-initiated feedback POST / Gumroad Buy Link redirect); no third-party fonts or scripts; system fonts only. Saved Readings adds one doctrine-allow-listed local key; `tests/readings.test.js` locks its minimal schema and lifecycle. Concordance adds no key or schema field; `tests/concordance.test.js` locks its transient recomputation boundary and finite relation inventory.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
@@ -64,7 +64,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   └── concordance.v2.js    active registry for strict 1–9 numerology (§1.I v0.54)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
-│   ├── fixtures.json        calculation contract — locked, hand-verified
+│   ├── fixtures.json        calculation contract — locked, hand-verified (labels: §3 v0.61)
 │   ├── profile / rising / cities / countries / birthcard / pillars  core calc + engine pipeline
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F)

@@ -97,7 +97,10 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
   DOCTRINE §4, new release = new file (e.g. `cards.v2.full.js`), not in-place
   edit. Exception: documented safety-patch carve-outs (DOCTRINE §4 safety-patch
   carve-out).
-- Don't edit `tests/fixtures.json` without updating `core/profile.js` in lockstep per §3
+- Don't edit `tests/fixtures.json` without updating `core/profile.js` in lockstep per §3 —
+  except a **label-only** edit (`label` values and the scalar string values of `_`-prefixed
+  documentation keys), carved out by §3 v0.61. That carve-out is by field, not by intent:
+  any input field or anything under `expected` is still a fixture change.
 - Don't add runtime dependencies, `fetch()` calls, analytics, or new
   `localStorage` keys (§5, §12)
 - Don't widen the PII scanner allow-list (`tests/pii_scan.test.js`) without

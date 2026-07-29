@@ -68,9 +68,68 @@ clause is rewritten. Whether that expiry list is complete is hook 2 in the
 brief — a snapshot test over the parsed object, or a uniqueness assertion over
 labels, would not obviously be caught by the current wording.
 
+**Independent read: MERGE WITH FIXES.** Five adversarial lenses (bypass · claim-vs-code ·
+lapse · coherence · counterfactual), isolated worktrees, models varied across
+opus/sonnet, each executing checks rather than reasoning about them — then a
+refutation pass told to kill every finding. **35 findings raised, 10 refuted, 9
+killed, 1 confirmed, 25 unverified-not-cleared** (over the refutation cap and
+recorded as such rather than dropped). Verdict at
+`audits/claude_pr176_premerge_audit_2026-07-29_response.md`.
+
+**It is NOT a §10 cross-model audit and does not claim to be.** Every lane was
+Claude — independence of reasoning, not of lineage. Per #159's own second section
+that is disqualifying for the cross-model requirement, so the clause's footer
+remains unsatisfied and a genuine second-vendor read is still owed. The "Codex is
+retired" premise in sighting #14 having been found false, one is likely reachable.
+
+**What survived.** One finding, downgraded P1 → P3: the lapse trigger was a closed
+three-item enumeration, and a consumer whose *test identity* depends on a label (a
+snapshot key, a reporter's `name` attribute) is a fourth trigger none of the three
+named. Executed proof: a label-only edit under `toMatchSnapshot()` reds under
+`CI=true`, and the only green path rewrites the snapshot key. Absorbed by restating
+the lapse rule **by principle instead of enumeration** — "any future consumer's
+behavior, including test identity" — which also closes the non-`===` selector and
+runtime-consumer gaps the enumeration missed.
+
+**What was killed, and why that matters.** Nine P1s died on executed
+counter-evidence, several by control experiment: the PII-scanner gaps a lens found
+in labels reproduce identically when planted in `tests/rising.test.js`, so they are
+repo-wide properties this clause neither creates nor worsens; the `-t` silent-green
+degradation reproduces on any hardcoded `it()` name in any of the 45 files; the
+"frequency" case against the clause used a wrong denominator (1-of-5
+fixture-touching commits, not 1-of-114) and inverted the provenance — F7's
+recommendation to write this carve-out came from the *independent reviewer*, and
+the implementer explicitly refused to write it as the controller's call.
+
+**Six defects in this PR's own text, all absorbed.** Two were rebase artifacts of
+this lane's own making and the worse of the two is worth naming: the conflict
+resolution left a **body-less duplicate heading** that resurrected a `STAGED`
+status for an entry `main` records once as `SHIPPED` — a false status line written
+into an append-only record. Also: a stale `1583` suite count contradicted by this
+same commit's message; a dangling "third bullet above" cross-reference; and four
+tracked locations (`CLAUDE.md`, `README.md` ×2, `core/profile.js`) that still
+stated the amended rule absolutely — `CLAUDE.md` being the file an agent reads
+first, and which claims override authority.
+
+**Two clause corrections taken beyond the blocking set,** both accuracy fixes to
+this lane's own overstatement: clause (b) now covers only the **scalar string
+values** of `_`-keys and explicitly never their deletion (the audit executed the
+gutting of `_pii_rule` — the file's own §11 statement — to a green suite, and as
+drafted the clause blessed it); and the §11 bullet no longer says "labels are not
+a free-text channel" flatly, since the public scanner is line-local. It now names
+what each layer actually catches and adds §4 and §9 to the not-relaxed list, since
+naming only §11 invited an *expressio unius* reading.
+
+**Side effect worth noting.** Adding the `core/profile.js` pointer takes this PR
+out of the docs-only class, so `l48-gate` now runs its shape check instead of
+exempting — the exemption the audit confirmed live from the Actions log. The PR
+that relaxes a gate no longer rides the bypass that gate has.
+
 **Scope.** `DOCTRINE.md` (§3 amendment + version block + version list), this
-file, and the audit brief. No code, test, fixture value, or calc behavior
-changes. Suite unaffected: 45 files / 1583 tests green. `CLAUDE.md` is
+file, the audit brief, the verdict artifact, and four one-line pointers in
+`CLAUDE.md` / `README.md` / `core/profile.js` (comment-only; zero non-comment
+lines). No test, fixture value, or calc behavior changes. Suite unaffected:
+45 files / 1587 tests green. `CLAUDE.md` is
 deliberately **not** edited — whether its absolute don't-do entry now needs a
 pointer to the exception is hook 4 in the brief, and CLAUDE.md sits outside the
 PII scanner's `DOCTRINE_ALLOW`, which constrains what may be written into it.
@@ -80,8 +139,6 @@ have carried a one-line doctrine note instead — a sentence per occurrence,
 keeping the gate absolute. The brief asks the auditor to argue that side, because
 the lane proposing a gate relaxation is not the one that should decide it is
 worth its own risk.
-
-## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
 
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
