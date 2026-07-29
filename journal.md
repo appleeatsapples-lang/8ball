@@ -318,7 +318,13 @@ intended pin and no other. The fix then validated itself in CI on its own PR:
 red without the artifact (reaching the artifact-shape error, not the exemption)
 and green with it, via the artifact branch both times.
 
-Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
+Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #19**.
+*(Filed as #17; renumbered on sighting after it collided with
+`L48_override_pr168_2026-07-29.md`, which took #17 twenty seconds later and
+reached `main` first-noticed. This record moved rather than pr168's because
+pr168's number is cited in `DOCTRINE.md`'s v0.59 footer, and editing the
+constitution to fix a bookkeeping collision would itself require an audit lane
+that does not exist. `tests/l48_gate.test.js` now pins uniqueness.)*
 
 ### #165 — the commission
 
