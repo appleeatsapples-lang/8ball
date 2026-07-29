@@ -11,6 +11,7 @@ import {
   SIGNS,
 } from '../content/concordance.v2.js';
 import * as CONCORDANCE_REGISTRY from '../content/concordance.v2.js';
+import { TIER_ORDER } from '../core/payments.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
 import {
   BANNED_PATTERNS,
@@ -118,6 +119,22 @@ describe('concordance product and privacy contract', () => {
     expect(free.omitted).toEqual(['element']);
     expect(buildConcordance(left, right, { tier: 't1' }).axes.map(item => item.key))
       .toEqual(['sun', 'animal', 'element', 'lifePath', 'birthCard']);
+  });
+
+  it('includes the element axis at EVERY paid rung, ladder-agnostically', () => {
+    // Regression: the entitlement check was the literal ['t1','t2','t3'], so
+    // when §1.D v0.58 appended t4 the top rung fell through to 'free' — the
+    // element axis was dropped and the compare screen told a t4 owner it was
+    // "sealed at this device tier", which is false on their own open sheet.
+    // Driven off TIER_ORDER so a fifth rung cannot reintroduce it.
+    const left = profile();
+    const right = profile({ chineseElement: 'fire' });
+    for (const tier of TIER_ORDER) {
+      const result = buildConcordance(left, right, { tier });
+      expect(result.axes.map(item => item.key), tier)
+        .toEqual(['sun', 'animal', 'element', 'lifePath', 'birthCard']);
+      expect(result.omitted, tier).toEqual([]);
+    }
   });
 
   it('returns only disclosed statuses, source metadata, and transient retention', () => {

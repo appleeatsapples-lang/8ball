@@ -1,5 +1,9 @@
 # PUBLIC_TIER_SPEC.md — public-tier computation
 
+> **Superseded in part, 2026-07-29 (§1.D v0.58).** The rung shipped: this is
+> no longer engine-only. §7 describes the wired surface; the header line
+> below and §0 are preserved per L17 and are lineage, not current state.
+>
 > Spec for `core/public.js` + `content/public.v1.js`. Engine and tables only.
 > No surface, no price, no entitlement. Not doctrine: this file describes what
 > was built and names what a controller has to decide before any of it is
@@ -14,6 +18,10 @@ The tier brief describes a ladder restructured to **exposure radius** rather
 than coordinate density — private (you alone) · comparative (you and one) ·
 public (you and the world, work as its legible instance) — and puts this
 engine at the public rung.
+
+**Superseded, see the header.** The paragraph below described the state
+before §1.D v0.58; the ladder now *does* record a rung — `t4` at $9 — while
+still not adopting the radius framing the brief describes. Preserved per L17.
 
 **That restructure is not recorded in any tracked file in this repository.**
 `DOCTRINE.md` §1.D still describes a three-rung *density* ladder repriced to
@@ -340,6 +348,18 @@ including the three digit sums (11, 22, 33) that no longer stop early.
 
 ## §9. Rollback
 
-Delete `core/public.js`, `content/public.v1.js`, `tests/public.test.js`,
+**Rewritten 2026-07-29 — the pre-wiring instruction below was preserved but
+would now leave a broken import.** As of §1.D v0.58 the engine has a consumer.
+Rolling the tier back means reverting **two** merges — `2f3bdc9` (#153, the
+rung) and `b5cc119` (#144, the engine) — or, to drop only the surface and keep
+the engine: revert #153, which restores `TIER_ORDER` to three rungs, removes
+`ui/public.js`, the block markup, the t4 CTA and the §1.D v0.58 clause
+together. No stored tier needs migration in either direction, because
+`T4_PRODUCT_URL` has never been non-empty — no device can hold `t4`.
+
+Superseded instruction, preserved per L17: *"Delete `core/public.js`,
+`content/public.v1.js`, `tests/public.test.js`,
 `tests/public_tier.fixture.json`, and this file; restore the two counts in
-`CLAUDE.md`. Nothing else in the repository references any of them.
+`CLAUDE.md`. Nothing else in the repository references any of them."* The
+final sentence became false at #153: `ui/public.js` imports the engine, and
+following that instruction as written would leave a dangling import.

@@ -209,3 +209,122 @@ describe('t4 public read — the offer fails closed', () => {
     expect(html).toMatch(/id="paywall-cta-t3"[^>]*href="https:\/\/theeightball\.gumroad\.com\/l\/xjpvp"/);
   });
 });
+
+// ── the guard the suite did not have ──────────────────────────────
+//
+// A post-merge cross-read of #153 found the "fail-closed" t4 CTA VISIBLE in
+// production: the anchor ships `hidden`, but `[hidden] { display: none }` is
+// a UA-origin rule and `.modal .modal-cta { display: block }` is an author
+// rule, which wins regardless of specificity. `applyT4Offer` re-asserted
+// `.hidden` and stripped `href` — neither touches `display`.
+//
+// §12 forbids jsdom, so no test in this suite can evaluate a cascade. What a
+// test CAN do is pin the invariant structurally: any class that both ships
+// (or is toggled) hidden AND carries an author `display:` rule must have a
+// matching `[hidden]` guard. That covers the whole bug class rather than the
+// one instance — including `#offer-btn`, which had the same defect before
+// this rung existed.
+describe('hidden-attribute guards (the F1 bug class)', () => {
+  const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+
+  // Classes on elements that ship with a bare `hidden` attribute, plus those
+  // on elements whose id is assigned `.hidden = ...` anywhere in the script.
+  function hiddenElements() {
+    const out = [];
+    const tags = html.match(/<[a-z]+\s[^>]*>/g) || [];
+    const toggledIds = new Set(
+      [...html.matchAll(/\b([A-Za-z_$][\w$]*)\.hidden\s*=/g)].map(m => m[1])
+    );
+    for (const tag of tags) {
+      const cls = (tag.match(/class="([^"]+)"/) || [])[1];
+      if (!cls) continue;
+      const id = (tag.match(/id="([^"]+)"/) || [])[1] || '';
+      const camel = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      const shipsHidden = /\shidden(\s|>|=)/.test(tag);
+      if (shipsHidden || toggledIds.has(camel)) out.push({ id, classes: cls.split(/\s+/) });
+    }
+    return out;
+  }
+
+  it('finds the elements it is supposed to be checking', () => {
+    const ids = hiddenElements().map(e => e.id);
+    expect(ids).toContain('paywall-cta-t4'); // the t4 CTA
+    expect(ids).toContain('offer-btn');      // the sprint offer control
+  });
+
+  it('every element that ships or toggles hidden is actually hidden by a guard', () => {
+    // Per ELEMENT, not per class: an element is safe when ANY class it
+    // carries has a [hidden] guard, since one display:none settles it.
+    const guardedClass = cls => new RegExp(`\\.${cls}\\[hidden\\]`).test(css);
+    const hasDisplayRule = cls =>
+      new RegExp(`\\.${cls}\\b[^{}]*\\{[^}]*display\\s*:`).test(css);
+    const unguarded = [];
+    for (const { id, classes } of hiddenElements()) {
+      if (!classes.some(hasDisplayRule)) continue;   // UA [hidden] still wins
+      if (classes.some(guardedClass)) continue;      // an author guard wins back
+      unguarded.push(`${id || '(no id)'} [${classes.join(' ')}]`);
+    }
+    expect(
+      unguarded,
+      `these elements ship/toggle hidden but an author display rule overrides ` +
+      `the UA [hidden] rule, so the attribute does nothing: ${unguarded.join(', ')}`
+    ).toEqual([]);
+  });
+
+  it('the guards resolve to display: none, not merely to a selector', () => {
+    for (const sel of ['.modal .modal-cta[hidden]', '.btn-block[hidden]']) {
+      const at = css.indexOf(sel);
+      expect(at, `${sel} missing`).toBeGreaterThan(-1);
+      expect(css.slice(at, at + 200)).toMatch(/display:\s*none/);
+    }
+  });
+});
+
+describe('t4 wiring seams the first pass left unpinned', () => {
+  it('the render decision consults the ladder table, not a tier literal', () => {
+    // TIER_COORDS.t4 previously had zero effect on what shipped: the render
+    // asked `tier === 't4'` directly, so the table this change added was
+    // pinned by tests while being ignored by the product.
+    expect(html).toMatch(/coordsForTier\(tier\)\.has\('publicRead'\)/);
+    expect(html).not.toMatch(/entitled: tier === 't4'/);
+  });
+
+  it('the written-entry rotation follows entitlement, so t4 keeps what t3 bought', () => {
+    expect(html).not.toMatch(/tier === 't3'/);
+    expect((html.match(/coordsForTier\(tier\)\.has\('cardEntry'\)/g) || []).length).toBe(4);
+  });
+
+  it('the boot wiring names ids that exist — a typo would ship an empty $9 block', () => {
+    const call = html.match(/initPublicUI\(\{[\s\S]*?\}\)/);
+    expect(call).not.toBeNull();
+    const ids = [...call[0].matchAll(/\$\('([^']+)'\)/g)].map(m => m[1]);
+    expect(ids).toEqual(['public-read', 'public-families', 'public-antifit', 'public-roleline']);
+    for (const id of ids) expect(html, `#${id} missing from markup`).toContain(`id="${id}"`);
+  });
+
+  it('the unseal beat can actually reach the block', () => {
+    // newlyEntitledCells reported 'publicRead' while the consumer had no way
+    // to resolve its root — the beat was dead code and its test a tautology.
+    expect(html).toMatch(/publicRead: \$\('public-read'\)/);
+    const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+    expect(css).toMatch(/\.public-read\.unsealing \.card-habit/);
+  });
+
+  it('the block label follows the labels-reveal convention like every other label', () => {
+    const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+    expect(css).toMatch(/\.public-title \{[^}]*visibility: hidden/);
+    expect(css).toMatch(/\.card\.labels-revealed \.public-title \{[^}]*visibility: visible/);
+  });
+
+  it('the density strip does not claim a full sheet over a sealed block', () => {
+    expect(html).toMatch(/domain fit sealed/);
+  });
+
+  it('the internal spec is not published on the product domain', () => {
+    const toml = readFileSync(join(__dirname, '..', 'netlify.toml'), 'utf-8');
+    const cmd = (toml.match(/command = "([^"]+)"/) || [])[1] || '';
+    for (const doc of ['PUBLIC_TIER_SPEC.md', 'DOCTRINE.md', 'journal.md', 'audits']) {
+      expect(cmd, `${doc} would be served publicly`).toContain(doc);
+    }
+  });
+});

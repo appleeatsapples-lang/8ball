@@ -90,6 +90,12 @@ export function renderPublicRead(profile, { entitled } = {}) {
   const { root, families, antiFit, roleLine } = _refs;
   const read = entitled ? publicReadFor(profile) : null;
   root.classList.toggle('sealed', !read);
+  // The seal is a visual treatment and its node is aria-hidden, so without
+  // this a screen-reader user hears the label and then silence — no signal
+  // that anything is withheld rather than broken.
+  if (root.setAttribute) {
+    root.setAttribute('aria-label', read ? 'domain fit' : 'domain fit · sealed at this device tier');
+  }
   if (families) families.textContent = read ? read.families : '';
   if (antiFit) antiFit.textContent = read ? read.antiFit : '';
   if (roleLine) roleLine.textContent = read ? read.roleLine : '';
