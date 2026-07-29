@@ -105,7 +105,12 @@ export function setTier(tier) {
 export function getRenderTier() {
   const stored = getTier();
   const resolved = resolveRenderTier({ tier: stored, credits: getCredits() });
-  if (!stored && isTier(resolved)) setTier(resolved);
+  // Persist whenever the resolved tier differs from what is stored. That
+  // covers both migrations: the R2 legacy-credit grandfather (no stored
+  // tier) and a retired rung (§1.D v0.60 — a stored 't4' is rewritten to
+  // 't3' on first detection, so the withdrawal is a one-time normalization
+  // rather than a lookup every device repeats forever).
+  if (isTier(resolved) && resolved !== stored) setTier(resolved);
   return resolved;
 }
 export function getFacetIndex() {
@@ -157,32 +162,6 @@ export function setPendingProfile(payload) {
 }
 export function clearPendingProfile() {
   try { localStorage.removeItem(PENDING_KEY); } catch (_) {}
-}
-
-// ── t4 public-rung offer (§1.D v0.58) ─────────────────────────────
-//
-// EMPTY ON PURPOSE. The Gumroad product for the public rung does not exist
-// yet, and creating it is the operator's action, not an agent's. The CTA
-// therefore fails CLOSED: while this constant is empty the anchor stays
-// hidden and carries no href, so no visitor can ever reach a dead checkout.
-// Filling this in is the whole of what makes the rung buyable — the ladder,
-// the ?paid=t4 return, the entitlement and the render are already live.
-export const T4_PRODUCT_URL = '';
-
-/**
- * Wire the t4 CTA if — and only if — a product URL exists.
- * @returns {boolean} whether the offer is live.
- */
-export function applyT4Offer(anchor) {
-  if (!anchor) return false;
-  if (!T4_PRODUCT_URL) {
-    anchor.hidden = true;
-    anchor.removeAttribute('href');
-    return false;
-  }
-  anchor.href = T4_PRODUCT_URL;
-  anchor.hidden = false;
-  return true;
 }
 
 // ── paywall modal + banner ────────────────────────────────────────

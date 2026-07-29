@@ -5,6 +5,68 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. Touches `DOCTRINE.md`, so §10 asks for a
+cross-model audit; none has been run on any link in this chain. L48 artifact is an explicit controller override,
+sighting #19.**
+
+**The rung shipped this morning and is withdrawn this afternoon, on controller ruling, after this lane was asked directly
+whether $9 was worth it and answered no.** §1.D v0.58 added `t4` at $9; v0.59 corrected its driver; **v0.60 retires it.**
+`TIER_ORDER` is `['t1','t2','t3']` again, `?paid=t4` is no longer a tier, and the public read becomes a **t3 ceiling
+block** beside the written card entry — still a BLOCK, so the §1.F census is unmoved at 15 of 15.
+
+**The three grounds, recorded because this document defended the rung two clauses ago.**
+
+- **It was named for an exposure radius it never delivered.** The commissioning brief called the tier *"you + the world;
+  work is its legible instance"*. The block renders privately, is absent from the §5.D share surface, and cannot be shown
+  to anyone. What shipped was a **depth** increment priced as a **radius** increment — `ui/share.js` contains zero
+  references to it, which is the whole argument in one grep.
+- **The price ordering could not be defended.** t3 sells fifteen coordinates plus the written 144-card entry for $3. t4
+  sold five derived strings for $9 and computed **no new coordinate** — it is a lookup over values the t3 buyer already
+  sees on the same sheet.
+- **There are no sales to build on.** The revenue-reset diagnosis on record (this file, the 2026-07-26 entry) is that the
+  payment path *"works and has zero outside orders"*. A fourth rung above a price that has never converted optimizes the
+  end that is not binding; the same entry names reach as the verified bottleneck.
+
+**Nobody is downgraded, and that took explicit work rather than luck.** The rung was never buyable — its product URL never
+held a value — but the unsigned `?paid=t4` return was live (§5.C), so devices **can** hold a stored `'t4'`. The naive
+retirement drops those devices to **free**, because `isTier('t4')` becomes false and resolution falls through to the
+credits check. **The sharp case is worse than that sounds:** the stored tier is the only record of a purchase, so a
+genuine **t3 buyer who opened the t4 URL once** would have their paid rung cashed in by the withdrawal — and this lane
+told the controller to open exactly that URL a few messages earlier. `RETIRED_TIERS = { t4: 't3' }` maps the withdrawn
+rung onto the one that absorbed it, `getRenderTier` persists the rewrite on first detection (the R2 grandfather's shape),
+and `tests/public_surface.test.js` pins the stranded state as a **literal** — it cannot be produced by today's code, since
+`applyPaidReturn` now normalizes the stored side, but it is exactly what sits in a real device's localStorage.
+
+**A contradiction leaves with the rung.** §1.D v0.58 put a $9 rung into a clause whose Price column reads **$1 / $2 / $3** —
+a contradiction v0.58 named in its own text and did not resolve. The column is correct again, and the exposure-radius
+ladder remains adopted by no clause of this constitution.
+
+**What survives.** The engine (`core/public.js`), its tables (`content/public.v1.js` + `v2.js`), the render module
+(`ui/public.js`), the sealed block and its §1.D v0.37 treatment, the birthday keying from v0.59, and every test that
+covers them. Only the rung, its price and its never-opened offer are withdrawn. The §4.B v0.56 single-$3 sprint is
+byte-untouched and is again the only purchase surface; `gumroad.com` appears exactly once in `index.html`, pinned.
+
+**What this does NOT resolve.** Whether a re-reading of open coordinates is worth selling **at all** is answered only in
+the narrow sense that it is no longer sold separately. The §5.D share pass — the thing that would actually make a public
+tier public — has still never been done, and is now the named prerequisite if the exposure rung is ever built for real.
+
+**Verification.** Suite **45 files / 1585 tests** green (was 1583; +2 net — the retirement/migration block replaces the
+fourth-rung block). `index.html` **1493 of 1500**. Four existing pins were updated deliberately: the ladder and `isTier`
+pins in `tests/tiers.test.js`, the t3 composition, and the `newlyEntitledCells` t1 → t3 delta, which now carries both
+ceiling blocks. **Not verified:** the local PII audit (gitignored pattern file absent); no browser pass this cycle — the
+block's markup and CSS are byte-unchanged, only its entitlement moved.
+
+**Scope (files):** `core/payments.js`, `ui/payments.js`, `ui/tiers.js`, `index.html`, `DOCTRINE.md` (§1.D v0.60, footer →
+v0.60), `PUBLIC_TIER_SPEC.md` (header + §7 rewritten, both prior texts superseded per L17), `CLAUDE.md`,
+`tests/{tiers,public_surface}.test.js`, this file, the L48 artifact. **UNTOUCHED:** `core/public.js`, `content/`,
+`ui/public.js`, `tests/public.test.js`, `tests/public_tier.fixture.json`, `tests/fixtures.json`, every scanner list.
+
+**Rollback.** Revert this PR and the rung returns with its $9 price and its unopened offer. Note that the migration is
+NOT symmetrical: devices already normalized from `t4` to `t3` stay at `t3`, which is correct — they never bought a fourth
+rung.
+
 ## 2026-07-29 — Second, independent live-fire pass — 10/10, and one of them was mine passing vacuously — SHIPPED
 
 **Status: SHIPPED — the pass is complete and its findings are below; this entry is the record of it. Run by the implementer lane against **local** `main` at `61d2077` in Chromium 141, served from `python3 -m http.server 5173`, driver in `/tmp/lf` with `package.json` byte-untouched (0 playwright references) per the §7 stage-4 devDependency cap. It does **not** re-verify the deployed page: egress policy blocks the product domain from here, and that limit is real — it is the one this lane spent a day mistaking for "no browser at all".**

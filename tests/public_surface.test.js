@@ -1,16 +1,18 @@
 // 8ball / tests / public_surface.test.js
 //
-// The t4 public rung (§1.D v0.58) — the wiring, not the engine. Engine
-// behaviour is pinned in tests/public.test.js; this file covers the four
-// seams the wiring introduced:
+// The public read (§1.D v0.60) — the wiring, not the engine. Engine
+// behaviour is pinned in tests/public.test.js; this file covers the seams
+// the wiring introduced:
 //
-//   1. ui/public.js render — sealed below t4, filled at t4, DOM-pure either
+//   1. ui/public.js render — sealed below t3, filled at t3, DOM-pure either
 //      way (§1.D v0.37: an unentitled render carries no entitled string).
-//   2. The ladder append — t4 ranks above t3, every existing rung keeps its
-//      rank and its meaning, and the R2 legacy grandfather does NOT follow
-//      the top of the ladder.
-//   3. The census — t4 adds a BLOCK, so open/sealed/total must NOT move.
-//   4. The offer — fail-closed while the Gumroad product does not exist.
+//   2. The RETIREMENT of t4 — the block briefly had its own $9 rung
+//      (§1.D v0.58) and was folded into t3 instead of sold. A device that
+//      stored 't4' from the unsigned ?paid= return must be MIGRATED, never
+//      downgraded: the stored tier is the only record of a purchase, so a
+//      real t3 buyer who tried the t4 URL once must not lose the rung they
+//      paid for. This is the highest-stakes thing in this file.
+//   3. The census — the read is a BLOCK, so open/sealed/total must NOT move.
 //
 // Node env, hand-rolled DOM per §12 (no jsdom), sharing makeClassList with
 // the other surface suites.
@@ -28,9 +30,9 @@ import {
   initPublicUI,
   renderPublicRead,
 } from '../ui/public.js';
-import { T4_PRODUCT_URL, applyT4Offer } from '../ui/payments.js';
 import {
   TIER_ORDER, isTier, tierRank, maxTier, resolveRenderTier, applyPaidReturn,
+  RETIRED_TIERS, normalizeTier,
 } from '../core/payments.js';
 import { TIER_COORDS, coordsForTier, tierDensitySummary, newlyEntitledCells } from '../ui/tiers.js';
 import { buildPublicReading } from '../core/public.js';
@@ -49,8 +51,8 @@ const makeRefs = () => ({
 
 const PROFILE = buildProfile('specimen', '2000-01-01');
 
-describe('t4 public read — render', () => {
-  it('fills the block at t4', () => {
+describe('public read — render', () => {
+  it('fills the block when entitled (t3)', () => {
     const refs = makeRefs();
     initPublicUI(refs);
     const read = renderPublicRead(PROFILE, { entitled: true });
@@ -63,7 +65,7 @@ describe('t4 public read — render', () => {
     expect(refs.root.classList.contains('sealed')).toBe(false);
   });
 
-  it('seals below t4 and leaves NO entitled string in the DOM', () => {
+  it('seals below t3 and leaves NO entitled string in the DOM', () => {
     for (const entitled of [false, undefined]) {
       const refs = makeRefs();
       initPublicUI(refs);
@@ -120,94 +122,100 @@ describe('t4 public read — render', () => {
   });
 });
 
-describe('t4 public read — ladder append (§1.D v0.58)', () => {
-  it('ranks above t3 without moving any existing rung', () => {
-    expect(tierRank('t4')).toBe(4);
-    expect([tierRank('t1'), tierRank('t2'), tierRank('t3')]).toEqual([1, 2, 3]);
-    expect(tierRank('free')).toBe(0);
-    expect(isTier('t4')).toBe(true);
-    expect(TIER_ORDER.indexOf('t4')).toBe(TIER_ORDER.length - 1);
+describe('public read — the t4 retirement must not downgrade anyone', () => {
+  it('the ladder is three rungs again and t4 is not current', () => {
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
+    expect(isTier('t4')).toBe(false);
+    expect(tierRank('t4')).toBe(0);
+    expect(RETIRED_TIERS).toEqual({ t4: 't3' });
   });
 
-  it('upgrades monotonically and never downgrades a t4 owner', () => {
-    expect(maxTier('t3', 't4')).toBe('t4');
-    expect(maxTier('t4', 't1')).toBe('t4');
-    expect(maxTier('t4', 't3')).toBe('t4');
-    expect(maxTier(null, 't4')).toBe('t4');
+  it('a device holding the retired rung renders t3, NOT free', () => {
+    // The regression this pins: with t4 gone from TIER_ORDER, a naive
+    // implementation falls through to the credits check and lands on 'free'.
+    // Anyone who opened the unsigned ?paid=t4 URL — which was live while the
+    // rung existed — would silently lose everything.
+    expect(resolveRenderTier({ tier: 't4', credits: 0 })).toBe('t3');
+    expect(normalizeTier('t4')).toBe('t3');
+  });
+
+  it('a t3 BUYER who tried the t4 URL keeps the rung they paid for', () => {
+    // The stored tier is the ONLY record of a purchase, which is what makes
+    // this a correctness requirement rather than a courtesy: buy t3, tap the
+    // unsigned ?paid=t4 URL once, and localStorage now reads 't4' with the
+    // t3 purchase no longer recorded anywhere. Retiring the rung must not
+    // cash that in.
+    //
+    // The stored value is written as a LITERAL on purpose. It cannot be
+    // produced by today's code — applyPaidReturn now normalizes the stored
+    // side, so it returns 't3' — but it is exactly what sits in the
+    // localStorage of any device that used that URL while the rung was live.
+    const storedWhileT4Existed = 't4';
+    expect(resolveRenderTier({ tier: storedWhileT4Existed, credits: 0 })).toBe('t3');
+    // And today's code cannot re-create the stranded state.
+    expect(applyPaidReturn({ pendingProfile: null, tier: 't3', purchasedTier: 't4' }).tier)
+      .toBe('t3');
+  });
+
+  it('buying a LOWER rung while holding the retired one does not downgrade', () => {
     for (const lower of ['t1', 't2', 't3']) {
       expect(applyPaidReturn({ pendingProfile: null, tier: 't4', purchasedTier: lower }).tier)
-        .toBe('t4');
+        .toBe('t3');
     }
+    expect(maxTier(normalizeTier('t4'), 't1')).toBe('t3');
   });
 
-  it('honours a ?paid=t4 return with and without a pending profile', () => {
-    const pending = { name: 'specimen', dob: '2000-01-01' };
-    expect(applyPaidReturn({ pendingProfile: pending, tier: 't3', purchasedTier: 't4' }))
-      .toEqual({ action: 'render-unlocked', profile: pending, tier: 't4' });
-    // Replay-attack branch (§5.C): unsigned redirect, no pending profile.
-    expect(applyPaidReturn({ pendingProfile: null, tier: null, purchasedTier: 't4' }))
-      .toEqual({ action: 'no-pending', tier: 't4' });
+  it('a live ?paid=t4 link is now inert rather than harmful', () => {
+    // Unknown ?paid= values take the replay-safe branch: no tier write, no
+    // grant. A t4 URL in the wild does nothing instead of granting a rung
+    // that no longer exists.
+    expect(isTier('t4')).toBe(false);
   });
 
-  it('does NOT widen the R2 legacy grandfather to the new top rung', () => {
-    // Legacy credit-holders bought the written entry. They keep t3; a rung
-    // that did not exist when they paid is not retroactively theirs. This is
-    // the one place the ladder is deliberately not generalised.
+  it('still does NOT widen the R2 legacy grandfather', () => {
     expect(resolveRenderTier({ tier: null, credits: 3 })).toBe('t3');
     expect(resolveRenderTier({ tier: null, credits: 99 })).toBe('t3');
-    expect(resolveRenderTier({ tier: 't4', credits: 0 })).toBe('t4');
     expect(resolveRenderTier({ tier: null, credits: 0 })).toBe('free');
+  });
+
+  it('the UI persists the migration instead of re-resolving it forever', () => {
+    const src = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf-8');
+    expect(src).toMatch(/if \(isTier\(resolved\) && resolved !== stored\) setTier\(resolved\)/);
   });
 });
 
-describe('t4 public read — density census unchanged', () => {
-  it('adds a block, not a compartment: the census is identical to t3', () => {
-    expect(tierDensitySummary('t4')).toEqual(tierDensitySummary('t3'));
-    expect(tierDensitySummary('t4')).toEqual({ open: 15, sealed: 0, total: 15 });
+describe('public read — density census unchanged', () => {
+  it('is a block, not a compartment: carrying it does not move the census', () => {
+    expect(tierDensitySummary('t3')).toEqual({ open: 15, sealed: 0, total: 15 });
+    expect(TIER_COORDS.t4).toBeUndefined();
   });
 
-  it('t4 is t3 plus exactly the publicRead block', () => {
-    expect(TIER_COORDS.t4).toEqual([...TIER_COORDS.t3, 'publicRead']);
-    expect(coordsForTier('t4').has('publicRead')).toBe(true);
-    for (const lower of ['free', 't1', 't2', 't3']) {
+  it('rides t3 and no lower rung', () => {
+    expect(coordsForTier('t3').has('publicRead')).toBe(true);
+    for (const lower of ['free', 't1', 't2']) {
       expect(coordsForTier(lower).has('publicRead'), lower).toBe(false);
     }
   });
 
-  it('unseals exactly the public block on a t3 → t4 upgrade', () => {
-    expect(newlyEntitledCells('t3', 't4')).toEqual(['publicRead']);
-    expect(newlyEntitledCells('t4', 't4')).toEqual([]);
-    expect(newlyEntitledCells('t4', 't3')).toEqual([]);
-    expect(newlyEntitledCells('t2', 't4')).toContain('publicRead');
-    expect(newlyEntitledCells('t2', 't4')).toContain('cardEntry');
+  it('unseals with the other t3 ceiling block on an upgrade', () => {
+    expect(newlyEntitledCells('t2', 't3')).toContain('publicRead');
+    expect(newlyEntitledCells('t2', 't3')).toContain('cardEntry');
+    expect(newlyEntitledCells('t3', 't3')).toEqual([]);
   });
 });
 
-describe('t4 public read — the offer fails closed', () => {
-  it('renders no buyable CTA while the product does not exist', () => {
-    // The rung is fully wired; only the Gumroad product is missing, and
-    // creating it is the operator's action. Until then the anchor must carry
-    // no href and stay hidden — a dead checkout link is worse than no offer.
-    const anchor = { hidden: false, href: 'https://example.invalid/stale', removeAttribute() { delete this.href; } };
-    expect(applyT4Offer(anchor)).toBe(false);
-    expect(anchor.hidden).toBe(true);
-    expect(anchor.href).toBeUndefined();
-    expect(applyT4Offer(null)).toBe(false);
+describe('public read — the withdrawn offer leaves no surface behind', () => {
+  it('no fourth-rung CTA, constant or handler survives', () => {
+    expect(html).not.toMatch(/paywall-cta-t4/);
+    expect(html).not.toMatch(/applyT4Offer/);
+    const pay = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf-8');
+    expect(pay).not.toMatch(/T4_PRODUCT_URL|applyT4Offer/);
   });
 
-  it('the shipped constant is empty, and the markup ships hidden with no href', () => {
-    expect(T4_PRODUCT_URL).toBe('');
-    const tag = html.match(/<a[^>]*id="paywall-cta-t4"[^>]*>/);
-    expect(tag).not.toBeNull();
-    expect(tag[0]).toMatch(/\shidden\b/);
-    expect(tag[0]).not.toMatch(/href=/);
-    // No new payment host enters the tracked source with this rung.
+  it('the sprint $3 offer is still the only purchase surface', () => {
     expect((html.match(/gumroad\.com/g) || []).length).toBe(1);
-  });
-
-  it('the sprint $3 offer control is untouched by the new rung', () => {
-    expect(html).toMatch(/id="offer-btn"[^>]*>open the complete sheet · \$3 once</);
     expect(html).toMatch(/id="paywall-cta-t3"[^>]*href="https:\/\/theeightball\.gumroad\.com\/l\/xjpvp"/);
+    expect(html).toMatch(/id="offer-btn"[^>]*>open the complete sheet · \$3 once</);
   });
 });
 
@@ -249,7 +257,6 @@ describe('hidden-attribute guards (the F1 bug class)', () => {
 
   it('finds the elements it is supposed to be checking', () => {
     const ids = hiddenElements().map(e => e.id);
-    expect(ids).toContain('paywall-cta-t4'); // the t4 CTA
     expect(ids).toContain('offer-btn');      // the sprint offer control
   });
 
@@ -281,13 +288,13 @@ describe('hidden-attribute guards (the F1 bug class)', () => {
   });
 });
 
-describe('t4 wiring seams the first pass left unpinned', () => {
+describe('public-read wiring seams the first pass left unpinned', () => {
   it('the render decision consults the ladder table, not a tier literal', () => {
     // TIER_COORDS.t4 previously had zero effect on what shipped: the render
     // asked `tier === 't4'` directly, so the table this change added was
     // pinned by tests while being ignored by the product.
     expect(html).toMatch(/coordsForTier\(tier\)\.has\('publicRead'\)/);
-    expect(html).not.toMatch(/entitled: tier === 't4'/);
+    expect(html).not.toMatch(/entitled: tier === 't[0-9]'/);
   });
 
   it('the written-entry rotation follows entitlement, so t4 keeps what t3 bought', () => {
