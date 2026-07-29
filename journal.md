@@ -5,6 +5,37 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — advisory coverage report: `@vitest/coverage-v8` dev dep + CI step — STAGED
+
+**Status: STAGED on `claude/test-coverage-analysis-qdsbh3` with the rest of
+the coverage-audit work. Merge is the operator's word.**
+
+**The dev-dep note `tests/dependency_discipline.test.js` requires.** New
+devDependency `@vitest/coverage-v8` (^4.1.10) — the v8 coverage provider
+for the vitest already vendored. Count goes 1 → 2 of the pinned threshold
+5; no runtime dependency, no build step, §12's runtime rule untouched.
+Cost: dev-install weight only; it ships nothing.
+
+**What it buys.** `npm run coverage` (new script; plain `npm test` is
+byte-identical in behavior) prints the core/ + ui/ statement/branch/
+function/line table. CI gains one step after `Run tests` that runs it with
+`continue-on-error: true` — the report lands in the job log on every push
+and PR, and neither a coverage regression nor a tool failure can redden a
+green `test` check. **No gate was added.** The audit
+(`audits/claude_test_coverage_analysis_2026-07-27.md` P9) proposed
+flooring branch coverage once the printed numbers hold stable for a few
+PRs; that floor is a deliberate second decision for the operator, recorded
+here as NOT taken. Whoever takes it: add `thresholds` to the coverage
+block in `vitest.config.js` and delete the advisory language in the CI
+step comment in the same change.
+
+**Scope (files):** `package.json` + `package-lock.json` (dep + script),
+`vitest.config.js` (coverage include/reporter, no thresholds),
+`.github/workflows/ci.yml` (one advisory step), `CLAUDE.md` (one command
+line), this file. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`,
+`DOCTRINE.md`, all tests — `dependency_discipline` passes unmodified at
+2 ≤ 5.
+
 ## 2026-07-28 — boot sequence extracted to `ui/boot.js` (§6 split) — STAGED
 
 **Status: STAGED on `claude/test-coverage-analysis-qdsbh3`, alongside the

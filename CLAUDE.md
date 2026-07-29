@@ -35,6 +35,7 @@ and per L48 no merge happens before an explicit audit-cleared signal.
     npm ci                            # fresh container only; vitest isn't vendored
     npm run dev                       # static server on :5173
     npm test                          # vitest — full suite
+    npm run coverage                  # suite + core/ui coverage table — advisory, no threshold
     bash audits/run_local_audit.sh    # PII audit before any push
     git status / git diff / git log   # before any commit
 

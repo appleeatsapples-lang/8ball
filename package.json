@@ -7,10 +7,12 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "dev": "npx --yes serve . -l 5173",
     "check": "npm run test"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
     "vitest": "^4.1.9"
   },
   "engines": {

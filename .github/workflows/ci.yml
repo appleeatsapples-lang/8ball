@@ -26,6 +26,16 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run tests
         run: npm test
+      # Advisory coverage report (P9, journal 2026-07-29). Re-runs the suite
+      # instrumented and prints the core/ + ui/ summary into the job log so
+      # coverage movement is visible at review time. continue-on-error is
+      # the "advisory" in code: no threshold exists, and even a coverage-tool
+      # failure cannot redden a green suite — the `test` check's semantics
+      # are exactly what they were before this step. Flooring a metric here
+      # is an operator decision; do not add `thresholds` without one.
+      - name: Coverage report (advisory, not a gate)
+        continue-on-error: true
+        run: npm run coverage
       - name: Verify single-file rule
         run: |
           lines=$(wc -l < index.html)
