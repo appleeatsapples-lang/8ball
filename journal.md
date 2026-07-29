@@ -5,11 +5,19 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Public rung wired: fourth ladder rung t4 · $9, fail-closed (DOCTRINE v0.58) — STAGED
+## 2026-07-29 — Public rung wired: fourth ladder rung t4 · $9, fail-closed (DOCTRINE v0.58) — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. This touches `DOCTRINE.md` AND the paid
-ladder, so per §10 and the CLAUDE.md don't-do list a cross-model audit is what this asks for — none has been run, on this
-or on the engine it wires (#144). The L48 artifact filed with this PR is an explicit controller override, sighting #15.**
+**Status: SHIPPED — squash-merged to `main` as `2f3bdc9` ([#153](https://github.com/appleeatsapples-lang/8ball/pull/153)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. The STAGED language below is
+superseded, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **The cross-model audit this entry said the
+change asks for was not run before merge.** It touches `DOCTRINE.md` AND the paid ladder — the case §10 and the CLAUDE.md
+don't-do list name explicitly — and was cleared by `audits/L48_override_pr153_2026-07-29.md` (L48 sighting #15), which calls
+itself the second-weakest use of the instrument in this chain after #140. **A post-merge adversarial cross-read was
+commissioned immediately after the merge** rather than left as a recommendation; it is deliberately named as post-merge so it
+cannot retroactively satisfy any gate, and its findings are recorded in their own entry. Two limits outlive the merge and are
+not closed by it: **§8 gate 9 live-fire has not been run** on a change that touches `index.html`, and the rung's mode driver
+is a coordinate the free sheet already shows (spec §6.1) — a design question now sitting behind a price. Was: STAGED on
+`claude/8ball-public-engine-me9rhr`.**
 
 **What shipped.** The public-tier engine merged unwired in #144 (`b5cc119`). On controller instruction it is now wired to a
 **fourth rung**: `t4`, `?paid=t4`, **$9**, defined by a new §1.D v0.58 amendment. The rung reveals the public read — three
