@@ -9,10 +9,15 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 **Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
 2026-07-29, on explicit controller word; `test` and `l48-gate` both passed on the merged head. **No cross-model audit was
-run on any link in this chain** — five `DOCTRINE.md` changes in one day, all cleared by override. **The migration is now
-live and untested against a real device:** the first genuine exercise of `RETIRED_TIERS` will be the controller reloading
-the page on the device that was told to open `?paid=t4`. If that device shows the free sheet rather than the complete one,
-the migration is wrong and this entry is the place to start. Was: STAGED. L48 artifact is an explicit controller override,
+run on any link in this chain** — five `DOCTRINE.md` changes in one day, all cleared by override. **The migration is live and VERIFIED on a
+real device (2026-07-29):** the controller reloaded the page on the device that had been told to open `?paid=t4` — the one
+holding a stored `'t4'` — and it renders the **complete sheet**. That is the first and only exercise of `RETIRED_TIERS`
+outside the suite, and it is the check that mattered: a naive retirement drops exactly that device to free, and the stored
+tier is the only record of a purchase. **Scope of what it proves, so the entry does not overclaim:** a stored `'t4'`
+resolves to a t3 render. It does **not** separately prove the value was rewritten in storage — a failed write would
+re-resolve correctly on every boot and look identical, so persistence stays test-only and is cosmetic either way. Nor does
+it exercise the sharpest case, a device that had **paid** for t3 before visiting the URL; that path rests on the
+literal-state test alone. Was: STAGED. L48 artifact is an explicit controller override,
 sighting #20 — renumbered from #19 after another lane claimed that number concurrently, caught by the sighting-ledger
 uniqueness guard `tests/l48_gate.test.js` gained today. Second such collision in this chain; first one a test caught
 rather than a human.**
