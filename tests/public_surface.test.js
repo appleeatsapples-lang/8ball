@@ -55,10 +55,11 @@ describe('t4 public read — render', () => {
     initPublicUI(refs);
     const read = renderPublicRead(PROFILE, { entitled: true });
     expect(read).not.toBeNull();
-    expect(refs.families.textContent).toBe('1 energy · 2 tech · 3 media');
-    expect(refs.antiFit.textContent).toBe('anti-fit · teaching');
+    // 2000-01-01: birthday 1 (day of month) → mode 1, origination first.
+    expect(refs.families.textContent).toBe('1 tech · 2 media · 3 energy');
+    expect(refs.antiFit.textContent).toBe('anti-fit · health');
     expect(refs.roleLine.textContent)
-      .toBe('a role held as the setting of order, worked to a plan, in fixed stages.');
+      .toBe('a role held as the setting of order, worked from a standing start, one line at a time.');
     expect(refs.root.classList.contains('sealed')).toBe(false);
   });
 

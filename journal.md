@@ -5,6 +5,62 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. Touches `DOCTRINE.md`, so §10 asks for a
+cross-model audit; none has been run on this or on anything else in this chain. The L48 artifact is an explicit controller
+override, sighting #17.**
+
+**This closes the objection this lane raised before the rung shipped.** §1.D v0.58 keyed the t4 mode of work by the **life
+path** — free-surface since §1.D v0.38 — so a $9 rung's only new content was a re-reading of a coordinate every visitor
+already had. That clause said so in its own text and shipped anyway on controller word; `PUBLIC_TIER_SPEC.md` §6.1 carried
+it as the one open design question. It is now closed the exact way §6.1 predicted: *"the cheapest thing to change while
+nothing renders: the mode table is keyed by one integer."*
+
+**The driver is now the BIRTHDAY number** — day of the month reduced by the §1.B v0.54 nine-number rule. Three properties
+make it a fix rather than a substitution: it is **date-only**, so the tier's input contract is unchanged and no birth time
+creeps in; its **domain is exactly 1..9**, so the authored nine-mode table carries over **unedited** — no copy was
+re-authored under cover of a mechanical change; and it is a **t2** coordinate, not free, which is the whole point. A paid
+rung's driver is now itself paid information.
+
+**And it is better on the merits, not just less redundant.** §1.G's meaning registry already names the birthday *"the
+recurring skill"* and the life path *"the long route"*. A mode of work **is** a recurring skill. The first keying was
+defensible; this one is apt. That the fix improves the reading rather than merely de-duplicating it is the strongest
+argument that the original objection was worth raising.
+
+**Content versioning (§4), done by the book.** `content/public.v1.js` is immutable and **byte-untouched**.
+`content/public.v2.js` imports every table verbatim and changes exactly two things: the mode provenance string, which
+named the wrong coordinate, and the modes' self-naming `lifePath` field, re-derived as `birthday`. A table whose own field
+lies about what keys it is precisely the drift §4's versioning rule exists to prevent, so the field was renamed in a new
+file rather than edited in the shipped one.
+
+**Nobody was ever served the superseded keying.** `T4_PRODUCT_URL` is still empty and the rung is still unbuyable, so no
+purchase has ever rendered a t4 block. This correction reaches no one's paid reading — which is exactly why it was worth
+making now. Had the Gumroad product been created first, the same fix would have silently changed what a buyer had already
+paid for.
+
+**Fixtures regenerated a third time, and the set got stronger.** A seventeenth date, **1927-09-09**, was added: it is the
+third calc v3.1 solar-term correction (1927 bailu) and the only date in the set whose birthday number is 9 — so closing a
+coverage gap in the new driver also closed one in the calc v3.1 regression surface. The set now carries **every** date
+calc v3.1 moved: lunar new year 1916 plus the 1911, 1912 and 1927 solar terms, pinned by name.
+
+**What did NOT change.** The ladder, the price, entitlement, the §1.F census, the sealed-DOM rule, the fail-closed offer,
+`ui/public.js`, `index.html`, `core/payments.js`, `ui/tiers.js`, every other rung. This is a driver swap inside the engine
+plus its documentation.
+
+**Verification.** Suite **45 files / 1578 tests** green (was 45 / 1571; +7 — the driver-provenance test, the free-surface
+assertion, the day-of-month domain sweep, and the calc v3.1 fixture-name pins). **Not verified:** the local PII audit
+(gitignored pattern file absent); no browser — though this change renders nothing new, since the block's shape is
+unchanged and only its content differs.
+
+**Scope (files):** `core/public.js`, `content/public.v2.js` (new), `DOCTRINE.md` (§1.D v0.59, footer → v0.59),
+`PUBLIC_TIER_SPEC.md` (§1/§3.4/§4/§6.1/§8), `CLAUDE.md` (content inventory line), `tests/public.test.js`,
+`tests/public_surface.test.js`, `tests/public_tier.fixture.json`, this file, the L48 artifact. **UNTOUCHED:**
+`content/public.v1.js`, `core/profile.js`, `ui/`, `index.html`, `tests/fixtures.json`, every scanner allow-list.
+
+**Rollback.** Revert this PR: `core/public.js` re-imports v1 and re-keys on the life path, and the fixtures regenerate.
+No stored tier and no purchase is affected in either direction.
+
 ## 2026-07-29 — Post-merge cross-read of the t4 rung: a live paywall defect and five more — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `37cd465` ([#157](https://github.com/appleeatsapples-lang/8ball/pull/157)) on
