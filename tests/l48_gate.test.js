@@ -32,10 +32,15 @@ const workflow = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'ci.yml'),
 // The shipped predicate: the grep -E pattern on the ART= line of the l48 job,
 // compiled for a given PR number exactly as the gate compiles it.
 function shippedPredicate(pr) {
+  // The pattern lives either in a SHAPE= variable (once it is reused by the
+  // recycled-artifact diagnostic) or inline on the ART= grep. Accept both so
+  // this pin does not depend on which arrangement is in force.
+  const shapeLine = /^\s*SHAPE="(.+)"\s*$/m.exec(workflow);
+  if (shapeLine) return new RegExp(shapeLine[1].replace(/\$\{PR\}/g, String(pr)));
   const line = workflow.split('\n').find(l => l.includes('ART=') && l.includes('grep -E'));
-  expect(line, 'ART= grep line not found in ci.yml — did the l48 job change shape?').toBeTruthy();
+  expect(line, 'neither SHAPE= nor an ART= grep line found in ci.yml').toBeTruthy();
   const m = /grep -E "([^"]+)"/.exec(line);
-  expect(m, 'could not extract the artifact regex from the ART= line').not.toBeNull();
+  expect(m, 'could not extract the artifact regex').not.toBeNull();
   return new RegExp(m[1].replace(/\$\{PR\}/g, String(pr)));
 }
 
@@ -139,13 +144,45 @@ describe('L48 gate — job shape', () => {
   it('still exempts docs-only PRs and still fails closed otherwise', () => {
     const job = yaml.slice(yaml.indexOf('\n  l48:'));
     expect(job).toContain('docs-only PR');
-    // Fail-closed: the no-artifact branch errors and exits non-zero. Pinned
-    // as the else-arm shape so a future edit cannot turn the miss into a
-    // warning that still greens the check.
-    expect(job).toMatch(/else\s*\n\s*echo "::error::[\s\S]*?\n\s*exit 1\s*\n\s*fi\s*$/);
+    // Fail-closed: the no-artifact branch errors, and that error is the last
+    // thing the step does before exiting non-zero. Pinned as the property
+    // rather than as adjacency, so inserting a diagnostic ahead of it is
+    // fine but turning the miss into a warning that still greens is not.
+    expect(job).toMatch(/echo "::error::PR without an in-PR L48 artifact/);
+    expect(job).toMatch(/exit 1\s*\n\s*fi\s*$/);
   });
 
   it('names the brief-is-not-a-verdict rule in its failure output', () => {
     expect(yaml).toContain('a brief alone does not satisfy the gate');
+  });
+});
+
+describe('L48 gate — a recycled artifact cannot supply the verdict', () => {
+  const job = workflow.slice(workflow.indexOf('\n  l48:'));
+
+  it('matches the shape against files ADDED by the PR', () => {
+    expect(job).toMatch(/ADDED=\$\(git diff --diff-filter=A[^\n]*--name-only/);
+    const artLine = job.split('\n').find(l => l.includes('ART=') && l.includes('grep'));
+    expect(artLine).toContain('$ADDED');
+    expect(artLine).not.toContain('$CHANGED');
+  });
+
+  it('detects renames and copies so they cannot pose as additions', () => {
+    expect(job).toContain('--find-renames');
+    expect(job).toContain('--find-copies-harder');
+  });
+
+  it('diagnoses a present-but-not-added artifact specifically', () => {
+    // The failure must say WHICH problem occurred — a correctly-named file
+    // that exists but was not added means it was renamed or copied in.
+    expect(job).toMatch(/RECYCLED=\$\(echo "\$CHANGED"/);
+    expect(job).toContain('was NOT added by this PR');
+  });
+
+  it('keeps recording that this does not by itself close #126 F1', () => {
+    // A future reader must not take the guard for a stronger protection
+    // than it is: the shape predicate is what rejects the renamed record.
+    expect(job).toMatch(/does NOT close\s*\n?\s*#\s*126's F1 on its own|does NOT close[\s\S]{0,40}F1 on its own/);
+    expect(job).toMatch(/FILENAME gate/);
   });
 });

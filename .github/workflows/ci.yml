@@ -96,11 +96,33 @@ jobs:
             exit 0
           fi
           PR='${{ github.event.pull_request.number }}'
-          ART=$(echo "$CHANGED" | grep -E "^audits/([a-z0-9_]+_pr${PR}_premerge_audit_[0-9]{4}-[0-9]{2}-[0-9]{2}_response|L48_override_pr${PR}_[0-9]{4}-[0-9]{2}-[0-9]{2})\.md$" || true)
+          # Only files ADDED by this PR can satisfy the gate. Renaming or
+          # copying an artifact that already exists on the base branch
+          # carries no new verdict; rename/copy detection classifies those as
+          # R/C, which --diff-filter=A drops.
+          #
+          # Scope, so this is not read as more than it is: this does NOT close
+          # #126's F1 on its own. There the rename was of a file created
+          # earlier on the same branch, so against the merge base both paths
+          # read as plain additions — the shape predicate is what rejects it.
+          # This closes the adjacent dodge: recycling a previous PR's verdict.
+          # Either way this stays a FILENAME gate. It proves a correctly-named
+          # artifact was added, never that an independent review happened.
+          ADDED=$(git diff --diff-filter=A --find-renames --find-copies-harder --name-only "$BASE"...HEAD)
+          SHAPE="^audits/([a-z0-9_]+_pr${PR}_premerge_audit_[0-9]{4}-[0-9]{2}-[0-9]{2}_response|L48_override_pr${PR}_[0-9]{4}-[0-9]{2}-[0-9]{2})\.md$"
+          ART=$(echo "$ADDED" | grep -E "$SHAPE" || true)
           if [ -n "$ART" ]; then
             echo "L48 gate: verdict/override artifact present — pass"
             echo "$ART"
           else
+            # Distinguish the two failure modes rather than only restating
+            # the rule: a correctly-named artifact that is present but not
+            # added means it was renamed or copied into place.
+            RECYCLED=$(echo "$CHANGED" | grep -E "$SHAPE" || true)
+            if [ -n "$RECYCLED" ]; then
+              echo "::error::L48: an artifact of the required shape is present but was NOT added by this PR — it was renamed or copied into place, and carries no independent verdict:"
+              echo "$RECYCLED"
+            fi
             echo "::error::PR without an in-PR L48 artifact of the required shape — a brief alone does not satisfy the gate. Commit the cross-model verdict response as audits/<model>_pr${PR}_premerge_audit_<date>_response.md, or an explicit override as audits/L48_override_pr${PR}_<date>.md — the override file IS the L48 sighting log."
             exit 1
           fi
