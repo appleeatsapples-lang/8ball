@@ -70,9 +70,19 @@ jobs:
             fi
           fi
           echo "journal-touch gate: pass"
+          # 2026-07-29 deep-audit P1-C: "some path under audits/ changed" used
+          # to be the whole rule here — an unrelated old audit, a brief, or a
+          # renamed file all satisfied it. DOCTRINE.md changes now require the
+          # SAME added-file + PR-number + verdict/override shape the l48 job
+          # enforces, computed the identical way (rename/copy detection ON for
+          # ADDED, so a recycled artifact is classified R/C and dropped).
           if echo "$CHANGED" | grep -qE '^DOCTRINE\.md$'; then
-            if ! echo "$CHANGED" | grep -qE '^audits/'; then
-              echo "::error::PR touches DOCTRINE.md without a corresponding audit artifact under audits/ (DOCTRINE.md §8 gate 6 / §10 cross-model audit)."
+            PR='${{ github.event.pull_request.number }}'
+            ADDED=$(git diff --diff-filter=A --find-renames --find-copies-harder --name-only "$BASE"...HEAD)
+            SHAPE="^audits/([a-z0-9_]+_pr${PR}_premerge_audit_[0-9]{4}-[0-9]{2}-[0-9]{2}_response|L48_override_pr${PR}_[0-9]{4}-[0-9]{2}-[0-9]{2})\.md$"
+            ART=$(echo "$ADDED" | grep -E "$SHAPE" || true)
+            if [ -z "$ART" ]; then
+              echo "::error::PR touches DOCTRINE.md without an in-PR verdict/override artifact of the required shape (DOCTRINE.md §8 gate 6 / §10 cross-model audit). A brief, a notes file, an unrelated old audit, or a renamed/recycled artifact does not satisfy this. Add audits/<model>_pr${PR}_premerge_audit_<date>_response.md or audits/L48_override_pr${PR}_<date>.md."
               exit 1
             fi
           fi
@@ -109,7 +119,16 @@ jobs:
           # detection, so that a recycled artifact is classified R/C and
           # dropped by --diff-filter=A. Two opposite settings, on purpose.
           CHANGED=$(git diff --no-renames --name-only "$BASE"...HEAD)
-          if ! echo "$CHANGED" | grep -qvE '\.md$' \
+          # 2026-07-29 deep-audit P1-C: an all-markdown PR used to exempt
+          # itself here BEFORE the verdict/override shape check ever ran —
+          # so DOCTRINE.md + an unrelated audits/*.md file + journal.md (all
+          # three end in .md) read as "docs-only" and skipped straight to
+          # exit 0. DOCTRINE.md is never docs-only for this gate's purposes,
+          # regardless of what else in the diff is markdown: fall through to
+          # the strict added-file + PR-number + shape check below instead of
+          # taking the early exit.
+          if ! echo "$CHANGED" | grep -qE '^DOCTRINE\.md$' \
+             && ! echo "$CHANGED" | grep -qvE '\.md$' \
              && ! echo "$CHANGED" | grep -qE '^(audits/RELEASE_CHECKLIST\.md|agents/.*\.md)$'; then
             echo "L48 gate: docs-only PR (no behavior, no governance-gate docs) — exempt"
             exit 0

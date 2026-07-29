@@ -5,6 +5,45 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — P1: the doctrine-only L48 false-green is closed — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to the same-day independent deep-audit
+that also found the #183 overclaim (entry below). Local suite green (46 files / 1600 tests); no push, merge, or deploy.
+
+**The defect.** `.github/workflows/ci.yml`'s `l48-gate` job took an early "docs-only" exemption — every changed file
+ends in `.md`, none is `audits/RELEASE_CHECKLIST.md` or `agents/*.md` — and returned `exit 0` **before** the
+verdict/override filename predicate (the strict shape `tests/l48_gate.test.js` pins) ever ran. `DOCTRINE.md`,
+`journal.md`, and any `audits/*.md` file all end in `.md`, so a PR that touches `DOCTRINE.md` plus a brief plus the
+journal read as docs-only and skipped the artifact check entirely. The separate doctrine step in the `test` job had the
+same shape of gap from the other side: it only asked whether *some* path under `audits/` changed, not whether that path
+was added by the current PR, named the current PR number, or matched the verdict-response/override shape. Reproduced
+against PR #176's exact three-file diff (`DOCTRINE.md`, `audits/doctrine_v060_label_carveout_2026-07-29_brief.md`,
+`journal.md`): both jobs reported green — `L48 gate: docs-only exempt` and `Doctrine audit-artifact gate: pass` — for a
+brief, which is the packet sent to a reviewer, not a verdict.
+
+**The fix.** `DOCTRINE.md` in the changed-file set now unconditionally skips the l48-gate job's docs-only exemption,
+regardless of what else in the diff is markdown, and falls through to the same added-file + PR-number + shape predicate
+the job already enforces once reached. The `test` job's doctrine step now runs that identical predicate (added-file
+detection with `--find-renames --find-copies-harder`, `--diff-filter=A`, the same `SHAPE=` regex) instead of "any
+`audits/` path changed." Ordinary docs-only PRs that never touch `DOCTRINE.md` are still exempt in the l48-gate job —
+that half of the audit's required behavior is unchanged.
+
+**New coverage (`tests/l48_gate_composition.test.js`, new file).** `tests/l48_gate.test.js` pins the shape regex in
+isolation but — as the audit named directly — "does not execute or model the earlier docs-only branch, nor the
+composition of the two jobs." This file extracts both `run: |` script bodies **verbatim** from the shipped YAML (no
+parallel reimplementation that could drift from the real predicate), fills the two `${{ github.event.pull_request.* }}`
+expressions the same way GitHub Actions would, and executes the actual bash with a real two-remote git repository
+shaped like the target PR — a bare "origin" holding the pre-PR base state and a local clone carrying the PR's commit on
+top, so `"$BASE"...HEAD` resolves exactly as it does in CI. Confirmed against a literal copy of the pre-fix docs-only
+condition that the harness reproduces the original false-green (control case), then against the real post-fix scripts:
+PR #176's exact diff now fails both jobs; an ordinary docs-only PR (no `DOCTRINE.md`) stays exempt; a `DOCTRINE.md`
+change with a validly-ADDED response or override artifact still passes both jobs; and recycling an unrelated old PR's
+verdict under the current PR's filename (the #133-shape dodge) still fails via the rename/copy detection.
+
+**Disposition.** PR #176 remains **HOLD** per the primary audit — this fix does not itself clear it; it means the gate
+will now correctly demand the in-PR verdict/override artifact that PR #176's own brief already says is required before
+merge.
+
 ## 2026-07-29 — P0 fix: raw stored t4 now reaches RETIRED_TIERS; corrects the #183 real-device claim — STAGED
 
 **Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to a same-day independent deep-audit
