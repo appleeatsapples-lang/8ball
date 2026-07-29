@@ -5,11 +5,18 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — STAGED
+## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No cross-model read has been run — the
-L48 artifact filed with this PR is an explicit override, not a verdict, and it says so. This is additive: five new files,
-two count lines in `CLAUDE.md`, and this entry. No existing module, test, fixture, or doctrine clause is modified.**
+**Status: SHIPPED — squash-merged to `main` as `b5cc119` ([#144](https://github.com/appleeatsapples-lang/8ball/pull/144)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. The STAGED language below is
+superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **No cross-model read was run —
+none before merge, none commissioned, none in flight.** The gate was cleared by `audits/L48_override_pr144_2026-07-29.md`
+(L48 sighting #14), which enumerates what it does not cover and recommends a read *before any surfacing change* rather than
+merely before merge; that recommendation is now live. Two controller rulings landed on the branch after it opened — the
+nine-mode collapse and the `lifePath` rename — and what they left open is larger than what they closed: the mode of work is
+selected by a coordinate the free sheet already shows (spec §6.1). Nothing renders any of it; nothing imports
+`core/public.js`. Was: STAGED on `claude/8ball-public-engine-me9rhr`. This is additive: five new files, two count lines in
+`CLAUDE.md`, and this entry. No existing module, test, fixture, or doctrine clause is modified.**
 
 **What this is.** The computation engine for the ladder rung the brief calls **public** — deterministic, offline,
 table-driven, no model call at runtime or anywhere else. From a birth **date alone** it returns three ranked domain
