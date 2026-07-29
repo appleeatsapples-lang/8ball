@@ -40,6 +40,21 @@ and per L48 no merge happens before an explicit audit-cleared signal.
 
 No build step. Netlify auto-deploys on push to `main`. Node ≥20.19.
 
+**Live-fire (§8 gate 9) is runnable in a container — it is not operator-only.**
+Chromium and Playwright are pre-installed here (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`),
+so any change touching `index.html` can be rendered and inspected before it
+ships. This was believed impossible for a day and cost a live paywall defect
+(journal 2026-07-29); the recipe is written down so no lane re-derives it:
+
+    python3 -m http.server 5173          # from the repo root
+    mkdir -p /tmp/lf && cd /tmp/lf && npm i playwright-core
+
+Drive it with `chromium.launch({ executablePath: '/opt/pw-browsers/chromium-*/chrome-linux/chrome' })`.
+**The driver goes in a scratch directory, NEVER in `package.json`** — §7 stage 4
+caps devDependencies and this repo vendors no browser tooling. A local pass
+answers rendering, cascade and viewport questions; it does NOT answer what the
+deployed site serves, since egress policy blocks the product domain from here.
+
 `run_local_audit.sh` needs `audits/local_personal_data.txt`, which is
 gitignored and operator-local — it will not exist in a fresh container, and
 the script exits 1 saying so. That's expected, not a failure to fix.
