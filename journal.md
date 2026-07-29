@@ -39,21 +39,57 @@ through the block root — with all three pinned, plus a test that **demonstrate
 because a guard whose failure mode is never shown is decoration. It is a convention held by mechanical checks, not an
 impossibility, and the clause says so.
 
-**Live-fire, run before the PR rather than after.** Local Chromium (the recipe `CLAUDE.md` gained this morning) rendered
-the real artifact at t3 and at free. t3 shows the families line in register; free shows `DOMAIN FIT` + hatch with no
-value; the caption carries the triple at t3 and folds it into `sealed remainder` at free; geometry holds at nine rows
-with no overflow; zero console errors.
+**Live-fire, run before the PR rather than after — and the first attempt at it was worthless.** Superseded per L17
+rather than deleted, because the failure is the lesson. The original paragraph here read: *"Local Chromium rendered the
+real artifact at t3 and at free. t3 shows the families line in register …"*. **It did not.** That script called
+`rowSections(shareRowRefs())` from page context — it built the snapshot by hand and never touched `initShareUI`, so it
+verified this lane's own construction and not the product path. Through the product path the artifact at that commit
+carried **no** fit-family row at all: the feature was inert (F1 below). A live-fire that reaches into the module under
+test and assembles its input is not a live-fire; it is a unit test with a browser attached, and it will confirm whatever
+the harness builds.
+
+**The live-fire that actually counts.** Re-run after the fixes with **nothing constructed by the harness**: the page
+boots, a synthetic profile is entered through the form, `#share-btn` is clicked, and the PNG **Chromium receives as a
+download** is what gets read — plus the caption from the real clipboard write. At t3 the artifact carries
+`DOMAIN FIT / 1 tech · 2 media · 3 energy` and the caption ends `… · horse · earth · 1 tech · 2 media · 3 energy`. At
+free the same row renders label + hatch with **no** value and the caption ends `4 · sealed remainder` — no fit token
+anywhere in it. Neither artifact contains an anti-fit or role-line string at either tier. Zero page console errors on
+both legs. Nine rows, no overflow.
 
 **Scope honesty.** This is the §5.D pass the public-read work has deferred since §1.D v0.58, and it is a **partial** one:
 it makes the read's least hazardous third shareable. It does **not** make the read the public artifact the retired rung's
 brief described, and no clause of this constitution has adopted that framing.
 
-**Verification.** Suite **45 files / 1594 tests** green (was 1587; +7). **Not verified:** the local PII audit (gitignored
-pattern file absent); the deployed site; and the cross-read, which is in flight as this is written — its findings land in
-a follow-up commit on this branch before the PR opens.
+**The cross-read returned DO-NOT-MERGE, and it was right.** Run against the uncommitted diff, which is the whole point
+of the inversion. Three findings, all fixed in the follow-up commit before the PR opened:
 
-**Scope (files):** `ui/tiers.js` (the fit-family row + the families ref), `index.html` (one ref in the `initTiersUI`
-call), `DOCTRINE.md` (§5.D v0.61, footer → v0.61), `tests/share_surface.test.js`, `tests/tiers.test.js`, this file.
+- **F1 — the feature was inert.** `index.html` destructured **eight** names from a now-**nine**-row `shareRowRefs()` and
+  passed those eight as `symbols`. The new row fell off the end of both lists, so `ui/share.js` never received it. The
+  "`ui/share.js` is byte-untouched" property above is real and is still the safety argument — but byte-untouched also
+  meant nothing forced the caller to keep up, and nothing did. Now pinned twice: the symbols array length, and a count of
+  the destructured bindings in `index.html`, so the two lists cannot drift apart again.
+- **F2 — the row would have frozen at boot.** `publicFamiliesRow` computed its cell eagerly while rows 0–7 use getters,
+  and `shareRowRefs()` is called **once** at boot. Even with F1 fixed the row would have hatched forever, because the
+  block is empty at boot. Now a getter, like its siblings.
+- **F3 — a retracted claim survived in two places.** The correction recorded above (mechanical checks, not impossibility)
+  was made in the §5.D clause body but not in DOCTRINE's one-line version index, and stale "structural / no code path
+  exists" comments were still sitting in `ui/tiers.js` and the tests. Retracted at each site, and a new pin bans
+  sibling/parent/query traversal inside the row builder so guarantee (i) is held by a check rather than by wording.
+
+**What that says about this chain, plainly.** Three of this lane's claims today have been verified by the operator on a
+real device, and every other verification in the chain was self-authored. Two of the self-authored ones were wrong: the
+"a browser pass cannot be answered from here" claim (false — Chromium was pre-installed all along), and the live-fire
+above. The pattern is the same both times: the check was shaped to pass rather than to fail.
+
+**Verification.** Suite **45 files / 1595 tests** green (was 1587; +8). Real-path live-fire green on both legs, as
+described above. **Not verified:** the local PII audit (gitignored pattern file absent); the deployed site (egress policy
+blocks the product domain from here); and **no cross-model read** — the cross-read named above is this same model family,
+which is why the L48 artifact is an override and not a verdict.
+
+**Scope (files):** `ui/tiers.js` (the fit-family row + the families ref), `index.html` (the `initTiersUI` ref and the
+nine-name share destructure), `DOCTRINE.md` (§5.D v0.61, footer → v0.61), `tests/share_surface.test.js`,
+`tests/tiers.test.js`, `tests/public.test.js`, `tests/prose_coordinate_count.test.js`, `tests/helpers/source.js` (new —
+`codeOnly`, de-forked from its third copy), this file.
 **UNTOUCHED:** `ui/share.js`, `core/`, `content/`, `tests/fixtures.json`, every scanner list.
 
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
