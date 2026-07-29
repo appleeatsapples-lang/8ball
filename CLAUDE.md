@@ -55,7 +55,7 @@ red check today, so treat both as advisory-but-binding by convention.
 - **`npm test`** — carries §7 stages 1–4 and 6 (calc+pipeline, privacy scan,
   PII scan, dependency discipline, payments state machine).
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1465, so there are ~35 lines of headroom; past that, split into `ui/*.js`
+  at 1460, so there are ~40 lines of headroom; past that, split into `ui/*.js`
   per §6 rather than trimming to squeeze under.
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
