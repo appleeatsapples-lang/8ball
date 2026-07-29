@@ -5,10 +5,14 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — STAGED
+## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. Touches `DOCTRINE.md`, so §10 asks for a
-cross-model audit; none has been run on any link in this chain. L48 artifact is an explicit controller override,
+**Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both passed on the merged head. **No cross-model audit was
+run on any link in this chain** — five `DOCTRINE.md` changes in one day, all cleared by override. **The migration is now
+live and untested against a real device:** the first genuine exercise of `RETIRED_TIERS` will be the controller reloading
+the page on the device that was told to open `?paid=t4`. If that device shows the free sheet rather than the complete one,
+the migration is wrong and this entry is the place to start. Was: STAGED. L48 artifact is an explicit controller override,
 sighting #20 — renumbered from #19 after another lane claimed that number concurrently, caught by the sighting-ledger
 uniqueness guard `tests/l48_gate.test.js` gained today. Second such collision in this chain; first one a test caught
 rather than a human.**
