@@ -1,5 +1,27 @@
 # DRAFT — DOCTRINE §10 amendment: the auditor lane is vacant
 
+> **⚠ CORRECTED — DO NOT APPLY. THE FINDING BELOW IS FALSE.**
+>
+> **Codex is not retired.** Two genuine relay verdicts dated the same day as this
+> draft sit in this directory — `codex_pr136_premerge_audit_2026-07-29_response.md`
+> (run `20260729-004554`, 225,689 tokens, MERGE WITH FIXES with three findings)
+> and `codex_pr150_postmerge_audit_2026-07-29_response.md` (run `20260729-080131`,
+> 340,311 tokens). Sighting #14 asserted the retirement seven hours after the
+> first of those runs, with its verdict already committed to this directory, and
+> nineteen minutes before the second. This lane propagated the claim into a
+> proposed constitutional amendment without checking either.
+>
+> **What dies:** the urgency argument. For sightings #14–#16 a cross-model read
+> was available and not used — the override was chosen, not forced.
+>
+> **What survives:** the design argument (vendor-naming is fragile regardless),
+> the §10:430 / §8:403 "amendment vs change" scope ambiguity, and every verified
+> mechanical claim including that the `l48-gate` predicate already accepts any
+> lane token.
+>
+> Full correction and timeline: `audits/correction_s10_draft_codex_premise_2026-07-29.md`.
+> Original text preserved verbatim below per the lineage-preserving convention.
+
 **Status: DRAFT for controller decision. Not applied. `DOCTRINE.md` is untouched
 by the PR carrying this file.**
 
