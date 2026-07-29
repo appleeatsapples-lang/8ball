@@ -297,7 +297,7 @@ describe('public-read wiring seams the first pass left unpinned', () => {
     expect(html).not.toMatch(/entitled: tier === 't[0-9]'/);
   });
 
-  it('the written-entry rotation follows entitlement, so t4 keeps what t3 bought', () => {
+  it('the written-entry rotation asks the ladder, not a tier literal', () => {
     // Counted across index.html AND ui/boot.js: the boot sequence was
     // extracted to that module (§6 split), taking one of the four call sites
     // with it. The invariant is four entitlement checks on the render path

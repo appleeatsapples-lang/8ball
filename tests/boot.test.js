@@ -40,10 +40,11 @@ const HOOK_DEFAULTS = {
   populateRisingFields: () => {},
   profileFromPayload: () => ({ lifePath: 5 }),
   // Entitlement lookup for the written-entry rotation. Mirrors the real
-  // ladder rather than returning a constant: `cardEntry` enters at t3 and
-  // t4 inherits it (ui/tiers.js T3_COORDS/T4_COORDS). A constant here would
-  // make the entitlement tests below vacuous.
-  coordsForTier: tier => new Set(['t3', 't4'].includes(tier) ? ['cardEntry'] : []),
+  // ladder rather than returning a constant — a constant would make the
+  // entitlement tests below vacuous. `cardEntry` enters at t3 and the ladder
+  // ends there (ui/tiers.js T3_COORDS); the t4 rung was retired in §1.D
+  // v0.60, so TIER_COORDS has no t4 and coordsForTier('t4') is empty.
+  coordsForTier: tier => new Set(tier === 't3' ? ['cardEntry'] : []),
   ensureFacetIndex: () => {},
   showResult: () => {},
   clearProfile: () => {},
@@ -193,11 +194,20 @@ describe('ui/boot.js — rehydration', () => {
 
   it('anchors the facet index by entitlement, not by tier literal', () => {
     // Was `tier === 't3'` until #168 moved it to coordsForTier(tier).has(
-    // 'cardEntry'). t4 inherits cardEntry from T3_COORDS, so the t4 row is
-    // the one the old literal got wrong — it would have dropped the written
-    // deck for a tier that paid for it.
+    // 'cardEntry'). The table check outlives the reason it was introduced:
+    // #168 added t4 as an inheriting rung, §1.D v0.60 (#178) then retired it,
+    // and the assertion here is unchanged through both because it asks the
+    // ladder rather than naming a tier.
+    //
+    // The 't4' row stays deliberately, expecting NOT anchored: it is the
+    // retired rung, absent from TIER_COORDS. Boot does not see it in
+    // practice — core/payments.js maps t4 -> t3 via RETIRED_TIERS before
+    // getRenderTier returns, so a device holding the stored rung renders t3
+    // (pinned in tests/public_surface.test.js). This row pins the ladder's
+    // own answer for the retired key, so a future reintroduction of t4 to
+    // TIER_COORDS without a matching entitlement decision fails here.
     for (const [tier, anchored] of [
-      ['free', false], ['t1', false], ['t2', false], ['t3', true], ['t4', true],
+      ['free', false], ['t1', false], ['t2', false], ['t3', true], ['t4', false],
     ]) {
       const { hooks } = makeHooks({
         loadSavedProfile: () => PAYLOAD,
