@@ -91,26 +91,45 @@ export function ascendantDeg(year, month, day, hour, minute, utcOffsetMinutes, l
   // for any birth year >= 1533 the condition is ALWAYS true — min diff is
   // 184.35° at year 2000, rising with epoch — so the correction is in
   // practice unconditional and the branch is a tautology for every input
-  // the product can receive. That is why mutating this condition (or
-  // either arm) survives the suite: those are equivalent mutants over the
-  // reachable domain, not coverage gaps.
+  // the product can receive.
   //
-  // It is NOT a tautology in the limit. At year <= 1532 the obliquity has
-  // grown enough that diff collapses toward 0 at exactly |lat| = 66.5,
-  // and the correction stops matching the geometry (threshold bisected to
-  // 1532 breaks / 1533 holds). Nothing in the product reaches that: the
-  // <input type="date"> carries no lower bound, but the polar rule
-  // already excludes |lat| > 66.5, the failure needs the boundary value
-  // itself, and Intl's pre-1970 offsets are disclosed as approximate in
-  // §1.A regardless. Recorded so the tautology above is not mistaken for
-  // an unconditional truth if this formula is ever reused.
+  // That does NOT make the branch unpinned. A tautology only forces a
+  // mutant to survive if the mutation PRESERVES it. Measured over 12
+  // mutation operators: the tautology-preserving ones survive (condition
+  // -> true; dropping `diff < 1`; widening either threshold to >180 /
+  // >184 / >185; <=1; >=179; first-arm flip), while the ones that break
+  // it are killed by 22 tests each (`||` -> `&&`; condition -> false;
+  // dropping `|| diff > 179`; second-arm flip to `diff < 179`). Half this
+  // guard is strongly pinned — do not read the survivors as licence to
+  // delete an arm.
+  //
+  // It is NOT a tautology in the limit. As obliquity grows the correction
+  // stops matching the geometry once |lat| >= 90 - eps(epoch); bisected
+  // at a Jan-1 JD that threshold falls at birth year 1532 (breaks) /
+  // 1533 (holds), the true eps = 23.5° crossing being mid-1532, so a
+  // mid-year JD shifts the bisection one year earlier. The band reaches
+  // below the polar cutoff at earlier epochs: Rovaniemi at 66.499 — the
+  // highest non-polar latitude in assets/cities.json — breaks it for
+  // birth years around 1520 and earlier. Nothing in the product reaches
+  // that (the <input type="date"> carries no lower bound, but a 16th-
+  // century birth is not a product input, and Intl's pre-1970 offsets are
+  // disclosed as approximate in §1.A regardless). Recorded so the
+  // tautology above is not mistaken for an unconditional truth if this
+  // formula is ever reused.
   //
   // `asc + 180` (not `- 180`): astronomically identical under normalizeDeg,
-  // but the two differ in the last bits for ~24% of inputs (max 5.7e-14°,
-  // i.e. ~2e-10 arcsec). No test pins that difference — the ephemeris
-  // itself is only good to ~0.003° — so mutating the sign here also
-  // survives by design. Keep the `+` form for parity with the reference
-  // cases the anchors were computed against.
+  // but the two differ in the last bits — 16.6% of geometry-derived
+  // ascendants (23.7% over a uniform sweep of [0,360), which is the
+  // synthetic rate, not the reachable one), max 5.7e-14°, i.e. ~2e-10
+  // arcsec. No test pins that difference — this routine computes MEAN
+  // sidereal time, and the omitted equation of the equinoxes alone is up
+  // to 0.0044° — so mutating the sign here survives by design rather than
+  // by oversight. It is killable only in principle: an ascendant landing
+  // 1 ulp below an exact 30° multiple returns a different sign under the
+  // two forms, but zero of 360,000 geometry-derived ascendants land
+  // there, and hunting an input that does would be pinning float noise.
+  // Keep the `+` form for parity with the reference cases the anchors
+  // were computed against.
   const diff = normalizeDeg(asc - LST);
   if (diff < 1 || diff > 179) {
     asc = normalizeDeg(asc + 180);

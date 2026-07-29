@@ -24,11 +24,18 @@
 // outside the [0, 360) range every caller assumes. The final `% k` folds
 // that k back to 0. Verified 2026-07-29: the shortened form breaks the
 // range invariant for 276 of the 320 magnitudes -2^-1 .. -2^-320, while
-// this form holds for all of them. `normalizeDeg(asc - LST)` in
-// rising.js is a real call site that can produce such a tiny negative
-// (it does so when the ascendant converges on the local sidereal time,
-// the degenerate case at the polar-circle boundary), so this is a
-// reachable hazard, not a theoretical one. tests/math.test.js pins it.
+// this form holds for all of them.
+//
+// The justification is the range contract itself, not a live defect: no
+// current caller distinguishes a returned 0 from a returned 360. Values
+// inside the (-2^-45, 0) window do occur — rising.js line 83's
+// normalizeDeg(atan2(...)/DEG) lands there for 489 of 2.5M sampled
+// points near LST = 90 — but the quadrant guard just below is true for
+// both 0 and 360, so no output moves either way (verified: 0 deltas
+// across 82,673 calendar/pillar/rising probes under both forms). The
+// point is that the contract every caller reads off this file's own
+// doc comment stays true for callers that do not yet exist.
+// tests/math.test.js pins it.
 export const mod = (n, k) => ((n % k) + k) % k;
 
 // Sum of decimal digits of |n|.

@@ -62,8 +62,9 @@ describe('core/math.js primitives', () => {
 
   it('mod keeps the [0, k) contract for tiny negatives at other moduli', () => {
     // Not 360-specific — the same rounding applies at every modulus the
-    // repo uses (10 and 12 for the pillar/animal cycles).
-    for (const k of [10, 12, 360]) {
+    // repo uses: 5 (five-element cycle, profile.js), 10 and 12 (stem /
+    // branch and animal cycles, pillars.js + profile.js), 360 (degrees).
+    for (const k of [5, 10, 12, 360]) {
       for (const tiny of [-1e-20, -1e-16, -1e-14]) {
         const out = mod(tiny, k);
         expect(out, `mod(${tiny}, ${k}) must stay below ${k}`).toBeLessThan(k);
