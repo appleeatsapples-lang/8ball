@@ -208,6 +208,37 @@ const ROUGH_TERM_DATES = [
   [8, 8], [9, 8], [10, 8], [11, 7], [12, 7], [1, 6]
 ];
 
+// ── authority-pinned corrections (2026-07-29 deep-audit, P1-D) ─────────────
+// solarLongitude() is documented above as accurate to ~0.01° (Meeus ch 25,
+// "low accuracy"), and jdeToShanghaiDate() documents that it treats JDE
+// (Terrestrial Time) as JD-UT directly — the TT−UT delta is ignored. Either
+// budget alone is usually irrelevant: the sun moves ~0.9856°/day, so 0.01°
+// is on the order of 15 minutes, and almost every jieqi crossing falls many
+// hours from local midnight. But eight crossings across the full 1900–2100
+// range happen to land within about 15 minutes of midnight Shanghai civil
+// time (as little as 12 seconds for 2047 jingzhe) — close enough that the
+// documented error budget flips which calendar day the crossing is assigned
+// to. All eight computed one day EARLY against the Hong Kong Observatory's
+// published tables. This table corrects exactly those eight; every other
+// (year, animalIndex) pair in range is untouched and still uses the
+// computed crossing. Source: the HKO 1901–2100 text-calendar index,
+// https://www.hko.gov.hk/en/gts/time/calendar/text/files/T<year>e.txt —
+// each entry below was read directly from that year's file, not copied from
+// a summary. Verified via an exhaustive sweep of all 200 years (2,400 solar
+// comparisons + 200 lunar-new-year comparisons) at zero mismatches with
+// this table applied; lunarNewYearDate() needed no correction (0/200 before
+// and after — it does not call monthAnimalSolarTerm).
+const HKO_SOLAR_TERM_CORRECTIONS = Object.freeze({
+  '1911:3': Object.freeze([5, 7]),   // lixia / Summer Commences — T1911e.txt
+  '1912:8': Object.freeze([10, 9]),  // hanlu / Cold Dew — T1912e.txt
+  '1912:11': Object.freeze([1, 7]),  // xiaohan / Moderate Cold — T1912e.txt
+  '2014:1': Object.freeze([3, 6]),   // jingzhe / Insects Waken — T2014e.txt
+  '2016:5': Object.freeze([7, 7]),   // xiaoshu / Moderate Heat — T2016e.txt
+  '2045:5': Object.freeze([7, 7]),   // xiaoshu / Moderate Heat — T2045e.txt
+  '2047:1': Object.freeze([3, 6]),   // jingzhe / Insects Waken — T2047e.txt
+  '2097:3': Object.freeze([5, 5]),   // lixia / Summer Commences — T2097e.txt
+});
+
 function checkRange(year) {
   if (year < RANGE_MIN || year > RANGE_MAX) {
     throw new Error(`year out of range [${RANGE_MIN}, ${RANGE_MAX}]: ${year}`);
@@ -221,6 +252,8 @@ export function monthAnimalSolarTerm(year, animalIndex) {
   if (animalIndex < 0 || animalIndex > 11) {
     throw new Error(`animalIndex out of range [0, 11]: ${animalIndex}`);
   }
+  const override = HKO_SOLAR_TERM_CORRECTIONS[`${year}:${animalIndex}`];
+  if (override) return [override[0], override[1]];
   const target = ANIMAL_TERM_LONGITUDES[animalIndex];
   const [rm, rd] = ROUGH_TERM_DATES[animalIndex];
   const roughJDE = gregorianToJD(year, rm, rd) + 0.5; // noon UT

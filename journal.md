@@ -5,6 +5,80 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — P1: eight HKO solar-boundary mismatches corrected, zero remaining — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p1-hko-calendar` in response to the same-day independent
+deep-audit. Local suite green (46 files / 1627 tests); no push, merge, or deploy. **This branch touches `DOCTRINE.md` —
+per §10/CLAUDE.md a cross-model audit is required before merge, and the L48 filename gate this same audit's P1-C fix
+closed cannot be satisfied by an artifact yet, since no PR exists to name.**
+
+**What was checked.** The full 1901–2100 Hong Kong Observatory text-calendar index — 2,400 solar-boundary comparisons
+across all twelve jieqi in all 200 years, plus 200 lunar-new-year comparisons — run against `core/calendar.js` on
+current `main`. Result before this fix: 8 solar mismatches, 0 lunar mismatches (calc v3.1 / PR #140's own four-date fix
+holds; the LNY table has been exact since then). All eight independently re-verified by reading the raw bytes of the
+relevant `T<year>e.txt` files directly (not just trusting the audit's summary table):
+
+| Year | Term | HKO | Was |
+|---:|---|---:|---:|
+| 1911 | Summer Commences (lixia) | 05-07 | 05-06 |
+| 1912 | Cold Dew (hanlu) | 10-09 | 10-08 |
+| 1912 | Moderate Cold (xiaohan) | 01-07 | 01-06 |
+| 2014 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2016 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2045 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2047 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2097 | Summer Commences (lixia) | 05-05 | 05-04 |
+
+**Root cause, checked rather than assumed.** All eight computed crossings land within about 15 minutes of local midnight
+Shanghai civil time (as little as 12 seconds for 2047 jingzhe) — verified by instrumenting the internal pipeline and
+printing sub-day precision. `solarLongitude()` is documented in-file as accurate to only ~0.01° (Meeus ch 25, "low
+accuracy" formula); at the sun's ~0.9856°/day rate that is on the order of 15 minutes, which is exactly the scale of
+every discrepancy found. A real ΔT (TT−UT) correction was considered and rejected as the cause: applying it in the
+textbook direction would push the computed instant *earlier*, not later — the wrong direction to explain these eight,
+which all need to move *later* to match HKO. The remaining 2,392 solar comparisons and 200 lunar comparisons are
+unaffected because almost no crossing falls anywhere near a midnight boundary.
+
+**The fix.** A bounded, sourced correction table, `HKO_SOLAR_TERM_CORRECTIONS` in `core/calendar.js`, keyed by
+`year:animalIndex`, overriding `monthAnimalSolarTerm()`'s computed result for exactly these eight pairs — nothing else
+in the 1900–2100 range is touched, and `lunarNewYearDate()` doesn't call `monthAnimalSolarTerm()` at all so it needed no
+change (0/200 before and after). This is the fallback the audit brief itself names as acceptable when "the chosen
+solver cannot reach zero authoritative mismatches without fragile patches" — chosen over attempting a higher-precision
+solar-longitude series (VSOP87 or similar) because that would be a substantial rewrite with no independent authoritative
+ephemeris available in this environment to validate it against beyond the same HKO tables already in hand, and because
+this narrow table is easy to audit by inspection against its cited source
+(`https://www.hko.gov.hk/en/gts/time/calendar/text/files/T<year>e.txt`). **Re-run after the fix: 2,400 solar
+comparisons, 200 lunar comparisons, zero mismatches, exactly the acceptance criterion.**
+
+**New coverage.** `tests/profile.test.js` gains an exact positive-control pin plus a preceding-day / boundary-day
+`getInnerAnimal` cusp pair for all eight corrections — 24 new assertions exercising the actual consumer-facing cusp
+function, not just the raw date. Confirmed failing (16/24, the date-pin and boundary-day halves; the day-before halves
+were never wrong) against pre-fix `core/calendar.js`, passing after. Also replaces the audit's flagged vacuous case:
+`tests/public.test.js`'s fixture-coverage list tested only `1927-09-09` for the 1927 bailu correction, which cannot
+distinguish the corrected Sep-8 cutoff from the pre-PR-#140 wrong one — Sep 9 lands after either. Added
+`tests/profile.test.js` pins for 1927-09-07 (monkey, before) / 1927-09-08 (rooster, at the real boundary — bailu itself
+needed no date change, already correct on `main`), and added both `1912-01-07` and `1927-09-08` as new cases to
+`tests/public_tier.fixture.json` (17 → 19 cases) — closing the audit's other finding that `1912-01-06` was claimed
+covered but never present.
+
+**Fixture regeneration.** `tests/public_tier.fixture.json`'s existing `1911-05-06` case went stale: it was frozen while
+lixia was (wrongly) 05-06, so it recorded someone born exactly *on* the old boundary. With lixia now correctly 05-07,
+that date is the day *before* the boundary, and its full `buildPublicReading` output changed (month-animal snake →
+dragon, and every downstream field derived from it — season state, strength, favorability, families, role line).
+Regenerated from the fixed implementation; `note` field updated to describe the corrected relationship. This is the
+"regenerate any fixture/public-reading snapshot whose animal or catalog result changes" requirement — checked
+systematically (ran the full suite, found exactly this one stale case) rather than assumed absent.
+
+**Doctrine correction — the "catalog index... untouched" claim.** PR #140's calc v3.1 entries (§3, v0.57, both the
+changelog line and the SHIPPED entry) claimed "numerology, sun sign, rising sign, birth card, and the catalog index are
+untouched" by the 1916 lunar-new-year fix. False: the catalog index is `(sunSign, animal)`-driven per §1, where
+`animal` is the public year-pillar animal — the exact coordinate that fix moved for 1916-02-03 (rabbit → dragon).
+Confirmed against shipped `core/engine.js`: Aquarius+rabbit is `cxxiv`, Aquarius+dragon is `cxxv`. Struck per L17 (not
+silently rewritten) with an erratum in both spots — this was a blast-radius/truth defect in the record, not a code
+defect; the shipped catalog computation was already correct, only the claim about its scope was wrong.
+
+**Not touched.** `core/engine.js`, `core/profile.js`, `core/rising.js`, and every other calc module are byte-identical.
+No dependency, localStorage key, network call, or scanner list changes.
+
 ## 2026-07-29 — P1: the doctrine-only L48 false-green is closed — STAGED
 
 **Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to the same-day independent deep-audit
