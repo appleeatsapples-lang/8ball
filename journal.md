@@ -5,6 +5,417 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — l48-gate cross-read: a P0 in the gate itself, its fix, and the commission — SHIPPED
+
+**Status: SHIPPED — all three squash-merged to `main` on 2026-07-29:**
+**#159** (audit) `d2ea821` · **#160** (fix) `968d004` · **#165** (commission)
+`53f3388`. Each SHA verified to resolve and to be an ancestor of `main` before
+being written here. The merges were executed by the implementer lane on an
+explicit, twice-given controller merge word — recorded because §10 reserves
+merge authority to the controller, and who pressed the button is part of the
+record even when the authority is not in question.
+
+*Was:* **STAGED.** All three PRs are open at the time of writing and none has
+merged: **#159** (audit, head `f034db8`), **#160** (fix, head `39c1dad`),
+**#165** (commission, head `2dc1307`). Each is green. This entry flips to
+SHIPPED naming the squash SHAs when they land; written now on controller word
+rather than after, so the record exists before the merge rather than as debt.
+Preserved verbatim per L17.
+
+**What this cycle is.** The `l48-gate` predicate had been rewritten three times
+in two weeks — #131's shape narrowing, #133's added-not-renamed, #142's
+`edited` trigger — each closing a false-green that had already shipped, and
+each verified by the lane that wrote it. That is the coupling L48 exists to
+break. This cycle commissioned an outside read of the gate, fixed what it
+found, and then commissioned a real outside read of the fix.
+
+### #159 — the audit (`audits/claude_l48_predicate_crossread_2026-07-29.md`)
+
+Five Claude instances in fresh contexts (opus / sonnet / fable) across five
+lenses — bypass, git/shell runtime, event surface, claim-vs-code, ledger —
+each **executing the gate's own shell against throwaway git fixtures** rather
+than reasoning about it, then an adversarial refutation pass told to kill each
+finding and re-run its repro. 22 findings raised → 8 verified → **6 confirmed,
+2 killed** (1×P0, 1×P1, 4×P2). Fourteen never reached verification and are
+recorded as **unverified, not cleared**.
+
+The document states in its own second section that it is **not** a §10
+cross-model audit: Claude checking Claude, same lineage, same blind spots. Its
+filename is deliberately outside the gate's SHAPE predicate — verified by
+running the predicate against it — so a standing audit cannot green anyone's PR
+by sitting in `audits/`.
+
+**Recorded rather than omitted:** two refuter lanes hit an unguarded `cd` into
+a scratch path the sandbox had dropped and committed to the working clone.
+Both reset; containment independently verified (stray commits unreachable from
+`origin/main`, nothing pushed, tree clean, no symlinks, 67 audit files present).
+Root cause was the audit's own commissioning — temp-dir work required but `cd`
+not forbidden — not the subject under audit. The `git -C` / no-`cd` rule is now
+a standing instruction in the brief shape.
+
+### #160 — the fix (P0 + P1)
+
+**P0.** Both `CHANGED=` computations ran `git diff --name-only` with no
+`--no-renames`. Git enables rename detection by default (`diff.renames`, since
+2.9) and a detected rename prints **only the destination path**, so renaming
+any non-`.md` file to a `.md` path made the changeset read as documentation and
+the docs-only branch fired. A PR could delete the gate's own regression pins,
+`tests/pii_scan.test.js`, or `dependency_discipline` + `privacy_scan` with both
+checks green and no artifact. The same defect at the `test` job's `CHANGED=`
+blinded the journal-touch and audit-artifact gates simultaneously; both sites
+are fixed.
+
+The two diffs now carry **deliberately opposite settings**, commented at both
+sites and pinned in both directions: `CHANGED=` takes `--no-renames` for the
+true file list, while `ADDED=` keeps `--find-renames --find-copies-harder` so a
+recycled artifact stays `R`/`C` and is dropped by `--diff-filter=A`.
+Homogenising them re-opens #133.
+
+**P1.** The `ADDED=` pin was `/--diff-filter=A[^\n]*--name-only/` — `[^\n]*`
+made it a prefix match, so `ACMR`, `AR`, `AC`, `AM` all satisfied it and the
+revision range was unpinned. Now an exact-string assertion.
+
+**Mutation-tested rather than asserted.** Baseline 24/24; reverting
+`--no-renames` fails the new `CHANGED` pin; widening to `ACMR` fails the
+tightened `ADDED` pin — a mutation that **passed 22/22 before this change**;
+adding `--no-renames` to `ADDED=` fails both. Each mutation caught by the
+intended pin and no other. The fix then validated itself in CI on its own PR:
+red without the artifact (reaching the artifact-shape error, not the exemption)
+and green with it, via the artifact branch both times.
+
+Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
+
+### #165 — the commission
+
+`audits/pr160_premerge_audit_2026-07-29_brief.md`, filed pre-merge so a
+verdict can land before the merge word. *(Shipped as
+`codex_pr160_premerge_audit_2026-07-29_brief.md`; renamed lane-neutral on
+sighting once the retirement above was confirmed, since hard-coding a vendor is
+the defect #166 names. Path corrected here rather than left dangling; the
+packet's content is unchanged but for its addressing.)* Its lead hook is the risk the override
+names as unexamined: `--no-renames` changes what **every** `CHANGED=` consumer
+sees, and only the permissive direction was tested — nobody has checked whether
+a legitimate rename-bearing PR is now wrongly blocked. Five fixtures named. It
+instructs the auditor to treat the #159 audit as a claim to check, never as
+evidence.
+
+**Why it matters more than the usual commission.** The whole chain behind #160
+is single-vendor: Claude found the defect, judged it, wrote the fix, and wrote
+the mutation tests certifying the fix. A wrong fix that passes its own author's
+mutation tests is exactly what that arrangement cannot detect.
+
+**Correction, found while merging: the lane this brief names is retired.**
+`audits/L48_override_pr144_2026-07-29.md` (sighting #14) already records
+*"Codex is retired; no other lane was commissioned, and none is in flight"*,
+and #166 (`3ec1e87`) drafts the §10 amendment that follows from it — the role
+was hard-coded to a vendor, so the vendor's departure left the role vacant and
+the override became the only reachable path. This lane recommended the relay
+repeatedly, including inside the brief itself, without checking that the lane
+still existed. The brief is not wasted: #166 verifies the gate's `[a-z0-9_]+`
+model token already accepts `gemini`, `chatgpt`, `claude`, `multiagent`, so the
+packet re-targets to any lane meeting the independence test by changing the
+filename prefix of its response. What it cannot do is be run against Codex.
+
+### Two bookkeeping defects found in passing
+
+- **Sighting-number collision.** #160's override first claimed #16, colliding
+  with `L48_override_pr157_2026-07-29.md` which took #16 on a concurrent lane
+  while #160 was open. Corrected to #17 on sighting. The mechanism is the
+  finding: numbers are assigned by reading the directory, a read-modify-write
+  race whenever two lanes file overrides the same day, and **nothing in CI
+  would catch a duplicate** — the predicate matches filenames and never opens
+  the file. Verified no duplicates remain (#6, #8–#17).
+- **Override-vs-verdict ratio.** 11 of 17 sightings now clear by override, and
+  8 of the artifacts filed on this date are overrides rather than verdict
+  responses. The #159 ledger lens raised it: the override is becoming the
+  default path rather than the exception. Filed as an observation, not a
+  judgement.
+
+### A third finding, observed while merging: a PR head can carry no run at all
+
+Flipping this entry surfaced a live instance of the failure `ci.yml`'s trigger
+comment already names — *"an absent check is visually indistinguishable from a
+pending one"* — in a form the `edited` fix does not cover.
+
+A force-push on this entry's own branch (`aebc2e5` → `714efa4`) produced **no
+`ci.yml` run for the new head**. Neither did a subsequent PR-body edit
+(`edited`), nor a close/reopen (`reopened`) — the remedy #133 needed. Three
+trigger paths, no run: `list_workflow_runs` for the branch stayed at
+`total_count: 1` with `head_sha` pinned to the pre-push commit throughout,
+while Netlify built `714efa4` normally, so the push was visible to GitHub.
+
+**The sharp part is not the missing run, it is what the PR displays instead.**
+That single stale run's `display_title` updated to the new commit's message and
+its `pull_requests[].head.sha` reads `714efa4`, while the run's own `head_sha`
+remains `aebc2e5`. A green result computed against one commit is presented
+against another. #133's version was zero checks — legible as *something is
+wrong*. This version reads as a normal green PR.
+
+Consequences worth carrying: under branch protection a required check that
+never reports blocks forever, and without it the PR simply looks mergeable;
+either way the displayed state is not evidence about the head. The lane
+declined to merge on the stale green and forced a new head instead — which is
+what this paragraph is. **`head_sha` is the only trustworthy field**; the PR
+checks UI is not, and no gate in this repo verifies that a run's `head_sha`
+matches the head it is shown against.
+
+### Deliberately still open
+
+Four P2s untouched — symlink artifact greening the gate, sub-threshold copy
+defeating anti-recycling, ledger deletion under the docs-only exemption, and
+the `DOCTRINE.md` predicate asymmetry (the one governed surface still covered
+by the any-`audits/`-file predicate that #131 removed as unsafe). Plus the 14
+unverified findings. Each wants its own change and its own read.
+
+**And the standing gap this cycle does not close:** a red check still does not
+block a merge. Branch protection requiring `test` and `l48-gate` is repo-admin
+and unset; the implementer lane's token returns 403 on the protection endpoint.
+This cycle hardened a gate that nothing yet enforces — both facts are true at
+once and neither cancels the other.
+
+**Verification.** Suite green on each branch at its own head (1566 for #159,
+1568 for #160 with its +2 pins, 1577 on the #165 base as main moved). No
+`core/`, `ui/`, `content/`, `index.html`, or `DOCTRINE.md` touched by any of
+the three. Local PII audit **not run** — its gitignored pattern file is absent
+in the remote container; still owed controller-side.
+
+## 2026-07-29 — A false premise reached `main` inside a proposed constitutional amendment — SHIPPED
+
+**Status: SHIPPED — the draft merged as `3ec1e87` (#166), its correction as `a0d577c` (#170), both 2026-07-29. Written SHIPPED rather than flipped, since both merges preceded the entry. No doctrine was applied; `DOCTRINE.md` was never touched by either PR. The correction is `audits/correction_s10_draft_codex_premise_2026-07-29.md`, and the draft keeps its original text verbatim behind a `⚠ CORRECTED — DO NOT APPLY` banner per the lineage-preserving convention.**
+
+**What happened.** This lane read sighting #14 (`audits/L48_override_pr144_2026-07-29.md`), which states *"Codex is retired; no other lane was commissioned, and none is in flight"*, quoting an operator brief that said *"Codex is dead."* It took that as fact, told the controller both open audit briefs were addressed to a lane that no longer existed and should not be relayed, and then drafted a **§10 constitutional amendment** whose entire finding section rests on the retirement. The draft merged. The premise was false.
+
+**Codex was never retired.** Two genuine relay verdicts, dated the same day, were already in `audits/` — `codex_pr136_premerge_audit_2026-07-29_response.md` (run `20260729-004554`, 225,689 tokens, **MERGE WITH FIXES** with three findings) and `codex_pr150_postmerge_audit_2026-07-29_response.md` (run `20260729-080131`, 340,311 tokens, **SAFE TO MERGE**, plus a substantive PII observation about JPEG coordinates being reconstructable). Both name `gpt-5.6-sol` via `~/ai-relay/relay`. Neither is a stub.
+
+**The timeline decides whether the claim was overtaken or simply wrong.** Local +03:00: Codex ran at **00:45** for #136, which merged at **01:28** carrying its verdict into `audits/`; sighting #14 asserted the retirement at **07:42**; Codex ran again at **08:01**; #157 at **09:38** used a multi-agent read instead. The assertion came seven hours after a successful run whose verdict was already committed to the directory the override was being written into, and nineteen minutes before the next. **It was false when written.**
+
+**Two lanes, one error, and this one's is worse.** The parallel lane was quoting an operator brief — a reason to believe a claim, not a licence to assert it into a governance record unchecked. This lane then propagated it into a proposed amendment to the constitution, with the contradicting artifact sitting on `main`, in a directory it had been reading and writing all session, already printed in its own earlier `ls audits/` output. The check that would have caught it — `ls audits/ | grep codex` — is the same check this lane applied that day to R1's closure, to #131's red-then-green legs, to #129's F1 fix in the shipped source, and to every SHA in two fire-line headers. It was skipped on the one claim that reshaped its recommendations.
+
+**What died, and what survived.** Dead: the urgency argument. For sightings #14, #15 and #16 a cross-model read was **available and not used**, so the override was chosen rather than forced. Surviving untouched: the design argument, since naming a vendor in the constitution is fragile whether or not the vendor is alive, and `agents/auditor.md` still hard-codes both the tool and a paste-relay workflow the artifacts show was superseded by `~/ai-relay/relay` with a real checkout; the §10:430 / §8:403 *"amendment"* vs *"change"* scope ambiguity, independently verified; and every mechanical claim, including that the `l48-gate` predicate's `[a-z0-9_]+` token already accepts any lane name, so no workflow change was ever required.
+
+**The finding that outlived the premise, and is sharper than it.** The override instrument was used three consecutive times **while the alternative existed**. That is a worse observation than "the rule became unsatisfiable", because no wording change fixes it — an amendment cannot make a lane check whether the auditor is reachable before declaring it gone.
+
+**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
+
+**Recorded because the alternative is worse.** This entry exists so the §10 draft is never read without its correction, and so the pattern is on the record rather than in a chat log: a lane that spent the day verifying other lanes' claims did not verify its own, and the one it skipped was the one with the largest blast radius. **Recommendation attached: treat "the auditor lane is unavailable" as a claim requiring evidence, the same as any other claim in an L48 artifact.**
+
+
+## 2026-07-29 — Public rung: the mode driver moves off the free surface (DOCTRINE v0.59) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `6a6d327` ([#168](https://github.com/appleeatsapples-lang/8ball/pull/168)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS. Cleared by
+`audits/L48_override_pr168_2026-07-29.md` (L48 sighting #17) — **the fourth `DOCTRINE.md` change in this chain merged with
+no cross-model reader**, and the override says so in those words. The one honest mitigation, stated without inflating it:
+the objection this PR closes came from this lane's own adversarial process — written into the spec before the rung shipped,
+repeated in #153 and sighting #15, and independently re-derived by the post-merge cross-read as its most likely finding. A
+lane arguing with itself in public and losing is better than a lane not arguing; it is not a second reader. **What stays
+open and is not touched by this merge:** whether re-reading open coordinates is worth $9 at all (the deeper half of §6.1),
+the $9 price still contradicting §1.D's own column, and the month-branch-only strength model. The override's recommendation
+stands — if one thing gets a cross-model read, make it §1.D v0.58 and v0.59 as a **pair**, a rung and its own correction
+authored hours apart by one lane. Was: STAGED on `claude/8ball-public-engine-me9rhr`.**
+
+**This closes the objection this lane raised before the rung shipped.** §1.D v0.58 keyed the t4 mode of work by the **life
+path** — free-surface since §1.D v0.38 — so a $9 rung's only new content was a re-reading of a coordinate every visitor
+already had. That clause said so in its own text and shipped anyway on controller word; `PUBLIC_TIER_SPEC.md` §6.1 carried
+it as the one open design question. It is now closed the exact way §6.1 predicted: *"the cheapest thing to change while
+nothing renders: the mode table is keyed by one integer."*
+
+**The driver is now the BIRTHDAY number** — day of the month reduced by the §1.B v0.54 nine-number rule. Three properties
+make it a fix rather than a substitution: it is **date-only**, so the tier's input contract is unchanged and no birth time
+creeps in; its **domain is exactly 1..9**, so the authored nine-mode table carries over **unedited** — no copy was
+re-authored under cover of a mechanical change; and it is a **t2** coordinate, not free, which is the whole point. A paid
+rung's driver is now itself paid information.
+
+**And it is better on the merits, not just less redundant.** §1.G's meaning registry already names the birthday *"the
+recurring skill"* and the life path *"the long route"*. A mode of work **is** a recurring skill. The first keying was
+defensible; this one is apt. That the fix improves the reading rather than merely de-duplicating it is the strongest
+argument that the original objection was worth raising.
+
+**Content versioning (§4), done by the book.** `content/public.v1.js` is immutable and **byte-untouched**.
+`content/public.v2.js` imports every table verbatim and changes exactly two things: the mode provenance string, which
+named the wrong coordinate, and the modes' self-naming `lifePath` field, re-derived as `birthday`. A table whose own field
+lies about what keys it is precisely the drift §4's versioning rule exists to prevent, so the field was renamed in a new
+file rather than edited in the shipped one.
+
+**Nobody was ever served the superseded keying.** `T4_PRODUCT_URL` is still empty and the rung is still unbuyable, so no
+purchase has ever rendered a t4 block. This correction reaches no one's paid reading — which is exactly why it was worth
+making now. Had the Gumroad product been created first, the same fix would have silently changed what a buyer had already
+paid for.
+
+**Fixtures regenerated a third time, and the set got stronger.** A seventeenth date, **1927-09-09**, was added: it is the
+third calc v3.1 solar-term correction (1927 bailu) and the only date in the set whose birthday number is 9 — so closing a
+coverage gap in the new driver also closed one in the calc v3.1 regression surface. The set now carries **every** date
+calc v3.1 moved: lunar new year 1916 plus the 1911, 1912 and 1927 solar terms, pinned by name.
+
+**What did NOT change.** The ladder, the price, entitlement, the §1.F census, the sealed-DOM rule, the fail-closed offer,
+`ui/public.js`, `index.html`, `core/payments.js`, `ui/tiers.js`, every other rung. This is a driver swap inside the engine
+plus its documentation.
+
+**Verification.** Suite **45 files / 1578 tests** green (was 45 / 1571; +7 — the driver-provenance test, the free-surface
+assertion, the day-of-month domain sweep, and the calc v3.1 fixture-name pins). **Not verified:** the local PII audit
+(gitignored pattern file absent); no browser — though this change renders nothing new, since the block's shape is
+unchanged and only its content differs.
+
+**Scope (files):** `core/public.js`, `content/public.v2.js` (new), `DOCTRINE.md` (§1.D v0.59, footer → v0.59),
+`PUBLIC_TIER_SPEC.md` (§1/§3.4/§4/§6.1/§8), `CLAUDE.md` (content inventory line), `tests/public.test.js`,
+`tests/public_surface.test.js`, `tests/public_tier.fixture.json`, this file, the L48 artifact. **UNTOUCHED:**
+`content/public.v1.js`, `core/profile.js`, `ui/`, `index.html`, `tests/fixtures.json`, every scanner allow-list.
+
+**Rollback.** Revert this PR: `core/public.js` re-imports v1 and re-keys on the life path, and the fixtures regenerate.
+No stored tier and no purchase is affected in either direction.
+
+## 2026-07-29 — Post-merge cross-read of the t4 rung: a live paywall defect and five more — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `37cd465` ([#157](https://github.com/appleeatsapples-lang/8ball/pull/157)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. Cleared by
+`audits/L48_override_pr157_2026-07-29.md` (L48 sighting #16) — the first clearance in this run that covers a PR fixing
+defects a review actually found, and the one that records why the review was needed three merges earlier. **The fix for the
+live defect is verified structurally, never in a browser.** §8 gate 9 live-fire is still outstanding and F1 is precisely the
+class it exists to catch; `curl` to the product domain is blocked by this environment's egress policy, so no claim is made
+here about what the deployed site now serves. **§8 gate 9 SATISFIED for the paywall surface, 2026-07-29:** the controller ran the live-fire pass on the deployed page and
+confirmed **one CTA**. That closes F1 with the only instrument that could close it — the suite cannot evaluate a cascade
+(§12, no jsdom), so until this pass the fix was verified structurally and no further. It is also the second time gate 9 has
+caught or cleared this exact defect class, after the `.polar-message[hidden]` cycle; the gate is earning its place in §8.
+**Scope of the confirmation, stated so the record does not overclaim:** the paywall CTA count, and nothing else. The sealed
+`DOMAIN FIT` block's rendering, the density strip's new tail, and the 320px-viewport question raised by the cross-read's
+completeness critic were NOT part of it and remain unverified in a browser. Was: STAGED on
+`claude/8ball-public-engine-me9rhr`.**
+
+**F1 (HIGH, live). The "fail-closed" t4 CTA was never hidden.** `#paywall-cta-t4` ships the `hidden` attribute and
+`applyT4Offer` re-asserts `anchor.hidden = true` and strips `href` — but `[hidden] { display: none }` is a **UA-origin**
+rule and `.modal .modal-cta { display: block }` is an **author** rule, which wins regardless of specificity. So every
+visitor who opened the paywall saw a second full-width button — *"buy public … $9"* — stacked under the $3 CTA by the
+`+ .modal-cta { margin-top: 10px }` sibling rule, inert because the href was stripped. That breaks the §4.B v0.56
+single-offer sprint (live to 2026-08-08) and **falsifies claims made in four places**: DOCTRINE §1.D v0.58,
+`PUBLIC_TIER_SPEC.md` §7, the #153 PR body, and `audits/L48_override_pr153_2026-07-29.md`, all of which state the CTA
+stays hidden. This repo had already hit this exact trap: `index.html` patches it element-by-element at the
+`.polar-message[hidden], .legacy-hint[hidden], .field-error[hidden]` rule, and `.modal-cta` was simply not in that list.
+**The same defect applies to `#offer-btn`** (`.btn-block { display: block }`) and predates the rung — `offerBtn.hidden =
+cardEntry` has never hidden anything for a t3 owner. Both are fixed by one added selector pair.
+
+**F2. The test that should have caught it could not see it.** `tests/payments_markup.test.js`'s "exactly one Gumroad CTA"
+assertion enumerates rung ids `(t[123])` and requires `href=` — so the t4 anchor was invisible to it twice over. §12
+forbids jsdom, so no test in this suite can evaluate a cascade at all. The replacement is structural and covers the whole
+bug class rather than this instance: for every element that ships or toggles `hidden`, if any of its classes carries an
+author `display:` rule, some class on that element must have a `[hidden]` guard resolving to `display: none`. It is
+driven off the markup, so a future hidden-able control inherits the guard automatically.
+
+**F3. `ui/concordance.js` coerced t4 to `free`.** `['t1','t2','t3'].includes(options.tier)` — an exhaustive-over-three
+literal the ladder append missed. A t4 device comparing two saved readings lost the five-element axis it owns at t1 and
+was told the coordinate is *"sealed at this device tier"* — false on its own open sheet. Now `isTier(...)`, pinned across
+`TIER_ORDER` so a fifth rung cannot repeat it.
+
+**F4. Four `tier === 't3'` equality gates stranded the t4 owner.** `T4_COORDS` carries `cardEntry`, so t4 rendered the
+written entry off a facet index that could neither advance nor re-anchor: **$9 bought strictly less rotation than $3**,
+and a new name+DOB at t4 inherited the previous pair's slot. All four now gate on
+`coordsForTier(tier).has('cardEntry')`, and the two tests that pinned the literal were updated to pin the entitlement.
+
+**F5/F6. The render ignored the table this change added.** `renderPublicRead(profile, { entitled: tier === 't4' })` never
+consulted `TIER_COORDS`, so the t4 entry in that table had zero effect on what shipped while being pinned by tests — and
+`newlyEntitledCells` reported a `publicRead` unseal the consumer could not resolve, making its test a tautology. The
+render now asks `coordsForTier`, and the unseal root is plumbed through `initTiersUI` with the CSS selector extended so
+the beat actually fires.
+
+**Also fixed, from the completeness critic.** `PUBLIC_TIER_SPEC.md` **was being served on the product domain** —
+`netlify.toml`'s ops-deletion list names every other internal doc and did not name this one, so an internal spec naming
+`?paid=t4` and $9 was public and crawlable; now deleted at build and pinned by a test. The block label used a bespoke
+always-visible class, the only permanently visible label on a sheet where every other one is labels-reveal gated; it now
+follows the convention. The density strip printed *"15 of 15 coordinates open · full sheet"* directly above a visibly
+sealed block; it now appends `· domain fit sealed` when the block is not entitled. The sealed block was silent to screen
+readers (its seal node is `aria-hidden` and its value nodes are empty); it now carries a state-dependent `aria-label`.
+
+**What the read confirmed as sound, so the record is balanced.** The **entitlement append is clean** — every existing rung
+keeps its index, `maxTier` stays monotonic, `T4_COORDS` is a strict superset, and the R2 legacy grandfather does not
+widen (`credits: 99` still resolves `t3`). **Sealed-DOM purity is clean** — below t4 the value nodes are empty, so a
+non-entitled device's markup contains no family label, no anti-fit and no role line; `sources`, `favorabilityNote`,
+`season`, `dayMaster` and `strength` never reach a node. The §1.F census is genuinely unmoved. No new network call, no new
+storage key, and the engine and its tables are byte-unchanged from #144.
+
+**Still open, and NOT closed by this cycle.** §8 gate 9 live-fire has still not run, and F1 is precisely the class of
+defect only a live-fire pass catches — the fix is verified structurally, not visually. The 320px-viewport question the
+critic raised (an always-visible block with a `min-height` floor inside a fixed-aspect card) cannot be answered from here
+at all. `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
+`curl` to the deployed site is blocked by this environment's egress policy (403 at the proxy), so no claim is made here
+about what the live deploy currently serves.
+
+**Verification.** Suite **45 files / 1571 tests** green (was 45 / 1560; +11). **Not verified:** local PII audit
+(gitignored pattern file absent); the live deploy; any browser.
+
+**Scope (files):** `index.html`, `ui/concordance.js`, `ui/tiers.js`, `ui/public.js`, `netlify.toml`,
+`PUBLIC_TIER_SPEC.md` (header + §0 + §9 corrected — §9 was an executable instruction that had become wrong),
+`tests/public_surface.test.js`, `tests/concordance.test.js`, `tests/facet_rotation.test.js`, `tests/readings.test.js`,
+this file, the L48 artifact. **UNTOUCHED:** `core/`, `content/`, `DOCTRINE.md`, `tests/fixtures.json`, every scanner
+allow-list.
+
+## 2026-07-29 — Public rung wired: fourth ladder rung t4 · $9, fail-closed (DOCTRINE v0.58) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `2f3bdc9` ([#153](https://github.com/appleeatsapples-lang/8ball/pull/153)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. The STAGED language below is
+superseded, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **The cross-model audit this entry said the
+change asks for was not run before merge.** It touches `DOCTRINE.md` AND the paid ladder — the case §10 and the CLAUDE.md
+don't-do list name explicitly — and was cleared by `audits/L48_override_pr153_2026-07-29.md` (L48 sighting #15), which calls
+itself the second-weakest use of the instrument in this chain after #140. **A post-merge adversarial cross-read was
+commissioned immediately after the merge** rather than left as a recommendation; it is deliberately named as post-merge so it
+cannot retroactively satisfy any gate, and its findings are recorded in their own entry. Two limits outlive the merge and are
+not closed by it: **§8 gate 9 live-fire has not been run** on a change that touches `index.html`, and the rung's mode driver
+is a coordinate the free sheet already shows (spec §6.1) — a design question now sitting behind a price. Was: STAGED on
+`claude/8ball-public-engine-me9rhr`.**
+
+**What shipped.** The public-tier engine merged unwired in #144 (`b5cc119`). On controller instruction it is now wired to a
+**fourth rung**: `t4`, `?paid=t4`, **$9**, defined by a new §1.D v0.58 amendment. The rung reveals the public read — three
+ranked domain families, one anti-fit, one shape-of-role line — as a sealed **block**, not a coordinate.
+
+**The append is the whole mechanical footprint.** `TIER_ORDER` becomes `['t1','t2','t3','t4']`. Every existing rung keeps
+its rank, every stored tier keeps its entitlement, monotonicity and the replay-safe `no-pending` branch are unchanged, and
+**no t1/t2/t3 owner is affected**. The one place the ladder is deliberately NOT generalised is the **R2 legacy
+grandfather**: a device with legacy credits and no stored tier still resolves to `t3`, because that product sold the
+written entry, not a rung that did not exist when it was bought. `tests/public_surface.test.js` pins that so a later rung
+cannot silently widen it.
+
+**A block, not a coordinate — so the census does not move.** The sheet is complete at t3 (15 of 15). `publicRead` joins
+`cardEntry` as a block: no compartment in the 14-cell grid, excluded from the §1.F census, so `tierDensitySummary('t4')`
+is byte-identical to t3's. The §1.D v0.37 sealed-DOM rule governs it unchanged — below t4 the value nodes are **emptied**,
+absent rather than hidden, pinned by a test that renders entitled and then re-renders sealed and asserts nothing survives.
+
+**Commercially not live, and fail-closed rather than half-built.** The Gumroad product does not exist and creating it is a
+controller action, never an agent's. `T4_PRODUCT_URL` ships **empty**; while it is empty the t4 CTA carries no `href` and
+stays hidden, so no visitor can reach a dead checkout. Filling that one constant is the whole of what makes the rung
+buyable. The **§4.B v0.56 single-$3 sprint is byte-untouched** while it runs to 2026-08-08 — the result-rail offer, the
+paywall headline and the t3 product are unchanged, and the about-modal copy is deliberately NOT updated: it describes what
+a visitor can actually buy, and advertising an unbuyable rung would be the wrong kind of accurate.
+
+**Three things a reviewer should press on, none of them cosmetic.**
+
+- **The rung's mode driver is the life path — a coordinate the FREE sheet already shows.** Nothing in the t4 read is new
+  information; it is a re-reading of open coordinates against fixed tables. Whether that is a defensible basis for a paid
+  rung is a design question no one outside this lane has read (`PUBLIC_TIER_SPEC.md` §6.1), and it is now behind a price.
+- **The $9 does not fit the shipped price column.** §1.D v0.55 superseded the Price column to $1 / $2 / $3. The $9 comes
+  from the commissioning brief's exposure-radius ladder, which **no tracked file records** and which this amendment
+  explicitly does not adopt. The clause defines the rung's mechanics and price and takes no position on re-pricing or
+  retiring t1–t3; reconciling the two ladders stays open doctrine work.
+- **Strength is still the month-branch seasonal-state model only**, and no practitioner has read it.
+
+**Verification.** Full suite **45 files / 1560 tests** green (was 44 / 1543; +17, all in the new
+`tests/public_surface.test.js`). `index.html` **1485** lines, inside the 1500 rule with 15 to spare — the render logic went
+into `ui/public.js` per §6 rather than into the page. Four existing pins were updated **deliberately, not loosened**: the
+ladder and `isTier` pins in `tests/tiers.test.js`, the seal count 15 → 16 in that file and in `tests/payments_markup.test.js`
+(one new block seal, cell count unmoved at 14), and the engine's own surface-isolation assertion, which was written to fail
+the moment a surface appeared and now pins that **`ui/public.js` is the only importer** — moved, not deleted. The block
+header uses a `public-title` class, not `coord-title`, so the labels-reveal toggle and the prose coordinate census are
+untouched. **Not verified:** the local PII audit did not run (needs the gitignored pattern file, absent in a fresh
+container); no live-fire pass on a deploy preview (§8 gate 9) — this touches `index.html`, so that gate is outstanding.
+
+**Scope (files):** `core/payments.js` (TIER_ORDER + docs), `ui/tiers.js` (T4_COORDS + unseal), `ui/public.js` (new),
+`ui/payments.js` (fail-closed offer), `index.html` (block, CSS, CTA, boot), `DOCTRINE.md` (§1.D v0.58, footer → v0.58),
+`PUBLIC_TIER_SPEC.md` (§7 rewritten, original preserved per L17), `CLAUDE.md` (ui/ 10 → 11, tests/ 44 → 45),
+`tests/public_surface.test.js` (new), `tests/{tiers,payments_markup,public}.test.js`, this file, the L48 artifact.
+**UNTOUCHED:** `core/public.js` and `content/public.v1.js` (the engine and its tables are byte-identical to #144),
+`content/cards.v1.full.js`, `tests/fixtures.json`, every scanner allow-list, `core/profile.js`, dependencies, localStorage
+keys — no new key, no new network call, no new payment host in tracked source.
+
+**Rollback.** Revert this PR: the rung disappears, `TIER_ORDER` drops back to three, the block markup goes, and the engine
+returns to the unwired state #144 merged. No stored tier needs migration — nobody can have bought t4.
+
 ## 2026-07-29 — Public-tier computation engine + spec (engine only, no surface) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `b5cc119` ([#144](https://github.com/appleeatsapples-lang/8ball/pull/144)) on
@@ -551,6 +962,70 @@ v0.38–v0.40 precedent).
 Next: PR open → Codex relay fired immediately (L48 — verdict lands
 pre-merge) → audits/ artifact naming the PR → CI green → **merge only on
 operator word.**
+
+## 2026-07-25 — L48 gate split into its own `l48-gate` job (PR #122) — sighting #9
+
+**Backfilled 2026-07-29.** Entry written after the fact; #122 shipped without
+one and later entries (the 07-26 shape-predicate tightening, the 07-27
+predicate pin, #133, #142) all build on the job this PR created while no entry
+recorded its origin. Dated to the ship, placed above the same-day #118/#119
+entry. Everything below describes the repo **as of `7a9de2a`** — see the
+forward pointer at the end for what has since superseded it.
+
+**What shipped.** The L48 gate moved out of the `test` job into its own `l48`
+job reporting as check `l48-gate`. Squash-merged at `7a9de2a`.
+
+**Why.** The gate was the last step of `test`, so it was unreachable whenever
+an earlier step exited non-zero — a red suite hid whether the artifact was
+present, and the second failure surfaced only after the first was fixed. It
+also had no check name of its own, so branch protection could only ever
+require the whole `test` job.
+
+- **No `needs:`** — the independence is the point; it runs in parallel with
+  `test`, so both results land on the same run.
+- **No Node, no `npm ci`** — the gate is git plus grep. Checkout only, keeping
+  `fetch-depth: 0`, because the `git diff "$BASE"...HEAD` it depends on needs
+  the merge base.
+- **Gate script byte-identical at the split.** The `ci.yml` diff was a pure
+  insertion of the job wrapper; zero deletions in the script body.
+- **Step-level `if` kept, deliberately not lifted to the job** — a job-level
+  condition reports the check as *skipped* on push events, and a skipped job
+  can satisfy a required status check. That is the same false-green class the
+  workflow was later bitten by twice (#126 F1, #129 F2) and which the `edited`
+  trigger comment now records.
+- **CLAUDE.md in lockstep**, naming both contexts (`test`, `l48-gate`).
+
+**Verification — proven in both directions on one PR, one push apart.** On
+`e02e324` the new job returned **red in 5s** while `test` was still running,
+failing for the right reason (`PR='122'` resolved, diff evaluated against full
+history, artifact absent). On `ede720c`, after the override landed, it returned
+**green in 6s**, again finishing first. Under the old shape neither verdict
+could arrive until the whole suite had run, so the two-directional result — not
+the green alone — is the evidence. Suite at merge: **1369/1369 (38 files)**.
+
+**L48 — sighting #9, self-documenting.** #122 is not docs-only, so the gate
+fired on the PR modifying the gate — the same recursion as sighting #6 (#98,
+the scope widening blocked by its own widened step). No cross-model read was
+run, commissioned, or in flight; override filed pre-merge at
+`audits/L48_override_pr122_2026-07-25.md` on explicit controller word. Unlike
+sighting #8 it is logged **before** the merge, the clean shape #6 set. The
+record names what it does not cover: had the split broken the gate's diff
+resolution, the failure mode would have been a silent *pass* rather than a
+visible red, and the run proving it did not was executed by the same lane that
+wrote the change.
+
+**No DOCTRINE change.** §7's six stages were unaffected — L48 is a §8/§10 gate
+alongside them, not one of the six.
+
+**Superseded since — read the later entries, not this one, for the live gate.**
+This PR created the job; it did not harden the predicate. The 2026-07-26
+tightening narrowed the artifact match to the response/override shapes only
+(closing the any-`audits/*`-file false-green), #133 further required the
+artifact to be **added** rather than renamed or copied in, and #142 added the
+`edited` trigger so a retargeted PR still draws checks. The gap this entry
+originally recorded as standing — a red check does not block a merge, branch
+protection requiring `test` and `l48-gate` being repo-admin and unset — was
+still open at the time of writing.
 
 ## 2026-07-25 — CLAUDE.md refresh + CI node24 runtime bump (PRs #118, #119)
 

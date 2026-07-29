@@ -96,6 +96,7 @@ const INIT_MODULES = {
   initMeaningsUI: 'ui/meanings.js',
   initShareUI: 'ui/share.js',
   initCitySearchUI: 'ui/citysearch.js',
+  initPublicUI: 'ui/public.js',
 };
 
 // Brace-match the first object-literal argument of a call. Regex cannot do

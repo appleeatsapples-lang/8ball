@@ -39,6 +39,11 @@ const HOOK_DEFAULTS = {
   loadSavedProfile: () => null,
   populateRisingFields: () => {},
   profileFromPayload: () => ({ lifePath: 5 }),
+  // Entitlement lookup for the written-entry rotation. Mirrors the real
+  // ladder rather than returning a constant: `cardEntry` enters at t3 and
+  // t4 inherits it (ui/tiers.js T3_COORDS/T4_COORDS). A constant here would
+  // make the entitlement tests below vacuous.
+  coordsForTier: tier => new Set(['t3', 't4'].includes(tier) ? ['cardEntry'] : []),
   ensureFacetIndex: () => {},
   showResult: () => {},
   clearProfile: () => {},
@@ -114,6 +119,7 @@ describe('ui/boot.js — step order', () => {
       'loadSavedProfile',
       'populateRisingFields',
       'profileFromPayload',
+      'coordsForTier',
       'ensureFacetIndex',
       'showResult',
     ]);
@@ -185,14 +191,21 @@ describe('ui/boot.js — rehydration', () => {
     expect(hooks.showResult).toHaveBeenCalledWith(profile, { tier: 't2' });
   });
 
-  it('anchors the facet index only at t3', () => {
-    for (const tier of ['free', 't1', 't2']) {
+  it('anchors the facet index by entitlement, not by tier literal', () => {
+    // Was `tier === 't3'` until #168 moved it to coordsForTier(tier).has(
+    // 'cardEntry'). t4 inherits cardEntry from T3_COORDS, so the t4 row is
+    // the one the old literal got wrong — it would have dropped the written
+    // deck for a tier that paid for it.
+    for (const [tier, anchored] of [
+      ['free', false], ['t1', false], ['t2', false], ['t3', true], ['t4', true],
+    ]) {
       const { hooks } = makeHooks({
         loadSavedProfile: () => PAYLOAD,
         getRenderTier: () => tier,
       });
       runBoot(hooks);
-      expect(hooks.ensureFacetIndex, tier).not.toHaveBeenCalled();
+      if (anchored) expect(hooks.ensureFacetIndex, tier).toHaveBeenCalled();
+      else expect(hooks.ensureFacetIndex, tier).not.toHaveBeenCalled();
       expect(hooks.showResult, tier).toHaveBeenCalled();
     }
   });

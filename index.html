@@ -215,14 +215,23 @@
   .unsealing .coord-seal { display: block; animation: sealOut 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
   .unsealing .coord-val,
   .card-entry.unsealing .card-habit,
-  .card-entry.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
+  .card-entry.unsealing .card-note,
+  .public-read.unsealing .card-habit,
+  .public-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
+  /* sealed public-read block (t4, §1.D v0.58) — same seal treatment */
+  .public-read { position: relative; min-height: 52px; }
+  .public-title { font-size: 10px; letter-spacing: .14em; opacity: .55; margin-bottom: 4px; visibility: hidden; }
+  .card.labels-revealed .public-title { visibility: visible; }
+  .public-read .coord-seal { inset: 16px 10% 4px; }
   @keyframes sealOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
   @keyframes valIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
     .unsealing .coord-seal { display: none; animation: none; }
     .unsealing .coord-val,
     .card-entry.unsealing .card-habit,
-    .card-entry.unsealing .card-note { animation: none; }
+    .card-entry.unsealing .card-note,
+    .public-read.unsealing .card-habit,
+    .public-read.unsealing .card-note { animation: none; }
   }
   .labels-toggle {
     display: block;
@@ -417,7 +426,9 @@
      above supplies the AA-passing on-dark label color.) */
   .polar-message[hidden],
   .legacy-hint[hidden],
-  .field-error[hidden] { display: none; }
+  .field-error[hidden],
+  .modal .modal-cta[hidden],
+  .btn-block[hidden] { display: none; }
 
   /* ── buttons ─────────────────────────────────────────────────── */
   .btn {
@@ -915,6 +926,14 @@
               <div class="card-note" id="card-note"></div>
               <span class="coord-seal" aria-hidden="true"></span>
             </div>
+            <div class="public-read" id="public-read">
+              <div class="card-prose-rule"></div>
+              <div class="public-title">DOMAIN FIT</div>
+              <div class="card-habit" id="public-families"></div>
+              <div class="card-note" id="public-antifit"></div>
+              <div class="card-note" id="public-roleline"></div>
+              <span class="coord-seal" aria-hidden="true"></span>
+            </div>
           </article>
         </div>
 
@@ -1002,6 +1021,7 @@
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
     <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
+      <a class="modal-cta" id="paywall-cta-t4" target="_self" hidden>buy public — the complete sheet, read as domains of work — $9</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -1023,9 +1043,10 @@ import {
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
-  handlePaidReturn,
+  handlePaidReturn, applyT4Offer,
 } from './ui/payments.js';
-import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary } from './ui/tiers.js';
+import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
+import { initPublicUI, renderPublicRead } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import {
   initProfileUI,
@@ -1094,7 +1115,7 @@ readingsUI = initReadingsUI(
       populateRisingFields(payload);
       const tier = getRenderTier();
       // Archive-open mirrors submit-path facet anchoring (§1.H): a different pair re-anchors; the same pair preserves, like a reload.
-      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
+      if (coordsForTier(tier).has('cardEntry')) ensureFacetIndex(profile.lifePath, { reset: isNewPair(payload, prev) });
       showResult(profile, { tier, arrive: true });
       return true;
     },
@@ -1138,6 +1159,7 @@ initTiersUI({
   sunTitle: $('coord-sun-title'),
   animalTitle: $('coord-animal-title'),
   entry: $('card-entry'),
+  publicRead: $('public-read'),
   cells: {
     arcana: $('coord-arcana-symbol'), element: $('coord-element-symbol'),
     sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'),
@@ -1148,6 +1170,9 @@ initTiersUI({
     dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
+initPublicUI({ root: $('public-read'), families: $('public-families'),
+  antiFit: $('public-antifit'), roleLine: $('public-roleline') });
+applyT4Offer($('paywall-cta-t4'));
 initMeaningsUI({ cardFace });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1194,9 +1219,10 @@ function renderCard(profile, opts) {
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
   const density = tierDensitySummary(tier);
-  densityStrip.textContent = density.sealed > 0
+  const blockTail = coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed';
+  densityStrip.textContent = (density.sealed > 0
     ? `${density.open} of ${density.total} coordinates open · ${density.sealed} sealed at paid tiers`
-    : `${density.total} of ${density.total} coordinates open · full sheet`;
+    : `${density.total} of ${density.total} coordinates open · full sheet`) + blockTail;
   try {
     const card = getCard(profile);
     cardCatalog.textContent = `no. ${card.catalog}`;
@@ -1212,6 +1238,10 @@ function renderCard(profile, opts) {
   // icon now; the entry slots are constant-skeleton (sealed shell via
   // ui/tiers.js) and MUST be cleared below t3 (§1.D v0.37 DOM purity).
   cardFace.classList.toggle('unlocked', cardEntry);
+  // t4 public read (§1.D v0.58) — entitlement resolved HERE, from the same
+  // `tier` the seals use, never inside ui/public.js.
+  const publicOpen = coordsForTier(tier).has('publicRead');
+  renderPublicRead(profile, { entitled: publicOpen });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;
@@ -1291,7 +1321,7 @@ function shakeAgain() {
   const tier = getRenderTier();
   // Free/t1/t2 flips stay cosmetic. A t3 flip advances the written-entry
   // slot — owned, unlimited (§1.H v0.55) — before the 320ms reveal beat.
-  const facetState = tier === 't3' ? consumeFacetShake(currentProfile.lifePath) : null;
+  const facetState = coordsForTier(tier).has('cardEntry') ? consumeFacetShake(currentProfile.lifePath) : null;
   flipLocked = true;
   setFaceUp(true);
   setTimeout(() => {
@@ -1363,7 +1393,7 @@ profileForm.addEventListener('submit', e => {
     // action only gates the facet reset below (β idempotence).
     readingsUI.setActiveReading(null);
     const tier = getRenderTier();
-    if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: isNew });
+    if (coordsForTier(tier).has('cardEntry')) ensureFacetIndex(profile.lifePath, { reset: isNew });
     showResult(profile, { tier, arrive: true });
   } catch (_) {
     // form already validates input shape; silent on edge cases.
@@ -1449,6 +1479,7 @@ runBoot({
   loadSavedProfile,
   populateRisingFields,
   profileFromPayload,
+  coordsForTier,
   ensureFacetIndex,
   showResult,
   clearProfile,

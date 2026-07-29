@@ -30,6 +30,7 @@ export function runBoot({
   loadSavedProfile,
   populateRisingFields,
   profileFromPayload,
+  coordsForTier,
   ensureFacetIndex,
   showResult,
   clearProfile,
@@ -52,7 +53,7 @@ export function runBoot({
       populateRisingFields(existing);
       const profile = profileFromPayload(existing);
       const tier = getRenderTier();
-      if (tier === 't3') ensureFacetIndex(profile.lifePath, { reset: consumedPending });
+      if (coordsForTier(tier).has('cardEntry')) ensureFacetIndex(profile.lifePath, { reset: consumedPending });
       showResult(profile, { tier });
     } catch (_) {
       // Corrupted stored profile — a malformed DOB, or (since the calc core

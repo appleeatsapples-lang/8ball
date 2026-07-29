@@ -55,7 +55,7 @@ red check today, so treat both as advisory-but-binding by convention.
 - **`npm test`** — carries §7 stages 1–4 and 6 (calc+pipeline, privacy scan,
   PII scan, dependency discipline, payments state machine).
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1460, so there are ~40 lines of headroom; past that, split into `ui/*.js`
+  at 1491, so there are ~9 lines of headroom; past that, split into `ui/*.js`
   per §6 rather than trimming to squeeze under.
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
@@ -95,13 +95,13 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
 ## Repository shape
 
     core/         pure functions — 11 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math, public)
-    ui/           ES modules — boot, citysearch, concordance, labels, meanings, modals, payments, profile, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup and boot is pure sequencing, both hooks-only (11 modules)
-    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js (public-tier tables — favorability, domain families, expression modes, role postures; engine-only, no surface)
+    ui/           ES modules — boot, citysearch, concordance, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup and boot is pure sequencing, both hooks-only; public renders the t4 read (12 modules)
+    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-tier tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        46 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    tests/        47 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
-    cards/        288 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
+    cards/        368 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
     scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/
     .github/      CI workflow (6 stages per §7) + PR template
     index.html    single-file UI, ≤1500 lines

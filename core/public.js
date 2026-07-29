@@ -2,15 +2,16 @@
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no model call at
 // runtime or at any other time: every value below is a lookup or an integer
-// reduction over the frozen tables in content/public.v1.js. Same date in,
+// reduction over the frozen tables in content/public.v2.js. Same date in,
 // byte-identical object out, forever.
 //
 // SCOPE. This module computes only the public-tier reading. It does not enter
 // getCard / resolveBracket (the catalog driver stays (sunSign, animal) per
 // DOCTRINE §1), does not read or write storage, does not know about tiers,
-// prices, entitlement or any UI surface. Nothing in ui/, index.html or
-// core/payments.js imports it yet — wiring is a separate change on an
-// operator-approved doctrine amendment (see PUBLIC_TIER_SPEC.md §7).
+// prices, entitlement or any UI surface. As of §1.D v0.58 it HAS a consumer —
+// ui/public.js, the only one, pinned by a test — but the direction of that
+// dependency is one-way: the surface is told whether the device is entitled;
+// this module never asks (see PUBLIC_TIER_SPEC.md §7).
 //
 // INPUT. Birth date only, `YYYY-MM-DD`. The day master derives from the day
 // pillar, which is date-only, so no birth time is required. An hour may be
@@ -22,12 +23,13 @@
 // ARCHITECTURE NOTE — first core/ → content/ import edge. Every other core/
 // module is table-free or carries its own constants; the public tier is
 // explicitly table-driven, and DOCTRINE §6 puts versioned static data in
-// content/. So this module reads its tables from content/public.v1.js. The
-// direction is one-way (content/ imports nothing from core/) and adds no
-// runtime capability — content/public.v1.js is frozen data.
+// content/. So this module reads its tables from content/public.v2.js, which
+// carries the v1 tables unedited and corrects one provenance string (§4
+// versioned-not-edited). The direction is one-way (content/ imports nothing
+// from core/) and adds no runtime capability — both files are frozen data.
 
 import { getDayPillar, STEMS } from './pillars.js';
-import { getInnerAnimal, getLifePath, getLifePathSum } from './profile.js';
+import { getInnerAnimal, getBirthday } from './profile.js';
 import { getBirthCard } from './birthcard.js';
 import {
   ELEMENT_SHENG,
@@ -39,7 +41,7 @@ import {
   WORK_MODES,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
-} from '../content/public.v1.js';
+} from '../content/public.v2.js';
 
 // ── Input ───────────────────────────────────────────────────────────────────
 
@@ -120,34 +122,36 @@ export function getFavorability(dayMasterElement, strength) {
   return entry;
 }
 
-// ── 2. Life path → mode of work ─────────────────────────────────────────────
+// ── 2. Birthday → mode of work ──────────────────────────────────────────────
 //
-// NINE modes, not eleven, and driven by the LIFE PATH, not by anything this
-// tier computes for itself. Two controller rulings, both 2026-07-29, recorded
-// here because both overruled the brief rather than interpreted it:
+// NINE modes, keyed by the BIRTHDAY number: the day of the month reduced by
+// the same nine-number rule core/profile.js owns (§1.B v0.54). Three
+// controller rulings shaped this key, all recorded because each overruled
+// something rather than interpreting it:
 //
-//   1. The first draft retained the 11 and 22 stops, making the mode table
-//      eleven entries and diverging from the strict nine-number reduction
-//      DOCTRINE §1.B v0.54 (calc v3) fixed. Ruling: collapse to nine.
-//   2. Collapsing exposed that a date digit sum reduced strictly to 1..9 IS
-//      the life path — the same sum under the same reduction that
-//      core/profile.js already ships and §1.D v0.38 puts on the free surface.
-//      The field was still called `expression`, which by then named neither
-//      §1.B's name-derived expression/name number nor any distinct number.
-//      Ruling: rename. The driver is `lifePath` everywhere, and the block it
-//      selects is `mode` — the mode of work — which records the life-path
-//      value that chose it.
+//   1. The first draft retained the 11 and 22 stops, making the table eleven
+//      entries and diverging from §1.B v0.54. Ruling: collapse to nine.
+//   2. Collapsing exposed that the driver was then the LIFE PATH — the same
+//      sum under the same reduction, and a coordinate the free sheet has
+//      shown since §1.D v0.38. Ruling: rename it to what it was.
+//   3. Naming it made the real problem legible: a $9 rung whose only new
+//      content re-read a coordinate every visitor already has. Ruling
+//      (§1.D v0.59, spec §6.1): move the driver off the free surface.
 //
-// There is deliberately no wrapper here. An earlier draft kept
-// getExpressionSum / getExpressionNumber delegating to core/profile.js; with
-// the honest name there is nothing left for them to do, so buildPublicReading
-// calls getLifePath / getLifePathSum directly. A private copy of a rule
-// core/profile.js owns is the drift risk core/math.js's header names, and a
-// wrapper that exists only to re-label it is the same risk with a nicer face.
+// The birthday is the replacement because it is date-only (the input contract
+// does not change), its domain is exactly 1..9 (the authored table carries
+// over unedited), and it is a t2 coordinate — so the driver is itself paid
+// information. content/meanings.v2.js already names it "the recurring skill",
+// which is a better description of a mode of work than the life path's "the
+// long route".
+//
+// As with the life path before it, there is deliberately no wrapper: the
+// reduction rule belongs to core/profile.js and this module calls getBirthday
+// directly rather than keeping a private copy under a tier-local name.
 
-export function getWorkMode(lifePath) {
-  const mode = WORK_MODES[lifePath];
-  if (!mode) throw new Error(`No work mode for life path=${lifePath}`);
+export function getWorkMode(birthday) {
+  const mode = WORK_MODES[birthday];
+  if (!mode) throw new Error(`No work mode for birthday=${birthday}`);
   return mode;
 }
 
@@ -156,10 +160,10 @@ export function getWorkMode(lifePath) {
 // Rank an element's three families by the mode's character priority. Each
 // element carries exactly one family per character, so the sort is a total
 // order with no tie-break and no positional bias.
-export function rankDomainFamilies(element, lifePath) {
+export function rankDomainFamilies(element, birthday) {
   const families = DOMAIN_FAMILIES[element];
   if (!families) throw new Error(`No domain families for element="${element}"`);
-  const { priority } = getWorkMode(lifePath);
+  const { priority } = getWorkMode(birthday);
   return families
     .map(family => ({ family, rank: priority.indexOf(family.character) }))
     .sort((a, b) => a.rank - b.rank)
@@ -172,10 +176,10 @@ export function rankDomainFamilies(element, lifePath) {
 // never also the unfavourable one — pinned in tests/public.test.js) and
 // families never cross elements, the anti-fit can never collide with a fit
 // family.
-export function getAntiFitFamily(element, lifePath) {
+export function getAntiFitFamily(element, birthday) {
   const families = DOMAIN_FAMILIES[element];
   if (!families) throw new Error(`No domain families for element="${element}"`);
-  const { priority } = getWorkMode(lifePath);
+  const { priority } = getWorkMode(birthday);
   const lastCharacter = priority[priority.length - 1];
   const family = families.find(f => f.character === lastCharacter);
   if (!family) {
@@ -193,10 +197,10 @@ export function getRolePosture(arcanaNumber) {
 }
 
 // One line, assembled from exactly two table fields: the posture's stance
-// (from the birth card) and the mode's method (from the life path). No
+// (from the birth card) and the mode's method (from the birthday). No
 // adjectives are computed, nothing is generated — the line is a join.
-export function getRoleLine(lifePath, arcanaNumber) {
-  return `${getRolePosture(arcanaNumber).stance}, ${getWorkMode(lifePath).method}.`;
+export function getRoleLine(birthday, arcanaNumber) {
+  return `${getRolePosture(arcanaNumber).stance}, ${getWorkMode(birthday).method}.`;
 }
 
 // ── Assembly ────────────────────────────────────────────────────────────────
@@ -218,9 +222,8 @@ export function buildPublicReading(dobIso, _opts = {}) {
   const primaryFavorable = favorability.favorable[0];
   const primaryUnfavorable = favorability.unfavorable[0];
 
-  const lifePathSum = getLifePathSum(year, month, day);
-  const lifePath = getLifePath(year, month, day);
-  const mode = getWorkMode(lifePath);
+  const birthday = getBirthday(day);
+  const mode = getWorkMode(birthday);
 
   const birthCard = getBirthCard(year, month, day);
   const posture = getRolePosture(birthCard.number);
@@ -248,8 +251,8 @@ export function buildPublicReading(dobIso, _opts = {}) {
     primaryUnfavorable,
     favorabilityNote: favorability.body,
     mode: {
-      lifePath,
-      lifePathSum,
+      birthday,
+      dayOfMonth: day,
       theme: mode.theme,
       register: mode.register,
       method: mode.method,
@@ -261,10 +264,10 @@ export function buildPublicReading(dobIso, _opts = {}) {
       register: posture.register,
       stance: posture.stance,
     },
-    families: rankDomainFamilies(primaryFavorable, lifePath)
+    families: rankDomainFamilies(primaryFavorable, birthday)
       .map((family, index) => ({ rank: index + 1, ...family })),
-    antiFit: { ...getAntiFitFamily(primaryUnfavorable, lifePath) },
-    roleLine: getRoleLine(lifePath, birthCard.number),
+    antiFit: { ...getAntiFitFamily(primaryUnfavorable, birthday) },
+    roleLine: getRoleLine(birthday, birthCard.number),
     sources: PUBLIC_SOURCES,
   };
 }

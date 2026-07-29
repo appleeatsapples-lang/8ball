@@ -1,7 +1,7 @@
 // 8ball / tests / public.test.js
 //
 // Public-tier computation engine (core/public.js) + its tables
-// (content/public.v1.js).
+// (content/public.v2.js, which carries content/public.v1.js unedited).
 //
 // Five required properties, per the tier brief, each with its own describe
 // block below: determinism, table coverage with no gaps, a date-only path
@@ -13,8 +13,8 @@
 // Fixture dates (DOCTRINE §11): synthetic. Every one is a calendar or
 // calibration anchor chosen for the calc path it exercises — the day-pillar
 // anchors shared with tests/pillars.test.js, the calc v3.1 correction dates,
-// the three digit sums that used to stop at a master value, the leap day, and
-// the ends of the 1900–2100 solar-term table. No real person's date of birth.
+// every value of the mode driver, the leap day, and the ends of the
+// 1900–2100 solar-term table. No real person's date of birth.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -46,10 +46,11 @@ import {
   WORK_MODES,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
-} from '../content/public.v1.js';
+} from '../content/public.v2.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
-import { ANIMALS, buildProfile, getInnerAnimal, getLifePath, getLifePathSum } from '../core/profile.js';
+import { TIER_COORDS } from '../ui/tiers.js';
+import { ANIMALS, buildProfile, getInnerAnimal, getBirthday } from '../core/profile.js';
 import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
 import { MAJOR_ARCANA, getBirthCard } from '../core/birthcard.js';
 import {
@@ -66,10 +67,12 @@ const fixture = JSON.parse(
 );
 const publicSrc = readFileSync(join(REPO_ROOT, 'core', 'public.js'), 'utf-8');
 
-// The mode driver's domain is the shipped nine-number life-path registry —
-// imported, not restated, so this tier can never disagree with §1.B about
-// which values exist.
-const LIFE_PATHS = LIFE_PATH_VALUES;
+// The mode driver's domain is the shipped nine-number registry — imported,
+// not restated, so this tier can never disagree with §1.B about which values
+// exist. As of §1.D v0.59 the driver is the BIRTHDAY number, whose domain is
+// the same nine values (day-of-month reduced).
+const NINE = LIFE_PATH_VALUES;
+const FREE_COORD_KEYS = TIER_COORDS.free;
 
 // A deterministic sweep across the whole supported solar-term range. The
 // stride is prime so it walks every month and every weekday position rather
@@ -155,9 +158,9 @@ describe('public tier — coverage, no gaps', () => {
     }
   });
 
-  it('every element × life path ranks three distinct families and an anti-fit', () => {
+  it('every element × birthday ranks three distinct families and an anti-fit', () => {
     for (const element of ELEMENTS) {
-      for (const n of LIFE_PATHS) {
+      for (const n of NINE) {
         const ranked = rankDomainFamilies(element, n);
         expect(ranked, `${element} × ${n}`).toHaveLength(3);
         expect(new Set(ranked.map(f => f.key)).size).toBe(3);
@@ -169,12 +172,12 @@ describe('public tier — coverage, no gaps', () => {
     }
   });
 
-  it('every life path has a mode whose priority is a permutation of the characters', () => {
+  it('every birthday has a mode whose priority is a permutation of the characters', () => {
     expect(Object.keys(WORK_MODES).map(Number).sort((a, b) => a - b))
-      .toEqual([...LIFE_PATHS]);
-    for (const n of LIFE_PATHS) {
+      .toEqual([...NINE]);
+    for (const n of NINE) {
       const mode = getWorkMode(n);
-      expect(mode.lifePath).toBe(n);
+      expect(mode.birthday).toBe(n);
       expect([...mode.priority].sort()).toEqual([...FAMILY_CHARACTERS].sort());
       expect(mode.theme.length).toBeGreaterThan(0);
       expect(mode.method.length).toBeGreaterThan(0);
@@ -208,7 +211,7 @@ describe('public tier — coverage, no gaps', () => {
     for (const dob of sweepDates()) {
       const r = buildPublicReading(dob);
       count += 1;
-      expect(LIFE_PATHS, dob).toContain(r.mode.lifePath);
+      expect(NINE, dob).toContain(r.mode.birthday);
       expect(r.posture.number, dob).toBeGreaterThanOrEqual(0);
       expect(r.posture.number, dob).toBeLessThanOrEqual(21);
       expect(r.families, dob).toHaveLength(3);
@@ -276,7 +279,7 @@ describe('public tier — anti-fit is never a fit family', () => {
       for (const strength of ['strong', 'weak']) {
         const { favorable, unfavorable } = getFavorability(element, strength);
         expect(favorable).not.toContain(unfavorable[0]);
-        for (const n of LIFE_PATHS) {
+        for (const n of NINE) {
           const fit = rankDomainFamilies(favorable[0], n).map(f => f.key);
           const anti = getAntiFitFamily(unfavorable[0], n).key;
           expect(fit, `${element}/${strength} × ${n}`).not.toContain(anti);
@@ -299,12 +302,17 @@ describe('public tier — anti-fit is never a fit family', () => {
 describe('public tier — snapshot fixtures', () => {
   it('carries at least 12 cases, and they cover the calc paths they claim to', () => {
     expect(fixture.cases.length).toBeGreaterThanOrEqual(12);
+    // Every date calc v3.1 moved is in the set — the LNY and all three
+    // solar terms — so a regression in the era-offset rule fails here too.
+    for (const dob of ['1916-02-03', '1911-05-06', '1927-09-09']) {
+      expect(fixture.cases.map(c => c.dob), dob).toContain(dob);
+    }
     const readings = fixture.cases.map(c => c.reading);
     expect(new Set(readings.map(r => r.dayMaster.element)).size).toBe(5);
     expect(new Set(readings.map(r => r.strength)).size).toBe(2);
     expect(new Set(readings.map(r => r.season.state)).size).toBe(5);
-    expect([...new Set(readings.map(r => r.mode.lifePath))].sort((a, b) => a - b))
-      .toEqual([...LIFE_PATHS]);
+    expect([...new Set(readings.map(r => r.mode.birthday))].sort((a, b) => a - b))
+      .toEqual([...NINE]);
     for (const c of fixture.cases) expect(c.note.length).toBeGreaterThan(10);
   });
 
@@ -341,10 +349,10 @@ describe('public tier — independent anchors', () => {
   //     → rat → water season
   //   earth controls water (ke) → 囚 qiu → weak
   //   earth weak → favourable [fire, earth], unfavourable [wood, metal, water]
-  //   life path 2+0+0+0 + 1 + 1 = 4 → mode 4 (structure),
-  //     priority [stewardship, origination, transmission]
-  //   fire families by that priority → energy, tech, media
-  //   anti-fit = wood's transmission family → teaching
+  //   birthday = day-of-month 1 → mode 1 (initiative),
+  //     priority [origination, transmission, stewardship]
+  //   fire families by that priority → tech, media, energy
+  //   anti-fit = wood's stewardship family → health
   //   birth card 2+0+0+0+1+1 = 4 → IV · the emperor
   it('reproduces the fully hand-walked 2000-01-01 case', () => {
     const r = buildPublicReading('2000-01-01');
@@ -357,12 +365,12 @@ describe('public tier — independent anchors', () => {
     expect(r.strength).toBe('weak');
     expect(r.favorable).toEqual(['fire', 'earth']);
     expect(r.unfavorable).toEqual(['wood', 'metal', 'water']);
-    expect(r.mode).toMatchObject({ lifePathSum: 4, lifePath: 4, theme: 'structure' });
+    expect(r.mode).toMatchObject({ dayOfMonth: 1, birthday: 1, theme: 'initiative' });
     expect(r.posture).toMatchObject({ number: 4, roman: 'IV', arcana: 'the emperor' });
-    expect(r.families.map(f => f.key)).toEqual(['energy', 'tech', 'media']);
-    expect(r.antiFit.key).toBe('teaching');
+    expect(r.families.map(f => f.key)).toEqual(['tech', 'media', 'energy']);
+    expect(r.antiFit.key).toBe('health');
     expect(r.roleLine).toBe(
-      'a role held as the setting of order, worked to a plan, in fixed stages.',
+      'a role held as the setting of order, worked from a standing start, one line at a time.',
     );
   });
 
@@ -382,28 +390,43 @@ describe('public tier — independent anchors', () => {
     }
   });
 
-  it('the mode driver IS the shipped life path — no second implementation', () => {
-    // Two controller rulings on 2026-07-29: collapse to nine, then rename.
-    // core/public.js exports no number function at all now; the reading reads
+  it('the mode driver IS the shipped birthday number — no second implementation', () => {
+    // Three controller rulings on 2026-07-29: collapse to nine, rename to
+    // what it was, then move it OFF the free surface (§1.D v0.59, spec §6.1).
+    // core/public.js exports no number function of its own; the reading reads
     // its driver from core/profile.js. If these ever diverge, one of the two
     // changed alone, which is the drift this pins against.
     expect(codeOnly(publicSrc)).not.toMatch(/reduceExpression|getExpressionNumber|getExpressionSum/);
     for (const dob of sweepDates(23)) {
-      const [y, m, d] = dob.split('-').map(Number);
+      const [, , d] = dob.split('-').map(Number);
       const { mode } = buildPublicReading(dob);
-      expect(mode.lifePath, dob).toBe(getLifePath(y, m, d));
-      expect(mode.lifePathSum, dob).toBe(getLifePathSum(y, m, d));
+      expect(mode.birthday, dob).toBe(getBirthday(d));
+      expect(mode.dayOfMonth, dob).toBe(d);
     }
   });
 
-  it('carries the master stops through to their reduced values', () => {
-    // The three dates whose sums used to stop early, before the collapse.
-    expect(buildPublicReading('1919-01-01').mode)
-      .toMatchObject({ lifePathSum: 22, lifePath: 4 });  // 22 → 2+2
-    expect(buildPublicReading('2000-05-04').mode)
-      .toMatchObject({ lifePathSum: 11, lifePath: 2 });  // 11 → 1+1
-    expect(buildPublicReading('1930-09-29').mode)
-      .toMatchObject({ lifePathSum: 33, lifePath: 6 });  // 33 → 3+3
+  it('the driver is NOT a free-surface coordinate — that was the whole ruling', () => {
+    // The mode used to be keyed by the life path, free since §1.D v0.38, so
+    // the paid rung's only new content re-read something every visitor
+    // already had. The birthday is a t2 (`numbers2`) coordinate.
+    expect(FREE_COORD_KEYS).toContain('lifePath');
+    expect(FREE_COORD_KEYS).not.toContain('birthday');
+    expect(codeOnly(publicSrc)).not.toMatch(/getLifePath/);
+  });
+
+  it('reduces the day of the month, and every day of a month resolves', () => {
+    // No master stops are reachable here: the largest day is 31 → 4.
+    expect(buildPublicReading('2000-01-29').mode).toMatchObject({ dayOfMonth: 29, birthday: 2 });
+    expect(buildPublicReading('2000-01-31').mode).toMatchObject({ dayOfMonth: 31, birthday: 4 });
+    expect(buildPublicReading('2000-01-09').mode).toMatchObject({ dayOfMonth: 9, birthday: 9 });
+    const seen = new Set();
+    for (let d = 1; d <= 31; d++) {
+      const iso = `2000-01-${String(d).padStart(2, '0')}`;
+      const { mode } = buildPublicReading(iso);
+      expect(NINE, iso).toContain(mode.birthday);
+      seen.add(mode.birthday);
+    }
+    expect([...seen].sort((a, b) => a - b)).toEqual([...NINE]);
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
@@ -423,7 +446,7 @@ describe('public tier — independent anchors', () => {
       expect(r.posture.number, dob).toBe(card.number);
       expect(r.posture.roman, dob).toBe(card.roman);
       expect(r.posture.arcana, dob).toBe(card.name);
-      expect(r.roleLine, dob).toBe(getRoleLine(r.mode.lifePath, card.number));
+      expect(r.roleLine, dob).toBe(getRoleLine(r.mode.birthday, card.number));
     }
   });
 });
@@ -546,10 +569,12 @@ describe('public tier — voice register (§2 / §4)', () => {
 });
 
 describe('public tier — surface isolation', () => {
-  it('nothing in ui/, index.html or core/ imports core/public.js yet', () => {
-    // The engine ships ahead of any surface, per the tier brief (no UI, no
-    // pricing wiring). Wiring it is a deliberate change that updates this
-    // test in the same commit — it should never happen silently.
+  it('ui/public.js is the ONLY importer of core/public.js', () => {
+    // This assertion has MOVED, not loosened. Until §1.D v0.58 it read
+    // "nothing imports the engine yet" and was written to fail the moment a
+    // surface appeared — which is exactly what it did when the t4 rung was
+    // wired. It now pins the single seam: one DOM controller consumes the
+    // engine, so a second, unreviewed wiring still fails CI.
     const consumers = [];
     for (const rel of [
       ...readdirSync(join(REPO_ROOT, 'ui')).map(f => join('ui', f)),
@@ -559,7 +584,17 @@ describe('public tier — surface isolation', () => {
       const src = readFileSync(join(REPO_ROOT, rel), 'utf-8');
       if (/["'`][^"'`]*core\/public\.js|from '\.\/public\.js'/.test(src)) consumers.push(rel);
     }
-    expect(consumers, `unexpected importers of core/public.js: ${consumers.join(', ')}`).toEqual([]);
+    expect(consumers).toEqual([join('ui', 'public.js')]);
+  });
+
+  it('the engine still knows nothing about tiers, prices or entitlement', () => {
+    // The wiring went the other way round on purpose: ui/public.js is told
+    // whether the device is entitled; core/public.js never asks.
+    // codeOnly again: the module's header comment names the capabilities it
+    // deliberately does NOT have, and that sentence must not trip its own ban.
+    const uiSrc = codeOnly(readFileSync(join(REPO_ROOT, 'ui', 'public.js'), 'utf-8'));
+    expect(uiSrc).not.toMatch(/localStorage|fetch\(|gumroad/i);
+    expect(uiSrc).toMatch(/entitled/);
   });
 
   it('the engine reads no tier, price, entitlement or storage state', () => {

@@ -1,4 +1,23 @@
 # CODEX RETROACTIVE AUDIT PACKET — PR #140 (calc v3.1: era-correct cusp offset) — 2026-07-29
+#
+# Fire line (from any terminal):
+#   cd ~/dev/8ball && git checkout main && git pull && \
+#   ~/ai-relay/relay --models codex --base 8b51c38^ \
+#     "$(cat audits/codex_pr140_retroactive_audit_2026-07-29_brief.md)"
+#
+# NOTE — the base is `8b51c38^`, NOT `origin/main`. This is a RETROACTIVE audit:
+# #140 is already merged, so `--base origin/main` yields an empty diff and the
+# auditor sees nothing under review. `8b51c38` is #140's squash and its parent is
+# `521b19a`, so the range isolates exactly this change with no unrelated work in
+# it. Equivalent without the relay: `git show 8b51c38`.
+#
+# The verdict files as
+# audits/codex_pr140_retroactive_audit_2026-07-29_response.md — the
+# `retroactive_audit` shape, deliberately outside the l48-gate predicate so it
+# cannot green any gate. Save it verbatim per agents/auditor.md procedure 1.
+#
+# The packet below is self-contained and does not require the diff. The base is
+# given so the auditor can re-derive rather than trust the inlined copy.
 
 ## Why this is `retroactive_audit` and not `premerge_audit`
 

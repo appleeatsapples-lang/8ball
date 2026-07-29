@@ -64,7 +64,13 @@ jobs:
         run: |
           BASE="origin/${{ github.event.pull_request.base.ref }}"
           git fetch --no-tags --prune origin "${{ github.event.pull_request.base.ref }}"
-          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          # --no-renames is load-bearing. git enables rename detection by
+          # default (diff.renames, since 2.9), and a detected rename prints
+          # ONLY the destination path — the source silently leaves the list.
+          # Without this flag `git mv content/cards.v1.full.js archive.md`
+          # reads as a documentation change and this gate waves it through.
+          # Same flag, same reason, on the l48 job's CHANGED= below.
+          CHANGED=$(git diff --no-renames --name-only "$BASE"...HEAD)
           echo "Changed files in PR:"
           echo "$CHANGED"
           if echo "$CHANGED" | grep -qE '^(DOCTRINE\.md|content/[^/]+\.js)$'; then
@@ -104,7 +110,15 @@ jobs:
         run: |
           BASE="origin/${{ github.event.pull_request.base.ref }}"
           git fetch --no-tags --prune origin "${{ github.event.pull_request.base.ref }}"
-          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          # --no-renames, and note it is the OPPOSITE of what ADDED= below
+          # wants. Here we need the true file list: rename detection prints
+          # only the destination, so `git mv tests/l48_gate.test.js
+          # audits/archive.md` would make this PR look docs-only and exempt
+          # itself from the gate — deleting this gate's own regression pins
+          # with a green check and no artifact. ADDED= must KEEP rename/copy
+          # detection, so that a recycled artifact is classified R/C and
+          # dropped by --diff-filter=A. Two opposite settings, on purpose.
+          CHANGED=$(git diff --no-renames --name-only "$BASE"...HEAD)
           if ! echo "$CHANGED" | grep -qvE '\.md$' \
              && ! echo "$CHANGED" | grep -qE '^(audits/RELEASE_CHECKLIST\.md|agents/.*\.md)$'; then
             echo "L48 gate: docs-only PR (no behavior, no governance-gate docs) — exempt"

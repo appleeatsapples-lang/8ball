@@ -16,6 +16,7 @@ import {
   SIGNS,
   SIGN_DISTANCE_RELATIONS,
 } from '../content/concordance.v2.js';
+import { isTier } from '../core/payments.js';
 
 export const CONCORDANCE_STATUSES = Object.freeze({
   registered: 'a named registry attests the relation',
@@ -147,7 +148,10 @@ export function buildConcordance(left, right, options = {}) {
   if (!left || typeof left !== 'object' || !right || typeof right !== 'object') {
     throw new TypeError('two calculated profiles are required');
   }
-  const tier = ['t1', 't2', 't3'].includes(options.tier) ? options.tier : 'free';
+  // Ladder-agnostic: an exhaustive-over-three-rungs literal silently
+  // downgraded t4 to free when §1.D v0.58 appended a rung, dropping an axis
+  // the device owns and labelling it "sealed at this device tier" — false.
+  const tier = isTier(options.tier) ? options.tier : 'free';
   const axes = [
     compareSun(left.sunSign, right.sunSign),
     compareAnimal(left.animal, right.animal),

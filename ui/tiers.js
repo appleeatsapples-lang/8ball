@@ -72,12 +72,18 @@ const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
 const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry'];
+// §1.D v0.58 — the public rung. `publicRead` is a BLOCK, not a cell: like
+// `cardEntry` it has no compartment in the 14-cell sheet and is excluded
+// from the density census, so t4's open/sealed/total census is identical to
+// t3's. The sheet is complete at t3; t4 adds a reading of it.
+const T4_COORDS = [...T3_COORDS, 'publicRead'];
 
 export const TIER_COORDS = {
   free: FREE_COORDS,
   t1: T1_COORDS,
   t2: T2_COORDS,
   t3: T3_COORDS,
+  t4: T4_COORDS,
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
@@ -132,8 +138,8 @@ export function formatPillar(pillar) {
 }
 
 // ── unseal-trigger decision (pure — brief §3 motion grammar) ──────
-// Cells (plus the 'cardEntry' block) entitled at `tier` but not at
-// `prevTier`, in DOM order. Empty for same/lower tiers — the animation
+// Cells (plus the 'cardEntry' and 'publicRead' blocks) entitled at `tier`
+// but not at `prevTier`, in DOM order. Empty for same/lower tiers — the animation
 // can only fire on a genuine upgrade render.
 export function newlyEntitledCells(prevTier, tier) {
   const prev = coordsForTier(prevTier);
@@ -142,6 +148,7 @@ export function newlyEntitledCells(prevTier, tier) {
     key => next.has(CELL_COORD[key]) && !prev.has(CELL_COORD[key])
   );
   if (next.has('cardEntry') && !prev.has('cardEntry')) fresh.push('cardEntry');
+  if (next.has('publicRead') && !prev.has('publicRead')) fresh.push('publicRead');
   return fresh;
 }
 
@@ -150,12 +157,14 @@ let _refs = null;
 let _hooks = null;
 let _cells = null;
 let _entry = null;
+let _publicRoot = null;
 let _lastRenderedTier = null;
 
 export function initTiersUI(refs, hooks) {
   _refs = refs;
   _hooks = hooks || {};
   _entry = (refs && refs.entry) || null;
+  _publicRoot = (refs && refs.publicRead) || null;
   _lastRenderedTier = null;
   _cells = {};
   const cells = (refs && refs.cells) || {};
@@ -273,7 +282,9 @@ export function renderTierSections(profile, tier) {
   const newly = _lastRenderedTier === null ? [] : newlyEntitledCells(_lastRenderedTier, tier);
   let beat = 0;
   for (const key of newly) {
-    const root = key === 'cardEntry' ? _entry : _cells[key] && _cells[key].root;
+    const root = key === 'cardEntry' ? _entry
+      : key === 'publicRead' ? _publicRoot
+      : _cells[key] && _cells[key].root;
     if (!root || !root.classList) continue;
     root.classList.add('unsealing');
     if (root.style && root.style.setProperty) {

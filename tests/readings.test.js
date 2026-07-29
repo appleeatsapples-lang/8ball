@@ -184,13 +184,13 @@ describe('Saved Readings host and privacy wiring', () => {
     expect(readingsJs).not.toMatch(/fetch\s*\(|XMLHttpRequest|sendBeacon/);
   });
 
-  it('re-anchors the t3 written-entry position on archive open exactly like a submit', () => {
+  it('re-anchors the written-entry position on archive open exactly like a submit', () => {
     // SR-M2 pin: prev is captured BEFORE saveProfile overwrites the stored
     // profile, and the t3 facet index re-anchors via the same
     // isNewPair-driven reset the form-submit path uses, before showResult.
     // A different saved pair must not inherit the prior pair's rotation.
     expect(html).toMatch(
-      /openReading:\s*reading\s*=>[\s\S]*const prev = loadSavedProfile\(\);[\s\S]*saveProfile\(payload\.name, payload\.dob, payload\)[\s\S]*if \(tier === 't3'\) ensureFacetIndex\(profile\.lifePath, \{ reset: isNewPair\(payload, prev\) \}\);[\s\S]*showResult/
+      /openReading:\s*reading\s*=>[\s\S]*const prev = loadSavedProfile\(\);[\s\S]*saveProfile\(payload\.name, payload\.dob, payload\)[\s\S]*if \(coordsForTier\(tier\)\.has\('cardEntry'\)\) ensureFacetIndex\(profile\.lifePath, \{ reset: isNewPair\(payload, prev\) \}\);[\s\S]*showResult/
     );
   });
 

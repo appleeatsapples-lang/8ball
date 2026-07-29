@@ -176,8 +176,11 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
-  it('TIER_ORDER is the locked t1 < t2 < t3 ladder', () => {
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
+  it('TIER_ORDER is the t1 < t2 < t3 < t4 ladder (§1.D v0.58 appends t4)', () => {
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't4']);
+    // The append is the point: every pre-existing rung keeps its rank, so
+    // no stored tier changes meaning and no owner is affected.
+    expect(TIER_ORDER.slice(0, 3)).toEqual(['t1', 't2', 't3']);
   });
 
   it('tierRank: free/garbage rank 0; rungs rank 1..3 in order', () => {
@@ -190,11 +193,12 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(tierRank('t3')).toBe(3);
   });
 
-  it('isTier accepts exactly the three rungs', () => {
+  it('isTier accepts exactly the four rungs', () => {
     expect(isTier('t1')).toBe(true);
     expect(isTier('t2')).toBe(true);
     expect(isTier('t3')).toBe(true);
-    for (const bad of ['t0', 't4', 'free', '', null, undefined, 'T2', 1]) {
+    expect(isTier('t4')).toBe(true);
+    for (const bad of ['t0', 't5', 'free', '', null, undefined, 'T2', 1]) {
       expect(isTier(bad), `${String(bad)} must not be a tier`).toBe(false);
     }
   });
@@ -610,9 +614,12 @@ describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', 
     expect(tiersJs).not.toMatch(/setRow\(/);
   });
 
-  it('14 compartment cells + the entry block each carry a seal layer', () => {
+  it('14 compartment cells + the entry and public blocks each carry a seal layer', () => {
+    // The sheet is still 14 cells: t4 adds a BLOCK, not a compartment, so
+    // the cell count must not move — only the seal count, by one.
     expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
-    expect((html.match(/class="coord-seal"/g) || []).length).toBe(15);
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(16);
+    expect(html).toMatch(/id="public-read"/);
   });
 
   it('every cell renders with structure intact at every tier (no node removed)', () => {

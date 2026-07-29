@@ -1,5 +1,9 @@
 # PUBLIC_TIER_SPEC.md — public-tier computation
 
+> **Superseded in part, 2026-07-29 (§1.D v0.58).** The rung shipped: this is
+> no longer engine-only. §7 describes the wired surface; the header line
+> below and §0 are preserved per L17 and are lineage, not current state.
+>
 > Spec for `core/public.js` + `content/public.v1.js`. Engine and tables only.
 > No surface, no price, no entitlement. Not doctrine: this file describes what
 > was built and names what a controller has to decide before any of it is
@@ -14,6 +18,10 @@ The tier brief describes a ladder restructured to **exposure radius** rather
 than coordinate density — private (you alone) · comparative (you and one) ·
 public (you and the world, work as its legible instance) — and puts this
 engine at the public rung.
+
+**Superseded, see the header.** The paragraph below described the state
+before §1.D v0.58; the ladder now *does* record a rung — `t4` at $9 — while
+still not adopting the radius framing the brief describes. Preserved per L17.
 
 **That restructure is not recorded in any tracked file in this repository.**
 `DOCTRINE.md` §1.D still describes a three-rung *density* ladder repriced to
@@ -42,7 +50,7 @@ The four inputs to that output, in order:
 
 1. **Day master element + strength** → favourable / unfavourable elements
 2. **Favourable element** → the domain families in play
-3. **Life path** → the mode of work, which ranks them
+3. **Birthday** → the mode of work, which ranks them
 4. **Tarot birth card** → the role posture
 
 Steps 1–2 produce the families and the anti-fit. Steps 3–4 produce the role
@@ -150,15 +158,14 @@ One family per character per element is load-bearing, not decorative: it makes
 the ranking a total order with no tie-break and no positional bias, and it
 makes the anti-fit selection single-valued.
 
-### §3.4 Life path and mode of work — 9 entries
+### §3.4 Birthday and mode of work — 9 entries
 
-The mode of work is selected by the **life path** — `core/profile.js`'s
-shipped DOB coordinate, free-surface since §1.D v0.38, whose domain is exactly
-the nine values §1.B v0.54 fixed. Nine values, nine modes.
+The mode of work is selected by the **birthday** number — the day of the
+month reduced by the §1.B v0.54 nine-number rule (`core/profile.js`
+`getBirthday`). Nine values, nine modes.
 
-**Two controller rulings on 2026-07-29 produced that sentence, and both
-overruled the brief rather than interpreted it.** Recorded here rather than
-quietly re-specified:
+**Three controller rulings on 2026-07-29 produced that sentence.** Recorded
+here rather than quietly re-specified:
 
 1. **Collapse.** The first draft called this the *expression number* and
    retained the 11 and 22 stops, because the brief specified eleven modes.
@@ -170,12 +177,19 @@ quietly re-specified:
    §1.B's name-derived expression/name number nor any distinct value, so one
    sheet would have carried two labels for one number. The driver is
    `lifePath` throughout; the block it selects is `mode`, which records the
-   life-path value that chose it.
+   value that chose it.
+3. **Move.** Naming it made the real problem legible: a $9 rung whose only new
+   content re-read a coordinate every visitor already has. The driver moved to
+   the **birthday** — date-only (input contract unchanged), domain exactly
+   1..9 (the authored table carries over unedited), and a **t2** coordinate,
+   so the driver is itself paid information. §1.G already names the birthday
+   *"the recurring skill"* and the life path *"the long route"*; a mode of
+   work is a recurring skill. This is §1.D v0.59.
 
 The tier therefore computes no number of its own here and holds no wrapper
-around one: `buildPublicReading` calls `getLifePath` / `getLifePathSum`
-directly, `WORK_MODES` is keyed by life path, and a test pins the reading's
-`mode.lifePath` against `core/profile.js` across the date range. A private
+around one: `buildPublicReading` calls `getBirthday` directly, `WORK_MODES` is
+keyed by birthday, and a test pins the reading's `mode.birthday` against
+`core/profile.js` across the date range. A private
 copy of a rule `core/profile.js` owns is the drift risk `core/math.js`'s
 header names — and a wrapper that exists only to re-label it is the same risk
 with a nicer face.
@@ -221,7 +235,7 @@ own.
 | `favorable` / `unfavorable` | ranked element arrays, together always all five |
 | `primaryFavorable` / `primaryUnfavorable` | the two selectors |
 | `favorabilityNote` | the table's one-line note for this entry |
-| `mode` | `{ lifePath, lifePathSum, theme, register, method }` |
+| `mode` | `{ birthday, dayOfMonth, theme, register, method }` |
 | `posture` | `{ number, roman, arcana, register, stance }` |
 | `families` | three entries, `{ rank, key, element, label, character, body }` |
 | `antiFit` | one entry, same shape minus `rank` |
@@ -250,16 +264,16 @@ and the season and posture are re-derived from `getInnerAnimal` and
 
 ## §6. Open questions — controller decisions, not implementer ones
 
-1. **Ruled 2026-07-29, both legs: nine modes, and the driver is named
-   `lifePath`** (§3.4). Kept in this list as a record, not a question. What
-   the two rulings leave genuinely open, and what a reviewer should actually
-   argue with: **the mode of work is now selected by a coordinate the free
-   sheet already shows.** Nothing about the public tier's mode is new
-   information — it is a re-reading of `lifePath` against the domain families.
-   Whether that is the right input at all, or whether this rung wants a driver
-   the free surface does not already give away, is a design question no one
-   outside this lane has looked at. It is also the cheapest thing to change
-   while nothing renders: the mode table is keyed by one integer.
+1. **CLOSED 2026-07-29 (§1.D v0.59).** This entry read: *"the mode of work is
+   now selected by a coordinate the free sheet already shows … the cheapest
+   thing to change while nothing renders: the mode table is keyed by one
+   integer."* It was closed exactly that way — the driver moved to the
+   birthday, a t2 coordinate, and the mode table carried over unedited. Kept
+   here as a record because the sequence is the lesson: the objection was
+   raised by the implementing lane **before** the rung shipped, shipped anyway
+   on controller word, and was fixed afterwards while the rung was still
+   unbuyable. It cost one doctrine amendment and a fixture regeneration. Had
+   `T4_PRODUCT_URL` been filled first, it would have cost a paid reading.
 3. **Strength is month-branch only** (§3.1), and the hour is accepted but
    unused (§2). Both are honest simplifications for a date-only tier; both
    are the obvious first amendments if a practitioner reviews the output and
@@ -275,36 +289,84 @@ and the season and posture are re-derived from `getInnerAnimal` and
    capability, but it is a new edge in the architecture and wants a reviewer's
    eye.
 
-## §7. Deliberately not built
+## §7. Wired to t4 (§1.D v0.58) — and what is still not built
 
-No UI, no surface, no `TIER_COORDS` entry, no sheet row, no sealed cell. No
-price, no Gumroad product, no `?paid=` param, no entitlement or paywall path.
-No `core/payments.js` or `ui/*` change. No `index.html` change. No
-`DOCTRINE.md` amendment. Nothing in the repository imports `core/public.js` —
-a test pins that, so wiring it can never happen silently.
+**This section described an unwired engine until 2026-07-29.** On explicit
+controller instruction the tier is now wired to a fourth ladder rung: `t4`,
+`?paid=t4`, **$9**, defined by the §1.D v0.58 amendment shipped in the same
+change. The original text is superseded and preserved here as lineage per
+L17: *"No UI, no surface, no `TIER_COORDS` entry, no sheet row, no sealed
+cell. No price, no Gumroad product, no `?paid=` param, no entitlement or
+paywall path. … Nothing in the repository imports `core/public.js`."*
 
-Before any of it is shown to anyone, in this order: a doctrine amendment
-defining the rung under §1.D (or its successor) with cross-model review per
-§10, a design read on §6.1 (a mode driver the free sheet already shows), and
-a §5.D pass on what a public-tier share surface would carry.
+What the wiring is:
+
+- **`core/payments.js`** — `TIER_ORDER` appends `'t4'`. Every existing rung
+  keeps its rank; monotonicity, ownership and the replay-safe `no-pending`
+  branch are unchanged. The **R2 legacy grandfather deliberately stays at
+  `t3`** and is pinned so a later rung cannot widen it.
+- **`ui/tiers.js`** — `TIER_COORDS.t4 = [...t3, 'publicRead']`. A **block**,
+  like `cardEntry`: no compartment, excluded from the §1.F census, so the t4
+  census is identical to t3's.
+- **`ui/public.js`** (new) — the only consumer of `core/public.js`. Renders
+  the block; **entitlement is passed in**, never read from storage here. Below
+  t4 the value nodes are emptied per §1.D v0.37 — absent, not hidden.
+- **`index.html`** — the sealed block, one CSS rule, the boot wiring, and a
+  hidden t4 CTA.
+
+Still not built, and fail-closed rather than half-built:
+
+- **The Gumroad product does not exist.** `T4_PRODUCT_URL` in
+  `ui/payments.js` ships **empty**; while it is empty the CTA carries no
+  `href` and stays hidden, so no visitor can reach a dead checkout. Filling
+  that constant in is the whole of what makes the rung buyable — and it is a
+  controller action, never an agent's.
+- **The about-modal copy is untouched.** It describes the live $3 offer,
+  which is still what a visitor can actually buy. Advertising a rung nobody
+  can purchase would be the wrong kind of accurate.
+- **No cross-model audit has read the engine or the rung.** §10 asks for one
+  on a doctrine change; the clearance is an explicit controller override.
+- **The §4.B v0.56 $3 sprint is byte-untouched** while it runs (to
+  2026-08-08): the offer control, the paywall headline and the t3 product
+  are unchanged.
+- **§5.D share surface** — the public block is not in the share PNG. That
+  pass has not been done.
 
 ## §8. Test map
 
-`tests/public.test.js` (38 tests) — determinism · coverage with no gaps ·
+`tests/public.test.js` (39 tests) — determinism · coverage with no gaps ·
 date-only path · anti-fit never a fit family · snapshot fixtures · independent
 anchors · table integrity · voice register (the canonical
 `BANNED_VOICE_REGISTER` / second-person / diagnostic-framing / slur tables,
 plus a CTA scan) · surface isolation.
 
-`tests/public_tier.fixture.json` — 16 synthetic dates (DOCTRINE §11): the
+`tests/public_surface.test.js` (17 tests) — the t4 wiring, separate from the
+engine: render filled at t4 / sealed below it with no entitled string in the
+DOM, the ladder append, the grandfather that must not widen, the unchanged
+census, and the fail-closed offer.
+
+`tests/public_tier.fixture.json` — 17 synthetic dates (DOCTRINE §11): the
 three day-pillar calibration anchors, the calc v3.1 correction dates, the
 three sums that used to stop at a master value, a leap day, and both ends of
 the 1900–2100 solar-term table. They cover all five day-master elements, both
-strengths, all five seasonal states, and all nine life-path values —
-including the three digit sums (11, 22, 33) that no longer stop early.
+strengths, all five seasonal states, and all nine birthday values — plus
+every date calc v3.1 moved (lunar new year 1916 and the 1911, 1912 and 1927
+solar terms).
 
 ## §9. Rollback
 
-Delete `core/public.js`, `content/public.v1.js`, `tests/public.test.js`,
+**Rewritten 2026-07-29 — the pre-wiring instruction below was preserved but
+would now leave a broken import.** As of §1.D v0.58 the engine has a consumer.
+Rolling the tier back means reverting **two** merges — `2f3bdc9` (#153, the
+rung) and `b5cc119` (#144, the engine) — or, to drop only the surface and keep
+the engine: revert #153, which restores `TIER_ORDER` to three rungs, removes
+`ui/public.js`, the block markup, the t4 CTA and the §1.D v0.58 clause
+together. No stored tier needs migration in either direction, because
+`T4_PRODUCT_URL` has never been non-empty — no device can hold `t4`.
+
+Superseded instruction, preserved per L17: *"Delete `core/public.js`,
+`content/public.v1.js`, `tests/public.test.js`,
 `tests/public_tier.fixture.json`, and this file; restore the two counts in
-`CLAUDE.md`. Nothing else in the repository references any of them.
+`CLAUDE.md`. Nothing else in the repository references any of them."* The
+final sentence became false at #153: `ui/public.js` imports the engine, and
+following that instruction as written would leave a dangling import.

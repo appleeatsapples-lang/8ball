@@ -279,8 +279,16 @@ describe('calc-v3 facet-key migration (one-shot v1 clear)', () => {
 });
 
 describe('t3-only host wiring', () => {
-  it('only t3 calls the facet transition — lower tiers stay cosmetic', () => {
-    expect(html).toMatch(/const facetState = tier === 't3' \? consumeFacetShake\(currentProfile\.lifePath\) : null/);
+  it('the facet transition is gated on the written-entry ENTITLEMENT, not on a tier literal', () => {
+    // Was pinned as `tier === 't3'`. That exact equality stranded t4 owners
+    // when §1.D v0.58 appended a rung: T4_COORDS carries `cardEntry`, so the
+    // entry rendered off an index that could never advance or re-anchor —
+    // $9 buying strictly less rotation than $3. The gate now asks the ladder
+    // table which tiers own the entry, so a fifth rung cannot repeat it.
+    expect(html).toMatch(
+      /const facetState = coordsForTier\(tier\)\.has\('cardEntry'\) \? consumeFacetShake\(currentProfile\.lifePath\) : null/
+    );
+    expect(html).not.toMatch(/tier === 't3'/);
   });
 
   it('rotation never opens the paywall or touches pending intent (v0.55)', () => {
