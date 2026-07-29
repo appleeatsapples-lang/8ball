@@ -957,23 +957,30 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
 describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', () => {
   const flatCells = rows => rows.flatMap(r => r.cells);
 
-  it('returns 8 row refs, each with a title string and a cells array (14 cells total)', () => {
+  it('returns 9 row refs — 8 compartment rows (14 cells) + the fit-family row', () => {
+    // §5.D v0.61 appends ONE row carrying the fit families. It is a row in
+    // the same snapshot shape rather than a new concept, which is why
+    // ui/share.js needed no change to render or caption it.
     installCompartments();
     const rows = shareRowRefs();
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
     for (const row of rows) {
       expect(typeof row.title).toBe('string');
       expect(Array.isArray(row.cells)).toBe(true);
     }
-    expect(flatCells(rows)).toHaveLength(14);
+    expect(flatCells(rows)).toHaveLength(15);
+    expect(rows[8].title).toBe('DOMAIN FIT');
+    expect(rows[8].cells).toHaveLength(1);
   });
 
-  it('free render: 4 open cells, 10 sealed; sealed carry no value, none leak', () => {
+  it('free render: 4 open cells, 11 sealed; sealed carry no value, none leak', () => {
+    // 10 sealed compartments + the fit-family row, which seals at free
+    // because its live node holds textContent === '' below t3.
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const cells = flatCells(shareRowRefs());
     expect(cells.filter(c => c.state === 'open')).toHaveLength(4);
-    expect(cells.filter(c => c.state === 'sealed')).toHaveLength(10);
+    expect(cells.filter(c => c.state === 'sealed')).toHaveLength(11);
     for (const c of cells.filter(c => c.state === 'sealed')) {
       expect(c.value).toBe('');
     }

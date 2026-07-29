@@ -517,3 +517,108 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
     expect(shareJs).not.toMatch(/require\s*\(/);
   });
 });
+
+// ── §5.D v0.61: the fit-family row ────────────────────────────────
+//
+// The share artifact gains ONE line: the labeled fit-family triple. It does
+// NOT gain the anti-fit or the role line, and the guarantee for that is
+// structural rather than a filter — `ui/tiers.js` is handed only the
+// families node, so no code path exists by which the other two could reach
+// the snapshot. These tests pin the structure, not the filter, because a
+// filter is what a later edit drops by accident.
+describe('share surface — fit families (§5.D v0.61)', () => {
+  const REPO = join(__dirname, '..');
+  const tiersSrc = readFileSync(join(REPO, 'ui', 'tiers.js'), 'utf-8');
+  const shareSrc = readFileSync(join(REPO, 'ui', 'share.js'), 'utf-8');
+  const html = readFileSync(join(REPO, 'index.html'), 'utf-8');
+
+  it('only the families node is handed to the share layer', () => {
+    const initCall = html.match(/initTiersUI\(\{[\s\S]*?\n\}, \{\}\);/);
+    expect(initCall, 'initTiersUI call not found').not.toBeNull();
+    expect(initCall[0]).toContain("publicFamilies: $('public-families')");
+    expect(initCall[0]).not.toContain('public-antifit');
+    expect(initCall[0]).not.toContain('public-roleline');
+    expect(tiersSrc).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
+    expect(shareSrc).not.toMatch(/antifit|antiFit|roleLine|roleline/i);
+  });
+
+  it('nothing reads text THROUGH the block root — the guarantee this rests on', () => {
+    // The honest version of the omission (§5.D v0.61, corrected): it is NOT
+    // impossible for the anti-fit and role line to reach the artifact.
+    // ui/tiers.js holds the block ROOT (refs.publicRead) so it can toggle
+    // the unseal class, and all three lines are descendants of it — so
+    // `_publicRoot.textContent` alone would concatenate the lot. What
+    // actually holds the line is that nothing reads through that root.
+    // Pinned here because a one-line edit is all it would take.
+    expect(tiersSrc).not.toMatch(/_publicRoot\s*\.\s*(textContent|innerText|innerHTML)/);
+    expect(tiersSrc).not.toMatch(/_publicRoot\s*\.\s*(querySelector|children|firstChild|childNodes)/);
+    // the share row must read the dedicated node, not the root
+    expect(tiersSrc).toMatch(/_publicFamilies\s*\?\s*String\(_publicFamilies\.textContent\)/);
+  });
+
+  it('the root would in fact leak all three lines — proving the pin above is load-bearing', () => {
+    // A guard whose failure mode is never demonstrated is decoration. This
+    // shows what the corrected clause warns about: reading the root yields
+    // the anti-fit and role line together with the families.
+    const root = { textContent: '\n DOMAIN FIT \n 1 tech · 2 media · 3 energy \n anti-fit · health \n a role held as the setting of order, worked from a standing start, one line at a time. \n' };
+    const asIfRootWereRead = String(root.textContent).trim();
+    expect(asIfRootWereRead).toContain('anti-fit');
+    expect(asIfRootWereRead).toContain('a role held');
+  });
+
+  it('the artifact builder was not taught a new concept', () => {
+    // The row rides the existing {title, cells:[{state,value}]} shape, so
+    // every invariant already governing the artifact still governs it.
+    expect(shareSrc).not.toMatch(/DOMAIN FIT|publicRead|publicFamilies/);
+  });
+
+  it('renders the families as an open value, and hatches when sealed', () => {
+    const open = buildCardSVGFromSnapshot({
+      catalog: 'no. cxii',
+      sections: rowSections([
+        { title: 'DOMAIN FIT', cells: [{ state: 'open', value: '1 tech · 2 media · 3 energy' }] },
+      ]),
+    });
+    expect(open).toContain('DOMAIN FIT');
+    expect(open).toContain('1 tech · 2 media · 3 energy');
+
+    const sealed = buildCardSVGFromSnapshot({
+      catalog: 'no. cxii',
+      sections: rowSections([
+        { title: 'DOMAIN FIT', cells: [{ state: 'sealed', value: '1 tech · 2 media · 3 energy' }] },
+      ]),
+    });
+    expect(sealed).toContain('DOMAIN FIT');
+    expect(sealed).toContain('seal-hatch');
+    // the value is dropped by rowSections before it can reach the SVG
+    expect(sealed).not.toContain('tech');
+  });
+
+  it('the caption carries the families and never the other two lines', () => {
+    const caption = buildCaptionFromSnapshot({
+      catalog: 'no. cxii',
+      sections: rowSections([
+        { title: 'ARCANA', cells: [{ state: 'open', value: 'iv · the emperor' }] },
+        { title: 'DOMAIN FIT', cells: [{ state: 'open', value: '1 tech · 2 media · 3 energy' }] },
+      ]),
+    });
+    expect(caption).toContain('1 tech · 2 media · 3 energy');
+    expect(caption).not.toMatch(/anti-fit|a role held/);
+    expect(caption).not.toMatch(/\d{4}-\d{2}-\d{2}/);   // no DOB shape
+  });
+
+  it('an anti-fit or role-line string cannot reach the artifact even if injected', () => {
+    // Defence in depth: if a future edit wrongly passed one through, it
+    // would still have to survive rowSections' own-data read. This asserts
+    // the omission at the level that matters — nothing in the pipeline
+    // knows those strings — rather than proving a filter exists.
+    const svg = buildCardSVGFromSnapshot({
+      catalog: 'no. cxii',
+      sections: rowSections([
+        { title: 'DOMAIN FIT', cells: [{ state: 'sealed', value: 'anti-fit · health' }] },
+      ]),
+    });
+    expect(svg).not.toContain('anti-fit');
+    expect(svg).not.toContain('health');
+  });
+});

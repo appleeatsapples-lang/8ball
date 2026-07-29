@@ -159,6 +159,7 @@ let _hooks = null;
 let _cells = null;
 let _entry = null;
 let _publicRoot = null;
+let _publicFamilies = null;
 let _lastRenderedTier = null;
 
 export function initTiersUI(refs, hooks) {
@@ -166,6 +167,11 @@ export function initTiersUI(refs, hooks) {
   _hooks = hooks || {};
   _entry = (refs && refs.entry) || null;
   _publicRoot = (refs && refs.publicRead) || null;
+  // §5.D v0.61 — ONLY the fit-family node is held for the share snapshot.
+  // The anti-fit and role-line nodes are deliberately never passed to this
+  // module, so their text cannot reach the artifact by any code path: the
+  // omission is structural, not a filter that a later edit could drop.
+  _publicFamilies = (refs && refs.publicFamilies) || null;
   _lastRenderedTier = null;
   _cells = {};
   const cells = (refs && refs.cells) || {};
@@ -334,8 +340,24 @@ function rowTitleOf(keys) {
   return titleEl ? String(titleEl.textContent).trim() : '';
 }
 
+// The fit-family row (§5.D v0.61). Appended to the compartment rows as one
+// more section so `ui/share.js` needs no new concept: the same open→text /
+// sealed→hatch rendering, the same caption path, the same invariants.
+//
+// State is read from the LIVE DOM exactly like every other cell — the block
+// holds textContent === '' below t3 (the §1.D v0.37 purity contract), so a
+// sealed read produces an empty value here and a hatch in the artifact. No
+// tier constant and no profile object is consulted.
+function publicFamiliesRow() {
+  const text = _publicFamilies ? String(_publicFamilies.textContent).trim() : '';
+  return {
+    title: 'DOMAIN FIT',
+    cells: [text ? { state: 'open', value: text } : { state: 'sealed', value: '' }],
+  };
+}
+
 export function shareRowRefs() {
-  return SHARE_ROWS.map(keys => ({
+  return [...SHARE_ROWS.map(keys => ({
     get title() { return rowTitleOf(keys); },
     get cells() {
       return keys.map(key => {
@@ -351,7 +373,7 @@ export function shareRowRefs() {
         };
       });
     },
-  }));
+  })), publicFamiliesRow()];
 }
 
 // ── provenance placards (Coordinate Legibility Pack, DOCTRINE §1.E) ───

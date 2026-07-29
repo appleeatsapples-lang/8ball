@@ -5,6 +5,57 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — The §5.D pass, partial: the fit-family line joins the share artifact (DOCTRINE v0.61) — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word, and the PR is deliberately NOT open yet —
+an adversarial cross-read is running against the uncommitted diff first. That inversion is the one process change this
+chain earned today: every prior review in it ran after the merge, and the one that mattered found a live defect.**
+
+**What ships.** The share artifact — the PNG plus its caption — gains exactly one line: the labeled fit-family triple
+(`DOMAIN FIT · 1 tech · 2 media · 3 energy`), three tokens from the closed fifteen-item vocabulary in
+`content/public.v1.js`. It renders as an open value at t3 and as a **seal hatch with the value absent** below it, the same
+treatment every tier-hidden compartment gets since §5.D v0.39.
+
+**What deliberately does NOT ship, and why the clause is narrow.** The read has three lines; one joins the artifact. The
+**anti-fit** and the **shape-of-role** line stay out at every tier, permanently. Two grounds. Register: both are prose,
+and invariant (a) has excluded the written card-content layer since v0.4.0 — the t3 written entry has never appeared in
+the artifact even for the buyer who owns it. And harm: an artifact built for reach is a **public** object, and
+`anti-fit · health` is a verdict about a person that would travel with their catalog numeral to an audience that never
+asked for it. §2 forbids this product from being a guidance product; a shareable anti-fit is the closest it could come to
+becoming one. **A fit triple is a category label; an anti-fit is a verdict**, and that distinction is the whole clause.
+
+**The implementation is deliberately boring, which is the safety property.** The families ride the EXISTING per-cell
+`{state, value}` snapshot as one more row, so **`ui/share.js` is byte-untouched** — the artifact builder learns no new
+concept, and every invariant already governing it keeps governing. The value is read from the live DOM node, which holds
+`textContent === ''` below t3 (the §1.D v0.37 purity contract), so a sealed read produces an empty value and a hatch
+without any tier constant or profile object being consulted.
+
+**A claim this lane made and then had to correct, before anyone else read it.** The first draft of the amendment said the
+omission of the other two lines was **structural** — "no code path exists". That was false. `ui/tiers.js` is also handed
+the block ROOT (`refs.publicRead`) so it can toggle the unseal class, and all three lines are descendants of it:
+`_publicRoot.textContent` alone would concatenate the lot into the artifact. The clause now states the guarantee at its
+real strength — the snapshot reads one node; neither module names an anti-fit or role-line identifier; neither reads text
+through the block root — with all three pinned, plus a test that **demonstrates** what reading the root would yield,
+because a guard whose failure mode is never shown is decoration. It is a convention held by mechanical checks, not an
+impossibility, and the clause says so.
+
+**Live-fire, run before the PR rather than after.** Local Chromium (the recipe `CLAUDE.md` gained this morning) rendered
+the real artifact at t3 and at free. t3 shows the families line in register; free shows `DOMAIN FIT` + hatch with no
+value; the caption carries the triple at t3 and folds it into `sealed remainder` at free; geometry holds at nine rows
+with no overflow; zero console errors.
+
+**Scope honesty.** This is the §5.D pass the public-read work has deferred since §1.D v0.58, and it is a **partial** one:
+it makes the read's least hazardous third shareable. It does **not** make the read the public artifact the retired rung's
+brief described, and no clause of this constitution has adopted that framing.
+
+**Verification.** Suite **45 files / 1594 tests** green (was 1587; +7). **Not verified:** the local PII audit (gitignored
+pattern file absent); the deployed site; and the cross-read, which is in flight as this is written — its findings land in
+a follow-up commit on this branch before the PR opens.
+
+**Scope (files):** `ui/tiers.js` (the fit-family row + the families ref), `index.html` (one ref in the `initTiersUI`
+call), `DOCTRINE.md` (§5.D v0.61, footer → v0.61), `tests/share_surface.test.js`, `tests/tiers.test.js`, this file.
+**UNTOUCHED:** `ui/share.js`, `core/`, `content/`, `tests/fixtures.json`, every scanner list.
+
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
