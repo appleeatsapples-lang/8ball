@@ -9,18 +9,21 @@
 // consumer, this suite is the tripwire.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
+const root = join(__dirname, '..');
+const read = (...p) => readFileSync(join(root, ...p), 'utf-8');
 const html = read('index.html');
-const citysearchJs = read('ui', 'citysearch.js');
-const meaningsJs = read('ui', 'meanings.js');
-const readingsJs = read('ui', 'readings.js');
 const shareJs = read('ui', 'share.js');
-const allSource = [html, citysearchJs, meaningsJs, readingsJs, shareJs].join('\n');
+// All ui/*.js modules, not a hand-picked subset — a stray old-token
+// consumer in an untouched-looking module (concordance/labels/modals/
+// payments/profile/public/tiers) must not go unscanned just because this
+// change's own file list didn't happen to name it.
+const uiFiles = readdirSync(join(root, 'ui')).filter((f) => f.endsWith('.js'));
+const allSource = [html, ...uiFiles.map((f) => read('ui', f))].join('\n');
 
 // WCAG relative-luminance contrast ratio for a white-alpha color composited
 // over a pure black surface (no other blend layers) vs. that same black.
@@ -35,7 +38,7 @@ describe('monochrome surface — retired palette never returns', () => {
     // Old hex tokens (--paper/--ink/--rule/--label/--label-on-dark) and the
     // undefined --paper-bg fallback that used to leak into citysearch.js.
     const banned = [
-      '#ebe5d4', '#1a1812', '#8a8472', '#5a5444', '#837c69', '#0e0c0a',
+      '#ebe5d4', '#1a1812', '#8a8472', '#5a5444', '#837c69', '#0e0c0a', '#0a0a0a',
     ];
     for (const hex of banned) {
       expect(allSource, `${hex} must not appear in shipped source`).not.toContain(hex);
@@ -81,14 +84,45 @@ describe('monochrome surface — retired palette never returns', () => {
     expect(contrastOfWhiteAlphaOnBlack(0.45)).toBeGreaterThanOrEqual(3); // --rule (border/focus, not text)
   });
 
+  it('the coord-cell border and seal-hatch lines clear the 3:1 non-text UI floor', () => {
+    // These are raw rgba literals (not var(--rule)), produced by a straight
+    // channel inversion from the old ink-alpha values with the alpha left
+    // unchanged — 0.25/0.20 measured 2.02:1/1.66:1 on the new black surface,
+    // under the brief's own 3:1 floor for borders/state-bearing indicators
+    // (confirmed reproducible, 2026-07-29 cross-model audit). Pin both the
+    // literal values AND that whatever they are now clears 3:1, so a future
+    // edit can't quietly drop back below the floor.
+    const coordCellBorder = html.match(/\.coord-cell\s*\{[^}]*border:\s*1px solid rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
+    const sealHatch = html.match(/\.card\.seal-hatch \.coord-seal\s*\{[^}]*rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
+    expect(coordCellBorder, '.coord-cell border rgba not found').not.toBeNull();
+    expect(sealHatch, '.seal-hatch rgba not found').not.toBeNull();
+    expect(contrastOfWhiteAlphaOnBlack(Number(coordCellBorder[1]))).toBeGreaterThanOrEqual(3);
+    expect(contrastOfWhiteAlphaOnBlack(Number(sealHatch[1]))).toBeGreaterThanOrEqual(3);
+  });
+
+  it('--rule is never used as a text color (it is 4.41:1, under the 4.5:1 AA floor)', () => {
+    // --rule (0.45 alpha) is the border/divider/focus token — 3:1 is its own
+    // contract, computed above. If a `color:` declaration ever points at it,
+    // that usage needs 4.5:1 for normal text and --rule doesn't clear that
+    // (confirmed 2026-07-29 cross-model audit: 13 such sites shipped in the
+    // first monochrome pass, all AA text-contrast failures). Repoint any
+    // future text usage to --text-muted (already 10.5:1) instead of loosening
+    // --rule itself, which would also weaken every border/divider it draws.
+    expect(allSource).not.toMatch(/(?<![-\w])color:\s*var\(--rule\)/);
+  });
+
   it('focus-visible outlines are at least two pixels, never one', () => {
     const focusVisibleBlocks = allSource.match(/:focus-visible[^{]*\{[^}]*\}/g) || [];
     expect(focusVisibleBlocks.length).toBeGreaterThan(0);
     for (const block of focusVisibleBlocks) {
-      const outline = block.match(/outline:\s*(\d+)px/);
+      // Shorthand (`outline: 2px solid ...`) and longhand (`outline-width:
+      // 2px`) both need catching — a future rewrite to longhand form would
+      // silently bypass a shorthand-only regex (confirmed reproducible,
+      // 2026-07-29 cross-model audit).
+      const outline = block.match(/outline(?:-width)?:\s*(\d+)px/);
       if (outline) expect(Number(outline[1]), block).toBeGreaterThanOrEqual(2);
     }
-    expect(allSource).not.toMatch(/:focus-visible[^{]*\{[^}]*outline:\s*1px/);
+    expect(allSource).not.toMatch(/:focus-visible[^{]*\{[^}]*outline(?:-width)?:\s*1px/);
   });
 
   it('active/selected controls use a stronger white-alpha fill, not inversion to black text', () => {
@@ -121,9 +155,27 @@ describe('monochrome surface — retired palette never returns', () => {
   });
 
   it('every rendered color literal in the shared surfaces is achromatic (R=G=B)', () => {
-    const hexes = allSource.match(/#[0-9a-fA-F]{6}\b/g) || [];
-    for (const hex of hexes) {
+    const hexes6 = allSource.match(/#[0-9a-fA-F]{6}\b/g) || [];
+    for (const hex of hexes6) {
       const r = hex.slice(1, 3), g = hex.slice(3, 5), b = hex.slice(5, 7);
+      expect(r.toLowerCase(), `${hex} must be achromatic`).toBe(g.toLowerCase());
+      expect(g.toLowerCase(), `${hex} must be achromatic`).toBe(b.toLowerCase());
+    }
+    // 3-digit shorthand (#000, #fff, ...) — a 6-digit-only regex misses these
+    // entirely (confirmed 2026-07-29 cross-model audit: --bg/--surface/--text
+    // and .modal-cta's #000 all ship as shorthand and were unverified by this
+    // scan). \b after a hex run only breaks on a non-word char, so exclude a
+    // 4th hex digit to avoid matching the first 3 of a 6-digit code twice.
+    // Only match in a plausible CSS-value position (after `:` or `,` — a
+    // property assignment or a comma-separated arg like var(--x, #000)) so a
+    // `(#101/#107)`-style PR/issue reference in a comment doesn't false
+    // -positive — those are valid hex DIGITS (0-9 is a subset of 0-9a-f) but
+    // not color literals. Deliberately excludes bare `(` as a trigger:
+    // nothing in this codebase's CSS opens a hex value directly after `(`.
+    const hexes3Matches = [...allSource.matchAll(/[:,]\s*(#[0-9a-fA-F]{3})\b(?![0-9a-fA-F])/g)];
+    for (const m of hexes3Matches) {
+      const hex = m[1];
+      const [r, g, b] = [hex[1], hex[2], hex[3]];
       expect(r.toLowerCase(), `${hex} must be achromatic`).toBe(g.toLowerCase());
       expect(g.toLowerCase(), `${hex} must be achromatic`).toBe(b.toLowerCase());
     }
@@ -131,6 +183,24 @@ describe('monochrome surface — retired palette never returns', () => {
     for (const triplet of rgbaTriplets) {
       const [, r, g, b] = triplet.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
       expect(`${r},${g},${b}`, `${triplet} must be achromatic`).toBe(`${r},${r},${r}`);
+    }
+  });
+
+  it('no HSL/named chromatic color literal anywhere in the touched surfaces', () => {
+    // The R=G=B hex/rgb scan above can't see hsl()/hsla() or CSS named
+    // colors — a `color: red` or `background: hsl(45,100%,50%)` would ship
+    // green through every other check here (verified reproducible,
+    // 2026-07-29 cross-model audit). Ban both outright: this surface has no
+    // legitimate use for either.
+    expect(allSource).not.toMatch(/\bhsla?\(/i);
+    const chromaticNamed = [
+      'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'brown',
+      'gold', 'cyan', 'magenta', 'teal', 'navy', 'maroon', 'olive', 'lime',
+      'indigo', 'violet', 'salmon', 'coral', 'crimson', 'beige', 'tan',
+    ];
+    for (const name of chromaticNamed) {
+      const re = new RegExp(`:\\s*${name}\\b`, 'i');
+      expect(allSource, `color: ${name} must not appear`).not.toMatch(re);
     }
   });
 });

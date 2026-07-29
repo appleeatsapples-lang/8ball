@@ -156,7 +156,7 @@ export function buildCardSVGFromSnapshot(snapshot) {
     `viewBox="0 0 ${CARD_W} ${CARD_H}">` +
     `<defs><pattern id="seal-hatch" width="6" height="6" patternUnits="userSpaceOnUse" ` +
     `patternTransform="rotate(45)"><rect width="6" height="6" fill="${PAPER}"/>` +
-    `<line x1="0" y1="0" x2="0" y2="6" stroke="${RULE}" stroke-width="0.8" opacity="0.4"/></pattern></defs>` +
+    `<line x1="0" y1="0" x2="0" y2="6" stroke="${RULE}" stroke-width="1"/></pattern></defs>` +
     `<rect x="0" y="0" width="${CARD_W}" height="${CARD_H}" fill="${PAPER}"/>` +
     `<rect x="16" y="16" width="${CARD_W - 32}" height="${CARD_H - 32}" fill="none" stroke="${RULE}" stroke-width="1"/>` +
     `<text x="${SAFE_X}" y="${HEADER_Y}" text-anchor="start" font-family="${FONT}" ` +

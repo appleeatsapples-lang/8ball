@@ -176,9 +176,9 @@ const STYLE = `
 .readings-page-head .text-link { min-width: 44px; }
 .readings-local-note { color: var(--text-muted); font-size: 11px; line-height: 1.65;
   max-width: 62ch; margin-bottom: 20px; }
-.readings-page-status { color: var(--rule); font-size: 11px; line-height: 1.5;
+.readings-page-status { color: var(--text-muted); font-size: 11px; line-height: 1.5;
   min-height: 18px; margin-bottom: 8px; }
-.reading-save-status { color: var(--rule); font-size: 10px; line-height: 1.5;
+.reading-save-status { color: var(--text-muted); font-size: 10px; line-height: 1.5;
   min-height: 18px; margin-top: 10px; text-align: center; }
 .readings-compare-panel { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
   padding: 14px 0; margin-bottom: 18px; display: grid; gap: 10px; }

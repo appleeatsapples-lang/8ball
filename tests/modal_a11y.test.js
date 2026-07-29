@@ -33,7 +33,7 @@ describe('modal a11y — markup pins', () => {
     // Monochrome surface (journal 2026-07-29) collapsed the old --label /
     // --label-on-dark split (paper-surface vs dark-page contrast) into one
     // --text-muted, since both surfaces are black now: rgba(255,255,255,0.72)
-    // on black is ~9.4:1 (AA needs 4.5:1) — comfortably above the old
+    // on black is ~10.54:1 (AA needs 4.5:1) — comfortably above the old
     // 4.76:1 on-dark figure it replaces.
     expect(html).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/);
     // Spot-pin the two worst offenders: the error message and the
