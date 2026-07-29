@@ -150,24 +150,34 @@ One family per character per element is load-bearing, not decorative: it makes
 the ranking a total order with no tie-break and no positional bias, and it
 makes the anti-fit selection single-valued.
 
-### §3.4 Expression number and mode — 11 entries
+### §3.4 Expression number and mode — 9 entries
 
-The expression number is the digit sum of the date, reduced with the **11 and
-22 stops retained** (33 is not retained and reduces to 6). The domain is
-therefore exactly `{1..9, 11, 22}` — eleven values, eleven modes. All eleven
-are reachable from real dates; the fixture set contains one of each.
+The expression number is the digit sum of the date, reduced by repeated digit
+sum to exactly `1..9` — no master stop. The domain is nine values, nine modes.
+
+**This was eleven, and a controller ruling on 2026-07-29 collapsed it.** The
+first draft retained the 11 and 22 stops because the brief specified eleven
+modes; DOCTRINE §1.B v0.54 (calc v3) fixed active Pythagorean numerology at
+exactly nine terminal values, and the constitution won. Recorded here rather
+than quietly re-specified: the brief was overruled, not misread.
+
+**The consequence is that this number is the life path.** A date digit sum
+reduced strictly to 1..9 is the same sum under the same reduction that
+`core/profile.js` already ships as `lifePath`, free-surface since §1.D v0.38.
+So the tier no longer computes a distinct number, and it does not
+reimplement one: `getExpressionSum` and `getExpressionNumber` delegate to
+`getLifePathSum` / `getLifePath`, with a test pinning the delegation across
+the date range. A private copy of an identical rule is the drift risk
+`core/math.js`'s header names, and this tier does not take it.
 
 Each mode carries a `theme`, a `register`, a `method` (the second clause of
 the role line), and a `priority` — a permutation of the three characters.
 `priority[0]` takes rank 1 among the fit families; `priority[2]` selects the
-anti-fit. All six permutations are used across the eleven modes.
+anti-fit. All six permutations are still used across the nine modes.
 
-Themes for 1–9 are the same nine-term vocabulary `content/meanings.v2.js`
-already ships (pinned by a cross-check test), so the tier does not fork the
-project's numerology language. 11 and 22 extend it.
-
-**This is a divergence from calc v3, and it is flagged, not hidden.** See §6
-open question 1.
+Themes are the same nine-term vocabulary `content/meanings.v2.js` already
+ships (pinned by a cross-check test), so the tier introduces no numerology
+vocabulary of its own.
 
 ### §3.5 Ranking, anti-fit, role posture, role line
 
@@ -228,20 +238,20 @@ and the season and posture are re-derived from `getInnerAnimal` and
 
 ## §6. Open questions — controller decisions, not implementer ones
 
-1. **The eleven modes diverge from calc v3.** DOCTRINE §1.B v0.54 fixed active
-   Pythagorean numerology at exactly nine terminal values; 11 and 22 are
-   retired as coordinate values. This tier's expression number retains them,
-   because eleven modes is what the brief specifies and because the number is
-   a date-derived *driver private to this tier*, never rendered as the
-   `expression/name number` coordinate §1.B governs. That reasoning is
-   arguable and the controller should rule on it. **Collapsing to nine modes
-   is one predicate and two table entries** — `reduceExpression`'s stop
-   condition plus the `11` and `22` entries in `EXPRESSION_MODES` — after
-   which the fixtures regenerate and the coverage test's value list shortens.
-2. **The name collides.** "Expression number" already means the name-derived
-   coordinate in §1.B. This tier's is date-derived and is a different number.
-   If any of it ever reaches a surface, one of the two needs a different
-   label, or the sheet will show two different things under one word.
+1. **The field name is now wrong twice, and this is the open one.** With the
+   nine-mode collapse, `expression` is neither §1.B's name-derived
+   expression/name number nor a distinct number of its own — it is the life
+   path (§3.4). Two labels on one sheet for one value is the failure mode, and
+   it is cheap to fix now and expensive after anything renders. The
+   recommendation is to rename the output field to `lifePath` (or to something
+   naming its job here, e.g. `modeDriver`) before any surfacing change. Not
+   done in this PR because the ruling asked for the collapse, not the rename;
+   it is a field name, three test references, and a fixture regeneration.
+2. **Ruled 2026-07-29: nine modes, not eleven** (§3.4). Kept in this list as a
+   record rather than a question. What follows from it and is *not* settled:
+   whether a driver that duplicates an already-free coordinate is the right
+   input for the mode of work at all, or whether this tier wants a number the
+   free sheet does not already show.
 3. **Strength is month-branch only** (§3.1), and the hour is accepted but
    unused (§2). Both are honest simplifications for a date-only tier; both
    are the obvious first amendments if a practitioner reviews the output and
@@ -267,22 +277,23 @@ a test pins that, so wiring it can never happen silently.
 
 Before any of it is shown to anyone, in this order: a doctrine amendment
 defining the rung under §1.D (or its successor) with cross-model review per
-§10, a ruling on §6 question 1, and a §5.D pass on what a public-tier share
-surface would carry.
+§10, the §6.1 rename, and a §5.D pass on what a public-tier share surface
+would carry.
 
 ## §8. Test map
 
-`tests/public.test.js` (36 tests) — determinism · coverage with no gaps ·
+`tests/public.test.js` (37 tests) — determinism · coverage with no gaps ·
 date-only path · anti-fit never a fit family · snapshot fixtures · independent
 anchors · table integrity · voice register (the canonical
 `BANNED_VOICE_REGISTER` / second-person / diagnostic-framing / slur tables,
 plus a CTA scan) · surface isolation.
 
 `tests/public_tier.fixture.json` — 16 synthetic dates (DOCTRINE §11): the
-three day-pillar calibration anchors, the calc v3.1 correction dates, both
-retained numerology stops, a 33-sum case, a leap day, and both ends of the
-1900–2100 solar-term table. They cover all five day-master elements, both
-strengths, all five seasonal states, and all eleven expression values.
+three day-pillar calibration anchors, the calc v3.1 correction dates, the
+three sums that used to stop at a master value, a leap day, and both ends of
+the 1900–2100 solar-term table. They cover all five day-master elements, both
+strengths, all five seasonal states, and all nine expression values —
+including the three digit sums (11, 22, 33) that no longer stop early.
 
 ## §9. Rollback
 

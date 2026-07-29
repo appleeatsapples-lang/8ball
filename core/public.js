@@ -27,9 +27,8 @@
 // runtime capability — content/public.v1.js is frozen data.
 
 import { getDayPillar, STEMS } from './pillars.js';
-import { getInnerAnimal } from './profile.js';
+import { getInnerAnimal, getLifePath, getLifePathSum } from './profile.js';
 import { getBirthCard } from './birthcard.js';
-import { sumDigits } from './math.js';
 import {
   ELEMENT_SHENG,
   ELEMENT_KE,
@@ -122,30 +121,32 @@ export function getFavorability(dayMasterElement, strength) {
 }
 
 // ── 2. Expression number → mode of work ─────────────────────────────────────
-
-// Unreduced digit sum of the date — the calculation trail, kept alongside the
-// reduced value the way core/profile.js keeps its `*Sum` fields.
+//
+// NINE modes, not eleven. The first draft of this tier retained the 11 and 22
+// stops, which made the table eleven entries and diverged from the strict
+// nine-number reduction DOCTRINE §1.B v0.54 (calc v3) fixed. Controller ruling
+// 2026-07-29: collapse to nine. The brief specified eleven; the constitution
+// wins, and this comment is the record that the brief was overruled rather
+// than misread.
+//
+// CONSEQUENCE, stated because it is not obvious and it matters. A date digit
+// sum reduced strictly to 1..9 IS the life path — the same sum, the same
+// reduction, already shipped on the free surface as `lifePath`
+// (DOCTRINE §1.D v0.38). So this tier's mode driver is no longer a distinct
+// number, and these two functions do not reimplement it: they delegate to
+// core/profile.js, which owns that calculation. Keeping a private copy would
+// have been a fork of an identical rule, the exact drift risk core/math.js's
+// header names. A test pins the delegation across the whole date range.
+//
+// The label is now doubly wrong — this is neither §1.B's name-derived
+// expression/name number nor a new number — and renaming it before anything
+// surfaces is open question 1 in PUBLIC_TIER_SPEC.md §6.
 export function getExpressionSum(year, month, day) {
-  return sumDigits(year) + sumDigits(month) + sumDigits(day);
-}
-
-// Reduction with the 11 and 22 stops RETAINED, which is what makes the mode
-// table eleven entries rather than nine. This is a deliberate divergence from
-// the strict nine-number reduction DOCTRINE §1.B v0.54 (calc v3) fixed for the
-// six name/DOB numerology COORDINATES — those are untouched here, and this
-// number is not one of them: it is a date-derived driver private to this
-// tier, never rendered as `expression/name number`. The divergence is flagged
-// for the controller in PUBLIC_TIER_SPEC.md §6 (open question 1); collapsing
-// it to nine modes is this one predicate plus two table entries.
-export function reduceExpression(total) {
-  if (!Number.isInteger(total) || total <= 0) return null;
-  let n = total;
-  while (n > 9 && n !== 11 && n !== 22) n = sumDigits(n);
-  return n;
+  return getLifePathSum(year, month, day);
 }
 
 export function getExpressionNumber(year, month, day) {
-  return reduceExpression(getExpressionSum(year, month, day));
+  return getLifePath(year, month, day);
 }
 
 export function getExpressionMode(expressionNumber) {
@@ -222,7 +223,7 @@ export function buildPublicReading(dobIso, _opts = {}) {
   const primaryUnfavorable = favorability.unfavorable[0];
 
   const expressionSum = getExpressionSum(year, month, day);
-  const expressionNumber = reduceExpression(expressionSum);
+  const expressionNumber = getExpressionNumber(year, month, day);
   const mode = getExpressionMode(expressionNumber);
 
   const birthCard = getBirthCard(year, month, day);

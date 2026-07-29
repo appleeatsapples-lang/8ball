@@ -13,8 +13,8 @@
 // Fixture dates (DOCTRINE §11): synthetic. Every one is a calendar or
 // calibration anchor chosen for the calc path it exercises — the day-pillar
 // anchors shared with tests/pillars.test.js, the calc v3.1 correction dates,
-// the two retained numerology stops, the leap day, and the ends of the
-// 1900–2100 solar-term table. No real person's date of birth.
+// the three digit sums that used to stop at a master value, the leap day, and
+// the ends of the 1900–2100 solar-term table. No real person's date of birth.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -30,7 +30,6 @@ import {
   getExpressionSum,
   getExpressionNumber,
   getExpressionMode,
-  reduceExpression,
   rankDomainFamilies,
   getAntiFitFamily,
   getRolePosture,
@@ -51,7 +50,7 @@ import {
   PUBLIC_SOURCES,
 } from '../content/public.v1.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
-import { ANIMALS, buildProfile, getInnerAnimal } from '../core/profile.js';
+import { ANIMALS, buildProfile, getInnerAnimal, getLifePath, getLifePathSum } from '../core/profile.js';
 import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
 import { MAJOR_ARCANA, getBirthCard } from '../core/birthcard.js';
 import {
@@ -68,7 +67,7 @@ const fixture = JSON.parse(
 );
 const publicSrc = readFileSync(join(REPO_ROOT, 'core', 'public.js'), 'utf-8');
 
-const EXPRESSION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22];
+const EXPRESSION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // A deterministic sweep across the whole supported solar-term range. The
 // stride is prime so it walks every month and every weekday position rather
@@ -375,19 +374,29 @@ describe('public tier — independent anchors', () => {
     }
   });
 
-  it('reduces the expression number with the 11 and 22 stops retained and 33 not', () => {
-    expect(reduceExpression(4)).toBe(4);
-    expect(reduceExpression(11)).toBe(11);
-    expect(reduceExpression(22)).toBe(22);
-    expect(reduceExpression(29)).toBe(11); // 2+9 = 11, stops
-    expect(reduceExpression(33)).toBe(6);  // 33 is not a retained stop
-    expect(reduceExpression(49)).toBe(4);  // 4+9 = 13 → 4
-    expect(reduceExpression(0)).toBeNull();
-    expect(reduceExpression(-3)).toBeNull();
-    expect(reduceExpression(1.5)).toBeNull();
+  it('reduces the date digit sum strictly to 1..9 — no master stop survives', () => {
+    // Controller ruling 2026-07-29: nine modes, per DOCTRINE §1.B v0.54.
+    // These three dates are the ones whose sums used to stop early.
+    expect(getExpressionSum(1919, 1, 1)).toBe(22);
+    expect(getExpressionNumber(1919, 1, 1)).toBe(4);  // 22 → 2+2
+    expect(getExpressionSum(2000, 5, 4)).toBe(11);
+    expect(getExpressionNumber(2000, 5, 4)).toBe(2);  // 11 → 1+1
+    expect(getExpressionSum(1930, 9, 29)).toBe(33);
+    expect(getExpressionNumber(1930, 9, 29)).toBe(6); // 33 → 3+3
     expect(getExpressionSum(2000, 1, 1)).toBe(4);
-    expect(getExpressionNumber(1919, 1, 1)).toBe(22);
-    expect(getExpressionNumber(2000, 5, 4)).toBe(11);
+    expect(getExpressionNumber(2000, 1, 1)).toBe(4);
+  });
+
+  it('delegates the number to core/profile.js rather than forking its rule', () => {
+    // Reduced strictly to 1..9, the date digit sum IS the life path. The tier
+    // must not carry a second implementation of it — if these ever diverge,
+    // one of the two changed alone, which is the drift this pins against.
+    for (const dob of sweepDates(23)) {
+      const [y, m, d] = dob.split('-').map(Number);
+      expect(getExpressionSum(y, m, d), dob).toBe(getLifePathSum(y, m, d));
+      expect(getExpressionNumber(y, m, d), dob).toBe(getLifePath(y, m, d));
+      expect(buildPublicReading(dob).expression.number, dob).toBe(getLifePath(y, m, d));
+    }
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
@@ -444,14 +453,16 @@ describe('public tier — table integrity', () => {
     expect(DOMAIN_FAMILIES.water.map(f => f.key).sort()).toEqual(['communication', 'logistics', 'trade']);
   });
 
-  it('modes 1..9 keep the nine-term theme vocabulary content/meanings.v2.js already ships', () => {
+  it('the modes are exactly nine and reuse the meanings.v2 theme vocabulary', () => {
+    // No master-number entries survive the 2026-07-29 collapse, and the tier
+    // introduces no numerology vocabulary of its own.
+    expect(Object.keys(EXPRESSION_MODES)).toHaveLength(9);
+    expect(EXPRESSION_MODES[11]).toBeUndefined();
+    expect(EXPRESSION_MODES[22]).toBeUndefined();
+    expect(() => getExpressionMode(11)).toThrow('No expression mode');
     for (let n = 1; n <= 9; n++) {
       expect(EXPRESSION_MODES[n].theme, `mode ${n}`).toBe(NUMEROLOGY_MEANINGS[String(n)].theme);
     }
-    // The two retained stops extend that vocabulary rather than reusing it.
-    const nine = Object.keys(NUMEROLOGY_MEANINGS).map(k => NUMEROLOGY_MEANINGS[k].theme);
-    expect(nine).not.toContain(EXPRESSION_MODES[11].theme);
-    expect(nine).not.toContain(EXPRESSION_MODES[22].theme);
   });
 
   it('every table is frozen — no runtime consumer can mutate the content layer', () => {

@@ -27,7 +27,7 @@ export const PUBLIC_SOURCES = Object.freeze({
   dayMaster: 'bazi · day-pillar heavenly stem',
   strength: 'wuxing seasonal states · 旺相休囚死',
   favorability: 'bazi · yongshen favourable-element convention',
-  expression: 'pythagorean numerology · date digit sum, 11/22 retained',
+  expression: 'pythagorean numerology · date digit sum, nine-number system',
   posture: 'major arcana · project birth-card reduction',
   families: 'wuxing · classical industry categories',
 });
@@ -235,11 +235,12 @@ export const DOMAIN_FAMILIES = Object.freeze({
   ]),
 });
 
-// ── Expression modes (11 entries) ───────────────────────────────────────────
-// Keyed by the date digit sum reduced with the 11 and 22 stops retained, so
-// the domain is exactly {1..9, 11, 22}. `theme` for 1..9 is the same nine-term
-// vocabulary content/meanings.v2.js already ships (pinned by a cross-check in
-// tests/public.test.js); 11 and 22 extend it for the two retained stops.
+// ── Expression modes (9 entries) ────────────────────────────────────────────
+// Keyed by the date digit sum reduced strictly to 1..9, per DOCTRINE §1.B
+// v0.54 (calc v3) — controller ruling 2026-07-29, collapsing the eleven-entry
+// first draft that retained the 11 and 22 stops. `theme` is the same nine-term
+// vocabulary content/meanings.v2.js already ships, pinned by a cross-check in
+// tests/public.test.js, so the tier adds no numerology vocabulary of its own.
 //
 // `priority` ranks the three family characters for this mode. It is a
 // permutation of FAMILY_CHARACTERS: priority[0] takes rank 1 among the fit
@@ -293,16 +294,6 @@ export const EXPRESSION_MODES = Object.freeze({
     number: 9, theme: 'service', register: 'the standing obligation',
     priority: Object.freeze(['transmission', 'stewardship', 'origination']),
     method: 'worked to an obligation already accepted, on request',
-  }),
-  11: Object.freeze({
-    number: 11, theme: 'projection', register: 'the long sight',
-    priority: Object.freeze(['transmission', 'origination', 'stewardship']),
-    method: 'worked toward a stated horizon, ahead of the evidence for it',
-  }),
-  22: Object.freeze({
-    number: 22, theme: 'construction', register: 'the long build',
-    priority: Object.freeze(['origination', 'stewardship', 'transmission']),
-    method: 'worked as a long build, in load-bearing order',
   }),
 });
 

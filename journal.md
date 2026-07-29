@@ -21,19 +21,22 @@ tarot birth card → role posture. Spec at `PUBLIC_TIER_SPEC.md`.
 offsets). The season is the shipped `getInnerAnimal` solar-term path (calc v3.1). The posture indexes the shipped
 `core/birthcard.js` arcana. The sheng/ke cycles are imported from the immutable `content/concordance.v1.js` rather than
 redefined — one wuxing table in the repo. The nine mode themes for 1–9 are the same vocabulary `content/meanings.v2.js`
-ships, pinned by a cross-check test. The only new tables are the ten favourability entries, fifteen domain families,
-eleven expression modes, and twenty-two role postures.
+ships, pinned by a cross-check test — and after the nine-mode collapse below, the mode number itself is the shipped
+life path rather than a second implementation of it. The only new tables are the ten favourability entries, fifteen
+domain families, nine expression modes, and twenty-two role postures.
 
 **Three things a reviewer should press on, named here rather than left to be found.**
 
-- **The eleven expression modes diverge from calc v3.** §1.B v0.54 fixed active Pythagorean numerology at exactly nine
-  terminal values. This tier's expression number is the date digit sum with the 11 and 22 stops **retained**, which is
-  what makes the table eleven entries. The argument for it: the brief specifies eleven modes, and this number is a
-  date-derived driver private to the tier, never rendered as the `expression/name number` coordinate §1.B governs. The
-  argument against it is that §1.B's language is about the active surface, not about one field's provenance. **This is a
-  controller ruling, not an implementer one.** Collapsing to nine modes is one predicate plus two table entries, then a
-  fixture regeneration. The name also collides with §1.B's coordinate and would need relabelling before either reaches a
-  surface.
+- **The modes were eleven; a controller ruling collapsed them to nine — and that changed what the number IS.** The
+  first draft retained the 11 and 22 stops because the brief specified eleven modes; §1.B v0.54 fixed active Pythagorean
+  numerology at exactly nine terminal values, and the constitution won. **The consequence is not cosmetic:** a date digit
+  sum reduced strictly to 1..9 is the *life path* — same sum, same reduction, already free-surface since §1.D v0.38. So
+  the tier no longer computes a distinct number, and it no longer implements one: `getExpressionSum` /
+  `getExpressionNumber` now delegate to `getLifePathSum` / `getLifePath` in `core/profile.js`, with a test pinning the
+  delegation across the range. Keeping a private copy of an identical rule is the drift risk `core/math.js`'s header
+  names. **What is now open, and named in the spec as question 1:** the field is called `expression`, which is neither
+  §1.B's name-derived coordinate nor a new number — it should be renamed before anything renders, or one sheet shows
+  two labels for one value.
 - **Strength is the seasonal-state model, month branch only.** 旺相休囚死 against the month-branch element, collapsed to
   strong/weak. A full BaZi read weighs roots, hidden stems and the rest of the chart. It is the largest place a
   practitioner would disagree with the output, and it is the reason the accepted-but-unused hour is worth keeping as a
@@ -55,10 +58,11 @@ price, Gumroad product, `?paid=` param, entitlement, or paywall path. No `core/p
 `core/public.js` — a test asserts that, so wiring can never happen silently, and a scan asserts the module names no
 tier/price/credit/entitlement token. Any surfacing needs a doctrine amendment under §10 first.
 
-**Verification.** Full suite **44 files / 1540 tests** green (base 43 / 1504 after merging `origin/main` — #142/#143 — into this branch; +36, all in the new file). The five required
+**Verification.** Full suite **44 files / 1541 tests** green (base 43 / 1504 after merging `origin/main` — #142/#143 — into this branch; +37, all in the new file). The five required
 properties each have their own block: 100-run byte-identity, coverage with no gaps (every element × strength, every
 element × expression, all 22 postures, all 25 element pairs, plus a 1900–2100 sweep at a 37-day stride), the date-only
-path, anti-fit never a fit family (structurally and across the sweep), and 16 snapshot fixtures. Because a snapshot
+path, anti-fit never a fit family (structurally and across the sweep), and 16 snapshot fixtures (regenerated for the
+nine-mode collapse; they cover all nine values, including the three sums — 11, 22, 33 — that no longer stop early). Because a snapshot
 regenerated from the implementation cannot catch an implementation that was wrong when it was taken, four independent
 anchors carry that weight: the three calibrated day pillars from `tests/pillars.test.js`, a hand-walked `2000-01-01` case
 asserted field by field, all ten favourability entries re-derived from the sheng/ke cycles, and season/posture re-derived
@@ -74,6 +78,12 @@ all of `ui/`, `index.html`, `DOCTRINE.md`, `tests/fixtures.json`, every scanner 
 dependencies, localStorage keys.
 
 **Merge-forward.** `origin/main` advanced past this branch's base while the work was in flight (#142 CI `edited` trigger, #143 its journal entry). This branch carries a merge commit bringing `origin/main` in; the only conflict was `journal.md` (both sides added a top entry) and both are preserved in full, this one above the #142 entry. The suite was re-run green against the merged state. Note the collision it caused in the sighting log: #142's override took **L48 sighting #13**, so this PR's artifact is **#14**.
+
+**Nine-mode collapse (controller ruling, in-branch).** Filed as its own commit rather than folded into the original: the
+`EXPRESSION_MODES` table loses its `11` and `22` entries, the reduction predicate is gone entirely in favour of
+delegation to `core/profile.js`, `PUBLIC_SOURCES.expression` reads `nine-number system`, the fixtures are regenerated,
+and the spec's §3.4 and §6 are rewritten to record that the brief was overruled rather than misread. Test count in the
+new file 36 → 37 (the reduction test became a delegation pin). No other file moves.
 
 **Rollback.** Delete the five new files and restore the two `CLAUDE.md` counts. Nothing else references them.
 
