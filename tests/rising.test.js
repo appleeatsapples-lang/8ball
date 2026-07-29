@@ -19,7 +19,8 @@ import {
   getRisingSign,
   gmstDeg,
   julianDay,
-  obliquityDeg
+  obliquityDeg,
+  offsetMinutesForWallTime
 } from '../core/rising.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -159,6 +160,66 @@ describe('rising sign — computeRising (tz-aware, v0.2.7.2)', () => {
       expect(computeRising(c.opts)).toBe(c.sign);
     });
   }
+});
+
+// 2026-07-25 Stryker follow-up (core/rising.js scored 79.0% mutation with
+// 39 undetected mutants; see journal for the full record). fixtures.rising_cases
+// cannot express these cases -- it has no tz field and is consumed only via
+// the legacy fixed-offset getRisingSign API, which never reaches the
+// two-pass DST-resolution code (offsetMinutesForWallTime / getOffsetAtInstant,
+// core/rising.js L112-144) at all. rising_tz_cases (new, same fixtures.json
+// file) carries a tz string instead and is consumed here via computeRising +
+// offsetMinutesForWallTime so it actually exercises that path. See each
+// fixture's label + tests/fixtures.json's _rising_tz_cases_comment for the
+// verification source of every expected value.
+describe('rising sign — computeRising mutation-coverage fixtures (2026-07-25)', () => {
+  for (const c of fixtures.rising_tz_cases) {
+    it(c.label, () => {
+      const [y, m, d] = parseDob(c.dob);
+      const [hour, minute] = parseTime(c.time);
+      if (typeof c.expected.offsetMinutes === 'number') {
+        expect(offsetMinutesForWallTime(y, m, d, hour, minute, c.tz)).toBe(c.expected.offsetMinutes);
+      }
+      expect(computeRising({
+        year: y, month: m, day: d, hour, minute,
+        tz: c.tz, lat: c.lat, lng: c.lng
+      })).toBe(c.expected.risingSign);
+    });
+  }
+});
+
+describe('rising sign — offsetMinutesForWallTime tz-guard edge cases (2026-07-25)', () => {
+  const base = { year: 1990, month: 6, day: 15, hour: 12, minute: 0, lat: 51.5074, lng: -0.1278 };
+
+  it('empty-string tz resolves to null, not a wrong sign', () => {
+    expect(offsetMinutesForWallTime(1990, 6, 15, 12, 0, '')).toBe(null);
+    expect(computeRising({ ...base, tz: '' })).toBe(null);
+  });
+
+  it('non-string tz is rejected even when it would otherwise coerce to a valid zone', () => {
+    // A bare type check (typeof tz !== 'string') only earns its keep if a
+    // non-string value that Intl.DateTimeFormat's own ToString coercion
+    // would otherwise accept is still rejected here. An empty string or a
+    // plain number both already throw inside Intl (RangeError, caught by
+    // getOffsetAtInstant's try/catch) and so resolve to null on ANY code
+    // path -- that makes them unable to distinguish this guard from one
+    // that never rejects non-strings at all. An object with a custom
+    // toString naming a real zone is accepted by Intl's coercion (verified
+    // directly against this platform's Intl.DateTimeFormat, independent of
+    // core/rising.js), so it is the only input that actually tells the two
+    // apart: the guard must reject it on TYPE alone, before it ever reaches
+    // Intl.
+    const coercesToRealZone = { toString: () => 'America/New_York' };
+    expect(offsetMinutesForWallTime(1990, 6, 15, 12, 0, coercesToRealZone)).toBe(null);
+    expect(computeRising({ ...base, tz: coercesToRealZone })).toBe(null);
+  });
+
+  it('a well-formed but non-existent IANA identifier resolves to null, not a wrong sign', () => {
+    // Direct computeRising entry point (buildProfile-level coverage of an
+    // equivalent case already exists in the "buildProfile integration"
+    // block below via tz: 'Not/AZone').
+    expect(computeRising({ ...base, tz: 'Mars/Phobos_Base' })).toBe(null);
+  });
 });
 
 describe('rising sign — buildProfile integration', () => {

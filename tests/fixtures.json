@@ -238,6 +238,45 @@
       }
     }
   ],
+  "_rising_tz_cases_comment": "Additive 2026-07-25 mutation-coverage fixtures for core/rising.js (Stryker survivor follow-up). Unlike rising_cases (fixed utcOffsetMinutes, legacy getRisingSign API), these carry an IANA tz string and are consumed via computeRising/offsetMinutesForWallTime so they exercise the two-pass DST-resolution path (core/rising.js L135-144), not just ascendantDeg. expected.risingSign values are sourced from an independent Swiss Ephemeris computation (pyswisseph, the same ephemeris engine astro.com's charts are built on; astro.com itself was unreachable from the build environment) cross-validated to <0.01deg against the three existing astro.com-anchored reference cases before use, then to <1deg agreement across 2000 random valid inputs against an independently-written from-formula implementation. expected.offsetMinutes values are sourced separately, by tracing the documented two-pass algorithm against directly-probed real Intl.DateTimeFormat output (not by executing core/rising.js).",
+  "rising_tz_cases": [
+    {
+      "label": "America/New_York spring-forward 2023-03-12 02:30 (skipped hour) resolves via the o2 (EDT) pass, not the o1 (EST) guess",
+      "dob": "2023-03-12",
+      "time": "02:30",
+      "tz": "America/New_York",
+      "lat": 40.7128,
+      "lng": -74.006,
+      "expected": {
+        "risingSign": "sagittarius",
+        "offsetMinutes": -240
+      }
+    },
+    {
+      "label": "Asia/Kolkata pre-1906 LMT (1905-12-31 21:00): o2 falls on the seconds-precision LMT string and fails to parse, offset falls back to o1 (IST)",
+      "dob": "1905-12-31",
+      "time": "21:00",
+      "tz": "Asia/Kolkata",
+      "lat": 22.5726,
+      "lng": 88.3639,
+      "expected": {
+        "risingSign": "virgo",
+        "offsetMinutes": 330
+      }
+    },
+    {
+      "label": "Asia/Kathmandu fractional offset +05:45 (non-zero minutes component)",
+      "dob": "1995-05-15",
+      "time": "12:00",
+      "tz": "Asia/Kathmandu",
+      "lat": 27.7172,
+      "lng": 85.324,
+      "expected": {
+        "risingSign": "leo",
+        "offsetMinutes": 345
+      }
+    }
+  ],
   "name_number": [
     {
       "name": "Generic",
