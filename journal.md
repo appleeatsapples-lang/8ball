@@ -51,9 +51,10 @@ Now something does.
 controller instruction rather than shipped as its own PR. It is rewritten to point at the gate instead of enumerating
 rungs, so a fifth rung cannot re-stale it — the enumeration was the defect, not the missing letter.
 
-**Verification.** Suite **45 files / 1580 tests** green — the same count with and without this change, since no behaviour
-moved. (The 1578 this lane would have written from memory was already stale: `main` gained tests from other lanes' merges
-while this chain was in flight. Counted rather than recalled, which is the discipline the two defects above both broke.) Live-fire evidence is four
+**Verification.** Suite **45 files / 1583 tests** green — the same count with and without this change, since no behaviour
+moved. (This number moved twice while the PR was open — 1578 from memory, 1580 on `main` when first counted, 1583 after a rebase
+over three more lanes' merges. Counted at each step rather than recalled, which is the discipline the two defects above
+both broke. A test count written from memory is stale the moment another lane merges.) Live-fire evidence is four
 screenshots and a JSON probe report, held outside the repo (they carry a rendered specimen sheet and belong in no tracked
 file). **Not verified:** the deployed site, still unreachable from here.
 
