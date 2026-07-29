@@ -5,6 +5,62 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
+`CLAUDE.md` recipe, one correction-on-sighting, and this entry. The substance is a **false claim this lane made repeatedly**
+and the browser pass that disproves it.**
+
+**The correction.** Across the #157 cycle this lane wrote that a browser pass "cannot be answered from here at all" and that
+the F1 fix was "verified structurally, never in a browser" as though that were a ceiling rather than a choice. **It was
+false.** Chromium and Playwright are pre-installed in this container (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`), and a
+local pass over `index.html` was available from the moment the t4 block existed. What is genuinely blocked is the
+*deployed* domain — egress policy 403s it at the proxy — and that true limitation was allowed to stand in for a false one.
+**F1 (the $9 CTA rendering in the live paywall) could have been caught here, before it ever reached a visitor.** The
+superseded sentence is preserved in place per L17 with a pointer to this entry.
+
+**The pass, run properly this time.** Static server on the repo, Chromium driven headless, three viewports, four scenarios:
+
+- **F1 confirmed fixed in a browser**, corroborating the controller's live check: the t4 anchor computes `display: none`,
+  reports zero client rects, and carries no `href`. Exactly one CTA is visible in the paywall.
+- **The t4 block renders**: `1 tech · 2 media · 3 energy` / `anti-fit · health` / the role line, wrapping to two lines at
+  1280px and three at 320px. Tier stored `t4`, block unsealed, `aria-label="domain fit"`, **zero console errors** — which
+  also proves the `/ui/public.js` module actually loads rather than being swallowed by the catch-all rewrite, an open
+  question from the cross-read's completeness critic.
+- **Sealed-DOM purity verified rather than inferred** (§1.D v0.37): at free tier the block carries the hatch and its three
+  value nodes are empty strings; a text-node walk over the rendered body finds **zero** occurrences of any entitled string.
+  The density strip reads `5 of 15 coordinates open · 10 sealed at paid tiers · domain fit sealed`.
+- **The 320px question is answered: no overflow.** `scrollWidth` 320 = `clientWidth` 320, the card does not overflow its
+  stage, the block occupies 133px and the role line wraps cleanly. The completeness critic's concern does not reproduce.
+- **The label follows the labels-reveal convention** — `visibility: hidden` until `reveal labels`, `visible` after.
+
+**A false positive worth recording, because it is the same species as a shipped defect.** The first leak probe reported an
+entitled string present at free tier. The match was the word "re**media**tion" inside an inline comment — a substring
+match without word boundaries, precisely the error `tests/helpers/voice-register.js`'s `SUBSTRING_SAFELIST` exists to
+prevent ("restaurant" ⊃ "aura"). It was chased down before being reported rather than after. A crude probe that fires
+wrongly is cheap; a crude probe that is *believed* is how F1 shipped.
+
+**The systemic fix, which matters more than the pass.** `CLAUDE.md` now documents the live-fire recipe under Commands, with
+the constraint that makes it safe: **the driver goes in a scratch directory, never in `package.json`** — §7 stage 4 caps
+devDependencies and this repo vendors no browser tooling (`playwright-core` was installed under `/tmp` for this pass;
+`package.json` is byte-untouched). §8 gate 9 was being treated as operator-only because nothing in the repo said otherwise.
+Now something does.
+
+**Also in this change.** The comment above `handlePaidReturn` in `ui/payments.js` read `Reads ?paid=t1|t2|t3` — stale since
+§1.D v0.58 appended t4, though the code below always gated on `isTier` and honoured t4 correctly. Folded in here on
+controller instruction rather than shipped as its own PR. It is rewritten to point at the gate instead of enumerating
+rungs, so a fifth rung cannot re-stale it — the enumeration was the defect, not the missing letter.
+
+**Verification.** Suite **45 files / 1580 tests** green — the same count with and without this change, since no behaviour
+moved. (The 1578 this lane would have written from memory was already stale: `main` gained tests from other lanes' merges
+while this chain was in flight. Counted rather than recalled, which is the discipline the two defects above both broke.) Live-fire evidence is four
+screenshots and a JSON probe report, held outside the repo (they carry a rendered specimen sheet and belong in no tracked
+file). **Not verified:** the deployed site, still unreachable from here.
+
+**Scope (files):** `ui/payments.js` (one comment), `CLAUDE.md` (live-fire recipe under Commands), `journal.md` (this entry
+plus the corrected sentence in the #157 entry), the L48 artifact. **UNTOUCHED:** `core/`, `content/`, `index.html`,
+`DOCTRINE.md`, `package.json`, every test, every scanner list.
+
 ## 2026-07-29 — rising-sign mutation coverage: three mutants killed, four claims tested, two of them wrong — SHIPPED
 
 **Status: SHIPPED — both squash-merged to `main` on 2026-07-29: #152 `e658078`
@@ -494,7 +550,13 @@ storage key, and the engine and its tables are byte-unchanged from #144.
 **Still open, and NOT closed by this cycle.** §8 gate 9 live-fire has still not run, and F1 is precisely the class of
 defect only a live-fire pass catches — the fix is verified structurally, not visually. The 320px-viewport question the
 critic raised (an always-visible block with a `min-height` floor inside a fixed-aspect card) cannot be answered from here
-at all. `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
+at all. **[CORRECTED 2026-07-29, see the entry at the top of this file: that last sentence was false. Chromium and
+Playwright are pre-installed in this container; a local live-fire pass over `index.html` was available the whole time, and
+when finally run it answered the 320px question in one command — no overflow. The claim is preserved per L17 and
+superseded there.]** **[CORRECTED 2026-07-29, see the entry at the top of this file: that last sentence was false. Chromium and
+Playwright are pre-installed in this container; a local live-fire pass over `index.html` was available the whole time, and
+when finally run it answered the 320px question in one command — no overflow. The claim is preserved per L17 and
+superseded there.]** `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
 `curl` to the deployed site is blocked by this environment's egress policy (403 at the proxy), so no claim is made here
 about what the live deploy currently serves.
 
