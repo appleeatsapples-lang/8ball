@@ -1,7 +1,7 @@
 {
-  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in content/public.v1.js fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 for the nine-mode collapse and again for the lifePath rename — two controller rulings, same day (DOCTRINE §1.B v0.54, §1.D v0.38).",
+  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in the content tables fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 three times, once per controller ruling: the nine-mode collapse, the lifePath rename, and the move of the mode driver off the free surface to the birthday number (§1.D v0.59).",
   "_pii_rule": "Fixture dates MUST be synthetic — calendar/calibration anchors chosen for the calc path they exercise, never a real person’s date of birth. See DOCTRINE.md §11.",
-  "_coverage": "The 16 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine life-path values (1–9), including the three digit sums (11, 22, 33) that no longer stop early.",
+  "_coverage": "The 17 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine birthday values (1–9) — the mode driver. They also carry every date calc v3.1 moved: lunar new year 1916 and the 1911, 1912 and 1927 solar terms.",
   "cases": [
     {
       "dob": "1900-01-01",
@@ -40,11 +40,11 @@
         "primaryUnfavorable": "water",
         "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
         "mode": {
-          "lifePath": 3,
-          "lifePathSum": 12,
-          "theme": "expression",
-          "register": "the open draft",
-          "method": "worked in public drafts, revised where they can be seen"
+          "birthday": 1,
+          "dayOfMonth": 1,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
         },
         "posture": {
           "number": 12,
@@ -56,19 +56,19 @@
         "families": [
           {
             "rank": 1,
-            "key": "media",
-            "element": "fire",
-            "label": "media",
-            "character": "transmission",
-            "body": "signal and circulation — work that carries a public message at volume."
-          },
-          {
-            "rank": 2,
             "key": "tech",
             "element": "fire",
             "label": "tech",
             "character": "origination",
             "body": "apparatus and invention — work that builds an instrument and puts it into use."
+          },
+          {
+            "rank": 2,
+            "key": "media",
+            "element": "fire",
+            "label": "media",
+            "character": "transmission",
+            "body": "signal and circulation — work that carries a public message at volume."
           },
           {
             "rank": 3,
@@ -86,12 +86,12 @@
           "character": "stewardship",
           "body": "movement and schedule — work that keeps goods arriving in order."
         },
-        "roleLine": "a role held in deliberate suspension, worked in public drafts, revised where they can be seen.",
+        "roleLine": "a role held in deliberate suspension, worked from a standing start, one line at a time.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -134,11 +134,11 @@
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
         "mode": {
-          "lifePath": 5,
-          "lifePathSum": 23,
-          "theme": "change",
-          "register": "the short cycle",
-          "method": "worked in short cycles, re-scoped as conditions move"
+          "birthday": 6,
+          "dayOfMonth": 6,
+          "theme": "care",
+          "register": "the standing duty",
+          "method": "worked at the pace of the people it is for"
         },
         "posture": {
           "number": 5,
@@ -150,6 +150,14 @@
         "families": [
           {
             "rank": 1,
+            "key": "property",
+            "element": "earth",
+            "label": "property",
+            "character": "stewardship",
+            "body": "holding and tenancy — work that keeps ground in productive hands."
+          },
+          {
+            "rank": 2,
             "key": "advisory",
             "element": "earth",
             "label": "advisory",
@@ -157,35 +165,27 @@
             "body": "counsel on record — work that reads a situation and files a position on it."
           },
           {
-            "rank": 2,
+            "rank": 3,
             "key": "construction",
             "element": "earth",
             "label": "construction",
             "character": "origination",
             "body": "assembly on ground — work that raises a structure where none stood."
-          },
-          {
-            "rank": 3,
-            "key": "property",
-            "element": "earth",
-            "label": "property",
-            "character": "stewardship",
-            "body": "holding and tenancy — work that keeps ground in productive hands."
           }
         ],
         "antiFit": {
-          "key": "health",
+          "key": "growth",
           "element": "wood",
-          "label": "health",
-          "character": "stewardship",
-          "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          "label": "growth",
+          "character": "origination",
+          "body": "cultivation and yield — work that develops a living stock across seasons."
         },
-        "roleLine": "a role held as the passing on of an established practice, worked in short cycles, re-scoped as conditions move.",
+        "roleLine": "a role held as the passing on of an established practice, worked at the pace of the people it is for.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -228,11 +228,11 @@
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
         "mode": {
-          "lifePath": 4,
-          "lifePathSum": 22,
-          "theme": "structure",
-          "register": "the fixed plan",
-          "method": "worked to a plan, in fixed stages"
+          "birthday": 3,
+          "dayOfMonth": 3,
+          "theme": "expression",
+          "register": "the open draft",
+          "method": "worked in public drafts, revised where they can be seen"
         },
         "posture": {
           "number": 0,
@@ -244,11 +244,11 @@
         "families": [
           {
             "rank": 1,
-            "key": "logistics",
+            "key": "communication",
             "element": "water",
-            "label": "logistics",
-            "character": "stewardship",
-            "body": "movement and schedule — work that keeps goods arriving in order."
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
           },
           {
             "rank": 2,
@@ -260,26 +260,120 @@
           },
           {
             "rank": 3,
-            "key": "communication",
+            "key": "logistics",
             "element": "water",
-            "label": "communication",
-            "character": "transmission",
-            "body": "relay and routing — work that keeps a line open between distant points."
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
           }
         ],
         "antiFit": {
-          "key": "advisory",
+          "key": "property",
           "element": "earth",
-          "label": "advisory",
-          "character": "transmission",
-          "body": "counsel on record — work that reads a situation and files a position on it."
+          "label": "property",
+          "character": "stewardship",
+          "body": "holding and tenancy — work that keeps ground in productive hands."
         },
-        "roleLine": "a role held open before it is defined, worked to a plan, in fixed stages.",
+        "roleLine": "a role held open before it is defined, worked in public drafts, revised where they can be seen.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1927-09-09",
+      "note": "the third calc v3.1 solar-term correction (1927 bailu, one day earlier); the only date in this set whose birthday number is 9",
+      "reading": {
+        "dob": {
+          "year": 1927,
+          "month": 9,
+          "day": 9
+        },
+        "dayMaster": {
+          "stem": "bing",
+          "polarity": "yang",
+          "element": "fire",
+          "branchAnimal": "horse"
+        },
+        "season": {
+          "monthAnimal": "rooster",
+          "element": "metal",
+          "state": "qiu",
+          "stateHan": "囚",
+          "stateLabel": "held",
+          "relation": "the day master controls the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "water",
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
+        "mode": {
+          "birthday": 9,
+          "dayOfMonth": 9,
+          "theme": "service",
+          "register": "the standing obligation",
+          "method": "worked to an obligation already accepted, on request"
+        },
+        "posture": {
+          "number": 10,
+          "roman": "X",
+          "arcana": "wheel of fortune",
+          "register": "the cycle reader",
+          "stance": "a role held across the turns of a cycle"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 2,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 3,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          }
+        ],
+        "antiFit": {
+          "key": "trade",
+          "element": "water",
+          "label": "trade",
+          "character": "origination",
+          "body": "exchange opened — work that makes a market between parties who had none."
+        },
+        "roleLine": "a role held across the turns of a cycle, worked to an obligation already accepted, on request.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -322,11 +416,11 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
         "mode": {
-          "lifePath": 4,
-          "lifePathSum": 22,
-          "theme": "structure",
-          "register": "the fixed plan",
-          "method": "worked to a plan, in fixed stages"
+          "birthday": 1,
+          "dayOfMonth": 1,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
         },
         "posture": {
           "number": 0,
@@ -338,14 +432,6 @@
         "families": [
           {
             "rank": 1,
-            "key": "health",
-            "element": "wood",
-            "label": "health",
-            "character": "stewardship",
-            "body": "condition and recovery — work that keeps a body running rather than remaking it."
-          },
-          {
-            "rank": 2,
             "key": "growth",
             "element": "wood",
             "label": "growth",
@@ -353,27 +439,35 @@
             "body": "cultivation and yield — work that develops a living stock across seasons."
           },
           {
-            "rank": 3,
+            "rank": 2,
             "key": "teaching",
             "element": "wood",
             "label": "teaching",
             "character": "transmission",
             "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 3,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
           }
         ],
         "antiFit": {
-          "key": "law",
+          "key": "finance",
           "element": "metal",
-          "label": "law",
-          "character": "transmission",
-          "body": "code and argument — work that carries a rule into a contested room."
+          "label": "finance",
+          "character": "stewardship",
+          "body": "custody and allocation — work that holds a stock of value and places it."
         },
-        "roleLine": "a role held open before it is defined, worked to a plan, in fixed stages.",
+        "roleLine": "a role held open before it is defined, worked from a standing start, one line at a time.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -416,11 +510,11 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
         "mode": {
-          "lifePath": 6,
-          "lifePathSum": 33,
-          "theme": "care",
-          "register": "the standing duty",
-          "method": "worked at the pace of the people it is for"
+          "birthday": 2,
+          "dayOfMonth": 29,
+          "theme": "cooperation",
+          "register": "the second hand",
+          "method": "worked in pairs, at the pace of the slower party"
         },
         "posture": {
           "number": 6,
@@ -462,12 +556,12 @@
           "character": "origination",
           "body": "specification and tolerance — work that fixes a design to measured limits."
         },
-        "roleLine": "a role held as a choice between two commitments, worked at the pace of the people it is for.",
+        "roleLine": "a role held as a choice between two commitments, worked in pairs, at the pace of the slower party.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -510,11 +604,11 @@
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a metal day master already carried by its season; the open side is what puts the edge to work.",
         "mode": {
-          "lifePath": 8,
-          "lifePathSum": 26,
-          "theme": "command",
-          "register": "the wide operation",
-          "method": "worked at scale, through delegated hands"
+          "birthday": 3,
+          "dayOfMonth": 21,
+          "theme": "expression",
+          "register": "the open draft",
+          "method": "worked in public drafts, revised where they can be seen"
         },
         "posture": {
           "number": 8,
@@ -526,6 +620,14 @@
         "families": [
           {
             "rank": 1,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          },
+          {
+            "rank": 2,
             "key": "trade",
             "element": "water",
             "label": "trade",
@@ -533,35 +635,27 @@
             "body": "exchange opened — work that makes a market between parties who had none."
           },
           {
-            "rank": 2,
+            "rank": 3,
             "key": "logistics",
             "element": "water",
             "label": "logistics",
             "character": "stewardship",
             "body": "movement and schedule — work that keeps goods arriving in order."
-          },
-          {
-            "rank": 3,
-            "key": "communication",
-            "element": "water",
-            "label": "communication",
-            "character": "transmission",
-            "body": "relay and routing — work that keeps a line open between distant points."
           }
         ],
         "antiFit": {
-          "key": "advisory",
+          "key": "property",
           "element": "earth",
-          "label": "advisory",
-          "character": "transmission",
-          "body": "counsel on record — work that reads a situation and files a position on it."
+          "label": "property",
+          "character": "stewardship",
+          "body": "holding and tenancy — work that keeps ground in productive hands."
         },
-        "roleLine": "a role held as steady pressure on strong material, worked at scale, through delegated hands.",
+        "roleLine": "a role held as steady pressure on strong material, worked in public drafts, revised where they can be seen.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -604,11 +698,11 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a wood day master outside its season; the open side is what feeds and joins it before anything draws on it.",
         "mode": {
-          "lifePath": 9,
-          "lifePathSum": 27,
-          "theme": "service",
-          "register": "the standing obligation",
-          "method": "worked to an obligation already accepted, on request"
+          "birthday": 5,
+          "dayOfMonth": 5,
+          "theme": "change",
+          "register": "the short cycle",
+          "method": "worked in short cycles, re-scoped as conditions move"
         },
         "posture": {
           "number": 9,
@@ -628,34 +722,34 @@
           },
           {
             "rank": 2,
-            "key": "logistics",
-            "element": "water",
-            "label": "logistics",
-            "character": "stewardship",
-            "body": "movement and schedule — work that keeps goods arriving in order."
-          },
-          {
-            "rank": 3,
             "key": "trade",
             "element": "water",
             "label": "trade",
             "character": "origination",
             "body": "exchange opened — work that makes a market between parties who had none."
+          },
+          {
+            "rank": 3,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
           }
         ],
         "antiFit": {
-          "key": "engineering",
+          "key": "finance",
           "element": "metal",
-          "label": "engineering",
-          "character": "origination",
-          "body": "specification and tolerance — work that fixes a design to measured limits."
+          "label": "finance",
+          "character": "stewardship",
+          "body": "custody and allocation — work that holds a stock of value and places it."
         },
-        "roleLine": "a role held apart, at working distance, worked to an obligation already accepted, on request.",
+        "roleLine": "a role held apart, at working distance, worked in short cycles, re-scoped as conditions move.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -698,11 +792,11 @@
         "primaryUnfavorable": "water",
         "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
         "mode": {
-          "lifePath": 8,
-          "lifePathSum": 26,
-          "theme": "command",
-          "register": "the wide operation",
-          "method": "worked at scale, through delegated hands"
+          "birthday": 2,
+          "dayOfMonth": 2,
+          "theme": "cooperation",
+          "register": "the second hand",
+          "method": "worked in pairs, at the pace of the slower party"
         },
         "posture": {
           "number": 8,
@@ -714,14 +808,6 @@
         "families": [
           {
             "rank": 1,
-            "key": "growth",
-            "element": "wood",
-            "label": "growth",
-            "character": "origination",
-            "body": "cultivation and yield — work that develops a living stock across seasons."
-          },
-          {
-            "rank": 2,
             "key": "health",
             "element": "wood",
             "label": "health",
@@ -729,27 +815,35 @@
             "body": "condition and recovery — work that keeps a body running rather than remaking it."
           },
           {
-            "rank": 3,
+            "rank": 2,
             "key": "teaching",
             "element": "wood",
             "label": "teaching",
             "character": "transmission",
             "body": "instruction and transfer — work that moves a discipline into other hands."
+          },
+          {
+            "rank": 3,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
           }
         ],
         "antiFit": {
-          "key": "communication",
+          "key": "trade",
           "element": "water",
-          "label": "communication",
-          "character": "transmission",
-          "body": "relay and routing — work that keeps a line open between distant points."
+          "label": "trade",
+          "character": "origination",
+          "body": "exchange opened — work that makes a market between parties who had none."
         },
-        "roleLine": "a role held as steady pressure on strong material, worked at scale, through delegated hands.",
+        "roleLine": "a role held as steady pressure on strong material, worked in pairs, at the pace of the slower party.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -792,11 +886,11 @@
         "primaryUnfavorable": "wood",
         "favorabilityNote": "an earth day master outside its season; the open side is warmth and bulk before any call on either.",
         "mode": {
-          "lifePath": 4,
-          "lifePathSum": 4,
-          "theme": "structure",
-          "register": "the fixed plan",
-          "method": "worked to a plan, in fixed stages"
+          "birthday": 1,
+          "dayOfMonth": 1,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
         },
         "posture": {
           "number": 4,
@@ -808,14 +902,6 @@
         "families": [
           {
             "rank": 1,
-            "key": "energy",
-            "element": "fire",
-            "label": "energy",
-            "character": "stewardship",
-            "body": "supply and load — work that keeps a current running under demand."
-          },
-          {
-            "rank": 2,
             "key": "tech",
             "element": "fire",
             "label": "tech",
@@ -823,27 +909,35 @@
             "body": "apparatus and invention — work that builds an instrument and puts it into use."
           },
           {
-            "rank": 3,
+            "rank": 2,
             "key": "media",
             "element": "fire",
             "label": "media",
             "character": "transmission",
             "body": "signal and circulation — work that carries a public message at volume."
+          },
+          {
+            "rank": 3,
+            "key": "energy",
+            "element": "fire",
+            "label": "energy",
+            "character": "stewardship",
+            "body": "supply and load — work that keeps a current running under demand."
           }
         ],
         "antiFit": {
-          "key": "teaching",
+          "key": "health",
           "element": "wood",
-          "label": "teaching",
-          "character": "transmission",
-          "body": "instruction and transfer — work that moves a discipline into other hands."
+          "label": "health",
+          "character": "stewardship",
+          "body": "condition and recovery — work that keeps a body running rather than remaking it."
         },
-        "roleLine": "a role held as the setting of order, worked to a plan, in fixed stages.",
+        "roleLine": "a role held as the setting of order, worked from a standing start, one line at a time.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -886,11 +980,11 @@
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
         "mode": {
-          "lifePath": 6,
-          "lifePathSum": 15,
-          "theme": "care",
-          "register": "the standing duty",
-          "method": "worked at the pace of the people it is for"
+          "birthday": 2,
+          "dayOfMonth": 29,
+          "theme": "cooperation",
+          "register": "the second hand",
+          "method": "worked in pairs, at the pace of the slower party"
         },
         "posture": {
           "number": 15,
@@ -932,12 +1026,12 @@
           "character": "origination",
           "body": "cultivation and yield — work that develops a living stock across seasons."
         },
-        "roleLine": "a role held under a binding arrangement, worked at the pace of the people it is for.",
+        "roleLine": "a role held under a binding arrangement, worked in pairs, at the pace of the slower party.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -980,11 +1074,11 @@
         "primaryUnfavorable": "earth",
         "favorabilityNote": "a water day master outside its season; the open side is the source and the body of water it joins.",
         "mode": {
-          "lifePath": 2,
-          "lifePathSum": 11,
-          "theme": "cooperation",
-          "register": "the second hand",
-          "method": "worked in pairs, at the pace of the slower party"
+          "birthday": 4,
+          "dayOfMonth": 4,
+          "theme": "structure",
+          "register": "the fixed plan",
+          "method": "worked to a plan, in fixed stages"
         },
         "posture": {
           "number": 11,
@@ -1004,34 +1098,34 @@
           },
           {
             "rank": 2,
-            "key": "law",
-            "element": "metal",
-            "label": "law",
-            "character": "transmission",
-            "body": "code and argument — work that carries a rule into a contested room."
-          },
-          {
-            "rank": 3,
             "key": "engineering",
             "element": "metal",
             "label": "engineering",
             "character": "origination",
             "body": "specification and tolerance — work that fixes a design to measured limits."
+          },
+          {
+            "rank": 3,
+            "key": "law",
+            "element": "metal",
+            "label": "law",
+            "character": "transmission",
+            "body": "code and argument — work that carries a rule into a contested room."
           }
         ],
         "antiFit": {
-          "key": "construction",
+          "key": "advisory",
           "element": "earth",
-          "label": "construction",
-          "character": "origination",
-          "body": "assembly on ground — work that raises a structure where none stood."
+          "label": "advisory",
+          "character": "transmission",
+          "body": "counsel on record — work that reads a situation and files a position on it."
         },
-        "roleLine": "a role held as the weighing of a case, worked in pairs, at the pace of the slower party.",
+        "roleLine": "a role held as the weighing of a case, worked to a plan, in fixed stages.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1074,11 +1168,11 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
         "mode": {
-          "lifePath": 2,
-          "lifePathSum": 20,
-          "theme": "cooperation",
-          "register": "the second hand",
-          "method": "worked in pairs, at the pace of the slower party"
+          "birthday": 8,
+          "dayOfMonth": 8,
+          "theme": "command",
+          "register": "the wide operation",
+          "method": "worked at scale, through delegated hands"
         },
         "posture": {
           "number": 20,
@@ -1090,6 +1184,14 @@
         "families": [
           {
             "rank": 1,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 2,
             "key": "health",
             "element": "wood",
             "label": "health",
@@ -1097,35 +1199,27 @@
             "body": "condition and recovery — work that keeps a body running rather than remaking it."
           },
           {
-            "rank": 2,
+            "rank": 3,
             "key": "teaching",
             "element": "wood",
             "label": "teaching",
             "character": "transmission",
             "body": "instruction and transfer — work that moves a discipline into other hands."
-          },
-          {
-            "rank": 3,
-            "key": "growth",
-            "element": "wood",
-            "label": "growth",
-            "character": "origination",
-            "body": "cultivation and yield — work that develops a living stock across seasons."
           }
         ],
         "antiFit": {
-          "key": "engineering",
+          "key": "law",
           "element": "metal",
-          "label": "engineering",
-          "character": "origination",
-          "body": "specification and tolerance — work that fixes a design to measured limits."
+          "label": "law",
+          "character": "transmission",
+          "body": "code and argument — work that carries a rule into a contested room."
         },
-        "roleLine": "a role held as the calling of a reckoning, worked in pairs, at the pace of the slower party.",
+        "roleLine": "a role held as the calling of a reckoning, worked at scale, through delegated hands.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1168,11 +1262,11 @@
         "primaryUnfavorable": "water",
         "favorabilityNote": "a wood day master already carried by its season; the open side is what spends the growth, not what adds to it.",
         "mode": {
-          "lifePath": 2,
-          "lifePathSum": 11,
-          "theme": "cooperation",
-          "register": "the second hand",
-          "method": "worked in pairs, at the pace of the slower party"
+          "birthday": 1,
+          "dayOfMonth": 10,
+          "theme": "initiative",
+          "register": "the opening move",
+          "method": "worked from a standing start, one line at a time"
         },
         "posture": {
           "number": 11,
@@ -1184,11 +1278,11 @@
         "families": [
           {
             "rank": 1,
-            "key": "energy",
+            "key": "tech",
             "element": "fire",
-            "label": "energy",
-            "character": "stewardship",
-            "body": "supply and load — work that keeps a current running under demand."
+            "label": "tech",
+            "character": "origination",
+            "body": "apparatus and invention — work that builds an instrument and puts it into use."
           },
           {
             "rank": 2,
@@ -1200,26 +1294,26 @@
           },
           {
             "rank": 3,
-            "key": "tech",
+            "key": "energy",
             "element": "fire",
-            "label": "tech",
-            "character": "origination",
-            "body": "apparatus and invention — work that builds an instrument and puts it into use."
+            "label": "energy",
+            "character": "stewardship",
+            "body": "supply and load — work that keeps a current running under demand."
           }
         ],
         "antiFit": {
-          "key": "trade",
+          "key": "logistics",
           "element": "water",
-          "label": "trade",
-          "character": "origination",
-          "body": "exchange opened — work that makes a market between parties who had none."
+          "label": "logistics",
+          "character": "stewardship",
+          "body": "movement and schedule — work that keeps goods arriving in order."
         },
-        "roleLine": "a role held as the weighing of a case, worked in pairs, at the pace of the slower party.",
+        "roleLine": "a role held as the weighing of a case, worked from a standing start, one line at a time.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1262,11 +1356,11 @@
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
         "mode": {
-          "lifePath": 1,
-          "lifePathSum": 19,
-          "theme": "initiative",
-          "register": "the opening move",
-          "method": "worked from a standing start, one line at a time"
+          "birthday": 6,
+          "dayOfMonth": 15,
+          "theme": "care",
+          "register": "the standing duty",
+          "method": "worked at the pace of the people it is for"
         },
         "posture": {
           "number": 19,
@@ -1278,11 +1372,11 @@
         "families": [
           {
             "rank": 1,
-            "key": "construction",
+            "key": "property",
             "element": "earth",
-            "label": "construction",
-            "character": "origination",
-            "body": "assembly on ground — work that raises a structure where none stood."
+            "label": "property",
+            "character": "stewardship",
+            "body": "holding and tenancy — work that keeps ground in productive hands."
           },
           {
             "rank": 2,
@@ -1294,26 +1388,26 @@
           },
           {
             "rank": 3,
-            "key": "property",
+            "key": "construction",
             "element": "earth",
-            "label": "property",
-            "character": "stewardship",
-            "body": "holding and tenancy — work that keeps ground in productive hands."
+            "label": "construction",
+            "character": "origination",
+            "body": "assembly on ground — work that raises a structure where none stood."
           }
         ],
         "antiFit": {
-          "key": "health",
+          "key": "growth",
           "element": "wood",
-          "label": "health",
-          "character": "stewardship",
-          "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          "label": "growth",
+          "character": "origination",
+          "body": "cultivation and yield — work that develops a living stock across seasons."
         },
-        "roleLine": "a role held in full view, worked from a standing start, one line at a time.",
+        "roleLine": "a role held in full view, worked at the pace of the people it is for.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1356,8 +1450,8 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
         "mode": {
-          "lifePath": 7,
-          "lifePathSum": 25,
+          "birthday": 7,
+          "dayOfMonth": 7,
           "theme": "analysis",
           "register": "the closed study",
           "method": "worked from the record, slowly, to a stated confidence"
@@ -1407,7 +1501,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1450,11 +1544,11 @@
         "primaryUnfavorable": "water",
         "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
         "mode": {
-          "lifePath": 1,
-          "lifePathSum": 10,
-          "theme": "initiative",
-          "register": "the opening move",
-          "method": "worked from a standing start, one line at a time"
+          "birthday": 4,
+          "dayOfMonth": 31,
+          "theme": "structure",
+          "register": "the fixed plan",
+          "method": "worked to a plan, in fixed stages"
         },
         "posture": {
           "number": 10,
@@ -1466,6 +1560,14 @@
         "families": [
           {
             "rank": 1,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 2,
             "key": "growth",
             "element": "wood",
             "label": "growth",
@@ -1473,35 +1575,27 @@
             "body": "cultivation and yield — work that develops a living stock across seasons."
           },
           {
-            "rank": 2,
+            "rank": 3,
             "key": "teaching",
             "element": "wood",
             "label": "teaching",
             "character": "transmission",
             "body": "instruction and transfer — work that moves a discipline into other hands."
-          },
-          {
-            "rank": 3,
-            "key": "health",
-            "element": "wood",
-            "label": "health",
-            "character": "stewardship",
-            "body": "condition and recovery — work that keeps a body running rather than remaking it."
           }
         ],
         "antiFit": {
-          "key": "logistics",
+          "key": "communication",
           "element": "water",
-          "label": "logistics",
-          "character": "stewardship",
-          "body": "movement and schedule — work that keeps goods arriving in order."
+          "label": "communication",
+          "character": "transmission",
+          "body": "relay and routing — work that keeps a line open between distant points."
         },
-        "roleLine": "a role held across the turns of a cycle, worked from a standing start, one line at a time.",
+        "roleLine": "a role held across the turns of a cycle, worked to a plan, in fixed stages.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · life path, nine-number system",
+          "mode": "pythagorean numerology · birthday, nine-number system",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
