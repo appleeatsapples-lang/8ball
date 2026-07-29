@@ -102,8 +102,8 @@ self-review never an audit — is unaffected.
 
 ## Consequence for the two open briefs
 
-`audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and
-`audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are **runnable
+`audits/pr140_retroactive_audit_2026-07-29_brief.md` and
+`audits/pr146_pr147_retroactive_audit_2026-07-29_brief.md` are **runnable
 exactly as their fire-line headers specify.** This lane advised against relaying
 them on the strength of the false premise; that advice is withdrawn. The #140
 packet remains the one worth firing first — a calculation change live in
