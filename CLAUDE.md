@@ -115,7 +115,7 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
     tests/        45 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
-    cards/        368 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
+    cards/        611 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
     scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/
     .github/      CI workflow (6 stages per §7) + PR template
     index.html    single-file UI, ≤1500 lines
