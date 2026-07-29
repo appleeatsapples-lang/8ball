@@ -218,7 +218,7 @@
   .card-entry.unsealing .card-note,
   .public-read.unsealing .card-habit,
   .public-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
-  /* sealed public-read block (t4, §1.D v0.58) — same seal treatment */
+  /* sealed public-read block (t3 ceiling, §1.D v0.60) — same seal treatment */
   .public-read { position: relative; min-height: 52px; }
   .public-title { font-size: 10px; letter-spacing: .14em; opacity: .55; margin-bottom: 4px; visibility: hidden; }
   .card.labels-revealed .public-title { visibility: visible; }
@@ -1021,7 +1021,6 @@
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
     <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
-      <a class="modal-cta" id="paywall-cta-t4" target="_self" hidden>buy public — the complete sheet, read as domains of work — $9</a>
     <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -1043,7 +1042,7 @@ import {
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
-  handlePaidReturn, applyT4Offer,
+  handlePaidReturn,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead } from './ui/public.js';
@@ -1167,7 +1166,6 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
-applyT4Offer($('paywall-cta-t4'));
 initMeaningsUI({ cardFace });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1233,8 +1231,8 @@ function renderCard(profile, opts) {
   // icon now; the entry slots are constant-skeleton (sealed shell via
   // ui/tiers.js) and MUST be cleared below t3 (§1.D v0.37 DOM purity).
   cardFace.classList.toggle('unlocked', cardEntry);
-  // t4 public read (§1.D v0.58) — entitlement resolved HERE, from the same
-  // `tier` the seals use, never inside ui/public.js.
+  // public read (§1.D v0.60, folded into t3) — entitlement resolved HERE,
+  // from the same `tier` the seals use, never inside ui/public.js.
   const publicOpen = coordsForTier(tier).has('publicRead');
   renderPublicRead(profile, { entitled: publicOpen });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
