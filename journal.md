@@ -87,9 +87,9 @@ Re-run properly with a **negative control**: on a fresh page `#offer-btn` ships 
 
 **Scope (files):** this file. **UNTOUCHED:** everything else — no code, no doctrine, no test, no `package.json`. Suite 1583 green, unchanged by this pass.
 
-## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
+**Status: SHIPPED — squash-merged to `main` as `9a40e1d` (#173) on 2026-07-29; the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/v0.55 footer precedent. Cleared by L48 override, sighting #18. **Flipped by a different lane from the one that wrote it, and its claims independently verified rather than taken on the entry's word** — which is worth stating because the entry's own subject is a claim this repo believed for a day without checking. Confirmed: Chromium 141 does launch in a container (`/opt/pw-browsers/chromium --version`, run rather than inferred from the env var); the browser pass reproduces — a second, independent run over the same surface returned 10/10 on F1's death in a rendering engine, one visible paywall CTA, empty t4 value slots at free tier, clean console, and no 320px overflow, recorded in the entry above; the `CLAUDE.md` live-fire recipe is present on `main`; and the scope claim holds against the diff — `CLAUDE.md`, `audits/L48_override_pr173_…`, `journal.md`, and `ui/payments.js`, whose change is comment text only, so "no code behaviour changes" is accurate. The one thing **not** re-verified is the deployed page, which stays outside any container's reach.** Was: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
 `CLAUDE.md` recipe, one correction-on-sighting, and this entry. The substance is a **false claim this lane made repeatedly**
 and the browser pass that disproves it.**
 
