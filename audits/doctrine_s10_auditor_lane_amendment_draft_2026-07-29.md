@@ -21,6 +21,13 @@
 >
 > Full correction and timeline: `audits/correction_s10_draft_codex_premise_2026-07-29.md`.
 > Original text preserved verbatim below per the lineage-preserving convention.
+>
+> **Path note.** The body below cites
+> `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md`; that packet
+> is now `audits/pr146_pr147_retroactive_audit_2026-07-29_brief.md`, renamed
+> lane-neutral. The stale path is left in place because the text below is
+> preserved verbatim. Note the irony on the record: the draft's surviving
+> design argument — that naming a vendor is fragile — is what the rename acts on.
 
 **Status: DRAFT for controller decision. Not applied. `DOCTRINE.md` is untouched
 by the PR carrying this file.**

@@ -1,9 +1,16 @@
-# CODEX RETROACTIVE AUDIT PACKET — PR #140 (calc v3.1: era-correct cusp offset) — 2026-07-29
+# RETROACTIVE AUDIT PACKET — PR #140 (calc v3.1: era-correct cusp offset) — 2026-07-29
 #
-# Fire line (from any terminal):
+# WHICH LANE — the independence test, not a vendor. This packet may be run by
+# any lane that is NOT the lane that authored the change and NOT the lane that
+# authored this brief. Both are Claude Code, so **Claude does not satisfy the
+# test for this PR**; a Claude-run verdict would be the same lineage checking
+# itself, which is what audits/claude_l48_predicate_crossread_2026-07-29.md
+# disclaims about its own findings. Any other lane qualifies.
+#
+# Fire line (from any terminal), substituting the lane you actually have:
 #   cd ~/dev/8ball && git checkout main && git pull && \
-#   ~/ai-relay/relay --models codex --base 8b51c38^ \
-#     "$(cat audits/codex_pr140_retroactive_audit_2026-07-29_brief.md)"
+#   ~/ai-relay/relay --models <lane> --base 8b51c38^ \
+#     "$(cat audits/pr140_retroactive_audit_2026-07-29_brief.md)"
 #
 # NOTE — the base is `8b51c38^`, NOT `origin/main`. This is a RETROACTIVE audit:
 # #140 is already merged, so `--base origin/main` yields an empty diff and the
@@ -12,9 +19,11 @@
 # it. Equivalent without the relay: `git show 8b51c38`.
 #
 # The verdict files as
-# audits/codex_pr140_retroactive_audit_2026-07-29_response.md — the
-# `retroactive_audit` shape, deliberately outside the l48-gate predicate so it
-# cannot green any gate. Save it verbatim per agents/auditor.md procedure 1.
+# audits/<lane>_pr140_retroactive_audit_2026-07-29_response.md, where <lane>
+# matches [a-z0-9_]+ and the file ends `_response.md`. The `retroactive_audit`
+# shape is deliberately outside the l48-gate predicate, so no verdict filed
+# against this brief can green any gate regardless of which lane runs it. Save
+# it verbatim per agents/auditor.md procedure 1.
 #
 # The packet below is self-contained and does not require the diff. The base is
 # given so the auditor can re-derive rather than trust the inlined copy.
