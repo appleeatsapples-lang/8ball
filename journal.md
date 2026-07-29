@@ -478,6 +478,70 @@ Next: PR open → Codex relay fired immediately (L48 — verdict lands
 pre-merge) → audits/ artifact naming the PR → CI green → **merge only on
 operator word.**
 
+## 2026-07-25 — L48 gate split into its own `l48-gate` job (PR #122) — sighting #9
+
+**Backfilled 2026-07-29.** Entry written after the fact; #122 shipped without
+one and later entries (the 07-26 shape-predicate tightening, the 07-27
+predicate pin, #133, #142) all build on the job this PR created while no entry
+recorded its origin. Dated to the ship, placed above the same-day #118/#119
+entry. Everything below describes the repo **as of `7a9de2a`** — see the
+forward pointer at the end for what has since superseded it.
+
+**What shipped.** The L48 gate moved out of the `test` job into its own `l48`
+job reporting as check `l48-gate`. Squash-merged at `7a9de2a`.
+
+**Why.** The gate was the last step of `test`, so it was unreachable whenever
+an earlier step exited non-zero — a red suite hid whether the artifact was
+present, and the second failure surfaced only after the first was fixed. It
+also had no check name of its own, so branch protection could only ever
+require the whole `test` job.
+
+- **No `needs:`** — the independence is the point; it runs in parallel with
+  `test`, so both results land on the same run.
+- **No Node, no `npm ci`** — the gate is git plus grep. Checkout only, keeping
+  `fetch-depth: 0`, because the `git diff "$BASE"...HEAD` it depends on needs
+  the merge base.
+- **Gate script byte-identical at the split.** The `ci.yml` diff was a pure
+  insertion of the job wrapper; zero deletions in the script body.
+- **Step-level `if` kept, deliberately not lifted to the job** — a job-level
+  condition reports the check as *skipped* on push events, and a skipped job
+  can satisfy a required status check. That is the same false-green class the
+  workflow was later bitten by twice (#126 F1, #129 F2) and which the `edited`
+  trigger comment now records.
+- **CLAUDE.md in lockstep**, naming both contexts (`test`, `l48-gate`).
+
+**Verification — proven in both directions on one PR, one push apart.** On
+`e02e324` the new job returned **red in 5s** while `test` was still running,
+failing for the right reason (`PR='122'` resolved, diff evaluated against full
+history, artifact absent). On `ede720c`, after the override landed, it returned
+**green in 6s**, again finishing first. Under the old shape neither verdict
+could arrive until the whole suite had run, so the two-directional result — not
+the green alone — is the evidence. Suite at merge: **1369/1369 (38 files)**.
+
+**L48 — sighting #9, self-documenting.** #122 is not docs-only, so the gate
+fired on the PR modifying the gate — the same recursion as sighting #6 (#98,
+the scope widening blocked by its own widened step). No cross-model read was
+run, commissioned, or in flight; override filed pre-merge at
+`audits/L48_override_pr122_2026-07-25.md` on explicit controller word. Unlike
+sighting #8 it is logged **before** the merge, the clean shape #6 set. The
+record names what it does not cover: had the split broken the gate's diff
+resolution, the failure mode would have been a silent *pass* rather than a
+visible red, and the run proving it did not was executed by the same lane that
+wrote the change.
+
+**No DOCTRINE change.** §7's six stages were unaffected — L48 is a §8/§10 gate
+alongside them, not one of the six.
+
+**Superseded since — read the later entries, not this one, for the live gate.**
+This PR created the job; it did not harden the predicate. The 2026-07-26
+tightening narrowed the artifact match to the response/override shapes only
+(closing the any-`audits/*`-file false-green), #133 further required the
+artifact to be **added** rather than renamed or copied in, and #142 added the
+`edited` trigger so a retargeted PR still draws checks. The gap this entry
+originally recorded as standing — a red check does not block a merge, branch
+protection requiring `test` and `l48-gate` being repo-admin and unset — was
+still open at the time of writing.
+
 ## 2026-07-25 — CLAUDE.md refresh + CI node24 runtime bump (PRs #118, #119)
 
 Two independent ships from one Claude Code session, plus the L48 override
