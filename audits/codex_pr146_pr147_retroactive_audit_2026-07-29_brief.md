@@ -1,4 +1,33 @@
 # CODEX RETROACTIVE AUDIT PACKET — PRs #146 + #147 (DOCTRINE v0.57 / v0.56 footer corrections) — 2026-07-29
+#
+# Fire line (from any terminal):
+#   cd ~/dev/8ball && git checkout main && git pull && \
+#   ~/ai-relay/relay --models codex \
+#     "$(cat audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md)"
+#
+# NOTE — deliberately NO `--base`. Both PRs are merged, so `origin/main` yields
+# an empty diff; and unlike the #140 packet, a single range CANNOT isolate this
+# change. The two squashes are not adjacent on main:
+#
+#     e3bb407  #147  v0.56 footer correction      <- newer
+#     6b1a7ab  #148  journal flip      (other lane)
+#     b5cc119  #144  public-tier engine (other lane, substantive)
+#     98141cd  #146  v0.57 footer correction      <- older
+#
+# `--base 98141cd^` would sweep #144 and #148 into the review — a feature change
+# by a different lane that is not under audit here. Review exactly these two:
+#
+#     git show 98141cd     # PR #146 — v0.57
+#     git show e3bb407     # PR #147 — v0.56
+#
+# The verdict files as
+# audits/codex_pr146_pr147_retroactive_audit_2026-07-29_response.md — the
+# `retroactive_audit` shape, verified rejected by the l48-gate predicate for
+# both pr146 and pr147, so it cannot green any gate. Save it verbatim per
+# agents/auditor.md procedure 1.
+#
+# The packet below is self-contained: both appended clauses and the §10 text are
+# inlined verbatim, so the audit stands even with no diff attached.
 
 ## Why this audit exists, and why the lane that wrote the PRs is asking for it
 
