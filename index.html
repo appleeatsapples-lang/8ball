@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#000000">
 <title>8 ball · specimen registry</title>
 <meta name="description" content="Name + birth data in. One fixed identity sheet out — five calibrated coordinates free; $3 opens the complete sheet, for good. Stored only on your device.">
 
@@ -35,23 +35,22 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --paper: #ebe5d4;
-    --ink: #1a1812;
-    --rule: #8a8472;
-    --label: #5a5444;
-    /* --label on the dark page chrome sat at 2.63:1 (WCAG AA needs 4.5:1).
-       Same hue lightened to 4.76:1 — still dimmer than --rule (5.30:1) so
-       the label-vs-rule hierarchy holds. --label stays for paper surfaces,
-       where it reads 5.99:1. */
-    --label-on-dark: #837c69;
-    --page-bg: #0a0a0a;
+    /* monochrome surface (supersedes Phase-2E cream lock, journal 2026-07-29): one black/white pair, hierarchy is white alpha over black. */
+    --bg: #000;
+    --surface: #000;
+    --text: #fff;
+    --text-muted: rgba(255, 255, 255, 0.72);
+    --text-placeholder: rgba(255, 255, 255, 0.55);
+    --rule: rgba(255, 255, 255, 0.45);
+    --interaction-fill: rgba(255, 255, 255, 0.10);
+    --interaction-fill-active: rgba(255, 255, 255, 0.16);
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
 
   html, body {
     height: 100%;
-    background: var(--page-bg);
-    color: var(--rule);
+    background: var(--bg);
+    color: var(--text-muted);
     font-family: var(--font-mono);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
@@ -75,14 +74,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: var(--page-bg);
+    background: var(--bg);
     z-index: 10;
   }
   .wordmark {
     font-family: var(--font-mono);
     font-size: 12px;
     letter-spacing: 0.32em;
-    color: var(--rule);
+    color: var(--text-muted);
     text-transform: lowercase;
   }
   .info-icon {
@@ -91,7 +90,7 @@
     border-radius: 50%;
     border: 1px solid var(--rule);
     background: transparent;
-    color: var(--rule);
+    color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 13px;
     cursor: pointer;
@@ -101,13 +100,9 @@
     transition: border-color 0.15s, color 0.15s, border-width 0.15s;
     line-height: 1;
   }
-  .info-icon:hover, .info-icon:focus {
-    color: var(--paper);
-    border-color: var(--paper);
-    outline: none;
-  }
+  .info-icon:hover, .info-icon:focus { color: var(--text); border-color: var(--text); background: var(--interaction-fill); outline: none; }
   .info-icon:focus-visible {
-    outline: 1px solid var(--rule);
+    outline: 2px solid var(--text);
     outline-offset: 2px;
   }
 
@@ -127,10 +122,10 @@
   .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  /* ── card (paper specimen) ───────────────────────────────────── */
+  /* ── card (monochrome specimen) ───────────────────────────────────── */
   .card {
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--surface);
+    color: var(--text);
     width: 100%;
     max-width: 360px;
     aspect-ratio: 5 / 8;
@@ -139,7 +134,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.6);
+    border: 1px solid var(--rule);
   }
   .card .catalog {
     position: absolute;
@@ -147,7 +142,7 @@
     right: clamp(16px, 5vw, 22px);
     font-size: 10px;
     letter-spacing: 0.18em;
-    color: var(--label);
+    color: var(--text-muted);
     text-transform: lowercase;
   }
   .card { justify-content: space-evenly; }
@@ -155,7 +150,7 @@
   .card .coord-title {
     font-size: 11px;
     letter-spacing: 0.1em;
-    color: var(--label);
+    color: var(--text-muted);
     text-transform: uppercase;
     height: 15px;
     line-height: 15px;
@@ -170,7 +165,7 @@
      .coord-val + .coord-title, never .coord-prov. */
   .card .coord-prov {
     font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
-    color: var(--label); text-transform: lowercase;
+    color: var(--text-muted); text-transform: lowercase;
     margin-top: 3px; display: none;
   }
   .card.labels-revealed .coord-prov { display: block; }
@@ -181,7 +176,7 @@
      .coord-val + .coord-title only, never .coord-atlas). */
   .card .coord-atlas {
     font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
-    color: var(--label); text-transform: lowercase;
+    color: var(--text-muted); text-transform: lowercase;
     margin-bottom: 3px; display: none;
   }
   .card.labels-revealed .coord-atlas { display: block; }
@@ -194,18 +189,18 @@
   .coord-cell {
     position: relative; display: inline-flex;
     align-items: center; justify-content: center;
-    border: 1px solid rgba(26, 24, 18, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.42);
     min-width: 52px; min-height: 27px; padding: 1px 8px;
   }
   .coord-cell .coord-val {
     font-size: clamp(13px, 3.6vw, 16px); line-height: 1.5;
-    color: var(--ink); text-transform: lowercase; font-weight: 500;
+    color: var(--text); text-transform: lowercase; font-weight: 500;
   }
-  .coord-cell.unres .coord-val { color: var(--label); }
+  .coord-cell.unres .coord-val { color: var(--text-muted); }
   .coord-seal { position: absolute; inset: 0; display: none; pointer-events: none; }
   .sealed .coord-seal { display: block; }
   .card.seal-hatch .coord-seal {
-    background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(26, 24, 18, 0.20) 3px 4px);
+    background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(255, 255, 255, 0.38) 3px 4px);
   }
   /* sealed written-entry block — rule + sealed text-area, fixed floor */
   .card-entry { position: relative; min-height: 64px; }
@@ -242,23 +237,23 @@
     font-family: var(--font-mono);
     font-size: 11px;
     letter-spacing: 0.04em;
-    color: var(--rule);
+    color: var(--text-muted);
     cursor: pointer;
   }
-  .labels-toggle:focus-visible { outline: 1px solid var(--rule); outline-offset: 4px; }
+  .labels-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
 
   /* density strip (CLP cut 3): aggregate paid-tier census, always-on in the
      result rail (outside #card-face → never serialized into the §5.D PNG).
      Clinical count only, no CTA — register-matched to #mechanism-strip. */
   .density-strip {
     font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
-    color: var(--label-on-dark); text-transform: lowercase; text-align: center;
+    color: var(--text-muted); text-transform: lowercase; text-align: center;
     margin: 0 0 16px;
   }
   /* ── card back (shake state) ─────────────────────────────────── */
   .card-back {
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--surface);
+    color: var(--text);
     width: 100%;
     max-width: 360px;
     aspect-ratio: 5 / 8;
@@ -267,20 +262,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.6);
+    border: 1px solid var(--rule);
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
   .card-back .glyph {
     font-size: clamp(72px, 22vw, 108px);
     line-height: 1;
-    color: var(--ink);
+    color: var(--text);
     font-weight: 500;
   }
   .card-back .glyph-label {
     font-size: 11px;
     letter-spacing: 0.32em;
-    color: var(--label);
+    color: var(--text-muted);
     text-transform: lowercase;
     margin-top: 18px;
   }
@@ -337,7 +332,7 @@
     margin-bottom: 32px;
     font-size: 11px;
     letter-spacing: 0.28em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: lowercase;
   }
   .field {
@@ -347,7 +342,7 @@
     display: block;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -357,7 +352,7 @@
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--rule);
-    color: var(--paper);
+    color: var(--text);
     font-family: var(--font-mono);
     font-size: 15px;
     padding: 8px 2px;
@@ -367,18 +362,19 @@
   .field select:focus {
     outline: none;
     border-bottom-width: 2px;
-    border-bottom-color: var(--paper);
+    border-bottom-color: var(--text);
   }
-  .field input::placeholder { color: rgba(138,132,114,0.4); }
+  .field input::placeholder { color: var(--text-placeholder); }
   .field input[type="date"] { color-scheme: dark; }
+  .field input:-webkit-autofill { -webkit-text-fill-color: var(--text); box-shadow: 0 0 0 1000px var(--bg) inset; caret-color: var(--text); }
   .field select {
     appearance: none;
     -webkit-appearance: none;
     border-radius: 0;
   }
   .field select option {
-    background: var(--page-bg);
-    color: var(--paper);
+    background: var(--bg);
+    color: var(--text);
   }
   .field-group {
     border: none;
@@ -389,7 +385,7 @@
     list-style: none;
     font-size: 9px;
     letter-spacing: 0.22em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: uppercase;
     margin-bottom: 18px;
     padding: 6px 0;
@@ -399,14 +395,14 @@
     content: "+";
     display: inline-block;
     width: 16px;
-    color: var(--rule);
+    color: var(--text-muted);
   }
   .field-group[open] summary::before { content: "-"; }
   .field-group .hint, #mechanism-strip {
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: lowercase;
     margin-top: -4px;
   }
@@ -417,7 +413,7 @@
     font-size: 10px;
     line-height: 1.45;
     letter-spacing: 0.08em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: lowercase;
     margin-top: 8px;
   }
@@ -434,7 +430,7 @@
   .btn {
     display: inline-block;
     background: transparent;
-    color: var(--paper);
+    color: var(--text);
     border: 1px solid var(--rule);
     padding: 12px 20px;
     font-family: var(--font-mono);
@@ -446,32 +442,31 @@
     text-align: center;
   }
   .btn:hover, .btn:focus {
-    border-color: var(--paper);
+    background: var(--interaction-fill);
+    border-color: var(--text);
     outline: none;
   }
   .btn:focus-visible {
-    outline: 1px solid var(--rule);
+    outline: 2px solid var(--text);
     outline-offset: 2px;
   }
   .btn.active,
   .btn:active {
-    background: var(--paper);
-    color: var(--ink);
-    border-color: var(--paper);
+    background: var(--interaction-fill-active);
+    color: var(--text);
+    border-color: var(--text);
+    border-width: 2px;
   }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn:disabled:hover { background: transparent; color: var(--paper); }
+  .btn:disabled:hover { background: transparent; color: var(--text); }
   .btn-block { display: block; width: 100%; }
   .btn-secondary {
-    border-color: var(--label-on-dark);
-    color: var(--label-on-dark);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
     letter-spacing: 0.20em;
   }
   .result-controls .btn + .btn { margin-top: 10px; }
-  .btn-secondary:hover, .btn-secondary:focus {
-    border-color: var(--paper);
-    color: var(--paper);
-  }
+  .btn-secondary:hover, .btn-secondary:focus { background: var(--interaction-fill); border-color: var(--text); color: var(--text); }
 
   /* ── disclaimer + footer chrome ──────────────────────────────── */
   .disclaimer {
@@ -479,7 +474,7 @@
     margin-top: 18px;
     font-size: 10px;
     letter-spacing: 0.18em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: lowercase;
   }
   .share-status {
@@ -487,7 +482,7 @@
     margin-top: 12px;
     font-size: 10px;
     letter-spacing: 0.18em;
-    color: var(--rule);
+    color: var(--text-muted);
     text-transform: lowercase;
     opacity: 0;
     transition: opacity 0.3s;
@@ -500,7 +495,7 @@
   .text-link {
     background: none;
     border: none;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.22em;
@@ -509,7 +504,7 @@
     padding: 6px 0;
     transition: color 0.15s;
   }
-  .text-link:hover, .text-link:focus { color: var(--paper); outline: none; }
+  .text-link:hover, .text-link:focus { color: var(--text); outline: none; }
 
   /* ── result screen ───────────────────────────────────────────── */
   .result-controls {
@@ -522,34 +517,34 @@
   .feedback-details {
     margin-top: 32px;
     padding: 0 4px;
-    color: var(--rule);
+    color: var(--text-muted);
     font-size: 13px;
   }
   .feedback-details summary {
     cursor: pointer;
     list-style: none;
     padding: 8px 0;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     text-transform: lowercase;
     user-select: none;
   }
   .feedback-details summary::-webkit-details-marker { display: none; }
   .feedback-details summary:hover,
-  .feedback-details summary:focus { color: var(--rule); }
-  .feedback-details[open] summary { color: var(--rule); margin-bottom: 12px; }
+  .feedback-details summary:focus { color: var(--text); }
+  .feedback-details[open] summary { color: var(--text); margin-bottom: 12px; }
   .feedback-form { display: flex; flex-direction: column; gap: 10px; }
   .feedback-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
   }
   .feedback-form textarea,
   .feedback-form input[type="text"] {
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--rule);
-    color: var(--rule);
+    color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 14px;
     padding: 6px 0;
@@ -559,14 +554,14 @@
   }
   .feedback-form textarea:focus,
   .feedback-form input[type="text"]:focus {
-    border-bottom-color: var(--paper);
-    color: var(--paper);
+    border-bottom-color: var(--text);
+    color: var(--text);
   }
   .feedback-form .btn { margin-top: 8px; }
   .feedback-honeypot { display: none; }
   .feedback-fineprint {
     font-size: 11px;
-    color: var(--label-on-dark);
+    color: var(--text-muted);
     margin-top: 4px;
     line-height: 1.4;
   }
@@ -574,7 +569,7 @@
     margin-top: 32px;
     padding: 16px;
     border: 1px solid var(--rule);
-    color: var(--rule);
+    color: var(--text-muted);
     text-align: center;
     font-size: 13px;
   }
@@ -583,7 +578,7 @@
   .modal-bg {
     position: fixed;
     inset: 0;
-    background: rgba(10,10,10,0.85);
+    background: rgba(0,0,0,0.85);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     display: flex;
@@ -600,12 +595,13 @@
   }
   .modal-bg.open { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity 0.2s; }
   .modal {
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--surface);
+    color: var(--text);
     width: 100%;
     max-width: 360px;
     padding: 26px 24px;
     position: relative;
+    border: 1px solid var(--rule);
     /* v0.3.0 step-12 absorb (codex hook 10 P1): bound modal height to
        viewport so about-modal copy (3 paragraphs, ~180 words) scrolls
        internally on short viewports (iPhone SE 568px tall) and on
@@ -619,7 +615,7 @@
     font-size: 11px;
     letter-spacing: 0.28em;
     text-transform: lowercase;
-    color: var(--label);
+    color: var(--text-muted);
     font-weight: 500;
     margin-bottom: 14px;
   }
@@ -631,7 +627,7 @@
   .modal p {
     font-size: 13px;
     line-height: 1.55;
-    color: var(--ink);
+    color: var(--text);
     margin-bottom: 12px;
   }
   .modal p:last-of-type { margin-bottom: 0; }
@@ -640,10 +636,10 @@
     display: flex;
     gap: 12px;
   }
-  .modal .modal-actions .btn { flex: 1; color: var(--ink); border-color: var(--rule); }
-  .modal .modal-actions .btn:hover, .modal .modal-actions .btn:focus { border-color: var(--ink); }
+  .modal .modal-actions .btn { flex: 1; color: var(--text); border-color: var(--rule); }
+  .modal .modal-actions .btn:hover, .modal .modal-actions .btn:focus { background: var(--interaction-fill); border-color: var(--text); }
   .modal .modal-actions .btn:active,
-  .modal .modal-actions .btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .modal .modal-actions .btn.active { background: var(--interaction-fill-active); color: var(--text); border-color: var(--text); border-width: 2px; }
 
   /* ── paid surface — lock icon + unlocked render (v0.55 ownership) */
   .card .lock-icon {
@@ -653,7 +649,7 @@
     width: 18px;
     height: 18px;
     display: block;
-    color: var(--ink);
+    color: var(--text);
     cursor: pointer;
     background: none;
     border: none;
@@ -669,7 +665,7 @@
     min-height: 27px; font-size: 22px;
     font-weight: 500;
     line-height: 1.2;
-    color: var(--ink);
+    color: var(--text);
     text-align: center;
     text-transform: lowercase;
     margin-top: clamp(18px, 5vw, 24px);
@@ -678,7 +674,7 @@
     min-height: 14px; font-size: 11px;
     font-style: italic;
     letter-spacing: 0.06em;
-    color: var(--label);
+    color: var(--text-muted);
     text-align: center;
     text-transform: lowercase;
     margin-top: 4px;
@@ -686,8 +682,7 @@
   }
   .card .card-prose-rule {
     height: 1px;
-    background: var(--ink);
-    opacity: 0.12;
+    background: var(--rule);
     margin: 10px auto;
     width: 80%;
   }
@@ -695,13 +690,13 @@
     font-size: 11px;
     font-style: italic;
     line-height: 1.55;
-    color: var(--ink);
+    color: var(--text);
     text-align: center;
   }
   .card .card-note {
     font-size: 11px;
     line-height: 1.55;
-    color: var(--ink);
+    color: var(--text);
     text-align: center;
     margin-top: 6px;
   }
@@ -713,9 +708,10 @@
     width: 100%;
     padding: 12px 16px;
     margin-top: 18px;
-    background: var(--ink);
-    color: var(--paper);
-    border: 1px solid var(--ink);
+    /* the one deliberate solid invert (paywall CTA emphasis): black text on white fill, still achromatic, max contrast for the primary action. Border is --surface (black), not --text — a hairline inset into the fill, echoing the card/modal's own edge treatment instead of a borderless slab. */
+    background: var(--text);
+    color: #000;
+    border: 1px solid var(--surface);
     font-family: var(--font-mono);
     font-size: 13px;
     letter-spacing: 0.16em;
@@ -723,13 +719,12 @@
     text-decoration: none;
   }
   .modal .modal-cta:hover,
-  .modal .modal-cta:focus { background: transparent; color: var(--ink); }
+  .modal .modal-cta:focus { background: transparent; color: var(--text); border-color: var(--text); }
   .modal .modal-cta + .modal-cta { margin-top: 10px; }
   .modal .modal-disclosure {
     font-size: 9px;
     letter-spacing: 0.04em;
-    /* full-opacity --label: the 0.7-opacity blend sat at ~3.2:1 on paper */
-    color: var(--label);
+    color: var(--text-muted);
     text-align: center;
     margin-top: 10px;
     line-height: 1.5;
@@ -743,29 +738,31 @@
   .paywall-specimen summary {
     cursor: pointer; list-style: none; padding: 6px 0;
     font-size: 11px; letter-spacing: 0.06em;
-    color: var(--label); text-transform: lowercase;
+    color: var(--text-muted); text-transform: lowercase;
   }
   .paywall-specimen summary::-webkit-details-marker { display: none; }
   .paywall-specimen summary::before { content: "+"; display: inline-block; width: 14px; }
   .paywall-specimen[open] summary::before { content: "-"; }
+  /* cream catalog JPG rendered achromatic in-place via filter, no new asset (brief option 1). */
   .paywall-specimen img {
     display: block; width: 100%; height: auto;
     border: 1px solid var(--rule); margin: 8px 0 10px;
+    filter: grayscale(1) invert(1) contrast(1.05);
   }
   .paywall-specimen .specimen-entry {
     font-size: 13px; font-weight: 500; text-transform: lowercase;
-    color: var(--ink); margin-bottom: 4px;
+    color: var(--text); margin-bottom: 4px;
   }
   .paywall-specimen .specimen-entry-habit {
     font-size: 11px; font-style: italic; line-height: 1.5;
-    color: var(--ink); margin-bottom: 4px;
+    color: var(--text); margin-bottom: 4px;
   }
   .paywall-specimen .specimen-entry-note {
-    font-size: 12px; line-height: 1.5; color: var(--ink); margin-bottom: 6px;
+    font-size: 12px; line-height: 1.5; color: var(--text); margin-bottom: 6px;
   }
   .paywall-specimen .specimen-caption {
     font-size: 9px; letter-spacing: 0.04em; line-height: 1.5;
-    color: var(--label); margin-bottom: 0;
+    color: var(--text-muted); margin-bottom: 0;
   }
 
   /* paid-return banner — mirrors v0.2.5.x feedback-sent banner shape */
@@ -774,8 +771,9 @@
     top: 64px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--rule);
     padding: 8px 16px;
     font-size: 11px;
     letter-spacing: 0.18em;

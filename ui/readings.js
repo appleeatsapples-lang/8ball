@@ -171,18 +171,18 @@ const STYLE = `
 .saved-readings-screen, .concordance-screen { max-width: 760px; align-self: center; }
 .readings-page-head { display: flex; align-items: center; justify-content: space-between;
   gap: 16px; margin: 10px 0 12px; }
-.readings-page-head h1 { color: var(--paper); font-size: 22px; font-weight: 400;
+.readings-page-head h1 { color: var(--text); font-size: 22px; font-weight: 400;
   letter-spacing: -0.02em; text-transform: lowercase; }
 .readings-page-head .text-link { min-width: 44px; }
-.readings-local-note { color: var(--label-on-dark); font-size: 11px; line-height: 1.65;
+.readings-local-note { color: var(--text-muted); font-size: 11px; line-height: 1.65;
   max-width: 62ch; margin-bottom: 20px; }
-.readings-page-status { color: var(--rule); font-size: 11px; line-height: 1.5;
+.readings-page-status { color: var(--text-muted); font-size: 11px; line-height: 1.5;
   min-height: 18px; margin-bottom: 8px; }
-.reading-save-status { color: var(--rule); font-size: 10px; line-height: 1.5;
+.reading-save-status { color: var(--text-muted); font-size: 10px; line-height: 1.5;
   min-height: 18px; margin-top: 10px; text-align: center; }
 .readings-compare-panel { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
   padding: 14px 0; margin-bottom: 18px; display: grid; gap: 10px; }
-.readings-selection-status { color: var(--label-on-dark); font-size: 11px; line-height: 1.5; }
+.readings-selection-status { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 .readings-compare { width: 100%; }
 .readings-compare:disabled { cursor: not-allowed; opacity: 0.55; }
 .readings-list { list-style: none; display: grid; gap: 12px; }
@@ -190,59 +190,59 @@ const STYLE = `
   grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; }
 .reading-select { width: 44px; height: 44px; display: grid; place-items: center;
   cursor: pointer; align-self: start; }
-.reading-select input { width: 20px; height: 20px; accent-color: var(--paper); }
-.reading-select input:focus-visible { outline: 1px solid var(--paper); outline-offset: 5px; }
+.reading-select input { width: 20px; height: 20px; accent-color: var(--text); }
+.reading-select input:focus-visible { outline: 2px solid var(--text); outline-offset: 5px; }
 .reading-select input:disabled { cursor: not-allowed; }
 .reading-title { min-width: 0; }
-.reading-open { width: 100%; background: none; border: 0; color: var(--paper);
+.reading-open { width: 100%; background: none; border: 0; color: var(--text);
   font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer;
   overflow-wrap: anywhere; }
-.reading-open:hover, .reading-open:focus { color: var(--paper); outline: none;
+.reading-open:hover, .reading-open:focus { color: var(--text); outline: none;
   text-decoration: underline; text-underline-offset: 4px; }
-.reading-open:focus-visible { outline: 1px solid var(--paper); outline-offset: 4px; }
-.reading-date { color: var(--label-on-dark); font-size: 10px; line-height: 1.5;
+.reading-open:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+.reading-date { color: var(--text-muted); font-size: 10px; line-height: 1.5;
   letter-spacing: 0.12em; text-transform: uppercase; display: block; margin-top: 6px; }
 .reading-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .reading-actions .text-link { min-height: 44px; text-align: left; }
-.reading-delete { color: var(--label-on-dark); }
+.reading-delete { color: var(--text-muted); }
 .reading-rename-form { display: grid; gap: 10px; }
 .reading-rename-form input { width: 100%; min-height: 44px; border: 1px solid var(--rule);
-  background: transparent; color: var(--paper); font: inherit; padding: 10px 12px; }
-.reading-rename-form input:focus-visible { outline: 1px solid var(--paper); outline-offset: 2px; }
+  background: transparent; color: var(--text); font: inherit; padding: 10px 12px; }
+.reading-rename-form input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .readings-empty { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
-  padding: 28px 0; color: var(--label-on-dark); font-size: 12px; line-height: 1.6; }
+  padding: 28px 0; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
 .readings-clear { margin-top: 20px; }
-.concordance-note { color: var(--label-on-dark); font-size: 11px; line-height: 1.65;
+.concordance-note { color: var(--text-muted); font-size: 11px; line-height: 1.65;
   max-width: 68ch; margin-bottom: 20px; }
 .concordance-pair-head { border: 1px solid var(--rule); display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-bottom: 18px; }
-.concordance-party { min-width: 0; padding: 14px; color: var(--paper); font-size: 12px;
+.concordance-party { min-width: 0; padding: 14px; color: var(--text); font-size: 12px;
   line-height: 1.5; overflow-wrap: anywhere; }
 .concordance-party + .concordance-party { border-left: 1px solid var(--rule); }
 .concordance-list { display: grid; gap: 12px; }
 .concordance-axis { border: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; }
 .concordance-axis-head { display: flex; flex-wrap: wrap; align-items: center;
   justify-content: space-between; gap: 10px; }
-.concordance-axis h2 { color: var(--paper); font-size: 12px; font-weight: 400;
+.concordance-axis h2 { color: var(--text); font-size: 12px; font-weight: 400;
   letter-spacing: 0.12em; text-transform: uppercase; }
-.concordance-status { border: 1px solid currentColor; padding: 5px 8px; color: var(--paper);
+.concordance-status { border: 1px solid currentColor; padding: 5px 8px; color: var(--text);
   font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
 .concordance-values { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.concordance-value { min-width: 0; color: var(--paper); font-size: 13px; line-height: 1.5;
+.concordance-value { min-width: 0; color: var(--text); font-size: 13px; line-height: 1.5;
   overflow-wrap: anywhere; padding-right: 12px; }
 .concordance-value + .concordance-value { border-left: 1px solid var(--rule); padding-left: 12px; }
-.concordance-value-label { display: block; color: var(--label-on-dark); font-size: 9px;
+.concordance-value-label { display: block; color: var(--text-muted); font-size: 9px;
   letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
-.concordance-relation { color: var(--paper); font-size: 12px; line-height: 1.6; }
-.concordance-citation { color: var(--label-on-dark); font-size: 10px; line-height: 1.6; }
-.concordance-omitted { border: 1px dashed var(--rule); padding: 14px; color: var(--label-on-dark);
+.concordance-relation { color: var(--text); font-size: 12px; line-height: 1.6; }
+.concordance-citation { color: var(--text-muted); font-size: 10px; line-height: 1.6; }
+.concordance-omitted { border: 1px dashed var(--rule); padding: 14px; color: var(--text-muted);
   font-size: 10px; line-height: 1.6; margin-top: 12px; }
 .concordance-legend { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
-  margin-top: 20px; padding: 8px 0; color: var(--label-on-dark); font-size: 10px; line-height: 1.6; }
+  margin-top: 20px; padding: 8px 0; color: var(--text-muted); font-size: 10px; line-height: 1.6; }
 .concordance-legend summary { min-height: 44px; display: flex; align-items: center;
-  cursor: pointer; color: var(--paper); }
+  cursor: pointer; color: var(--text); }
 .concordance-legend dl { display: grid; gap: 8px; padding: 8px 0 12px; }
-.concordance-legend dt { color: var(--paper); text-transform: uppercase; letter-spacing: 0.1em; }
+.concordance-legend dt { color: var(--text); text-transform: uppercase; letter-spacing: 0.1em; }
 .saved-readings-screen [hidden], .concordance-screen [hidden],
 .reading-save-status[hidden] { display: none; }
 @media (min-width: 720px) {
