@@ -5,11 +5,16 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Post-merge cross-read of the t4 rung: a live paywall defect and five more — STAGED
+## 2026-07-29 — Post-merge cross-read of the t4 rung: a live paywall defect and five more — SHIPPED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. This is the fix cycle for findings raised by
-the post-merge adversarial cross-read commissioned at #153's merge — the read that should have run BEFORE it. It found a
-defect that is live on the deployed site right now.**
+**Status: SHIPPED — squash-merged to `main` as `37cd465` ([#157](https://github.com/appleeatsapples-lang/8ball/pull/157)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both SUCCESS on the merged head. Cleared by
+`audits/L48_override_pr157_2026-07-29.md` (L48 sighting #16) — the first clearance in this run that covers a PR fixing
+defects a review actually found, and the one that records why the review was needed three merges earlier. **The fix for the
+live defect is verified structurally, never in a browser.** §8 gate 9 live-fire is still outstanding and F1 is precisely the
+class it exists to catch; `curl` to the product domain is blocked by this environment's egress policy, so no claim is made
+here about what the deployed site now serves. **The single most valuable next action is a human opening the paywall and
+confirming one CTA.** Was: STAGED on `claude/8ball-public-engine-me9rhr`.**
 
 **F1 (HIGH, live). The "fail-closed" t4 CTA was never hidden.** `#paywall-cta-t4` ships the `hidden` attribute and
 `applyT4Offer` re-asserts `anchor.hidden = true` and strips `href` — but `[hidden] { display: none }` is a **UA-origin**
