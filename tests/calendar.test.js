@@ -51,17 +51,22 @@ function icuLunarNewYear(year) {
   return null;
 }
 
-// The four years where ICU and this module disagree by exactly one day.
-// Each is a new-moon-near-midnight boundary case, where a small difference
-// in the astronomical model flips which Gregorian day carries the new moon.
-// NONE of them is covered by the DOCTRINE §3 Hong Kong Observatory
-// checkpoints in tests/profile.test.js (1900/1924/1950/1985/1990/2000/2010/
-// 2020/2024/2025), so which side is right is UNRESOLVED — recorded here so
-// the disagreement is visible and stable rather than silently averaged away.
-// Resolving it means checking these four years against the HKO tables and
-// then either dropping the entry or changing the implementation.
+// The years where ICU and this module disagree by exactly one day. Each is a
+// new-moon-near-midnight boundary case, where a small difference in the
+// astronomical model or in the civil offset used flips which Gregorian day
+// carries the new moon.
+//
+// RESOLVED 2026-07-29. The four original entries (1916, 1954, 2027, 2030) were
+// checked against three independent implementations — sxtwl (寿星万年历,
+// astronomical), and the table-based lunardate and borax — which agree with
+// each other on every year 1900–2050. Three of the four were ICU's error and
+// are kept below. The fourth, 1916, was OURS: evaluating a pre-1929 date at
+// UTC+8 instead of Beijing local mean time filed the new moon a day late. That
+// is fixed in core/calendar.js, so 1916 now agrees with ICU and has left this
+// list. The Hong Kong Observatory tables named in DOCTRINE §3 could not be
+// reached from the authoring environment (egress policy); the three-library
+// consensus is the substitute, and it is unanimous.
 const ICU_DIVERGENCES = {
-  1916: { ours: [2, 4], icu: [2, 3] },
   1954: { ours: [2, 3], icu: [2, 4] },
   2027: { ours: [2, 6], icu: [2, 7] },
   2030: { ours: [2, 3], icu: [2, 2] },
@@ -90,6 +95,14 @@ describe('lunarNewYearDate — cross-checked against ICU (1900–2100)', () => {
     for (const [year, { ours }] of Object.entries(ICU_DIVERGENCES)) {
       expect(lunarNewYearDate(Number(year)), `divergent year ${year}`).toEqual(ours);
     }
+  });
+
+  it('1916 lands on Feb 3 — the pre-1929 Beijing-LMT correction', () => {
+    // Regression pin for the defect this file's ICU cross-check surfaced: at a
+    // flat UTC+8 the 1916 new moon fell a day late, filing a 1916-02-03 birth
+    // under the previous year's animal. Three independent implementations and
+    // ICU all give Feb 3.
+    expect(lunarNewYearDate(1916)).toEqual([2, 3]);
   });
 
   it('never falls outside the canonical 21 january – 21 february window', () => {

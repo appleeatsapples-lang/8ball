@@ -5,6 +5,21 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # `edited` is in the list because `branches:` filters on the BASE branch,
+    # and retargeting a PR fires `edited` — which is NOT in the default set
+    # (opened/synchronize/reopened). Without it a retargeted PR draws no
+    # checks at all, and an absent check is visually indistinguishable from a
+    # pending one; PR #133 sat at zero checks until a close/reopen forced a
+    # run (recorded in audits/L48_override_pr133_2026-07-29.md).
+    #
+    # NO `if:` guard narrows this to base-only edits, deliberately. Such a
+    # guard would make the jobs report `skipped` on an ordinary title or body
+    # edit, and a skipped job can satisfy a required status check — a gate
+    # that stops gating while still looking green. That is the exact
+    # false-green shape this workflow has already been bitten by twice (#126
+    # F1, #129 F2). Redundant runs on a body edit are the cheaper failure:
+    # they cost ~30s of runner time and are self-announcing.
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   test:

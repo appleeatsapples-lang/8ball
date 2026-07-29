@@ -10,6 +10,14 @@
 // months (lichun → tiger, jingzhe → rabbit, …, xiaohan → ox).
 
 const SHANGHAI_OFFSET_HOURS = 8;
+// China kept Beijing local mean time (UTC+7:45:40, from 116°25′E) until China
+// Standard Time was adopted in 1929, and the Chinese calendar is computed in
+// the civil time of its own era. Evaluating every year at UTC+8 places a new
+// moon or solar term landing in the first ~14 minutes after midnight one day
+// late. Across 1900–2100 that is four dates: lunar new year 1916 (the visible
+// defect — a 1916-02-03 birth was filed under the previous year's animal) and
+// three pre-1929 solar terms (1911 lixia, 1912 xiaohan, 1927 bailu).
+const BEIJING_LMT_HOURS = 7 + 45 / 60 + 40 / 3600;
 const RANGE_MIN = 1900;
 const RANGE_MAX = 2100;
 
@@ -124,7 +132,13 @@ function gregorianToJD(year, month, day) {
 // affects the date for events within ~minute of midnight Shanghai. The
 // LNY and solar-term sanity-lock dates in DOCTRINE §3 are the calibration.
 function jdeToShanghaiDate(jde) {
-  const jdShanghai = jde + SHANGHAI_OFFSET_HOURS / 24;
+  // The era's own civil offset, not a constant — see BEIJING_LMT_HOURS. The
+  // threshold is compared in JD so it cannot recurse through this function,
+  // and 1929-01-01 is nowhere near a boundary case in either regime.
+  const offsetHours = jde < gregorianToJD(1929, 1, 1)
+    ? BEIJING_LMT_HOURS
+    : SHANGHAI_OFFSET_HOURS;
+  const jdShanghai = jde + offsetHours / 24;
   const Z = Math.floor(jdShanghai + 0.5);
   let A;
   if (Z < 2299161) {

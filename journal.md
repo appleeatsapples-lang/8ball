@@ -5,6 +5,50 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — CI trigger: `edited` added so a retargeted PR still draws checks — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `0235a6f` (#142) on 2026-07-29, written SHIPPED rather than flipped, since the merge preceded the entry. `test` and `l48-gate` both green on the PR head and again on the merged commit; **the gate was cleared by an explicit controller override, not a cross-model verdict** — `audits/L48_override_pr142_2026-07-29.md` (L48 sighting #13). No second model read this change.**
+
+**The defect.** `ci.yml` declared `on: pull_request:` with no `types:`, which defaults to `opened`/`synchronize`/`reopened`. `branches: [main]` filters on the **base** branch, and retargeting a PR fires `edited` — not in that default set. So a PR retargeted onto `main` drew **no checks at all**. The failure is not the missing run; it is that an absent check is visually indistinguishable from a pending one, so the PR looks like it is waiting rather than like it was never asked.
+
+**How it surfaced — the sighting log producing a finding that was then acted on.** Not by inspection. #133 sat at zero checks after being retargeted until a close/reopen forced a run, and the gap was written up as the closing paragraph of `audits/L48_override_pr133_2026-07-29.md` (sighting #11), which named the fix — add `edited` to `types:` — and deliberately declined to bundle it. This entry is that follow-through. It is the first time in this chain that a recorded sighting produced a finding which a later change closed, which is the only thing that makes a sighting log more than a confessional.
+
+**The fix is one functional line.** `types: [opened, synchronize, reopened, edited]`. The rest of the `ci.yml` diff is the reasoning committed inline, because the interesting part of this change is what it does *not* do.
+
+**No `if:` guard, deliberately, and the reasoning is the entry.** The obvious refinement is to narrow `edited` to base-changes-only via a job-level `if: github.event.changes.base != null`. That is the wrong trade: a job-level condition that evaluates false makes the job report **`skipped`**, and a skipped job can satisfy a required status check. The guard would skip precisely on the retargeted PRs that need gating — a gate that stops gating while still looking green, which is the exact false-green shape this workflow has already been bitten by twice (#126 F1, #129 F2). Redundant runs on a body edit are the cheaper failure: **~32s of billed runner time** (measured on this PR's own run — `test` 24s, `l48-gate` 8s), self-announcing, and harmless.
+
+**The pins, and the subtle half.** `tests/l48_gate.test.js` gains four assertions (file now 22 tests): that `types:` is declared, that it contains `edited`, that it still lists **every** default action — because declaring `types:` *replaces* the defaults, so silently dropping `synchronize` would stop CI on every push to a PR branch while the workflow still looked configured — and that no job-level `if:` exists. Each was falsified before landing by mutating `ci.yml` four ways (drop `edited`; drop `synchronize`; remove the `types:` line; add a job-level guard). Every mutation killed exactly one intended test and no others; none of the four passes vacuously.
+
+**Named limits, on the record.** **The change cannot be exercised by its own PR, and was not.** Every check on #142 fired on `opened` — an action that was never broken. No retarget was performed anywhere to observe the fixed behavior; the fix rests on GitHub's documented action list plus the #133 incident being consistent with it. Further, **the load-bearing premise has never been observed in this repo**: the whole no-guard argument depends on a skipped job satisfying a required check, and branch protection is not enabled here, so no required check has ever existed to test it against. Also uncovered: `edited` fires on **closed** PRs' body edits too, so both jobs will now run against them (wasteful, undocumented in the workflow); no `concurrency:` group was added, so rapid edits queue duplicate runs; and the no-job-level-`if:` pin forbids *every* job-level condition in this workflow, not merely a types-narrowing one, which will present as an inexplicable red to whoever first has a legitimate use for one.
+
+**A distinction worth stating precisely, observed on the post-merge run.** On a `push` event, `l48-gate` reports **success** with its only substantive step marked `skipped` (the step carries `if: github.event_name == 'pull_request'`). That is correct — there is no PR to gate on a push — but it is the same machinery. The difference between the benign case and the false-green is *not* skip-versus-success: a **step**-level false condition skips the step and the job still concludes `success`, while a **job**-level one makes the job conclude `skipped`. Both render as not-red. What actually separates them is whether there was anything to gate. On a push there is nothing; under the rejected guard there would have been.
+
+**Stated in the affirmative for once: this is a precondition for branch protection.** Under required contexts, a retargeted PR drawing no checks does not fail — it deadlocks indefinitely with no signal and no way to force a run short of close/reopen. #133 hit exactly that with protection off, where it merely read as puzzling. Closing this gap is what makes the standing "nothing blocks a merge on a red check" gap closable at all.
+
+**Correction carried in the override (L17 discipline).** Sighting #12 (#140) called itself the *fourth* consecutive sighting recording no cross-model read; #8 through #12 is five, so it undercounted by one. #13 is the **sixth**. The count is restated in the new override rather than inherited — a sighting log that miscounts its own run of unreviewed changes understates the precise thing it exists to surface. #140 is left as the historical record it is.
+
+**Verification.** Suite **43 files / 1504 tests** green locally, on the PR head, and again on the merged `main` commit; `index.html` 1465 lines. `ci.yml` parses under `yaml.safe_load`, with `types` confirmed absent from the `push` trigger, both jobs confirmed free of job-level `if:` and `needs:`, and the two step-level `if:` guards confirmed intact. The `l48-gate` log was read rather than inferred from its conclusion: it printed `verdict/override artifact present — pass` naming the override file, i.e. it took the artifact branch and **not** the docs-only exemption, which would also have shown green while proving nothing. **Not verified:** the local PII audit did not run — it needs `audits/local_personal_data.txt`, gitignored and absent in a fresh container.
+
+**Scope (files):** `.github/workflows/ci.yml` (trigger `types:` + comment), `tests/l48_gate.test.js` (+4 pins), `audits/L48_override_pr142_2026-07-29.md` (new), this file. **UNTOUCHED:** `core/`, `ui/`, `content/`, `index.html`, `DOCTRINE.md`, `CLAUDE.md`, `tests/fixtures.json`, every scanner list, dependencies, localStorage keys. No product code changed; no test file added or removed, so the `repo_shape` counts are unmoved at 43.
+
+**Operator-side chore.** Three spent branches await deletion — `claude/ci-pr-edited-trigger`, `claude/calendar-pre1929-lmt-fix`, `claude/journal-140-shipped-flip`. Remote-ref deletion is rejected by this session's proxy, as with `backup/pre-rebase-44c6f6a` before them. `claude/test-coverage-analysis-qdsbh3` is **not** spent — it is live on PR #137.
+
+## 2026-07-29 — calc v3.1: era-correct cusp offset — the 1916 lunar-new-year defect — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `8b51c38` (#140) on 2026-07-29; the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51 footer precedent. **The cross-model audit this entry said was REQUIRED was not run.** The gate was cleared instead by an explicit controller override, `audits/L48_override_pr140_2026-07-29.md` (L48 sighting #12), written on instruction after this lane objected that a verdict rather than an override is the right artifact for a change touching both the calculation core and `DOCTRINE.md`. That override opens by calling itself the weakest use of the instrument in this chain and records that one author wrote the change, its evidence and its clearance; it recommends a cross-model read after merge if not before, and that recommendation is now live. The evidence packet at `audits/calc_v3_1_pre1929_offset_evidence_2026-07-29.md` remains explicitly not a verdict, and the Hong Kong Observatory re-confirmation of 1916/1954/2027/2030 stays open — this is the first merge of the run that changes a rendered coordinate rather than test or CI machinery.** Was: STAGED on `claude/calendar-pre1929-lmt-fix`; merge is its own word. This touches `DOCTRINE.md` AND the calculation core, so per §10 and the CLAUDE.md don't-do list a cross-model audit is REQUIRED before merge — an L48 override is not an appropriate substitute here, unlike the tests-only cuts that preceded it. Evidence packet (explicitly not a verdict) at `audits/calc_v3_1_pre1929_offset_evidence_2026-07-29.md`.
+
+**The defect.** `core/calendar.js` resolved every lunar-year and solar-term cusp at a flat UTC+8. China kept Beijing local mean time (UTC+7:45:40) until China Standard Time in 1929, and the calendar is reckoned in its own era's civil time, so an event landing in the first ~14 minutes after midnight was filed a day late. §3's calc v2 note states the flat-UTC+8 choice openly; what was never measured is that it costs four dates.
+
+**How it surfaced — the test that recorded rather than smoothed.** `tests/calendar.test.js` (#132) cross-checks `lunarNewYearDate` against ICU for all 201 years and had four unresolved disagreements on record: 1916, 1954, 2027, 2030. Resolving them found the bug. Three independent implementations — sxtwl (寿星万年历, astronomical), lunardate and borax (table-based) — agree with each other on every year 1900–2050. Three of the four divergences were **ICU's** error; the fourth, **1916, was ours**.
+
+**Only two years in 1900–2100 are offset-sensitive at all** — 1916 and 2030. Flat UTC+8 gets 2030 right and 1916 wrong; flat UTC+7:45:40 does the exact reverse. Neither constant is correct; the era-dependent rule is, and it is documented history rather than a fitted parameter. After the change the corrected implementation matches all three oracles on 1900–2050 and sxtwl on 2051–2100 with **zero** mismatches.
+
+**Blast radius, measured across every year in range.** `lunarNewYearDate`: one change, **1916 Feb 4 → Feb 3**. `monthAnimalSolarTerm`: three, all pre-1929 and each one day earlier — 1911 lixia, 1912 xiaohan, 1927 bailu, all still inside the canonical jieqi windows. Nothing at or after 1929 moves. Downstream that is `animal`, `chineseElement` and `innerAnimal` for pre-1929 births only; the visible defect was a **1916-02-03 birth filed as rabbit instead of dragon**. Numerology, sun sign, rising sign, birth card, day/hour pillars and the catalog index are untouched. No stored reading needs migration — only reconstruction inputs persist.
+
+**Scope (files):** `core/calendar.js` (the only source file), `tests/fixtures.json` (+2 pre-1929 boundary cases per §3 step 1; all 25 re-verified against `core/profile.js`), `tests/calendar.test.js` (1916 leaves `ICU_DIVERGENCES` and gains an explicit `[2, 3]` regression pin), `DOCTRINE.md` (§3 calc v3.1 note, version history, version header → v0.57), this file, and the evidence packet. **UNTOUCHED:** `ui/`, `content/`, `index.html`, `core/profile.js`, every scanner list, dependencies, localStorage keys. Suite **43 files / 1500 tests** green.
+
+**Named limit, on the record.** DOCTRINE §3 names the Hong Kong Observatory tables as the calibration authority. `hko.gov.hk` is blocked by this environment's egress policy (403 on CONNECT from the proxy, whose README forbids retrying policy denials), so HKO could not be consulted. Three-library unanimity across 151 consecutive years is the substitute and is not plausibly coincidental — but it is a substitute, and the four dates want HKO re-confirmation from an environment that can reach it. The evidence packet lists three further things a reviewer should press on, including that the 1929 threshold itself is stated differently by some implementations (immaterial here: no offset-sensitive date falls in 1928).
+
 ## 2026-07-29 — advisory coverage report: `@vitest/coverage-v8` dev dep + CI step — STAGED
 
 **Status: STAGED on `claude/test-coverage-analysis-qdsbh3` with the rest of
@@ -1800,7 +1844,6 @@ Rationale at N=2: absorption cost is small + bounded (each sighting closed via o
 - **N=2 promotion with informal mitigation is the right cycle weight for codifying a discipline that already practices.** L51's Procedure 8 codification was correctly heavier because the mitigation required step-enumeration the orchestrator was not yet doing. L53's mitigation is what both sightings already did in-cycle — codification just labels the practice and locks the reconsider-trigger.
 - **Codifying "wait for more data" is itself a valid codification.** The standing rule does not say "always informal" — it says "informal at N=2; reconsider at N=4 or N=5." The wait-and-see discipline is made explicit. Without the trigger, the L promotion would be a soft-edged shrug; with it, the L promotion is a structurally meaningful checkpoint that is self-pruning under §13 (no firing in 30 days = pruning candidate; reconsider-trigger fired = structural reconsideration window).
 
-
 ---
 
 ## 2026-05-17 — SHIPPED: DOCTRINE v0.30 LS retirement + drift sweep (chat-30)
@@ -2092,7 +2135,6 @@ The v028 file's L52-candidate flag in its top-note serves dual purpose: (1) per-
 - **Verification-only cycles are valid state-fill content.** Chat-24 established the pattern that orchestrator self-audit + absorb cycles produce journal entries; this cycle is even smaller — just verification of pre-existing claims — but still warrants journal capture because the audit trail (10/10 byte-match against DOCTRINE.md v0.27 live HEAD `ccfe16b`) is the value, and chat history doesn't survive past the session. Pattern note: **verification work, even when it produces no source-of-truth edits, is journal-worthy when it closes a flagged risk** — the L52-candidate concern closure is the deliverable.
 - **`edit_block` substring semantics admit mid-line termination of `old_string`.** Op 6's `old_string` ends mid-line at `- v0.26: 2026-05-12` without the trailing parenthetical content present in DOCTRINE.md. The replacement leaves the trailing content (`(drift-sweep tier-2 cleanup: ...)`) intact because `edit_block` matches substrings, not whole lines. This is correct behavior + relied-upon by Op 6's design (preserves the v0.26 lineage entry while inserting a new v0.27 entry between v0.28 and v0.26). Pattern note worth filing: **mid-line `old_string` termination is supported and safe when the boundary character is whitespace-separated from preserved-content**, but reviewers should sanity-check the resulting line for orphan-fragment issues; this cycle the resulting line `- v0.27: 2026-05-13 (...) (drift-sweep tier-2 cleanup: ...)` would be wrong (two parentheticals on one line). On re-inspection: Op 6 `new_string` ends with `- v0.26: 2026-05-12` followed by nothing, so the result after replacement is `- v0.26: 2026-05-12 (drift-sweep tier-2 cleanup: ...)` — single parenthetical, correct. The risk window exists but this draft is clean.
 
-
 ## 2026-05-15 — STATE-FILL: chat-24 forward-looking drafts (Friday 2026-05-22 pre-stage + LS rejection-response preemptive)
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Two forward-looking off-repo drafts written during chat-24 wait-state-productive marathon close. Neither touches repo-tracked state; journal entry is the on-repo acknowledgment that the artifacts exist.
@@ -2136,7 +2178,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **Forward-looking drafts during wait-state are journal-only.** Pre-staging the Friday 2026-05-22 review while waiting on §11.11 (b) ≠ entering the v0.3.1 cycle; it's calendar-pre-work. Similarly the LS rejection draft is contingent (fires only on LS-side ask). Neither warrants §11 row evolution; the journal entry is the right surface. Pattern note: **off-repo forward-looking drafts get journal acknowledgment, not §11 promotion** — §11 is for shipped + in-flight roadmap state, not for paper that may never fire.
 - **Wait-state productive output has natural saturation.** Chat-24 went engineer-sweep → housekeeping → cycle-brief audit → 3 lane-brief audits → all 4 absorbs → 2 forward drafts. By the forward-draft cycle, all critical-path gap-closing for v0.3.1 was complete. The remaining items (Inspector role-doc draft, fire today's Friday review, MUHAB.md §7) are operator-taste, not gap-shaped — they need operator-hand and don't unblock v0.3.1 fire. Pattern note: **wait-state marathons have a natural completion signal — the menu shifts from gap-shaped to operator-taste**. When that happens, the productive marathon is done; further work needs operator selection.
 - **chat-24 cumulative work product summary** (for the chat-24-to-chat-25 handoff): 4 self-audits (cycle brief + 3 lane briefs, ~1,038 lines off-repo at `~/Desktop/8ball/audits/`); 4 artifact absorbs (cycle brief v0.3 → v0.4 + 3 lane brief absorbs, ~155 net additive lines off-repo at `~/Desktop/8ball/sessions/`); 2 forward-looking drafts (Friday pre-stage + LS rejection-response, 270 lines off-repo); 8 on-repo commits across 4 state-fill cycles (HOUSEKEEPING + cycle-brief-absorb + 3-lane-absorb + forward-drafts), each with state-fill + SHA-fill per chat-18 inheritance. v0.3.1 cycle is now substantially pre-Codex-cleared — when §11.11 (b) + (c) close, the cycle fires with all upstream artifacts at audited-clean state. Estimated Codex round-trip savings at v0.3.1 fire: 1–2 audit cycles closed pre-emptively.
-
 
 ## 2026-05-15 — STATE-FILL: chat-24 v0.3.1 three-lane-artifact self-audit + absorb cycle (v028 doctrine + ChatGPT brief + CC brief)
 
@@ -2199,7 +2240,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **Three-tier audit-completeness pattern observed.** Chat-21's in-file self-check (v028 Procedure 7 sanity + Procedure 8 6/6 confirmation) verified **structural soundness**. Chat-24's audit on the same artifact found **scope-completeness gaps**. Both are valid + needed; the layers don't substitute for each other. Pattern note: **structural soundness ≠ scope completeness ≠ sync currency**. Three different audit lenses: (1) structural — every § reference resolves; (2) completeness — the amendment scope covers everything that needs covering; (3) currency — the artifact is current vs upstream sources. Codex's Procedure 4 hooks 1–13 land at the structural + completeness layers; the currency layer is orchestrator-side. Future briefs would benefit from explicit three-lens self-check before paste-extraction.
 - **Operation-count pinning is a brittle reference shape.** CC brief's "Apply Operations 1–7" pinned to v028's pre-absorb count; v028 absorb expanded count to ~9 operations; CC brief became internally inconsistent until P1.2 fix. **Pattern note: cross-artifact references should name what's being referenced, not count it** — "the listed `edit_block` operations" robust to op-count drift; "Operations 1–7" pinned to a state that changes. Generalizes beyond ops: any sibling-artifact reference that uses positional/numeric pinning should be reviewed for drift risk.
 
-
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 11 (brief v0.3 → v0.4) + chat-24 self-audit absorb pass
 
 **Status:** state-fill — no surface, no code, no DOCTRINE touch. Off-repo brief at `~/Desktop/8ball/sessions/brief_v031_facet_reroll.md` advanced v0.3 → v0.4 via chat-24 self-audit absorb pass; on-repo §11 row 11 updated to reflect the new version + absorb-pass scope. Off-repo orchestrator self-audit response at `~/Desktop/8ball/audits/orchestrator_self_audit_brief_v031_2026-05-15.md` is the trigger artifact.
@@ -2252,7 +2292,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **Additive-shape preservation under 11 surgical edits.** No renumbering; §-structure intact; internal cross-refs unbroken; anchor markers (`=== CHATGPT PROMPT START/END ===` / `=== CC PROMPT START/END ===`) unmoved. Mirrors chat-23 9-edit additive pass — both at ~460-line brief size. The pattern scales for brief-shape artifacts in this size range. Procedural note: **for additive passes >5 edits on a single artifact, `edit_block` with unique anchored substrings remains reliable**; the cost is proportional to edit count, not artifact size.
 - **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle (audit response IS the audit, off-repo, no Codex). Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
 
-
 ## 2026-05-15 — HOUSEKEEPING: package.json version bump + RELEASE_CHECKLIST.md refresh + stale local branch cleanup
 
 **Status:** housekeeping — no surface, no code, no DOCTRINE touch. Three engineer-eyes hygiene items surfaced in chat-24 engineering sweep, all cheap-and-safe. Closes truth-with-disk drift on `package.json` version (`0.1.1` → `0.3.0`); refreshes `audits/RELEASE_CHECKLIST.md` against shipped v0.3.x reality (6 CI stages, §4.A/§4.B/§5.B/§5.C clauses, §10 v0.24 agent table, L48 / SHA-fill / `--delete-branch` 3-leg disciplines, live-surface scan as L-watch carry); deletes stale local branch `claude/focused-morse-8fbe06` (CC worktree leftover, never on origin).
@@ -2299,7 +2338,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **`package.json` version drift is the canonical example of "version drift that nothing breaks."** No consumer reads it, `npm publish` never fires, no CI gate checks it. The fix is truth-with-disk hygiene, not bug closure. Future versioning gates (e.g. if `tests/dependency_discipline.test.js` ever grows a version-check, or if 8ball ever ships an npm package) would make this a real defect; until then, pure hygiene.
 - **RELEASE_CHECKLIST drift was the largest gap by surface area.** 42-line file vs ~10 doctrine versions of drift (v0.17 → v0.27 since last touch). Shape: a long-tail-low-frequency file (read once per release) accumulates drift faster than per-release-touched files because nothing forces the read against current truth. **L-watch (1 sighting):** any `audits/` or top-level `.md` file untouched in the journal for >5 doctrine-version bumps gets a sweep-on-next-housekeeping-pass by default. Not promoted today; carry for second sighting per two-sighting discipline.
 - **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle. Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
-
 
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11 row 5 (Phase-2E capture closure) + row 11 (brief v0.3) + refresh date
 
@@ -2352,7 +2390,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **Phase-2E capture closure ships as state-fill, not §10 entry.** §10 entries are SHIPPED-on-main records with live SHAs on doctrine-bump or surface-change cycles. Phase-2E is design-lock + on-repo-index update; no doctrine change, no shipped-surface change. State-fill cycle pattern matches chat-21 §11.11 (c) wiring + chat-20 §11.11 (b) reopen + chat-18 sub-decision-#6 lock + chat-14 PR #24 state-fill. §10 entry will arrive when v0.3.1 ships and exercises the Phase-2E locks.
 - **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle. Direct-to-main commit, SHA-fill follow-up per chat-18 inheritance.
 
-
 ## Friday rule-kill review — 2026-05-15 — addendum (post-review items)
 
 **Status:** Addendum to the §13 review at `012f59b` (19 KEEP / 0 KILL / 0 AMEND-now / 1 AMEND-flagged-for-next-Friday). No re-review of the verdict; locks the trail for two doctrine-shape items that surfaced *after* the review closed earlier today, so the 2026-05-22 pre-read author finds them pre-staged rather than fresh.
@@ -2372,7 +2409,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 
 **Lessons / discipline:**
 - **Addendum-as-trail-lock pattern.** When new doctrine-shape items surface *after* a Friday review closes but *before* the next one, the cheapest discipline is a same-day addendum that pre-stages them for the next pre-read — cheaper than letting them float as journal-distributed L-watches that the next pre-read has to rediscover by searching. ~10-line addendum, no cycle weight, lock-the-trail value high.
-
 
 ## 2026-05-15 — SHIPPED: §2/§5 P1 live-surface RUM violation closed — Netlify RUM disabled (L51 Procedure 8 first real-world firing)
 
@@ -2411,7 +2447,6 @@ Both files are forward-looking and contingent. The Friday pre-stage fires 7 days
 - **Paste-ready directive shape for platform-native agents matches CiC directive shape.** Goal / navigation / do-not / success criteria / report-back / context. Same authoring discipline as the chat-21 Threads CiC directive (Cycle E). The shape ports cleanly across browser-bound agents regardless of platform. No new pattern needed.
 
 - **Two-directive pattern (manual + agent) is operationally useful.** Codex authored the manual directive chat-21; chat-22 added an agent-paste version. Operator gets to choose execution path at fire time. Manual = ~30 seconds, no agent risk. Agent = hands-off but adds verification overhead (this very cycle). For future P1s with similar shape: surface both paths in the same handoff, let operator pick.
-
 
 ## 2026-05-15 — SHIPPED: agents/orchestrator.md Procedure 8 — L51 promotion (closure-discipline-on-multi-step-external-processes)
 
@@ -2453,7 +2488,6 @@ Sightings tally:
 - **Subsumption framing reduces L-count drift.** Off-repo-ahead-of-on-repo state drift sat at 2 sightings as its own L-candidate; chat-20 L51 framing reinterpreted both as internal-multi-step instances of L51. Subsumption is the right move when the broader pattern fits — keeps the L-list focused on distinct failure modes rather than near-siblings. (Counter-discipline: subsumption should require explicit operator review when the narrower L-candidate has its own mitigation surface; in this case both candidates resolve to the same mitigation — direct-evidence verification — so the subsumption is mitigation-equivalent and safe.)
 - **Procedure 8's first test fires immediately on next §11 row update.** Any future § state-row update that depends on multi-step external-process state (LS activation, Stripe / PayPal onboarding, tax registration, any vendor KYC) gates through Procedure 8 from this cycle forward. The chat-21 state-fill cycle that just landed (§11.11 (c) wiring) was itself the inverse case (defining done rather than declaring done) and explicitly noted "L51-candidate firing-shape does NOT apply"; that note is preserved as a corroborating-example datum.
 
-
 ## 2026-05-15 — STATE-FILL: 8BALL.md §11.11 (c) wording — v0.3.1 ship-gate (c) wired to off-repo re-spec file
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Updates v0.3.1 ship-gate (c) in `8BALL.md` §11.11 to point at `~/Desktop/8ball/sessions/v031_ship_gate_respec.md` as canonical for the gate's operational definition. Re-spec file authored chat-19 (skeleton); default-filled chat-21 under carnaval frame; calibration #1 (pre-8ball @eczaki follower boundary) resolved by operator chat-21 ("most of those are strangers"), applied to Channels 1 + 3 Noise.
@@ -2483,7 +2517,6 @@ Sightings tally:
 - **Carnaval frame's Channel 3 Noise call shipped without operator pushback** — engagement on non-8ball posts (IG AI-dreams, TikTok music, Threads aphorisms) is NOT 8ball signal under carnaval frame. Strongest single application of carnaval to operational doctrine yet. A rising IG follower count from a dream post does not validate v0.3.1. If operator later wants cross-pollination to count, this is the line to revisit.
 - **L51-candidate firing-shape does NOT apply to this cycle.** L51 (closure-discipline-on-multi-step-external-processes) is about declaring done from a sub-step signal. This cycle is the inverse: defining what done means. State-fill correctly enumerates the falsification conditions before claiming any gate-closure.
 - **Cycle ships state-fill + journal-entry.** No DOCTRINE touch, no PR, no audit cycle (state-fill is an orchestrator-controller cycle per established discipline). Direct-to-main commit, two-commit SHA-fill per chat-18 inheritance.
-
 
 ## 2026-05-15 — STATE-CORRECTION: §11.11 (b) reopened — multi-step LS activation flow surfaced; identity-verification ≠ Live
 
@@ -2517,7 +2550,6 @@ LS approval FAQ states approved categories are "digital goods that can be fulfil
 - **Test/Live mode read discipline.** Chat-20 initial $21-as-Live-revenue read was the orchestrator-side firing of the same multi-step-signal misread shape, on the dashboard rather than the activation flow. Pattern: LS dashboard data has no implicit Test/Live indicator — the toggle state must be read explicitly. Adding to standing orchestrator-side discipline: any LS dashboard read references the toggle state explicitly before the data is treated as canonical.
 - **State-correction cycle ships journal-entry + state-row edit + snapshot rewrite.** No DOCTRINE touch (the rule itself is fine; the closure-discipline is the issue). No PR, no audit cycle (state-correction is an orchestrator-controller cycle per established state-fill pattern). Direct-to-main commit, two-commit SHA-fill per chat-18 inheritance.
 
-
 ## Friday rule-kill review — 2026-05-15
 
 **Status:** First firing of §13 since the rule was authored (2026-05-08, 7 days ago). Inaugural review is calibration, not pruning — doctrine doesn't have 30-day-without-firing data yet. Pre-read prepared chat-15 at `~/Desktop/8ball/sessions/friday_rule_kill_review_2026-05-15.md`; chat-20 walked the inventory.
@@ -2548,7 +2580,6 @@ Pre-read v1 flagged §5.C as KILL-candidate via the heuristic "never fired in jo
 - **§12 wording-stale flag deferred, not absorbed.** "Trait pool" → "cards" is a one-line edit; could ship as v0.27 → v0.28. The §13 discipline ("if you find yourself adding more locked rules than you're killing on Fridays — stop drafting and ship something") argues for bundling with another structural pass rather than spinning a cycle on a single-word fix. Carry forward to 2026-05-22.
 - **Cycle ships journal-entry-only.** Zero KILLs, zero AMEND-now → no doctrine touch, no code touch, no audit cycle, no PR. State-fill commit pattern: direct-to-main, no `--amend`, SHA-fill via follow-up commit per chat-18 inheritance.
 
-
 ## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 ship-gate (b) ✅ closure (LS Live unlock)
 
 **Status:** state-fill — no surface, no code, no doctrine touch. Closes second of three v0.3.1 ship-gates: LS Live unlock from identity verification, confirmed via LS dashboard snapshot 2026-05-14 19:02 KSA (`~/Desktop/8ball/audits/ls_dashboard_snapshot_2026-05-14.md`) — no identity-verification banner, account Live, product `8 ball — 3 tries · tier 1` Published at $3.00, 0 sales. Banner-state per chat-13 dashboard read (2026-05-13) was identity verification; resolved 2026-05-14.
@@ -2570,7 +2601,6 @@ Pre-read v1 flagged §5.C as KILL-candidate via the heuristic "never fired in jo
 - **SHA-fill discipline (chat-18 inheritance applied).** Live SHA written as TBD in this commit; follow-up commit fills the actual SHA. No `--amend` on the state-fill commit — that was the chat-18 trip-up that needed `abb5539` to clean up. Standing rule from chat-18: either leave the placeholder until after the final commit (git log is canonical), or fill via a separate follow-up commit, not via pre-push amend.
 - **Off-repo-ahead-of-on-repo state drift — possible sighting #2.** chat-18 logged sighting #1 (refinement of L4: when an `8BALL.md` state row references off-repo design docs, the design docs win on substance; row needs explicit catch-up edit). This cycle has a similar shape: LS dashboard evidence moved 2026-05-14 (account Live) while §11.11 row still cited the 2026-05-13 banner-state. Same pattern (state row out of sync with off-repo reality), or distinct sub-shape (evidence-tracking vs decision-canonicalization)? Operator's call on framing. Conservative-default read: same pattern, L-promotion path on second sighting per established discipline. Orchestrator working-default for chat-19+: when any §11 state row cites an off-repo source (design doc OR evidence file) with a dated reference, cross-check the source's current state before treating the row as canonical for downstream questions.
 - **Single-edit cycle below the journal-entry threshold debate avoided.** This is one line. PR #23 retroactive entry from chat-17 codified the standing rule: every ship cycle gets a journal entry, regardless of diff size (comment-only line edits counted). State-fill cycles are even less ambiguous — they exist to close drift between on-repo state and reality, and the journal entry IS the closing-record artifact. No debate; entry filed.
-
 
 ## 2026-05-14 — STATE-FILL: 8BALL.md §11.11 — v0.3.1 sub-decision #6 lock (chat-13 retroactive)
 
@@ -2595,8 +2625,6 @@ Pre-read v1 flagged §5.C as KILL-candidate via the heuristic "never fired in jo
 - **Off-repo-ahead-of-on-repo state drift, sighting #1.** Refinement of L4 (files canon / memory not) for the layered-files case: when a state row references off-repo design docs, the design docs win on substance; the state row needs an explicit catch-up edit to stay canonical. Orchestrator default: when 8BALL.md state references a design doc, cross-check the design doc before treating the state row as canonical for downstream questions. Observation only; not L-promoted (single sighting).
 - **Operator-prompted catch-shape worked.** "let's close [open items]" → orchestrator quotes stale state row → operator pick exposes contradiction with off-repo reality → orchestrator surfaces drift instead of executing blind. Blind-execution would have torn up chat-13 work product (trial-run + brief §1.C voice register + §1.C amendment draft, ~half a chat of paper-work). The recovery shape is: read the design doc the row points to, before posing the question, not after.
 - **Chat-numbering correction filed inline.** chat-18 first response misquoted "Last conversation closed at chat-15" — actual sequence per journal is chat-15 (agents L-mitigation brief) → chat-16 (PR #24 ship + state-fill) → chat-17 (PR #23 retroactive + audit response reconstruction). This is chat-18. Confident-prior misread on the chat counter; corrected in this entry.
-
-
 
 ## 2026-05-13 — SHIPPED: agents/ L-mitigation cycle — c13-c14-c15 bundle
 
@@ -4230,7 +4258,6 @@ Initial `tests/fixtures.json` had hand-calc errors on 6/12 cases. All caught by 
 =====
 End of 2026-05-08 entry.
 =====
-
 
 ## 2026-05-15 — Friday rule-kill discipline inaugural firing + v028 Operations resync (chat-25)
 
