@@ -5,6 +5,78 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — Post-merge cross-read of the t4 rung: a live paywall defect and five more — STAGED
+
+**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. This is the fix cycle for findings raised by
+the post-merge adversarial cross-read commissioned at #153's merge — the read that should have run BEFORE it. It found a
+defect that is live on the deployed site right now.**
+
+**F1 (HIGH, live). The "fail-closed" t4 CTA was never hidden.** `#paywall-cta-t4` ships the `hidden` attribute and
+`applyT4Offer` re-asserts `anchor.hidden = true` and strips `href` — but `[hidden] { display: none }` is a **UA-origin**
+rule and `.modal .modal-cta { display: block }` is an **author** rule, which wins regardless of specificity. So every
+visitor who opened the paywall saw a second full-width button — *"buy public … $9"* — stacked under the $3 CTA by the
+`+ .modal-cta { margin-top: 10px }` sibling rule, inert because the href was stripped. That breaks the §4.B v0.56
+single-offer sprint (live to 2026-08-08) and **falsifies claims made in four places**: DOCTRINE §1.D v0.58,
+`PUBLIC_TIER_SPEC.md` §7, the #153 PR body, and `audits/L48_override_pr153_2026-07-29.md`, all of which state the CTA
+stays hidden. This repo had already hit this exact trap: `index.html` patches it element-by-element at the
+`.polar-message[hidden], .legacy-hint[hidden], .field-error[hidden]` rule, and `.modal-cta` was simply not in that list.
+**The same defect applies to `#offer-btn`** (`.btn-block { display: block }`) and predates the rung — `offerBtn.hidden =
+cardEntry` has never hidden anything for a t3 owner. Both are fixed by one added selector pair.
+
+**F2. The test that should have caught it could not see it.** `tests/payments_markup.test.js`'s "exactly one Gumroad CTA"
+assertion enumerates rung ids `(t[123])` and requires `href=` — so the t4 anchor was invisible to it twice over. §12
+forbids jsdom, so no test in this suite can evaluate a cascade at all. The replacement is structural and covers the whole
+bug class rather than this instance: for every element that ships or toggles `hidden`, if any of its classes carries an
+author `display:` rule, some class on that element must have a `[hidden]` guard resolving to `display: none`. It is
+driven off the markup, so a future hidden-able control inherits the guard automatically.
+
+**F3. `ui/concordance.js` coerced t4 to `free`.** `['t1','t2','t3'].includes(options.tier)` — an exhaustive-over-three
+literal the ladder append missed. A t4 device comparing two saved readings lost the five-element axis it owns at t1 and
+was told the coordinate is *"sealed at this device tier"* — false on its own open sheet. Now `isTier(...)`, pinned across
+`TIER_ORDER` so a fifth rung cannot repeat it.
+
+**F4. Four `tier === 't3'` equality gates stranded the t4 owner.** `T4_COORDS` carries `cardEntry`, so t4 rendered the
+written entry off a facet index that could neither advance nor re-anchor: **$9 bought strictly less rotation than $3**,
+and a new name+DOB at t4 inherited the previous pair's slot. All four now gate on
+`coordsForTier(tier).has('cardEntry')`, and the two tests that pinned the literal were updated to pin the entitlement.
+
+**F5/F6. The render ignored the table this change added.** `renderPublicRead(profile, { entitled: tier === 't4' })` never
+consulted `TIER_COORDS`, so the t4 entry in that table had zero effect on what shipped while being pinned by tests — and
+`newlyEntitledCells` reported a `publicRead` unseal the consumer could not resolve, making its test a tautology. The
+render now asks `coordsForTier`, and the unseal root is plumbed through `initTiersUI` with the CSS selector extended so
+the beat actually fires.
+
+**Also fixed, from the completeness critic.** `PUBLIC_TIER_SPEC.md` **was being served on the product domain** —
+`netlify.toml`'s ops-deletion list names every other internal doc and did not name this one, so an internal spec naming
+`?paid=t4` and $9 was public and crawlable; now deleted at build and pinned by a test. The block label used a bespoke
+always-visible class, the only permanently visible label on a sheet where every other one is labels-reveal gated; it now
+follows the convention. The density strip printed *"15 of 15 coordinates open · full sheet"* directly above a visibly
+sealed block; it now appends `· domain fit sealed` when the block is not entitled. The sealed block was silent to screen
+readers (its seal node is `aria-hidden` and its value nodes are empty); it now carries a state-dependent `aria-label`.
+
+**What the read confirmed as sound, so the record is balanced.** The **entitlement append is clean** — every existing rung
+keeps its index, `maxTier` stays monotonic, `T4_COORDS` is a strict superset, and the R2 legacy grandfather does not
+widen (`credits: 99` still resolves `t3`). **Sealed-DOM purity is clean** — below t4 the value nodes are empty, so a
+non-entitled device's markup contains no family label, no anti-fit and no role line; `sources`, `favorabilityNote`,
+`season`, `dayMaster` and `strength` never reach a node. The §1.F census is genuinely unmoved. No new network call, no new
+storage key, and the engine and its tables are byte-unchanged from #144.
+
+**Still open, and NOT closed by this cycle.** §8 gate 9 live-fire has still not run, and F1 is precisely the class of
+defect only a live-fire pass catches — the fix is verified structurally, not visually. The 320px-viewport question the
+critic raised (an always-visible block with a `min-height` floor inside a fixed-aspect card) cannot be answered from here
+at all. `index.html` is now at **1495 of 1500**; the next surface change goes into `ui/` per §6, not into the page.
+`curl` to the deployed site is blocked by this environment's egress policy (403 at the proxy), so no claim is made here
+about what the live deploy currently serves.
+
+**Verification.** Suite **45 files / 1571 tests** green (was 45 / 1560; +11). **Not verified:** local PII audit
+(gitignored pattern file absent); the live deploy; any browser.
+
+**Scope (files):** `index.html`, `ui/concordance.js`, `ui/tiers.js`, `ui/public.js`, `netlify.toml`,
+`PUBLIC_TIER_SPEC.md` (header + §0 + §9 corrected — §9 was an executable instruction that had become wrong),
+`tests/public_surface.test.js`, `tests/concordance.test.js`, `tests/facet_rotation.test.js`, `tests/readings.test.js`,
+this file, the L48 artifact. **UNTOUCHED:** `core/`, `content/`, `DOCTRINE.md`, `tests/fixtures.json`, every scanner
+allow-list.
+
 ## 2026-07-29 — Public rung wired: fourth ladder rung t4 · $9, fail-closed (DOCTRINE v0.58) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `2f3bdc9` ([#153](https://github.com/appleeatsapples-lang/8ball/pull/153)) on

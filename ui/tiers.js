@@ -157,12 +157,14 @@ let _refs = null;
 let _hooks = null;
 let _cells = null;
 let _entry = null;
+let _publicRoot = null;
 let _lastRenderedTier = null;
 
 export function initTiersUI(refs, hooks) {
   _refs = refs;
   _hooks = hooks || {};
   _entry = (refs && refs.entry) || null;
+  _publicRoot = (refs && refs.publicRead) || null;
   _lastRenderedTier = null;
   _cells = {};
   const cells = (refs && refs.cells) || {};
@@ -280,7 +282,9 @@ export function renderTierSections(profile, tier) {
   const newly = _lastRenderedTier === null ? [] : newlyEntitledCells(_lastRenderedTier, tier);
   let beat = 0;
   for (const key of newly) {
-    const root = key === 'cardEntry' ? _entry : _cells[key] && _cells[key].root;
+    const root = key === 'cardEntry' ? _entry
+      : key === 'publicRead' ? _publicRoot
+      : _cells[key] && _cells[key].root;
     if (!root || !root.classList) continue;
     root.classList.add('unsealing');
     if (root.style && root.style.setProperty) {

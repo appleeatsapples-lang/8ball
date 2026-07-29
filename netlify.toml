@@ -7,7 +7,7 @@
   # publishing, so these deletions never touch the repo itself.
   # node_modules guard: adding any build command makes Netlify run npm
   # install first; delete the result so it can't ship under publish = ".".
-  command = "rm -rf node_modules .netlify journal.md DOCTRINE.md CLAUDE.md AGENTS.md 8BALL.md agents audits tests scripts .github vitest.config.js package.json package-lock.json"
+  command = "rm -rf node_modules .netlify journal.md DOCTRINE.md CLAUDE.md AGENTS.md 8BALL.md PUBLIC_TIER_SPEC.md agents audits tests scripts .github vitest.config.js package.json package-lock.json"
 
 [[headers]]
   for = "/*"
