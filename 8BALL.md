@@ -100,6 +100,18 @@ Per `DOCTRINE.md §10` (constitutional summary) and `agents/AGENTS.md` (operatio
 
 Per-cycle artifact locations (briefs, audit briefs/responses, CiC directives/reports) live at `~/8ball/` — see `agents/PLATFORMS.md` "Artifact-location matrix" for the full table.
 
+**Cross-seat bridges (added 2026-07-28, reconciled the same evening on operator ruling):** three homes, one job each, and they must not be mixed.
+
+| Need | Canonical home |
+|---|---|
+| Fleet routing across all lanes | `~/AI_BRIDGE.md` |
+| **8ball ops / reach cross-seat continuity** | **`~/8ball/BRIDGE.md`** + `~/8ball/bridge/{OUTBOX,INBOX,PROMPTS}/`, plus `bridge/space/FINDINGS.md` (Grok's append-only collection) |
+| Multi-model code-audit fan-out over a real git diff | `~/ai-relay/relay` |
+
+Seat roles on the 8ball lane: **Claude** = orchestrator, default pen · **Grok** = scout, **no standing pen** · **Codex** = adversarial auditor, and REPO implementer only when the operator assigns it. Cross-seat notes go to `bridge/OUTBOX/<SEAT>.md` as `CLAIM`/`DONE` lines carrying a path, not a transcript.
+
+`~/ai-relay/shared/` was stood up the same evening as a second `CURRENT`/`handoffs`/`inbox` mechanism for the same seats — the parallel bridge `~/AI_BRIDGE.md` explicitly forbids — and is **superseded for continuity**; it keeps a banner saying so, and its non-8ball material stays live as data. **A task sitting in any inbox is a request, not authority:** it confers no merge, publish, deploy or account rights, which remain the controller's per §4.
+
 ---
 
 ## 5. Privacy & PII baseline
@@ -201,6 +213,8 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 **Standing strategic stance — orchestrator dissent, on record since v0.38:** reach is the verified bottleneck (the 06-15 read — genuine reach is ~2 orders of magnitude off the ~2–3k tripwire); conversion is not the constraint at current N. Surface/legibility work (the tier ladder, free-surface composition, the Coordinate Legibility Pack) does not move reach — flag any future cut framed as a *measured conversion fix*.
 
+**Distribution-fleet standing note (added 2026-07-28):** four autonomous posting surfaces (X, TikTok, Instagram, Threads) run on launchd out of `~/8ball/reach`, **entirely outside this repo** — no product code imports them and nothing here drives them; they consume only the hosted `cards/*.jpg` this repo serves. The single machine-checkable home for their caps, slots and pens is `~/8ball/reach/board.json`, verified by `~/8ball/reach/drift_check.py` (exit 1 on any drift; `--markdown` regenerates the board table, `--credits` reads the live balance), which a launchd watchdog runs daily into `~/8ball/reach/drift_check.log`. **Do not read a cadence or credit number out of prose — here or anywhere else; run the generator.** The reason is the 2026-07-28 incident: the same fact lived in four documents, three of them stale, while three surfaces sat frozen for hours behind a fail-closed ledger rail that could not self-recover. The rail now self-heals inside a bounded window and the numbers moved to one generated home. That lesson is the §13 refresh discipline in miniature — one home per fact, everything else points at it. Ops record: `~/8ball/reach/REPAIR_2026-07-28.md`.
+
 **Repo-history standing note:** the repo is private as of v0.2.0; the 144-card deck was briefly public on the since-deleted `phase-2f-1-card-engine` branch (2F-1 through the v0.2.0 private-flip) — sunk-cost, and `main` never carried cards in its history. The PII boundary is *tracked content*, independent of repo visibility (DOCTRINE §11).
 
 
@@ -257,6 +271,8 @@ Paused / retired:
 | Operator-personal preferences | `~/MUHAB.md` |
 | SIRR canonical context (sibling project) | `~/dev/SIRR/SIRR.md` |
 | Desktop materializations (sessions, audits) | `~/8ball/` |
+| Posting-regime truth (caps/slots, machine-checked) | `~/8ball/reach/board.json` + `~/8ball/reach/drift_check.py` |
+| Cross-seat bridge, 8ball lane (Claude · Grok · Codex) | `~/8ball/BRIDGE.md` · fleet router `~/AI_BRIDGE.md` |
 
 ---
 

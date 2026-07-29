@@ -98,10 +98,10 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
     ui/           ES modules — boot, citysearch, concordance, labels, meanings, modals, payments, profile, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup and boot is pure sequencing, both hooks-only (11 modules)
     content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        43 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    tests/        45 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs
     assets/       cities.json + favicons + og:image
-    cards/        97 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js
+    cards/        288 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
     scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/
     .github/      CI workflow (6 stages per §7) + PR template
     index.html    single-file UI, ≤1500 lines
