@@ -49,7 +49,7 @@ const STYLE = `
   left: 0;
   right: 0;
   z-index: 10;
-  background: var(--paper-bg, #0e0c0a);
+  background: var(--surface, #000);
   border: 1px solid var(--rule);
   max-height: 220px;
   overflow-y: auto;
@@ -60,17 +60,17 @@ const STYLE = `
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: var(--paper);
+  color: var(--text);
   cursor: pointer;
-  border-bottom: 1px solid rgba(138,132,114,0.15);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 .city-suggestions li:last-child { border-bottom: none; }
 .city-suggestions li:hover,
 .city-suggestions li[aria-selected="true"] {
-  background: rgba(138,132,114,0.12);
+  background: rgba(255,255,255,0.12);
 }
 .city-suggestions li .city-country {
-  color: var(--label-on-dark);
+  color: var(--text-muted);
   letter-spacing: 0.10em;
 }
 `;

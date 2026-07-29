@@ -58,12 +58,14 @@ const STACK_TOP = 86;
 const STACK_BOTTOM = 398;
 const FOOTER_Y = 442;
 
-// Grayscale specimen palette, mirroring the on-screen free card
-// (index.html :root --paper / --ink / --label / --rule).
-const PAPER = '#ebe5d4';
-const INK = '#1a1812';
-const LABEL = '#5a5444';
-const RULE = '#8a8472';
+// Monochrome specimen palette, mirroring the on-screen card (index.html
+// :root --surface / --text / --text-muted / --rule). Opaque grays (not
+// alpha) so the pattern/separator opacity attributes below apply cleanly
+// as the sole alpha multiplier, same relative weights as before.
+const PAPER = '#000000';
+const INK = '#ffffff';
+const LABEL = '#b8b8b8';
+const RULE = '#737373';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────

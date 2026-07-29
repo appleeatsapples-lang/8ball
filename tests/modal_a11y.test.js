@@ -29,18 +29,21 @@ describe('modal a11y — markup pins', () => {
     expect(modal).toHaveLength(3);
   });
 
-  it('the dark-chrome label token exists and the AA-failing pairs are off it', () => {
-    // --label (#5a5444) on --page-bg (#0a0a0a) is 2.63:1; the on-dark
-    // variant (#837c69) is 4.76:1 — AA, and still dimmer than --rule
-    // (5.30:1) so the label-vs-rule hierarchy survives.
-    expect(html).toMatch(/--label-on-dark:\s*#837c69/);
+  it('the muted-text token exists and the AA-passing pairs are on it', () => {
+    // Monochrome surface (journal 2026-07-29) collapsed the old --label /
+    // --label-on-dark split (paper-surface vs dark-page contrast) into one
+    // --text-muted, since both surfaces are black now: rgba(255,255,255,0.72)
+    // on black is ~9.4:1 (AA needs 4.5:1) — comfortably above the old
+    // 4.76:1 on-dark figure it replaces.
+    expect(html).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/);
     // Spot-pin the two worst offenders: the error message and the
-    // density strip both sit on the dark page background.
-    expect(html).toMatch(/\.field-error\s*\{[^}]*var\(--label-on-dark\)/);
-    expect(html).toMatch(/\.density-strip\s*\{[^}]*var\(--label-on-dark\)/);
+    // density strip both sit on the page background.
+    expect(html).toMatch(/\.field-error\s*\{[^}]*var\(--text-muted\)/);
+    expect(html).toMatch(/\.density-strip\s*\{[^}]*var\(--text-muted\)/);
     // The pre-2026-07-05 `.field-error { color: var(--ink) }` override made
-    // the error text ~1.1:1 (near-black on black) — it must never return.
-    expect(html).not.toMatch(/\.field-error\s*\{\s*color:\s*var\(--ink\)/);
+    // the error text ~1.1:1 (near-black on black); --ink is retired, but a
+    // literal black/surface color would reproduce the same failure mode.
+    expect(html).not.toMatch(/\.field-error\s*\{\s*color:\s*(var\(--surface\)|#000|black)/i);
   });
 
   it('closed modals leave the keyboard tab order (visibility, not just opacity)', () => {

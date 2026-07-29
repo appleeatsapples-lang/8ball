@@ -5,6 +5,78 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — black background / white writing supersedes the Phase-2E cream lock — STAGED
+
+**Status: STAGED, not merged, not pushed.** Built on `claude/bw-monochrome-ui` (branched fresh off `main`,
+not stacked on the in-flight P0–P3 audit branch). Local suite green (46 files / 1597 tests).
+
+**Operator decision, from this change forward:** black background on every app surface, white writing, no
+cream/brown/warm-gray/tinted-gray/colored accent — hierarchy may use white opacity over black but never a
+hue; interaction/error/selected/disabled/sealed/focus states stay distinguishable without color. This
+**supersedes** the Phase-2E lock recorded in `8BALL.md` §10 item 5 that named cream paper `#ebe5d4` and the
+rule-cool `#888` / labels-warm `#7a7470` tonal asymmetry as load-bearing — noted as a color-only
+supersession there; every other Phase-2E lock (type-scale ratio, spacing rhythm, motion grammar, reference
+lineage) stands unchanged and the historical text is preserved, not rewritten.
+
+**Why a raw token invert was unsafe.** `--paper` was overloaded — both "light card/modal background" and
+"light text on the dark page." Inverting it in place would have made inputs/buttons/native selects
+black-on-black. Replaced the overloaded paper/ink vocabulary with semantic tokens instead: `--bg`/`--surface`
+(#000), `--text` (#fff), `--text-muted` (rgba 0.72, ~9.4:1 on black), `--text-placeholder` (rgba 0.55, ~6.25:1),
+`--rule` (rgba 0.45, ~4.4:1 — meets the 3:1 border/focus floor), `--interaction-fill` / `--interaction-fill-active`
+(rgba 0.10 / 0.16) for hover/active states that used to invert to a solid light fill and now can't (that fill
+was black too). The one deliberate exception is the paywall CTA: solid white fill + black text, kept as the
+single highest-emphasis control, still achromatic.
+
+**Scope actually touched:** `index.html` (token block, every card/modal/control/field/button consumer, hatch
+and coord-cell rgba swapped from ink-alpha to white-alpha, box-shadow → visible white-alpha border on
+`.card`/`.card-back`/`.modal`/`.paid-banner`, theme-color → `#000000`, autofill inset-fill added — none
+existed before, focus-visible bumped 1px → 2px throughout, paywall-specimen `<img>` gets a `grayscale(1)
+invert(1) contrast(1.05)` filter so the cream catalog JPG renders achromatic in place, confirmed visually
+indistinguishable from the live card); `ui/citysearch.js` (fixed a pre-existing bug in passing — the
+`var(--paper-bg, #0e0c0a)` fallback referenced a variable that was never declared anywhere in `:root`; now
+`var(--surface, #000)`); `ui/meanings.js` (near-black-on-paper hover/active rgba rebalanced to visible
+white-alpha, since the old alphas were tuned for a dark color on a light surface and read as almost invisible
+white-on-black); `ui/readings.js` (pure var() rename, no raw colors there); `ui/share.js` (share-PNG palette
+constants swapped to opaque grays/black/white — kept opaque rather than alpha so the pattern/separator
+`opacity=` attributes already in the SVG markup keep applying as the sole alpha multiplier, same relative
+weights as before). Index.html line count: 1500 → briefly over-budget during the pass, trimmed comments back
+to 1491 (was 1493), 9 lines of headroom.
+
+**Tests:** new `tests/monochrome_surface.test.js` (10 checks — no retired hex/var tokens anywhere in shipped
+source, `theme-color` black, semantic block present, card/modal resolve to `--surface`, computed contrast
+ratios for muted/placeholder/rule, focus-visible ≥2px everywhere, active/selected states use the fill-alpha
+pattern not black-text inversion, share SVG achromatic + black bg + white primary text, specimen filter
+present, every hex/rgba literal in the touched surfaces is R=G=B). `tests/modal_a11y.test.js`'s hard-coded
+`--label-on-dark: #837c69` / contrast-ratio assertion updated to the new `--text-muted` token and its ~9.4:1
+figure. `CLAUDE.md` repo-shape count bumped 45 → 46 vitest files in the same change.
+
+**Visually verified in-browser** (local `serve` + this session's Browser pane, not a live-fire Playwright
+pass): onboarding form incl. native date/time inputs and the city-search dropdown (hover/keyboard-selected
+row), result card with open cells + hatched sealed cells, about/forget/paywall modals (bordered black panels,
+correctly legible over the dimmed backdrop), the paywall CTA's solid-white/black-text emphasis, the expanded
+specimen preview (now visually indistinguishable in tone from a live card), the readings screen empty state,
+and the 390×844 mobile breakpoint. Did not capture the full brief-specified screenshot matrix (768×568,
+1280×720 desktop rail, disabled-button state, share PNG output) — static assertions cover those tokens but a
+human/live-fire pass has not looked at the pixels.
+
+**Not done in this pass — explicitly out of scope, not silently skipped:**
+- **Static assets** (`assets/favicon-16.png`, `favicon-32.png`, `favicon.ico`, `apple-touch-icon-180.png`,
+  `og-image.png`) are still the old cream-toned renders. No in-repo generator exists for the favicons; the
+  OG image's source-of-truth tool (`~/8ball/tools/render_og_image.mjs`, off-repo) calls this repo's own
+  `ui/share.js` `buildCardSVGFromSnapshot` for the card art (so it inherits the new black/white palette
+  automatically once run) but still needs an actual re-render + wordmark/copy check, which needs a live
+  Chrome + font environment this container may or may not match byte-for-byte.
+- **`~/8ball/reach/x_pipeline/post_x.py`** (off-repo, separate vault, not this git repo) still generates
+  "index card on paper background: …" alt text for new posts. Not touched — that vault has its own
+  `CLAUDE.md` and is a different lane's territory; flagging rather than reaching across without operator
+  confirmation of scope.
+- No cross-model audit has run on this branch (it doesn't touch `DOCTRINE.md`, so §10's audit trigger
+  doesn't apply, but it's a full user-visible surface change and hasn't had a second pair of eyes).
+
+**Files changed:** `index.html`, `ui/citysearch.js`, `ui/meanings.js`, `ui/readings.js`, `ui/share.js`,
+`tests/monochrome_surface.test.js` (new), `tests/modal_a11y.test.js`, `CLAUDE.md`, `8BALL.md`, this entry.
+
+
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
 **Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
