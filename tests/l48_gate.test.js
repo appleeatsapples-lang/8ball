@@ -121,6 +121,46 @@ describe('L48 gate — rejected artifact shapes (false-green regression pins)', 
   });
 });
 
+describe('workflow trigger — a retargeted PR must still draw checks', () => {
+  // `branches: [main]` filters on the BASE branch, so retargeting a PR fires
+  // the `edited` action — which is NOT in the default opened/synchronize/
+  // reopened set. Without `edited` a retargeted PR draws no checks at all,
+  // and an absent check is visually indistinguishable from a pending one:
+  // PR #133 sat at zero checks until a close/reopen forced a run.
+  const typesLine = workflow.split('\n').find(l => l.trim().startsWith('types:'));
+  const types = typesLine
+    ? typesLine.slice(typesLine.indexOf('[') + 1, typesLine.lastIndexOf(']'))
+        .split(',').map(t => t.trim())
+    : null;
+
+  it('declares pull_request types explicitly', () => {
+    expect(typesLine, 'no types: line found on the pull_request trigger').toBeTruthy();
+  });
+
+  it('includes `edited`, so a retarget is not silently uncovered', () => {
+    expect(types).toContain('edited');
+  });
+
+  it('still lists every default action — specifying types REPLACES the defaults', () => {
+    // The subtle half: once `types:` is declared, GitHub no longer supplies
+    // opened/synchronize/reopened. Dropping one here would silently stop CI
+    // for that action while the workflow still looks configured.
+    for (const action of ['opened', 'synchronize', 'reopened']) {
+      expect(types, `${action} must stay in the explicit list`).toContain(action);
+    }
+  });
+
+  it('carries no job-level `if:` that could report a skip as a pass', () => {
+    // Narrowing `edited` to base-changes-only would need a job-level guard,
+    // which makes the job report `skipped` on an ordinary body edit — and a
+    // skipped job can satisfy a required status check. That is a gate that
+    // stops gating while still looking green, the exact false-green shape
+    // this workflow was bitten by in #126 F1 and #129 F2. Redundant runs on
+    // a body edit are the deliberately chosen cheaper failure.
+    expect(workflow).not.toMatch(/^ {4}if:/m);
+  });
+});
+
 describe('L48 gate — job shape', () => {
   const yaml = workflow;
 
