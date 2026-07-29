@@ -546,10 +546,12 @@ describe('public tier — voice register (§2 / §4)', () => {
 });
 
 describe('public tier — surface isolation', () => {
-  it('nothing in ui/, index.html or core/ imports core/public.js yet', () => {
-    // The engine ships ahead of any surface, per the tier brief (no UI, no
-    // pricing wiring). Wiring it is a deliberate change that updates this
-    // test in the same commit — it should never happen silently.
+  it('ui/public.js is the ONLY importer of core/public.js', () => {
+    // This assertion has MOVED, not loosened. Until §1.D v0.58 it read
+    // "nothing imports the engine yet" and was written to fail the moment a
+    // surface appeared — which is exactly what it did when the t4 rung was
+    // wired. It now pins the single seam: one DOM controller consumes the
+    // engine, so a second, unreviewed wiring still fails CI.
     const consumers = [];
     for (const rel of [
       ...readdirSync(join(REPO_ROOT, 'ui')).map(f => join('ui', f)),
@@ -559,7 +561,17 @@ describe('public tier — surface isolation', () => {
       const src = readFileSync(join(REPO_ROOT, rel), 'utf-8');
       if (/["'`][^"'`]*core\/public\.js|from '\.\/public\.js'/.test(src)) consumers.push(rel);
     }
-    expect(consumers, `unexpected importers of core/public.js: ${consumers.join(', ')}`).toEqual([]);
+    expect(consumers).toEqual([join('ui', 'public.js')]);
+  });
+
+  it('the engine still knows nothing about tiers, prices or entitlement', () => {
+    // The wiring went the other way round on purpose: ui/public.js is told
+    // whether the device is entitled; core/public.js never asks.
+    // codeOnly again: the module's header comment names the capabilities it
+    // deliberately does NOT have, and that sentence must not trip its own ban.
+    const uiSrc = codeOnly(readFileSync(join(REPO_ROOT, 'ui', 'public.js'), 'utf-8'));
+    expect(uiSrc).not.toMatch(/localStorage|fetch\(|gumroad/i);
+    expect(uiSrc).toMatch(/entitled/);
   });
 
   it('the engine reads no tier, price, entitlement or storage state', () => {

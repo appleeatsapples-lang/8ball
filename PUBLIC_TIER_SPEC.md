@@ -275,26 +275,61 @@ and the season and posture are re-derived from `getInnerAnimal` and
    capability, but it is a new edge in the architecture and wants a reviewer's
    eye.
 
-## §7. Deliberately not built
+## §7. Wired to t4 (§1.D v0.58) — and what is still not built
 
-No UI, no surface, no `TIER_COORDS` entry, no sheet row, no sealed cell. No
-price, no Gumroad product, no `?paid=` param, no entitlement or paywall path.
-No `core/payments.js` or `ui/*` change. No `index.html` change. No
-`DOCTRINE.md` amendment. Nothing in the repository imports `core/public.js` —
-a test pins that, so wiring it can never happen silently.
+**This section described an unwired engine until 2026-07-29.** On explicit
+controller instruction the tier is now wired to a fourth ladder rung: `t4`,
+`?paid=t4`, **$9**, defined by the §1.D v0.58 amendment shipped in the same
+change. The original text is superseded and preserved here as lineage per
+L17: *"No UI, no surface, no `TIER_COORDS` entry, no sheet row, no sealed
+cell. No price, no Gumroad product, no `?paid=` param, no entitlement or
+paywall path. … Nothing in the repository imports `core/public.js`."*
 
-Before any of it is shown to anyone, in this order: a doctrine amendment
-defining the rung under §1.D (or its successor) with cross-model review per
-§10, a design read on §6.1 (a mode driver the free sheet already shows), and
-a §5.D pass on what a public-tier share surface would carry.
+What the wiring is:
+
+- **`core/payments.js`** — `TIER_ORDER` appends `'t4'`. Every existing rung
+  keeps its rank; monotonicity, ownership and the replay-safe `no-pending`
+  branch are unchanged. The **R2 legacy grandfather deliberately stays at
+  `t3`** and is pinned so a later rung cannot widen it.
+- **`ui/tiers.js`** — `TIER_COORDS.t4 = [...t3, 'publicRead']`. A **block**,
+  like `cardEntry`: no compartment, excluded from the §1.F census, so the t4
+  census is identical to t3's.
+- **`ui/public.js`** (new) — the only consumer of `core/public.js`. Renders
+  the block; **entitlement is passed in**, never read from storage here. Below
+  t4 the value nodes are emptied per §1.D v0.37 — absent, not hidden.
+- **`index.html`** — the sealed block, one CSS rule, the boot wiring, and a
+  hidden t4 CTA.
+
+Still not built, and fail-closed rather than half-built:
+
+- **The Gumroad product does not exist.** `T4_PRODUCT_URL` in
+  `ui/payments.js` ships **empty**; while it is empty the CTA carries no
+  `href` and stays hidden, so no visitor can reach a dead checkout. Filling
+  that constant in is the whole of what makes the rung buyable — and it is a
+  controller action, never an agent's.
+- **The about-modal copy is untouched.** It describes the live $3 offer,
+  which is still what a visitor can actually buy. Advertising a rung nobody
+  can purchase would be the wrong kind of accurate.
+- **No cross-model audit has read the engine or the rung.** §10 asks for one
+  on a doctrine change; the clearance is an explicit controller override.
+- **The §4.B v0.56 $3 sprint is byte-untouched** while it runs (to
+  2026-08-08): the offer control, the paywall headline and the t3 product
+  are unchanged.
+- **§5.D share surface** — the public block is not in the share PNG. That
+  pass has not been done.
 
 ## §8. Test map
 
-`tests/public.test.js` (38 tests) — determinism · coverage with no gaps ·
+`tests/public.test.js` (39 tests) — determinism · coverage with no gaps ·
 date-only path · anti-fit never a fit family · snapshot fixtures · independent
 anchors · table integrity · voice register (the canonical
 `BANNED_VOICE_REGISTER` / second-person / diagnostic-framing / slur tables,
 plus a CTA scan) · surface isolation.
+
+`tests/public_surface.test.js` (17 tests) — the t4 wiring, separate from the
+engine: render filled at t4 / sealed below it with no entitled string in the
+DOM, the ladder append, the grandfather that must not widen, the unchanged
+census, and the fail-closed offer.
 
 `tests/public_tier.fixture.json` — 16 synthetic dates (DOCTRINE §11): the
 three day-pillar calibration anchors, the calc v3.1 correction dates, the
