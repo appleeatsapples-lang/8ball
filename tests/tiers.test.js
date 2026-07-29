@@ -296,6 +296,68 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
     expect(getRenderTier()).toBe('free');
     expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
   });
+
+  it('corrupt/unknown stored tier still fails closed to free (never throws, never persists)', () => {
+    const storage = makeStorage({ [TIER_KEY]: 'banana', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('free');
+    expect(storage.snapshot()[TIER_KEY]).toBe('banana'); // untouched, not rewritten
+  });
+
+  // ── raw stored 't4' — the P0 regression (deep-audit 2026-07-29) ──────
+  //
+  // getTier() used to gate `t` through the CURRENT-only `isTier(t)` before
+  // resolveRenderTier ever saw it, so a raw stored 't4' (live and unsigned
+  // while the rung existed, §1.D v0.58/§5.C) was discarded to null before
+  // the RETIRED_TIERS table in core/payments.js could map it onto 't3'.
+  // With no legacy credits that meant a real localStorage holding 't4'
+  // rendered free forever and never got rewritten — the ownership
+  // migration the R2/retirement comments claimed was total, wasn't. This
+  // seeds a REAL localStorage-shaped mock (not a direct
+  // `resolveRenderTier({tier:'t4'})` call, which is exactly what let the
+  // prior suite pass while the live path was broken) and drives the public
+  // `getRenderTier()` entry point, the same one index.html calls on every
+  // boot/shake/submit.
+  it('raw stored t4, no legacy credits: getRenderTier() resolves t3 and rewrites storage', () => {
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t3');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3'); // migrated, not stranded at 'free'
+    // stays stable once rewritten
+    expect(getRenderTier()).toBe('t3');
+  });
+
+  it('raw stored t4 WITH legacy credits: still migrates via RETIRED_TIERS, not the accidental grandfather', () => {
+    // Before the fix, getTier() returned null for a raw 't4', so
+    // resolveRenderTier({tier: null, credits: N>0}) took the UNRELATED R2
+    // legacy-credit branch and happened to land on 't3' by coincidence —
+    // the right answer for the wrong reason, and it would have been the
+    // wrong answer for any retired tier that maps somewhere other than t3.
+    // This pins that the retirement table itself is what fires.
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '3' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t3');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+  });
+
+  it('getTier() itself surfaces the raw retired token unnormalized — the seam the fix depends on', () => {
+    // Both callers (getRenderTier via resolveRenderTier, handlePaidReturn
+    // via applyPaidReturn) run the value through normalizeTier/RETIRED_TIERS
+    // themselves. getTier() must hand them the raw 't4', not a pre-resolved
+    // 't3' and not a discarded null — either would hide which mechanism
+    // actually performed the migration.
+    globalThis.localStorage = makeStorage({ [TIER_KEY]: 't4' });
+    expect(getTier()).toBe('t4');
+  });
+
+  it('valid t1/t2/t3 storage is unaffected by the t4 fix', () => {
+    for (const tier of ['t1', 't2', 't3']) {
+      const storage = makeStorage({ [TIER_KEY]: tier, [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      expect(getRenderTier()).toBe(tier);
+      expect(storage.snapshot()[TIER_KEY]).toBe(tier); // untouched — already correct
+    }
+  });
 });
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {

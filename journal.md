@@ -5,6 +5,50 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-29 — P0 fix: raw stored t4 now reaches RETIRED_TIERS; corrects the #183 real-device claim — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to a same-day independent deep-audit
+finding. Local suite green; no push, merge, or deploy performed. Controller sign-off and the L48 gate are still required
+before this lands on `main`.
+
+**The defect this closes.** `ui/payments.js:getTier()` read the raw `eight_ball_tier_v1` value and immediately gated it
+through `isTier()` — the CURRENT-tiers-only check — before `resolveRenderTier()` ever got a chance to run it through
+`RETIRED_TIERS`. A raw stored `'t4'` therefore never reached the retirement table at all: `getTier()` returned `null`,
+and `resolveRenderTier({tier: null, credits})` fell through to the unrelated §1.D R2 legacy-credit grandfather instead.
+With zero legacy credits that resolves to `'free'` — silently, forever, with no storage rewrite, since `isTier('free')`
+is false and the persistence guard in `getRenderTier()` never fires. With positive legacy credits it happened to land on
+`'t3'` anyway, but via the grandfather's coincidence, not the retirement mapping — the right answer for the wrong reason,
+which would have been the wrong answer for any retired tier that didn't happen to map onto the same rung the grandfather
+already produces.
+
+**The correction (below, this entry's own subject).** The entry two above this one — squash-merged as `4b65936` (#178)
+and later amended with a same-day "verified on a real device" paragraph (#183) — claimed that reload was "the first and
+only exercise of `RETIRED_TIERS` outside the suite." Given the source path actually shipped at that time, that specific
+claim does not hold: a device holding a bare, credit-less raw `'t4'` could not have rendered the complete sheet through
+that code at all — it would have rendered free. Whatever device was reloaded either also carried a positive legacy-credit
+value (in which case the R2 grandfather produced the t3 render, not `RETIRED_TIERS`) or the sighting's memory of what
+rendered is itself mistaken. Neither this lane nor the audit that found it inspected that device's actual
+`eight_ball_credits_v1` value, so which of the two is true is not established here — only that "RETIRED_TIERS fired" is
+not. The #183 paragraph is left in place per L17 lineage (append-only; historical doctrine is superseded, not rewritten)
+— read its "first and only exercise of RETIRED_TIERS" line against this correction, not on its own.
+
+**The fix.** `getTier()` now lets a raw value through unnormalized whenever `isTier(normalizeTier(t))` is true — true for
+both a current rung and a retired one that maps onto a current rung, false for any other garbage. Both callers
+(`getRenderTier` via `resolveRenderTier`, `handlePaidReturn` via `applyPaidReturn`) already run the value through
+`normalizeTier`/`RETIRED_TIERS` themselves; the bug was only ever that `getTier()` discarded the raw token before either
+one got the chance. Valid `t1`/`t2`/`t3` storage is untouched — `isTier(normalizeTier('t1'))` is `true` exactly as
+`isTier('t1')` was — and genuine garbage (`'banana'`, etc.) still fails closed to `null`/`'free'`, since `normalizeTier`
+passes unrecognized values through unchanged and `isTier` rejects them.
+
+**New coverage (`tests/tiers.test.js`).** Four cases added to the `getRenderTier` storage-wrapper suite, all seeding a
+real localStorage-shaped mock and driving the public `getRenderTier()`/`getTier()` entry points rather than calling
+`resolveRenderTier({tier:'t4'})` directly (the exact gap the audit named — a direct call is insufficient because it
+skips the broken seam entirely): raw `'t4'` with zero legacy credits now resolves `'t3'` and rewrites storage; raw
+`'t4'` with positive legacy credits resolves `'t3'` via the retirement table rather than the accidental grandfather;
+valid `t1`/`t2`/`t3` storage is unaffected; corrupt/unknown values still fail closed. Confirmed against pre-fix
+`ui/payments.js`: the two `t4` cases fail deterministically (`'free'` where `'t3'` is expected) before the fix and pass
+after it.
+
 ## 2026-07-29 — black background / white writing supersedes the Phase-2E cream lock — STAGED
 
 **Status: STAGED, not merged, not pushed.** Built on `claude/bw-monochrome-ui` (branched fresh off `main`,
@@ -141,7 +185,6 @@ it introduced).
 `ui/tools` (off-repo vault: `render_icon.mjs` + `build_ico.mjs` added, `render_og_image.mjs` recolored),
 `tests/monochrome_surface.test.js` (new), `tests/monochrome_assets.test.js` (new), `tests/modal_a11y.test.js`,
 `CLAUDE.md`, `8BALL.md`, `assets/{favicon-16,favicon-32,favicon,apple-touch-icon-180,og-image}`, this entry.
-
 
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 
