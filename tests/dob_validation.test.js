@@ -17,6 +17,7 @@ const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 // guard below reads it there. tests/boot.test.js carries the behavioral
 // half — this stays as the shape pin it always was.
 const bootJs = readFileSync(join(__dirname, '..', 'ui', 'boot.js'), 'utf-8');
+const calendarJs = readFileSync(join(__dirname, '..', 'core', 'calendar.js'), 'utf-8');
 
 describe('DOB validation markup (v0.3.0 fix B)', () => {
   it('dob-error element exists with id, class, and hidden attribute', () => {
@@ -50,6 +51,20 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     expect(html).toMatch(/dobInput\.max\s*=\s*todayIsoLocal\(\s*\)/);
   });
 
+  it('dobInput.min fences the other end at the calc core floor', () => {
+    expect(html).toMatch(/dobInput\.min\s*=\s*'1900-01-01'/);
+  });
+
+  it("the min literal tracks core/calendar.js's RANGE_MIN", () => {
+    // index.html cannot import the constant — RANGE_MIN is module-private
+    // in core/calendar.js — so the two are pinned in sync here instead.
+    // Raise the calc floor without moving the fence and this fails.
+    const rangeMin = calendarJs.match(/const RANGE_MIN\s*=\s*(\d{4})/)?.[1];
+    expect(rangeMin, 'RANGE_MIN not found in core/calendar.js').toBeTruthy();
+    const min = html.match(/dobInput\.min\s*=\s*'(\d{4})-\d{2}-\d{2}'/)?.[1];
+    expect(min).toBe(rangeMin);
+  });
+
   it('input event handler hides dob-error on edit', () => {
     expect(html).toMatch(
       /dobInput\.addEventListener\(\s*['"]input['"]\s*,\s*\(\s*\)\s*=>\s*\{\s*dobError\.hidden\s*=\s*true/
@@ -81,6 +96,73 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     // The error is shown inside the future-DOB branch — assert the
     // `dobError.hidden = false` write exists in the file.
     expect(html).toMatch(/dobError\.hidden\s*=\s*false/);
+  });
+
+  // DOB rejection has two layers, and it is worth being precise about which
+  // one users actually hit, because it is not the one this file mostly pins.
+  //
+  //   1. Native. #profile-form carries no `novalidate` and #dob-input is
+  //      `required type="date"`, so min=/max= make an out-of-range value
+  //      fail rangeUnderflow/rangeOverflow. The browser then blocks the
+  //      submit event outright and shows its own bubble. Verified in
+  //      Chromium: 1889-05-05 reports "Value must be 01/01/1900 or later."
+  //      and the submit listener never fires. This is the layer that fixed
+  //      the dead-end — before min= existed, validationMessage was empty,
+  //      no error appeared, and the click did nothing at all.
+  //
+  //   2. JS. The branches below run only when native validation does not
+  //      intercept — a programmatic submit, or a browser that degrades
+  //      type="date" to a text box. Verified reachable and correct in
+  //      Chromium by dispatching submit directly: the inline field-error
+  //      shows "must be 1900 or later." and the result stays hidden.
+  //
+  // The pre-existing future-DOB branch has exactly the same status, which
+  // is why this one is written to match it rather than replace it.
+  it('the below-1900 branch surfaces an error instead of returning bare', () => {
+    // The regression this closes: the branch used to be
+    //   dobError.hidden = true;
+    //   const [y] = dob.split('-').map(Number);
+    //   if (isNaN(y) || y < 1900) return;
+    // — a silent swallow one line after hiding the error, so the form
+    // looked like it had accepted the submit and then did nothing.
+    const m = html.match(
+      /if\s*\(\s*isNaN\(y\)\s*\|\|\s*y\s*<\s*1900\s*\)\s*\{([\s\S]*?)\}/
+    );
+    expect(m, 'below-1900 branch not found').not.toBeNull();
+    expect(m[1]).toMatch(/dobError\.hidden\s*=\s*false/);
+    expect(m[1]).toMatch(/dobError\.textContent\s*=/);
+    // and it must not be the bare `return` it was
+    expect(html).not.toMatch(/if\s*\(\s*isNaN\(y\)\s*\|\|\s*y\s*<\s*1900\s*\)\s*return\s*;/);
+  });
+
+  it('both rejection branches set their own message before showing it', () => {
+    // One element, two failure modes — so neither branch may inherit the
+    // other's text. The markup default covers the first paint only.
+    const future = html.match(/if\s*\(\s*dob\s*>\s*todayIso\s*\)\s*\{([\s\S]*?)\}/);
+    expect(future, 'future-DOB branch not found').not.toBeNull();
+    expect(future[1]).toMatch(/dobError\.textContent\s*=\s*["'].*future.*["']/i);
+
+    const early = html.match(/if\s*\(\s*isNaN\(y\)\s*\|\|\s*y\s*<\s*1900\s*\)\s*\{([\s\S]*?)\}/);
+    expect(early[1]).toMatch(/dobError\.textContent\s*=\s*'must be 1900 or later\.'/);
+  });
+
+  it('a valid DOB still clears a previously shown error', () => {
+    // `dobError.hidden = true` moved below the second guard so the new
+    // branch can surface its own message; it must still run on the path
+    // that falls through both.
+    const handler = html.match(
+      /const todayIso = todayIsoLocal\(\);([\s\S]*?)const time = timeInput\.value/
+    );
+    expect(handler, 'submit validation block not found').not.toBeNull();
+    const afterGuards = handler[1].slice(handler[1].lastIndexOf('}'));
+    expect(afterGuards).toMatch(/dobError\.hidden\s*=\s*true/);
+  });
+
+  it('the new copy stays in the §2 clinical register', () => {
+    // Same shape as the existing "can't be a future date." — lowercase,
+    // terse, states the constraint and nothing else.
+    expect(html).toMatch(/'must be 1900 or later\.'/);
+    expect(html).not.toMatch(/must be 1900 or later[^.']*!/);
   });
 
   it('dobError DOM reference is declared near other field refs', () => {

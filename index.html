@@ -1115,6 +1115,10 @@ function todayIsoLocal() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 dobInput.max = todayIsoLocal();
+// Soft fence on the other end, mirroring max. The calc core's supported
+// window starts at 1900 (RANGE_MIN in core/calendar.js); without a min the
+// picker happily offers years the submit handler then has to reject.
+dobInput.min = '1900-01-01';
 dobInput.addEventListener('input', () => { dobError.hidden = true; });
 const cardLockIcon = $('card-lock-icon');
 const cardName = $('card-name');
@@ -1317,12 +1321,21 @@ profileForm.addEventListener('submit', e => {
   // error surfaces; input event hides it on next edit.
   const todayIso = todayIsoLocal();
   if (dob > todayIso) {
+    dobError.textContent = "can't be a future date.";
+    dobError.hidden = false;
+    return;
+  }
+  const [y] = dob.split('-').map(Number);
+  // Below the calc core's 1900 floor this used to `return` bare, right
+  // after hiding the error — so the form silently swallowed the submit and
+  // looked like it had accepted. Reachable: <input type="date"> takes a
+  // keyboard-typed year, and the min= above is only a soft fence.
+  if (isNaN(y) || y < 1900) {
+    dobError.textContent = 'must be 1900 or later.';
     dobError.hidden = false;
     return;
   }
   dobError.hidden = true;
-  const [y] = dob.split('-').map(Number);
-  if (isNaN(y) || y < 1900) return;
   const time = timeInput.value || undefined;
   // v0.2.7.2: rising opts derive from the selected-city state. If the
   // user typed without selecting from the suggestion list, selectedCity
