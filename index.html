@@ -1037,7 +1037,7 @@ import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState } from './core/payments.js';
 import {
   getRenderTier,
-  clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot,
+  clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
   setPendingProfile,
   initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
   handlePaidReturn,
@@ -1164,9 +1164,12 @@ initPublicUI({ root: $('public-read'), families: $('public-families'),
 initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
+// getNoteSlot's `role` split (PR #187 R2): A keeps this device's stored
+// position; B resolves as a fresh standalone build of B would, never A's.
 initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySelector('.result-controls') },
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
-    buildSecond: profileFromPayload, getNoteSlot: p => getFacetSlot(p.lifePath),
+    buildSecond: profileFromPayload,
+    getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
     getPublicRead: publicReadFor,
     onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 

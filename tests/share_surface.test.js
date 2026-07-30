@@ -21,6 +21,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Shared hand-rolled DOM mock (§12: no jsdom).
 import { makeClassList } from './helpers/dom.js';
+import { CELL_KEYS } from '../ui/tiers.js';
+import { ROW_TITLES } from '../ui/sheet.js';
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shareJs = readFileSync(
   join(__dirname, '..', 'ui', 'share.js'),
@@ -562,10 +564,19 @@ describe('share surface — one sheet only (§5.D / §1.J G1)', () => {
     // A second sheet renderer must not move these refs. ui/sheet.js keeps its
     // own per-instance state and never touches ui/tiers.js's cells.
     const sheetMod = await import('../ui/sheet.js').catch(() => null);
+    let wrote = false;
     if (sheetMod && typeof sheetMod.createSheet === 'function') {
-      const other = sheetMod.createSheet(makeSheetHost(), { prefix: 'g1' });
+      const host = makeSheetHost();
+      const other = sheetMod.createSheet(host, { prefix: 'g1' });
       other.render(buildProfile('other', '1988-06-15'), 't3', {});
+      // A real write, not a no-op: PR #187 P2-R3 found this test's host gave
+      // querySelector:()=>null, so the second renderer wrote NOTHING and could
+      // never have disturbed the host refs by construction — the assertion
+      // below proved nothing. Confirm the second sheet's OWN cell actually
+      // received a value before trusting that the host's stayed untouched.
+      wrote = host.querySelector('[data-sheet-cell="g1:arcana"]').textContent !== '';
     }
+    expect(wrote).toBe(true);
 
     expect(JSON.stringify(captured.map(r => r.cells))).toBe(hostSnapshot);
   });
@@ -585,21 +596,40 @@ describe('share surface — one sheet only (§5.D / §1.J G1)', () => {
 });
 
 // A detached host node for a second sheet instance: enough DOM surface for the
-// builder to mount into, nothing shared with the host sheet.
+// builder to mount into, nothing shared with the host sheet. Every node
+// `createSheet(...).render()` can address is real and queryable — PR #187
+// P2-R3 found the prior version returned `querySelector: () => null`
+// unconditionally, so `other.render()` above wrote to nothing and the "must
+// not disturb the host" assertion held vacuously no matter what the host
+// refs actually did. A real second write is the only way that assertion
+// means anything.
 function makeSheetHost() {
-  const make = () => {
-    const node = {
-      children: [], classList: makeClassList(), textContent: '', attrs: {},
-      style: { setProperty() {}, removeProperty() {} },
-      setAttribute(k, v) { this.attrs[k] = v; },
-      removeAttribute(k) { delete this.attrs[k]; },
-      appendChild(c) { this.children.push(c); return c; },
-      querySelector: () => null,
-      querySelectorAll: () => [],
-    };
-    return node;
-  };
+  const make = () => ({
+    children: [], classList: makeClassList(), textContent: '', attrs: {},
+    style: { setProperty() {}, removeProperty() {} },
+    setAttribute(k, v) { this.attrs[k] = v; },
+    removeAttribute(k) { delete this.attrs[k]; },
+    appendChild(c) { this.children.push(c); return c; },
+    querySelector: () => null,
+    querySelectorAll: () => [],
+  });
+  const byAttr = new Map();
+  const prefix = 'g1';
+  for (const key of CELL_KEYS) {
+    const cellRoot = { classList: makeClassList() };
+    const cell = make();
+    cell.closest = sel => (sel === '.coord-cell' ? cellRoot : null);
+    byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
+  }
+  for (const attr of ['catalog', 'name', 'type', 'habit', 'note',
+    'families', 'antifit', 'roleline', 'face', 'entry', 'public']) {
+    byAttr.set(`[data-sheet-${attr}="${prefix}"]`, make());
+  }
+  for (const lead of Object.keys(ROW_TITLES)) {
+    byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, make());
+  }
   const host = make();
+  host.querySelector = sel => byAttr.get(sel) || null;
   host.ownerDocument = { createElement: make };
   return host;
 }

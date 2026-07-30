@@ -51,14 +51,19 @@ import { buildDyadReading } from '../core/dyad.js';
 import { coordsForTier } from './tiers.js';
 import { buildSheetMarkup, createSheet } from './sheet.js';
 import { initCitySearchUI } from './citysearch.js';
+import { todayIsoLocal } from './profile.js';
 
 // ── the rung is not live, and fails closed until it is ────────────
 // The Gumroad product does not exist; creating it is the controller's action,
 // never an agent's (§10). While this constant is empty the CTA carries no
-// href and stays hidden, so no visitor can reach a dead checkout. Filling it
-// in is the whole of what makes the rung buyable — the same fail-closed shape
-// §1.D v0.58 used for T4_PRODUCT_URL, and the reason this ship leaves the
-// §4.B v0.56 single-$3 sprint surface byte-untouched.
+// href and stays hidden, so no visitor can reach a dead checkout. Unlike the
+// retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
+// deliberately NOT sufficient on its own to make the rung buyable: entry
+// visibility (`dyadEntryVisible`, below) is entitlement-only and does not
+// react to it (PR #187 R6 — a prior draft made the entry visible below t5
+// once this was non-empty, with no click path behind it, a visible dead
+// button). Turning the rung commercially live needs a real offer path shipped
+// as its own change; this constant alone stays inert until that exists.
 export const T5_PRODUCT_URL = '';
 
 // ── pure ──────────────────────────────────────────────────────────
@@ -75,15 +80,19 @@ export function dyadEntitled(tier) {
 /**
  * Should the entry control exist on the result rail?
  *
- * Only for a device that owns the rung. The rung is not buyable — the product
- * URL ships empty — so there is no offer to show a device that does not own
- * it, and a control that opened a screen the device cannot use would be a
- * dead end dressed as a feature. If the controller ever fills the product URL
- * in, the sub-t5 case becomes an offer and this predicate is where that
- * decision goes; until then it is fail-closed by construction.
+ * Only for a device that owns the rung (DOCTRINE §1.J "entitlement is
+ * all-or-nothing... below t5 the entry control is absent"). This does NOT
+ * react to `T5_PRODUCT_URL`: a prior draft showed the control below t5 once
+ * that constant was non-empty, but the click handler still only knew how to
+ * `open()` the screen an unentitled device cannot use — a visible button with
+ * no reachable checkout behind it (PR #187 R6). A real below-t5 offer needs
+ * its own coherent click path (e.g. a checkout redirect) designed and shipped
+ * together with the control that triggers it, not a second condition bolted
+ * onto this predicate. Until that ships, the entry stays absent below t5,
+ * full stop.
  */
-export function dyadEntryVisible(tier, productUrl = T5_PRODUCT_URL) {
-  return dyadEntitled(tier) || productUrl !== '';
+export function dyadEntryVisible(tier) {
+  return dyadEntitled(tier);
 }
 
 // The relation layer's value nodes, mapped to the formatDyadRelation field
@@ -299,8 +308,18 @@ export function syncDyadEntry(tier) {
  *        - buildSecond(payload) the host's own profileFromPayload →
  *                         buildProfile path, so person B is calculated by the
  *                         SAME engine as person A
- *        - getNoteSlot(p) the written-entry slot for a profile. Handed in so
- *                         this module never touches the facet-index key.
+ *        - getNoteSlot(p, role) the written-entry slot for a profile, where
+ *                         `role` is `'a'` or `'b'`. Handed in so this module
+ *                         never touches the facet-index key itself. The two
+ *                         roles are NOT the same lookup: A keeps whatever
+ *                         slot is currently on screen (the host's stored
+ *                         position), but B is never anchored, rotated or
+ *                         persisted (§5.F) — resolving B through the SAME
+ *                         stored-position lookup silently applies this
+ *                         device's position for A's life path to B's (PR #187
+ *                         R2). The host must resolve B exactly as a fresh
+ *                         standalone build of B would, independent of
+ *                         whatever is stored.
  *        - getPublicRead(p) the t3 public-read block for a profile
  *        - onOpen()/onExit()  host callbacks that hide and restore the sheet
  */
@@ -309,6 +328,13 @@ export function initDyadUI(refs, hooks) {
   if (!refs || !refs.stage || typeof document === 'undefined') return null;
   injectStyle();
   _root = injectScreen(refs.stage);
+  // The real gate, mirroring index.html's primary dobInput (ui/profile.js
+  // todayIsoLocal — PR #187 R1). HTML5 max= alone is devtools-bypassable;
+  // validateEntry (below) is what actually rejects a future date. This is
+  // the native affordance a live-fire browser pass checks, which a unit test
+  // calling the validator directly cannot.
+  const dobEl = $('dyad-dob-input');
+  if (dobEl) dobEl.max = todayIsoLocal();
   injectEntryButton(refs.controls);
   _sheetA = createSheet(_root, { prefix: 'a' });
   _sheetB = createSheet(_root, { prefix: 'b' });
@@ -444,11 +470,16 @@ export function submitSecond() {
   if (typeof build !== 'function') return false;
   let profile = null;
   try {
-    // The same payload shape the primary form produces, so person B is
-    // calculated by the same buildProfile path with the same optional fields.
+    // The same payload shape the primary form produces (index.html's submit
+    // handler: `opts.cc = selectedCity.countryCode`), so person B is
+    // calculated by the same buildProfile path with the same optional
+    // fields. `cc` reads `_city.countryCode` — city records never carry a
+    // `.cc` property (core/cities.js's shape is `{..., countryCode, ...}`) —
+    // PR #187 R5. optsFromPayload doesn't consume `cc` for the rising calc,
+    // which is why the wrong field name was invisible to rising specifically.
     profile = build({
       name: name.trim(), dob, time,
-      ...(_city ? { city: _city.name, cc: _city.cc, tz: _city.tz, lat: _city.lat, lng: _city.lng } : {}),
+      ...(_city ? { city: _city.name, cc: _city.countryCode, tz: _city.tz, lat: _city.lat, lng: _city.lng } : {}),
     });
   } catch (_) {
     profile = null;
@@ -477,11 +508,16 @@ export function render() {
     return null;
   }
 
-  const noteSlot = p => (typeof _hooks.getNoteSlot === 'function' ? _hooks.getNoteSlot(p) : 'mid');
+  // `role` matters (PR #187 R2): A keeps whatever slot is currently on
+  // screen, but B must resolve exactly as a fresh standalone build of B
+  // would — never through A's stored/rotated position. Both roles are
+  // handed to the SAME hook so this module still never touches the
+  // facet-index key itself; the host decides what each role means.
+  const noteSlot = (p, role) => (typeof _hooks.getNoteSlot === 'function' ? _hooks.getNoteSlot(p, role) : 'mid');
   const publicRead = p => (typeof _hooks.getPublicRead === 'function' ? _hooks.getPublicRead(p) : null);
 
-  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA), publicRead: publicRead(profileA) });
-  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second), publicRead: publicRead(_second) });
+  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA) });
+  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second, 'b'), publicRead: publicRead(_second) });
 
   setText('dyad-head-a', profileA.firstName || 'a');
   setText('dyad-head-b', _second.firstName || 'b');

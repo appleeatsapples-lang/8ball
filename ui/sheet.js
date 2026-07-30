@@ -25,11 +25,17 @@
 // `renderTierSections` resolves the host sheet through — and the rows, the
 // entitlement sets, the provenance placards and the atlas legend are all read
 // from `ui/tiers.js` rather than restated. What differs is only which nodes
-// get written. `tests/dyad_surface.test.js` pins the equivalence directly: for
-// every profile × tier × cell, this renderer's output must equal what
-// `renderTierSections` writes into the host sheet. That differential is a
-// stronger anti-drift guarantee than a shared function alone, because it
-// tests the rendered result rather than the call graph.
+// get written. `tests/dyad_surface.test.js` pins the equivalence directly: a
+// bounded set (one profile per life-path facet-anchor group, across every
+// tier) is run through a REAL `renderTierSections` host render and through
+// this module's `render`, and every coordinate cell, plus the written-entry
+// and public-read blocks each side varies independently of the cell grid,
+// must agree. That is a stronger anti-drift guarantee than a shared function
+// alone, because it drives two independent renderer call paths and tests the
+// rendered result rather than re-invoking the shared function on both sides
+// (PR #187 P2-R3 — the first version of this comment and its suite claimed
+// "every profile" and never actually drove `renderTierSections`, so a written-
+// entry regression in the shared caller (R2) passed it clean).
 //
 // ISOLATION. Each instance owns all of its state. This module never touches
 // `ui/tiers.js`'s module-level cells, so `shareRowRefs()` — captured once at
