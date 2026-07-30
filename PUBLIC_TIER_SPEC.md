@@ -1,8 +1,11 @@
 # PUBLIC_TIER_SPEC.md — public-tier computation
 
-> **Superseded in part, 2026-07-29 (§1.D v0.58).** The rung shipped: this is
-> no longer engine-only. §7 describes the wired surface; the header line
-> below and §0 are preserved per L17 and are lineage, not current state.
+> **Superseded in part, 2026-07-29 — twice.** §1.D v0.58 wired the read to a
+> fourth rung; **§1.D v0.60 retired that rung and folded the read into t3.**
+> There is no public *tier*; there is a public *read*, sold as part of the $3
+> complete sheet. §7 describes the current surface; the header line below,
+> §0, and every "$9" in this file are preserved per L17 as lineage, not
+> current state.
 >
 > Spec for `core/public.js` + `content/public.v1.js`. Engine and tables only.
 > No surface, no price, no entitlement. Not doctrine: this file describes what
@@ -289,48 +292,45 @@ and the season and posture are re-derived from `getInnerAnimal` and
    capability, but it is a new edge in the architecture and wants a reviewer's
    eye.
 
-## §7. Wired to t4 (§1.D v0.58) — and what is still not built
+## §7. Folded into t3 (§1.D v0.60) — the rung is retired
 
-**This section described an unwired engine until 2026-07-29.** On explicit
-controller instruction the tier is now wired to a fourth ladder rung: `t4`,
-`?paid=t4`, **$9**, defined by the §1.D v0.58 amendment shipped in the same
-change. The original text is superseded and preserved here as lineage per
-L17: *"No UI, no surface, no `TIER_COORDS` entry, no sheet row, no sealed
-cell. No price, no Gumroad product, no `?paid=` param, no entitlement or
-paywall path. … Nothing in the repository imports `core/public.js`."*
+**This section has been rewritten twice in one day, and the sequence is the
+record.** It first described an unwired engine; §1.D v0.58 wired it to a
+fourth rung at $9; §1.D v0.60 **retired that rung** and folded the read into
+t3. Both earlier texts are superseded and preserved in the journal.
 
-What the wiring is:
+What exists now:
 
-- **`core/payments.js`** — `TIER_ORDER` appends `'t4'`. Every existing rung
-  keeps its rank; monotonicity, ownership and the replay-safe `no-pending`
-  branch are unchanged. The **R2 legacy grandfather deliberately stays at
-  `t3`** and is pinned so a later rung cannot widen it.
-- **`ui/tiers.js`** — `TIER_COORDS.t4 = [...t3, 'publicRead']`. A **block**,
-  like `cardEntry`: no compartment, excluded from the §1.F census, so the t4
-  census is identical to t3's.
-- **`ui/public.js`** (new) — the only consumer of `core/public.js`. Renders
-  the block; **entitlement is passed in**, never read from storage here. Below
-  t4 the value nodes are emptied per §1.D v0.37 — absent, not hidden.
-- **`index.html`** — the sealed block, one CSS rule, the boot wiring, and a
-  hidden t4 CTA.
+- **`core/payments.js`** — `TIER_ORDER` is `['t1','t2','t3']` again, plus
+  `RETIRED_TIERS = { t4: 't3' }`. A device holding the withdrawn rung renders
+  t3 and the UI persists that rewrite once. **Without it a genuine t3 buyer
+  who opened the unsigned `?paid=t4` URL would drop to free**, because the
+  stored tier is the only record of a purchase.
+- **`ui/tiers.js`** — `publicRead` joins `T3_COORDS` beside `cardEntry`. Both
+  are BLOCKS: no compartment, excluded from the §1.F census, so t3 stays
+  15 of 15.
+- **`ui/public.js`** — unchanged. Still the only consumer of the engine,
+  still told whether the device is entitled rather than asking.
+- **`index.html`** — the sealed block and its wiring remain; the fourth-rung
+  CTA and its handler are gone. The §4.B v0.56 single-$3 offer is again the
+  only purchase surface.
 
-Still not built, and fail-closed rather than half-built:
+Why the rung went, in one line each: it was named for an **exposure radius it
+never delivered** (the block renders privately and is absent from §5.D); its
+**price could not be defended** ($9 for five derived strings above a $3 rung
+carrying fifteen coordinates and the written entry); and there were **zero
+outside orders** to build a fourth rung on.
 
-- **The Gumroad product does not exist.** `T4_PRODUCT_URL` in
-  `ui/payments.js` ships **empty**; while it is empty the CTA carries no
-  `href` and stays hidden, so no visitor can reach a dead checkout. Filling
-  that constant in is the whole of what makes the rung buyable — and it is a
-  controller action, never an agent's.
-- **The about-modal copy is untouched.** It describes the live $3 offer,
-  which is still what a visitor can actually buy. Advertising a rung nobody
-  can purchase would be the wrong kind of accurate.
-- **No cross-model audit has read the engine or the rung.** §10 asks for one
-  on a doctrine change; the clearance is an explicit controller override.
-- **The §4.B v0.56 $3 sprint is byte-untouched** while it runs (to
-  2026-08-08): the offer control, the paywall headline and the t3 product
-  are unchanged.
-- **§5.D share surface** — the public block is not in the share PNG. That
-  pass has not been done.
+Still not built, and now unpriced rather than mispriced:
+
+- **§5.D share surface.** The block is not in the share PNG. That pass has
+  never been done — and it is precisely what "public" was supposed to mean.
+  If the exposure tier is ever built, this is the thing to build.
+- **No cross-model audit** has read the engine, the rung, its correction or
+  its retirement.
+- **The deeper §6.1 question** — whether a re-reading of open coordinates is
+  worth selling at all — is answered only in the narrow sense that it is no
+  longer sold separately.
 
 ## §8. Test map
 

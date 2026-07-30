@@ -35,8 +35,17 @@ and per L48 no merge happens before an explicit audit-cleared signal.
     npm ci                            # fresh container only; vitest isn't vendored
     npm run dev                       # static server on :5173
     npm test                          # vitest — full suite
+    python3 audits/project_audit.py   # product-scope health audit (the product-audit CI job)
+    python3 -m unittest audits.test_project_audit   # that auditor's own assurance suite
     bash audits/run_local_audit.sh    # PII audit before any push
     git status / git diff / git log   # before any commit
+
+Both Python commands run from the repo root and need no dependencies beyond
+the stdlib. `project_audit.py` shells out to `git`/`node`/`npx`/`npm`/`bash`;
+two of its checks execute vitest suites directly, so `npm ci` must have run
+first. The assurance suite is what proves the auditor's checks can still
+fail — an auditor nothing tests is an auditor that degrades silently, so run
+it in the same breath as any edit to `audits/project_audit.py`.
 
 No build step. Netlify auto-deploys on push to `main`. Node ≥20.19.
 
@@ -61,15 +70,26 @@ the script exits 1 saying so. That's expected, not a failure to fix.
 
 ## What blocks a merge
 
-`.github/workflows/ci.yml` runs on every push and PR to `main` and reports two
-independent checks — **`test`** and **`l48-gate`**. Those are the context names
-to require if branch protection is ever turned on; nothing blocks a merge on a
-red check today, so treat both as advisory-but-binding by convention.
+`.github/workflows/ci.yml` runs on every push and PR to `main` and reports
+three independent checks — **`test`**, **`product-audit`** and **`l48-gate`**.
+Those are the context names to require if branch protection is ever turned on;
+nothing blocks a merge on a red check today, so treat all three as
+advisory-but-binding by convention. (`product-audit` is the newest and is the
+one a stale copy of this section will omit — it was added on the calc-v3.1/HKO
+authority branch, and a 2026-07-30 cross-model audit caught this list still
+naming only two.)
 
 - **`npm test`** — carries §7 stages 1–4 and 6 (calc+pipeline, privacy scan,
   PII scan, dependency discipline, payments state machine).
+- **`product-audit`** — runs the auditor's own assurance suite
+  (`python3 -m unittest audits.test_project_audit`) and then
+  `audits/project_audit.py`, uploading its JSON+markdown report as a build
+  artifact. Fourteen checks; a blocking-severity failure exits non-zero. Two
+  of them (`product.hko_calendar`, and the pair that execute the L48 suites)
+  are the fail-closed gates — a missing comparator, fixture or regression
+  suite is a failure, never a skip.
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1465, so there are ~35 lines of headroom; past that, split into `ui/*.js`
+  at 1491, so there are ~9 lines of headroom; past that, split into `ui/*.js`
   per §6 rather than trimming to squeeze under.
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
@@ -109,15 +129,15 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
 ## Repository shape
 
     core/         pure functions — 11 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math, public)
-    ui/           ES modules — citysearch, concordance, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t4 read (11 modules)
-    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-tier tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59)
+    ui/           ES modules — citysearch, concordance, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t3-ceiling public read (§1.D v0.60 — t4 is retired) (11 modules)
+    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-read tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59; the read is a t3 ceiling block per §1.D v0.60)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        45 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
-    audits/       release checklist + PII audit script + cross-model briefs
+    tests/        48 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    audits/       release checklist + PII audit script + cross-model briefs + project_audit.py (product-scope health auditor, the product-audit CI job) + test_project_audit.py (its assurance suite, plain unittest — deliberately NOT under tests/, which repo_shape.test.js pins) + hko_compare.mjs (calendar-vs-authority comparator) + fixtures/hko_calendar_authority_1901_2100.json (200 official HKO tables, each with its source SHA-256)
     assets/       cities.json + favicons + og:image
     cards/        611 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
-    scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/
-    .github/      CI workflow (6 stages per §7) + PR template
+    scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/ · extract_hko_fixture.py — regenerates the HKO fixture from the 200 upstream sources (two-step by design: re-extract, then update HKO_FIXTURE_CONTENT_SHA256 in project_audit.py in the same commit)
+    .github/      CI workflow (6 stages per §7, 3 reported checks) + PR template
     index.html    single-file UI, ≤1500 lines
     DOCTRINE.md   constitution
     8BALL.md      canonical context, AI-readable

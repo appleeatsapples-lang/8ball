@@ -5,9 +5,448 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
-## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — STAGED
+## 2026-07-30 — Codex pre-merge audit `e3c2586..516acbc`: seven P1 fixes applied — STAGED
 
-**Status: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
+**Status: STAGED, not merged.** Codex returned **MERGE WITH FIXES** on the branch as it stood: the product fixes were
+correct and no P0 remained, but seven P1 assurance/documentation defects had to be closed first. All seven are closed
+here, plus four of the P2s. Still on `claude/audit-p1-hko-calendar`; no push, merge, or deploy. The L48 filename gate
+still needs an in-PR `audits/<model>_pr<N>_premerge_audit_<date>_response.md` once a PR number exists.
+
+**The two false-greens the audit demonstrated, and what closed them.**
+
+1. **The L48 gate's own test read the wrong copy of the predicate.** Two jobs compile the artifact-shape regex — the
+   `l48` job and the `test` job's DOCTRINE step — and `tests/l48_gate.test.js` extracted it with a whole-file
+   `.exec()`, which returns the *first* match: the test job's. Codex weakened only the real gate's matcher in a scratch
+   tree and got 34/34 green. The file now slices each job by name, pins that the shape is defined exactly twice, that
+   the two definitions are byte-identical, and that both compile to the same accept/reject behavior. Re-running the
+   same mutation now fails 8 tests. `ADDED=` had the identical first-match bug and is pinned the same way.
+2. **The HKO comparator was checking the fixture against itself.** `audits/hko_compare.mjs` took its term order from
+   `fixture.source.term_order` *and* looked every expected value up by those same fixture-supplied names. Codex rotated
+   the order, relabelled every year's values by the same rotation and regenerated the content digest: 2,400
+   comparisons, **zero mismatches, PASS**, all 200 source hashes untouched. The canonical 12-name order now lives in the
+   comparator and in `project_audit.py`, not in the file under test, alongside an index-to-month invariant that no
+   relabelling can satisfy. The same forgery now fails.
+
+**Also closed.** The auditor's own 69-test assurance suite was in-repo but invoked by nothing — no workflow, no npm
+script — so CI ran `project_audit.py` while nothing proved its checks could still fail; it now runs first in the
+`product-audit` job. Both "CI doctrine" checks were substring greps that passed on inert comment text (three of the
+four required substrings predated the fix they verified); both now execute the real suites and pin the load-bearing
+tests by name. And the P0's most damaging path — stored `t4` + `?paid=t1` persisting `t1` irreversibly — had no
+regression at all, because all five new cases drove `getRenderTier()` and none invoked `handlePaidReturn()`. Four new
+cases pin it; they fail against `233dde8^`.
+
+**The record correction (§3 calc v3.1, L17 amendment).** Three claims in the constitutional record were wrong and are
+struck rather than edited. The eight HKO mismatches were **not** "outside this entry's four-date blast radius" — 1911
+lixia and 1912 xiaohan are two of those four, and the correction table restores the very dates calc v3.1 moved them
+off, so at those two boundaries the pre-1929 offset was a regression this table reverses. Only six are new; only 1927
+bailu of the original three solar-term changes still stands. The three-library consensus (sxtwl, lunardate, borax) was
+used as a **lunar-new-year** oracle only — nothing on file shows lunardate or borax evaluated at a solar-term boundary,
+so the solar-term disagreement was misattributed to them. And the ~15-minute error budget is motivation, not a
+demonstrated cause: instrumenting the range finds 55 crossings within 900s of midnight and only 8 that disagree, so
+the eight are **authority-pinned residual corrections**, not a physical diagnosis. Scope corrected in the same pass:
+the comparison covers the 12 month-starting terms plus lunar new year, not HKO's "full index" — the 12 major terms
+carry no direct coverage. The eight override values themselves are unaffected and re-verified against all 200 official
+source files.
+
+**P2s taken:** the doc-scope and causal overclaims above; the legacy-credit test's claim to distinguish `RETIRED_TIERS`
+from the accidental grandfather path, which its assertions cannot do (retitled as the no-regression pin it actually
+is); and `product.local_pii`'s severity — blocking-and-skipped on every CI run claimed an assurance it never provides,
+so the absent-pattern-file branch now reports `info` while a real hit stays blocking.
+
+**Not taken:** Codex's finding-E note that the proposed Hong Kong-local-time substitution is the wrong calendar model —
+that was a proposal in the outgoing brief, never in the code; the USNO 116°25′/120°E rule the code implements is the
+one it endorses, and a pointer to that source is now in `core/calendar.js`.
+
+Suite 48 files / 1,657 tests green; Python assurance suite 90/90; product audit PASS, 0 blocking failures.
+
+## 2026-07-29 — P1: eight HKO solar-boundary mismatches corrected, zero remaining — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p1-hko-calendar` in response to the same-day independent
+deep-audit. Local suite green (46 files / 1627 tests); no push, merge, or deploy. **This branch touches `DOCTRINE.md` —
+per §10/CLAUDE.md a cross-model audit is required before merge, and the L48 filename gate this same audit's P1-C fix
+closed cannot be satisfied by an artifact yet, since no PR exists to name.**
+
+**What was checked.** The full 1901–2100 Hong Kong Observatory text-calendar index — 2,400 solar-boundary comparisons
+across all twelve jieqi in all 200 years, plus 200 lunar-new-year comparisons — run against `core/calendar.js` on
+current `main`. Result before this fix: 8 solar mismatches, 0 lunar mismatches (calc v3.1 / PR #140's own four-date fix
+holds; the LNY table has been exact since then). All eight independently re-verified by reading the raw bytes of the
+relevant `T<year>e.txt` files directly (not just trusting the audit's summary table):
+
+| Year | Term | HKO | Was |
+|---:|---|---:|---:|
+| 1911 | Summer Commences (lixia) | 05-07 | 05-06 |
+| 1912 | Cold Dew (hanlu) | 10-09 | 10-08 |
+| 1912 | Moderate Cold (xiaohan) | 01-07 | 01-06 |
+| 2014 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2016 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2045 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2047 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2097 | Summer Commences (lixia) | 05-05 | 05-04 |
+
+**Root cause, checked rather than assumed.** All eight computed crossings land within about 15 minutes of local midnight
+Shanghai civil time (as little as 12 seconds for 2047 jingzhe) — verified by instrumenting the internal pipeline and
+printing sub-day precision. `solarLongitude()` is documented in-file as accurate to only ~0.01° (Meeus ch 25, "low
+accuracy" formula); at the sun's ~0.9856°/day rate that is on the order of 15 minutes, which is exactly the scale of
+every discrepancy found. A real ΔT (TT−UT) correction was considered and rejected as the cause: applying it in the
+textbook direction would push the computed instant *earlier*, not later — the wrong direction to explain these eight,
+which all need to move *later* to match HKO. The remaining 2,392 solar comparisons and 200 lunar comparisons are
+unaffected because almost no crossing falls anywhere near a midnight boundary.
+
+**The fix.** A bounded, sourced correction table, `HKO_SOLAR_TERM_CORRECTIONS` in `core/calendar.js`, keyed by
+`year:animalIndex`, overriding `monthAnimalSolarTerm()`'s computed result for exactly these eight pairs — nothing else
+in the 1900–2100 range is touched, and `lunarNewYearDate()` doesn't call `monthAnimalSolarTerm()` at all so it needed no
+change (0/200 before and after). This is the fallback the audit brief itself names as acceptable when "the chosen
+solver cannot reach zero authoritative mismatches without fragile patches" — chosen over attempting a higher-precision
+solar-longitude series (VSOP87 or similar) because that would be a substantial rewrite with no independent authoritative
+ephemeris available in this environment to validate it against beyond the same HKO tables already in hand, and because
+this narrow table is easy to audit by inspection against its cited source
+(`https://www.hko.gov.hk/en/gts/time/calendar/text/files/T<year>e.txt`). **Re-run after the fix: 2,400 solar
+comparisons, 200 lunar comparisons, zero mismatches, exactly the acceptance criterion.**
+
+**New coverage.** `tests/profile.test.js` gains an exact positive-control pin plus a preceding-day / boundary-day
+`getInnerAnimal` cusp pair for all eight corrections — 24 new assertions exercising the actual consumer-facing cusp
+function, not just the raw date. Confirmed failing (16/24, the date-pin and boundary-day halves; the day-before halves
+were never wrong) against pre-fix `core/calendar.js`, passing after. Also replaces the audit's flagged vacuous case:
+`tests/public.test.js`'s fixture-coverage list tested only `1927-09-09` for the 1927 bailu correction, which cannot
+distinguish the corrected Sep-8 cutoff from the pre-PR-#140 wrong one — Sep 9 lands after either. Added
+`tests/profile.test.js` pins for 1927-09-07 (monkey, before) / 1927-09-08 (rooster, at the real boundary — bailu itself
+needed no date change, already correct on `main`), and added both `1912-01-07` and `1927-09-08` as new cases to
+`tests/public_tier.fixture.json` (17 → 19 cases) — closing the audit's other finding that `1912-01-06` was claimed
+covered but never present.
+
+**Fixture regeneration.** `tests/public_tier.fixture.json`'s existing `1911-05-06` case went stale: it was frozen while
+lixia was (wrongly) 05-06, so it recorded someone born exactly *on* the old boundary. With lixia now correctly 05-07,
+that date is the day *before* the boundary, and its full `buildPublicReading` output changed (month-animal snake →
+dragon, and every downstream field derived from it — season state, strength, favorability, families, role line).
+Regenerated from the fixed implementation; `note` field updated to describe the corrected relationship. This is the
+"regenerate any fixture/public-reading snapshot whose animal or catalog result changes" requirement — checked
+systematically (ran the full suite, found exactly this one stale case) rather than assumed absent.
+
+**Doctrine correction — the "catalog index... untouched" claim.** PR #140's calc v3.1 entries (§3, v0.57, both the
+changelog line and the SHIPPED entry) claimed "numerology, sun sign, rising sign, birth card, and the catalog index are
+untouched" by the 1916 lunar-new-year fix. False: the catalog index is `(sunSign, animal)`-driven per §1, where
+`animal` is the public year-pillar animal — the exact coordinate that fix moved for 1916-02-03 (rabbit → dragon).
+Confirmed against shipped `core/engine.js`: Aquarius+rabbit is `cxxiv`, Aquarius+dragon is `cxxv`. Struck per L17 (not
+silently rewritten) with an erratum in both spots — this was a blast-radius/truth defect in the record, not a code
+defect; the shipped catalog computation was already correct, only the claim about its scope was wrong.
+
+**Not touched.** `core/engine.js`, `core/profile.js`, `core/rising.js`, and every other calc module are byte-identical.
+No dependency, localStorage key, network call, or scanner list changes.
+
+## 2026-07-29 — P1: the doctrine-only L48 false-green is closed — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to the same-day independent deep-audit
+that also found the #183 overclaim (entry below). Local suite green (46 files / 1600 tests); no push, merge, or deploy.
+
+**The defect.** `.github/workflows/ci.yml`'s `l48-gate` job took an early "docs-only" exemption — every changed file
+ends in `.md`, none is `audits/RELEASE_CHECKLIST.md` or `agents/*.md` — and returned `exit 0` **before** the
+verdict/override filename predicate (the strict shape `tests/l48_gate.test.js` pins) ever ran. `DOCTRINE.md`,
+`journal.md`, and any `audits/*.md` file all end in `.md`, so a PR that touches `DOCTRINE.md` plus a brief plus the
+journal read as docs-only and skipped the artifact check entirely. The separate doctrine step in the `test` job had the
+same shape of gap from the other side: it only asked whether *some* path under `audits/` changed, not whether that path
+was added by the current PR, named the current PR number, or matched the verdict-response/override shape. Reproduced
+against PR #176's exact three-file diff (`DOCTRINE.md`, `audits/doctrine_v060_label_carveout_2026-07-29_brief.md`,
+`journal.md`): both jobs reported green — `L48 gate: docs-only exempt` and `Doctrine audit-artifact gate: pass` — for a
+brief, which is the packet sent to a reviewer, not a verdict.
+
+**The fix.** `DOCTRINE.md` in the changed-file set now unconditionally skips the l48-gate job's docs-only exemption,
+regardless of what else in the diff is markdown, and falls through to the same added-file + PR-number + shape predicate
+the job already enforces once reached. The `test` job's doctrine step now runs that identical predicate (added-file
+detection with `--find-renames --find-copies-harder`, `--diff-filter=A`, the same `SHAPE=` regex) instead of "any
+`audits/` path changed." Ordinary docs-only PRs that never touch `DOCTRINE.md` are still exempt in the l48-gate job —
+that half of the audit's required behavior is unchanged.
+
+**New coverage (`tests/l48_gate_composition.test.js`, new file).** `tests/l48_gate.test.js` pins the shape regex in
+isolation but — as the audit named directly — "does not execute or model the earlier docs-only branch, nor the
+composition of the two jobs." This file extracts both `run: |` script bodies **verbatim** from the shipped YAML (no
+parallel reimplementation that could drift from the real predicate), fills the two `${{ github.event.pull_request.* }}`
+expressions the same way GitHub Actions would, and executes the actual bash with a real two-remote git repository
+shaped like the target PR — a bare "origin" holding the pre-PR base state and a local clone carrying the PR's commit on
+top, so `"$BASE"...HEAD` resolves exactly as it does in CI. Confirmed against a literal copy of the pre-fix docs-only
+condition that the harness reproduces the original false-green (control case), then against the real post-fix scripts:
+PR #176's exact diff now fails both jobs; an ordinary docs-only PR (no `DOCTRINE.md`) stays exempt; a `DOCTRINE.md`
+change with a validly-ADDED response or override artifact still passes both jobs; and recycling an unrelated old PR's
+verdict under the current PR's filename (the #133-shape dodge) still fails via the rename/copy detection.
+
+**Disposition.** PR #176 remains **HOLD** per the primary audit — this fix does not itself clear it; it means the gate
+will now correctly demand the in-PR verdict/override artifact that PR #176's own brief already says is required before
+merge.
+
+## 2026-07-29 — P0 fix: raw stored t4 now reaches RETIRED_TIERS; corrects the #183 real-device claim — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to a same-day independent deep-audit
+finding. Local suite green; no push, merge, or deploy performed. Controller sign-off and the L48 gate are still required
+before this lands on `main`.
+
+**The defect this closes.** `ui/payments.js:getTier()` read the raw `eight_ball_tier_v1` value and immediately gated it
+through `isTier()` — the CURRENT-tiers-only check — before `resolveRenderTier()` ever got a chance to run it through
+`RETIRED_TIERS`. A raw stored `'t4'` therefore never reached the retirement table at all: `getTier()` returned `null`,
+and `resolveRenderTier({tier: null, credits})` fell through to the unrelated §1.D R2 legacy-credit grandfather instead.
+With zero legacy credits that resolves to `'free'` — silently, forever, with no storage rewrite, since `isTier('free')`
+is false and the persistence guard in `getRenderTier()` never fires. With positive legacy credits it happened to land on
+`'t3'` anyway, but via the grandfather's coincidence, not the retirement mapping — the right answer for the wrong reason,
+which would have been the wrong answer for any retired tier that didn't happen to map onto the same rung the grandfather
+already produces.
+
+**The correction (below, this entry's own subject).** The entry two above this one — squash-merged as `4b65936` (#178)
+and later amended with a same-day "verified on a real device" paragraph (#183) — claimed that reload was "the first and
+only exercise of `RETIRED_TIERS` outside the suite." Given the source path actually shipped at that time, that specific
+claim does not hold: a device holding a bare, credit-less raw `'t4'` could not have rendered the complete sheet through
+that code at all — it would have rendered free. Whatever device was reloaded either also carried a positive legacy-credit
+value (in which case the R2 grandfather produced the t3 render, not `RETIRED_TIERS`) or the sighting's memory of what
+rendered is itself mistaken. Neither this lane nor the audit that found it inspected that device's actual
+`eight_ball_credits_v1` value, so which of the two is true is not established here — only that "RETIRED_TIERS fired" is
+not. The #183 paragraph is left in place per L17 lineage (append-only; historical doctrine is superseded, not rewritten)
+— read its "first and only exercise of RETIRED_TIERS" line against this correction, not on its own.
+
+**The fix.** `getTier()` now lets a raw value through unnormalized whenever `isTier(normalizeTier(t))` is true — true for
+both a current rung and a retired one that maps onto a current rung, false for any other garbage. Both callers
+(`getRenderTier` via `resolveRenderTier`, `handlePaidReturn` via `applyPaidReturn`) already run the value through
+`normalizeTier`/`RETIRED_TIERS` themselves; the bug was only ever that `getTier()` discarded the raw token before either
+one got the chance. Valid `t1`/`t2`/`t3` storage is untouched — `isTier(normalizeTier('t1'))` is `true` exactly as
+`isTier('t1')` was — and genuine garbage (`'banana'`, etc.) still fails closed to `null`/`'free'`, since `normalizeTier`
+passes unrecognized values through unchanged and `isTier` rejects them.
+
+**New coverage (`tests/tiers.test.js`).** Four cases added to the `getRenderTier` storage-wrapper suite, all seeding a
+real localStorage-shaped mock and driving the public `getRenderTier()`/`getTier()` entry points rather than calling
+`resolveRenderTier({tier:'t4'})` directly (the exact gap the audit named — a direct call is insufficient because it
+skips the broken seam entirely): raw `'t4'` with zero legacy credits now resolves `'t3'` and rewrites storage; raw
+`'t4'` with positive legacy credits resolves `'t3'` via the retirement table rather than the accidental grandfather;
+valid `t1`/`t2`/`t3` storage is unaffected; corrupt/unknown values still fail closed. Confirmed against pre-fix
+`ui/payments.js`: the two `t4` cases fail deterministically (`'free'` where `'t3'` is expected) before the fix and pass
+after it.
+
+## 2026-07-29 — black background / white writing supersedes the Phase-2E cream lock — STAGED
+
+**Status: STAGED, not merged, not pushed.** Built on `claude/bw-monochrome-ui` (branched fresh off `main`,
+not stacked on the in-flight P0–P3 audit branch). Local suite green (46 files / 1597 tests).
+
+**Operator decision, from this change forward:** black background on every app surface, white writing, no
+cream/brown/warm-gray/tinted-gray/colored accent — hierarchy may use white opacity over black but never a
+hue; interaction/error/selected/disabled/sealed/focus states stay distinguishable without color. This
+**supersedes** the Phase-2E lock recorded in `8BALL.md` §10 item 5 that named cream paper `#ebe5d4` and the
+rule-cool `#888` / labels-warm `#7a7470` tonal asymmetry as load-bearing — noted as a color-only
+supersession there; every other Phase-2E lock (type-scale ratio, spacing rhythm, motion grammar, reference
+lineage) stands unchanged and the historical text is preserved, not rewritten.
+
+**Why a raw token invert was unsafe.** `--paper` was overloaded — both "light card/modal background" and
+"light text on the dark page." Inverting it in place would have made inputs/buttons/native selects
+black-on-black. Replaced the overloaded paper/ink vocabulary with semantic tokens instead: `--bg`/`--surface`
+(#000), `--text` (#fff), `--text-muted` (rgba 0.72, ~10.54:1 on black), `--text-placeholder` (rgba 0.55, ~6.27:1),
+`--rule` (rgba 0.45, ~4.4:1 — meets the 3:1 border/focus floor), `--interaction-fill` / `--interaction-fill-active`
+(rgba 0.10 / 0.16) for hover/active states that used to invert to a solid light fill and now can't (that fill
+was black too). The one deliberate exception is the paywall CTA: solid white fill + black text, kept as the
+single highest-emphasis control, still achromatic.
+
+**Scope actually touched:** `index.html` (token block, every card/modal/control/field/button consumer, hatch
+and coord-cell rgba swapped from ink-alpha to white-alpha, box-shadow → visible white-alpha border on
+`.card`/`.card-back`/`.modal`/`.paid-banner`, theme-color → `#000000`, autofill inset-fill added — none
+existed before, focus-visible bumped 1px → 2px throughout, paywall-specimen `<img>` gets a `grayscale(1)
+invert(1) contrast(1.05)` filter so the cream catalog JPG renders achromatic in place, confirmed visually
+indistinguishable from the live card); `ui/citysearch.js` (fixed a pre-existing bug in passing — the
+`var(--paper-bg, #0e0c0a)` fallback referenced a variable that was never declared anywhere in `:root`; now
+`var(--surface, #000)`); `ui/meanings.js` (near-black-on-paper hover/active rgba rebalanced to visible
+white-alpha, since the old alphas were tuned for a dark color on a light surface and read as almost invisible
+white-on-black); `ui/readings.js` (pure var() rename, no raw colors there); `ui/share.js` (share-PNG palette
+constants swapped to opaque grays/black/white — kept opaque rather than alpha so the pattern/separator
+`opacity=` attributes already in the SVG markup keep applying as the sole alpha multiplier, same relative
+weights as before). Index.html line count: 1500 → briefly over-budget during the pass, trimmed comments back
+to 1491 (was 1493), 9 lines of headroom.
+
+**Tests:** new `tests/monochrome_surface.test.js` (10 checks — no retired hex/var tokens anywhere in shipped
+source, `theme-color` black, semantic block present, card/modal resolve to `--surface`, computed contrast
+ratios for muted/placeholder/rule, focus-visible ≥2px everywhere, active/selected states use the fill-alpha
+pattern not black-text inversion, share SVG achromatic + black bg + white primary text, specimen filter
+present, every hex/rgba literal in the touched surfaces is R=G=B). `tests/modal_a11y.test.js`'s hard-coded
+`--label-on-dark: #837c69` / contrast-ratio assertion updated to the new `--text-muted` token and its ~10.54:1
+figure. `CLAUDE.md` repo-shape count bumped 45 → 46 vitest files in the same change.
+
+**Visually verified in-browser** (local `serve` + this session's Browser pane, not a live-fire Playwright
+pass): onboarding form incl. native date/time inputs and the city-search dropdown (hover/keyboard-selected
+row), result card with open cells + hatched sealed cells, about/forget/paywall modals (bordered black panels,
+correctly legible over the dimmed backdrop), the paywall CTA's solid-white/black-text emphasis, the expanded
+specimen preview (now visually indistinguishable in tone from a live card), the readings screen empty state,
+and the 390×844 mobile breakpoint. Did not capture the full brief-specified screenshot matrix (768×568,
+1280×720 desktop rail, disabled-button state, share PNG output) — static assertions cover those tokens but a
+human/live-fire pass has not looked at the pixels.
+
+**Not done in this pass — explicitly out of scope, not silently skipped:**
+- **Static assets** (`assets/favicon-16.png`, `favicon-32.png`, `favicon.ico`, `apple-touch-icon-180.png`,
+  `og-image.png`) are still the old cream-toned renders. No in-repo generator exists for the favicons; the
+  OG image's source-of-truth tool (`~/8ball/tools/render_og_image.mjs`, off-repo) calls this repo's own
+  `ui/share.js` `buildCardSVGFromSnapshot` for the card art (so it inherits the new black/white palette
+  automatically once run) but still needs an actual re-render + wordmark/copy check, which needs a live
+  Chrome + font environment this container may or may not match byte-for-byte.
+- **`~/8ball/reach/x_pipeline/post_x.py`** (off-repo, separate vault, not this git repo) still generates
+  "index card on paper background: …" alt text for new posts. Not touched — that vault has its own
+  `CLAUDE.md` and is a different lane's territory; flagging rather than reaching across without operator
+  confirmation of scope.
+- No cross-model audit has run on this branch (it doesn't touch `DOCTRINE.md`, so §10's audit trigger
+  doesn't apply — see the cross-model review below, run precisely because this is a full user-visible
+  surface change without that automatic trigger).
+- **Version truth:** neither `package.json` (stays `0.7.1`) nor `DOCTRINE.md`'s version footer is touched.
+  Disclosed per the #41 precedent (a comparable non-doctrine UI change that explicitly logged its no-bump
+  call rather than leaving it silent): this is a palette/token change with no calc/content/contract/schema
+  change, so no bump is claimed; if version-truth wants a patch bump for the surface-wide visual change,
+  that's a clean absorb.
+- **Acceptance commands, actually run (not just claimed):** `npm test` — 47 files / 1606 tests green;
+  `bash audits/run_local_audit.sh` — clean, 559 files scanned; `git diff --check` — clean, no
+  whitespace/line-ending issues; `python3 scripts/build_card_jpegs.py --check` — blocked by a missing PIL
+  install in this container (pre-existing environment gap, unrelated to this change — no `cards/*.jpg` is
+  touched here). `audits/project_audit.py` ("the whole-project deterministic auditor" the brief also asks
+  for) does not exist on this branch — it's untracked WIP on a different, unrelated in-flight audit branch
+  sharing this machine, not part of this change.
+
+**Cross-model + internal audit round, findings fixed (2026-07-29, same day, pre-merge).** Ran both an
+external cross-model review (`relay --base origin/main`, codex/grok/claude/gemini fan-out — codex abstained
+citing no filed `audits/` brief for this PR, gemini errored on auth, grok + claude both returned MERGE WITH
+FIXES) and an internal 25-agent multi-dimension review-plus-adversarial-verify workflow, independently, in
+parallel. Both converged on the same root cause: rgba alpha values were carried over mechanically from the
+ink-on-cream design without re-tuning against a pure-black baseline. Six real defects fixed:
+1. `.coord-cell` border `rgba(255,255,255,0.25)` (2.02:1, under the 3:1 UI-component floor) → `0.42` (3.85:1).
+2. `.card.seal-hatch` gradient `rgba(255,255,255,0.20)` (1.66:1) → `0.38` (3.39:1) — the sealed/unresolved
+   structural distinction was reading too faint to be a reliable non-color cue.
+3. `--rule` (0.45 alpha, 4.41:1) was used as a literal text `color:` at 9 sites in `index.html` (`html,body`
+   default, `.wordmark`, `.info-icon`, `.labels-toggle`, `.field-group summary::before`, `.disclaimer`,
+   `.feedback-details`, `.feedback-form textarea`/`input[type=text]`, `.feedback-sent`) and 2 in
+   `ui/readings.js` (`.readings-page-status`, `.reading-save-status`) — all under the 4.5:1 AA normal-text
+   floor. Repointed to `--text-muted` (10.54:1); `--rule` itself stays untouched at its own 3:1 border/focus
+   contract.
+4. `.feedback-details summary:hover`/`:focus`/`[open]` dimmed to `--rule` on interaction instead of
+   brightening — a hierarchy inversion versus every other touched control. Now brightens to `--text`, matching
+   the pattern used everywhere else.
+5. `ui/share.js`'s hatch-tile line (`RULE` stroke at `opacity="0.4"` on top of `RULE`'s own ~45%-white
+   equivalent tone) compounded to a near-invisible hairline in the exported share PNG. Dropped the redundant
+   opacity multiplier and bumped `stroke-width` 0.8→1.
+6. `tests/monochrome_surface.test.js`'s contrast-target test asserted `--rule`'s 3:1 floor with a comment
+   explicitly framing it as "border/focus, not text" while the shipped code contradicted that in 11 places —
+   a false-green on the suite's own stated contract. Added an explicit regression guard
+   (`color:\s*var\(--rule\)` must never match), plus four more coverage gaps the internal review separately
+   found and fixed: the achromatic scan only recognized 6-digit hex (missed the shorthand `#000`/`#fff` this
+   very file ships) and neither named CSS colors (`red`, `green`, ...) nor `hsl()`/`hsla()` — both now banned
+   outright; the focus-visible check only matched the `outline:` shorthand, not longhand
+   `outline-width:` — now matches both; the coord-cell/seal-hatch alpha values above had no contrast
+   assertion at all — now pinned to the 3:1 floor by their live rendered value, not a hardcoded number.
+   `allSource` was also widened from a hand-picked 4-of-11 `ui/*.js` files to all 11 (via `readdirSync`), per
+   both reviews independently flagging the gap.
+
+Two documentation inaccuracies also corrected: `--text-muted`'s contrast was mis-computed by hand as "~9.4:1"
+in this entry and in `tests/modal_a11y.test.js`'s comment — the correct value (same formula the suite itself
+codifies) is **10.54:1**, both now fixed. The stale `/* card (paper specimen) */` section-header comment at
+`index.html` (unswept by the original pass despite the brief's explicit instruction to sweep such wording)
+now reads `(monochrome specimen)`. The paywall CTA's border was `var(--text)` — identical to its own fill,
+rendering as a borderless flat slab that both reviews independently flagged as reading closer to a generic
+checkout/Web3 button than this project's specimen-plate register; border is now `var(--surface)` (black), a
+thin inset hairline echoing the card/modal's own edge treatment, brightening to `var(--text)` on hover/focus
+so the outline still reads once the fill drops away. Local suite re-verified green after all of the above:
+**47 files / 1606 tests.**
+
+Not fixed, explicitly deferred as taste/process rather than defects: the internal review's "no screenshot
+artifacts accompany the commit" observation (the Visual QA matrix was eyeballed live in-session via the
+Browser pane, not captured to files for this entry — a real gap against the brief's "before/after
+screenshots" ask, left for the operator to request if wanted) and one lower-severity nit (disabled buttons
+stay brightness-only with no structural cue — a pre-existing pattern predating this change, not a regression
+it introduced).
+
+**Files changed:** `index.html`, `ui/citysearch.js`, `ui/meanings.js`, `ui/readings.js`, `ui/share.js`,
+`ui/tools` (off-repo vault: `render_icon.mjs` + `build_ico.mjs` added, `render_og_image.mjs` recolored),
+`tests/monochrome_surface.test.js` (new), `tests/monochrome_assets.test.js` (new), `tests/modal_a11y.test.js`,
+`CLAUDE.md`, `8BALL.md`, `assets/{favicon-16,favicon-32,favicon,apple-touch-icon-180,og-image}`, this entry.
+
+## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `4b65936` ([#178](https://github.com/appleeatsapples-lang/8ball/pull/178)) on
+2026-07-29, on explicit controller word; `test` and `l48-gate` both passed on the merged head. **No cross-model audit was
+run on any link in this chain** — five `DOCTRINE.md` changes in one day, all cleared by override. **The migration is live and VERIFIED on a
+real device (2026-07-29):** the controller reloaded the page on the device that had been told to open `?paid=t4` — the one
+holding a stored `'t4'` — and it renders the **complete sheet**. That is the first and only exercise of `RETIRED_TIERS`
+outside the suite, and it is the check that mattered: a naive retirement drops exactly that device to free, and the stored
+tier is the only record of a purchase. **Scope of what it proves, so the entry does not overclaim:** a stored `'t4'`
+resolves to a t3 render. It does **not** separately prove the value was rewritten in storage — a failed write would
+re-resolve correctly on every boot and look identical, so persistence stays test-only and is cosmetic either way. Nor does
+it exercise the sharpest case, a device that had **paid** for t3 before visiting the URL; that path rests on the
+literal-state test alone. Was: STAGED. L48 artifact is an explicit controller override,
+sighting #20 — renumbered from #19 after another lane claimed that number concurrently, caught by the sighting-ledger
+uniqueness guard `tests/l48_gate.test.js` gained today. Second such collision in this chain; first one a test caught
+rather than a human.**
+
+**The rung shipped this morning and is withdrawn this afternoon, on controller ruling, after this lane was asked directly
+whether $9 was worth it and answered no.** §1.D v0.58 added `t4` at $9; v0.59 corrected its driver; **v0.60 retires it.**
+`TIER_ORDER` is `['t1','t2','t3']` again, `?paid=t4` is no longer a tier, and the public read becomes a **t3 ceiling
+block** beside the written card entry — still a BLOCK, so the §1.F census is unmoved at 15 of 15.
+
+**The three grounds, recorded because this document defended the rung two clauses ago.**
+
+- **It was named for an exposure radius it never delivered.** The commissioning brief called the tier *"you + the world;
+  work is its legible instance"*. The block renders privately, is absent from the §5.D share surface, and cannot be shown
+  to anyone. What shipped was a **depth** increment priced as a **radius** increment — `ui/share.js` contains zero
+  references to it, which is the whole argument in one grep.
+- **The price ordering could not be defended.** t3 sells fifteen coordinates plus the written 144-card entry for $3. t4
+  sold five derived strings for $9 and computed **no new coordinate** — it is a lookup over values the t3 buyer already
+  sees on the same sheet.
+- **There are no sales to build on.** The revenue-reset diagnosis on record (this file, the 2026-07-26 entry) is that the
+  payment path *"works and has zero outside orders"*. A fourth rung above a price that has never converted optimizes the
+  end that is not binding; the same entry names reach as the verified bottleneck.
+
+**Nobody is downgraded, and that took explicit work rather than luck.** The rung was never buyable — its product URL never
+held a value — but the unsigned `?paid=t4` return was live (§5.C), so devices **can** hold a stored `'t4'`. The naive
+retirement drops those devices to **free**, because `isTier('t4')` becomes false and resolution falls through to the
+credits check. **The sharp case is worse than that sounds:** the stored tier is the only record of a purchase, so a
+genuine **t3 buyer who opened the t4 URL once** would have their paid rung cashed in by the withdrawal — and this lane
+told the controller to open exactly that URL a few messages earlier. `RETIRED_TIERS = { t4: 't3' }` maps the withdrawn
+rung onto the one that absorbed it, `getRenderTier` persists the rewrite on first detection (the R2 grandfather's shape),
+and `tests/public_surface.test.js` pins the stranded state as a **literal** — it cannot be produced by today's code, since
+`applyPaidReturn` now normalizes the stored side, but it is exactly what sits in a real device's localStorage.
+
+**A contradiction leaves with the rung.** §1.D v0.58 put a $9 rung into a clause whose Price column reads **$1 / $2 / $3** —
+a contradiction v0.58 named in its own text and did not resolve. The column is correct again, and the exposure-radius
+ladder remains adopted by no clause of this constitution.
+
+**What survives.** The engine (`core/public.js`), its tables (`content/public.v1.js` + `v2.js`), the render module
+(`ui/public.js`), the sealed block and its §1.D v0.37 treatment, the birthday keying from v0.59, and every test that
+covers them. Only the rung, its price and its never-opened offer are withdrawn. The §4.B v0.56 single-$3 sprint is
+byte-untouched and is again the only purchase surface; `gumroad.com` appears exactly once in `index.html`, pinned.
+
+**What this does NOT resolve.** Whether a re-reading of open coordinates is worth selling **at all** is answered only in
+the narrow sense that it is no longer sold separately. The §5.D share pass — the thing that would actually make a public
+tier public — has still never been done, and is now the named prerequisite if the exposure rung is ever built for real.
+
+**Verification.** Suite **45 files / 1587 tests** green after rebasing onto a `main` that gained the sighting-ledger guard (was 1583 pre-rebase; +2 net — the retirement/migration block replaces the
+fourth-rung block). `index.html` **1493 of 1500**. Four existing pins were updated deliberately: the ladder and `isTier`
+pins in `tests/tiers.test.js`, the t3 composition, and the `newlyEntitledCells` t1 → t3 delta, which now carries both
+ceiling blocks. **Not verified:** the local PII audit (gitignored pattern file absent); no browser pass this cycle — the
+block's markup and CSS are byte-unchanged, only its entitlement moved.
+
+**Scope (files):** `core/payments.js`, `ui/payments.js`, `ui/tiers.js`, `index.html`, `DOCTRINE.md` (§1.D v0.60, footer →
+v0.60), `PUBLIC_TIER_SPEC.md` (header + §7 rewritten, both prior texts superseded per L17), `CLAUDE.md`,
+`tests/{tiers,public_surface}.test.js`, this file, the L48 artifact. **UNTOUCHED:** `core/public.js`, `content/`,
+`ui/public.js`, `tests/public.test.js`, `tests/public_tier.fixture.json`, `tests/fixtures.json`, every scanner list.
+
+**Rollback.** Revert this PR and the rung returns with its $9 price and its unopened offer. Note that the migration is
+NOT symmetrical: devices already normalized from `t4` to `t3` stay at `t3`, which is correct — they never bought a fourth
+rung.
+
+## 2026-07-29 — Second, independent live-fire pass — 10/10, and one of them was mine passing vacuously — SHIPPED
+
+**Status: SHIPPED — the pass is complete and its findings are below; this entry is the record of it. Run by the implementer lane against **local** `main` at `61d2077` in Chromium 141, served from `python3 -m http.server 5173`, driver in `/tmp/lf` with `package.json` byte-untouched (0 playwright references) per the §7 stage-4 devDependency cap. It does **not** re-verify the deployed page: egress policy blocks the product domain from here, and that limit is real — it is the one this lane spent a day mistaking for "no browser at all".**
+
+**Why a second pass was worth running.** The entry below records the first, and the correction that made it possible. That pass was run by the lane that wrote the fix. This one was run by a lane that did not, over the same surface, with its own probes — which is the only thing a second pass adds, and the reason it is filed rather than assumed redundant.
+
+**Result: 10/10.** F1 confirmed dead in a rendering engine rather than in CSS text — `#paywall-cta-t4` computes `display:none`, has zero client rects and no `href`, and the paywall shows **exactly one** visible CTA (`paywall-cta-t3`). No console errors and no failed subresource requests across boot and submit, so `ui/*.js` genuinely loads rather than being swallowed by the catch-all rewrite. The three t4 value slots are empty at free tier. At 320px, `scrollWidth` equals `clientWidth` — no overflow.
+
+**The finding that matters is against this lane's own probe.** The `#offer-btn` check reported PASS while testing nothing. Its assertion carried a guard clause — `!offer.hiddenAttr || (display === 'none' && rects === 0)` — and because the probe completed a reading first, the offer control had legitimately appeared, `hiddenAttr` was `false`, and the whole assertion short-circuited to true without ever exercising the `[hidden]` rule. **A green line that proves nothing is the exact defect class this repo has been bitten by three times** (#126 F1, #129 F2, and the `.modal-cta` cascade itself), and it appeared inside the pass sent to catch it.
+
+Re-run properly with a **negative control**: on a fresh page `#offer-btn` ships hidden and computes `display:none`; deleting `.btn-block[hidden] { display: none }` from the live stylesheet flips it to `display: block`. The guard is load-bearing, proven by removal rather than by its presence — which is the standard the shipped test-suite pins were held to and this probe initially was not.
+
+**Carried across from the first pass:** its recorded false positive — a substring probe firing on *"remediation"* containing *"media"* — so the sealed-DOM check here uses a text-node walk plus explicit empty-slot assertions, never substring matching.
+
+**A pattern this lane should own, on the record.** Three times on 2026-07-29 it asserted a capability was unavailable without checking: that Codex was retired (contradicted by two verdicts in a directory it had itself listed), that live-fire needed the operator's machine (contradicted by its own environment notes all session), and only on the third — the relay — did it verify before answering, and only because the first two had already gone wrong. Facts about *artifacts* were checked relentlessly this session: every SHA, every quotation, R1's closure, four mutation-tested CI pins. Facts about *capabilities* were taken as premises. That asymmetry cost a wrong recommendation twice and a false premise inside a proposed constitutional amendment once.
+
+**Scope (files):** this file. **UNTOUCHED:** everything else — no code, no doctrine, no test, no `package.json`. Suite 1583 green, unchanged by this pass.
+
+## 2026-07-29 — Local live-fire is available here, and always was — a correction, plus the pass it should have run — SHIPPED
+
+**Status: SHIPPED — squash-merged to `main` as `9a40e1d` (#173) on 2026-07-29; the STAGED language below is superseded by that merge, corrected on sighting per the v0.48/v0.50/v0.51/v0.55 footer precedent. Cleared by L48 override, sighting #18. **Flipped by a different lane from the one that wrote it, and its claims independently verified rather than taken on the entry's word** — which is worth stating because the entry's own subject is a claim this repo believed for a day without checking. Confirmed: Chromium 141 does launch in a container (`/opt/pw-browsers/chromium --version`, run rather than inferred from the env var); the browser pass reproduces — a second, independent run over the same surface returned 10/10 on F1's death in a rendering engine, one visible paywall CTA, empty t4 value slots at free tier, clean console, and no 320px overflow, recorded in the entry above; the `CLAUDE.md` live-fire recipe is present on `main`; and the scope claim holds against the diff — `CLAUDE.md`, `audits/L48_override_pr173_…`, `journal.md`, and `ui/payments.js`, whose change is comment text only, so "no code behaviour changes" is accurate. The one thing **not** re-verified is the deployed page, which stays outside any container's reach.** Was: STAGED on `claude/8ball-public-engine-me9rhr`; merge is its own word. No code behaviour changes: one comment, one
 `CLAUDE.md` recipe, one correction-on-sighting, and this entry. The substance is a **false claim this lane made repeatedly**
 and the browser pass that disproves it.**
 
@@ -300,7 +739,13 @@ intended pin and no other. The fix then validated itself in CI on its own PR:
 red without the artifact (reaching the artifact-shape error, not the exemption)
 and green with it, via the artifact branch both times.
 
-Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #17**.
+Cleared by `audits/L48_override_pr160_2026-07-29.md`, **sighting #19**.
+*(Filed as #17; renumbered on sighting after it collided with
+`L48_override_pr168_2026-07-29.md`, which took #17 twenty seconds later and
+reached `main` first-noticed. This record moved rather than pr168's because
+pr168's number is cited in `DOCTRINE.md`'s v0.59 footer, and editing the
+constitution to fix a bookkeeping collision would itself require an audit lane
+that does not exist. `tests/l48_gate.test.js` now pins uniqueness.)*
 
 ### #165 — the commission
 
@@ -412,7 +857,7 @@ in the remote container; still owed controller-side.
 
 **The finding that outlived the premise, and is sharper than it.** The override instrument was used three consecutive times **while the alternative existed**. That is a worse observation than "the rule became unsatisfiable", because no wording change fixes it — an amendment cannot make a lane check whether the auditor is reachable before declaring it gone.
 
-**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` and `audits/codex_pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
+**What it cost.** A governance record with a false premise reached `main` and sat there through one merge cycle. Advice to the controller — *"don't relay either brief as written"* — was wrong for as long as it stood, and is withdrawn: `audits/pr140_retroactive_audit_2026-07-29_brief.md` and `audits/pr146_pr147_retroactive_audit_2026-07-29_brief.md` are runnable exactly as their fire-line headers specify. Nothing shipped to users, no calculation moved, no gate loosened.
 
 **Recorded because the alternative is worse.** This entry exists so the §10 draft is never read without its correction, and so the pattern is on the record rather than in a chat log: a lane that spent the day verifying other lanes' claims did not verify its own, and the one it skipped was the one with the largest blast radius. **Recommendation attached: treat "the auditor lane is unavailable" as a claim requiring evidence, the same as any other claim in an L48 artifact.**
 
@@ -780,7 +1225,7 @@ history notes per L17). No file outside this PR's own set moves.
 
 **Follow-ups closed and left open (appended 2026-07-29, after this entry's own merge).** Two things this entry queued have moved, and are recorded here rather than as a new entry so the #140 record stays in one place.
 
-**(a) The cross-model read is commissioned.** Sighting #12 recommended it after merge if not before; the packet is `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md`, merged as `a9957b5` (#145). It is named `retroactive_audit`, **not** `premerge_audit`, and that is load-bearing rather than cosmetic: the `l48-gate` predicate accepts only the premerge-response or override shapes, so a verdict filed against this brief cannot retroactively green any gate or launder a merge that already happened — verified against the shipped regex. Self-contained per `agents/auditor.md` (Codex is paste-relay only, no filesystem access). Ten adversarial hooks; HKO re-confirmation of the four dates is the one worth most. **The verdict is outstanding — commissioning is not reading, and nothing here closes sighting #12.**
+**(a) The cross-model read is commissioned.** Sighting #12 recommended it after merge if not before; the packet is `audits/pr140_retroactive_audit_2026-07-29_brief.md`, merged as `a9957b5` (#145). **Path note:** it shipped in #145 as `codex_pr140_retroactive_audit_2026-07-29_brief.md` and was renamed lane-neutral later the same day, alongside `codex_pr146_pr147_… → pr146_pr147_…`, following the pattern #172 set — a packet addressed to one vendor repeats, one level down, the defect of naming a vendor in the constitution. Pointers in this file, the correction artifact and the mechanical-edit note were updated; the **superseded** DOCTRINE v0.57 clause and the verbatim quote of it inside the #146/#147 packet still carry the old path, deliberately, because lineage-preserved text is not rewritten to chase a filename. This note is the mapping. It is named `retroactive_audit`, **not** `premerge_audit`, and that is load-bearing rather than cosmetic: the `l48-gate` predicate accepts only the premerge-response or override shapes, so a verdict filed against this brief cannot retroactively green any gate or launder a merge that already happened — verified against the shipped regex. Self-contained per `agents/auditor.md` (Codex is paste-relay only, no filesystem access). Ten adversarial hooks; HKO re-confirmation of the four dates is the one worth most. **The verdict is outstanding — commissioning is not reading, and nothing here closes sighting #12.**
 
 **(b) A new finding, from this lane auditing its own merged work.** ΔT (TT−UT) is not applied anywhere in `core/calendar.js`: `newMoonJDE` and `solarLongitudeCrossingJDE` return TT-based JDE, civil time is UT = TT − ΔT, and `jdeToShanghaiDate` adds the civil offset without subtracting it — so every cusp sits ΔT *later* than truth, the same failure direction as the defect this entry fixed. The in-source comment inherited from calc v2 claims *"For 1900–2100 the TT−UT delta is < 70 s"*; that holds only to about 2005, against ~168 s at 2085 and ~196 s at 2097 on the standard Espenak/Meeus fit. Measured: of **2613** cusp instants in range, **six** sit closer to local midnight than ΔT at their year, and applying ΔT changes exactly **one** date — **2084 mangzhong, June 5 → June 4**. Unreachable today, since future DOBs are rejected (v0.3.0 fix B). Stated so it is not mistaken for cleared: #140's clean 2051–2100 sweep against sxtwl does **not** rule this out — at these margins that is equally consistent with sxtwl making the same simplification, or with luck. Filed as hook 4 of the brief for the auditor to verify, not as a settled result.
 

@@ -1,7 +1,7 @@
 {
-  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in the content tables fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 three times, once per controller ruling: the nine-mode collapse, the lifePath rename, and the move of the mode driver off the free surface to the birthday number (§1.D v0.59).",
+  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in the content tables fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 three times, once per controller ruling: the nine-mode collapse, the lifePath rename, and the move of the mode driver off the free surface to the birthday number (§1.D v0.59). Regenerated again 2026-07-29 (P1-D): the HKO deep-audit fix moved 1911 lixia from 05-06 to 05-07 (this fixture's 1911-05-06 case is now the day BEFORE the boundary, not on it) and added the 1912-01-07 and 1927-09-08 boundary-day cases.",
   "_pii_rule": "Fixture dates MUST be synthetic — calendar/calibration anchors chosen for the calc path they exercise, never a real person’s date of birth. See DOCTRINE.md §11.",
-  "_coverage": "The 17 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine birthday values (1–9) — the mode driver. They also carry every date calc v3.1 moved: lunar new year 1916 and the 1911, 1912 and 1927 solar terms.",
+  "_coverage": "The 19 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine birthday values (1-9) - the mode driver. They also carry every date calc v3.1 moved: lunar new year 1916 and the 1911, 1912, and 1927 solar terms - including the exact 1912 xiaohan and 1927 bailu boundary days, added 2026-07-29 (P1-D) after an HKO audit found the 1912 term was never actually in this set and 1927-09-09 alone could not discriminate the corrected bailu cutoff from the pre-PR-#140 one.",
   "cases": [
     {
       "dob": "1900-01-01",
@@ -99,7 +99,7 @@
     },
     {
       "dob": "1911-05-06",
-      "note": "pre-1929 lixia boundary moved by calc v3.1; fire day master in its own season (wang)",
+      "note": "pre-1929 lixia boundary corrected by the 2026-07-29 HKO audit fix (P1-D) to 05-07; this date is now the day BEFORE the boundary — dragon month, fire day master outside its season (xiu)",
       "reading": {
         "dob": {
           "year": 1911,
@@ -113,26 +113,26 @@
           "branchAnimal": "rat"
         },
         "season": {
-          "monthAnimal": "snake",
-          "element": "fire",
-          "state": "wang",
-          "stateHan": "旺",
-          "stateLabel": "in season",
-          "relation": "the season carries the day master · own element"
+          "monthAnimal": "dragon",
+          "element": "earth",
+          "state": "xiu",
+          "stateHan": "休",
+          "stateLabel": "retiring",
+          "relation": "the day master generates the season"
         },
-        "strength": "strong",
+        "strength": "weak",
         "favorable": [
-          "earth",
-          "metal",
-          "water"
-        ],
-        "unfavorable": [
           "wood",
           "fire"
         ],
-        "primaryFavorable": "earth",
-        "primaryUnfavorable": "wood",
-        "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
+        "unfavorable": [
+          "water",
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
         "mode": {
           "birthday": 6,
           "dayOfMonth": 6,
@@ -150,37 +150,131 @@
         "families": [
           {
             "rank": 1,
-            "key": "property",
-            "element": "earth",
-            "label": "property",
+            "key": "health",
+            "element": "wood",
+            "label": "health",
             "character": "stewardship",
-            "body": "holding and tenancy — work that keeps ground in productive hands."
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
           },
           {
             "rank": 2,
-            "key": "advisory",
-            "element": "earth",
-            "label": "advisory",
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
             "character": "transmission",
-            "body": "counsel on record — work that reads a situation and files a position on it."
+            "body": "instruction and transfer — work that moves a discipline into other hands."
           },
           {
             "rank": 3,
-            "key": "construction",
-            "element": "earth",
-            "label": "construction",
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
             "character": "origination",
-            "body": "assembly on ground — work that raises a structure where none stood."
+            "body": "cultivation and yield — work that develops a living stock across seasons."
           }
         ],
         "antiFit": {
-          "key": "growth",
-          "element": "wood",
-          "label": "growth",
+          "key": "trade",
+          "element": "water",
+          "label": "trade",
           "character": "origination",
-          "body": "cultivation and yield — work that develops a living stock across seasons."
+          "body": "exchange opened — work that makes a market between parties who had none."
         },
         "roleLine": "a role held as the passing on of an established practice, worked at the pace of the people it is for.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "mode": "pythagorean numerology · birthday, nine-number system",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1912-01-07",
+      "note": "the fourth calc-v3.1-era solar-term boundary (1912 xiaohan), corrected by the 2026-07-29 HKO audit fix (P1-D) to 01-07 — previously absent from this fixture set despite being one of the three originally-touched pre-1929 terms; water day master out of season (si)",
+      "reading": {
+        "dob": {
+          "year": 1912,
+          "month": 1,
+          "day": 7
+        },
+        "dayMaster": {
+          "stem": "ren",
+          "polarity": "yang",
+          "element": "water",
+          "branchAnimal": "horse"
+        },
+        "season": {
+          "monthAnimal": "ox",
+          "element": "earth",
+          "state": "si",
+          "stateHan": "死",
+          "stateLabel": "out of season",
+          "relation": "the season controls the day master"
+        },
+        "strength": "weak",
+        "favorable": [
+          "metal",
+          "water"
+        ],
+        "unfavorable": [
+          "earth",
+          "wood",
+          "fire"
+        ],
+        "primaryFavorable": "metal",
+        "primaryUnfavorable": "earth",
+        "favorabilityNote": "a water day master outside its season; the open side is the source and the body of water it joins.",
+        "mode": {
+          "birthday": 7,
+          "dayOfMonth": 7,
+          "theme": "analysis",
+          "register": "the closed study",
+          "method": "worked from the record, slowly, to a stated confidence"
+        },
+        "posture": {
+          "number": 21,
+          "roman": "XXI",
+          "arcana": "the world",
+          "register": "the completion",
+          "stance": "a role held at the closing of a full circuit"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "finance",
+            "element": "metal",
+            "label": "finance",
+            "character": "stewardship",
+            "body": "custody and allocation — work that holds a stock of value and places it."
+          },
+          {
+            "rank": 2,
+            "key": "engineering",
+            "element": "metal",
+            "label": "engineering",
+            "character": "origination",
+            "body": "specification and tolerance — work that fixes a design to measured limits."
+          },
+          {
+            "rank": 3,
+            "key": "law",
+            "element": "metal",
+            "label": "law",
+            "character": "transmission",
+            "body": "code and argument — work that carries a rule into a contested room."
+          }
+        ],
+        "antiFit": {
+          "key": "advisory",
+          "element": "earth",
+          "label": "advisory",
+          "character": "transmission",
+          "body": "counsel on record — work that reads a situation and files a position on it."
+        },
+        "roleLine": "a role held at the closing of a full circuit, worked from the record, slowly, to a stated confidence.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
@@ -369,6 +463,100 @@
           "body": "exchange opened — work that makes a market between parties who had none."
         },
         "roleLine": "a role held across the turns of a cycle, worked to an obligation already accepted, on request.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "mode": "pythagorean numerology · birthday, nine-number system",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1927-09-08",
+      "note": "the 1927 bailu boundary day itself (Sep 9 alone cannot distinguish the old wrong cutoff from the corrected one — both put Sep 9 after the boundary; Sep 8 is the discriminating positive control); wood day master out of season (si)",
+      "reading": {
+        "dob": {
+          "year": 1927,
+          "month": 9,
+          "day": 8
+        },
+        "dayMaster": {
+          "stem": "yi",
+          "polarity": "yin",
+          "element": "wood",
+          "branchAnimal": "snake"
+        },
+        "season": {
+          "monthAnimal": "rooster",
+          "element": "metal",
+          "state": "si",
+          "stateHan": "死",
+          "stateLabel": "out of season",
+          "relation": "the season controls the day master"
+        },
+        "strength": "weak",
+        "favorable": [
+          "water",
+          "wood"
+        ],
+        "unfavorable": [
+          "metal",
+          "fire",
+          "earth"
+        ],
+        "primaryFavorable": "water",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a wood day master outside its season; the open side is what feeds and joins it before anything draws on it.",
+        "mode": {
+          "birthday": 8,
+          "dayOfMonth": 8,
+          "theme": "command",
+          "register": "the wide operation",
+          "method": "worked at scale, through delegated hands"
+        },
+        "posture": {
+          "number": 9,
+          "roman": "IX",
+          "arcana": "the hermit",
+          "register": "the examiner",
+          "stance": "a role held apart, at working distance"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "trade",
+            "element": "water",
+            "label": "trade",
+            "character": "origination",
+            "body": "exchange opened — work that makes a market between parties who had none."
+          },
+          {
+            "rank": 2,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
+          },
+          {
+            "rank": 3,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          }
+        ],
+        "antiFit": {
+          "key": "law",
+          "element": "metal",
+          "label": "law",
+          "character": "transmission",
+          "body": "code and argument — work that carries a rule into a contested room."
+        },
+        "roleLine": "a role held apart, at working distance, worked at scale, through delegated hands.",
         "sources": {
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",

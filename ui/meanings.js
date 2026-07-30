@@ -79,29 +79,29 @@ const UNRESOLVED_COPY = {
 
 const STYLE = `
 .meaning-panel { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
-  border-top: 1px solid rgba(26,24,18,0.15);
+  border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
 .meaning-panel.open { max-height: 420px; opacity: 1; margin-top: 4px; padding-top: 16px; }
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--label); margin-bottom: 6px; }
-.meaning-title { font-size: 14px; font-style: italic; color: var(--ink);
+  color: var(--text-muted); margin-bottom: 6px; }
+.meaning-title { font-size: 14px; font-style: italic; color: var(--text);
   text-transform: lowercase; margin-bottom: 8px; }
-.meaning-body { font-size: 12px; line-height: 1.55; color: var(--ink); text-align: left; }
+.meaning-body { font-size: 12px; line-height: 1.55; color: var(--text); text-align: left; }
 .meaning-context-head { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--label); text-align: left; margin-top: 12px; margin-bottom: 4px; }
-.meaning-context { font-size: 12px; line-height: 1.55; color: var(--ink); text-align: left; }
+  color: var(--text-muted); text-align: left; margin-top: 12px; margin-bottom: 4px; }
+.meaning-context { font-size: 12px; line-height: 1.55; color: var(--text); text-align: left; }
 .meaning-close { display: block; margin: 10px auto 0; background: none; border: none;
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--label); cursor: pointer; min-height: 44px;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer; min-height: 44px;
   padding: 8px 16px; }
 .coord-cell.has-detail { cursor: pointer; min-height: 44px; touch-action: manipulation;
   transition: background-color 100ms ease-out, border-color 100ms ease-out; }
 @media (hover: hover) {
-  .coord-cell.has-detail:hover { background: rgba(26,24,18,0.035); border-color: rgba(26,24,18,0.55); }
+  .coord-cell.has-detail:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.55); }
 }
 .coord-cell.has-detail:focus-visible, .meaning-close:focus-visible {
-  outline: 2px solid var(--ink); outline-offset: 2px; }
-.coord-cell.has-detail.active { background: rgba(26,24,18,0.06); border-color: var(--ink); }
+  outline: 2px solid var(--text); outline-offset: 2px; }
+.coord-cell.has-detail.active { background: rgba(255,255,255,0.10); border-color: var(--text); }
 `;
 
 function injectStyle() {

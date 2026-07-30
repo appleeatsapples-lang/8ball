@@ -47,7 +47,7 @@ lineage-preserving changes, no rewriting of superseded text). The clause records
 - SHIPPED — squash-merged to `main` as `8b51c38` (#140) on 2026-07-29.
 - The stated cross-model requirement was overridden, not met; sighting #12 named.
 - A retroactive read has since been commissioned —
-  `audits/codex_pr140_retroactive_audit_2026-07-29_brief.md` (#145, `a9957b5`) —
+  `audits/pr140_retroactive_audit_2026-07-29_brief.md` (#145, `a9957b5`) —
   **verdict outstanding**, and deliberately named so it cannot retroactively
   satisfy any gate.
 - The HKO re-confirmation named in the entry's own NOTE remains open.

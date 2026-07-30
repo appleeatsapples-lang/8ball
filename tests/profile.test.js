@@ -492,6 +492,74 @@ describe('calendar — lunar new year + solar-term tables (v2)', () => {
     expect(monthAnimalSolarTerm(2000, 0)).toEqual([2, 4]);
     expect(monthAnimalSolarTerm(2000, 11)).toEqual([1, 6]);
   });
+
+  // ── HKO authority-pin corrections (2026-07-29 deep-audit, P1-D) ─────────
+  // An exhaustive sweep of all 200 years 1901-2100 against the Hong Kong
+  // Observatory's official published tables (2,400 solar-boundary
+  // comparisons + 200 lunar-new-year comparisons) found eight solar
+  // boundaries where this module's low-accuracy solar-longitude formula
+  // (documented ~0.01°, ch25) computed a crossing one day early — all eight
+  // land within about 15 minutes of local midnight, where that documented
+  // error budget is enough to flip the assigned calendar day.
+  // core/calendar.js corrects these eight via HKO_SOLAR_TERM_CORRECTIONS, a
+  // narrow table sourced directly from the HKO 1901-2100 text-calendar
+  // index (https://www.hko.gov.hk/en/gts/time/calendar/text/files/
+  // T<year>e.txt). Each pin below is a positive control (the exact
+  // corrected date) paired with a preceding-day negative control through
+  // getInnerAnimal — the actual consumer-facing cusp function — so a
+  // regression that reverts the date OR breaks the >= cusp comparison in
+  // getInnerAnimal both fail here, not just a raw-date check in isolation.
+  describe('HKO authority-pin corrections — all eight, exact date + cusp', () => {
+    const HKO_CORRECTIONS = [
+      { year: 1911, index: 3, term: 'lixia', boundary: [5, 7], dayBefore: [5, 6],
+        boundaryAnimal: 'snake', beforeAnimal: 'dragon' },
+      { year: 1912, index: 8, term: 'hanlu', boundary: [10, 9], dayBefore: [10, 8],
+        boundaryAnimal: 'dog', beforeAnimal: 'rooster' },
+      { year: 1912, index: 11, term: 'xiaohan', boundary: [1, 7], dayBefore: [1, 6],
+        boundaryAnimal: 'ox', beforeAnimal: 'rat' },
+      { year: 2014, index: 1, term: 'jingzhe', boundary: [3, 6], dayBefore: [3, 5],
+        boundaryAnimal: 'rabbit', beforeAnimal: 'tiger' },
+      { year: 2016, index: 5, term: 'xiaoshu', boundary: [7, 7], dayBefore: [7, 6],
+        boundaryAnimal: 'goat', beforeAnimal: 'horse' },
+      { year: 2045, index: 5, term: 'xiaoshu', boundary: [7, 7], dayBefore: [7, 6],
+        boundaryAnimal: 'goat', beforeAnimal: 'horse' },
+      { year: 2047, index: 1, term: 'jingzhe', boundary: [3, 6], dayBefore: [3, 5],
+        boundaryAnimal: 'rabbit', beforeAnimal: 'tiger' },
+      { year: 2097, index: 3, term: 'lixia', boundary: [5, 5], dayBefore: [5, 4],
+        boundaryAnimal: 'snake', beforeAnimal: 'dragon' },
+    ];
+
+    for (const c of HKO_CORRECTIONS) {
+      it(`${c.year} ${c.term} (index ${c.index}) → ${c.boundary.join('-')}, per HKO T${c.year}e.txt`, () => {
+        expect(monthAnimalSolarTerm(c.year, c.index)).toEqual(c.boundary);
+      });
+      it(`${c.year} ${c.term}: the boundary day is IN the new month (${c.boundaryAnimal})`, () => {
+        expect(getInnerAnimal(c.year, c.boundary[0], c.boundary[1])).toBe(c.boundaryAnimal);
+      });
+      it(`${c.year} ${c.term}: the day before is STILL the previous month (${c.beforeAnimal})`, () => {
+        expect(getInnerAnimal(c.year, c.dayBefore[0], c.dayBefore[1])).toBe(c.beforeAnimal);
+      });
+    }
+  });
+
+  // ── the vacuous 1927 bailu case, replaced (2026-07-29 deep-audit) ───────
+  // tests/public.test.js's fixture-coverage check previously asserted only
+  // 1927-09-09. PR #140 moved 1927 bailu to Sep 8 (confirmed against HKO
+  // T1927e.txt — already correct on main, no code change here); a birth on
+  // Sep 9 lands after the boundary whether the cutoff is the old wrong date
+  // or the corrected one, so that date cannot distinguish the two. Sep 7
+  // (before either candidate) and Sep 8 (exactly the corrected boundary) do.
+  describe('1927 bailu — discriminating Sep 7 / Sep 8 coverage (replaces vacuous Sep 9)', () => {
+    it('monthAnimalSolarTerm(1927, 7) bailu → [9, 8], per HKO T1927e.txt', () => {
+      expect(monthAnimalSolarTerm(1927, 7)).toEqual([9, 8]);
+    });
+    it('1927-09-08 is IN rooster month (bailu reached)', () => {
+      expect(getInnerAnimal(1927, 9, 8)).toBe('rooster');
+    });
+    it('1927-09-07 is STILL monkey month (bailu not yet reached)', () => {
+      expect(getInnerAnimal(1927, 9, 7)).toBe('monkey');
+    });
+  });
 });
 
 
