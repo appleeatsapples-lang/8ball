@@ -5,6 +5,217 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-30 — Codex pre-merge audit `e3c2586..516acbc`: seven P1 fixes applied — STAGED
+
+**Status: STAGED, not merged.** Codex returned **MERGE WITH FIXES** on the branch as it stood: the product fixes were
+correct and no P0 remained, but seven P1 assurance/documentation defects had to be closed first. All seven are closed
+here, plus four of the P2s. Still on `claude/audit-p1-hko-calendar`; no push, merge, or deploy. The L48 filename gate
+still needs an in-PR `audits/<model>_pr<N>_premerge_audit_<date>_response.md` once a PR number exists.
+
+**The two false-greens the audit demonstrated, and what closed them.**
+
+1. **The L48 gate's own test read the wrong copy of the predicate.** Two jobs compile the artifact-shape regex — the
+   `l48` job and the `test` job's DOCTRINE step — and `tests/l48_gate.test.js` extracted it with a whole-file
+   `.exec()`, which returns the *first* match: the test job's. Codex weakened only the real gate's matcher in a scratch
+   tree and got 34/34 green. The file now slices each job by name, pins that the shape is defined exactly twice, that
+   the two definitions are byte-identical, and that both compile to the same accept/reject behavior. Re-running the
+   same mutation now fails 8 tests. `ADDED=` had the identical first-match bug and is pinned the same way.
+2. **The HKO comparator was checking the fixture against itself.** `audits/hko_compare.mjs` took its term order from
+   `fixture.source.term_order` *and* looked every expected value up by those same fixture-supplied names. Codex rotated
+   the order, relabelled every year's values by the same rotation and regenerated the content digest: 2,400
+   comparisons, **zero mismatches, PASS**, all 200 source hashes untouched. The canonical 12-name order now lives in the
+   comparator and in `project_audit.py`, not in the file under test, alongside an index-to-month invariant that no
+   relabelling can satisfy. The same forgery now fails.
+
+**Also closed.** The auditor's own 69-test assurance suite was in-repo but invoked by nothing — no workflow, no npm
+script — so CI ran `project_audit.py` while nothing proved its checks could still fail; it now runs first in the
+`product-audit` job. Both "CI doctrine" checks were substring greps that passed on inert comment text (three of the
+four required substrings predated the fix they verified); both now execute the real suites and pin the load-bearing
+tests by name. And the P0's most damaging path — stored `t4` + `?paid=t1` persisting `t1` irreversibly — had no
+regression at all, because all five new cases drove `getRenderTier()` and none invoked `handlePaidReturn()`. Four new
+cases pin it; they fail against `233dde8^`.
+
+**The record correction (§3 calc v3.1, L17 amendment).** Three claims in the constitutional record were wrong and are
+struck rather than edited. The eight HKO mismatches were **not** "outside this entry's four-date blast radius" — 1911
+lixia and 1912 xiaohan are two of those four, and the correction table restores the very dates calc v3.1 moved them
+off, so at those two boundaries the pre-1929 offset was a regression this table reverses. Only six are new; only 1927
+bailu of the original three solar-term changes still stands. The three-library consensus (sxtwl, lunardate, borax) was
+used as a **lunar-new-year** oracle only — nothing on file shows lunardate or borax evaluated at a solar-term boundary,
+so the solar-term disagreement was misattributed to them. And the ~15-minute error budget is motivation, not a
+demonstrated cause: instrumenting the range finds 55 crossings within 900s of midnight and only 8 that disagree, so
+the eight are **authority-pinned residual corrections**, not a physical diagnosis. Scope corrected in the same pass:
+the comparison covers the 12 month-starting terms plus lunar new year, not HKO's "full index" — the 12 major terms
+carry no direct coverage. The eight override values themselves are unaffected and re-verified against all 200 official
+source files.
+
+**P2s taken:** the doc-scope and causal overclaims above; the legacy-credit test's claim to distinguish `RETIRED_TIERS`
+from the accidental grandfather path, which its assertions cannot do (retitled as the no-regression pin it actually
+is); and `product.local_pii`'s severity — blocking-and-skipped on every CI run claimed an assurance it never provides,
+so the absent-pattern-file branch now reports `info` while a real hit stays blocking.
+
+**Not taken:** Codex's finding-E note that the proposed Hong Kong-local-time substitution is the wrong calendar model —
+that was a proposal in the outgoing brief, never in the code; the USNO 116°25′/120°E rule the code implements is the
+one it endorses, and a pointer to that source is now in `core/calendar.js`.
+
+Suite 48 files / 1,657 tests green; Python assurance suite 90/90; product audit PASS, 0 blocking failures.
+
+## 2026-07-29 — P1: eight HKO solar-boundary mismatches corrected, zero remaining — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p1-hko-calendar` in response to the same-day independent
+deep-audit. Local suite green (46 files / 1627 tests); no push, merge, or deploy. **This branch touches `DOCTRINE.md` —
+per §10/CLAUDE.md a cross-model audit is required before merge, and the L48 filename gate this same audit's P1-C fix
+closed cannot be satisfied by an artifact yet, since no PR exists to name.**
+
+**What was checked.** The full 1901–2100 Hong Kong Observatory text-calendar index — 2,400 solar-boundary comparisons
+across all twelve jieqi in all 200 years, plus 200 lunar-new-year comparisons — run against `core/calendar.js` on
+current `main`. Result before this fix: 8 solar mismatches, 0 lunar mismatches (calc v3.1 / PR #140's own four-date fix
+holds; the LNY table has been exact since then). All eight independently re-verified by reading the raw bytes of the
+relevant `T<year>e.txt` files directly (not just trusting the audit's summary table):
+
+| Year | Term | HKO | Was |
+|---:|---|---:|---:|
+| 1911 | Summer Commences (lixia) | 05-07 | 05-06 |
+| 1912 | Cold Dew (hanlu) | 10-09 | 10-08 |
+| 1912 | Moderate Cold (xiaohan) | 01-07 | 01-06 |
+| 2014 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2016 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2045 | Moderate Heat (xiaoshu) | 07-07 | 07-06 |
+| 2047 | Insects Waken (jingzhe) | 03-06 | 03-05 |
+| 2097 | Summer Commences (lixia) | 05-05 | 05-04 |
+
+**Root cause, checked rather than assumed.** All eight computed crossings land within about 15 minutes of local midnight
+Shanghai civil time (as little as 12 seconds for 2047 jingzhe) — verified by instrumenting the internal pipeline and
+printing sub-day precision. `solarLongitude()` is documented in-file as accurate to only ~0.01° (Meeus ch 25, "low
+accuracy" formula); at the sun's ~0.9856°/day rate that is on the order of 15 minutes, which is exactly the scale of
+every discrepancy found. A real ΔT (TT−UT) correction was considered and rejected as the cause: applying it in the
+textbook direction would push the computed instant *earlier*, not later — the wrong direction to explain these eight,
+which all need to move *later* to match HKO. The remaining 2,392 solar comparisons and 200 lunar comparisons are
+unaffected because almost no crossing falls anywhere near a midnight boundary.
+
+**The fix.** A bounded, sourced correction table, `HKO_SOLAR_TERM_CORRECTIONS` in `core/calendar.js`, keyed by
+`year:animalIndex`, overriding `monthAnimalSolarTerm()`'s computed result for exactly these eight pairs — nothing else
+in the 1900–2100 range is touched, and `lunarNewYearDate()` doesn't call `monthAnimalSolarTerm()` at all so it needed no
+change (0/200 before and after). This is the fallback the audit brief itself names as acceptable when "the chosen
+solver cannot reach zero authoritative mismatches without fragile patches" — chosen over attempting a higher-precision
+solar-longitude series (VSOP87 or similar) because that would be a substantial rewrite with no independent authoritative
+ephemeris available in this environment to validate it against beyond the same HKO tables already in hand, and because
+this narrow table is easy to audit by inspection against its cited source
+(`https://www.hko.gov.hk/en/gts/time/calendar/text/files/T<year>e.txt`). **Re-run after the fix: 2,400 solar
+comparisons, 200 lunar comparisons, zero mismatches, exactly the acceptance criterion.**
+
+**New coverage.** `tests/profile.test.js` gains an exact positive-control pin plus a preceding-day / boundary-day
+`getInnerAnimal` cusp pair for all eight corrections — 24 new assertions exercising the actual consumer-facing cusp
+function, not just the raw date. Confirmed failing (16/24, the date-pin and boundary-day halves; the day-before halves
+were never wrong) against pre-fix `core/calendar.js`, passing after. Also replaces the audit's flagged vacuous case:
+`tests/public.test.js`'s fixture-coverage list tested only `1927-09-09` for the 1927 bailu correction, which cannot
+distinguish the corrected Sep-8 cutoff from the pre-PR-#140 wrong one — Sep 9 lands after either. Added
+`tests/profile.test.js` pins for 1927-09-07 (monkey, before) / 1927-09-08 (rooster, at the real boundary — bailu itself
+needed no date change, already correct on `main`), and added both `1912-01-07` and `1927-09-08` as new cases to
+`tests/public_tier.fixture.json` (17 → 19 cases) — closing the audit's other finding that `1912-01-06` was claimed
+covered but never present.
+
+**Fixture regeneration.** `tests/public_tier.fixture.json`'s existing `1911-05-06` case went stale: it was frozen while
+lixia was (wrongly) 05-06, so it recorded someone born exactly *on* the old boundary. With lixia now correctly 05-07,
+that date is the day *before* the boundary, and its full `buildPublicReading` output changed (month-animal snake →
+dragon, and every downstream field derived from it — season state, strength, favorability, families, role line).
+Regenerated from the fixed implementation; `note` field updated to describe the corrected relationship. This is the
+"regenerate any fixture/public-reading snapshot whose animal or catalog result changes" requirement — checked
+systematically (ran the full suite, found exactly this one stale case) rather than assumed absent.
+
+**Doctrine correction — the "catalog index... untouched" claim.** PR #140's calc v3.1 entries (§3, v0.57, both the
+changelog line and the SHIPPED entry) claimed "numerology, sun sign, rising sign, birth card, and the catalog index are
+untouched" by the 1916 lunar-new-year fix. False: the catalog index is `(sunSign, animal)`-driven per §1, where
+`animal` is the public year-pillar animal — the exact coordinate that fix moved for 1916-02-03 (rabbit → dragon).
+Confirmed against shipped `core/engine.js`: Aquarius+rabbit is `cxxiv`, Aquarius+dragon is `cxxv`. Struck per L17 (not
+silently rewritten) with an erratum in both spots — this was a blast-radius/truth defect in the record, not a code
+defect; the shipped catalog computation was already correct, only the claim about its scope was wrong.
+
+**Not touched.** `core/engine.js`, `core/profile.js`, `core/rising.js`, and every other calc module are byte-identical.
+No dependency, localStorage key, network call, or scanner list changes.
+
+## 2026-07-29 — P1: the doctrine-only L48 false-green is closed — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to the same-day independent deep-audit
+that also found the #183 overclaim (entry below). Local suite green (46 files / 1600 tests); no push, merge, or deploy.
+
+**The defect.** `.github/workflows/ci.yml`'s `l48-gate` job took an early "docs-only" exemption — every changed file
+ends in `.md`, none is `audits/RELEASE_CHECKLIST.md` or `agents/*.md` — and returned `exit 0` **before** the
+verdict/override filename predicate (the strict shape `tests/l48_gate.test.js` pins) ever ran. `DOCTRINE.md`,
+`journal.md`, and any `audits/*.md` file all end in `.md`, so a PR that touches `DOCTRINE.md` plus a brief plus the
+journal read as docs-only and skipped the artifact check entirely. The separate doctrine step in the `test` job had the
+same shape of gap from the other side: it only asked whether *some* path under `audits/` changed, not whether that path
+was added by the current PR, named the current PR number, or matched the verdict-response/override shape. Reproduced
+against PR #176's exact three-file diff (`DOCTRINE.md`, `audits/doctrine_v060_label_carveout_2026-07-29_brief.md`,
+`journal.md`): both jobs reported green — `L48 gate: docs-only exempt` and `Doctrine audit-artifact gate: pass` — for a
+brief, which is the packet sent to a reviewer, not a verdict.
+
+**The fix.** `DOCTRINE.md` in the changed-file set now unconditionally skips the l48-gate job's docs-only exemption,
+regardless of what else in the diff is markdown, and falls through to the same added-file + PR-number + shape predicate
+the job already enforces once reached. The `test` job's doctrine step now runs that identical predicate (added-file
+detection with `--find-renames --find-copies-harder`, `--diff-filter=A`, the same `SHAPE=` regex) instead of "any
+`audits/` path changed." Ordinary docs-only PRs that never touch `DOCTRINE.md` are still exempt in the l48-gate job —
+that half of the audit's required behavior is unchanged.
+
+**New coverage (`tests/l48_gate_composition.test.js`, new file).** `tests/l48_gate.test.js` pins the shape regex in
+isolation but — as the audit named directly — "does not execute or model the earlier docs-only branch, nor the
+composition of the two jobs." This file extracts both `run: |` script bodies **verbatim** from the shipped YAML (no
+parallel reimplementation that could drift from the real predicate), fills the two `${{ github.event.pull_request.* }}`
+expressions the same way GitHub Actions would, and executes the actual bash with a real two-remote git repository
+shaped like the target PR — a bare "origin" holding the pre-PR base state and a local clone carrying the PR's commit on
+top, so `"$BASE"...HEAD` resolves exactly as it does in CI. Confirmed against a literal copy of the pre-fix docs-only
+condition that the harness reproduces the original false-green (control case), then against the real post-fix scripts:
+PR #176's exact diff now fails both jobs; an ordinary docs-only PR (no `DOCTRINE.md`) stays exempt; a `DOCTRINE.md`
+change with a validly-ADDED response or override artifact still passes both jobs; and recycling an unrelated old PR's
+verdict under the current PR's filename (the #133-shape dodge) still fails via the rename/copy detection.
+
+**Disposition.** PR #176 remains **HOLD** per the primary audit — this fix does not itself clear it; it means the gate
+will now correctly demand the in-PR verdict/override artifact that PR #176's own brief already says is required before
+merge.
+
+## 2026-07-29 — P0 fix: raw stored t4 now reaches RETIRED_TIERS; corrects the #183 real-device claim — STAGED
+
+**Status: STAGED, not merged.** Fixed on `claude/audit-p0-t4-migration` in response to a same-day independent deep-audit
+finding. Local suite green; no push, merge, or deploy performed. Controller sign-off and the L48 gate are still required
+before this lands on `main`.
+
+**The defect this closes.** `ui/payments.js:getTier()` read the raw `eight_ball_tier_v1` value and immediately gated it
+through `isTier()` — the CURRENT-tiers-only check — before `resolveRenderTier()` ever got a chance to run it through
+`RETIRED_TIERS`. A raw stored `'t4'` therefore never reached the retirement table at all: `getTier()` returned `null`,
+and `resolveRenderTier({tier: null, credits})` fell through to the unrelated §1.D R2 legacy-credit grandfather instead.
+With zero legacy credits that resolves to `'free'` — silently, forever, with no storage rewrite, since `isTier('free')`
+is false and the persistence guard in `getRenderTier()` never fires. With positive legacy credits it happened to land on
+`'t3'` anyway, but via the grandfather's coincidence, not the retirement mapping — the right answer for the wrong reason,
+which would have been the wrong answer for any retired tier that didn't happen to map onto the same rung the grandfather
+already produces.
+
+**The correction (below, this entry's own subject).** The entry two above this one — squash-merged as `4b65936` (#178)
+and later amended with a same-day "verified on a real device" paragraph (#183) — claimed that reload was "the first and
+only exercise of `RETIRED_TIERS` outside the suite." Given the source path actually shipped at that time, that specific
+claim does not hold: a device holding a bare, credit-less raw `'t4'` could not have rendered the complete sheet through
+that code at all — it would have rendered free. Whatever device was reloaded either also carried a positive legacy-credit
+value (in which case the R2 grandfather produced the t3 render, not `RETIRED_TIERS`) or the sighting's memory of what
+rendered is itself mistaken. Neither this lane nor the audit that found it inspected that device's actual
+`eight_ball_credits_v1` value, so which of the two is true is not established here — only that "RETIRED_TIERS fired" is
+not. The #183 paragraph is left in place per L17 lineage (append-only; historical doctrine is superseded, not rewritten)
+— read its "first and only exercise of RETIRED_TIERS" line against this correction, not on its own.
+
+**The fix.** `getTier()` now lets a raw value through unnormalized whenever `isTier(normalizeTier(t))` is true — true for
+both a current rung and a retired one that maps onto a current rung, false for any other garbage. Both callers
+(`getRenderTier` via `resolveRenderTier`, `handlePaidReturn` via `applyPaidReturn`) already run the value through
+`normalizeTier`/`RETIRED_TIERS` themselves; the bug was only ever that `getTier()` discarded the raw token before either
+one got the chance. Valid `t1`/`t2`/`t3` storage is untouched — `isTier(normalizeTier('t1'))` is `true` exactly as
+`isTier('t1')` was — and genuine garbage (`'banana'`, etc.) still fails closed to `null`/`'free'`, since `normalizeTier`
+passes unrecognized values through unchanged and `isTier` rejects them.
+
+**New coverage (`tests/tiers.test.js`).** Four cases added to the `getRenderTier` storage-wrapper suite, all seeding a
+real localStorage-shaped mock and driving the public `getRenderTier()`/`getTier()` entry points rather than calling
+`resolveRenderTier({tier:'t4'})` directly (the exact gap the audit named — a direct call is insufficient because it
+skips the broken seam entirely): raw `'t4'` with zero legacy credits now resolves `'t3'` and rewrites storage; raw
+`'t4'` with positive legacy credits resolves `'t3'` via the retirement table rather than the accidental grandfather;
+valid `t1`/`t2`/`t3` storage is unaffected; corrupt/unknown values still fail closed. Confirmed against pre-fix
+`ui/payments.js`: the two `t4` cases fail deterministically (`'free'` where `'t3'` is expected) before the fix and pass
+after it.
+
 ## 2026-07-29 — black background / white writing supersedes the Phase-2E cream lock — STAGED
 
 **Status: STAGED, not merged, not pushed.** Built on `claude/bw-monochrome-ui` (branched fresh off `main`,
@@ -141,7 +352,6 @@ it introduced).
 `ui/tools` (off-repo vault: `render_icon.mjs` + `build_ico.mjs` added, `render_og_image.mjs` recolored),
 `tests/monochrome_surface.test.js` (new), `tests/monochrome_assets.test.js` (new), `tests/modal_a11y.test.js`,
 `CLAUDE.md`, `8BALL.md`, `assets/{favicon-16,favicon-32,favicon,apple-touch-icon-180,og-image}`, this entry.
-
 
 ## 2026-07-29 — The public rung is retired; the read folds into t3 (DOCTRINE v0.60) — SHIPPED
 

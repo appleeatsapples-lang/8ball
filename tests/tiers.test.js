@@ -296,6 +296,76 @@ describe('tiers — getRenderTier storage wrapper (remediation R1/R2)', () => {
     expect(getRenderTier()).toBe('free');
     expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
   });
+
+  it('corrupt/unknown stored tier still fails closed to free (never throws, never persists)', () => {
+    const storage = makeStorage({ [TIER_KEY]: 'banana', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('free');
+    expect(storage.snapshot()[TIER_KEY]).toBe('banana'); // untouched, not rewritten
+  });
+
+  // ── raw stored 't4' — the P0 regression (deep-audit 2026-07-29) ──────
+  //
+  // getTier() used to gate `t` through the CURRENT-only `isTier(t)` before
+  // resolveRenderTier ever saw it, so a raw stored 't4' (live and unsigned
+  // while the rung existed, §1.D v0.58/§5.C) was discarded to null before
+  // the RETIRED_TIERS table in core/payments.js could map it onto 't3'.
+  // With no legacy credits that meant a real localStorage holding 't4'
+  // rendered free forever and never got rewritten — the ownership
+  // migration the R2/retirement comments claimed was total, wasn't. This
+  // seeds a REAL localStorage-shaped mock (not a direct
+  // `resolveRenderTier({tier:'t4'})` call, which is exactly what let the
+  // prior suite pass while the live path was broken) and drives the public
+  // `getRenderTier()` entry point, the same one index.html calls on every
+  // boot/shake/submit.
+  it('raw stored t4, no legacy credits: getRenderTier() resolves t3 and rewrites storage', () => {
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t3');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3'); // migrated, not stranded at 'free'
+    // stays stable once rewritten
+    expect(getRenderTier()).toBe('t3');
+  });
+
+  it('raw stored t4 WITH legacy credits still resolves t3 (no-regression pin — it does NOT identify the mechanism)', () => {
+    // Deliberately understated, per Codex's 2026-07-30 pre-merge audit
+    // (finding I). An earlier version of this case claimed it proved the
+    // RETIRED_TIERS table was what fired rather than the unrelated R2
+    // legacy-credit grandfather. It cannot: pre-fix, getTier() returned
+    // null for a raw 't4', resolveRenderTier({tier: null, credits: N>0})
+    // took the grandfather branch, and that branch lands on 't3' too —
+    // same returned tier, same storage rewrite. This case genuinely passed
+    // against the broken code, and the audit confirmed it.
+    //
+    // So what it is: a pin that the credited path did not regress while the
+    // uncredited one was fixed. The two cases that DO identify the
+    // mechanism are the no-credits case above (grandfather unavailable, so
+    // only RETIRED_TIERS can produce t3) and the getTier() seam case below
+    // (the raw token must survive unnormalized to reach that table).
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '3' });
+    globalThis.localStorage = storage;
+    expect(getRenderTier()).toBe('t3');
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+  });
+
+  it('getTier() itself surfaces the raw retired token unnormalized — the seam the fix depends on', () => {
+    // Both callers (getRenderTier via resolveRenderTier, handlePaidReturn
+    // via applyPaidReturn) run the value through normalizeTier/RETIRED_TIERS
+    // themselves. getTier() must hand them the raw 't4', not a pre-resolved
+    // 't3' and not a discarded null — either would hide which mechanism
+    // actually performed the migration.
+    globalThis.localStorage = makeStorage({ [TIER_KEY]: 't4' });
+    expect(getTier()).toBe('t4');
+  });
+
+  it('valid t1/t2/t3 storage is unaffected by the t4 fix', () => {
+    for (const tier of ['t1', 't2', 't3']) {
+      const storage = makeStorage({ [TIER_KEY]: tier, [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      expect(getRenderTier()).toBe(tier);
+      expect(storage.snapshot()[TIER_KEY]).toBe(tier); // untouched — already correct
+    }
+  });
 });
 
 describe('tiers — R1 wiring: every render path resolves via getRenderTier (index.html)', () => {
@@ -446,6 +516,74 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, 
       [TIER_KEY]: 't3',
     });
     expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
+  });
+
+  // ── the irreversible paid-return downgrade (P0, unpinned until now) ────
+  //
+  // Codex's 2026-07-30 pre-merge audit (finding J) established by scratch
+  // probe that this was the P0's most damaging path and that NONE of the
+  // five new cases invoked handlePaidReturn() at all — every one of them
+  // drove getRenderTier()/getTier() instead. The two paths diverge exactly
+  // here: getRenderTier only READS, while handlePaidReturn WRITES, and the
+  // tier key is the only record a purchase leaves on the device.
+  //
+  // Pre-fix, getTier() gated the raw stored 't4' to null before
+  // applyPaidReturn saw it, so `maxTier(null, 't1')` returned 't1' and the
+  // handler PERSISTED it: a t4 holder who opened any lower-rung return URL
+  // once was written down to that rung permanently, with no record left of
+  // what they had owned. Post-fix the raw token reaches RETIRED_TIERS, and
+  // `maxTier('t3', 't1')` holds at 't3'.
+  it('stored t4 + ?paid=t1 persists t3 — the downgrade write is irreversible, so it is pinned here', () => {
+    installPaywallUI();
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    installWindow('?paid=t1');
+
+    handlePaidReturn();
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+    expect(storage.snapshot()[CREDITS_KEY]).toBe('0');
+  });
+
+  it.each(['t1', 't2', 't3'])('stored t4 + ?paid=%s never persists below t3', purchased => {
+    installPaywallUI();
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    installWindow(`?paid=${purchased}`);
+
+    handlePaidReturn();
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+  });
+
+  it('the t4 → t3 write is idempotent across repeated returns', () => {
+    // The retired token is rewritten on the first return; a second return at
+    // a lower rung must then be an ordinary monotonic no-op rather than a
+    // second chance to downgrade.
+    installPaywallUI();
+    const storage = makeStorage({ [TIER_KEY]: 't4', [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+
+    installWindow('?paid=t1');
+    handlePaidReturn();
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+
+    installWindow('?paid=t2');
+    handlePaidReturn();
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+  });
+
+  it('?paid=t4 is not a tier — a retired rung cannot be purchased (§1.D v0.60)', () => {
+    // The retirement maps a STORED t4 forward; it does not reopen t4 as a
+    // purchasable parameter. Unchanged by the P0 fix, pinned beside it so
+    // the two directions are not confused.
+    const banner = installPaywallUI();
+    const storage = makeStorage({ [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    installWindow('?paid=t4');
+
+    expect(handlePaidReturn()).toBe(false);
+    expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+    expect(globalThis.window.history.replaceState).not.toHaveBeenCalled();
+    expect(banner.hidden).toBe(true);
   });
 
   it('getTier reads only valid tiers; garbage in storage reads as free (null)', () => {

@@ -304,7 +304,18 @@ describe('public tier — snapshot fixtures', () => {
     expect(fixture.cases.length).toBeGreaterThanOrEqual(12);
     // Every date calc v3.1 moved is in the set — the LNY and all three
     // solar terms — so a regression in the era-offset rule fails here too.
-    for (const dob of ['1916-02-03', '1911-05-06', '1927-09-09']) {
+    // 2026-07-29 HKO audit (P1-D): 1912-01-07 and 1927-09-08 were added
+    // here — 1912 xiaohan was never actually in this set despite the old
+    // comment's claim, and 1927-09-09 alone cannot discriminate the
+    // corrected bailu cutoff (Sep 8) from the pre-PR-#140 one, since Sep 9
+    // lands after either. 1911-05-06 stays: the P1-D fix moved lixia to
+    // 05-07, so this date is now the day BEFORE that boundary rather than
+    // on it — still a real, useful anchor, just a different one. The full
+    // exact-date + before/boundary matrix for all eight P1-D corrections
+    // lives in tests/profile.test.js, against getInnerAnimal directly.
+    for (const dob of [
+      '1916-02-03', '1911-05-06', '1912-01-07', '1927-09-09', '1927-09-08',
+    ]) {
       expect(fixture.cases.map(c => c.dob), dob).toContain(dob);
     }
     const readings = fixture.cases.map(c => c.reading);

@@ -30,7 +30,7 @@
 
 import {
   anchorFacetIndex, applyPaidReturn, isTier, nextFacetState,
-  normalizeCounter, normalizeFacetIndex, resolveRenderTier,
+  normalizeCounter, normalizeFacetIndex, normalizeTier, resolveRenderTier,
 } from '../core/payments.js';
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
@@ -85,10 +85,24 @@ export function getCredits() {
 // Tier is the highest rung purchased ("t1" | "t2" | "t3"); absent = free.
 // Monotonic — only handlePaidReturn writes it, via the max-rank result of
 // applyPaidReturn. Garbage in storage reads as free (never throws).
+//
+// A RAW retired-tier value (currently only 't4', §1.D v0.60) is let through
+// UNNORMALIZED rather than gated out here. Both callers — getRenderTier via
+// resolveRenderTier, and handlePaidReturn via applyPaidReturn — immediately
+// run the value through normalizeTier/RETIRED_TIERS themselves, so this is
+// the one seam a retired token must survive to reach that table. Gating it
+// to null here (the pre-fix behavior) discarded the raw 't4' before either
+// caller could apply the retirement mapping, so a device holding a raw
+// stored 't4' fell through to the unrelated legacy-credit grandfather path
+// instead — silently landing on 'free' with no credits, or on t3 via the
+// WRONG mechanism with credits, and never persisting a rewrite in the
+// no-credits case. `isTier(normalizeTier(t))` is true for both a current
+// rung and a retired one that maps onto a current rung, and false for any
+// other garbage — so true unknown/corrupt values still fail closed to null.
 export function getTier() {
   try {
     const t = localStorage.getItem(TIER_KEY);
-    return isTier(t) ? t : null;
+    return isTier(normalizeTier(t)) ? t : null;
   } catch (_) { return null; }
 }
 export function setTier(tier) {

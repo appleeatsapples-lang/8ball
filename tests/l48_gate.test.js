@@ -29,22 +29,112 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 const workflow = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'ci.yml'), 'utf-8');
 
-// The shipped predicate: the grep -E pattern on the ART= line of the l48 job,
-// compiled for a given PR number exactly as the gate compiles it.
-function shippedPredicate(pr) {
-  // The pattern lives either in a SHAPE= variable (once it is reused by the
-  // recycled-artifact diagnostic) or inline on the ART= grep. Accept both so
-  // this pin does not depend on which arrangement is in force.
-  const shapeLine = /^\s*SHAPE="(.+)"\s*$/m.exec(workflow);
-  if (shapeLine) return new RegExp(shapeLine[1].replace(/\$\{PR\}/g, String(pr)));
-  const line = workflow.split('\n').find(l => l.includes('ART=') && l.includes('grep -E'));
-  expect(line, 'neither SHAPE= nor an ART= grep line found in ci.yml').toBeTruthy();
-  const m = /grep -E "([^"]+)"/.exec(line);
-  expect(m, 'could not extract the artifact regex').not.toBeNull();
-  return new RegExp(m[1].replace(/\$\{PR\}/g, String(pr)));
+// TWO jobs compile this predicate: the `l48` job's own gate, and the `test`
+// job's DOCTRINE.md step, which since 6d5cc35 enforces the identical shape.
+// That makes "the shipped predicate" ambiguous, and a whole-file `.exec()`
+// resolves the ambiguity the wrong way — it returns whichever definition
+// appears FIRST, which is the test job's copy, not the gate this file is
+// named for. Codex's 2026-07-30 pre-merge audit weakened only the l48 job's
+// matcher in a scratch tree and both this file and l48_gate_composition
+// stayed green: 34/34 passing with the gate broken.
+//
+// So: extract EVERY definition, pin the count, require them byte-identical,
+// and let callers name the job they mean. The copies must not be allowed to
+// drift apart — a fix applied to one and not the other is exactly the shape
+// that produced the doctrine-only false-green in the first place.
+// Slices one job's YAML by name: from its `  <name>:` line to the next line
+// at the same indent that starts a sibling job (or EOF). Derived from the
+// structure rather than from the name of whatever job happens to follow, so
+// adding or reordering jobs cannot silently truncate a slice to nothing — an
+// empty slice would make every assertion over it vacuous.
+function jobSlice(name) {
+  const start = workflow.indexOf(`\n  ${name}:`);
+  expect(start, `job \`${name}\` not found in ci.yml`).toBeGreaterThan(-1);
+  const rest = workflow.slice(start + 1);
+  const nextJob = /\n {2}[A-Za-z][\w-]*:\s*$/m.exec(rest);
+  const slice = nextJob ? rest.slice(0, nextJob.index) : rest;
+  expect(slice.length, `job \`${name}\` sliced to nothing`).toBeGreaterThan(0);
+  return slice;
+}
+
+const L48_JOB = jobSlice('l48');
+const TEST_JOB = jobSlice('test');
+
+function shapeDefinitionsIn(text) {
+  return text
+    .split('\n')
+    .map((l) => /^\s*SHAPE="(.+)"\s*$/.exec(l))
+    .filter(Boolean)
+    .map((m) => m[1]);
+}
+
+function addedDefinitionsIn(text) {
+  return text.split('\n').filter((l) => l.includes('ADDED=$(git diff'));
+}
+
+// Compiles the shape exactly as the named job's bash compiles it. Defaults to
+// the l48 job — this file's subject — but the test-job copy is reachable by
+// name so both can be asserted independently and identically.
+function shippedPredicate(pr, job = L48_JOB) {
+  const shapes = shapeDefinitionsIn(job);
+  expect(shapes, 'no SHAPE= definition found in the job').toHaveLength(1);
+  return new RegExp(shapes[0].replace(/\$\{PR\}/g, String(pr)));
 }
 
 const accepts = (pr, path) => shippedPredicate(pr).test(path);
+const testJobAccepts = (pr, path) => shippedPredicate(pr, TEST_JOB).test(path);
+
+describe('L48 gate — the two shape definitions cannot drift apart', () => {
+  // The pin that makes every other assertion in this file unambiguous. If a
+  // third gate ever compiles the shape, this fails until the count and the
+  // identity check are updated deliberately.
+  it('ci.yml defines the artifact shape exactly twice', () => {
+    expect(shapeDefinitionsIn(workflow)).toHaveLength(2);
+  });
+
+  it('defines it once in the l48 job and once in the test job', () => {
+    expect(shapeDefinitionsIn(L48_JOB)).toHaveLength(1);
+    expect(shapeDefinitionsIn(TEST_JOB)).toHaveLength(1);
+  });
+
+  it('both definitions are byte-identical', () => {
+    const [l48Shape] = shapeDefinitionsIn(L48_JOB);
+    const [testShape] = shapeDefinitionsIn(TEST_JOB);
+    expect(l48Shape, 'the two gates must enforce the same shape').toBe(testShape);
+  });
+
+  it('computes ADDED= exactly twice, identically, and rename-detecting', () => {
+    // Same first-match trap on the other extracted line: `.find()` over the
+    // whole workflow returned the test job's copy, so weakening the l48 job's
+    // ADDED= alone went unnoticed.
+    const l48Added = addedDefinitionsIn(L48_JOB);
+    const testAdded = addedDefinitionsIn(TEST_JOB);
+    expect(l48Added).toHaveLength(1);
+    expect(testAdded).toHaveLength(1);
+    expect(l48Added[0].trim()).toBe(testAdded[0].trim());
+    for (const line of [...l48Added, ...testAdded]) {
+      expect(line).toContain('--find-renames');
+      expect(line).toContain('--find-copies-harder');
+      expect(line).not.toContain('--no-renames');
+    }
+  });
+
+  it('the test job’s copy accepts and rejects identically to the l48 job’s', () => {
+    // Identity of the source strings is asserted above; this is the behavioral
+    // restatement, so a future arrangement that stops being byte-identical for
+    // a benign reason still has to prove the two gates agree.
+    for (const [pr, path] of [
+      [126, 'audits/codex_pr126_premerge_audit_2026-07-25_response.md'],
+      [119, 'audits/L48_override_pr119_2026-07-25.md'],
+      [126, 'audits/test_quality_audit_pr126_2026-07-24.md'],
+      [130, 'audits/codex_pr130_premerge_audit_2026-07-26_brief.md'],
+      [12, 'audits/codex_pr126_premerge_audit_2026-07-25_response.md'],
+      [126, 'audits/sub/codex_pr126_premerge_audit_2026-07-25_response.md'],
+    ]) {
+      expect(testJobAccepts(pr, path), `${path} @ pr${pr}`).toBe(accepts(pr, path));
+    }
+  });
+});
 
 describe('L48 gate — accepted artifact shapes', () => {
   it('accepts a cross-model verdict response for the PR', () => {
@@ -247,12 +337,15 @@ describe('L48 gate — a recycled artifact cannot supply the verdict', () => {
     // ADDED= NEEDS rename/copy detection so a recycled artifact is classified
     // R/C and dropped by --diff-filter=A. Putting --no-renames here would
     // reclassify a recycled verdict as a plain addition and re-open #133.
-    const addedLine = workflow
-      .split('\n')
-      .find(l => l.includes('ADDED=$(git diff'));
-    expect(addedLine).toBeDefined();
-    expect(addedLine).not.toContain('--no-renames');
-    expect(addedLine).toContain('--find-renames');
+    //
+    // Scoped to `job` (the l48 slice), NOT the whole workflow. A `.find()`
+    // across the file returned the test job's ADDED= line first, so this
+    // assertion held while the l48 job's own copy was weakened — the exact
+    // first-match defect the drift block at the top of this file now pins.
+    const addedLines = job.split('\n').filter(l => l.includes('ADDED=$(git diff'));
+    expect(addedLines).toHaveLength(1);
+    expect(addedLines[0]).not.toContain('--no-renames');
+    expect(addedLines[0]).toContain('--find-renames');
   });
 
   it('keeps recording that this does not by itself close #126 F1', () => {
