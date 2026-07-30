@@ -88,130 +88,144 @@ function injectStyle() {
 }
 
 // ── DOM-touching controller (DI injected at boot) ─────────────────
-
-let _refs = null;
-let _hooks = null;
-let _debounce = null;
-let _results = [];
-let _activeIndex = -1;
-
-function clearSuggestions() {
-  _refs.citySuggestions.innerHTML = '';
-  _results = [];
-  _activeIndex = -1;
-  _refs.cityInput.setAttribute('aria-expanded', 'false');
-  _refs.cityInput.removeAttribute('aria-activedescendant');
-}
-
-function renderSuggestions(results) {
-  clearSuggestions();
-  if (!results.length) return;
-  _results = results.slice();
-  _refs.cityInput.setAttribute('aria-expanded', 'true');
-  for (const [index, c] of results.entries()) {
-    const li = document.createElement('li');
-    li.id = `city-option-${index}`;
-    li.setAttribute('role', 'option');
-    li.setAttribute('aria-selected', 'false');
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = c.name;
-    const countrySpan = document.createElement('span');
-    countrySpan.className = 'city-country';
-    countrySpan.textContent = ' · ' + c.country;
-    li.appendChild(nameSpan);
-    li.appendChild(countrySpan);
-    li.addEventListener('mousedown', e => {
-      // mousedown fires before the input's blur, so selection survives
-      // the focus shift; preventDefault stops the focus loss outright.
-      e.preventDefault();
-      selectCity(c);
-    });
-    _refs.citySuggestions.appendChild(li);
-  }
-}
-
-function setActiveIndex(index) {
-  const options = _refs.citySuggestions.children;
-  if (!options.length) return;
-  _activeIndex = (index + options.length) % options.length;
-  for (let i = 0; i < options.length; i++) {
-    options[i].setAttribute('aria-selected', i === _activeIndex ? 'true' : 'false');
-  }
-  const active = options[_activeIndex];
-  _refs.cityInput.setAttribute('aria-activedescendant', active.id);
-  if (typeof active.scrollIntoView === 'function') {
-    active.scrollIntoView({ block: 'nearest' });
-  }
-}
-
-function selectCity(c) {
-  if (_hooks.setSelectedCity) _hooks.setSelectedCity(c);
-  _refs.cityInput.value = formatCityLabel(c);
-  clearSuggestions();
-  _refs.legacyHint.hidden = true;
-  // Polar latitudes are unsupported — surface the message proactively
-  // at selection time so the user knows before submit. computeRising
-  // returns null at polar latitudes; this is the UI mirror of the same
-  // core/rising.js check.
-  _refs.polarMessage.hidden = !isPolarLatitude(c.lat);
-}
-
-function onInput() {
-  // Typing without selecting clears the selection so stale city state
-  // never silently propagates to buildProfile. Guarded like every other
-  // hook call in ui/ — a partial DI object must degrade, not throw from
-  // inside the input handler.
-  if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
-  _refs.polarMessage.hidden = true;
-  if (_debounce) clearTimeout(_debounce);
-  clearSuggestions();
-  const q = _refs.cityInput.value.trim();
-  if (q.length < MIN_QUERY_LEN) {
-    return;
-  }
-  _debounce = setTimeout(async () => {
-    try {
-      const results = await searchCities(q, 12);
-      // Race guard: drop results if the input has changed since dispatch.
-      if (_refs.cityInput.value.trim() !== q) return;
-      renderSuggestions(results);
-    } catch (_) {
-      clearSuggestions();
-    }
-  }, SEARCH_DEBOUNCE_MS);
-}
-
-function onKeydown(e) {
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    if (!_results.length) return;
-    e.preventDefault();
-    const step = e.key === 'ArrowDown' ? 1 : -1;
-    const start = _activeIndex === -1
-      ? (step === 1 ? 0 : _results.length - 1)
-      : _activeIndex + step;
-    setActiveIndex(start);
-    return;
-  }
-  if (e.key === 'Enter' && _activeIndex >= 0) {
-    e.preventDefault();
-    selectCity(_results[_activeIndex]);
-    return;
-  }
-  if (e.key === 'Escape' && _results.length) {
-    e.preventDefault();
-    clearSuggestions();
-  }
-}
+//
+// PER-INSTANCE, not a module singleton. It was a singleton until PR #187's
+// remediation, and that was a latent P0 the moment a second city field
+// existed: `onInput`/`onKeydown` were module-scope functions closing over a
+// module-scope `_refs`, and they are the exact function objects bound as
+// listeners on the FIRST input. A second `initCitySearchUI` call repointed
+// `_refs`, so typing in the PRIMARY birthplace field would have rendered into
+// the second field's suggestion list and called the second field's
+// `setSelectedCity` — leaving index.html's own `selectedCity` null forever and
+// silently dropping the rising sign from every shipped single reading.
+//
+// The option ids are prefixed per instance for the same reason: two lists
+// emitting `city-option-0` would make `aria-activedescendant` ambiguous.
+//
+// The exported signature is unchanged, so index.html's existing call site is
+// untouched; it now returns a handle the caller may use to reset the field.
 
 export function initCitySearchUI(refs, hooks) {
-  _refs = refs;
-  _hooks = hooks || {};
-  if (_debounce) clearTimeout(_debounce);
-  _debounce = null;
-  _results = [];
-  _activeIndex = -1;
-  injectStyle();
+  // Option ids are derived from the list's OWN id, not from a call counter:
+  // order-independent, and it keeps the primary field's long-standing
+  // `city-option-N` contract exactly (`city-suggestions` → `city-option`)
+  // while the dyad's list gets `dyad-city-option-N`.
   if (!refs.citySuggestions.id) refs.citySuggestions.id = 'city-suggestions';
+  const optionPrefix = refs.citySuggestions.id.replace(/suggestions$/, 'option');
+  const _hooks = hooks || {};
+  let _debounce = null;
+  let _results = [];
+  let _activeIndex = -1;
+
+  function clearSuggestions() {
+    refs.citySuggestions.innerHTML = '';
+    _results = [];
+    _activeIndex = -1;
+    refs.cityInput.setAttribute('aria-expanded', 'false');
+    refs.cityInput.removeAttribute('aria-activedescendant');
+  }
+
+  function renderSuggestions(results) {
+    clearSuggestions();
+    if (!results.length) return;
+    _results = results.slice();
+    refs.cityInput.setAttribute('aria-expanded', 'true');
+    for (const [index, c] of results.entries()) {
+      const li = document.createElement('li');
+      li.id = `${optionPrefix}-${index}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', 'false');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = c.name;
+      const countrySpan = document.createElement('span');
+      countrySpan.className = 'city-country';
+      countrySpan.textContent = ' \u00b7 ' + c.country;
+      li.appendChild(nameSpan);
+      li.appendChild(countrySpan);
+      li.addEventListener('mousedown', e => {
+        // mousedown fires before the input's blur, so selection survives
+        // the focus shift; preventDefault stops the focus loss outright.
+        e.preventDefault();
+        selectCity(c);
+      });
+      refs.citySuggestions.appendChild(li);
+    }
+  }
+
+  function setActiveIndex(index) {
+    const options = refs.citySuggestions.children;
+    if (!options.length) return;
+    _activeIndex = (index + options.length) % options.length;
+    for (let i = 0; i < options.length; i++) {
+      options[i].setAttribute('aria-selected', i === _activeIndex ? 'true' : 'false');
+    }
+    const active = options[_activeIndex];
+    refs.cityInput.setAttribute('aria-activedescendant', active.id);
+    if (typeof active.scrollIntoView === 'function') {
+      active.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function selectCity(c) {
+    if (_hooks.setSelectedCity) _hooks.setSelectedCity(c);
+    refs.cityInput.value = formatCityLabel(c);
+    clearSuggestions();
+    if (refs.legacyHint) refs.legacyHint.hidden = true;
+    // Polar latitudes are unsupported — surface the message proactively
+    // at selection time so the user knows before submit. computeRising
+    // returns null at polar latitudes; this is the UI mirror of the same
+    // core/rising.js check.
+    if (refs.polarMessage) refs.polarMessage.hidden = !isPolarLatitude(c.lat);
+  }
+
+  function onInput() {
+    // Typing without selecting clears the selection so stale city state
+    // never silently propagates to buildProfile. Guarded like every other
+    // hook call in ui/ — a partial DI object must degrade, not throw from
+    // inside the input handler.
+    if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
+    if (refs.polarMessage) refs.polarMessage.hidden = true;
+    if (_debounce) clearTimeout(_debounce);
+    clearSuggestions();
+    const q = refs.cityInput.value.trim();
+    if (q.length < MIN_QUERY_LEN) {
+      return;
+    }
+    _debounce = setTimeout(async () => {
+      try {
+        const results = await searchCities(q, 12);
+        // Race guard: drop results if the input has changed since dispatch.
+        if (refs.cityInput.value.trim() !== q) return;
+        renderSuggestions(results);
+      } catch (_) {
+        clearSuggestions();
+      }
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!_results.length) return;
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      const start = _activeIndex === -1
+        ? (step === 1 ? 0 : _results.length - 1)
+        : _activeIndex + step;
+      setActiveIndex(start);
+      return;
+    }
+    if (e.key === 'Enter' && _activeIndex >= 0) {
+      e.preventDefault();
+      selectCity(_results[_activeIndex]);
+      return;
+    }
+    if (e.key === 'Escape' && _results.length) {
+      e.preventDefault();
+      clearSuggestions();
+    }
+  }
+
+  injectStyle();
   refs.cityInput.setAttribute('role', 'combobox');
   refs.cityInput.setAttribute('aria-autocomplete', 'list');
   refs.cityInput.setAttribute('aria-controls', refs.citySuggestions.id);
@@ -222,4 +236,16 @@ export function initCitySearchUI(refs, hooks) {
     // Brief delay so the mousedown handler can fire and capture the pick.
     setTimeout(clearSuggestions, 120);
   });
+
+  return {
+    /** Blank the field and drop any pending suggestion state. */
+    reset() {
+      refs.cityInput.value = '';
+      if (_debounce) clearTimeout(_debounce);
+      _debounce = null;
+      clearSuggestions();
+      if (refs.polarMessage) refs.polarMessage.hidden = true;
+      if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
+    },
+  };
 }

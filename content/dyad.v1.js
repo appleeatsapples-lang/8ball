@@ -189,51 +189,30 @@ export const ELEMENT_RELATIONS = Object.freeze({
 //
 // The two life paths are summed and reduced by the §1.B v0.54 nine-number
 // rule, so the domain is exactly 1..9 (1+1 = 2 and 1+9 = 10 → 1 both land
-// inside it). The NUMBER itself is not re-authored here: core/dyad.js reads
-// its register and theme from the existing NUMEROLOGY_MEANINGS registry.
-// What this table authors is the clause that names the REDUCTION — the one
-// thing the single-sheet registry has no entry for, because a single sheet
-// never combines two paths.
+// inside it).
 //
-// Opener register (pinned): every body opens "the combined path reduces to
-// <n>," and names that value's registered theme word.
-export const COMBINED_PATH_NOTES = Object.freeze({
-  1: Object.freeze({
-    value: 1, theme: 'initiative',
-    body: 'the combined path reduces to 1, the initiative register, which the tradition reads as starting a sequence rather than joining one.',
-  }),
-  2: Object.freeze({
-    value: 2, theme: 'cooperation',
-    body: 'the combined path reduces to 2, the cooperation register, which the tradition reads as attention split between two positions.',
-  }),
-  3: Object.freeze({
-    value: 3, theme: 'expression',
-    body: 'the combined path reduces to 3, the expression register, which the tradition reads as output put into circulation rather than kept.',
-  }),
-  4: Object.freeze({
-    value: 4, theme: 'structure',
-    body: 'the combined path reduces to 4, the structure register, which the tradition reads as work that builds a frame and keeps it.',
-  }),
-  5: Object.freeze({
-    value: 5, theme: 'change',
-    body: 'the combined path reduces to 5, the change register, which the tradition reads as movement between arrangements rather than settling.',
-  }),
-  6: Object.freeze({
-    value: 6, theme: 'care',
-    body: 'the combined path reduces to 6, the care register, which the tradition reads as responsibility carried for something outside the self.',
-  }),
-  7: Object.freeze({
-    value: 7, theme: 'analysis',
-    body: 'the combined path reduces to 7, the analysis register, which the tradition reads as examination held apart from the thing examined.',
-  }),
-  8: Object.freeze({
-    value: 8, theme: 'command',
-    body: 'the combined path reduces to 8, the command register, which the tradition reads as material authority exercised over a working system.',
-  }),
-  9: Object.freeze({
-    value: 9, theme: 'service',
-    body: 'the combined path reduces to 9, the service register, which the tradition reads as work directed outward past the immediate circle.',
-  }),
+// THE NUMBER'S MEANING IS NOT AUTHORED HERE, and this is the second attempt at
+// that. The first shipped nine `COMBINED_PATH_NOTES` bodies which a Codex
+// pre-merge audit (PR #187, finding F6) correctly read as a re-authored copy of
+// the registry: for 1 the authored body said "starting a sequence rather than
+// joining one" against the registry's "starting a sequence rather than joining
+// one already underway", and for 2 it restated the registry's own clause
+// verbatim. DOCTRINE §1.J says the reduced number's meaning comes from the
+// existing nine-entry registry. A near-paraphrase in a second file is exactly
+// the drift that rule exists to stop — two sources for one number's meaning,
+// free to diverge on the next edit.
+//
+// What is authored here is ONLY the reduction: two frames stating the
+// arithmetic that produced the combined value. They carry no interpretation,
+// name no theme, and would read identically whatever the number turned out to
+// mean. core/dyad.js pairs the reduction clause with the registry's own
+// `register` and `body`, unmodified, as a labelled citation.
+export const COMBINED_PATH_FRAMES = Object.freeze({
+  // sum > 9 — the reduction actually does something.
+  reduced: 'the two life paths sum to {sum}, which the nine-number rule reduces to {combined}.',
+  // sum <= 9 — the sum is already a nine-number value; say so rather than
+  // claiming a reduction that did not happen.
+  direct: 'the two life paths sum to {combined}, already inside the nine-number range.',
 });
 
 // ── 3. Card pair — the four-slot grammar, read across two cells ─────────────
@@ -263,7 +242,7 @@ export const BRANCH_REGISTERS = Object.freeze({
   }),
   chong: Object.freeze({
     key: 'chong',
-    body: 'the two year branches sit six places apart, the opposition the branch tables record as a direct clash.',
+    body: 'the two year branches sit six places apart, the opposition the branch tables file under chong.',
   }),
   sanhe: Object.freeze({
     key: 'sanhe',

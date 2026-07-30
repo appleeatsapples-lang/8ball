@@ -32,7 +32,7 @@ import {
 import {
   ELEMENT_RELATIONS,
   ELEMENT_RELATION_KINDS,
-  COMBINED_PATH_NOTES,
+  COMBINED_PATH_FRAMES,
   BRANCH_REGISTERS,
   BRACKET_ARC,
   BRACKET_REGISTERS,
@@ -45,6 +45,11 @@ import { buildProfile } from '../core/profile.js';
 
 const words = s => String(s).trim().split(/\s+/).filter(Boolean);
 
+// The combined-path frames carry {sum}/{combined} placeholders; the voice and
+// grammar scans run against their resolved form.
+const resolveFrame = frame =>
+  String(frame).replace('{sum}', '12').replace('{combined}', '3');
+
 // Every authored string in the file, with a path so a failure names the cell.
 function* tableStrings() {
   for (const [key, entry] of Object.entries(ELEMENT_RELATIONS)) {
@@ -54,8 +59,8 @@ function* tableStrings() {
     yield { path: `ELEMENT_RELATION_KINDS.${key}.label`, text: kind.label };
     yield { path: `ELEMENT_RELATION_KINDS.${key}.verb`, text: kind.verb };
   }
-  for (const [key, note] of Object.entries(COMBINED_PATH_NOTES)) {
-    yield { path: `COMBINED_PATH_NOTES.${key}.body`, text: note.body };
+  for (const [key, frame] of Object.entries(COMBINED_PATH_FRAMES)) {
+    yield { path: `COMBINED_PATH_FRAMES.${key}`, text: resolveFrame(frame) };
   }
   for (const [key, register] of Object.entries(BRANCH_REGISTERS)) {
     yield { path: `BRANCH_REGISTERS.${key}.body`, text: register.body };
@@ -78,8 +83,8 @@ function* bodies() {
   for (const [key, entry] of Object.entries(ELEMENT_RELATIONS)) {
     yield { path: `ELEMENT_RELATIONS.${key}`, text: entry.body };
   }
-  for (const [key, note] of Object.entries(COMBINED_PATH_NOTES)) {
-    yield { path: `COMBINED_PATH_NOTES.${key}`, text: note.body };
+  for (const [key, frame] of Object.entries(COMBINED_PATH_FRAMES)) {
+    yield { path: `COMBINED_PATH_FRAMES.${key}`, text: resolveFrame(frame) };
   }
   for (const [key, register] of Object.entries(BRANCH_REGISTERS)) {
     yield { path: `BRANCH_REGISTERS.${key}`, text: register.body };
@@ -100,7 +105,7 @@ function* assembledStrings() {
       const { relation } = buildDyadReading(a, b);
       yield { path: `${a.yyyy}×${b.yyyy}.element.aToB`, text: relation.element.aToB.body };
       yield { path: `${a.yyyy}×${b.yyyy}.element.bToA`, text: relation.element.bToA.body };
-      yield { path: `${a.yyyy}×${b.yyyy}.numerology`, text: relation.numerology.body };
+      yield { path: `${a.yyyy}×${b.yyyy}.numerology.reduction`, text: relation.numerology.reduction };
       yield { path: `${a.yyyy}×${b.yyyy}.cardPair`, text: relation.cardPair.body };
       yield { path: `${a.yyyy}×${b.yyyy}.qualifier`, text: relation.qualifier };
     }
@@ -153,7 +158,7 @@ const COMPATIBILITY_CLAIMS = Object.freeze([
   /\bscore[sd]?\b/i,
   /\brank(s|ed|ing)?\b/i,
   /\bpercent\w*|\d\s*%/i,
-  /\bbetter|worse|best|worst\b/i,
+  /\b(better|worse|best|worst)\b/i,
   /\bshould\b|\bought to\b|\bmust\b/i,
   /\bwill\b(?!\w)/i,
   /\brecommend\w*/i,
@@ -161,6 +166,22 @@ const COMPATIBILITY_CLAIMS = Object.freeze([
   /\bpredict\w*|\bforecast\w*/i,
   /\brelationship\b|\bcouple\b|\bpartner\w*/i,
   /\bromance\b|\bromantic\b|\blove life\b/i,
+  // ── PR #187 finding F7.3 ────────────────────────────────────────────────
+  // The list above is a VOCABULARY scan, and a bare verdict needs none of that
+  // vocabulary. Verified against the shipped guard: "both names fit together",
+  // "the two sheets belong together", "a strong pairing" and "they work well
+  // as a pair" all passed it. These close the shape rather than the words —
+  // a verdict is a claim that two things GO together, or that a pairing has a
+  // quality. Each was checked against every shipped string in this file and
+  // every assembled runtime string before being added (see the guard-the-guard
+  // case below, which pins both directions).
+  /\bfit(s|ted|ting)?\b/i,
+  /\bbelongs? together\b|\bgo(es)? together\b|\bwork(s)? together\b/i,
+  /\bwork(s)? well\b|\bgets? along\b|\bclash(es)?\b/i,
+  /\bpairing\b|\bcompatibility\b|\bchemistry\b|\baffinity\b/i,
+  /\bstrong\b|\bweak\b|\bgood\b|\bbad\b|\bpoor\b|\bideal\b/i,
+  /\bsuccess\w*|\bfail(s|ure|ed)?\b|\bthrive\w*|\bstruggle\w*/i,
+  /\beasy\b|\bhard\b|\bdifficult\b|\bsmooth\b|\bfriction\b/i,
 ]);
 
 // Third-person pronouns for PEOPLE. The dyad's sentences take branches,
@@ -196,12 +217,33 @@ describe('dyad content — the §1.I register law, extended to two people (§1.J
 
   it('the claim-scan and person-scan actually fire (guard the guard)', () => {
     // The pii_scan.test.js sentinel pattern: a scan that can never fail is a
-    // false green. These strings are what the two scans exist to catch.
-    const claim = 'the pair scores 82 percent compatible and should marry.';
-    const person = 'she brings structure and they will balance him.';
-    expect(COMPATIBILITY_CLAIMS.some(p => p.test(claim))).toBe(true);
-    expect(PERSON_SUBJECTS.some(p => p.test(person))).toBe(true);
-    // ...and are not so loose that the shipped prose only passes by luck.
+    // false green. Every string below is a verdict this surface must never
+    // emit, and the first four are the ones the PRE-FIX guard let through
+    // (PR #187 F7.3) — they are here so the hole cannot silently reopen.
+    const claims = [
+      'both names fit together',
+      'the two sheets belong together',
+      'a strong pairing',
+      'they work well as a pair',
+      'the pair scores 82 percent compatible and should marry.',
+      'this combination has good chemistry',
+      'the two clash and will struggle',
+      'an ideal match with smooth affinity',
+    ];
+    for (const claim of claims) {
+      expect(COMPATIBILITY_CLAIMS.some(p => p.test(claim)), `missed: "${claim}"`).toBe(true);
+    }
+    const persons = [
+      'she brings structure and they will balance him.',
+      'his register meets hers',
+      'people with this pair tend to lead',
+    ];
+    for (const person of persons) {
+      expect(PERSON_SUBJECTS.some(p => p.test(person)), `missed: "${person}"`).toBe(true);
+    }
+    // ...and neither is so loose that the shipped prose only passes by luck:
+    // every authored and assembled string is checked in the two tests above,
+    // so a pattern that over-fires reddens them rather than hiding here.
     expect(COMPATIBILITY_CLAIMS.some(p => p.test(ELEMENT_RELATIONS.wood_fire.body))).toBe(false);
     expect(PERSON_SUBJECTS.some(p => p.test(BRANCH_REGISTERS.liuhe.body))).toBe(false);
   });
@@ -259,14 +301,35 @@ describe('dyad content — grammar discipline (§1.J, the deck-pin convention)',
     expect(bad, bad.join('\n')).toEqual([]);
   });
 
-  it('combined-path bodies open on the reduction and name the registered theme', () => {
-    for (let n = 1; n <= 9; n++) {
-      const note = COMBINED_PATH_NOTES[n];
-      expect(note.value, `${n}.value`).toBe(n);
-      expect(note.body, `${n}.opener`).toMatch(new RegExp(`^the combined path reduces to ${n},`));
-      expect(note.body, `${n}.theme`).toContain(note.theme);
-      // The theme is the EXISTING registry's, not a tenth copy of it.
-      expect(note.theme, `${n}.registry`).toBe(NUMEROLOGY_MEANINGS[String(n)].theme);
+  it('the combined-path frames state arithmetic and NOTHING else (F6)', () => {
+    // The nine authored bodies this replaces restated the registry's own
+    // clauses. A frame is safe precisely because it cannot: it is a template
+    // over two integers, so it carries no per-number content to drift.
+    expect(Object.keys(COMBINED_PATH_FRAMES).sort()).toEqual(['direct', 'reduced']);
+    for (const [key, frame] of Object.entries(COMBINED_PATH_FRAMES)) {
+      expect(frame, `${key} opener`).toMatch(/^the two life paths sum to \{/);
+      expect(frame, `${key} placeholder`).toContain('{combined}');
+      // No theme word, no register noun, no registry body — for ANY number.
+      for (const entry of Object.values(NUMEROLOGY_MEANINGS)) {
+        expect(frame, `${key} leaks theme`).not.toMatch(new RegExp(`\\b${entry.theme}\\b`));
+        expect(frame, `${key} leaks register`).not.toContain(entry.register);
+        expect(frame, `${key} leaks body`).not.toContain(entry.body);
+      }
+    }
+    // The reduced frame must name the sum it reduced FROM; the direct one must
+    // not claim a reduction happened.
+    expect(COMBINED_PATH_FRAMES.reduced).toContain('{sum}');
+    expect(COMBINED_PATH_FRAMES.direct).not.toContain('{sum}');
+  });
+
+  it('the rendered meaning is the registry entry, byte-for-byte', () => {
+    // The identity pin. Anything short of `toBe` would re-admit a paraphrase.
+    for (const a of SWEEP.slice(0, 5)) {
+      for (const b of SWEEP.slice(0, 5)) {
+        const { numerology } = buildDyadReading(a, b).relation;
+        expect(numerology.meaning)
+          .toBe(NUMEROLOGY_MEANINGS[String(numerology.combined)].body);
+      }
     }
   });
 
@@ -296,7 +359,7 @@ describe('dyad content — grammar discipline (§1.J, the deck-pin convention)',
   });
 
   it('the tables are frozen — content is versioned, not edited (§4)', () => {
-    for (const table of [ELEMENT_RELATIONS, ELEMENT_RELATION_KINDS, COMBINED_PATH_NOTES,
+    for (const table of [ELEMENT_RELATIONS, ELEMENT_RELATION_KINDS, COMBINED_PATH_FRAMES,
       BRANCH_REGISTERS, BRACKET_REGISTERS, BRACKET_ARC, DYAD_SOURCES]) {
       expect(Object.isFrozen(table)).toBe(true);
     }

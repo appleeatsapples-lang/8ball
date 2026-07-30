@@ -29,12 +29,20 @@ import { fileURLToPath } from 'node:url';
 import { makeClassList } from './helpers/dom.js';
 import {
   T5_PRODUCT_URL,
-  DYAD_ROW_LABELS,
-  dyadCoordinateRows,
+  DYAD_RELATION_NODES,
+  dyadEntitled,
+  dyadEntryVisible,
   formatDyadRelation,
   dyadRelationFor,
   initDyadUI,
+  syncDyadEntry,
+  open as openDyad,
+  close as closeDyad,
+  submitSecond,
+  render as renderDyad,
 } from '../ui/dyad.js';
+import { buildSheetMarkup, createSheet, ROW_TITLES } from '../ui/sheet.js';
+import { validateBirthInput } from '../ui/profile.js';
 import {
   TIER_ORDER, RETIRED_TIERS, RETIREMENT_COLLISIONS,
   isTier, tierRank, maxTier, normalizeTier, resolveRenderTier, applyPaidReturn,
@@ -132,334 +140,437 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
 
   it('a t3 → t5 upgrade unseals no sheet cell (the sheet is already complete)', () => {
     expect(newlyEntitledCells('t3', 't5')).toEqual([]);
-    // ...and the rungs beneath are unchanged by the append.
-    expect(newlyEntitledCells('free', 't1')).toEqual(newlyEntitledCells('free', 't1'));
-    expect(newlyEntitledCells('t2', 't3')).toContain('cardEntry');
+    // ...and the rungs beneath are unchanged by the append. PR #187 F7.1: this
+    // line used to compare newlyEntitledCells('free','t1') WITH ITSELF, which
+    // can never fail. It carries the literal expected set now.
+    expect(newlyEntitledCells('free', 't1'))
+      .toEqual(['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']);
+    expect(newlyEntitledCells('t1', 't2'))
+      .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
+    expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead']);
   });
 });
 
-describe('dyad surface — coordinate rows', () => {
-  it('one row per sheet cell, in the sheet order, both sides labelled', () => {
-    const rows = dyadCoordinateRows(A, B, 't3');
-    expect(rows.map(r => r.key)).toEqual([...CELL_KEYS]);
-    for (const row of rows) {
-      expect(row.label, row.key).toBe(DYAD_ROW_LABELS[row.key]);
-      expect(row.a, row.key).toBeTruthy();
-      expect(row.b, row.key).toBeTruthy();
-    }
-  });
 
-  it('reads coordinates through the SAME mapping the sheet renders by', () => {
-    for (const tier of ['free', 't1', 't2', 't3', 't5']) {
-      for (const row of dyadCoordinateRows(A, B, tier)) {
-        const entitled = coordsForTier(tier).has(CELL_COORD[row.key]);
-        expect(row.a, `${tier}/${row.key}`).toEqual(cellRenderState(A, row.key, entitled));
-        expect(row.b, `${tier}/${row.key}`).toEqual(cellRenderState(B, row.key, entitled));
-      }
-    }
-  });
-
-  it('a seal is a property of the DEVICE, never of one person', () => {
-    // It can never be open for A and shut for B: both sides read the same
-    // entitlement, so a paid coordinate cannot leak through the B column.
-    for (const tier of ['free', 't1', 't2', 't3', 't5']) {
-      for (const row of dyadCoordinateRows(A, B, tier)) {
-        expect(row.a.state === 'sealed', `${tier}/${row.key}`)
-          .toBe(row.b.state === 'sealed');
-      }
-    }
-  });
-
-  it('a sealed row carries NO value string on either side', () => {
-    for (const row of dyadCoordinateRows(A, B, 'free')) {
-      if (row.a.state !== 'sealed') continue;
-      expect(row.a.text, row.key).toBe('');
-      expect(row.b.text, row.key).toBe('');
-    }
-    // ...and free really does seal most of the sheet, so the assertion above
-    // is not vacuously true.
-    expect(dyadCoordinateRows(A, B, 'free').filter(r => r.a.state === 'sealed').length)
-      .toBeGreaterThan(8);
-  });
-
-  it('every cell key has a label — no row renders unnamed', () => {
-    expect(Object.keys(DYAD_ROW_LABELS).sort()).toEqual([...CELL_KEYS].sort());
-  });
-});
-
-describe('dyad surface — the relation layer', () => {
-  it('formats five passages plus the qualifier', () => {
-    const formatted = formatDyadRelation(buildDyadReading(A, B));
-    for (const key of ['elementHead', 'elementAB', 'elementBA', 'numerologyHead',
-      'numerology', 'cardPairHead', 'cardPair', 'qualifier']) {
-      expect(typeof formatted[key], key).toBe('string');
-      expect(formatted[key].length, key).toBeGreaterThan(0);
-    }
-    expect(formatted.qualifier).toBe('recorded, not certified.');
-  });
-
-  it('carries both directions as DISTINCT passages', () => {
-    const formatted = formatDyadRelation(buildDyadReading(A, B));
-    expect(formatted.elementAB).not.toBe(formatted.elementBA);
-  });
-
-  it('returns null rather than throwing on a malformed pair', () => {
-    // Total: a bad profile seals the block; it does not take down the render.
-    expect(dyadRelationFor(null, B)).toBeNull();
-    expect(dyadRelationFor(A, null)).toBeNull();
-    expect(dyadRelationFor({ ...A, lifePath: 11 }, B)).toBeNull();
-    expect(dyadRelationFor({ ...A, animal: 'griffin' }, B)).toBeNull();
-  });
-
-  it('resolves for a real pair', () => {
-    expect(dyadRelationFor(A, B)).not.toBeNull();
-  });
-});
-
-describe('dyad surface — the offer fails closed (§1.D v0.61)', () => {
-  it('T5_PRODUCT_URL ships EMPTY, so the rung is not buyable', () => {
-    // Creating the Gumroad product is the controller's action, never an
-    // agent's (§10). While this is empty no visitor can reach a checkout.
-    expect(T5_PRODUCT_URL).toBe('');
-  });
-
-  it('no gumroad link for the dyad exists anywhere in the surface', () => {
-    expect(dyadCode).not.toMatch(/gumroad\.com/);
-  });
-
-  it('the CTA gets an href ONLY when the constant is filled in', () => {
-    // Pinned as a property of the code path, not of today's empty value: the
-    // href is derived from the constant, so filling the constant in is the
-    // whole of what makes the rung buyable.
-    expect(dyadJs).toMatch(/T5_PRODUCT_URL !== ''/);
-    expect(dyadJs).toMatch(/cta\.removeAttribute\('href'\)/);
-  });
-
-  it('the §4.B v0.56 single-$3 sprint surface is byte-untouched', () => {
-    // The sprint's one purchase choice stays the only purchase choice.
-    expect(html).toContain('https://theeightball.gumroad.com/l/xjpvp');
-    expect(html).toContain('complete 8ball · $3 once');
-    expect(html).not.toMatch(/paid=t5/);
-    expect((html.match(/gumroad\.com/g) || []).length).toBe(1);
-  });
-
-  it('the dyad entry control carries no price and no urgency (§2)', () => {
-    expect(dyadJs).toMatch(/read beside another sheet/);
-    expect(dyadCode).not.toMatch(/\$\d|only \d|hurry|limited|now only/i);
-  });
-});
-
-describe('dyad surface — no storage, no network (§5 / §5.F)', () => {
-  it('names no localStorage key and never touches storage', () => {
-    expect(dyadCode).not.toMatch(/localStorage/);
-    expect(dyadCode).not.toMatch(/sessionStorage/);
-    expect(dyadCode).not.toMatch(/eight_ball_/);
-  });
-
-  it('makes no network call of any kind', () => {
-    expect(dyadCode).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
-  });
-
-  it('the second person is held in memory only and dropped on reset', () => {
-    // The whole retention story is one module-local binding. If it ever gets
-    // serialized, this is the shape that has to change first.
-    expect(dyadJs).toMatch(/let _second = null/);
-    expect(dyadJs).toMatch(/_second = null;/);
-    expect(dyadCode).not.toMatch(/JSON\.stringify\(_second/);
-  });
-
-  it('the §5 key allow-list is unchanged by this tier', () => {
-    const scan = readFileSync(join(REPO_ROOT, 'tests', 'privacy_scan.test.js'), 'utf-8');
-    expect(scan).not.toMatch(/dyad/i);
-  });
-
-  it('entitlement is handed in, never read from storage here', () => {
-    // Same one-way wiring ui/public.js uses: the surface is told what the
-    // device owns; it never asks.
-    expect(dyadCode).not.toMatch(/getRenderTier|getTier\(\)\s*\{/);
-    expect(dyadJs).toMatch(/_hooks\.getTier/);
-  });
-});
-
-// ── DOM render: the sealed-DOM contract, exercised end to end ───────────────
+// ── DOM harness ─────────────────────────────────────────────────────────────
 //
-// The assertions above are pure. This block drives the real render path
-// against a hand-rolled DOM so the §1.D v0.37 contract is proven where it
-// actually has to hold: in the nodes.
+// A stub document ui/dyad.js's own init path accepts as real. No backdoor into
+// the module: injectScreen short-circuits when `dyad-screen` already resolves
+// and injectStyle when there is no `head`, so init runs its real code and binds
+// its real handlers. The screen markup is parsed into a node map so the sheets'
+// `data-sheet-*` cells are individually addressable.
 
-function makeNode(extra = {}) {
-  const node = {
-    textContent: 'STALE', classList: makeClassList(), hidden: false, value: '',
-    attrs: {}, listeners: {},
+function makeNode(tag = 'div') {
+  return {
+    tag, textContent: '', value: '', hidden: false, innerHTML: '',
+    classList: makeClassList(), attrs: {}, listeners: {}, children: [],
+    style: { setProperty() {}, removeProperty() {} },
     setAttribute(k, v) { this.attrs[k] = v; },
     removeAttribute(k) { delete this.attrs[k]; },
-    addEventListener(type, fn) { this.listeners[type] = fn; },
-    ...extra,
+    getAttribute(k) { return this.attrs[k]; },
+    addEventListener(t, fn) { this.listeners[t] = fn; },
+    appendChild(c) { this.children.push(c); return c; },
+    focus() {},
   };
-  return node;
 }
 
-// A stub document that ui/dyad.js's own init path accepts as real. No
-// backdoor into the module: injectScreen short-circuits when `dyad-screen`
-// already resolves, and injectStyle when there is no `head` — so init runs
-// its real code and binds its real handlers against these nodes.
-function mountDyad(tier, { profileA = A, second = B } = {}) {
-  const nodes = new Map();
-  for (const id of [
-    'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b',
-    'dyad-relation', 'dyad-element-head', 'dyad-element-ab', 'dyad-element-ba',
-    'dyad-numerology-head', 'dyad-numerology-body',
-    'dyad-cardpair-head', 'dyad-cardpair-body', 'dyad-qualifier',
+// Parse the ids and data-sheet-* hooks out of the injected markup so the
+// harness addresses exactly the nodes the real DOM would expose.
+function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
+  publicRead = () => null, validate = validateBirthInput } = {}) {
+  const byId = new Map();
+  const byAttr = new Map();
+
+  const root = makeNode('section');
+  root.classList.add('hidden'); // injectScreen sets `screen hidden`
+  root.querySelector = sel => byAttr.get(sel) || null;
+  byId.set('dyad-screen', root);
+
+  // Every id and data-attribute the screen markup can contain.
+  const ids = [
+    'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
     'dyad-cta', 'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
-    'dyad-dob-error', 'dyad-form', 'dyad-back',
-  ]) nodes.set(id, makeNode());
+    'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
+    'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
+    'dyad-open-btn', 'dyad-style',
+    ...Object.keys(DYAD_RELATION_NODES),
+  ];
+  for (const id of ids) if (!byId.has(id)) byId.set(id, makeNode());
+  byId.delete('dyad-open-btn');
+  byId.delete('dyad-style');
 
-  const cells = new Map();
-  for (const key of CELL_KEYS) {
-    cells.set(`[data-dyad-row="${key}"]`, makeNode());
-    cells.set(`[data-dyad-a="${key}"]`, makeNode());
-    cells.set(`[data-dyad-b="${key}"]`, makeNode());
+  for (const prefix of ['a', 'b']) {
+    for (const key of CELL_KEYS) {
+      const cellRoot = makeNode('span');
+      const cell = makeNode('span');
+      cell.closest = sel => (sel === '.coord-cell' ? cellRoot : null);
+      byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
+    }
+    for (const attr of ['title', 'catalog', 'name', 'type', 'habit', 'note',
+      'families', 'antifit', 'roleline', 'face', 'entry', 'public']) {
+      if (attr === 'title') {
+        for (const lead of Object.keys(ROW_TITLES)) {
+          byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, makeNode());
+        }
+      } else {
+        byAttr.set(`[data-sheet-${attr}="${prefix}"]`, makeNode());
+      }
+    }
   }
-  const root = makeNode({
-    focus() {},
-    querySelector: sel => cells.get(sel) || null,
-  });
-  nodes.set('dyad-screen', root);
 
-  const priorDocument = globalThis.document;
-  globalThis.document = { getElementById: id => nodes.get(id) || null };
+  const controls = makeNode();
+  const prior = globalThis.document;
+  globalThis.document = {
+    getElementById: id => byId.get(id) || null,
+    createElement: tag => {
+      const n = makeNode(tag);
+      // The entry button and the injected <style> are created, not parsed.
+      const original = n.setAttribute.bind(n);
+      n.setAttribute = (k, v) => { if (k === 'id') byId.set(v, n); original(k, v); };
+      return n;
+    },
+  };
+  Object.defineProperty(globalThis.document, 'head', { value: null, configurable: true });
+
   try {
-    initDyadUI({ stage: {} }, {
+    initDyadUI({ stage: makeNode(), controls }, {
       getProfile: () => profileA,
       getTier: () => tier,
+      validateEntry: validate,
       buildSecond: () => second,
+      getNoteSlot: noteSlot,
+      getPublicRead: publicRead,
+      onOpen() {}, onExit() {},
     });
-    // Person B arrives through the real submit handler, not by assignment.
-    nodes.get('dyad-form').listeners.submit({ preventDefault() {} });
-    return { nodes, cells, root };
+    // The entry button is created via createElement and assigned .id directly.
+    for (const child of controls.children) if (child.id) byId.set(child.id, child);
+    // Valid typed entry by default; the invalid cases overwrite these.
+    byId.get('dyad-name-input').value = 'specimen b';
+    byId.get('dyad-dob-input').value = '1988-06-15';
+    return {
+      byId, byAttr, root, controls,
+      get: id => byId.get(id) || null,
+      cell: (prefix, key) => byAttr.get(`[data-sheet-cell="${prefix}:${key}"]`),
+      withDom(fn) {
+        const outer = globalThis.document;
+        globalThis.document = { getElementById: id => byId.get(id) || null, createElement: () => makeNode() };
+        try { return fn(); } finally { globalThis.document = outer; }
+      },
+    };
   } finally {
-    globalThis.document = priorDocument;
+    globalThis.document = prior;
   }
 }
 
-// Every string the render could have written, for the leak sweep.
-const domText = ({ nodes, cells }) => [
-  ...[...nodes.values()], ...[...cells.values()],
-].map(n => String(n.textContent)).join('\n');
+// Every string a rendered dyad screen can be holding.
+const allText = h => [
+  ...[...h.byId.values()], ...[...h.byAttr.values()],
+].map(n => String(n.textContent || '')).join('\n');
 
-describe('dyad surface — DOM render (§1.D v0.37 sealed purity)', () => {
-  it('fills the relation layer at t5', () => {
-    const dom = mountDyad('t5');
-    const expected = formatDyadRelation(buildDyadReading(A, B));
-    expect(dom.nodes.get('dyad-element-ab').textContent).toBe(expected.elementAB);
-    expect(dom.nodes.get('dyad-element-ba').textContent).toBe(expected.elementBA);
-    expect(dom.nodes.get('dyad-numerology-body').textContent).toBe(expected.numerology);
-    expect(dom.nodes.get('dyad-cardpair-body').textContent).toBe(expected.cardPair);
-    expect(dom.nodes.get('dyad-qualifier').textContent).toBe('recorded, not certified.');
-    expect(dom.nodes.get('dyad-relation').classList.contains('sealed')).toBe(false);
-    expect(dom.nodes.get('dyad-output').hidden).toBe(false);
+describe('dyad surface — F2: the whole dyad is the t5 product', () => {
+  it('dyadEntitled is true at t5 and false at every rung beneath', () => {
+    expect(dyadEntitled('t5')).toBe(true);
+    for (const tier of ['free', 't1', 't2', 't3', undefined, null, 'garbage']) {
+      expect(dyadEntitled(tier), String(tier)).toBe(false);
+    }
   });
 
-  it('seals below t5 and leaves NO relation passage in the DOM', () => {
-    const entitled = formatDyadRelation(buildDyadReading(A, B));
-    const passages = [entitled.elementAB, entitled.elementBA,
-      entitled.numerology, entitled.cardPair];
+  it('the entry control is ABSENT below t5 and present at t5', () => {
     for (const tier of ['free', 't1', 't2', 't3']) {
-      const dom = mountDyad(tier);
-      const block = dom.nodes.get('dyad-relation');
-      expect(block.classList.contains('sealed'), tier).toBe(true);
-      expect(block.attrs['aria-label'], tier).toMatch(/sealed at this device tier/);
-      for (const id of ['dyad-element-head', 'dyad-element-ab', 'dyad-element-ba',
-        'dyad-numerology-head', 'dyad-numerology-body',
-        'dyad-cardpair-head', 'dyad-cardpair-body', 'dyad-qualifier']) {
-        expect(dom.nodes.get(id).textContent, `${tier}/${id}`).toBe('');
+      const h = harness(tier);
+      h.withDom(() => syncDyadEntry(tier));
+      expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
+    }
+    const h5 = harness('t5');
+    h5.withDom(() => syncDyadEntry('t5'));
+    expect(h5.get('dyad-open-btn').hidden).toBe(false);
+  });
+
+  it('dyadEntryVisible only opens below t5 once the product URL is filled in', () => {
+    expect(dyadEntryVisible('t3', '')).toBe(false);
+    expect(dyadEntryVisible('t5', '')).toBe(true);
+    // The one line the controller changes to make the rung buyable.
+    expect(dyadEntryVisible('t3', 'https://example.test/x')).toBe(true);
+  });
+
+  it('open() refuses below t5', () => {
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      const h = harness(tier);
+      expect(h.withDom(() => openDyad()), tier).toBe(false);
+      expect(h.root.classList.contains('hidden'), tier).toBe(true);
+    }
+    const h5 = harness('t5');
+    expect(h5.withDom(() => openDyad())).toBe(true);
+  });
+
+  it('submitSecond refuses below t5 and renders NOTHING (the F2 defect)', () => {
+    // Before the fix a free device could submit person B and receive their
+    // sheet at free density; a t3 device received B's COMPLETE sheet free.
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      const h = harness(tier);
+      expect(h.withDom(() => submitSecond()), tier).toBe(false);
+      expect(h.get('dyad-output').hidden, tier).toBe(true);
+      expect(h.get('dyad-head-b').textContent, tier).toBe('');
+      for (const key of CELL_KEYS) {
+        expect(h.cell('b', key).textContent, `${tier}/${key}`).toBe('');
       }
-      // Aggregate sentinel: not one entitled passage exists anywhere in the
-      // rendered DOM, not merely absent from the nodes it belongs in.
-      const blob = domText(dom);
-      for (const passage of passages) {
-        expect(blob.includes(passage), `${tier}: passage leaked`).toBe(false);
-      }
+      // Not one string from B anywhere on the screen.
+      expect(allText(h)).not.toContain(B.sunSign);
+      expect(allText(h)).not.toContain(B.birthCard.label);
     }
   });
 
-  it('t3 gets both full sheets and NOT the relation — the rung boundary', () => {
-    const dom = mountDyad('t3');
-    // Every coordinate open on both sides...
-    for (const key of CELL_KEYS) {
-      const row = dom.cells.get(`[data-dyad-row="${key}"]`);
-      expect(row.classList.contains('sealed'), key).toBe(false);
-    }
-    // ...and the relation still sealed. This is exactly what t5 sells.
-    expect(dom.nodes.get('dyad-relation').classList.contains('sealed')).toBe(true);
+  it('t3 — which buys the complete SINGLE sheet — gets no second sheet at all', () => {
+    // The exact contradiction the previous suite blessed: it asserted t3
+    // received both complete sheets and described only the relation as the t5
+    // product. DOCTRINE §1.D v0.61 says t5 buys the second sheet AND the
+    // relation, and this is that sentence as a test.
+    const h = harness('t3');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.cell('b', 'arcana').textContent).toBe('');
+    expect(h.cell('a', 'arcana').textContent).toBe('');
   });
 
-  it('seals the coordinate rows a free device has not bought', () => {
-    const dom = mountDyad('free');
-    const sealed = CELL_KEYS.filter(
-      key => dom.cells.get(`[data-dyad-row="${key}"]`).classList.contains('sealed'));
-    expect(sealed.length).toBeGreaterThan(8);
-    for (const key of sealed) {
-      expect(dom.cells.get(`[data-dyad-a="${key}"]`).textContent, key).toBe('');
-      expect(dom.cells.get(`[data-dyad-b="${key}"]`).textContent, key).toBe('');
-    }
-  });
-
-  it('the CTA stays hidden and href-less while the rung is unbuyable', () => {
-    for (const tier of ['free', 't1', 't2', 't3', 't5']) {
-      const cta = mountDyad(tier).nodes.get('dyad-cta');
-      expect(cta.hidden, tier).toBe(true);
-      expect(cta.attrs.href, tier).toBeUndefined();
-      expect(cta.textContent, tier).toBe('');
-    }
-  });
-
-  it('neither person’s name or DOB reaches a coordinate node', () => {
-    // The listing is coordinates. The column heads carry first names, which
-    // the host already displays; nothing else may.
-    const dom = mountDyad('t5');
-    for (const key of CELL_KEYS) {
-      for (const side of ['a', 'b']) {
-        const text = dom.cells.get(`[data-dyad-${side}="${key}"]`).textContent;
-        expect(text, `${side}/${key}`).not.toMatch(/\d{4}-\d{2}-\d{2}/);
-        expect(text.toLowerCase(), `${side}/${key}`).not.toContain('specimen');
-      }
-    }
+  it('t5 renders both sheets and the relation', () => {
+    const h = harness('t5', { publicRead: () => null });
+    expect(h.withDom(() => submitSecond())).toBe(true);
+    expect(h.get('dyad-output').hidden).toBe(false);
+    expect(h.cell('a', 'arcana').textContent).toBe(A.birthCard.label);
+    expect(h.cell('b', 'arcana').textContent).toBe(B.birthCard.label);
+    expect(h.get('dyad-head-a').textContent).toBe('specimen');
+    expect(h.get('dyad-element-ab').textContent).toBeTruthy();
   });
 });
 
-describe('dyad surface — module wiring', () => {
-  it('ui/dyad.js is the ONLY importer of core/dyad.js', () => {
-    // Same single-seam pin the public-tier engine carries: one DOM controller
-    // consumes the engine, so a second unreviewed wiring fails CI.
-    const consumers = [];
-    for (const rel of [
-      ...readdirSync(join(REPO_ROOT, 'ui')).filter(f => f !== 'dyad.js').map(f => join('ui', f)),
-      ...readdirSync(join(REPO_ROOT, 'core')).filter(f => f !== 'dyad.js').map(f => join('core', f)),
-      'index.html',
-    ]) {
-      const src = readFileSync(join(REPO_ROOT, rel), 'utf-8');
-      if (/from '[^']*core\/dyad\.js'|from '\.\/dyad\.js'/.test(src)) consumers.push(rel);
+describe('dyad surface — F5: both sides are real standalone sheets', () => {
+  const h = () => {
+    const inst = harness('t5', { noteSlot: () => 'mid' });
+    inst.withDom(() => submitSecond());
+    return inst;
+  };
+
+  it('every coordinate of BOTH sheets matches the host renderer, cell for cell', () => {
+    // The anti-drift guarantee: ui/sheet.js and renderTierSections resolve
+    // through the same cellRenderState, and this asserts the RESULT agrees.
+    const inst = h();
+    for (const [prefix, profile] of [['a', A], ['b', B]]) {
+      for (const key of CELL_KEYS) {
+        const { state, text } = cellRenderState(profile, key, coordsForTier('t5').has(CELL_COORD[key]));
+        const expected = state === 'unres' ? '—' : text;
+        expect(inst.cell(prefix, key).textContent, `${prefix}/${key}`).toBe(expected);
+      }
     }
-    expect(consumers).toEqual([]);
-    expect(readFileSync(join(REPO_ROOT, 'ui', 'dyad.js'), 'utf-8'))
-      .toMatch(/from '\.\.\/core\/dyad\.js'/);
   });
 
-  it('index.html wires the surface in the §6 DI shape', () => {
-    expect(html).toMatch(/import \{ initDyadUI \} from '\.\/ui\/dyad\.js';/);
-    expect(html).toMatch(/initDyadUI\(\{[\s\S]{0,200}?stage:/);
-    expect(html).toMatch(/getTier: getRenderTier/);
-    expect(html).toMatch(/buildSecond: profileFromPayload/);
+  it('each side carries its OWN written 144-card entry', async () => {
+    const { CARDS } = await import('../content/cards.v1.full.js');
+    const inst = h();
+    for (const [prefix, profile] of [['a', A], ['b', B]]) {
+      const cell = CARDS[profile.sunSign][profile.animal];
+      expect(inst.byAttr.get(`[data-sheet-name="${prefix}"]`).textContent, prefix).toBe(cell.name);
+      expect(inst.byAttr.get(`[data-sheet-habit="${prefix}"]`).textContent, prefix).toBe(cell.habit);
+      expect(inst.byAttr.get(`[data-sheet-note="${prefix}"]`).textContent, prefix).toBe(cell.note.mid);
+    }
+    // ...and they are different people, so different entries.
+    expect(inst.byAttr.get('[data-sheet-name="a"]').textContent)
+      .not.toBe(inst.byAttr.get('[data-sheet-name="b"]').textContent);
   });
 
-  it('index.html stays inside the §7 stage-5 single-file budget', () => {
-    expect(html.split('\n').length).toBeLessThanOrEqual(1500);
+  it('each side carries its own catalog numeral', async () => {
+    const { getCard } = await import('../core/engine.js');
+    const inst = h();
+    expect(inst.byAttr.get('[data-sheet-catalog="a"]').textContent).toBe(`no. ${getCard(A).catalog}`);
+    expect(inst.byAttr.get('[data-sheet-catalog="b"]').textContent).toBe(`no. ${getCard(B).catalog}`);
   });
 
-  it('the module has no module-level DOM access at import time', () => {
-    // Import-safety: the module is imported before the DOM parses.
-    expect(dyadJs).not.toMatch(/^const \w+ = document\./m);
-    expect(dyadJs).not.toMatch(/^document\./m);
+  it('the sheet structure mirrors index.html — same rows, same titles', () => {
+    // A second markup definition is only safe if it cannot drift from the one
+    // it mirrors. index.html's coord-section titles are the reference.
+    const hostTitles = [...html.matchAll(/<div class="coord-title"[^>]*>([^<]+)<\/div>/g)]
+      .map(m => m[1].trim());
+    const builtTitles = [...buildSheetMarkup('x')
+      .matchAll(/<div class="coord-title"[^>]*>([^<]+)<\/div>/g)].map(m => m[1].trim());
+    expect(builtTitles).toEqual(hostTitles);
+    expect(builtTitles).toHaveLength(8);
+  });
+
+  it('the built sheet emits NO id, so it cannot collide with the host sheet (G2)', () => {
+    // ui/meanings.js binds the host compartments by getElementById. A second
+    // sheet carrying the same ids would make that lookup ambiguous and the
+    // host's own meaning panel would read whichever node came first.
+    const markup = buildSheetMarkup('a') + buildSheetMarkup('b');
+    expect(markup).not.toMatch(/\sid=/);
+    // Classes are shared on purpose (the sheet must LOOK like the host sheet);
+    // it is the id attribute that must never be duplicated.
+    for (const hostId of ['coord-arcana-symbol', 'card-entry', 'public-read', 'card-face']) {
+      expect(markup, hostId).not.toContain(`id="${hostId}"`);
+    }
+  });
+
+  it('the second sheet never touches the facet key — the note slot is handed in', () => {
+    const sheetCode = stripComments(readFileSync(join(REPO_ROOT, 'ui', 'sheet.js'), 'utf-8'));
+    expect(sheetCode).not.toMatch(/localStorage|eight_ball_|getFacetSlot|consumeFacetShake/);
+    expect(dyadCode).not.toMatch(/getFacetSlot|consumeFacetShake|ensureFacetIndex/);
+  });
+});
+
+describe('dyad surface — F1: nothing of person B survives closing', () => {
+  it('close() blanks every node the render filled, not a subset', () => {
+    const inst = harness('t5');
+    inst.withDom(() => submitSecond());
+    expect(inst.cell('b', 'arcana').textContent).toBeTruthy(); // not vacuous
+    expect(inst.get('dyad-head-b').textContent).toBeTruthy();
+
+    inst.withDom(() => closeDyad());
+
+    expect(inst.get('dyad-head-a').textContent).toBe('');
+    expect(inst.get('dyad-head-b').textContent).toBe('');
+    for (const prefix of ['a', 'b']) {
+      for (const key of CELL_KEYS) {
+        expect(inst.cell(prefix, key).textContent, `${prefix}/${key}`).toBe('');
+      }
+      for (const attr of ['name', 'type', 'habit', 'note', 'families', 'antifit', 'roleline']) {
+        expect(inst.byAttr.get(`[data-sheet-${attr}="${prefix}"]`).textContent,
+          `${prefix}/${attr}`).toBe('');
+      }
+    }
+    for (const id of Object.keys(DYAD_RELATION_NODES)) {
+      expect(inst.get(id).textContent, id).toBe('');
+    }
+    // The aggregate sentinel the original suite lacked: not one of B's strings
+    // is anywhere in the screen's DOM, hidden or not.
+    const text = allText(inst);
+    for (const needle of [B.sunSign, B.animal, B.birthCard.label, String(B.lifePath), 'specimen']) {
+      expect(text, `leaked: ${needle}`).not.toContain(needle);
+    }
+  });
+
+  it('the seal / aria state describing a tier is dropped too', () => {
+    const inst = harness('t5');
+    inst.withDom(() => submitSecond());
+    inst.withDom(() => closeDyad());
+    expect(inst.get('dyad-relation').classList.contains('sealed')).toBe(false);
+    expect(inst.get('dyad-relation').getAttribute('aria-label')).toBeUndefined();
+    expect(inst.get('dyad-cta').hidden).toBe(true);
+    expect(inst.get('dyad-cta').getAttribute('href')).toBeUndefined();
+  });
+
+  it('an INVALID re-submission invalidates the previous pair first (fail closed)', () => {
+    // Before the fix the screen kept showing person B-1's name and coordinates
+    // under a form describing B-2, and held B-1's whole profile object alive
+    // past an explicit attempt to replace them.
+    const inst = harness('t5');
+    inst.withDom(() => submitSecond());
+    expect(inst.cell('b', 'arcana').textContent).toBeTruthy();
+
+    inst.withDom(() => {
+      inst.get('dyad-name-input').value = '   ';       // whitespace-only
+      inst.get('dyad-dob-input').value = '2099-01-01'; // future
+      return submitSecond();
+    });
+
+    expect(inst.get('dyad-output').hidden).toBe(true);
+    expect(inst.get('dyad-head-b').textContent).toBe('');
+    for (const key of CELL_KEYS) expect(inst.cell('b', key).textContent, key).toBe('');
+    expect(allText(inst)).not.toContain(B.birthCard.label);
+  });
+
+  it('opening again starts from a blank screen, never a resumed pair', () => {
+    const inst = harness('t5');
+    inst.withDom(() => submitSecond());
+    inst.withDom(() => closeDyad());
+    inst.withDom(() => openDyad());
+    expect(inst.get('dyad-output').hidden).toBe(true);
+    expect(inst.cell('b', 'arcana').textContent).toBe('');
+    expect(inst.get('dyad-name-input').value).toBe('');
+    expect(inst.get('dyad-dob-input').value).toBe('');
+  });
+
+  it('render() with no second person shows nothing', () => {
+    const inst = harness('t5');
+    expect(inst.withDom(() => renderDyad())).toBeNull();
+    expect(inst.get('dyad-output').hidden).toBe(true);
+  });
+});
+
+describe('dyad surface — F3: one validation contract, both forms', () => {
+  it('the second form rejects exactly what the primary form rejects', () => {
+    const today = '2026-07-30';
+    const cases = [
+      { name: '', dob: '1990-01-01', field: 'name' },
+      { name: '   ', dob: '1990-01-01', field: 'name' },
+      { name: 'a', dob: '', field: 'dob' },
+      { name: 'a', dob: '2099-01-01', field: 'dob' },
+      { name: 'a', dob: '1899-01-01', field: 'dob' },
+    ];
+    for (const c of cases) {
+      const verdict = validateBirthInput({ name: c.name, dob: c.dob }, today);
+      expect(verdict.ok, JSON.stringify(c)).toBe(false);
+      expect(verdict.field, JSON.stringify(c)).toBe(c.field);
+    }
+    expect(validateBirthInput({ name: ' x ', dob: '1990-01-01' }, today))
+      .toEqual({ ok: true, name: 'x', dob: '1990-01-01' });
+  });
+
+  it('a rejected second entry surfaces the matching error node', () => {
+    const inst = harness('t5');
+    inst.withDom(() => {
+      inst.get('dyad-name-input').value = '  ';
+      inst.get('dyad-dob-input').value = '1990-01-01';
+      return submitSecond();
+    });
+    expect(inst.get('dyad-name-error').hidden).toBe(false);
+    expect(inst.get('dyad-dob-error').hidden).toBe(true);
+
+    inst.withDom(() => {
+      inst.get('dyad-name-input').value = 'ok';
+      inst.get('dyad-dob-input').value = '2099-01-01';
+      return submitSecond();
+    });
+    expect(inst.get('dyad-dob-error').hidden).toBe(false);
+    expect(inst.get('dyad-name-error').hidden).toBe(true);
+  });
+
+  it('the second form offers a birthplace field, so B can resolve a rising sign', () => {
+    const markup = readFileSync(join(REPO_ROOT, 'ui', 'dyad.js'), 'utf-8');
+    expect(markup).toContain('dyad-city-input');
+    expect(markup).toContain('dyad-city-suggestions');
+    expect(markup).toContain('dyad-polar-message');
+  });
+
+  it('ui/citysearch.js is per-instance, so a second field cannot hijack the first (G3)', async () => {
+    // The latent P0: module-scope handlers closing over module-scope refs meant
+    // a second init repointed the PRIMARY form's listeners, and index.html's
+    // selectedCity would stay null forever — silently dropping the rising sign
+    // from every shipped single reading.
+    const src = stripComments(readFileSync(join(REPO_ROOT, 'ui', 'citysearch.js'), 'utf-8'));
+    expect(src).not.toMatch(/^let _refs\b/m);
+    expect(src).not.toMatch(/^let _hooks\b/m);
+    expect(src).not.toMatch(/^let _results\b/m);
+
+    const cs = await import('../ui/citysearch.js');
+    const mkInput = () => ({
+      value: '', attrs: {}, listeners: {},
+      setAttribute(k, v) { this.attrs[k] = v; }, removeAttribute(k) { delete this.attrs[k]; },
+      addEventListener(t, fn) { this.listeners[t] = fn; },
+    });
+    const mkList = id => ({ id, innerHTML: '', children: [], appendChild(c) { this.children.push(c); } });
+    const picks = { first: undefined, second: undefined };
+    const prior = globalThis.document;
+    globalThis.document = { head: null, getElementById: () => null, createElement: () => ({ setAttribute() {}, appendChild() {} }) };
+    try {
+      const a = { cityInput: mkInput(), citySuggestions: mkList('city-suggestions') };
+      const b = { cityInput: mkInput(), citySuggestions: mkList('dyad-city-suggestions') };
+      cs.initCitySearchUI(a, { setSelectedCity: c => { picks.first = c; } });
+      cs.initCitySearchUI(b, { setSelectedCity: c => { picks.second = c; } });
+      // Typing in the FIRST field must still reach the FIRST hook.
+      a.cityInput.value = 'x';
+      a.cityInput.listeners.input();
+      expect(picks.first).toBeNull();
+      expect(picks.second).toBeUndefined();
+    } finally {
+      globalThis.document = prior;
+    }
   });
 });

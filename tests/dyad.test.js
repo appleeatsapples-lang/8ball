@@ -13,10 +13,14 @@
 //      reachable combined path, every ordered bracket pair, every branch
 //      pair resolves, and the `kind` recorded in the table is re-derived from
 //      the wuxing cycles rather than trusted.
-//   4. THE TWO DELIBERATE FORKS — the day master and the branch-pair
-//      expansion are second implementations by design (core must not import
-//      the public-tier engine or ui/). Both are pinned against their
-//      originals here, which is what makes the fork safe rather than debt.
+//   4. CALCULATION ISOLATION — the relation layer CONSUMES the coordinates
+//      buildProfile produced and recomputes none of them. The day master is
+//      read off `profile.dayPillar`; a supplied coordinate that contradicts
+//      the raw date must still win (PR #187 finding F4 — the first version
+//      recomputed, agreed with the supplied value in every ordinary case, and
+//      so passed a green suite that proved nothing). The branch-pair expansion
+//      remains a deliberate fork of the ui/concordance.js table walk, because
+//      core/ must not import ui/; it is pinned against its original here.
 //   5. NO DECK LEAKAGE — the t5 relation layer must not carry any string
 //      from the t3 written entry. t3 is what the deck is sold at.
 //
@@ -32,6 +36,7 @@ import {
   elementDirection,
   reduceNine,
   combinedPath,
+  combinedPathClause,
   branchPairKey,
   branchRelation,
   bracketPair,
@@ -44,7 +49,7 @@ import {
   ELEMENT_KE,
   ELEMENT_RELATIONS,
   ELEMENT_RELATION_KINDS,
-  COMBINED_PATH_NOTES,
+  COMBINED_PATH_FRAMES,
   BRANCH_REGISTERS,
   BRACKET_ARC,
   BRACKET_REGISTERS,
@@ -53,6 +58,12 @@ import {
 } from '../content/dyad.v1.js';
 import { CONCORDANCE_QUALIFIER } from '../content/concordance.v1.js';
 import { buildProfile, getBirthday, ANIMALS } from '../core/profile.js';
+import { getDayPillar, STEMS } from '../core/pillars.js';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import { getCard, resolveBracket } from '../core/engine.js';
 import { getDayMaster } from '../core/public.js';
 import { buildConcordance } from '../ui/concordance.js';
@@ -124,34 +135,98 @@ describe('dyad — the A side IS the standalone single reading (brief req 2)', (
   });
 });
 
-describe('dyad — day master (fork pinned against the public-tier engine)', () => {
-  it('agrees with getDayMaster on element AND stem across the sweep', () => {
+describe('dyad — day master CONSUMES the supplied coordinate (F4)', () => {
+  // The audit's finding: the first implementation destructured yyyy/mm/dd and
+  // called getDayPillar() again. It agreed with the supplied coordinate in
+  // every ordinary case, so a green suite proved nothing. These tests are
+  // built so that agreement is not enough.
+
+  it('reads the SUPPLIED dayPillar even when it contradicts the date', () => {
+    // The load-bearing case. `2000-01-01` really is stem 4 (wu · earth); this
+    // profile is handed stem 0 (jia · wood) instead. A recomputing engine
+    // returns earth here and the assertion fails.
+    const real = profileFor('2000-01-01');
+    expect(real.dayPillar.stemIndex).toBe(4);
+    expect(real.dayPillar.stemElement).toBe('earth');
+
+    const supplied = {
+      ...real,
+      dayPillar: { ...real.dayPillar, stemIndex: 0, stemElement: 'wood' },
+    };
+    expect(dyadDayMaster(supplied)).toEqual({ stem: 'jia', element: 'wood' });
+  });
+
+  it('carries the supplied coordinate all the way into the relation passage', () => {
+    // Isolation has to hold through the assembly, not just at the leaf.
+    const a = profileFor('2000-01-01'); // earth
+    const b = profileFor('2000-01-01'); // earth → same-phase relation
+    expect(buildDyadReading(a, b).relation.element.aToB.kind).toBe('same');
+
+    const forced = { ...a, dayPillar: { ...a.dayPillar, stemIndex: 0, stemElement: 'wood' } };
+    const reading = buildDyadReading(forced, b);
+    expect(reading.relation.element.a.element).toBe('wood');
+    expect(reading.relation.element.b.element).toBe('earth');
+    expect(reading.relation.element.aToB.kind).toBe('ke'); // wood checks earth
+  });
+
+  it('does not read the raw date at all — a garbage date with a good pillar works', () => {
+    const real = profileFor('2000-01-01');
+    const noDate = { ...real, yyyy: undefined, mm: undefined, dd: undefined };
+    expect(dyadDayMaster(noDate)).toEqual({ stem: 'wu', element: 'earth' });
+  });
+
+  it('agrees with the shipped pillar for every ordinary profile', () => {
+    // Consumption must still be CORRECT, not merely isolated: for a profile
+    // built the normal way, the day master is the one core/pillars.js filed.
     for (const dob of DATES) {
       const profile = profileFor(dob);
-      const mine = dyadDayMaster(profile);
-      const theirs = getDayMaster(profile.yyyy, profile.mm, profile.dd);
-      expect(mine.element, dob).toBe(theirs.element);
-      expect(mine.stem, dob).toBe(theirs.stem);
+      const pillar = getDayPillar(profile.yyyy, profile.mm, profile.dd);
+      expect(dyadDayMaster(profile), dob)
+        .toEqual({ stem: STEMS[pillar.stemIndex], element: pillar.stemElement });
+      expect(ELEMENTS, dob).toContain(dyadDayMaster(profile).element);
     }
   });
 
-  it('agrees on a dense multi-year walk, not just the anchors', () => {
+  it('still matches the public-tier engine on ordinary profiles', () => {
+    // The old differential test asserted a FORK was safe. There is no fork
+    // now, so this is repurposed: both surfaces must still read the same day
+    // master for a normally-built profile, across a dense multi-year walk.
     for (let y = 1900; y <= 2100; y += 13) {
       for (let m = 1; m <= 12; m += 5) {
         for (let d = 1; d <= 28; d += 9) {
           const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          const profile = profileFor(iso);
-          expect(dyadDayMaster(profile).element, iso)
-            .toBe(getDayMaster(y, m, d).element);
+          const mine = dyadDayMaster(profileFor(iso));
+          const theirs = getDayMaster(y, m, d);
+          expect(mine.element, iso).toBe(theirs.element);
+          expect(mine.stem, iso).toBe(theirs.stem);
         }
       }
     }
   });
 
-  it('always resolves one of the five elements', () => {
-    for (const profile of PROFILES) {
-      expect(ELEMENTS).toContain(dyadDayMaster(profile).element);
+  it('fails CLOSED on a missing or incoherent pillar, never on a guess', () => {
+    const real = profileFor('2000-01-01');
+    for (const bad of [undefined, null, 'earth', 7]) {
+      expect(() => dyadDayMaster({ ...real, dayPillar: bad }), String(bad)).toThrow(TypeError);
     }
+    // out-of-range index
+    for (const stemIndex of [-1, 10, 1.5, '4', NaN]) {
+      expect(() => dyadDayMaster({ ...real, dayPillar: { ...real.dayPillar, stemIndex } }),
+        String(stemIndex)).toThrow(TypeError);
+    }
+    // internally incoherent: index says earth, element claims water
+    expect(() => dyadDayMaster({
+      ...real, dayPillar: { ...real.dayPillar, stemIndex: 4, stemElement: 'water' },
+    })).toThrow(/incoherent day pillar/);
+  });
+
+  it('the engine source never re-derives a pillar from a date', () => {
+    // Structural pin: the recomputation the audit found was one call. If it
+    // returns, this fails without needing a case to catch it.
+    const src = readFileSync(join(__dirname, '..', 'core', 'dyad.js'), 'utf-8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(src).not.toMatch(/getDayPillar\s*\(/);
+    expect(src).not.toMatch(/\byyyy\b/);
   });
 });
 
@@ -230,21 +305,68 @@ describe('dyad — combined life path', () => {
         expect(out.sum).toBe(a + b);
         expect(out.combined).toBeGreaterThanOrEqual(1);
         expect(out.combined).toBeLessThanOrEqual(9);
-        expect(out.body).toBe(COMBINED_PATH_NOTES[out.combined].body);
         reached.add(out.combined);
       }
     }
-    // No unreachable entry in the table: all nine are hit by a real pair.
+    // No unreachable value: all nine are hit by a real pair.
     expect([...reached].sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
-  it('reads the number meaning from the existing registry, not a private copy', () => {
-    for (let n = 1; n <= 9; n++) {
-      const out = combinedPath(n, 9);
-      const registry = NUMEROLOGY_MEANINGS[String(out.combined)];
-      expect(out.register).toBe(registry.register);
-      expect(out.theme).toBe(registry.theme);
+  it('emits the registry meaning VERBATIM — no second copy (F6)', () => {
+    // The audit's finding: nine locally authored bodies restated the registry's
+    // own clauses (for n=1, "starting a sequence rather than joining one"
+    // against the registry's "...joining one already underway"). Identity, not
+    // similarity, is the contract.
+    for (let a = 1; a <= 9; a++) {
+      for (let b = 1; b <= 9; b++) {
+        const out = combinedPath(a, b);
+        const registry = NUMEROLOGY_MEANINGS[String(out.combined)];
+        expect(out.meaning, `${a}+${b}`).toBe(registry.body);
+        expect(out.register, `${a}+${b}`).toBe(registry.register);
+        expect(out.theme, `${a}+${b}`).toBe(registry.theme);
+      }
     }
+  });
+
+  it('the reduction clause carries arithmetic ONLY, never a meaning', () => {
+    // It must be derivable from the two integers alone. If a themed word ever
+    // creeps back in, the clause has started restating the number's meaning.
+    const themes = Object.values(NUMEROLOGY_MEANINGS).map(m => m.theme);
+    const registers = Object.values(NUMEROLOGY_MEANINGS).map(m => m.register);
+    for (let a = 1; a <= 9; a++) {
+      for (let b = 1; b <= 9; b++) {
+        const out = combinedPath(a, b);
+        expect(out.reduction).toBe(combinedPathClause(out.sum, out.combined));
+        for (const theme of themes) {
+          expect(out.reduction, `${a}+${b} leaks theme "${theme}"`)
+            .not.toMatch(new RegExp(`\\b${theme}\\b`));
+        }
+        for (const register of registers) {
+          expect(out.reduction, `${a}+${b} leaks register`).not.toContain(register);
+        }
+        // ...and it must not contain the registry body either.
+        expect(out.reduction).not.toContain(NUMEROLOGY_MEANINGS[String(out.combined)].body);
+      }
+    }
+  });
+
+  it('uses the reducing frame only when the sum actually reduced', () => {
+    expect(combinedPath(4, 2).reduction).toBe(COMBINED_PATH_FRAMES.direct
+      .replace('{combined}', '6'));
+    expect(combinedPath(9, 9).reduction).toBe(COMBINED_PATH_FRAMES.reduced
+      .replace('{sum}', '18').replace('{combined}', '9'));
+    // The degenerate sentence the two frames exist to avoid.
+    expect(combinedPath(4, 2).reduction).not.toMatch(/sum to 6, which .* reduces to 6/);
+  });
+
+  it('no locally authored per-number body survives in the content file', () => {
+    // Code only — the file's header explains the retired export by name, and
+    // that history is worth keeping readable.
+    const src = readFileSync(join(__dirname, '..', 'content', 'dyad.v1.js'), 'utf-8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(src).not.toMatch(/COMBINED_PATH_NOTES/);
+    // The two frames are templates, not nine entries.
+    expect(Object.keys(COMBINED_PATH_FRAMES).sort()).toEqual(['direct', 'reduced']);
   });
 
   it('is order-insensitive in the value, since a sum is', () => {
@@ -404,7 +526,8 @@ describe('dyad — assembly', () => {
         const reading = buildDyadReading(a, b);
         expect(reading.relation.element.aToB.body).toBeTruthy();
         expect(reading.relation.element.bToA.body).toBeTruthy();
-        expect(reading.relation.numerology.body).toBeTruthy();
+        expect(reading.relation.numerology.reduction).toBeTruthy();
+        expect(reading.relation.numerology.meaning).toBeTruthy();
         expect(reading.relation.cardPair.body).toBeTruthy();
       }
     }

@@ -89,7 +89,7 @@ naming only two.)
   are the fail-closed gates — a missing comparator, fixture or regression
   suite is a failure, never a skip.
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1497, so there are ~3 lines of headroom; past that, split into `ui/*.js`
+  at 1494, so there are ~6 lines of headroom; past that, split into `ui/*.js`
   per §6 rather than trimming to squeeze under. The §1.J dyad tier spent 6 of
   the previous 9 by design — its screen, styles and entry control are all
   injected from `ui/dyad.js`, and what remains in the host is only the import
@@ -133,7 +133,7 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
 ## Repository shape
 
     core/         pure functions — 12 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math, public, dyad)
-    ui/           ES modules — citysearch, concordance, dyad, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t3-ceiling public read (§1.D v0.60 — t4 is retired); dyad renders the t5 paired read (§1.J) and injects its own screen + CSS (12 modules)
+    ui/           ES modules — citysearch, concordance, dyad, labels, meanings, modals, payments, profile, public, readings, share, sheet, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t3-ceiling public read (§1.D v0.60 — t4 is retired); dyad renders the t5 paired read (§1.J) and injects its own screen + CSS; sheet builds an instanced standalone specimen sheet, reusing tiers' cellRenderState so the dyad's two sheets and the host sheet cannot disagree (13 modules)
     content/      dyad.v1.js (t5 relation tables — 25 ordered element pairs, 9 combined paths, 6 branch registers, 9 ordered bracket registers; §1.J) + cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-read tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59; the read is a t3 ceiling block per §1.D v0.60)
     agents/       agent role docs + platform constraints per §10 v0.24
     tests/        51 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)

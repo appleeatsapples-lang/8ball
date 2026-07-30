@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { CARDS } from '../content/cards.v1.full.js';
 import {
   ELEMENT_RELATIONS,
-  COMBINED_PATH_NOTES,
+  COMBINED_PATH_FRAMES,
   BRANCH_REGISTERS,
   BRACKET_REGISTERS,
 } from '../content/dyad.v1.js';
@@ -520,8 +520,14 @@ function* dyadBodies() {
   for (const [key, entry] of Object.entries(ELEMENT_RELATIONS)) {
     yield { path: `ELEMENT_RELATIONS.${key}`, text: entry.body };
   }
-  for (const [key, note] of Object.entries(COMBINED_PATH_NOTES)) {
-    yield { path: `COMBINED_PATH_NOTES.${key}`, text: note.body };
+  // The combined-path frames are TEMPLATES, not passages: they carry `{sum}`
+  // and `{combined}` placeholders, so the word/sentence pins below run against
+  // their RESOLVED form (dyadAssembled covers the runtime strings too).
+  for (const [key, frame] of Object.entries(COMBINED_PATH_FRAMES)) {
+    yield {
+      path: `COMBINED_PATH_FRAMES.${key}`,
+      text: frame.replace('{sum}', '12').replace('{combined}', '3'),
+    };
   }
   for (const [key, register] of Object.entries(BRANCH_REGISTERS)) {
     yield { path: `BRANCH_REGISTERS.${key}`, text: register.body };
@@ -537,7 +543,14 @@ function* dyadAssembled() {
       const { relation } = buildDyadReading(a, b);
       yield { path: `${a.yyyy}×${b.yyyy}.element.aToB`, text: relation.element.aToB.body };
       yield { path: `${a.yyyy}×${b.yyyy}.element.bToA`, text: relation.element.bToA.body };
-      yield { path: `${a.yyyy}×${b.yyyy}.numerology`, text: relation.numerology.body };
+      yield { path: `${a.yyyy}×${b.yyyy}.numerology.reduction`, text: relation.numerology.reduction };
+      // NOTE: relation.numerology.meaning is deliberately NOT scanned here.
+      // It is the nine-number registry's own body, carried verbatim, and
+      // content/meanings.v* is pinned by tests/meanings_content.test.js. If
+      // the dyad's pins were applied to it, this suite would be asserting
+      // authorship over a string this tier does not author — which is the
+      // F6 defect wearing a different hat.
+
       yield { path: `${a.yyyy}×${b.yyyy}.cardPair`, text: relation.cardPair.body };
     }
   }

@@ -366,6 +366,10 @@ const SHARE_ROWS = [
   ['hourPillar'],
 ];
 
+// Exported additively so ui/sheet.js can build a second standalone sheet from
+// the SAME row structure the host sheet renders, rather than restating it.
+export const SHEET_ROWS = SHARE_ROWS;
+
 function cellStateOf(cell) {
   const cl = cell && cell.root && cell.root.classList;
   if (!cl || cl.contains('sealed')) return 'sealed';

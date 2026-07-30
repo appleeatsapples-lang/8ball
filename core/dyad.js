@@ -35,7 +35,7 @@
 // Concordance carries it: what is on offer is a citation, not a verdict.
 
 import { getCard, resolveBracket } from './engine.js';
-import { getDayPillar, STEMS } from './pillars.js';
+import { STEMS, STEM_ELEMENTS } from './pillars.js';
 import { sumDigits } from './math.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
@@ -46,7 +46,7 @@ import {
   ANIMAL_RELATION_FAMILIES,
   ELEMENT_RELATIONS,
   ELEMENT_RELATION_KINDS,
-  COMBINED_PATH_NOTES,
+  COMBINED_PATH_FRAMES,
   BRANCH_REGISTERS,
   BRACKET_ARC,
   BRACKET_REGISTERS,
@@ -57,26 +57,45 @@ import {
 // ── 1. Day master ───────────────────────────────────────────────────────────
 //
 // The day master is the heavenly stem of the day pillar; its element is the
-// element the element axis is keyed on. This is deliberately a SECOND
-// derivation rather than an import of the PUBLIC-TIER engine's getDayMaster:
-// that engine has exactly one consumer by design (ui/public.js, pinned by
-// tests/public.test.js so a second unreviewed wiring fails CI), and widening
-// that pin to carry a dependency this module does not otherwise need would
-// spend the pin for nothing. The path is deliberately not written out here —
-// that pin scans for the literal, and a comment is not an import.
+// element the element axis is keyed on.
 //
-// The fork is the same shape that engine itself uses for parsePublicDob, and
-// it is pinned the same way: tests/dyad.test.js asserts this function agrees
-// with getDayMaster on element AND stem across a wide date sweep, so a change
-// to one that is not made to the other fails CI rather than diverging
-// silently. Both read the same core/pillars.js pillar, so there is still only
-// one sexagenary implementation in the repo.
+// It is READ OFF `profile.dayPillar`, never recomputed. The first version of
+// this function destructured `yyyy/mm/dd` and called `getDayPillar()` again,
+// which contradicted this module's own header and DOCTRINE §1.J's calculation-
+// isolation clause in the same breath as asserting them — a Codex pre-merge
+// audit (PR #187, finding F4) passed a profile whose supplied `dayPillar` had
+// been deliberately altered and got back the day master re-derived from the
+// raw date. The recomputation was deterministic and agreed with the supplied
+// coordinate in every ordinary case, which is exactly why it survived a green
+// suite: "usually identical" is not the contract. The contract is that the
+// relation layer consumes what `buildProfile` produced, so that there is one
+// calculation of record and a caller cannot be shown a relation computed from
+// coordinates it was never given.
+//
+// `getDayPillar` returns `{stemIndex, branchIndex, stemElement, animal}` and
+// stores no stem NAME, so `STEMS[stemIndex]` is a label lookup on the supplied
+// index — not a second derivation from the date. The guard below checks the
+// supplied object is internally coherent (a stem index in range whose element
+// matches the sexagenary table) and throws otherwise: on a paid surface a
+// malformed coordinate must fail closed rather than resolve to a plausible
+// wrong relation. `ui/dyad.js` catches and seals the block.
 export function dyadDayMaster(profile) {
-  const { yyyy, mm, dd } = profile;
-  const pillar = getDayPillar(yyyy, mm, dd);
+  const pillar = profile && profile.dayPillar;
+  if (!pillar || typeof pillar !== 'object') {
+    throw new TypeError('profile.dayPillar is required — the dyad consumes calculated coordinates');
+  }
+  const { stemIndex, stemElement } = pillar;
+  if (!Number.isInteger(stemIndex) || stemIndex < 0 || stemIndex >= STEMS.length) {
+    throw new TypeError(`invalid day-pillar stem index: ${stemIndex}`);
+  }
+  if (stemElement !== STEM_ELEMENTS[stemIndex]) {
+    throw new TypeError(
+      `incoherent day pillar: stem index ${stemIndex} is ${STEM_ELEMENTS[stemIndex]}, not "${stemElement}"`
+    );
+  }
   return {
-    stem: STEMS[pillar.stemIndex],
-    element: pillar.stemElement,
+    stem: STEMS[stemIndex],
+    element: stemElement,
   };
 }
 
@@ -136,11 +155,32 @@ export function reduceNine(total) {
 }
 
 /**
+ * The reduction clause: the arithmetic, and nothing else. Two frames, chosen
+ * by whether the sum actually needed reducing — a single frame would have to
+ * say "sums to 6, which reduces to 6" whenever the sum already sat inside the
+ * range, which is a claim about a reduction that did not happen.
+ */
+export function combinedPathClause(sum, combined) {
+  const frame = sum > 9 ? COMBINED_PATH_FRAMES.reduced : COMBINED_PATH_FRAMES.direct;
+  return frame.replace('{sum}', String(sum)).replace('{combined}', String(combined));
+}
+
+/**
  * The numerology axis. Both life paths are 1..9 (calc v3), so the sum is
- * 2..18 and the reduction lands back in 1..9 with every value reachable —
- * there is no unreachable entry in COMBINED_PATH_NOTES and no gap in it.
- * The NUMBER's own meaning is read from the existing nine-entry registry;
- * only the clause naming the reduction is authored for this tier.
+ * 2..18 and the reduction lands back in 1..9 with every value reachable.
+ *
+ * The returned object separates the two things §1.J requires to stay separate:
+ *
+ *   `reduction` — the arithmetic clause authored for this tier, no meaning;
+ *   `meaning`   — the EXISTING registry's own body for that number, byte-for-
+ *                 byte, plus its `register`. Not paraphrased, not re-authored,
+ *                 not summarized. `ui/dyad.js` renders it as a labelled
+ *                 citation so the reader can see it is the same entry the
+ *                 single sheet shows for that number.
+ *
+ * PR #187 finding F6: the first version emitted nine authored bodies here that
+ * restated the registry's clauses, while ALSO looking the registry up — two
+ * sources for one number's meaning, with only the copy ever rendered.
  */
 export function combinedPath(lifePathA, lifePathB) {
   // Both inputs are validated against the ACTIVE domain before they are
@@ -157,19 +197,24 @@ export function combinedPath(lifePathA, lifePathB) {
       throw new TypeError(`invalid life path pair: ${lifePathA} / ${lifePathB}`);
     }
   }
-  const combined = reduceNine(lifePathA + lifePathB);
+  const sum = lifePathA + lifePathB;
+  const combined = reduceNine(sum);
   if (combined === null) {
     throw new TypeError(`invalid life path pair: ${lifePathA} / ${lifePathB}`);
   }
-  const note = COMBINED_PATH_NOTES[combined];
-  const meaning = NUMEROLOGY_MEANINGS[String(combined)];
+  const entry = NUMEROLOGY_MEANINGS[String(combined)];
+  if (!entry) throw new Error(`No numerology registry entry for ${combined}`);
   return {
     lifePathA, lifePathB,
-    sum: lifePathA + lifePathB,
+    sum,
     combined,
-    register: meaning.register,
-    theme: meaning.theme,
-    body: note.body,
+    register: entry.register,
+    theme: entry.theme,
+    reduction: combinedPathClause(sum, combined),
+    // The registry's own body, carried unmodified. If this is ever replaced by
+    // a locally authored string, F6 has recurred.
+    meaning: entry.body,
+    meaningSource: 'content/meanings.v2.js NUMEROLOGY_MEANINGS',
   };
 }
 

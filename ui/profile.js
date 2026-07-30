@@ -80,6 +80,49 @@ export function profileFromPayload(obj) {
   return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
 }
 
+// ── shared birth-input validation contract ────────────────────────
+// ONE validator for every form that collects (name, dob): the primary
+// onboarding form and the §1.J dyad second-person form (PR #187 finding F3
+// — the dyad form had no max date and no year/future/whitespace checks,
+// because it never called this logic at all). A future date, a pre-1900
+// year, or an empty/whitespace-only name are all rejected the same way on
+// both forms because they run the same function, not two copies that can
+// drift apart on the next edit.
+//
+// HTML5 max= is a soft fence (devtools-bypassable); this is the real gate,
+// so both sites also set `input.max = todayIsoLocal()`.
+// Local, deliberately not `toISOString().slice(0,10)`: that is UTC, and east
+// of UTC after local midnight a same-day birth date would read as "future".
+export function todayIsoLocal(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * `today` is injectable so the future-date rule can be tested against a fixed
+ * calendar instead of whatever day CI happens to run on.
+ *
+ * `field` names the input a caller should surface the error on; `reason` says
+ * why. Both forms route their own error nodes off `field`, so neither has to
+ * re-derive which check failed.
+ *
+ * @returns {{ok: true, name: string, dob: string}
+ *          | {ok: false, field: 'name'|'dob', reason: 'name'|'dob'|'future'|'year'}}
+ */
+export function validateBirthInput({ name, dob }, today = todayIsoLocal()) {
+  const trimmed = String(name == null ? '' : name).trim();
+  if (!trimmed) return { ok: false, field: 'name', reason: 'name' };
+  const iso = String(dob == null ? '' : dob);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { ok: false, field: 'dob', reason: 'dob' };
+  // ISO date strings compare lexicographically the same as chronologically,
+  // so `iso > today` catches today-plus-one through any future year cleanly.
+  if (iso > today) return { ok: false, field: 'dob', reason: 'future' };
+  const y = Number(iso.slice(0, 4));
+  // core/calendar.js's lunar-new-year and solar-term tables span 1900-2100; a
+  // year below that would yield a confidently wrong animal rather than an error.
+  if (!Number.isInteger(y) || y < 1900) return { ok: false, field: 'dob', reason: 'year' };
+  return { ok: true, name: trimmed, dob: iso };
+}
+
 // ── DOM-touching form helpers (DI injected at boot) ───────────────
 // DOM refs and the two cross-module state setters (selectedCity,
 // currentProfile both live in index.html as `let` bindings) are

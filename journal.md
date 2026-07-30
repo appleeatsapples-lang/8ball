@@ -5,6 +5,87 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-30 — PR #187 audit remediation: all six P1 findings closed — STAGED
+
+**Status: STAGED, not merged.** Codex returned **DO NOT MERGE — CHANGES REQUESTED** on the first dyad
+implementation with six P1 and two P2 findings. Every one was correct and none is disputed. Three of the six were
+contradictions between DOCTRINE and the code shipped under it — the document asserted properties the code did not
+have — which is the failure mode a self-authored clause is most prone to and exactly what an independent lane is for.
+Per L48 this does not clear anything: a **fresh** independent read is required before merge consideration.
+
+**F2 · the whole dyad is the t5 product (the biggest one).** The entry control was injected on every rendered
+result and only the relation passages were gated, so a free device could open the form and submit a second person,
+and a t3 device received person B's COMPLETE sheet for nothing. Worse, `tests/dyad_surface.test.js` had a case
+asserting exactly that — the wrong contract was pinned as intentional. There is now one predicate (`dyadEntitled`)
+behind four independent gates: the control is absent below t5, `open()` refuses, `submitSecond()` refuses, `render()`
+produces nothing. Verified in the browser under a devtools bypass — unhiding the button and forcing a submission as a
+free device produces no screen, no output and no string of person B anywhere in the DOM.
+
+**F5 · both sides are real standalone readings.** The bespoke two-column table is gone. Each side is a complete
+specimen sheet — every coordinate, its own written 144-card entry, its own public read — built by a new
+`ui/sheet.js`. I did **not** convert `ui/tiers.js` into a factory, and the reason is on the record rather than
+implied: it is imported by 14 of the 51 test files and two of them assert on its *source layout*, so the only route
+through was rewriting protected tests to accommodate my refactor — the move a re-audit should distrust — while the
+audit packet requires existing single-reading behaviour to stay unchanged. Instead there is one VALUE mapping
+(`cellRenderState`) with two DOM writers, and a differential test over every profile × tier × cell pins that their
+output agrees. The shipped render path is byte-unchanged.
+
+**F1 · nothing of person B survives closing.** `reset()` cleared a hand-maintained subset of what `render()` wrote,
+so B's first name and fourteen coordinate values sat in live hidden DOM after the back control. The clear list is now
+derived from the fill list on both sides (the sheets clear from their own enumeration; the relation nodes from
+`DYAD_RELATION_NODES`, which `render()` also writes through) — a list that *cannot* fall behind is the fix; the old
+one was correct when written and wrong one edit later. An invalid re-submission now invalidates the previous pair
+first, so the screen can never show B-1 under a form describing B-2.
+
+**F4 · the engine consumes the supplied coordinate.** `dyadDayMaster` re-derived the day master from `yyyy/mm/dd`
+while this module's header and §1.J both said it recomputes nothing. It agreed with the supplied value in every
+ordinary case, which is precisely why a green suite proved nothing. It reads `profile.dayPillar` now and fails closed
+on a missing or incoherent one. The old differential test asserted a fork was safe; it is replaced by an isolation
+test that hands in a pillar contradicting the date and requires the supplied one to win.
+
+**F3 · one entry contract, both forms.** The second-person form had no date ceiling, no name trim and no year floor —
+it accepted a whitespace-only name and a 2027 birth date. Both forms now run `validateBirthInput`. It also gained a
+birthplace field, so person B resolves a rising sign; that required converting `ui/citysearch.js` from a module
+singleton to a per-instance controller, and **that was a latent P0**: its handlers were module-scope closures over
+module-scope refs, so a second city field would have silently repointed the PRIMARY form's listeners and dropped the
+rising sign from every shipped single reading. Verified in the browser that the primary field still selects and still
+resolves, with its `city-option-N` ids unchanged.
+
+**F6 · the number's meaning comes from the registry.** Nine authored bodies restated the registry's own clauses — for
+1, "starting a sequence rather than joining one" against "…joining one already underway"; for 2, verbatim — while the
+registry was also looked up and never rendered. They are replaced by two templates carrying only the arithmetic of
+the reduction, and the registry's `body` is emitted byte-for-byte beside them as a labelled citation.
+
+**F7 · the tests were part of the problem.** One assertion compared `newlyEntitledCells('free','t1')` **with itself**
+and could never fail; it carries literal expected sets now. The compatibility scan was a vocabulary list, so a bare
+verdict needed none of that vocabulary — I confirmed "both names fit together", "the two sheets belong together", "a
+strong pairing" and "they work well as a pair" all passed the shipped guard. It now scans for the SHAPE of a verdict,
+and all four are sentinels in the guard-the-guard case. One shipped passage was reworded rather than the scan
+loosened: 沖 *chong* carries its transliteration instead of "a direct clash".
+
+**F8 · doctrine bookkeeping.** The summary at the top said three paid rungs and §1.A–§1.I; the footer and version
+index stopped at v0.60. All reconciled to v0.61/§1.J.
+
+**Gaps the audit did not raise, found by fanning the findings out across independent readers.** The sharpest was the
+**§5.D share surface**: `shareRowRefs()` is captured once at boot and closes over `ui/tiers.js`'s module state, so a
+second sheet renderer sharing or reassigning that state would put person B's coordinates into a shareable PNG — a
+paid-value leak and a non-consenting person's data in a file the user then posts. §1.J asserts this cannot happen;
+that is now a test, written and confirmed green BEFORE the refactor. Also closed: the dyad sheets emit no element
+`id`, so they cannot make `ui/meanings.js`'s `getElementById` lookups ambiguous and hijack the host's own panel
+(verified zero duplicate ids in the live DOM); and neither new module names the facet key, so rendering a second
+person cannot advance or reset the host's written-entry rotation.
+
+**Live-fire (§8 gate 9).** Zero console errors. Free device: control hidden, gate holds under a devtools bypass.
+t5: both complete sheets with distinct written entries, relation layer with the citation separated from the
+reduction. Close: **zero** residue across every token identifying person B, with a positive control proving the sweep
+was not vacuous, and only the three existing allow-listed storage keys. Validation: whitespace name, future date and
+pre-1900 all rejected; an invalid re-submission wipes the prior pair. Person B resolved a rising sign from Reykjavík
+while person A's stayed intact. `#card-face` still holds exactly 14 coordinate values and no dyad node. Mobile
+375×812: no horizontal overflow.
+
+**Gates.** Suite 51 files / 1,758 tests green. Python assurance 93/93. Product audit PASS. Local PII audit clean.
+`index.html` 1494/1500.
+
 ## 2026-07-30 — Dyad engine ships as `t5` ($6), fail-closed — STAGED
 
 **Status: STAGED, not merged.** Branch `claude/dyad-engine-t5` off `main` (`dfc89bf`). No push, no merge, no

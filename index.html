@@ -1043,13 +1043,13 @@ import {
   handlePaidReturn,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
-import { initPublicUI, renderPublicRead } from './ui/public.js';
+import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
-import { initDyadUI } from './ui/dyad.js';
+import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
-  profileFromPayload,
+  profileFromPayload, validateBirthInput, todayIsoLocal,
   populateRisingFields, resetFormDisplay,
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
@@ -1128,10 +1128,6 @@ readingsUI = initReadingsUI(
 // midnight — a same-day DOB would be rejected as "future" there.
 // HTML5 max= is a soft fence (devtools-bypassable); the submit handler
 // is the real gate. Both sites share this helper.
-function todayIsoLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 dobInput.max = todayIsoLocal();
 dobInput.addEventListener('input', () => { dobError.hidden = true; });
 const cardLockIcon = $('card-lock-icon');
@@ -1169,7 +1165,9 @@ initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
 initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySelector('.result-controls') },
-  { getProfile: () => currentProfile, getTier: getRenderTier, buildSecond: profileFromPayload,
+  { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
+    buildSecond: profileFromPayload, getNoteSlot: p => getFacetSlot(p.lifePath),
+    getPublicRead: publicReadFor,
     onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1242,6 +1240,9 @@ function renderCard(profile, opts) {
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;
+  // §1.J: the dyad entry tracks entitlement on every render, so a tier change
+  // can never leave it stranded visible on a device that cannot use it.
+  syncDyadEntry(tier);
   if (cardEntry) {
     try {
       const sunCells = CARDS[profile.sunSign];
@@ -1339,21 +1340,17 @@ function shakeAgain() {
 // from the Path B lock-tap on the rendered sheet).
 profileForm.addEventListener('submit', e => {
   e.preventDefault();
-  const name = nameInput.value.trim();
-  const dob = dobInput.value;
-  if (!name || !dob) return;
-  // v0.3.0 fix B: real future-DOB gate. ISO date strings compare
-  // lexicographically the same as chronologically, so `dob > today`
-  // catches today-plus-one through any future year cleanly. Inline
-  // error surfaces; input event hides it on next edit.
-  const todayIso = todayIsoLocal();
-  if (dob > todayIso) {
-    dobError.hidden = false;
+  // ONE validation contract, shared with the dyad's second-person form
+  // (ui/profile.js validateBirthInput — §1.J / PR #187 F3). Trimmed name,
+  // real local-today future gate, 1900 floor. Inline error surfaces; the
+  // input event hides it on next edit.
+  const entry = validateBirthInput({ name: nameInput.value, dob: dobInput.value });
+  if (!entry.ok) {
+    dobError.hidden = entry.field !== 'dob';
     return;
   }
   dobError.hidden = true;
-  const [y] = dob.split('-').map(Number);
-  if (isNaN(y) || y < 1900) return;
+  const { name, dob } = entry;
   const time = timeInput.value || undefined;
   // v0.2.7.2: rising opts derive from the selected-city state. If the
   // user typed without selecting from the suggestion list, selectedCity

@@ -18,6 +18,9 @@ import {
 } from '../ui/share.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Shared hand-rolled DOM mock (§12: no jsdom).
+import { makeClassList } from './helpers/dom.js';
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shareJs = readFileSync(
   join(__dirname, '..', 'ui', 'share.js'),
@@ -517,3 +520,86 @@ describe('share-surface privacy invariants (DOCTRINE §5.D / §5 / §7)', () => 
     expect(shareJs).not.toMatch(/require\s*\(/);
   });
 });
+
+// ————————————————————————————————————————————————————————————————————————
+// G1 — the §5.D share artifact must never serialize a SECOND person.
+//
+// Surfaced while remediating PR #187: the dyad (§1.J) renders further specimen
+// sheets on its own screen. `shareRowRefs()` is called ONCE at boot in
+// index.html and closes over ui/tiers.js's module state, so if a second sheet
+// renderer ever shared or reassigned that state, the shareable PNG would
+// silently carry person B's coordinates — a paid-value leak AND a
+// non-consenting person's data, in a file the user then posts publicly.
+//
+// DOCTRINE §1.J states "no dyad share artifact ships: the §5.D surface is the
+// single sheet and is byte-untouched." That is a requirement to PROVE, not to
+// assume. Written to be green on the pre-dyad code and to stay green after.
+// ————————————————————————————————————————————————————————————————————————
+
+describe('share surface — one sheet only (§5.D / §1.J G1)', () => {
+  const shareCell = () => {
+    const root = { classList: makeClassList() };
+    return { textContent: '', closest: sel => (sel === '.coord-cell' ? root : null) };
+  };
+
+  it('captured share refs keep following the HOST sheet after another renders', async () => {
+    const tiers = await import('../ui/tiers.js');
+    const { buildProfile } = await import('../core/profile.js');
+
+    const hostCells = {};
+    for (const key of tiers.CELL_KEYS) hostCells[key] = shareCell();
+    tiers.initTiersUI({
+      sunTitle: { textContent: '' }, animalTitle: { textContent: '' },
+      entry: null, cells: hostCells,
+    }, {});
+
+    // Capture exactly as index.html does: once, at boot.
+    const captured = tiers.shareRowRefs();
+    tiers.renderTierSections(buildProfile('host', '2000-01-01'), 't3');
+    const hostSnapshot = JSON.stringify(captured.map(r => r.cells));
+    expect(hostSnapshot).toContain('capricorn'); // not vacuous
+
+    // A second sheet renderer must not move these refs. ui/sheet.js keeps its
+    // own per-instance state and never touches ui/tiers.js's cells.
+    const sheetMod = await import('../ui/sheet.js').catch(() => null);
+    if (sheetMod && typeof sheetMod.createSheet === 'function') {
+      const other = sheetMod.createSheet(makeSheetHost(), { prefix: 'g1' });
+      other.render(buildProfile('other', '1988-06-15'), 't3', {});
+    }
+
+    expect(JSON.stringify(captured.map(r => r.cells))).toBe(hostSnapshot);
+  });
+
+  it('the share builder is wired to exactly one ref set, and the dyad cannot reach it', () => {
+    const src = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    expect((src.match(/shareRowRefs\(\)/g) || []).length).toBe(1);
+    expect((src.match(/initShareUI\(/g) || []).length).toBe(1);
+    const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    for (const rel of [['ui', 'dyad.js'], ['ui', 'sheet.js']]) {
+      let code;
+      try { code = strip(readFileSync(join(__dirname, '..', ...rel), 'utf-8')); }
+      catch (_) { continue; }
+      expect(code, rel.join('/')).not.toMatch(/shareRowRefs|initShareUI|toBlob|navigator\.share/);
+    }
+  });
+});
+
+// A detached host node for a second sheet instance: enough DOM surface for the
+// builder to mount into, nothing shared with the host sheet.
+function makeSheetHost() {
+  const make = () => {
+    const node = {
+      children: [], classList: makeClassList(), textContent: '', attrs: {},
+      style: { setProperty() {}, removeProperty() {} },
+      setAttribute(k, v) { this.attrs[k] = v; },
+      removeAttribute(k) { delete this.attrs[k]; },
+      appendChild(c) { this.children.push(c); return c; },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    return node;
+  };
+  const host = make();
+  host.ownerDocument = { createElement: make };
+  return host;
+}
