@@ -15,6 +15,15 @@
 
 import { describe, it, expect } from 'vitest';
 import { CARDS } from '../content/cards.v1.full.js';
+import {
+  ELEMENT_RELATIONS,
+  COMBINED_PATH_NOTES,
+  BRANCH_REGISTERS,
+  BRACKET_REGISTERS,
+} from '../content/dyad.v1.js';
+import { ELEMENTS } from '../content/concordance.v1.js';
+import { buildDyadReading } from '../core/dyad.js';
+import { buildProfile } from '../core/profile.js';
 
 const words = (s) => String(s).trim().split(/\s+/).filter(Boolean);
 const opener = (s) => words(s)[0].toLowerCase().replace(/,$/, '');
@@ -492,5 +501,120 @@ describe('content shape — habit discipline', () => {
       { sun: 'gemini', animal: 'snake' },
       { sun: 'aquarius', animal: 'dragon' },
     ]);
+  });
+});
+
+// ————————————————————————————————————————————————————————————————————————
+// §1.J dyad output — the same grammar discipline, applied to the relation
+// layer. The deck's pins above exist so a cards.v2 cannot drift silently;
+// these exist so a dyad.v2 cannot either. They deliberately assert the SAME
+// CLASSES of rule the deck is held to — sentence discipline, no reader
+// address, no identity-token leakage — rather than inventing a second
+// standard for a second content file.
+// ————————————————————————————————————————————————————————————————————————
+
+const DYAD_SWEEP = ['1900-01-01', '1966-01-21', '1988-06-15', '2000-01-01', '2100-12-31']
+  .map((dob) => buildProfile('specimen', dob));
+
+function* dyadBodies() {
+  for (const [key, entry] of Object.entries(ELEMENT_RELATIONS)) {
+    yield { path: `ELEMENT_RELATIONS.${key}`, text: entry.body };
+  }
+  for (const [key, note] of Object.entries(COMBINED_PATH_NOTES)) {
+    yield { path: `COMBINED_PATH_NOTES.${key}`, text: note.body };
+  }
+  for (const [key, register] of Object.entries(BRANCH_REGISTERS)) {
+    yield { path: `BRANCH_REGISTERS.${key}`, text: register.body };
+  }
+  for (const [key, register] of Object.entries(BRACKET_REGISTERS)) {
+    yield { path: `BRACKET_REGISTERS.${key}`, text: register.body };
+  }
+}
+
+function* dyadAssembled() {
+  for (const a of DYAD_SWEEP) {
+    for (const b of DYAD_SWEEP) {
+      const { relation } = buildDyadReading(a, b);
+      yield { path: `${a.yyyy}×${b.yyyy}.element.aToB`, text: relation.element.aToB.body };
+      yield { path: `${a.yyyy}×${b.yyyy}.element.bToA`, text: relation.element.bToA.body };
+      yield { path: `${a.yyyy}×${b.yyyy}.numerology`, text: relation.numerology.body };
+      yield { path: `${a.yyyy}×${b.yyyy}.cardPair`, text: relation.cardPair.body };
+    }
+  }
+}
+
+describe('content shape — dyad sentence discipline (§1.J)', () => {
+  it('every authored body is one sentence: a single terminal period, no ; ? !', () => {
+    const bad = [];
+    for (const { path, text } of dyadBodies()) {
+      const periods = (text.match(/\./g) ?? []).length;
+      if (periods !== 1 || !text.endsWith('.') || /[;?!]/.test(text)) bad.push(path);
+    }
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+
+  it('every authored body is 10–22 words', () => {
+    const bad = [];
+    for (const { path, text } of dyadBodies()) {
+      const n = words(text).length;
+      if (n < 10 || n > 22) bad.push(`${path}: ${n} words`);
+    }
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+
+  it('no colon-list syntax — the deck licenses exactly one and it is not here', () => {
+    const hits = [...dyadBodies()].filter(({ text }) => text.includes(':')).map((h) => h.path);
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+});
+
+describe('content shape — dyad voice (assembled output)', () => {
+  it('never addresses the reader (you/your) in any dyad string', () => {
+    const hits = [...dyadBodies(), ...dyadAssembled()]
+      .filter(({ text }) => /\byou\b|\byour\b|\byou're\b/i.test(text))
+      .map((h) => h.path);
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+});
+
+describe('content shape — dyad names never name the catalog', () => {
+  it('no sun-sign or animal name appears in any dyad passage', () => {
+    // The deck's own rule is that a card name never names its parents. The
+    // dyad's equivalent: a relation passage describes the RELATION, so it
+    // must not name a specific sign or animal — otherwise a table keyed by
+    // one pair would read as authored for another.
+    const identity = new Set([...SUN_ORDER, ...ANIMAL_ORDER]);
+    const hits = [];
+    for (const { path, text } of [...dyadBodies(), ...dyadAssembled()]) {
+      for (const w of words(text)) {
+        if (identity.has(w.toLowerCase().replace(/[^a-z]/g, ''))) hits.push(`${path}: ${w}`);
+      }
+    }
+    expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('element passages DO name their two elements — the one licensed exception', () => {
+    // Stated as a positive pin so the rule above cannot be read as "no
+    // tradition vocabulary at all". The five phases are not catalog drivers.
+    for (const [key, entry] of Object.entries(ELEMENT_RELATIONS)) {
+      expect(ELEMENTS, `${key}.from`).toContain(entry.from);
+      expect(ELEMENTS, `${key}.to`).toContain(entry.to);
+      expect(entry.body, `${key}`).toContain(entry.from);
+      expect(entry.body, `${key}`).toContain(entry.to);
+    }
+  });
+
+  it('no dyad passage reuses a deck string — t3 content stays sold at t3', () => {
+    const blob = [...dyadBodies(), ...dyadAssembled()].map((h) => h.text).join('\n');
+    const leaks = [];
+    for (const { sun, animal, cell } of cells()) {
+      for (const [field, text] of [
+        ['name', cell.name], ['type', cell.type], ['habit', cell.habit],
+        ['note.low', cell.note.low], ['note.mid', cell.note.mid], ['note.high', cell.note.high],
+      ]) {
+        if (blob.includes(text)) leaks.push(`${sun}.${animal}.${field}`);
+      }
+    }
+    expect(leaks, leaks.join('\n')).toEqual([]);
   });
 });

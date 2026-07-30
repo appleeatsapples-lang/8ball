@@ -15,6 +15,7 @@ import {
   MAJOR_ARCANA,
 } from '../core/birthcard.js';
 import { buildProfile } from '../core/profile.js';
+import { cellRenderState } from '../ui/tiers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -118,9 +119,18 @@ describe('render + share wiring (index.html)', () => {
   });
 
   it('render populates the arcana cell from profile.birthCard.label (ui/tiers.js)', () => {
-    // The cell fill lives in renderTierSections; the arcana cell is in
-    // TIER_COORDS.free, so every tier including free renders it
-    // (behavioral pin in tests/tiers.test.js).
-    expect(tiersJs).toMatch(/setCell\('arcana',[\s\S]{0,60}?profile\.birthCard\.label\)/);
+    // The cell fill lives in renderTierSections, which resolves every cell
+    // through the shared cellRenderState mapping (§1.J de-fork). Pinned
+    // behaviourally rather than by a regex over that module's source: the
+    // arcana cell must carry the birth card's own label, and must move when
+    // the label does. arcana is in TIER_COORDS.free, so this holds at every
+    // tier including free (seal behaviour pinned in tests/tiers.test.js).
+    const profile = buildProfile('specimen', '1990-01-01');
+    expect(profile.birthCard.label).toBe('XXI · the world');
+    expect(cellRenderState(profile, 'arcana', true))
+      .toEqual({ state: 'value', text: profile.birthCard.label });
+    const moved = buildProfile('specimen', '1969-12-31');
+    expect(moved.birthCard.label).not.toBe(profile.birthCard.label);
+    expect(cellRenderState(moved, 'arcana', true).text).toBe(moved.birthCard.label);
   });
 });

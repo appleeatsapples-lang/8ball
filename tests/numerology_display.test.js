@@ -19,18 +19,43 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initTiersUI, renderTierSections } from '../ui/tiers.js';
+import { cellRenderState, initTiersUI, renderTierSections } from '../ui/tiers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', () => {
-  it('each numerology number renders into its own compartment cell (v0.7.0)', () => {
+  // §1.J (2026-07-30): the six per-cell calls these three suites used to
+  // regex for became one loop over the shared cellRenderState mapping, so the
+  // dyad surface reads coordinates by the same rule the sheet renders them
+  // by. The assertions are re-pointed at that mapping rather than dropped,
+  // and they are STRONGER for it: a regex over source can match while the
+  // code behind it is wrong, and these cannot. The concat guards below and
+  // the six-distinct-nodes render at the bottom of this file are untouched.
+  const SPECIMEN = Object.freeze({
+    sunSign: 'gemini', risingSign: undefined, chineseElement: 'metal',
+    animal: 'horse', innerAnimal: 'rabbit',
+    lifePath: 1, nameNumber: 2, soulUrge: 3,
+    personality: 4, birthday: 5, maturity: 6,
+    birthCard: { label: 'XXI · the world' },
+    dayPillar: { animal: 'dragon', stemElement: 'earth' },
+    hourPillar: null,
+  });
+
+  it('each numerology number resolves through its OWN key, never a shared one', () => {
+    // Six independent lookups: the value under each key, and nothing else.
+    // A mapping that collapsed two coordinates onto one source field would
+    // return the same text twice and fail here.
     for (const key of ['lifePath', 'nameNumber', 'soulUrge',
       'personality', 'birthday', 'maturity']) {
-      expect(tiersJs).toMatch(new RegExp(`setNumerologyCell\\('${key}'`));
+      expect(cellRenderState(SPECIMEN, key, true), key)
+        .toEqual({ state: 'value', text: String(SPECIMEN[key]) });
     }
+    const texts = ['lifePath', 'nameNumber', 'soulUrge',
+      'personality', 'birthday', 'maturity']
+      .map(key => cellRenderState(SPECIMEN, key, true).text);
+    expect(new Set(texts).size).toBe(6);
   });
 
   it("no .join('') — never concatenated", () => {
@@ -38,16 +63,26 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     expect(html).not.toMatch(/\.join\(\s*['"]['"]\s*\)/);
   });
 
-  it('the §1.B triplet references all three numerology coordinates', () => {
-    expect(tiersJs).toMatch(/profile\.lifePath/);
-    expect(tiersJs).toMatch(/profile\.nameNumber/);
-    expect(tiersJs).toMatch(/profile\.soulUrge/);
+  // Both triplets, pinned by perturbation: change one coordinate on the
+  // profile and exactly that cell's text must move. This is what "reads the
+  // right field" means, and unlike a source regex it fails if the mapping
+  // silently starts reading a neighbour.
+  const perturbs = (key, value) => {
+    const before = cellRenderState(SPECIMEN, key, true).text;
+    const after = cellRenderState({ ...SPECIMEN, [key]: value }, key, true).text;
+    return before !== after && after === String(value);
+  };
+
+  it('the §1.B triplet reads life path / expression / soul urge', () => {
+    expect(perturbs('lifePath', 7), 'lifePath').toBe(true);
+    expect(perturbs('nameNumber', 8), 'nameNumber').toBe(true);
+    expect(perturbs('soulUrge', 9), 'soulUrge').toBe(true);
   });
 
-  it('the §1.D second triplet references personality / birthday / maturity', () => {
-    expect(tiersJs).toMatch(/profile\.personality/);
-    expect(tiersJs).toMatch(/profile\.birthday/);
-    expect(tiersJs).toMatch(/profile\.maturity/);
+  it('the §1.D second triplet reads personality / birthday / maturity', () => {
+    expect(perturbs('personality', 7), 'personality').toBe(true);
+    expect(perturbs('birthday', 8), 'birthday').toBe(true);
+    expect(perturbs('maturity', 9), 'maturity').toBe(true);
   });
 
   it('no hasMaster-branched display logic anywhere in the render path', () => {

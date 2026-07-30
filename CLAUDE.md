@@ -89,8 +89,12 @@ naming only two.)
   are the fail-closed gates — a missing comparator, fixture or regression
   suite is a failure, never a skip.
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1491, so there are ~9 lines of headroom; past that, split into `ui/*.js`
-  per §6 rather than trimming to squeeze under.
+  at 1497, so there are ~3 lines of headroom; past that, split into `ui/*.js`
+  per §6 rather than trimming to squeeze under. The §1.J dyad tier spent 6 of
+  the previous 9 by design — its screen, styles and entry control are all
+  injected from `ui/dyad.js`, and what remains in the host is only the import
+  and the DI call. **The next feature of any size must start by splitting**,
+  not by looking for lines to reclaim here.
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
   also add a file under `audits/`.
@@ -128,11 +132,11 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
 
 ## Repository shape
 
-    core/         pure functions — 11 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math, public)
-    ui/           ES modules — citysearch, concordance, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t3-ceiling public read (§1.D v0.60 — t4 is retired) (11 modules)
-    content/      cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-read tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59; the read is a t3 ceiling block per §1.D v0.60)
+    core/         pure functions — 12 modules (profile, engine, rising, birthcard, pillars, countries, calendar, cities, payments, math, public, dyad)
+    ui/           ES modules — citysearch, concordance, dyad, labels, meanings, modals, payments, profile, public, readings, share, tiers — DOM controllers use init*UI({refs},{hooks}) per §6 v0.23; concordance is pure post-calc lookup; public renders the t3-ceiling public read (§1.D v0.60 — t4 is retired); dyad renders the t5 paired read (§1.J) and injects its own screen + CSS (12 modules)
+    content/      dyad.v1.js (t5 relation tables — 25 ordered element pairs, 9 combined paths, 6 branch registers, 9 ordered bracket registers; §1.J) + cards.v1.full.js (144-card deck, JS-gated per §1 v0.22) + meanings.v1.js (58 immutable historical entries, §1.G v0.44) + meanings.v2.js (active 1–9 numerology + element/context roles, §1.G v0.54) + concordance.v1.js (immutable historical registry, §1.I v0.51) + concordance.v2.js (active nine-number registry, §1.I v0.54) + public.v1.js + public.v2.js (public-read tables — favorability, domain families, work modes, role postures; v2 carries v1 unedited and re-keys the mode to the birthday per §1.D v0.59; the read is a t3 ceiling block per §1.D v0.60)
     agents/       agent role docs + platform constraints per §10 v0.24
-    tests/        48 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
+    tests/        51 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs + project_audit.py (product-scope health auditor, the product-audit CI job) + test_project_audit.py (its assurance suite, plain unittest — deliberately NOT under tests/, which repo_shape.test.js pins) + hko_compare.mjs (calendar-vs-authority comparator) + fixtures/hko_calendar_authority_1901_2100.json (200 official HKO tables, each with its source SHA-256)
     assets/       cities.json + favicons + og:image
     cards/        611 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)

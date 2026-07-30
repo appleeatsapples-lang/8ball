@@ -1045,6 +1045,7 @@ import {
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
+import { initDyadUI } from './ui/dyad.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
@@ -1165,6 +1166,11 @@ initTiersUI({
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
 initMeaningsUI({ cardFace });
+// §1.J dyad surface (t5) — screen, styles and entry control injected by the
+// module; person B uses this same buildProfile path and is never persisted.
+initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySelector('.result-controls') },
+  { getProfile: () => currentProfile, getTier: getRenderTier, buildSecond: profileFromPayload,
+    onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
