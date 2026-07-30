@@ -513,15 +513,35 @@ def evaluate_hko_comparison(rc, result):
         elif actual != required:
             violated.append(f"{name}={actual!r} (required {required!r})")
 
+    # The comparator indexes by its OWN canonical term list, so these two
+    # report on the fixture rather than on the calendar: a rotated or
+    # relabelled authority record is a forged fixture, not 2,400 ordinary
+    # calendar disagreements, and must be named as such.
+    #
+    # Both are pinned by TYPE as well as by value, because Python equality is
+    # not a JSON contract: `False == 0` and `1 == True`, so a comparator
+    # emitting `semanticViolationCount: false`, `0.0`, or
+    # `termOrderCanonical: 1` would have cleared these pins on a type
+    # coincidence — the forged-fixture detector defeated by the shape of the
+    # value reporting it. semanticViolationCount is a count of violations, so
+    # it must be a real integer; a float is as wrong as a boolean here.
+    semantic = result.get("semanticViolationCount")
+    if isinstance(semantic, bool) or not isinstance(semantic, int):
+        violated.append(
+            f"semanticViolationCount={semantic!r} is not an integer (required 0)"
+        )
+    elif semantic != 0:
+        violated.append(f"semanticViolationCount={semantic!r} (required 0)")
+
+    canonical = result.get("termOrderCanonical")
+    if canonical is not True:
+        violated.append(
+            f"termOrderCanonical={canonical!r} (required True, matched by identity)"
+        )
+
     for name, actual, required in (
         ("exit code", rc, 0),
         ("incomplete", result.get("incomplete"), []),
-        # The comparator indexes by its OWN canonical term list, so these two
-        # report on the fixture rather than on the calendar: a rotated or
-        # relabelled authority record is a forged fixture, not 2,400 ordinary
-        # calendar disagreements, and must be named as such.
-        ("semanticViolationCount", result.get("semanticViolationCount"), 0),
-        ("termOrderCanonical", result.get("termOrderCanonical"), True),
     ):
         if actual != required:
             violated.append(f"{name}={actual!r} (required {required!r})")

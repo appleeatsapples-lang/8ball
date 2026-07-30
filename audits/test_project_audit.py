@@ -914,6 +914,38 @@ class HkoEvaluatorUnitTests(unittest.TestCase):
                 status, summary = pa.evaluate_hko_comparison(0, result)
                 self.assertEqual(status, "fail", f"absent {key} must fail: {summary}")
 
+    def test_semantic_violation_count_rejects_wrong_json_types(self):
+        """P2 from the PR #186 pre-merge audit: this pin used ordinary
+        equality, so `false` (False == 0) and `0.0` (0.0 == 0) both satisfied
+        it. A forged fixture whose comparator reported the violation count in
+        the wrong JSON type would have cleared the forged-fixture detector."""
+        for bad in (False, 0.0, "0", None, [], 0j):
+            with self.subTest(semanticViolationCount=bad):
+                status, summary = pa.evaluate_hko_comparison(
+                    0, dict(GOOD_COMPARISON, semanticViolationCount=bad))
+                self.assertEqual(status, "fail",
+                                 f"semanticViolationCount={bad!r} must fail: {summary}")
+                self.assertIn("semanticViolationCount", summary)
+                self.assertIn("is not an integer", summary)
+
+    def test_term_order_canonical_is_matched_by_identity_not_equality(self):
+        """Same P2, other half: `1 == True` in Python, so `termOrderCanonical:
+        1` passed. Only the literal JSON `true` may satisfy this pin."""
+        for bad in (1, 1.0, "true", "True", [True], None):
+            with self.subTest(termOrderCanonical=bad):
+                status, summary = pa.evaluate_hko_comparison(
+                    0, dict(GOOD_COMPARISON, termOrderCanonical=bad))
+                self.assertEqual(status, "fail",
+                                 f"termOrderCanonical={bad!r} must fail: {summary}")
+                self.assertIn("termOrderCanonical", summary)
+
+    def test_the_two_finding_l_pins_still_accept_their_correct_types(self):
+        """Positive control for the strict-type pins -- without this the two
+        tests above could be passing because the pins reject everything."""
+        status, _summary = pa.evaluate_hko_comparison(
+            0, dict(GOOD_COMPARISON, semanticViolationCount=0, termOrderCanonical=True))
+        self.assertEqual(status, "pass")
+
     def test_boolean_counts_are_rejected_as_non_numbers(self):
         """Python's `False == 0` and `isinstance(True, int)` would otherwise
         let a JSON boolean satisfy a zero-count pin."""
