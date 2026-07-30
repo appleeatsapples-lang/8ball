@@ -2,11 +2,11 @@ SAFE TO MERGE
 
 # Codex pre-merge re-audit — PR #187 · corrected t5 dyad
 
-**PR:** #187 — dyad relation engine + t5 rung  
-**Range:** `origin/main` @ `dfc89bf` → `claude/dyad-engine-t5` @ `e34458a`  
-**Auditor:** Codex, independent of the Claude Code implementation lane  
-**Prior verdict:** `DO NOT MERGE — CHANGES REQUESTED` at `9c749ef`  
-**Correction commits:** `98792b1`, `e34458a`  
+**PR:** #187 — dyad relation engine + t5 rung
+**Range:** `origin/main` @ `dfc89bf` → `claude/dyad-engine-t5` @ `e34458a`
+**Auditor:** Codex, independent of the Claude Code implementation lane
+**Prior verdict:** `DO NOT MERGE — CHANGES REQUESTED` at `9c749ef`
+**Correction commits:** `98792b1`, `e34458a`
 **Date:** 2026-07-30
 
 ## Verdict
@@ -103,4 +103,3 @@ limit is explicitly recorded in doctrine and is not part of this feature's
 standalone-output content contract. The t5 Gumroad product remains nonexistent
 and `T5_PRODUCT_URL` remains empty; this audit clears the implemented,
 fail-closed entitlement behavior, not a checkout flow that does not yet exist.
-
