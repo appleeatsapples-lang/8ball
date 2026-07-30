@@ -22,7 +22,8 @@ import {
   ELEMENT_MEANINGS,
   NUMEROLOGY_MEANINGS,
   COORDINATE_CONTEXT,
-} from '../content/meanings.v2.js';
+} from '../content/meanings.v3.js';
+import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
   BANNED_PATTERNS,
   BANNED_VOICE_REGISTER,
@@ -40,7 +41,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const meaningsUiJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
 
 const HISTORICAL_LIFE_PATH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '22', '33'];
-const NUMEROLOGY_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+// Calc v4 (§1.B v0.62) restores the master stops, so the ACTIVE registry is
+// once again the whole v1 table. Derived from the calculation core rather
+// than restated, so a domain change in one place fails here rather than
+// leaving a value with no meaning to open.
+const NUMEROLOGY_KEYS = TERMINAL_NUMBERS.map(String);
 
 function* currentMeaningStrings() {
   for (const [key, entry] of Object.entries(ELEMENT_MEANINGS)) {
@@ -151,18 +156,18 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
   });
 
   it('scans the exact meanings module the runtime imports (scan-target parity)', () => {
-    // PR #101 MED-2 + PR #104 codex absorb: a future meanings.v2.js (§4 —
+    // PR #101 MED-2 + PR #104 codex absorb: a future meanings.v3.js (§4 —
     // new release = new file) must not ship unscanned while this file greens
     // on v1. This file intentionally retains a historical v1 scan while the
-    // currentMeaningStrings walker below scans the active v2 additions.
-    // Runtime imports must therefore resolve exclusively to meanings.v2.js.
+    // currentMeaningStrings walker below scans the active v3 additions.
+    // Runtime imports must therefore resolve exclusively to meanings.v3.js.
     const family = /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g;
     const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
       .map(match => match[1]);
     const runtime = [...meaningsUiJs.matchAll(family)].map(match => match[1]);
-    expect(own).toContain('meanings.v2.js');
+    expect(own).toContain('meanings.v3.js');
     expect(runtime.length).toBeGreaterThan(0);
-    expect(new Set(runtime)).toEqual(new Set(['meanings.v2.js']));
+    expect(new Set(runtime)).toEqual(new Set(['meanings.v3.js']));
   });
 });
 
@@ -236,12 +241,31 @@ describe('voice-register scan — positive-fire sentinels (shared matcher + fram
   });
 });
 
-describe('content/meanings.v2.js — all-coordinate context layer', () => {
-  it('exposes exactly the active nine numerology meanings', () => {
-    expect(Object.keys(NUMEROLOGY_MEANINGS)).toEqual(NUMEROLOGY_KEYS);
-    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('11');
-    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('22');
-    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('33');
+describe('content/meanings.v3.js — all-coordinate context layer', () => {
+  it('exposes exactly the twelve active numerology meanings', () => {
+    expect(Object.keys(NUMEROLOGY_MEANINGS).sort()).toEqual([...NUMEROLOGY_KEYS].sort());
+    for (const key of ['11', '22', '33']) {
+      expect(NUMEROLOGY_MEANINGS, key).toHaveProperty(key);
+    }
+    // Not a registry of every integer: 10 is a plausible key no reduction
+    // can terminate on, and widening to the masters must not admit it.
+    expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('10');
+  });
+
+  it('reuses the immutable v1 master entries byte-for-byte — no re-authoring', () => {
+    // The §4 identity pin. `toBe` on the strings, not `toEqual` on shapes:
+    // anything short of it would re-admit a paraphrase, which is the drift
+    // the versioning rule exists to stop.
+    for (const key of HISTORICAL_LIFE_PATH_KEYS) {
+      expect(NUMEROLOGY_MEANINGS[key].register, `${key} register`)
+        .toBe(LIFE_PATH_MEANINGS[key].register);
+      expect(NUMEROLOGY_MEANINGS[key].body, `${key} body`)
+        .toBe(LIFE_PATH_MEANINGS[key].body);
+    }
+    // `theme` is the ONLY field v3 adds, and v1 does not carry it.
+    for (const entry of Object.values(LIFE_PATH_MEANINGS)) {
+      expect(entry).not.toHaveProperty('theme');
+    }
   });
 
   it('covers all five element values', () => {

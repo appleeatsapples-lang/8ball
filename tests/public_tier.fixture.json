@@ -1,7 +1,7 @@
 {
-  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in the content tables fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 three times, once per controller ruling: the nine-mode collapse, the lifePath rename, and the move of the mode driver off the free surface to the birthday number (§1.D v0.59). Regenerated again 2026-07-29 (P1-D): the HKO deep-audit fix moved 1911 lixia from 05-06 to 05-07 (this fixture's 1911-05-06 case is now the day BEFORE the boundary, not on it) and added the 1912-01-07 and 1927-09-08 boundary-day cases.",
+  "_comment": "Public-tier snapshot fixtures. Every case is the complete buildPublicReading output for its date, recorded so that any change to core/public.js OR to a string in the content tables fails loudly instead of drifting. Regenerate deliberately, in the same change that justifies the drift, and record the diff in journal.md (DOCTRINE §4). Regenerated 2026-07-29 three times, once per controller ruling: the nine-mode collapse, the lifePath rename, and the move of the mode driver off the free surface to the birthday number (§1.D v0.59). Regenerated again 2026-07-29 (P1-D): the HKO deep-audit fix moved 1911 lixia from 05-06 to 05-07 (this fixture's 1911-05-06 case is now the day BEFORE the boundary, not on it) and added the 1912-01-07 and 1927-09-08 boundary-day cases. Regenerated 2026-07-31 (calc v4, §1.B v0.62): every case gains mode.modeKey / mode.bridged / mode.bridgeNote, sources.mode names the master bridge, and the two master-birthday cases below were added.",
   "_pii_rule": "Fixture dates MUST be synthetic — calendar/calibration anchors chosen for the calc path they exercise, never a real person’s date of birth. See DOCTRINE.md §11.",
-  "_coverage": "The 19 cases cover all five day-master elements, both strengths, all five seasonal states, and all nine birthday values (1-9) - the mode driver. They also carry every date calc v3.1 moved: lunar new year 1916 and the 1911, 1912, and 1927 solar terms - including the exact 1912 xiaohan and 1927 bailu boundary days, added 2026-07-29 (P1-D) after an HKO audit found the 1912 term was never actually in this set and 1927-09-09 alone could not discriminate the corrected bailu cutoff from the pre-PR-#140 one.",
+  "_coverage": "The 21 cases cover all five day-master elements, both strengths, all five seasonal states, all nine authored mode keys, and both reachable MASTER birthday values (11 and 22) - the mode driver under calc v4. They also carry every date calc v3.1 moved: lunar new year 1916 and the 1911, 1912, and 1927 solar terms - including the exact 1912 xiaohan and 1927 bailu boundary days, added 2026-07-29 (P1-D) after an HKO audit found the 1912 term was never actually in this set and 1927-09-09 alone could not discriminate the corrected bailu cutoff from the pre-PR-#140 one.",
   "cases": [
     {
       "dob": "1900-01-01",
@@ -42,6 +42,9 @@
         "mode": {
           "birthday": 1,
           "dayOfMonth": 1,
+          "modeKey": 1,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -91,7 +94,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -136,6 +139,9 @@
         "mode": {
           "birthday": 6,
           "dayOfMonth": 6,
+          "modeKey": 6,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "care",
           "register": "the standing duty",
           "method": "worked at the pace of the people it is for"
@@ -185,7 +191,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -230,6 +236,9 @@
         "mode": {
           "birthday": 7,
           "dayOfMonth": 7,
+          "modeKey": 7,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "analysis",
           "register": "the closed study",
           "method": "worked from the record, slowly, to a stated confidence"
@@ -279,7 +288,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -324,6 +333,9 @@
         "mode": {
           "birthday": 3,
           "dayOfMonth": 3,
+          "modeKey": 3,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "expression",
           "register": "the open draft",
           "method": "worked in public drafts, revised where they can be seen"
@@ -373,7 +385,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -418,6 +430,9 @@
         "mode": {
           "birthday": 9,
           "dayOfMonth": 9,
+          "modeKey": 9,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "service",
           "register": "the standing obligation",
           "method": "worked to an obligation already accepted, on request"
@@ -467,7 +482,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -512,6 +527,9 @@
         "mode": {
           "birthday": 8,
           "dayOfMonth": 8,
+          "modeKey": 8,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "command",
           "register": "the wide operation",
           "method": "worked at scale, through delegated hands"
@@ -561,7 +579,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -606,6 +624,9 @@
         "mode": {
           "birthday": 1,
           "dayOfMonth": 1,
+          "modeKey": 1,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -655,7 +676,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -698,8 +719,11 @@
         "primaryUnfavorable": "metal",
         "favorabilityNote": "a water day master already carried by its season; the open side is what the volume runs into and against.",
         "mode": {
-          "birthday": 2,
+          "birthday": 11,
           "dayOfMonth": 29,
+          "modeKey": 2,
+          "bridged": true,
+          "bridgeNote": "the birthday number 11 is a master value; no master work mode is authored, so the mode is read from its base number 2.",
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -749,7 +773,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -794,6 +818,9 @@
         "mode": {
           "birthday": 3,
           "dayOfMonth": 21,
+          "modeKey": 3,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "expression",
           "register": "the open draft",
           "method": "worked in public drafts, revised where they can be seen"
@@ -843,7 +870,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -888,6 +915,9 @@
         "mode": {
           "birthday": 5,
           "dayOfMonth": 5,
+          "modeKey": 5,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "change",
           "register": "the short cycle",
           "method": "worked in short cycles, re-scoped as conditions move"
@@ -937,7 +967,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -982,6 +1012,9 @@
         "mode": {
           "birthday": 2,
           "dayOfMonth": 2,
+          "modeKey": 2,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -1031,7 +1064,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1076,6 +1109,9 @@
         "mode": {
           "birthday": 1,
           "dayOfMonth": 1,
+          "modeKey": 1,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -1125,7 +1161,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1168,8 +1204,11 @@
         "primaryUnfavorable": "wood",
         "favorabilityNote": "a fire day master already carried by its season; the open side is what gives the heat somewhere to go.",
         "mode": {
-          "birthday": 2,
+          "birthday": 11,
           "dayOfMonth": 29,
+          "modeKey": 2,
+          "bridged": true,
+          "bridgeNote": "the birthday number 11 is a master value; no master work mode is authored, so the mode is read from its base number 2.",
           "theme": "cooperation",
           "register": "the second hand",
           "method": "worked in pairs, at the pace of the slower party"
@@ -1219,7 +1258,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1264,6 +1303,9 @@
         "mode": {
           "birthday": 4,
           "dayOfMonth": 4,
+          "modeKey": 4,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "structure",
           "register": "the fixed plan",
           "method": "worked to a plan, in fixed stages"
@@ -1313,7 +1355,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1358,6 +1400,9 @@
         "mode": {
           "birthday": 8,
           "dayOfMonth": 8,
+          "modeKey": 8,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "command",
           "register": "the wide operation",
           "method": "worked at scale, through delegated hands"
@@ -1407,7 +1452,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1452,6 +1497,9 @@
         "mode": {
           "birthday": 1,
           "dayOfMonth": 10,
+          "modeKey": 1,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "initiative",
           "register": "the opening move",
           "method": "worked from a standing start, one line at a time"
@@ -1501,7 +1549,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1546,6 +1594,9 @@
         "mode": {
           "birthday": 6,
           "dayOfMonth": 15,
+          "modeKey": 6,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "care",
           "register": "the standing duty",
           "method": "worked at the pace of the people it is for"
@@ -1595,7 +1646,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1640,6 +1691,9 @@
         "mode": {
           "birthday": 7,
           "dayOfMonth": 7,
+          "modeKey": 7,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "analysis",
           "register": "the closed study",
           "method": "worked from the record, slowly, to a stated confidence"
@@ -1689,7 +1743,7 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }
@@ -1734,6 +1788,9 @@
         "mode": {
           "birthday": 4,
           "dayOfMonth": 31,
+          "modeKey": 4,
+          "bridged": false,
+          "bridgeNote": null,
           "theme": "structure",
           "register": "the fixed plan",
           "method": "worked to a plan, in fixed stages"
@@ -1783,7 +1840,201 @@
           "dayMaster": "bazi · day-pillar heavenly stem",
           "strength": "wuxing seasonal states · 旺相休囚死",
           "favorability": "bazi · yongshen favourable-element convention",
-          "mode": "pythagorean numerology · birthday, nine-number system",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1980-06-11",
+      "note": "master birthday 11 — the coordinate stays 11 and the mode is read from base 2 through MASTER_MODE_BRIDGE (§1.B v0.62)",
+      "reading": {
+        "dob": {
+          "year": 1980,
+          "month": 6,
+          "day": 11
+        },
+        "dayMaster": {
+          "stem": "yi",
+          "polarity": "yin",
+          "element": "wood",
+          "branchAnimal": "rabbit"
+        },
+        "season": {
+          "monthAnimal": "horse",
+          "element": "fire",
+          "state": "xiu",
+          "stateHan": "休",
+          "stateLabel": "retiring",
+          "relation": "the day master generates the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "water",
+          "wood"
+        ],
+        "unfavorable": [
+          "metal",
+          "fire",
+          "earth"
+        ],
+        "primaryFavorable": "water",
+        "primaryUnfavorable": "metal",
+        "favorabilityNote": "a wood day master outside its season; the open side is what feeds and joins it before anything draws on it.",
+        "mode": {
+          "birthday": 11,
+          "dayOfMonth": 11,
+          "modeKey": 2,
+          "bridged": true,
+          "bridgeNote": "the birthday number 11 is a master value; no master work mode is authored, so the mode is read from its base number 2.",
+          "theme": "cooperation",
+          "register": "the second hand",
+          "method": "worked in pairs, at the pace of the slower party"
+        },
+        "posture": {
+          "number": 8,
+          "roman": "VIII",
+          "arcana": "strength",
+          "register": "the handler",
+          "stance": "a role held as steady pressure on strong material"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "logistics",
+            "element": "water",
+            "label": "logistics",
+            "character": "stewardship",
+            "body": "movement and schedule — work that keeps goods arriving in order."
+          },
+          {
+            "rank": 2,
+            "key": "communication",
+            "element": "water",
+            "label": "communication",
+            "character": "transmission",
+            "body": "relay and routing — work that keeps a line open between distant points."
+          },
+          {
+            "rank": 3,
+            "key": "trade",
+            "element": "water",
+            "label": "trade",
+            "character": "origination",
+            "body": "exchange opened — work that makes a market between parties who had none."
+          }
+        ],
+        "antiFit": {
+          "key": "engineering",
+          "element": "metal",
+          "label": "engineering",
+          "character": "origination",
+          "body": "specification and tolerance — work that fixes a design to measured limits."
+        },
+        "roleLine": "a role held as steady pressure on strong material, worked in pairs, at the pace of the slower party.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
+          "posture": "major arcana · project birth-card reduction",
+          "families": "wuxing · classical industry categories"
+        }
+      }
+    },
+    {
+      "dob": "1995-09-22",
+      "note": "master birthday 22 — the coordinate stays 22 and the mode is read from base 4 through MASTER_MODE_BRIDGE (§1.B v0.62)",
+      "reading": {
+        "dob": {
+          "year": 1995,
+          "month": 9,
+          "day": 22
+        },
+        "dayMaster": {
+          "stem": "bing",
+          "polarity": "yang",
+          "element": "fire",
+          "branchAnimal": "dragon"
+        },
+        "season": {
+          "monthAnimal": "rooster",
+          "element": "metal",
+          "state": "qiu",
+          "stateHan": "囚",
+          "stateLabel": "held",
+          "relation": "the day master controls the season"
+        },
+        "strength": "weak",
+        "favorable": [
+          "wood",
+          "fire"
+        ],
+        "unfavorable": [
+          "water",
+          "earth",
+          "metal"
+        ],
+        "primaryFavorable": "wood",
+        "primaryUnfavorable": "water",
+        "favorabilityNote": "a fire day master outside its season; the open side is fuel and company, not load.",
+        "mode": {
+          "birthday": 22,
+          "dayOfMonth": 22,
+          "modeKey": 4,
+          "bridged": true,
+          "bridgeNote": "the birthday number 22 is a master value; no master work mode is authored, so the mode is read from its base number 4.",
+          "theme": "structure",
+          "register": "the fixed plan",
+          "method": "worked to a plan, in fixed stages"
+        },
+        "posture": {
+          "number": 10,
+          "roman": "X",
+          "arcana": "wheel of fortune",
+          "register": "the cycle reader",
+          "stance": "a role held across the turns of a cycle"
+        },
+        "families": [
+          {
+            "rank": 1,
+            "key": "health",
+            "element": "wood",
+            "label": "health",
+            "character": "stewardship",
+            "body": "condition and recovery — work that keeps a body running rather than remaking it."
+          },
+          {
+            "rank": 2,
+            "key": "growth",
+            "element": "wood",
+            "label": "growth",
+            "character": "origination",
+            "body": "cultivation and yield — work that develops a living stock across seasons."
+          },
+          {
+            "rank": 3,
+            "key": "teaching",
+            "element": "wood",
+            "label": "teaching",
+            "character": "transmission",
+            "body": "instruction and transfer — work that moves a discipline into other hands."
+          }
+        ],
+        "antiFit": {
+          "key": "communication",
+          "element": "water",
+          "label": "communication",
+          "character": "transmission",
+          "body": "relay and routing — work that keeps a line open between distant points."
+        },
+        "roleLine": "a role held across the turns of a cycle, worked to a plan, in fixed stages.",
+        "sources": {
+          "dayMaster": "bazi · day-pillar heavenly stem",
+          "strength": "wuxing seasonal states · 旺相休囚死",
+          "favorability": "bazi · yongshen favourable-element convention",
+          "mode": "pythagorean numerology · birthday, master-preserving; master values read the base mode",
           "posture": "major arcana · project birth-card reduction",
           "families": "wuxing · classical industry categories"
         }

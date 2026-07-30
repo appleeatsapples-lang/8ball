@@ -645,9 +645,15 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
   // host and a real `createSheet(...).render(...)`, cell by cell.
   const LONDON = { time: '14:15', lat: 51.5074, lng: -0.1278, tz: 'Europe/London' };
   const ANCHOR_PROFILES = [
-    ['low (1-3)', buildProfile('diff low', '1988-06-15', { ...LONDON, time: '08:30' })],
+    ['low (1-3)', buildProfile('diff low', '1900-01-01', { ...LONDON, time: '08:30' })],
     ['mid (4-6)', buildProfile('diff mid', '2000-01-01', LONDON)],
     ['high (7-9)', buildProfile('diff high', '1990-07-10', { ...LONDON, time: '22:05' })],
+    // Calc v4 (§1.B v0.62): a master life path is a fourth REPRESENTATIVE of
+    // the same three anchor groups, not a fourth group — it shares `high`
+    // with 7-9. It is exercised here because its numerology cells carry
+    // two-character values, which is the one shape the differential had
+    // never seen on either side of the comparison.
+    ['high (master 22)', buildProfile('diff master', '1970-01-04', { ...LONDON, time: '11:40' })],
   ];
   const TIERS = ['free', 't1', 't2', 't3', 't5'];
   const CASES = ANCHOR_PROFILES.flatMap(([label, profile]) =>
@@ -727,19 +733,23 @@ describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {
     else globalThis.localStorage = originalStorage;
   });
 
-  it('B (life path 1-3) always renders the FRESH low anchor, even while A/current sits rotated to mid or high', () => {
+  it('B always renders its OWN fresh anchor, even while A/current sits rotated elsewhere', () => {
     // A = the module fixture (lifePath 4, the mid bucket). Simulate a device
-    // that has already flipped its OWN written entry past its anchor, to
-    // 'high' (stored index 2), before ever opening the dyad screen.
-    const store = new Map([[FACET_KEY, '2']]);
+    // that has already flipped its OWN written entry off its anchor, to
+    // 'low' (stored index 0), before ever opening the dyad screen.
+    const store = new Map([[FACET_KEY, '0']]);
     globalThis.localStorage = {
       getItem: k => (store.has(k) ? store.get(k) : null),
       setItem: (k, v) => store.set(k, String(v)),
       removeItem: k => store.delete(k),
     };
     expect(anchorFacetIndex(A.lifePath)).toBe(1); // A anchors mid...
-    expect(getFacetSlot(A.lifePath)).toBe('high'); // ...but the device is rotated to high.
-    expect(anchorFacetIndex(B.lifePath)).toBe(0); // B (module fixture) anchors low.
+    expect(getFacetSlot(A.lifePath)).toBe('low'); // ...but the device is rotated to low.
+    // B (module fixture) carries a master life path under calc v4, which
+    // anchors the THIRD position — so the two slots genuinely differ and the
+    // assertions below are not vacuous.
+    expect(B.lifePath).toBe(11);
+    expect(anchorFacetIndex(B.lifePath)).toBe(2);
 
     const calls = [];
     const noteSlot = (p, role) => {
@@ -758,12 +768,12 @@ describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {
     const aCard = CARDS[A.sunSign][A.animal];
     const bCard = CARDS[B.sunSign][B.animal];
     // A rendered at the device's ROTATED (stored) position...
-    expect(inst.byAttr.get('[data-sheet-note="a"]').textContent).toBe(aCard.note.high);
+    expect(inst.byAttr.get('[data-sheet-note="a"]').textContent).toBe(aCard.note.low);
     // ...while B rendered its FRESH anchor, ignoring the exact same stored
     // index — the R2 defect was B silently inheriting A's rotated slot.
-    expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).toBe(bCard.note.low);
+    expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).toBe(bCard.note.high);
     if (bCard.note.high !== bCard.note.low) {
-      expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).not.toBe(bCard.note.high);
+      expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).not.toBe(bCard.note.low);
     }
   });
 });

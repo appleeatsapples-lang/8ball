@@ -1,6 +1,6 @@
 // 8ball / tests / dyad_content.test.js
 //
-// Voice policy and grammar discipline for content/dyad.v1.js and for the
+// Voice policy and grammar discipline for content/dyad.v2.js and for the
 // ASSEMBLED runtime output of core/dyad.js — the concordance convention
 // (#101/#107): scanning only the tables would miss a violation introduced by
 // the join that builds a passage out of two of them.
@@ -38,8 +38,8 @@ import {
   BRACKET_REGISTERS,
   DYAD_SOURCES,
   DYAD_QUALIFIER,
-} from '../content/dyad.v1.js';
-import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
+} from '../content/dyad.v2.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { buildDyadReading } from '../core/dyad.js';
 import { buildProfile } from '../core/profile.js';
 

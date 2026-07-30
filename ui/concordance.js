@@ -12,10 +12,11 @@ import {
   ELEMENTS,
   LIFE_PATH_VALUES,
   MAJOR_ARCANA,
+  MASTER_REDUCTION_LINKS,
   REGISTRY_SOURCES,
   SIGNS,
   SIGN_DISTANCE_RELATIONS,
-} from '../content/concordance.v2.js';
+} from '../content/concordance.v3.js';
 import { isTier } from '../core/payments.js';
 
 export const CONCORDANCE_STATUSES = Object.freeze({
@@ -115,11 +116,33 @@ function compareElement(left, right) {
   );
 }
 
+// The three filed master-reduction links, keyed both ways round so the axis
+// reads the same whichever saved entry is on the left. Built from the
+// immutable v1 inventory (via content/concordance.v3.js) rather than
+// re-listed, so the active registry holds EXACTLY those three and cannot
+// acquire a fourth by hand.
+const MASTER_LINKS = new Map(
+  MASTER_REDUCTION_LINKS.map(([master, base]) => [pairKey(master, base), { master, base }])
+);
+
 function compareLifePath(left, right) {
   if (!LIFE_PATH_VALUES.includes(left) || !LIFE_PATH_VALUES.includes(right)) {
     throw new TypeError('invalid life path');
   }
-  return unfiled('lifePath', 'life path', left, right, REGISTRY_SOURCES.lifePath);
+  // Same-value pairs are never filed: a value does not reduce to itself, so
+  // there is no named relation and §1.I's register law says to say so. Every
+  // other distinct pair outside the three links is likewise `unfiled` — no
+  // compatibility claim is manufactured to fill the cell.
+  const link = left === right ? undefined : MASTER_LINKS.get(pairKey(left, right));
+  if (!link) {
+    return unfiled('lifePath', 'life path', left, right, REGISTRY_SOURCES.lifePath);
+  }
+  return registered(
+    'lifePath', 'life path', left, right,
+    `${link.master} reduces to ${link.base}`,
+    REGISTRY_SOURCES.lifePath,
+    `filed as a master-number reduction link between ${link.master} and ${link.base}`,
+  );
 }
 
 function compareBirthCard(left, right) {

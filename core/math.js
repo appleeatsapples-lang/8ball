@@ -7,9 +7,10 @@
 // and sumDigits was duplicated verbatim in profile.js and birthcard.js.
 // Identical-but-independent copies are drift risk: a fix in one silently
 // misses the others. The reduction RULES built on these legitimately
-// differ per module (profile.js reduces into the numerology range 1..9;
-// birthcard.js reduces into the 0..21 arcana range) and stay where the
-// tradition that defines them is documented.
+// differ per module (profile.js reduces into the numerology terminal domain
+// `1..9, 11, 22, 33`, stopping at a master; birthcard.js reduces into the
+// 0..21 arcana range) and stay where the tradition that defines them is
+// documented.
 //
 // Pure functions only, leaf module — importable from anywhere in core/
 // without cycle risk.

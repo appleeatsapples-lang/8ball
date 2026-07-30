@@ -34,7 +34,7 @@
       "dob": "1990-01-20",
       "expected": {
         "sunSign": "aquarius",
-        "lifePath": 4
+        "lifePath": 22
       }
     },
     {
@@ -131,30 +131,30 @@
       }
     },
     {
-      "label": "Former master path 11 reduces to 2 (Scorpio Snake)",
+      "label": "Master path 11 preserved (Scorpio Snake) — digit sum 38 stops at 11",
       "dob": "1989-11-09",
       "expected": {
         "sunSign": "scorpio",
         "animal": "snake",
-        "lifePath": 2
+        "lifePath": 11
       }
     },
     {
-      "label": "Former master path 22 reduces to 4 (Capricorn Snake)",
+      "label": "Master path 22 preserved (Capricorn Snake) — digit sum 22 is already a stop",
       "dob": "1990-01-02",
       "expected": {
         "sunSign": "capricorn",
         "animal": "snake",
-        "lifePath": 4
+        "lifePath": 22
       }
     },
     {
-      "label": "Former master path 33 reduces to 6 (Sagittarius Snake)",
+      "label": "Master path 33 preserved (Sagittarius Snake) — digit sum 33 is already a stop",
       "dob": "1989-12-12",
       "expected": {
         "sunSign": "sagittarius",
         "animal": "snake",
-        "lifePath": 6,
+        "lifePath": 33,
         "nameNumber": 1
       }
     },
@@ -196,7 +196,7 @@
       "expected": {
         "sunSign": "aquarius",
         "animal": "dragon",
-        "lifePath": 4
+        "lifePath": 22
       }
     }
   ],
@@ -362,19 +362,19 @@
       }
     },
     {
-      "label": "Aries Dragon mid (LP=4)",
+      "label": "Aries Dragon — master path 22 anchors high (was LP=4 under calc v3)",
       "dob": "2024-04-19",
       "expected": {
         "catalog": "v",
-        "bracket": "mid"
+        "bracket": "high"
       }
     },
     {
-      "label": "Aries Monkey low (LP=2)",
+      "label": "Aries Monkey — master path 11 anchors high (was LP=2 under calc v3)",
       "dob": "1992-04-04",
       "expected": {
         "catalog": "ix",
-        "bracket": "low"
+        "bracket": "high"
       }
     },
     {
@@ -386,11 +386,11 @@
       }
     },
     {
-      "label": "Aries Pig low (LP=2)",
+      "label": "Aries Pig — master path 11 anchors high (was LP=2 under calc v3)",
       "dob": "1995-04-19",
       "expected": {
         "catalog": "xii",
-        "bracket": "low"
+        "bracket": "high"
       }
     },
     {
@@ -464,13 +464,13 @@
       }
     },
     {
-      "label": "Sagittarius Snake mid (LP=6)",
+      "label": "Sagittarius Snake — master path 33 anchors high (was LP=6 under calc v3)",
       "dob": "1989-12-12",
       "expected": {
         "sunSign": "sagittarius",
         "animal": "snake",
         "catalog": "cii",
-        "bracket": "mid"
+        "bracket": "high"
       }
     },
     {
@@ -504,7 +504,7 @@
       }
     }
   ],
-  "_bracket_comment": "Direct resolveBracket(lp) cases for all nine active life-path values (DOCTRINE §3 strict 1-9 reduction).",
+  "_bracket_comment": "Direct resolveBracket(lp) cases for every value of the active terminal domain — 1..9 plus the three master stops (DOCTRINE §3 calc v4, §1.H v0.62). The masters resolve to `high`, the same bracket the pre-calc-v3 contract gave them; there is no fourth bracket, because a catalog cell has exactly three note positions.",
   "brackets": [
     {
       "lp": 1,
@@ -540,6 +540,18 @@
     },
     {
       "lp": 9,
+      "expected": "high"
+    },
+    {
+      "lp": 11,
+      "expected": "high"
+    },
+    {
+      "lp": 22,
+      "expected": "high"
+    },
+    {
+      "lp": 33,
       "expected": "high"
     }
   ]

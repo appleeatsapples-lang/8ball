@@ -28,8 +28,11 @@ import {
   getInnerAnimal,
   getChineseElement,
   getLifePath, getLifePathSum,
-  getSoulUrge, getSoulUrgeSum
+  getSoulUrge, getSoulUrgeSum,
+  MASTER_NUMBERS, TERMINAL_NUMBERS
 } from '../core/profile.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
@@ -46,6 +49,115 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// calc v4 — the terminal domain (DOCTRINE §1.B v0.62)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The single place the active numerology domain is DECLARED, and the pins that
+// stop every restatement of it elsewhere in the repo from drifting. Without
+// these, `content/` could narrow the registry back to nine and the only
+// symptom would be a coordinate that renders and then opens "meaning not
+// filed" — which is the shape of the defect this cycle repairs.
+
+describe('calc v4 — the terminal numerology domain', () => {
+  it('is exactly 1..9 plus the three master stops, in ascending order', () => {
+    expect([...MASTER_NUMBERS]).toEqual([11, 22, 33]);
+    expect([...TERMINAL_NUMBERS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33]);
+    expect(Object.isFrozen(TERMINAL_NUMBERS)).toBe(true);
+    expect(Object.isFrozen(MASTER_NUMBERS)).toBe(true);
+  });
+
+  it('the Concordance registry declares the SAME domain the calculator produces', () => {
+    // content/ imports nothing from core/, so the two lists are restated
+    // rather than shared. This is the pin that makes that safe.
+    expect([...LIFE_PATH_VALUES]).toEqual([...TERMINAL_NUMBERS]);
+  });
+
+  it('the active meaning registry has an entry for every terminal value', () => {
+    // Every one of the twelve resolves a meaning WITHOUT fallback — the
+    // acceptance criterion this cycle is measured against.
+    for (const value of TERMINAL_NUMBERS) {
+      const entry = NUMEROLOGY_MEANINGS[String(value)];
+      expect(entry, `no meaning filed for ${value}`).toBeDefined();
+      expect(entry.register.trim(), `${value} register`).toBeTruthy();
+      expect(entry.body.trim(), `${value} body`).toBeTruthy();
+      expect(entry.theme.trim(), `${value} theme`).toBeTruthy();
+    }
+    expect(Object.keys(NUMEROLOGY_MEANINGS)).toHaveLength(TERMINAL_NUMBERS.length);
+  });
+
+  it('every reduction over a wide sweep lands inside the domain, or is unresolved', () => {
+    // getBirthday is the one exported function that reduces an arbitrary
+    // positive integer, so it is the reducer's public surface. Swept far past
+    // any reachable total: nothing may escape the twelve values.
+    for (let n = 1; n <= 5000; n++) {
+      expect(TERMINAL_NUMBERS, `n=${n}`).toContain(getBirthday(n));
+    }
+    for (const bad of [0, -1, -11, 1.5, NaN, Infinity, null, undefined, '11']) {
+      expect(getBirthday(bad), String(bad)).toBeNull();
+    }
+  });
+
+  it('stops AT a master and nowhere else — the named cases', () => {
+    expect(getBirthday(11)).toBe(11);
+    expect(getBirthday(22)).toBe(22);
+    expect(getBirthday(33)).toBe(33);
+    expect(getBirthday(29)).toBe(11);   // 2+9 = 11, stop
+    expect(getBirthday(38)).toBe(11);   // 3+8 = 11, stop
+    expect(getBirthday(44)).toBe(8);    // 44 is not a stop; 4+4 = 8
+    expect(getBirthday(66)).toBe(3);    // 6+6 = 12 → 3
+    expect(getBirthday(299)).toBe(2);   // 20 → 2; reaches no stop on the way
+    expect(getBirthday(984)).toBe(3);   // 21 → 3
+    // Multi-step, landing ON a stop at the second pass rather than the first.
+    expect(getBirthday(2999)).toBe(11); // 29 → 11, stop
+  });
+
+  it('preserves masters on ALL SIX numerology coordinates through buildProfile', () => {
+    // The end-to-end shape the locked specimen advertises. Ann + the
+    // synthetic 1970-01-04 lands a master on life path, name number and
+    // maturity at once; the other three are driven by name choice.
+    const ann = buildProfile('Ann', '1970-01-04');
+    expect(ann.lifePath).toBe(22);
+    expect(ann.nameNumber).toBe(11);
+    expect(ann.maturity).toBe(33);
+    // The unreduced trails stay trails — they are not coordinate values and
+    // must not be mistaken for the place the master "really" lives.
+    expect(ann.lifePathSum).toBe(22);
+    expect(ann.nameNumberSum).toBe(11);
+    expect(ann.maturitySum).toBe(33);
+
+    // Soul urge and personality, on the name side.
+    expect(buildProfile('Aida', '2000-01-01').soulUrge).toBe(11);
+    expect(buildProfile('Aria Stone', '2000-01-01').soulUrge).toBe(22);
+    expect(buildProfile('Hal', '2000-01-01').personality).toBe(11);
+    // Birthday, on the date side.
+    expect(buildProfile('Test', '2000-01-11').birthday).toBe(11);
+    expect(buildProfile('Test', '2000-01-22').birthday).toBe(22);
+
+    // Every coordinate that resolved is inside the domain, on every profile.
+    const COORDS = ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'];
+    for (const profile of [ann, buildProfile('Aida', '2000-01-11'),
+      buildProfile('Hal', '1970-01-04'), buildProfile('Aria Stone', '2000-01-22')]) {
+      for (const key of COORDS) {
+        if (profile[key] === null) continue;
+        expect(TERMINAL_NUMBERS, `${profile.name}.${key}`).toContain(profile[key]);
+      }
+    }
+  });
+
+  it('still resolves an absent letter class as unresolved, never zero', () => {
+    // The one calc-v3 guard this amendment keeps. A widened domain must not
+    // reintroduce the displayed zero the nine-number cut removed.
+    const rhythm = buildProfile('Rhythm', '2000-01-01');
+    expect(rhythm.soulUrge).toBeNull();
+    expect(rhythm.maturity).not.toBeNull();
+    const digits = buildProfile('123', '2000-01-01');
+    expect(digits.nameNumber).toBeNull();
+    expect(digits.personality).toBeNull();
+    expect(digits.maturity).toBeNull();
+  });
+});
 
 describe('calculation contract', () => {
   for (const c of fixtures.cases) {
@@ -192,13 +304,13 @@ describe('calculation contract — 2F-3 additive fields', () => {
     expect(getSoulUrgeSum('Alex Thomas')).toBe(13);
     expect(getSoulUrge('Alex Thomas')).toBe(4);
   });
-  it('soul urge reduces 11 to 2 (vowels of "Aida" = A+I+A = 1+9+1)', () => {
+  it('soul urge preserves master 11 (vowels of "Aida" = A+I+A = 1+9+1)', () => {
     expect(getSoulUrgeSum('Aida')).toBe(11);
-    expect(getSoulUrge('Aida')).toBe(2);
+    expect(getSoulUrge('Aida')).toBe(11);
   });
-  it('soul urge reduces 22 to 4 ("Aria Stone" vowels A+I+A+O+E = 1+9+1+6+5)', () => {
+  it('soul urge preserves master 22 ("Aria Stone" vowels A+I+A+O+E = 1+9+1+6+5)', () => {
     expect(getSoulUrgeSum('Aria Stone')).toBe(22);
-    expect(getSoulUrge('Aria Stone')).toBe(4);
+    expect(getSoulUrge('Aria Stone')).toBe(22);
   });
   it('soul urge ignores non-letters and consonants', () => {
     expect(getSoulUrgeSum('xyz!')).toBe(0);
@@ -287,9 +399,9 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getPersonality('Alex Thomas')).toBe(6);
   });
 
-  it('getPersonality: 11 reduces to 2', () => {
+  it('getPersonality: preserves master 11', () => {
     expect(getPersonalitySum('Hal')).toBe(11);
-    expect(getPersonality('Hal')).toBe(2);
+    expect(getPersonality('Hal')).toBe(11);
   });
 
   it('getPersonality: ignores non-letters', () => {
@@ -307,13 +419,20 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getBirthday(31)).toBe(4);
   });
 
-  it('getBirthday: all double-digit days reduce into 1..9', () => {
-    expect(getBirthday(11)).toBe(2);
-    expect(getBirthday(22)).toBe(4);
+  it('getBirthday: master days stay master', () => {
+    expect(getBirthday(11)).toBe(11);
+    expect(getBirthday(22)).toBe(22);
   });
 
-  it('getBirthday: 29 reduces through 11 to 2', () => {
-    expect(getBirthday(29)).toBe(2);
+  it('getBirthday: 29 reduces to the master stop 11, not past it', () => {
+    expect(getBirthday(29)).toBe(11);
+  });
+
+  // The reducer stops AT a master, never at a number that merely contains a
+  // repeated digit: 44 is not a stop, so it reduces to 8 like any other total.
+  it('getBirthday: non-stop repeated digits still reduce (44 → 8)', () => {
+    expect(getBirthday(44)).toBe(8);
+    expect(getBirthday(38)).toBe(11);
   });
 
   it('getMaturity: sums the reduced life path + reduced name number', () => {
@@ -324,13 +443,15 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(getMaturity(1996, 4, 1, 'Alex Thomas')).toBe(4);
   });
 
-  it('getMaturity: combines components after each has reduced into 1..9', () => {
-    // Ann, 1970-01-04: raw component paths 22 and 11 become 4 and 2;
-    // maturity therefore combines to 6 inside the same nine-number system.
-    expect(getLifePath(1970, 1, 4)).toBe(4);
-    expect(getNameNumber('Ann')).toBe(2);
-    expect(getMaturitySum(1970, 1, 4, 'Ann')).toBe(6);
-    expect(getMaturity(1970, 1, 4, 'Ann')).toBe(6);
+  it('getMaturity: combines master components and can itself land on a master', () => {
+    // Ann, 1970-01-04: life path 22, name number 11 — both master stops —
+    // and their sum 33 is itself a stop. All three coordinates stay master.
+    // This is the shape the locked specimen advertises, so it is pinned as a
+    // named case rather than left implied by the reducer's unit tests.
+    expect(getLifePath(1970, 1, 4)).toBe(22);
+    expect(getNameNumber('Ann')).toBe(11);
+    expect(getMaturitySum(1970, 1, 4, 'Ann')).toBe(33);
+    expect(getMaturity(1970, 1, 4, 'Ann')).toBe(33);
   });
 
   it('getMaturity: combines canonical components rather than unreduced sums', () => {
@@ -363,6 +484,19 @@ describe('engine — resolveBracket', () => {
   it('throws on unknown LP value', () => {
     expect(() => resolveBracket(0)).toThrow(/Unknown life path value: 0/);
     expect(() => resolveBracket(10)).toThrow(/Unknown life path value: 10/);
+    // Widening to the masters must not widen to every double-digit value.
+    expect(() => resolveBracket(12)).toThrow(/Unknown life path value: 12/);
+    expect(() => resolveBracket(44)).toThrow(/Unknown life path value: 44/);
+  });
+
+  it('covers the whole terminal domain, with no value left unbracketed', () => {
+    // The fixture list is enumerated; this is the pin that the enumeration is
+    // COMPLETE. A value the calculator can produce but the bracket table has
+    // no group for would throw inside a paid render.
+    expect(fixtures.brackets.map(c => c.lp)).toEqual([...TERMINAL_NUMBERS]);
+    for (const lp of TERMINAL_NUMBERS) {
+      expect(['low', 'mid', 'high'], `LP ${lp}`).toContain(resolveBracket(lp));
+    }
   });
 });
 

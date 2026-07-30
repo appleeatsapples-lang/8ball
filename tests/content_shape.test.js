@@ -20,7 +20,7 @@ import {
   COMBINED_PATH_FRAMES,
   BRANCH_REGISTERS,
   BRACKET_REGISTERS,
-} from '../content/dyad.v1.js';
+} from '../content/dyad.v2.js';
 import { ELEMENTS } from '../content/concordance.v1.js';
 import { buildDyadReading } from '../core/dyad.js';
 import { buildProfile } from '../core/profile.js';
@@ -545,7 +545,7 @@ function* dyadAssembled() {
       yield { path: `${a.yyyy}×${b.yyyy}.element.bToA`, text: relation.element.bToA.body };
       yield { path: `${a.yyyy}×${b.yyyy}.numerology.reduction`, text: relation.numerology.reduction };
       // NOTE: relation.numerology.meaning is deliberately NOT scanned here.
-      // It is the nine-number registry's own body, carried verbatim, and
+      // It is the numerology registry's own body, carried verbatim, and
       // content/meanings.v* is pinned by tests/meanings_content.test.js. If
       // the dyad's pins were applied to it, this suite would be asserting
       // authorship over a string this tier does not author — which is the

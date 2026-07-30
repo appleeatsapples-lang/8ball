@@ -5,6 +5,87 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-07-31 — calc v4: master numbers 11/22/33 restored — controller word — STAGED
+
+**Status: STAGED on `claude/master-number-preservation`. Not committed to `main`, not pushed, no PR, no merge,
+no deploy.** A fresh independent Codex audit is mandatory before merge consideration per §10/L48. The
+2026-07-31 X-offer preflight is a gate on a POST; it is not implementation clearance for this branch.
+
+**The controller decision.** During the 2026-07-31 Codex X-offer preflight the operator directed *"keep master
+number actually"* and confirmed *"master numbers sell so keep them."* This is a product and commercial
+decision: `11`, `22` and `33` are part of what the product sells, they stay visible and meaningful, and they
+are not to be reduced away or removed from the offer creative.
+
+**What forced it was a truth defect, not a preference.** The locked specimen
+(`~/8ball/content/8ball-specimen-cxx_clean.png`) prints `11` on the LIFE·NAME·SOUL row and `22` on
+PERSONALITY·BIRTHDAY·MATURITY, while calc v3 reduced both away. Codex returned **STOP** on exactly that
+mismatch (P1-A, `audits/codex_x_offer_preflight_2026-07-31_response.md`). The cheap repair — deleting the
+masters from the creative — is the one the controller refused. The product is made truthful instead.
+
+**Changed output contract (calc v4, DOCTRINE §1.B v0.62, supersedes the v0.54 nine-number amendment).** The
+active terminal domain is exactly `1..9, 11, 22, 33` across all six numerology coordinates. Reduction repeats
+the digit sum while the value is above 9 and stops immediately at a master: `29 → 11`, `38 → 11`, `44 → 8`
+(44 is not a stop). Maturity keeps its method — reduce each component, add the canonical components, reduce
+again — and can therefore land on a master itself. `Ann` + the synthetic `1970-01-04` now reads life path
+`22`, name number `11`, maturity `33`, which is the shape the specimen advertises and is pinned by name.
+The `*Sum` fields stay calculation trails; a master lives on the coordinate, never only in a trail.
+**What v0.54 got right survives untouched:** an absent contributing letter class is still `null` / `—`, never
+a displayed `0`. Downstream, masters resolve to the `high` bracket and the third facet position — the
+pre-calc-v3 contract restored; there is no fourth bracket, because a catalog cell has three note positions.
+
+**Migration behaviour.** Persisted current and saved profiles need no migration and get none: they store
+reconstruction inputs, not derived outputs, so reopening recomputes under calc v4. The one persisted thing
+that DOES move is the t3 facet position, which is a derived anchor rather than an input — a position stored
+under calc v3 was computed against a life path that has since moved (`1970-01-04`: `4 → 22`, `mid → high`),
+so reading it under calc v4 would render a note slot never computed for the life path on screen. The key
+versions `eight_ball_facet_index_v2` → **`_v3`**, and BOTH retired generations (`_v1`, `_v2`) are cleared once
+on the first v3-key facet read. As at v0.54, flip history is not representable in the single stored index, so
+the first v4 load re-anchors every device — the same accepted cost, named again rather than assumed. **No
+other localStorage key is added, read or written.**
+
+**Content versioning (§4 — versioned, not edited).** Four new active files; not one shipped content file is
+edited. `content/meanings.v3.js` (twelve entries; the `11 / 22 / 33` registers and bodies reused BYTE-FOR-BYTE
+from immutable v1 and pinned by identity, plus one added `theme` field each — `intuition`, `construction`,
+`guidance`). `content/concordance.v3.js` (twelve-value domain; exactly the three v1 master-reduction links
+`11↔2 / 22↔4 / 33↔6` registered, the other 63 of 66 distinct pairs unfiled, none ever `adjacent`).
+`content/dyad.v2.js` (v1 relation tables imported unedited; two combined-path frames and one provenance line
+reworded off the nine-number rule). `content/public.v3.js` (v1/v2 tables imported unedited plus the declared
+`MASTER_MODE_BRIDGE`). A `git diff --stat` against `main` shows zero lines changed in `meanings.v1/v2`,
+`concordance.v1/v2`, `dyad.v1`, `public.v1/v2` and `cards.v1.full.js`.
+
+**The public read's mode bridge, stated plainly.** §1.D v0.59 keyed the t3 public read's mode of work by the
+birthday number and rested on "its domain is exactly 1..9". That is no longer true. Two fixes were available
+and both are wrong: reducing the birthday before keying the mode would put `11` on the sheet while the reading
+silently treated it as `2` — the same defect this cycle repairs, one clause later — and authoring three master
+work modes would be new paid copy shipped under cover of a calculation change. What ships instead: the
+birthday keeps its master value everywhere, and only the TABLE LOOKUP is bridged, through an explicit
+`11→2 / 22→4 / 33→6` map that the returned reading DISCLOSES (`mode.modeKey`, `mode.bridged`,
+`mode.bridgeNote`) and that CI pins alongside `WORK_MODES` staying at nine entries. Nothing here can pass a
+bridged read off as authored master content.
+
+**One defect this widening exposed and closed.** `core/dyad.js` chose its combined-path clause on `sum > 9`.
+That was the same test as "the sum changed" while every terminal value was a single digit, and is not the same
+test now: a life path `9` beside a `2` sums to `11` and STOPS there, so the old rule would have fired the
+reduced frame and announced that 11 reduces to 11 — a claim about a reduction that did not happen, which is
+exactly what the two-frame split exists to prevent. The rule is now `sum !== combined`, swept over the whole
+domain rather than spot-checked.
+
+**Test counts.** Full suite **51 files / 1814 tests PASS** (baseline 51 / 1781 — +33, no file added or
+removed). Auditor assurance suite **93 tests PASS**. Product audit **PASS, 13 pass / 0 fail / 1 advisory warn
+/ 0 skip**. Local PII audit clean. `index.html` byte-identical at **1497** lines — this cycle does not touch
+it. The added coverage is deliberately paired rather than all-negative, because a domain widening is the one
+change an all-negative assertion greens on: every master is exercised through calculation, render, meaning
+lookup, bracket and facet selection, Concordance filing, dyad input and combined output, the public-mode
+bridge, and the persistence-key migration — and each pin carries its negative twin (`10`, `12`, `44` still
+refused everywhere the masters are now admitted).
+
+**Audit requirement and stop gate.** This cycle changes doctrine, the calc core, four content registries,
+persisted facet state, and the paid dyad and public-read consumers. Per §10 and L48 a fresh, independent,
+HEAD-bound Codex audit is required before merge consideration, and the merge itself is the controller's. After
+an audit-cleared deployment the operator/verifier must revalidate the locked specimen against the live
+calculator, repair the separate copy and Gumroad-listing blockers Codex raised (P1-B, §6), and rerun the
+REACH-X-OFFER-01 preflight. **This implementation alone does not authorize the post.**
+
 ## 2026-07-30 (late) — #187 MERGED with the L48 chain complete; operating-reads gate cleared; footer flipped
 
 **The entry below ("STAGED, not merged") is superseded on its status line.** After it was written, the corrected

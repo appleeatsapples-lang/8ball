@@ -7,10 +7,12 @@ import { fileURLToPath } from 'node:url';
 import {
   ELEMENTS,
   LIFE_PATH_VALUES,
+  MASTER_REDUCTION_LINKS,
   MAJOR_ARCANA,
   SIGNS,
-} from '../content/concordance.v2.js';
-import * as CONCORDANCE_REGISTRY from '../content/concordance.v2.js';
+} from '../content/concordance.v3.js';
+import * as CONCORDANCE_REGISTRY from '../content/concordance.v3.js';
+import { TERMINAL_NUMBERS } from '../core/profile.js';
 import { TIER_ORDER } from '../core/payments.js';
 import { buildConcordance, CONCORDANCE_STATUSES } from '../ui/concordance.js';
 import {
@@ -79,15 +81,56 @@ describe('concordance finite registries', () => {
     ).relation).toBe('wood generates fire · sheng cycle');
   });
 
-  it('keeps all 36 distinct nine-number pairs unfiled without inventing a relation', () => {
-    const records = unorderedPairs(LIFE_PATH_VALUES).map(([left, right]) =>
-      axis(profile({ lifePath: left }), profile({ lifePath: right }), 'lifePath'));
-    expect(records).toHaveLength(36);
-    expect(records.every(record => record.status === 'unfiled')).toBe(true);
+  it('accepts exactly the calc-v4 terminal domain as the life-path domain', () => {
+    // The registry's domain and the calculator's domain are the same list.
+    // Restating it in content/ is deliberate (content/ imports nothing from
+    // core/), so the agreement is pinned here rather than by an import edge.
+    expect([...LIFE_PATH_VALUES]).toEqual([...TERMINAL_NUMBERS]);
+    expect([...LIFE_PATH_VALUES]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33]);
   });
 
-  it('rejects life-path values outside the active 1-9 contract', () => {
-    for (const value of [0, 10, 11, 22, 33, '2', null]) {
+  it('files EXACTLY the three master-reduction links, and nothing else', () => {
+    const records = unorderedPairs(LIFE_PATH_VALUES).map(([left, right]) =>
+      axis(profile({ lifePath: left }), profile({ lifePath: right }), 'lifePath'));
+    // 12 values → 66 distinct pairs, of which precisely three are filed.
+    expect(records).toHaveLength(66);
+    const registered = records.filter(record => record.status === 'registered');
+    expect(registered).toHaveLength(3);
+    expect(registered.map(r => r.relation).sort())
+      .toEqual(['11 reduces to 2', '22 reduces to 4', '33 reduces to 6']);
+    expect(records.filter(record => record.status === 'unfiled')).toHaveLength(63);
+    // No axis ever reports `adjacent` — the §1.I register law says an
+    // unsupported pair claims nothing rather than being softened into one.
+    expect(records.some(record => record.status === 'adjacent')).toBe(false);
+  });
+
+  it('reads a master link the same way round whichever entry is on the left', () => {
+    for (const [master, base] of MASTER_REDUCTION_LINKS) {
+      const forward = axis(profile({ lifePath: master }), profile({ lifePath: base }), 'lifePath');
+      const reverse = axis(profile({ lifePath: base }), profile({ lifePath: master }), 'lifePath');
+      for (const record of [forward, reverse]) {
+        expect(record.status).toBe('registered');
+        expect(record.relation).toBe(`${master} reduces to ${base}`);
+        expect(record.citation).toContain(`between ${master} and ${base}`);
+      }
+      // The two coordinate values still report in the order given.
+      expect([forward.left, forward.right]).toEqual([String(master), String(base)]);
+      expect([reverse.left, reverse.right]).toEqual([String(base), String(master)]);
+    }
+  });
+
+  it('never files a same-value pair, including master against itself', () => {
+    for (const value of LIFE_PATH_VALUES) {
+      const record = axis(profile({ lifePath: value }), profile({ lifePath: value }), 'lifePath');
+      expect(record.status, `${value} × ${value}`).toBe('unfiled');
+    }
+  });
+
+  it('rejects life-path values outside the active terminal domain', () => {
+    // 10 / 12 / 44 are the sharp cases: plausible integers no reduction can
+    // terminate on. Widening the domain to admit the masters must not admit
+    // any other double-digit value.
+    for (const value of [0, 10, 12, 44, '2', null]) {
       expect(() => axis(profile({ lifePath: value }), profile({ lifePath: 2 }), 'lifePath'))
         .toThrow(/invalid life path/);
     }
@@ -187,10 +230,10 @@ describe('concordance product and privacy contract', () => {
 // (meanings_content.test.js) scans already run. §7 stage-1's enumeration
 // predates this block; every string reachable from the module's exports —
 // source labels, relation names, family notes, citations, the qualifier —
-// must hold the clinical register, and any `concordance.v2.js` revision
+// must hold the clinical register, and any `concordance.v3.js` revision
 // must carry this scan forward to the new file.
-describe('content/concordance.v2.js — voice register + content policy (DOCTRINE §2/§4)', () => {
-  function* registryStrings(value, path = 'concordance.v2') {
+describe('content/concordance.v3.js — voice register + content policy (DOCTRINE §2/§4)', () => {
+  function* registryStrings(value, path = 'concordance.v3') {
     if (typeof value === 'string') {
       yield { path, text: value };
     } else if (Array.isArray(value)) {
@@ -217,7 +260,7 @@ describe('content/concordance.v2.js — voice register + content policy (DOCTRIN
         hits.push(`${path}: matched "${term}" in "${containing}" ("${text.slice(0, 80)}")`);
       }
     }
-    expect(hits, `Voice-register violations in concordance.v2.js:\n${hits.join('\n')}`).toEqual([]);
+    expect(hits, `Voice-register violations in concordance.v3.js:\n${hits.join('\n')}`).toEqual([]);
   });
 
   it('no BANNED_PATTERNS slur hits', () => {
@@ -240,7 +283,7 @@ describe('content/concordance.v2.js — voice register + content policy (DOCTRIN
   });
 
   it('scans the exact registry module the runtime imports (scan-target parity)', () => {
-    // PR #101 MED-2 + PR #104 codex absorb: a future concordance.v2.js (§4 —
+    // PR #101 MED-2 + PR #104 codex absorb: a future concordance.v3.js (§4 —
     // new release = new file) must not ship unscanned while this file greens
     // on v1. The expected specifier is derived from THIS file's own static
     // registry imports — not a free-floating literal — so updating the
@@ -260,7 +303,7 @@ describe('concordance assembled output — voice register (P3-4 post-spree)', ()
   // RC content scan covers the registry file; this walks status glosses plus
   // every assembled axis string a t1 compare can emit (relation/citation/
   // qualifier), so ui/concordance.js prose cannot drift into oracle register
-  // while the current content/concordance.v2.js registry stays clean.
+  // while the current content/concordance.v3.js registry stays clean.
   function* assembledStrings() {
     for (const [status, gloss] of Object.entries(CONCORDANCE_STATUSES)) {
       yield { path: `CONCORDANCE_STATUSES.${status}`, text: gloss };
@@ -273,10 +316,20 @@ describe('concordance assembled output — voice register (P3-4 post-spree)', ()
       sunSign: 'libra', animal: 'ox', chineseElement: 'fire', lifePath: 2,
       birthCard: { number: 1, label: 'I · the magician' },
     });
-    const result = buildConcordance(left, right, { tier: 't1' });
-    for (const axis of result.axes) {
-      for (const field of ['relation', 'citation', 'qualifier', 'registry', 'label', 'left', 'right', 'status']) {
-        yield { path: `axis.${axis.key}.${field}`, text: String(axis[field] ?? '') };
+    // A second pair whose life-path axis is REGISTERED (calc v4, §1.I
+    // v0.62). The pair above is unfiled, so without this the three master
+    // link strings — the only new assembled prose this registry emits —
+    // would never reach the scan.
+    const masterLeft = profile({ ...left, lifePath: 33 });
+    const masterRight = profile({ ...right, lifePath: 6 });
+    for (const [tag, result] of [
+      ['', buildConcordance(left, right, { tier: 't1' })],
+      ['master.', buildConcordance(masterLeft, masterRight, { tier: 't1' })],
+    ]) {
+      for (const axis of result.axes) {
+        for (const field of ['relation', 'citation', 'qualifier', 'registry', 'label', 'left', 'right', 'status']) {
+          yield { path: `${tag}axis.${axis.key}.${field}`, text: String(axis[field] ?? '') };
+        }
       }
     }
   }

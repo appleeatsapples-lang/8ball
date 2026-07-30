@@ -242,6 +242,25 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     }
   });
 
+  it('an OPEN master value renders like any other open coordinate (§1.B v0.62)', () => {
+    // The sealed-value sentinel above hands '11' to a sealed cell and proves
+    // it never appears. Its mirror: an ENTITLED master must appear, or the
+    // share artifact would silently drop exactly the values the locked
+    // specimen advertises. Sealed absence stays absolute; open masters do not.
+    const svg = buildCardSVGFromSnapshot({
+      catalog: 'no. 042',
+      sections: [
+        { title: 'LIFE · NAME · SOUL', cells: [{ value: '22', state: 'open' }, { value: '11', state: 'open' }, { value: '3', state: 'open' }] },
+        { title: 'PERSONALITY · BIRTHDAY · MATURITY', cells: [{ value: '7', state: 'open' }, { value: '11', state: 'open' }, { value: '33', state: 'open' }] },
+      ],
+    });
+    for (const value of ['22', '11', '3', '7', '33']) {
+      expect(svg, `open value ${value} missing`).toContain(`>${value}</text>`);
+    }
+    // Six open cells, so no hatch anywhere in this snapshot.
+    expect(svg).not.toContain('url(#seal-hatch)');
+  });
+
   it('unresolved cells render the — field, not a seal (F4 in the PNG)', () => {
     const svg = buildCardSVGFromSnapshot({
       catalog: 'no. 042',

@@ -39,9 +39,9 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     }
   });
 
-  it('imports the expanded meaning/context registry from meanings.v2.js', () => {
+  it('imports the expanded meaning/context registry from meanings.v3.js', () => {
     expect(meaningsJs).toMatch(
-      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v2\.js'/
+      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v3\.js'/
     );
   });
 

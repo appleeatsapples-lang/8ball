@@ -795,20 +795,48 @@ describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', 
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () => {
-  it('never renders 0 or a retired master as a numerology coordinate', () => {
+  it('never renders 0, null or an out-of-domain integer as a numerology coordinate', () => {
     const { cells } = installCompartments();
+    // Everything the calculator cannot produce. `10` is the sharp case: it is
+    // a plausible integer that no reduction can terminate on, and calc v4
+    // widening the domain to admit 11/22/33 must not widen it to admit this.
     renderTierSections({
       ...PROFILE,
-      lifePath: 11,
+      lifePath: 10,
       nameNumber: 0,
       soulUrge: null,
-      personality: 22,
-      birthday: 33,
+      personality: 44,
+      birthday: -11,
       maturity: undefined,
     }, 't2');
     for (const key of ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity']) {
       expect(cells[key].val.textContent, `${key} must render unresolved`).toBe('—');
       expect(unres(cells[key]), `${key} must carry unresolved state`).toBe(true);
+    }
+  });
+
+  // The positive half of the pin above (calc v4, §1.B v0.62). Without it the
+  // unresolved assertion is satisfiable by rendering NOTHING, which is exactly
+  // the regression this cycle repairs: masters must reach the sheet as
+  // themselves, on every numerology cell, at the tier that entitles it.
+  it('renders 11 / 22 / 33 as themselves on every numerology cell', () => {
+    const { cells } = installCompartments();
+    renderTierSections({
+      ...PROFILE,
+      lifePath: 11,
+      nameNumber: 22,
+      soulUrge: 33,
+      personality: 11,
+      birthday: 22,
+      maturity: 33,
+    }, 't2');
+    const expected = {
+      lifePath: '11', nameNumber: '22', soulUrge: '33',
+      personality: '11', birthday: '22', maturity: '33',
+    };
+    for (const [key, text] of Object.entries(expected)) {
+      expect(cells[key].val.textContent, `${key} must render its master value`).toBe(text);
+      expect(unres(cells[key]), `${key} must NOT be unresolved`).toBe(false);
     }
   });
 

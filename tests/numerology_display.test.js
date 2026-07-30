@@ -85,6 +85,18 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     expect(perturbs('maturity', 9), 'maturity').toBe(true);
   });
 
+  it('every numerology cell perturbs to a MASTER value too (calc v4)', () => {
+    // The perturbation pins above all move a cell to another single digit,
+    // so they would still pass on a mapping that silently dropped two-digit
+    // values back to `unres`. These move each cell to 11 / 22 / 33.
+    for (const key of ['lifePath', 'nameNumber', 'soulUrge',
+      'personality', 'birthday', 'maturity']) {
+      for (const master of [11, 22, 33]) {
+        expect(perturbs(key, master), `${key} → ${master}`).toBe(true);
+      }
+    }
+  });
+
   it('no hasMaster-branched display logic anywhere in the render path', () => {
     // The pre-fix-A body branched on `nums.some(n => n > 9)` to pick
     // between space-join and concat-join. Both branches retired —
@@ -94,7 +106,7 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     expect(html).not.toMatch(/hasMaster/);
   });
 
-  it('all six active numerology coordinates render as single digits 1-9', () => {
+  it('all six active numerology coordinates render their own value', () => {
     const cells = {};
     for (const key of ['arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
@@ -135,5 +147,30 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
     expect(cells.personality.textContent).toBe('4');
     expect(cells.birthday.textContent).toBe('5');
     expect(cells.maturity.textContent).toBe('6');
+
+    // Calc v4 (§1.B v0.62): re-render the SAME cells with master values.
+    // Two-digit coordinates keep their own compartment and stay separate —
+    // the always-spaced invariant this file exists for is exactly what a
+    // two-digit value would break first if the cells ever merged.
+    renderTierSections({
+      sunSign: 'gemini', risingSign: undefined, chineseElement: 'metal',
+      animal: 'horse', innerAnimal: 'rabbit',
+      lifePath: 11, nameNumber: 22, soulUrge: 33,
+      personality: 11, birthday: 22, maturity: 33,
+      birthCard: { label: 'XXI · the world' },
+      dayPillar: { animal: 'dragon', stemElement: 'earth' },
+      hourPillar: null,
+    }, 't2');
+    expect(cells.lifePath.textContent).toBe('11');
+    expect(cells.nameNumber.textContent).toBe('22');
+    expect(cells.soulUrge.textContent).toBe('33');
+    expect(cells.personality.textContent).toBe('11');
+    expect(cells.birthday.textContent).toBe('22');
+    expect(cells.maturity.textContent).toBe('33');
+    // Never fused into one node — '112233' must not exist anywhere.
+    const joined = ['lifePath', 'nameNumber', 'soulUrge',
+      'personality', 'birthday', 'maturity'].map(k => cells[k].textContent);
+    expect(joined).toEqual(['11', '22', '33', '11', '22', '33']);
+    for (const text of joined) expect(text.length).toBe(2);
   });
 });

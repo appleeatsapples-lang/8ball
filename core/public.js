@@ -2,7 +2,7 @@
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no model call at
 // runtime or at any other time: every value below is a lookup or an integer
-// reduction over the frozen tables in content/public.v2.js. Same date in,
+// reduction over the frozen tables in content/public.v3.js. Same date in,
 // byte-identical object out, forever.
 //
 // SCOPE. This module computes only the public-tier reading. It does not enter
@@ -23,10 +23,11 @@
 // ARCHITECTURE NOTE — first core/ → content/ import edge. Every other core/
 // module is table-free or carries its own constants; the public tier is
 // explicitly table-driven, and DOCTRINE §6 puts versioned static data in
-// content/. So this module reads its tables from content/public.v2.js, which
-// carries the v1 tables unedited and corrects one provenance string (§4
-// versioned-not-edited). The direction is one-way (content/ imports nothing
-// from core/) and adds no runtime capability — both files are frozen data.
+// content/. So this module reads its tables from content/public.v3.js, which
+// carries the v1/v2 tables unedited, adds the master mode bridge and corrects
+// one provenance string (§4 versioned-not-edited). The direction is one-way
+// (content/ imports nothing from core/) and adds no runtime capability — all
+// three files are frozen data.
 
 import { getDayPillar, STEMS } from './pillars.js';
 import { getInnerAnimal, getBirthday } from './profile.js';
@@ -39,9 +40,11 @@ import {
   ELEMENT_FAVORABILITY,
   DOMAIN_FAMILIES,
   WORK_MODES,
+  MASTER_MODE_BRIDGE,
+  MASTER_MODE_BRIDGE_NOTE,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
-} from '../content/public.v2.js';
+} from '../content/public.v3.js';
 
 // ── Input ───────────────────────────────────────────────────────────────────
 
@@ -125,7 +128,8 @@ export function getFavorability(dayMasterElement, strength) {
 // ── 2. Birthday → mode of work ──────────────────────────────────────────────
 //
 // NINE modes, keyed by the BIRTHDAY number: the day of the month reduced by
-// the same nine-number rule core/profile.js owns (§1.B v0.54). Three
+// the same reduction rule core/profile.js owns (§1.B v0.54 at the time of
+// writing; calc v4 widened it — see THE MASTER BRIDGE below). Three
 // controller rulings shaped this key, all recorded because each overruled
 // something rather than interpreting it:
 //
@@ -148,9 +152,36 @@ export function getFavorability(dayMasterElement, strength) {
 // As with the life path before it, there is deliberately no wrapper: the
 // reduction rule belongs to core/profile.js and this module calls getBirthday
 // directly rather than keeping a private copy under a tier-local name.
+//
+// THE MASTER BRIDGE (calc v4, §1.B v0.62). The clause above says the driver's
+// domain is "exactly 1..9, so the authored table carries over unedited". That
+// stopped being true when the master stops came back: a birthday of 11 or 22
+// is now a real coordinate value, and the mode table has nine entries.
+//
+// The birthday keeps its master value — it is what the sheet shows and what
+// this reading reports. What is bridged is only the TABLE LOOKUP, through the
+// declared `MASTER_MODE_BRIDGE` in content/public.v3.js (11→2, 22→4, 33→6 —
+// the same three links the immutable v1 Concordance registry files). The
+// bridge is reported in the returned reading rather than applied silently, so
+// nothing here can pass a base mode off as a master one.
+
+/**
+ * Which mode-table key a birthday number reaches, and whether it got there
+ * through the bridge. Total over the calc-v4 terminal domain: a master value
+ * has a bridge entry, every other value keys the table directly.
+ *
+ * @param {number} birthday
+ * @returns {{key: number, bridged: boolean, from: number}}
+ */
+export function resolveModeKey(birthday) {
+  const bridged = MASTER_MODE_BRIDGE[birthday];
+  return bridged === undefined
+    ? { key: birthday, bridged: false, from: birthday }
+    : { key: bridged, bridged: true, from: birthday };
+}
 
 export function getWorkMode(birthday) {
-  const mode = WORK_MODES[birthday];
+  const mode = WORK_MODES[resolveModeKey(birthday).key];
   if (!mode) throw new Error(`No work mode for birthday=${birthday}`);
   return mode;
 }
@@ -223,6 +254,7 @@ export function buildPublicReading(dobIso, _opts = {}) {
   const primaryUnfavorable = favorability.unfavorable[0];
 
   const birthday = getBirthday(day);
+  const modeKey = resolveModeKey(birthday);
   const mode = getWorkMode(birthday);
 
   const birthCard = getBirthCard(year, month, day);
@@ -251,8 +283,20 @@ export function buildPublicReading(dobIso, _opts = {}) {
     primaryUnfavorable,
     favorabilityNote: favorability.body,
     mode: {
+      // The coordinate, unreduced — 11 and 22 stay 11 and 22.
       birthday,
       dayOfMonth: day,
+      // The table key the mode was actually read from, and whether the
+      // master bridge was used to get there. Reported rather than hidden:
+      // §1.B v0.62 requires the bridge to be visible in the data so it can
+      // be tested and can never masquerade as a native master-mode table.
+      modeKey: modeKey.key,
+      bridged: modeKey.bridged,
+      bridgeNote: modeKey.bridged
+        ? MASTER_MODE_BRIDGE_NOTE
+          .replace('{birthday}', String(modeKey.from))
+          .replace('{mode}', String(modeKey.key))
+        : null,
       theme: mode.theme,
       register: mode.register,
       method: mode.method,

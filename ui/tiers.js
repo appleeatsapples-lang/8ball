@@ -55,7 +55,7 @@
 // marks a resolved entitled pair. A bare sun-only title never renders —
 // the rising compartment is always present and always labeled.
 
-import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 
 // ── TIER_COORDS (LOCKED ladder, DOCTRINE §1.D) ────────────────────
 // Cumulative coordinate keys per tier. Keys name coordinates, not rows:
@@ -226,9 +226,12 @@ function setCell(key, state, text) {
   }
 }
 
-// A numerology cell may display one of exactly nine values. Missing
-// contributing letters resolve as an honest `—`; malformed/legacy values
-// outside 1..9 are never rendered as a tenth number.
+// A numerology cell may display one of exactly twelve values — `1..9` plus
+// the three master stops `11 / 22 / 33` (calc v4, §1.B v0.62). Missing
+// contributing letters resolve as an honest `—`; malformed or legacy values
+// outside that domain are never rendered, so a stale nine-number-era `0` or
+// an out-of-range integer still shows the empty field rather than a number
+// the calculator cannot produce.
 const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
 
 // ── the one profile → cell mapping (pure) ─────────────────────────
@@ -238,8 +241,9 @@ const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
 // copy that drifts the first time a coordinate changes shape.
 //
 // Three resolution families, exactly as renderTierSections below applies them:
-//   numerology — resolved iff the value is one of the nine active numbers
-//                (a tenth number can never render, §1.B v0.54);
+//   numerology — resolved iff the value is one of the twelve active numbers
+//                (`1..9` plus the master stops, §1.B v0.62); anything the
+//                calculator cannot produce can never render;
 //   pillar     — resolved iff the pillar object exists, formatted `animal · element`;
 //   plain      — resolved iff the coordinate has a value at all. Only `rising`
 //                can actually fail here (no birth time/place); the rest always

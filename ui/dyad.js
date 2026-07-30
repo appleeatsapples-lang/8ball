@@ -123,7 +123,7 @@ export function formatDyadRelation(reading) {
     numerologyHead: `${numerology.lifePathA} + ${numerology.lifePathB} → ${numerology.combined} · ${numerology.register}`,
     // Two separate strings on purpose (§1.J content-source rule, PR #187 F6):
     // the reduction is authored for this tier and carries no meaning; the
-    // meaning is the nine-number registry's OWN body, rendered unmodified and
+    // meaning is the numerology registry's OWN body, rendered unmodified and
     // labelled as the citation it is. They must never be merged into one
     // sentence — that is how the re-authored copy got written the first time.
     numerologyReduction: numerology.reduction,
@@ -207,7 +207,7 @@ const SCREEN_HTML =
   '<div class="dyad-axis-body" id="dyad-element-ba"></div></div>' +
   '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-numerology-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-numerology-reduction"></div>' +
-  '<div class="dyad-cite-label">nine-number registry</div>' +
+  '<div class="dyad-cite-label">numerology registry</div>' +
   '<div class="dyad-axis-body dyad-cite" id="dyad-numerology-meaning"></div></div>' +
   '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-cardpair-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-cardpair-body"></div></div>' +

@@ -58,9 +58,16 @@ export class MissingCardError extends Error {
   }
 }
 
+// Bracket groups over the calc-v4 terminal domain (§1.H v0.62). 1–3 low,
+// 4–6 mid, 7–9 high — and the three master values anchor HIGH, restoring the
+// pre-calc-v3 contract rather than inventing a fourth bracket. The deck has
+// exactly three note positions per cell, so a master must land in one of the
+// three; `high` is where it landed before calc v3 retired the values, and the
+// arc the positions carry (arrival → construction → command) puts a master's
+// register at the command end.
 const LOW = new Set([1, 2, 3]);
 const MID = new Set([4, 5, 6]);
-const HIGH = new Set([7, 8, 9]);
+const HIGH = new Set([7, 8, 9, 11, 22, 33]);
 
 export function resolveBracket(lifePath) {
   if (LOW.has(lifePath)) return 'low';

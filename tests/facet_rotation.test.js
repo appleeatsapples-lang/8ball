@@ -12,8 +12,9 @@ import {
   normalizeFacetIndex,
 } from '../core/payments.js';
 import { resolveBracket } from '../core/engine.js';
+import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
-  FACET_KEY, LEGACY_FACET_KEY, CREDITS_KEY, clearFacetIndex, consumeFacetShake,
+  FACET_KEY, LEGACY_FACET_KEY, LEGACY_FACET_KEY_V2, CREDITS_KEY, clearFacetIndex, consumeFacetShake,
   ensureFacetIndex, getFacetIndex, getFacetSlot, getFreshFacetSlot, setFacetIndex,
 } from '../ui/payments.js';
 
@@ -40,19 +41,27 @@ describe('pure facet transition', () => {
     [1, 0], [2, 0], [3, 0],
     [4, 1], [5, 1], [6, 1],
     [7, 2], [8, 2], [9, 2],
+    // Calc v4 (§1.H v0.62): the three master values anchor the THIRD
+    // position, restoring the pre-calc-v3 contract.
+    [11, 2], [22, 2], [33, 2],
   ])('anchors life path %s to position %s', (lifePath, expected) => {
     expect(anchorFacetIndex(lifePath)).toBe(expected);
   });
 
-  it('stays in parity with the legacy bracket anchor table', () => {
+  it('stays in parity with the bracket anchor table across the whole domain', () => {
     const slots = ['low', 'mid', 'high'];
-    for (const lifePath of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    // TERMINAL_NUMBERS, not a literal: the two groupings are the SAME
+    // partition of the calc-v4 domain, so widening the domain in one place
+    // and not the other has to fail here rather than diverge silently.
+    for (const lifePath of TERMINAL_NUMBERS) {
       expect(slots[anchorFacetIndex(lifePath)]).toBe(resolveBracket(lifePath));
     }
   });
 
   it('rejects unknown life-path values instead of silently choosing a slot', () => {
-    for (const value of [0, 10, 11, 22, 33, '3', null, undefined]) {
+    // 10 and 44 are the sharp cases: plausible integers no reduction can
+    // terminate on. Admitting 11/22/33 must not admit them.
+    for (const value of [0, 10, 12, 44, '3', null, undefined]) {
       expect(() => anchorFacetIndex(value)).toThrow(/Unknown life path value/);
     }
   });
@@ -170,10 +179,19 @@ describe('facet storage and v1 slot selection', () => {
 
   it('getFreshFacetSlot rejects unknown life-path values without touching storage', () => {
     globalThis.localStorage = makeStorage({ [FACET_KEY]: 1 });
-    for (const value of [0, 10, 11, 22, 33, '3', null, undefined]) {
+    for (const value of [0, 10, 12, 44, '3', null, undefined]) {
       expect(() => getFreshFacetSlot(value)).toThrow(/Unknown life path value/);
     }
     expect(localStorage.snapshot()).toEqual({ [FACET_KEY]: '1' });
+  });
+
+  it('getFreshFacetSlot resolves every master life path to the high slot', () => {
+    globalThis.localStorage = makeStorage();
+    for (const lifePath of [11, 22, 33]) {
+      expect(getFreshFacetSlot(lifePath)).toBe('high');
+    }
+    // Pure and storage-free: resolving a fresh slot writes nothing.
+    expect(localStorage.snapshot()).toEqual({});
   });
 
   it('forget removes the position', () => {
@@ -196,8 +214,9 @@ describe('facet storage and v1 slot selection', () => {
   });
 });
 
-describe('calc-v3 facet-key migration (one-shot v1 clear)', () => {
+describe('calc-v4 facet-key migration (one-shot clear of BOTH retired keys)', () => {
   const originalStorage = globalThis.localStorage;
+  const RETIRED = [LEGACY_FACET_KEY, LEGACY_FACET_KEY_V2];
 
   beforeEach(() => { globalThis.localStorage = makeStorage(); });
   afterEach(() => {
@@ -205,16 +224,30 @@ describe('calc-v3 facet-key migration (one-shot v1 clear)', () => {
     else globalThis.localStorage = originalStorage;
   });
 
-  it('names the versioned active key and retires the v1 key by name', () => {
-    expect(FACET_KEY).toBe('eight_ball_facet_index_v2');
+  it('names the versioned active key and retires both older generations', () => {
+    expect(FACET_KEY).toBe('eight_ball_facet_index_v3');
     expect(LEGACY_FACET_KEY).toBe('eight_ball_facet_index_v1');
+    expect(LEGACY_FACET_KEY_V2).toBe('eight_ball_facet_index_v2');
+    // Three distinct names — a version bump that aliased two of them would
+    // silently reinstate the stale position this migration exists to drop.
+    expect(new Set([FACET_KEY, ...RETIRED]).size).toBe(3);
   });
 
-  it('a pre-v3 stored high position re-anchors low after load (F3 repro)', () => {
-    // Former master LP 11 anchored `high` and stored '2' under the v1 key;
-    // calc v3 reduces that profile to LP 2, whose anchor is `low`. The old
-    // position must not survive reload, same-profile submit, or archive
-    // reopen — all of which read through ensureFacetIndex/getFacetSlot.
+  it('a calc-v3 stored position never overrides a calc-v4 master anchor (the v0.62 repro)', () => {
+    // A device read 1970-01-04 under calc v3: life path 4, anchor `mid`,
+    // stored '1' under the v2 key. Calc v4 restores that life path to 22,
+    // whose anchor is `high`. The v3 position must not survive reload,
+    // same-profile submit, or archive reopen — all of which read through
+    // ensureFacetIndex/getFacetSlot.
+    globalThis.localStorage = makeStorage({ [LEGACY_FACET_KEY_V2]: 1 });
+    expect(ensureFacetIndex(22)).toBe(2);
+    expect(getFacetSlot(22)).toBe('high');
+    const snap = localStorage.snapshot();
+    expect(snap).not.toHaveProperty(LEGACY_FACET_KEY_V2);
+    expect(snap[FACET_KEY]).toBe('2');
+  });
+
+  it('a pre-v3 stored position is still dropped (the v0.54 F3 repro, unchanged)', () => {
     globalThis.localStorage = makeStorage({ [LEGACY_FACET_KEY]: 2 });
     expect(ensureFacetIndex(2)).toBe(0);
     expect(getFacetSlot(2)).toBe('low');
@@ -223,25 +256,33 @@ describe('calc-v3 facet-key migration (one-shot v1 clear)', () => {
     expect(snap[FACET_KEY]).toBe('0');
   });
 
-  it('never migrates the v1 value — the first read clears it', () => {
-    globalThis.localStorage = makeStorage({ [LEGACY_FACET_KEY]: 1 });
-    expect(getFacetIndex()).toBeNull();
-    expect(localStorage.snapshot()).not.toHaveProperty(LEGACY_FACET_KEY);
+  it('never migrates a retired value — the first read clears it', () => {
+    for (const key of RETIRED) {
+      globalThis.localStorage = makeStorage({ [key]: 1 });
+      expect(getFacetIndex(), key).toBeNull();
+      expect(localStorage.snapshot(), key).not.toHaveProperty(key);
+    }
   });
 
-  it('clears only the retired key — a post-v3 position is preserved', () => {
-    globalThis.localStorage = makeStorage({ [LEGACY_FACET_KEY]: 2, [FACET_KEY]: 2 });
+  it('clears only the retired keys — a post-v4 position is preserved', () => {
+    globalThis.localStorage = makeStorage({
+      [LEGACY_FACET_KEY]: 2, [LEGACY_FACET_KEY_V2]: 0, [FACET_KEY]: 2,
+    });
     expect(ensureFacetIndex(1)).toBe(2);
     expect(getFacetSlot(1)).toBe('high');
-    expect(localStorage.snapshot()).not.toHaveProperty(LEGACY_FACET_KEY);
+    const snap = localStorage.snapshot();
+    for (const key of RETIRED) expect(snap, key).not.toHaveProperty(key);
+    expect(snap[FACET_KEY]).toBe('2');
   });
 
-  it('forget scrubs both the active and the retired key', () => {
-    globalThis.localStorage = makeStorage({ [LEGACY_FACET_KEY]: 1, [FACET_KEY]: 1 });
+  it('forget scrubs the active key and every retired generation', () => {
+    globalThis.localStorage = makeStorage({
+      [LEGACY_FACET_KEY]: 1, [LEGACY_FACET_KEY_V2]: 1, [FACET_KEY]: 1,
+    });
     clearFacetIndex();
     const snap = localStorage.snapshot();
     expect(snap).not.toHaveProperty(FACET_KEY);
-    expect(snap).not.toHaveProperty(LEGACY_FACET_KEY);
+    for (const key of RETIRED) expect(snap, key).not.toHaveProperty(key);
   });
 });
 
