@@ -88,6 +88,46 @@ jobs:
           fi
           echo "audit-artifact gate: pass"
 
+  # Deterministic product-scope health audit (2026-07-29, tooling/8b audit
+  # adoption). Self-contained in-repo per audits/project_audit.py — no
+  # dependency on the operator's local ops/reach workspace, which CI has no
+  # access to. That workspace's own checks (drift probes, queue/ledger
+  # integrity, launchd plists) run separately via `tooling/8b audit
+  # --scope operations` on the operator's machine, never in CI. Its own
+  # `npm test` here duplicates the `test` job's — accepted deliberately so
+  # this script stays a single, stable, standalone contract runnable both in
+  # CI and locally, rather than forking product-check logic in two places.
+  # Placed BEFORE l48 deliberately: tests/l48_gate.test.js slices the l48
+  # job's YAML from its `\n  l48:` marker to end-of-file and anchors a regex
+  # on that trailing edge, so l48 must stay the last job in this file.
+  product-audit:
+    name: product-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Fetch origin/main for diff-check comparisons
+        run: git fetch --no-tags --prune origin main
+      - name: Run product-scope audit
+        run: python3 audits/project_audit.py --output-dir /tmp/product-audit
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-audit-report
+          path: /tmp/product-audit
+          retention-days: 14
+
   # L48 is its own job so it reports a separately-requireable check
   # (`l48-gate`) and still evaluates when the suite is red. As a step inside
   # `test` it was unreachable whenever an earlier step exited non-zero, so a
