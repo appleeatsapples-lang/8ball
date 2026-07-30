@@ -135,7 +135,7 @@ Journal entries use `## YYYY-MM-DD — Title — STATUS`, newest at top (§8 v0.
     tests/        48 vitest files + fixtures.json + helpers/ (dom.js, voice-register.js — de-forked shared scan tables/mocks, non-test modules per §7)
     audits/       release checklist + PII audit script + cross-model briefs + project_audit.py (product-scope health auditor, the product-audit CI job) + test_project_audit.py (its assurance suite, plain unittest — deliberately NOT under tests/, which repo_shape.test.js pins) + hko_compare.mjs (calendar-vs-authority comparator) + fixtures/hko_calendar_authority_1901_2100.json (200 official HKO tables, each with its source SHA-256)
     assets/       cities.json + favicons + og:image
-    cards/        368 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
+    cards/        611 generated catalog JPEGs + manifest.json, served at /cards for the social drip; pinned by tests/cards_hosting.test.js (10 further queued codes are hosted off-site and tracked in the manifest's `external` block, not rendered here)
     scripts/      build_card_jpegs.py — deterministic PNG→JPEG renderer for cards/ · extract_hko_fixture.py — regenerates the HKO fixture from the 200 upstream sources (two-step by design: re-extract, then update HKO_FIXTURE_CONTENT_SHA256 in project_audit.py in the same commit)
     .github/      CI workflow (6 stages per §7, 3 reported checks) + PR template
     index.html    single-file UI, ≤1500 lines

@@ -5,7 +5,7 @@
     1350
   ],
   "quality": 90,
-  "count": 368,
+  "count": 611,
   "cards": [
     {
       "code": "spec_no-v",
@@ -421,6 +421,311 @@
       "code": "spec_extended_emperor-1988",
       "source": "reach/x_pipeline/assets/spec_extended_emperor-1988.png",
       "bytes": 92458
+    },
+    {
+      "code": "spec_extended_sun-1941",
+      "source": "reach/x_pipeline/assets/spec_extended_sun-1941.png",
+      "bytes": 91628
+    },
+    {
+      "code": "spec_extended_judgement-1942",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-1942.png",
+      "bytes": 92408
+    },
+    {
+      "code": "spec_extended_world-1943",
+      "source": "reach/x_pipeline/assets/spec_extended_world-1943.png",
+      "bytes": 91630
+    },
+    {
+      "code": "spec_extended_fool-1944",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-1944.png",
+      "bytes": 90867
+    },
+    {
+      "code": "spec_extended_hierophant-1945",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1945.png",
+      "bytes": 92987
+    },
+    {
+      "code": "spec_extended_lovers-1946",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1946.png",
+      "bytes": 90757
+    },
+    {
+      "code": "spec_extended_chariot-1947",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1947.png",
+      "bytes": 92378
+    },
+    {
+      "code": "spec_extended_strength-1948",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1948.png",
+      "bytes": 90943
+    },
+    {
+      "code": "spec_extended_hermit-1949",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1949.png",
+      "bytes": 91380
+    },
+    {
+      "code": "spec_extended_chariot-1950",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1950.png",
+      "bytes": 91159
+    },
+    {
+      "code": "spec_extended_strength-1951",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1951.png",
+      "bytes": 91016
+    },
+    {
+      "code": "spec_extended_hermit-1952",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1952.png",
+      "bytes": 91015
+    },
+    {
+      "code": "spec_extended_lovers-1953",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1953.png",
+      "bytes": 88987
+    },
+    {
+      "code": "spec_extended_emperor-1954",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1954.png",
+      "bytes": 91912
+    },
+    {
+      "code": "spec_extended_chariot-1956",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1956.png",
+      "bytes": 92861
+    },
+    {
+      "code": "spec_extended_strength-1957",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1957.png",
+      "bytes": 92472
+    },
+    {
+      "code": "spec_extended_lovers-1958",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1958.png",
+      "bytes": 88671
+    },
+    {
+      "code": "spec_extended_strength-1960",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1960.png",
+      "bytes": 88846
+    },
+    {
+      "code": "spec_extended_hermit-1961",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1961.png",
+      "bytes": 89135
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1962",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1962.png",
+      "bytes": 92354
+    },
+    {
+      "code": "spec_extended_emperor-1963",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1963.png",
+      "bytes": 92640
+    },
+    {
+      "code": "spec_extended_hierophant-1964",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1964.png",
+      "bytes": 93646
+    },
+    {
+      "code": "spec_extended_hierophant-1966",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1966.png",
+      "bytes": 90795
+    },
+    {
+      "code": "spec_extended_lovers-1967",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1967.png",
+      "bytes": 88065
+    },
+    {
+      "code": "spec_extended_chariot-1968",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1968.png",
+      "bytes": 91795
+    },
+    {
+      "code": "spec_extended_strength-1969",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1969.png",
+      "bytes": 91019
+    },
+    {
+      "code": "spec_extended_hierophant-1970",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1970.png",
+      "bytes": 89897
+    },
+    {
+      "code": "spec_extended_lovers-1971",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1971.png",
+      "bytes": 87105
+    },
+    {
+      "code": "spec_extended_lovers-1973",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1973.png",
+      "bytes": 90956
+    },
+    {
+      "code": "spec_extended_hermit-1974",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1974.png",
+      "bytes": 89057
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1975",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1975.png",
+      "bytes": 91006
+    },
+    {
+      "code": "spec_extended_strength-1976",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1976.png",
+      "bytes": 91607
+    },
+    {
+      "code": "spec_extended_justice-1978",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1978.png",
+      "bytes": 92242
+    },
+    {
+      "code": "spec_extended_hermit-1979",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1979.png",
+      "bytes": 90426
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1980",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1980.png",
+      "bytes": 92536
+    },
+    {
+      "code": "spec_extended_chariot-1981",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1981.png",
+      "bytes": 90766
+    },
+    {
+      "code": "spec_extended_hierophant-1982",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1982.png",
+      "bytes": 91472
+    },
+    {
+      "code": "spec_extended_strength-1984",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1984.png",
+      "bytes": 90278
+    },
+    {
+      "code": "spec_extended_strength-1985",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1985.png",
+      "bytes": 89996
+    },
+    {
+      "code": "spec_extended_hermit-1986",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1986.png",
+      "bytes": 91564
+    },
+    {
+      "code": "spec_extended_hermit-1988",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1988.png",
+      "bytes": 90973
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1989",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1989.png",
+      "bytes": 91417
+    },
+    {
+      "code": "spec_extended_emperor-1990",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1990.png",
+      "bytes": 90969
+    },
+    {
+      "code": "spec_extended_chariot-1992",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1992.png",
+      "bytes": 92520
+    },
+    {
+      "code": "spec_extended_strength-1993",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1993.png",
+      "bytes": 92583
+    },
+    {
+      "code": "spec_extended_hermit-1994",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1994.png",
+      "bytes": 91764
+    },
+    {
+      "code": "spec_extended_chariot-1995",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1995.png",
+      "bytes": 90061
+    },
+    {
+      "code": "spec_extended_strength-1996",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1996.png",
+      "bytes": 89528
+    },
+    {
+      "code": "spec_extended_hierophant-1997",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1997.png",
+      "bytes": 89034
+    },
+    {
+      "code": "spec_extended_lovers-1998",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1998.png",
+      "bytes": 87328
+    },
+    {
+      "code": "spec_extended_emperor-1999",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1999.png",
+      "bytes": 92541
+    },
+    {
+      "code": "spec_extended_chariot-2001",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-2001.png",
+      "bytes": 92696
+    },
+    {
+      "code": "spec_extended_temperance-2002",
+      "source": "reach/x_pipeline/assets/spec_extended_temperance-2002.png",
+      "bytes": 91489
+    },
+    {
+      "code": "spec_extended_devil-2003",
+      "source": "reach/x_pipeline/assets/spec_extended_devil-2003.png",
+      "bytes": 89803
+    },
+    {
+      "code": "spec_extended_tower-2004",
+      "source": "reach/x_pipeline/assets/spec_extended_tower-2004.png",
+      "bytes": 90294
+    },
+    {
+      "code": "spec_extended_star-2005",
+      "source": "reach/x_pipeline/assets/spec_extended_star-2005.png",
+      "bytes": 89830
+    },
+    {
+      "code": "spec_extended_moon-2006",
+      "source": "reach/x_pipeline/assets/spec_extended_moon-2006.png",
+      "bytes": 88462
+    },
+    {
+      "code": "spec_extended_sun-2007",
+      "source": "reach/x_pipeline/assets/spec_extended_sun-2007.png",
+      "bytes": 87895
+    },
+    {
+      "code": "spec_extended_judgement-2008",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-2008.png",
+      "bytes": 89203
+    },
+    {
+      "code": "spec_extended_world-2009",
+      "source": "reach/x_pipeline/assets/spec_extended_world-2009.png",
+      "bytes": 89534
+    },
+    {
+      "code": "spec_extended_death-2010",
+      "source": "reach/x_pipeline/assets/spec_extended_death-2010.png",
+      "bytes": 90384
     },
     {
       "code": "aa08_ox-x-horse",
@@ -1098,6 +1403,311 @@
       "bytes": 93532
     },
     {
+      "code": "spec_extended_chariot-1941",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1941.png",
+      "bytes": 90174
+    },
+    {
+      "code": "spec_extended_strength-1942",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1942.png",
+      "bytes": 89059
+    },
+    {
+      "code": "spec_extended_hermit-1943",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1943.png",
+      "bytes": 90151
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1944",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1944.png",
+      "bytes": 90931
+    },
+    {
+      "code": "spec_extended_justice-1945",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1945.png",
+      "bytes": 90223
+    },
+    {
+      "code": "spec_extended_empress-1946",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1946.png",
+      "bytes": 89671
+    },
+    {
+      "code": "spec_extended_emperor-1947",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1947.png",
+      "bytes": 89586
+    },
+    {
+      "code": "spec_extended_hierophant-1948",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1948.png",
+      "bytes": 91031
+    },
+    {
+      "code": "spec_extended_lovers-1949",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1949.png",
+      "bytes": 87907
+    },
+    {
+      "code": "spec_extended_empress-1950",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1950.png",
+      "bytes": 88796
+    },
+    {
+      "code": "spec_extended_emperor-1951",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1951.png",
+      "bytes": 90537
+    },
+    {
+      "code": "spec_extended_hierophant-1952",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1952.png",
+      "bytes": 92153
+    },
+    {
+      "code": "spec_extended_empress-1953",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1953.png",
+      "bytes": 90997
+    },
+    {
+      "code": "spec_extended_lovers-1955",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1955.png",
+      "bytes": 92200
+    },
+    {
+      "code": "spec_extended_emperor-1956",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1956.png",
+      "bytes": 91153
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1957",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1957.png",
+      "bytes": 90449
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1959",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1959.png",
+      "bytes": 92489
+    },
+    {
+      "code": "spec_extended_emperor-1960",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1960.png",
+      "bytes": 89299
+    },
+    {
+      "code": "spec_extended_hierophant-1961",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1961.png",
+      "bytes": 89190
+    },
+    {
+      "code": "spec_extended_lovers-1962",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1962.png",
+      "bytes": 86681
+    },
+    {
+      "code": "spec_extended_lovers-1964",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1964.png",
+      "bytes": 92534
+    },
+    {
+      "code": "spec_extended_chariot-1965",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1965.png",
+      "bytes": 92321
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1966",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1966.png",
+      "bytes": 89344
+    },
+    {
+      "code": "spec_extended_justice-1967",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1967.png",
+      "bytes": 88344
+    },
+    {
+      "code": "spec_extended_hanged-man-1968",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-1968.png",
+      "bytes": 92917
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1969",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1969.png",
+      "bytes": 93191
+    },
+    {
+      "code": "spec_extended_justice-1970",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1970.png",
+      "bytes": 90758
+    },
+    {
+      "code": "spec_extended_hierophant-1972",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1972.png",
+      "bytes": 93500
+    },
+    {
+      "code": "spec_extended_strength-1973",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1973.png",
+      "bytes": 87226
+    },
+    {
+      "code": "spec_extended_lovers-1974",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1974.png",
+      "bytes": 90566
+    },
+    {
+      "code": "spec_extended_chariot-1975",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1975.png",
+      "bytes": 93276
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1977",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1977.png",
+      "bytes": 92979
+    },
+    {
+      "code": "spec_extended_strength-1978",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1978.png",
+      "bytes": 91084
+    },
+    {
+      "code": "spec_extended_hierophant-1979",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1979.png",
+      "bytes": 89631
+    },
+    {
+      "code": "spec_extended_lovers-1980",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1980.png",
+      "bytes": 88876
+    },
+    {
+      "code": "spec_extended_emperor-1981",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1981.png",
+      "bytes": 91414
+    },
+    {
+      "code": "spec_extended_chariot-1983",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1983.png",
+      "bytes": 92271
+    },
+    {
+      "code": "spec_extended_hierophant-1984",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1984.png",
+      "bytes": 89461
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1986",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1986.png",
+      "bytes": 92244
+    },
+    {
+      "code": "spec_extended_emperor-1987",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1987.png",
+      "bytes": 88608
+    },
+    {
+      "code": "spec_extended_hierophant-1988",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1988.png",
+      "bytes": 91579
+    },
+    {
+      "code": "spec_extended_lovers-1989",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1989.png",
+      "bytes": 89141
+    },
+    {
+      "code": "spec_extended_lovers-1991",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1991.png",
+      "bytes": 91033
+    },
+    {
+      "code": "spec_extended_emperor-1992",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1992.png",
+      "bytes": 90981
+    },
+    {
+      "code": "spec_extended_hierophant-1993",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1993.png",
+      "bytes": 93022
+    },
+    {
+      "code": "spec_extended_justice-1994",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1994.png",
+      "bytes": 86343
+    },
+    {
+      "code": "spec_extended_hanged-man-1995",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-1995.png",
+      "bytes": 89746
+    },
+    {
+      "code": "spec_extended_emperor-1996",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1996.png",
+      "bytes": 87593
+    },
+    {
+      "code": "spec_extended_justice-1997",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1997.png",
+      "bytes": 88612
+    },
+    {
+      "code": "spec_extended_hanged-man-1998",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-1998.png",
+      "bytes": 94043
+    },
+    {
+      "code": "spec_extended_hanged-man-2000",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-2000.png",
+      "bytes": 92362
+    },
+    {
+      "code": "spec_extended_death-2001",
+      "source": "reach/x_pipeline/assets/spec_extended_death-2001.png",
+      "bytes": 88127
+    },
+    {
+      "code": "spec_extended_sun-2002",
+      "source": "reach/x_pipeline/assets/spec_extended_sun-2002.png",
+      "bytes": 86918
+    },
+    {
+      "code": "spec_extended_judgement-2003",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-2003.png",
+      "bytes": 88139
+    },
+    {
+      "code": "spec_extended_world-2004",
+      "source": "reach/x_pipeline/assets/spec_extended_world-2004.png",
+      "bytes": 89972
+    },
+    {
+      "code": "spec_extended_fool-2005",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-2005.png",
+      "bytes": 88824
+    },
+    {
+      "code": "spec_extended_hierophant-2006",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-2006.png",
+      "bytes": 90573
+    },
+    {
+      "code": "spec_extended_lovers-2007",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-2007.png",
+      "bytes": 88222
+    },
+    {
+      "code": "spec_extended_chariot-2008",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-2008.png",
+      "bytes": 90314
+    },
+    {
+      "code": "spec_extended_strength-2009",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-2009.png",
+      "bytes": 89093
+    },
+    {
+      "code": "spec_extended_moon-2010",
+      "source": "reach/x_pipeline/assets/spec_extended_moon-2010.png",
+      "bytes": 89197
+    },
+    {
       "code": "aa01_rat-x-ox",
       "source": "share_assets/concordance_2026-07-03/cards/aa01_rat-x-ox.png",
       "bytes": 75127
@@ -1488,6 +2098,311 @@
       "bytes": 94422
     },
     {
+      "code": "spec_extended_empress-1941",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1941.png",
+      "bytes": 88529
+    },
+    {
+      "code": "spec_extended_emperor-1942",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1942.png",
+      "bytes": 89262
+    },
+    {
+      "code": "spec_extended_hierophant-1943",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1943.png",
+      "bytes": 90162
+    },
+    {
+      "code": "spec_extended_lovers-1944",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1944.png",
+      "bytes": 89460
+    },
+    {
+      "code": "spec_extended_chariot-1945",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1945.png",
+      "bytes": 90784
+    },
+    {
+      "code": "spec_extended_strength-1946",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1946.png",
+      "bytes": 87512
+    },
+    {
+      "code": "spec_extended_hermit-1947",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1947.png",
+      "bytes": 87965
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1948",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1948.png",
+      "bytes": 89718
+    },
+    {
+      "code": "spec_extended_justice-1949",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1949.png",
+      "bytes": 87287
+    },
+    {
+      "code": "spec_extended_hermit-1950",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1950.png",
+      "bytes": 92418
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1951",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1951.png",
+      "bytes": 93968
+    },
+    {
+      "code": "spec_extended_fool-1953",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-1953.png",
+      "bytes": 91360
+    },
+    {
+      "code": "spec_extended_hierophant-1954",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1954.png",
+      "bytes": 92844
+    },
+    {
+      "code": "spec_extended_empress-1955",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1955.png",
+      "bytes": 90875
+    },
+    {
+      "code": "spec_extended_hermit-1956",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1956.png",
+      "bytes": 89181
+    },
+    {
+      "code": "spec_extended_chariot-1957",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1957.png",
+      "bytes": 91865
+    },
+    {
+      "code": "spec_extended_hanged-man-1959",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-1959.png",
+      "bytes": 90547
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1960",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1960.png",
+      "bytes": 91806
+    },
+    {
+      "code": "spec_extended_justice-1961",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1961.png",
+      "bytes": 90232
+    },
+    {
+      "code": "spec_extended_hierophant-1963",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1963.png",
+      "bytes": 94411
+    },
+    {
+      "code": "spec_extended_empress-1964",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1964.png",
+      "bytes": 91042
+    },
+    {
+      "code": "spec_extended_emperor-1965",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1965.png",
+      "bytes": 88267
+    },
+    {
+      "code": "spec_extended_chariot-1966",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1966.png",
+      "bytes": 91158
+    },
+    {
+      "code": "spec_extended_strength-1967",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1967.png",
+      "bytes": 89822
+    },
+    {
+      "code": "spec_extended_hermit-1968",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1968.png",
+      "bytes": 92426
+    },
+    {
+      "code": "spec_extended_world-1970",
+      "source": "reach/x_pipeline/assets/spec_extended_world-1970.png",
+      "bytes": 90851
+    },
+    {
+      "code": "spec_extended_fool-1971",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-1971.png",
+      "bytes": 90491
+    },
+    {
+      "code": "spec_extended_justice-1972",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1972.png",
+      "bytes": 88396
+    },
+    {
+      "code": "spec_extended_hierophant-1973",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1973.png",
+      "bytes": 92234
+    },
+    {
+      "code": "spec_extended_strength-1975",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1975.png",
+      "bytes": 91906
+    },
+    {
+      "code": "spec_extended_lovers-1976",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1976.png",
+      "bytes": 89159
+    },
+    {
+      "code": "spec_extended_chariot-1977",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1977.png",
+      "bytes": 90702
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1978",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1978.png",
+      "bytes": 93199
+    },
+    {
+      "code": "spec_extended_justice-1979",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1979.png",
+      "bytes": 90780
+    },
+    {
+      "code": "spec_extended_empress-1980",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1980.png",
+      "bytes": 92693
+    },
+    {
+      "code": "spec_extended_lovers-1982",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1982.png",
+      "bytes": 90213
+    },
+    {
+      "code": "spec_extended_hermit-1983",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1983.png",
+      "bytes": 88095
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1984",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1984.png",
+      "bytes": 90947
+    },
+    {
+      "code": "spec_extended_chariot-1986",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1986.png",
+      "bytes": 90270
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1987",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1987.png",
+      "bytes": 93909
+    },
+    {
+      "code": "spec_extended_justice-1988",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1988.png",
+      "bytes": 92096
+    },
+    {
+      "code": "spec_extended_justice-1990",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1990.png",
+      "bytes": 88756
+    },
+    {
+      "code": "spec_extended_empress-1991",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1991.png",
+      "bytes": 91005
+    },
+    {
+      "code": "spec_extended_hermit-1992",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1992.png",
+      "bytes": 90642
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1993",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1993.png",
+      "bytes": 92864
+    },
+    {
+      "code": "spec_extended_strength-1994",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1994.png",
+      "bytes": 91658
+    },
+    {
+      "code": "spec_extended_hermit-1995",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1995.png",
+      "bytes": 90609
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1996",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1996.png",
+      "bytes": 92486
+    },
+    {
+      "code": "spec_extended_emperor-1998",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1998.png",
+      "bytes": 92036
+    },
+    {
+      "code": "spec_extended_justice-1999",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1999.png",
+      "bytes": 89688
+    },
+    {
+      "code": "spec_extended_star-2000",
+      "source": "reach/x_pipeline/assets/spec_extended_star-2000.png",
+      "bytes": 90346
+    },
+    {
+      "code": "spec_extended_moon-2001",
+      "source": "reach/x_pipeline/assets/spec_extended_moon-2001.png",
+      "bytes": 90118
+    },
+    {
+      "code": "spec_extended_tower-2002",
+      "source": "reach/x_pipeline/assets/spec_extended_tower-2002.png",
+      "bytes": 91441
+    },
+    {
+      "code": "spec_extended_star-2003",
+      "source": "reach/x_pipeline/assets/spec_extended_star-2003.png",
+      "bytes": 91163
+    },
+    {
+      "code": "spec_extended_moon-2004",
+      "source": "reach/x_pipeline/assets/spec_extended_moon-2004.png",
+      "bytes": 91919
+    },
+    {
+      "code": "spec_extended_sun-2005",
+      "source": "reach/x_pipeline/assets/spec_extended_sun-2005.png",
+      "bytes": 90015
+    },
+    {
+      "code": "spec_extended_judgement-2006",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-2006.png",
+      "bytes": 89637
+    },
+    {
+      "code": "spec_extended_world-2007",
+      "source": "reach/x_pipeline/assets/spec_extended_world-2007.png",
+      "bytes": 89836
+    },
+    {
+      "code": "spec_extended_fool-2008",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-2008.png",
+      "bytes": 89372
+    },
+    {
+      "code": "spec_extended_hierophant-2009",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-2009.png",
+      "bytes": 92809
+    },
+    {
+      "code": "spec_extended_devil-2010",
+      "source": "reach/x_pipeline/assets/spec_extended_devil-2010.png",
+      "bytes": 92702
+    },
+    {
       "code": "ee03_earth-x-metal",
       "source": "share_assets/concordance_2026-07-03/cards/ee03_earth-x-metal.png",
       "bytes": 84049
@@ -1846,6 +2761,306 @@
       "code": "spec_extended_chariot-1988",
       "source": "reach/x_pipeline/assets/spec_extended_chariot-1988.png",
       "bytes": 90615
+    },
+    {
+      "code": "spec_extended_hermit-1941",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1941.png",
+      "bytes": 90750
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1942",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1942.png",
+      "bytes": 91270
+    },
+    {
+      "code": "spec_extended_justice-1943",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1943.png",
+      "bytes": 90424
+    },
+    {
+      "code": "spec_extended_empress-1944",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1944.png",
+      "bytes": 91076
+    },
+    {
+      "code": "spec_extended_emperor-1945",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1945.png",
+      "bytes": 92278
+    },
+    {
+      "code": "spec_extended_hierophant-1946",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1946.png",
+      "bytes": 91519
+    },
+    {
+      "code": "spec_extended_lovers-1947",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1947.png",
+      "bytes": 89905
+    },
+    {
+      "code": "spec_extended_chariot-1948",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1948.png",
+      "bytes": 92016
+    },
+    {
+      "code": "spec_extended_strength-1949",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1949.png",
+      "bytes": 90421
+    },
+    {
+      "code": "spec_extended_judgement-1951",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-1951.png",
+      "bytes": 92721
+    },
+    {
+      "code": "spec_extended_world-1952",
+      "source": "reach/x_pipeline/assets/spec_extended_world-1952.png",
+      "bytes": 91162
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1953",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1953.png",
+      "bytes": 90876
+    },
+    {
+      "code": "spec_extended_chariot-1954",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1954.png",
+      "bytes": 88611
+    },
+    {
+      "code": "spec_extended_strength-1955",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1955.png",
+      "bytes": 88129
+    },
+    {
+      "code": "spec_extended_lovers-1956",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1956.png",
+      "bytes": 91499
+    },
+    {
+      "code": "spec_extended_hermit-1958",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1958.png",
+      "bytes": 92080
+    },
+    {
+      "code": "spec_extended_judgement-1960",
+      "source": "reach/x_pipeline/assets/spec_extended_judgement-1960.png",
+      "bytes": 91780
+    },
+    {
+      "code": "spec_extended_world-1961",
+      "source": "reach/x_pipeline/assets/spec_extended_world-1961.png",
+      "bytes": 90344
+    },
+    {
+      "code": "spec_extended_fool-1962",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-1962.png",
+      "bytes": 91688
+    },
+    {
+      "code": "spec_extended_justice-1963",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1963.png",
+      "bytes": 89840
+    },
+    {
+      "code": "spec_extended_strength-1964",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-1964.png",
+      "bytes": 89545
+    },
+    {
+      "code": "spec_extended_hermit-1965",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1965.png",
+      "bytes": 89017
+    },
+    {
+      "code": "spec_extended_hermit-1967",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1967.png",
+      "bytes": 91186
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1968",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1968.png",
+      "bytes": 93556
+    },
+    {
+      "code": "spec_extended_justice-1969",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1969.png",
+      "bytes": 91376
+    },
+    {
+      "code": "spec_extended_hermit-1970",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1970.png",
+      "bytes": 90408
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1971",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1971.png",
+      "bytes": 91856
+    },
+    {
+      "code": "spec_extended_emperor-1972",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1972.png",
+      "bytes": 91315
+    },
+    {
+      "code": "spec_extended_emperor-1974",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1974.png",
+      "bytes": 89525
+    },
+    {
+      "code": "spec_extended_hierophant-1975",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1975.png",
+      "bytes": 92321
+    },
+    {
+      "code": "spec_extended_justice-1976",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1976.png",
+      "bytes": 89506
+    },
+    {
+      "code": "spec_extended_hermit-1977",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1977.png",
+      "bytes": 91251
+    },
+    {
+      "code": "spec_extended_empress-1979",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1979.png",
+      "bytes": 93807
+    },
+    {
+      "code": "spec_extended_fool-1980",
+      "source": "reach/x_pipeline/assets/spec_extended_fool-1980.png",
+      "bytes": 91046
+    },
+    {
+      "code": "spec_extended_hierophant-1981",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1981.png",
+      "bytes": 94707
+    },
+    {
+      "code": "spec_extended_empress-1982",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1982.png",
+      "bytes": 89551
+    },
+    {
+      "code": "spec_extended_lovers-1983",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1983.png",
+      "bytes": 89949
+    },
+    {
+      "code": "spec_extended_hermit-1985",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-1985.png",
+      "bytes": 90579
+    },
+    {
+      "code": "spec_extended_hanged-man-1986",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-1986.png",
+      "bytes": 89924
+    },
+    {
+      "code": "spec_extended_empress-1988",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1988.png",
+      "bytes": 92629
+    },
+    {
+      "code": "spec_extended_emperor-1989",
+      "source": "reach/x_pipeline/assets/spec_extended_emperor-1989.png",
+      "bytes": 92505
+    },
+    {
+      "code": "spec_extended_chariot-1990",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1990.png",
+      "bytes": 89844
+    },
+    {
+      "code": "spec_extended_hierophant-1991",
+      "source": "reach/x_pipeline/assets/spec_extended_hierophant-1991.png",
+      "bytes": 92821
+    },
+    {
+      "code": "spec_extended_lovers-1992",
+      "source": "reach/x_pipeline/assets/spec_extended_lovers-1992.png",
+      "bytes": 91397
+    },
+    {
+      "code": "spec_extended_chariot-1993",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1993.png",
+      "bytes": 93218
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1995",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1995.png",
+      "bytes": 93715
+    },
+    {
+      "code": "spec_extended_justice-1996",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-1996.png",
+      "bytes": 91025
+    },
+    {
+      "code": "spec_extended_empress-1997",
+      "source": "reach/x_pipeline/assets/spec_extended_empress-1997.png",
+      "bytes": 91629
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-1998",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-1998.png",
+      "bytes": 92076
+    },
+    {
+      "code": "spec_extended_chariot-1999",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-1999.png",
+      "bytes": 90360
+    },
+    {
+      "code": "spec_extended_temperance-2000",
+      "source": "reach/x_pipeline/assets/spec_extended_temperance-2000.png",
+      "bytes": 93460
+    },
+    {
+      "code": "spec_extended_strength-2002",
+      "source": "reach/x_pipeline/assets/spec_extended_strength-2002.png",
+      "bytes": 92357
+    },
+    {
+      "code": "spec_extended_hermit-2003",
+      "source": "reach/x_pipeline/assets/spec_extended_hermit-2003.png",
+      "bytes": 92659
+    },
+    {
+      "code": "spec_extended_wheel-of-fortune-2004",
+      "source": "reach/x_pipeline/assets/spec_extended_wheel-of-fortune-2004.png",
+      "bytes": 94324
+    },
+    {
+      "code": "spec_extended_justice-2005",
+      "source": "reach/x_pipeline/assets/spec_extended_justice-2005.png",
+      "bytes": 91085
+    },
+    {
+      "code": "spec_extended_hanged-man-2006",
+      "source": "reach/x_pipeline/assets/spec_extended_hanged-man-2006.png",
+      "bytes": 92305
+    },
+    {
+      "code": "spec_extended_death-2007",
+      "source": "reach/x_pipeline/assets/spec_extended_death-2007.png",
+      "bytes": 88912
+    },
+    {
+      "code": "spec_extended_temperance-2008",
+      "source": "reach/x_pipeline/assets/spec_extended_temperance-2008.png",
+      "bytes": 91898
+    },
+    {
+      "code": "spec_extended_devil-2009",
+      "source": "reach/x_pipeline/assets/spec_extended_devil-2009.png",
+      "bytes": 89604
+    },
+    {
+      "code": "spec_extended_chariot-2010",
+      "source": "reach/x_pipeline/assets/spec_extended_chariot-2010.png",
+      "bytes": 91813
     }
   ],
   "external_count": 10,
