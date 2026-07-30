@@ -15,6 +15,8 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   TIER_ORDER,
+  RETIRED_TIERS,
+  RETIREMENT_COLLISIONS,
   isTier,
   tierRank,
   maxTier,
@@ -175,15 +177,18 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
-  it('TIER_ORDER is the locked t1 < t2 < t3 ladder', () => {
+  it('TIER_ORDER is the locked t1 < t2 < t3 < t5 ladder, with t4 skipped', () => {
     // Four rungs for part of 2026-07-29 (§1.D v0.58); t4 was folded into t3
-    // rather than sold (§1.D v0.60), so the ladder is three again. A device
-    // that stored 't4' from the unsigned return is migrated, not downgraded
-    // — pinned in tests/public_surface.test.js.
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
+    // rather than sold (§1.D v0.60), so the ladder went back to three. §1.D
+    // v0.61 appends the DYAD rung — and appends it as `t5`, not `t4`, because
+    // a device that stored 't4' from the unsigned return is migrated by
+    // RETIRED_TIERS. Reusing the token would put the same key in both tables
+    // and collapse paying dyad devices to t3; the gap is the fix, and
+    // RETIREMENT_COLLISIONS below is the derived proof it holds.
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
   });
 
-  it('tierRank: free/garbage rank 0; rungs rank 1..3 in order', () => {
+  it('tierRank is ladder POSITION, not the digit in the token', () => {
     expect(tierRank(null)).toBe(0);
     expect(tierRank(undefined)).toBe(0);
     expect(tierRank('free')).toBe(0);
@@ -191,21 +196,36 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(tierRank('t1')).toBe(1);
     expect(tierRank('t2')).toBe(2);
     expect(tierRank('t3')).toBe(3);
+    // The one that would break a digit-parsing implementation: t5 is the
+    // FOURTH rung. Nothing may read rank off the numeral.
+    expect(tierRank('t5')).toBe(4);
+    expect(tierRank('t4')).toBe(0);
   });
 
-  it('isTier accepts exactly the three rungs', () => {
+  it('isTier accepts exactly the four current rungs', () => {
     expect(isTier('t1')).toBe(true);
     expect(isTier('t2')).toBe(true);
     expect(isTier('t3')).toBe(true);
+    expect(isTier('t5')).toBe(true);
     // 't4' is retired, NOT current — it must not pass isTier, and the
     // retirement table is what keeps its holders whole.
-    for (const bad of ['t0', 't4', 't5', 'free', '', null, undefined, 'T2', 1]) {
+    for (const bad of ['t0', 't4', 't6', 'free', '', null, undefined, 'T2', 1]) {
       expect(isTier(bad), `${String(bad)} must not be a tier`).toBe(false);
     }
   });
 
+  it('the ladder and the retirement table cannot collide', () => {
+    // The §1.D v0.61 append is exactly the change that could have introduced
+    // a collision, so the invariant is pinned where the ladder is pinned.
+    expect(RETIREMENT_COLLISIONS).toEqual([]);
+    for (const [retired, successor] of Object.entries(RETIRED_TIERS)) {
+      expect(TIER_ORDER, `${retired} is retired AND live`).not.toContain(retired);
+      expect(TIER_ORDER, `${retired} migrates to a non-rung`).toContain(successor);
+    }
+  });
+
   it('maxTier never downgrades — every (current, purchased) pair', () => {
-    const values = [null, 't1', 't2', 't3'];
+    const values = [null, 't1', 't2', 't3', 't5'];
     for (const a of values) {
       for (const b of values) {
         const out = maxTier(a, b);

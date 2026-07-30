@@ -153,6 +153,18 @@ export function getFacetSlot(lifePath) {
   const stored = getFacetIndex();
   return FACET_SLOTS[stored === null ? anchorFacetIndex(lifePath) : stored];
 }
+// The note slot a FRESH standalone profile would show — never reads the
+// stored position. §1.J's second person (dyad `t5`) is never anchored,
+// rotated or persisted (§5.F), so resolving their note through getFacetSlot
+// would apply THIS DEVICE's stored position (anchored or since rotated by A)
+// to a life path it was never computed for (PR #187 R2). A fresh profile's
+// own first read is exactly `anchorFacetIndex(lifePath)` — see
+// ensureFacetIndex's `stored === null` branch — so this is that same
+// resolution, pure and storage-free, for a person who must never touch the
+// key at all.
+export function getFreshFacetSlot(lifePath) {
+  return FACET_SLOTS[anchorFacetIndex(lifePath)];
+}
 export function consumeFacetShake(lifePath) {
   const stored = getFacetIndex();
   const state = nextFacetState({

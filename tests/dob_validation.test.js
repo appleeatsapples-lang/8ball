@@ -11,6 +11,8 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateBirthInput, todayIsoLocal } from '../ui/profile.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
@@ -52,31 +54,61 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     );
   });
 
-  it('submit handler compares dob against today (ISO lexicographic)', () => {
-    // The check shape: `if (dob > todayIso) { dobError.hidden = false; return; }`
-    expect(html).toMatch(/const\s+todayIso\s*=\s*todayIsoLocal\(\s*\)/);
-    expect(html).toMatch(/if\s*\(\s*dob\s*>\s*todayIso\s*\)/);
+  // §1.J remediation (PR #187 F3): the future-date rule and the local-today
+  // helper moved OUT of index.html into ui/profile.js, so the primary form and
+  // the dyad's second-person form run ONE validator instead of two that drift.
+  // These three pins moved with the logic and are behavioural now — a regex
+  // over index.html could match while the rule behind it was wrong, and these
+  // cannot.
+
+  it('the submit path rejects a future DOB (ISO lexicographic, shared rule)', () => {
+    const today = '2026-07-30';
+    expect(validateBirthInput({ name: 'a', dob: '2026-07-31' }, today))
+      .toEqual({ ok: false, field: 'dob', reason: 'future' });
+    expect(validateBirthInput({ name: 'a', dob: '2027-01-01' }, today).reason).toBe('future');
+    expect(validateBirthInput({ name: 'a', dob: '9999-12-31' }, today).reason).toBe('future');
+    // Same day is valid — the boundary the UTC bug used to break.
+    expect(validateBirthInput({ name: 'a', dob: today }, today).ok).toBe(true);
   });
 
-  it('todayIsoLocal helper uses local-date math, not UTC (step-12 codex hook 4 P2)', () => {
-    // toISOString() returns UTC calendar date; in positive-UTC tzs
-    // (KSA UTC+3) the user's local today is one day ahead of UTC
-    // between local-midnight and UTC-midnight. The helper composes
-    // the ISO string from local-tz accessors (getFullYear, getMonth,
-    // getDate), avoiding the off-by-one.
-    expect(html).toMatch(
-      /function\s+todayIsoLocal\s*\(\s*\)\s*\{[\s\S]*?getFullYear\(\s*\)[\s\S]*?getMonth\(\s*\)[\s\S]*?getDate\(\s*\)[\s\S]*?\}/
-    );
-    // Both DOB-validation call sites must use the helper, not the
-    // retired UTC pattern.
+  it('index.html routes its submit through the shared validator', () => {
+    expect(html).toMatch(/validateBirthInput\(\s*\{\s*name:\s*nameInput\.value/);
+    expect(html).toMatch(/dobInput\.max\s*=\s*todayIsoLocal\(\)/);
+    // The retired inline forms must not return alongside it.
+    expect(html).not.toMatch(/const\s+todayIso\s*=/);
+    expect(html).not.toMatch(/function\s+todayIsoLocal/);
+  });
+
+  it('todayIsoLocal uses LOCAL date math, not UTC (step-12 codex hook 4 P2)', () => {
+    // toISOString() returns the UTC calendar date; east of UTC, between local
+    // midnight and UTC midnight, local today is one day ahead. Pinned by
+    // behaviour against a fixed instant rather than by reading the source.
+    const src = readFileSync(join(__dirname, '..', 'ui', 'profile.js'), 'utf-8');
+    expect(src).toMatch(/getFullYear\(\)[\s\S]*?getMonth\(\)[\s\S]*?getDate\(\)/);
     expect(html).not.toMatch(/dobInput\.max\s*=\s*new Date\(\)\.toISOString/);
-    expect(html).not.toMatch(/const\s+todayIso\s*=\s*new Date\(\)\.toISOString/);
+
+    // 2026-07-31T01:30 in a UTC+3 zone is still 2026-07-30 in UTC. The local
+    // helper must say the 31st; toISOString would say the 30th and reject a
+    // birth date of the 31st as "future".
+    const local = new Date(2026, 6, 31, 1, 30, 0);
+    expect(todayIsoLocal(local)).toBe('2026-07-31');
+    expect(validateBirthInput({ name: 'a', dob: '2026-07-31' }, todayIsoLocal(local)).ok).toBe(true);
+  });
+
+  it('the shared rule also gates the name and the 1900 floor', () => {
+    const today = '2026-07-30';
+    expect(validateBirthInput({ name: '   ', dob: '1990-01-01' }, today))
+      .toEqual({ ok: false, field: 'name', reason: 'name' });
+    expect(validateBirthInput({ name: 'a', dob: '1899-12-31' }, today).reason).toBe('year');
+    expect(validateBirthInput({ name: 'a', dob: '1900-01-01' }, today).ok).toBe(true);
+    expect(validateBirthInput({ name: ' bramble ', dob: '1988-06-15' }, today))
+      .toEqual({ ok: true, name: 'bramble', dob: '1988-06-15' });
   });
 
   it('submit handler surfaces dobError on future-DOB rejection', () => {
     // The error is shown inside the future-DOB branch — assert the
     // `dobError.hidden = false` write exists in the file.
-    expect(html).toMatch(/dobError\.hidden\s*=\s*false/);
+    expect(html).toMatch(/dobError\.hidden\s*=\s*entry\.field\s*!==\s*'dob'/);
   });
 
   it('dobError DOM reference is declared near other field refs', () => {

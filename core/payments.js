@@ -68,11 +68,28 @@ export function nextFacetState({ facetIndex }) {
 }
 
 // ── tier ladder (v0.6.0, DOCTRINE §1.D / §4.B v0.36) ──────────────
-// Three paid rungs reveal progressively more of the coordinate sheet.
-// The ladder is ordered; the stored tier is the HIGHEST rung purchased
-// and is monotonic — applyPaidReturn never downgrades it.
+// Paid rungs reveal progressively more of the coordinate sheet. The ladder
+// is ordered; the stored tier is the HIGHEST rung purchased and is
+// monotonic — applyPaidReturn never downgrades it.
+//
+// ── the gap at t4 is deliberate (§1.D v0.61) ──────────────────────
+// t1/t2/t3 are the three coordinate-density rungs of the SINGLE reading.
+// `t5` is the dyad rung: two complete sheets plus the relation layer.
+// The ladder therefore reads t1 · t2 · t3 · t5 with `t4` skipped, and the
+// skip is load-bearing rather than cosmetic. `t4` was live for part of
+// 2026-07-29 as the public rung (§1.D v0.58), was retired the same day
+// (v0.60), and its unsigned `?paid=t4` return means devices can hold a
+// stored 't4' forever. Reusing the token for the dyad would put the same
+// key in TIER_ORDER and in RETIRED_TIERS below — normalizeTier would
+// rewrite every paying dyad device to 't3' before isTier ever saw it, so
+// dyad buyers would silently collapse to the rung beneath them. `t5` was
+// never live as an unsigned return, so it is clean.
+//
+// RETIREMENT_COLLISIONS is the derived, exported form of that argument:
+// it is computed from the two constants rather than restated, so the
+// invariant cannot be pinned in a test while the source drifts.
 
-export const TIER_ORDER = ['t1', 't2', 't3'];
+export const TIER_ORDER = ['t1', 't2', 't3', 't5'];
 
 // ── retired rungs (§1.D v0.60) ────────────────────────────────────
 // `t4` existed on `main` for part of 2026-07-29 (§1.D v0.58) and was folded
@@ -90,6 +107,32 @@ export const TIER_ORDER = ['t1', 't2', 't3'];
 // persists the rewrite on first detection — the same shape as the R2
 // legacy-credit grandfather below, and pinned by tests/public_surface.test.js.
 export const RETIRED_TIERS = Object.freeze({ t4: 't3' });
+
+/**
+ * Every way the retirement table could contradict the ladder, derived from
+ * both constants at module load. Two failure modes, and the §1.D v0.61 dyad
+ * append is exactly the change that could have introduced the first one:
+ *
+ *   - `live`   — a retired token is ALSO a current rung. normalizeTier would
+ *                rewrite it before isTier saw it, so buyers of that rung
+ *                collapse to whatever absorbed it. This is why the dyad is
+ *                `t5` and not `t4`.
+ *   - `orphan` — a retired token maps onto something that is not a rung, so
+ *                the migration lands nowhere and the device reads as free.
+ *
+ * Empty is the only correct value. Exported rather than asserted at import
+ * time on purpose: a data error here is caught by CI (tests/tiers.test.js and
+ * tests/dyad_surface.test.js both pin it empty), and throwing on module load
+ * would white-screen the product for a fault the gate already blocks.
+ */
+export const RETIREMENT_COLLISIONS = Object.freeze(
+  Object.entries(RETIRED_TIERS).flatMap(([retired, successor]) => {
+    const problems = [];
+    if (TIER_ORDER.includes(retired)) problems.push({ retired, successor, kind: 'live' });
+    if (!TIER_ORDER.includes(successor)) problems.push({ retired, successor, kind: 'orphan' });
+    return problems.map(Object.freeze);
+  })
+);
 
 /**
  * Map a stored tier through the retirement table. Unknown and current
@@ -111,8 +154,10 @@ export function isTier(value) {
 }
 
 /**
- * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3. Anything that is
- * not a known tier (null / undefined / garbage) ranks 0 — the free tier.
+ * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3, t5 → 4. The rank is
+ * the POSITION, never the digit in the token — `t5` ranks 4 because the
+ * ladder skips t4 (see the gap note above). Anything that is not a known
+ * tier (null / undefined / garbage) ranks 0 — the free tier.
  */
 export function tierRank(tier) {
   return TIER_ORDER.indexOf(tier) + 1;
@@ -143,14 +188,17 @@ export function maxTier(a, b) {
  *     which the credits are ignored forever). This stays 't3' and must NOT
  *     follow the top of the ladder: those buyers paid for the written entry,
  *     not for a public rung that did not exist when they bought. Pinned by
- *     tests/payments_state.test.js so a later rung cannot silently widen it;
+ *     tests/payments_state.test.js so a later rung cannot silently widen it —
+ *     the §1.D v0.61 dyad append is the second rung to test that pin, and it
+ *     holds for the same reason: a legacy buyer paid for the written entry,
+ *     never for a second person's sheet;
  *   - neither → the free card.
  *
  * Nothing governs how many readings — quantity is unlimited at every tier
  * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
- * @returns {string} 'free' | 't1' | 't2' | 't3'
+ * @returns {string} 'free' | 't1' | 't2' | 't3' | 't5'
  */
 export function resolveRenderTier({ tier, credits }) {
   const cleanCredits = normalizeCounter(credits);
@@ -194,7 +242,10 @@ export function nextShakeState({ isNew }) {
 }
 
 /**
- * Compute the post-return state when the page loads with ?paid=t1|t2|t3.
+ * Compute the post-return state when the page loads with a `?paid=` rung.
+ * The accepted set is whatever `isTier` accepts — deliberately not
+ * enumerated here, because an enumeration in a comment is what went stale
+ * when the ladder last moved.
  *
  * Ownership model (§1.D / §2 / §5.B v0.55): a purchase is permanent and
  * unlimited. The only state a paid return writes is the monotonic tier —

@@ -14,7 +14,7 @@ import {
 import { resolveBracket } from '../core/engine.js';
 import {
   FACET_KEY, LEGACY_FACET_KEY, CREDITS_KEY, clearFacetIndex, consumeFacetShake,
-  ensureFacetIndex, getFacetIndex, getFacetSlot, setFacetIndex,
+  ensureFacetIndex, getFacetIndex, getFacetSlot, getFreshFacetSlot, setFacetIndex,
 } from '../ui/payments.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -158,6 +158,22 @@ describe('facet storage and v1 slot selection', () => {
     globalThis.localStorage = makeStorage({});
     expect(consumeFacetShake(5)).toEqual({ action: 'render-facet', facetIndex: 2 });
     expect(localStorage.snapshot()[FACET_KEY]).toBe('2');
+  });
+
+  it('getFreshFacetSlot ignores any stored position and slots by life-path anchor alone', () => {
+    globalThis.localStorage = makeStorage({ [FACET_KEY]: 2 });
+    for (const lifePath of [1, 2, 3]) expect(getFreshFacetSlot(lifePath)).toBe('low');
+    for (const lifePath of [4, 5, 6]) expect(getFreshFacetSlot(lifePath)).toBe('mid');
+    for (const lifePath of [7, 8, 9]) expect(getFreshFacetSlot(lifePath)).toBe('high');
+    expect(localStorage.snapshot()).toEqual({ [FACET_KEY]: '2' });
+  });
+
+  it('getFreshFacetSlot rejects unknown life-path values without touching storage', () => {
+    globalThis.localStorage = makeStorage({ [FACET_KEY]: 1 });
+    for (const value of [0, 10, 11, 22, 33, '3', null, undefined]) {
+      expect(() => getFreshFacetSlot(value)).toThrow(/Unknown life path value/);
+    }
+    expect(localStorage.snapshot()).toEqual({ [FACET_KEY]: '1' });
   });
 
   it('forget removes the position', () => {

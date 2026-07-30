@@ -79,12 +79,22 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // so the ladder is three rungs again and the block is the t3 ceiling
 // alongside the written entry.
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
+// §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
+// completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus
+// the relation layer between the two. `dyadRelation` is therefore a BLOCK in
+// the `cardEntry` / `publicRead` sense — no compartment, no census weight —
+// and it is the only key here that renders outside #card-face entirely (the
+// dyad screen, ui/dyad.js). Extending t3's list rather than replacing it is
+// what makes the append monotonic: a t5 device holds full single density, so
+// each of the two sheets renders exactly what a t3 buyer sees.
+const T5_COORDS = [...T3_COORDS, 'dyadRelation'];
 
 export const TIER_COORDS = {
   free: FREE_COORDS,
   t1: T1_COORDS,
   t2: T2_COORDS,
   t3: T3_COORDS,
+  t5: T5_COORDS,
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
@@ -118,8 +128,9 @@ export function coordsForTier(tier) {
  * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
  * a free coordinate per §1.D (always open, never a sealable cell) — so the
  * base (15) matches the product-wide "five coordinates" free framing
- * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). The t3 written
- * entry is a block (cardEntry), not a coordinate, so it is excluded.
+ * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). Blocks are
+ * excluded — cardEntry, publicRead and dyadRelation are not coordinates, so
+ * t3 and t5 return the identical census.
  * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
  * Returns { open, sealed, total }.
  */
@@ -142,6 +153,11 @@ export function formatPillar(pillar) {
 // Cells (plus the 'cardEntry' and 'publicRead' blocks) entitled at `tier`
 // but not at `prevTier`, in DOM order. Empty for same/lower tiers — the animation
 // can only fire on a genuine upgrade render.
+//
+// `dyadRelation` is deliberately absent: this decides the unseal beat for
+// #card-face, and the dyad block does not live there. A t3 → t5 upgrade
+// therefore adds NO sheet cell and correctly returns [] — the single sheet
+// is already complete, which is the whole shape of the append.
 export function newlyEntitledCells(prevTier, tier) {
   const prev = coordsForTier(prevTier);
   const next = coordsForTier(tier);
@@ -210,16 +226,64 @@ function setCell(key, state, text) {
   }
 }
 
-const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
-
 // A numerology cell may display one of exactly nine values. Missing
 // contributing letters resolve as an honest `—`; malformed/legacy values
 // outside 1..9 are never rendered as a tenth number.
-function setNumerologyCell(key, entitled, value) {
-  const resolved = isNumerologyValue(value);
-  setCell(key, entitled ? (resolved ? 'value' : 'unres') : 'sealed',
-    resolved ? String(value) : '');
+const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
+
+// ── the one profile → cell mapping (pure) ─────────────────────────
+// Which string a coordinate cell shows, and whether it shows one at all.
+// Extracted so the dyad surface (ui/dyad.js, §1.J) reads coordinates through
+// the SAME rule the sheet renders them by, rather than carrying a second
+// copy that drifts the first time a coordinate changes shape.
+//
+// Three resolution families, exactly as renderTierSections below applies them:
+//   numerology — resolved iff the value is one of the nine active numbers
+//                (a tenth number can never render, §1.B v0.54);
+//   pillar     — resolved iff the pillar object exists, formatted `animal · element`;
+//   plain      — resolved iff the coordinate has a value at all. Only `rising`
+//                can actually fail here (no birth time/place); the rest always
+//                resolve, which is why they render at every tier.
+//
+// Unentitled ALWAYS returns an empty string, never the withheld value: the
+// §1.D v0.37 sealed-DOM contract is enforced at this seam, so no caller can
+// place a sealed coordinate in the DOM even by mistake.
+const NUMEROLOGY_CELLS = new Set([
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+]);
+const PILLAR_CELLS = new Set(['dayPillar', 'hourPillar']);
+const PLAIN_VALUE = {
+  arcana: p => (p.birthCard ? p.birthCard.label : ''),
+  element: p => p.chineseElement,
+  sun: p => p.sunSign,
+  rising: p => p.risingSign,
+  animal: p => p.animal,
+  innerAnimal: p => p.innerAnimal,
+};
+
+/** @returns {{state: 'value'|'unres'|'sealed', text: string}} */
+export function cellRenderState(profile, key, entitled) {
+  if (!entitled) return { state: 'sealed', text: '' };
+  if (NUMEROLOGY_CELLS.has(key)) {
+    const value = profile[key];
+    return isNumerologyValue(value)
+      ? { state: 'value', text: String(value) }
+      : { state: 'unres', text: '' };
+  }
+  if (PILLAR_CELLS.has(key)) {
+    const pillar = profile[key];
+    return pillar
+      ? { state: 'value', text: formatPillar(pillar) }
+      : { state: 'unres', text: '' };
+  }
+  const read = PLAIN_VALUE[key];
+  const value = read ? read(profile) : undefined;
+  return value
+    ? { state: 'value', text: String(value) }
+    : { state: 'unres', text: '' };
 }
+
+export { CELL_KEYS, CELL_COORD };
 
 /**
  * Fill and seal every coordinate cell for (profile, tier). Returns
@@ -235,38 +299,22 @@ export function renderTierSections(profile, tier) {
   const risingEntitled = coords.has('rising');
   const withRising = risingEntitled && !!profile.risingSign;
   if (_refs.sunTitle) _refs.sunTitle.textContent = withRising ? 'SUN ↑ RISING' : 'SUN · RISING';
-  setCell('sun', 'value', profile.sunSign);
-  setCell('rising',
-    risingEntitled ? (profile.risingSign ? 'value' : 'unres') : 'sealed',
-    profile.risingSign);
 
   // Animal row: `PUBLIC · PRIVATE` while the private (month) animal is
   // sealed at free; `PUBLIC ⇌ PRIVATE` at t1+ (always computable).
   const withInner = coords.has('innerAnimal');
   if (_refs.animalTitle) _refs.animalTitle.textContent = withInner ? 'PUBLIC ⇌ PRIVATE' : 'PUBLIC · PRIVATE';
-  setCell('animal', 'value', profile.animal);
-  setCell('innerAnimal', withInner ? 'value' : 'sealed', profile.innerAnimal);
 
-  setCell('arcana', 'value', profile.birthCard.label);
-  setCell('element', coords.has('element') ? 'value' : 'sealed', profile.chineseElement);
-  // Life path is free (DOB-derived); expression + soul urge stay t1
-  // (name-derived) — §1.D v0.38 split.
-  setNumerologyCell('lifePath', coords.has('lifePath'), profile.lifePath);
-  const numInner = coords.has('numerology');
-  setNumerologyCell('nameNumber', numInner, profile.nameNumber);
-  setNumerologyCell('soulUrge', numInner, profile.soulUrge);
-  const num2 = coords.has('numbers2');
-  setNumerologyCell('personality', num2, profile.personality);
-  setNumerologyCell('birthday', num2, profile.birthday);
-  setNumerologyCell('maturity', num2, profile.maturity);
-  setCell('dayPillar',
-    coords.has('dayPillar') ? (profile.dayPillar ? 'value' : 'unres') : 'sealed',
-    formatPillar(profile.dayPillar));
-  // Hour pillar resolves on HH:MM alone; absent birth time renders the
-  // specimen-register `—` empty field at t3 — F4, never a seal.
-  setCell('hourPillar',
-    coords.has('hourPillar') ? (profile.hourPillar ? 'value' : 'unres') : 'sealed',
-    formatPillar(profile.hourPillar));
+  // Every cell resolves through the one pure mapping above, so the sheet and
+  // the dyad surface cannot disagree about what a coordinate shows. Life path
+  // is free (DOB-derived) while expression + soul urge stay t1 (name-derived)
+  // per the §1.D v0.38 split — that lives in CELL_COORD, not here. The hour
+  // pillar's absent-birth-time case renders the `—` empty field at t3 rather
+  // than a seal (F4: sealed ≠ unresolvable), which is the `unres` state.
+  for (const key of CELL_KEYS) {
+    const { state, text } = cellRenderState(profile, key, coords.has(CELL_COORD[key]));
+    setCell(key, state, text);
+  }
 
   // Written-entry block shell: sealed below t3 (the CONTENT fill/clear
   // stays in index.html renderCard, gated on the returned flag).
@@ -317,6 +365,10 @@ const SHARE_ROWS = [
   ['dayPillar'],
   ['hourPillar'],
 ];
+
+// Exported additively so ui/sheet.js can build a second standalone sheet from
+// the SAME row structure the host sheet renders, rather than restating it.
+export const SHEET_ROWS = SHARE_ROWS;
 
 function cellStateOf(cell) {
   const cl = cell && cell.root && cell.root.classList;
