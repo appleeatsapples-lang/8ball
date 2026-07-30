@@ -38,8 +38,8 @@ const MAX_BYTES = 8 * 1024 * 1024;
 
 // Queued codes hosted OFF-SITE by the vault's extra_specimens manifest: no
 // local cards/{code}.jpg is rendered for them, because image_url_for() prefers
-// their publicUrl. Pinned so the tracked guard covers all 298 queued codes, not
-// just the 288 rendered ones — an untracked code whose URL goes stale falls back
+// their publicUrl. Pinned so the tracked guard covers all 621 queued codes, not
+// just the 611 rendered ones — an untracked code whose URL goes stale falls back
 // to a cards/ file that does not exist, and the surface then stalls on it every
 // slot forever with no ledger row while CI stays green (Codex L48 P1, PR #136).
 // Reachability itself is NOT asserted here: DOCTRINE §5 forbids network in tests.
