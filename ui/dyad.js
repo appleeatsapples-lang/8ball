@@ -159,6 +159,11 @@ const STYLE = `
   background: repeating-linear-gradient(45deg,
     rgba(255,255,255,0.16) 0 3px, transparent 3px 7px); }
 #dyad-screen .dyad-error { font-size: 0.8rem; opacity: 0.75; }
+/* The back control is the last child of the screen, so without this it sits
+   flush against the qualifier line and the button border reads as a strike
+   through it (caught in the §8 gate 9 live-fire pass, not by the suite). */
+#dyad-screen #dyad-back { margin-top: 1.25rem; }
+#dyad-screen #dyad-cta { margin-top: 1rem; }
 `;
 
 const ROW_HTML = CELL_KEYS.map(key =>

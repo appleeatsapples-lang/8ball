@@ -81,8 +81,20 @@ deliberately does not attempt. (3) `index.html` is at 1497/1500. The tier spent 
 that could be moved out already lives in `ui/dyad.js`; **the next feature of any size must open with a split**, and
 `CLAUDE.md` now says so at the budget line. (4) No cross-model audit has read any of this yet.
 
-**Gates.** Suite 51 files / 1,753 tests green. `python3 -m unittest audits.test_project_audit` and
-`python3 audits/project_audit.py` run at close-out below.
+**Live-fire (§8 gate 9) run, and it earned its keep.** The dyad screen is injected by JS, so a runtime error in it
+would be invisible to a suite that renders against hand-rolled DOM stubs. Local server + browser pass on the real
+`index.html`: zero console errors on boot and on every path; free device shows the relation block sealed with
+`textContent.length === 0` and the CTA `hidden` with no `href`; a real `?paid=t5` return persists the tier, strips the
+query, and opens 15 of 15 plus the relation; the back control restores the sheet and blanks every value node; after a
+full paired read `localStorage` holds only the three existing allow-listed keys and contains neither person B's name
+nor DOB. The **t4 migration was exercised end to end in the browser** — stored `'t4'`, then `?paid=t1` — and the device
+lands on `t3` with the full sheet, neither downgraded to t1 nor promoted to the new rung. Mobile (375×812) has no
+horizontal overflow. The pass caught one defect the suite could not: the back control sat flush against the qualifier
+line so its top border read as a strike through it; fixed with a margin rule in the module's own injected CSS.
+
+**Gates.** Suite 51 files / 1,753 tests green. Python assurance suite 93/93. Product audit PASS, 0 blocking failures
+(1 advisory warn: `product.git_status`, the uncommitted tree — expected while staged). Local PII audit clean, 826
+files scanned.
 
 ## 2026-07-30 — Codex pre-merge audit `e3c2586..516acbc`: seven P1 fixes applied — STAGED
 
