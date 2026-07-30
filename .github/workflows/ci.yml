@@ -118,6 +118,18 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Fetch origin/main for diff-check comparisons
         run: git fetch --no-tags --prune origin main
+      # The auditor's own 69-test assurance suite, and it runs BEFORE the
+      # auditor. Without it CI executed project_audit.py while nothing
+      # executed the tests that prove its checks can still fail — the suite
+      # existed in-repo and was invoked by no workflow, no npm script and no
+      # other script (2026-07-30 Codex pre-merge audit, finding A). An
+      # unverified auditor reporting PASS is worth less than no auditor: it
+      # is the pins in this suite (expected check-id set, the HKO positive
+      # control, individual constant pins) that stop a check from silently
+      # degrading into one that cannot fail. Ordered first deliberately, so a
+      # broken auditor fails the job instead of emitting a green report.
+      - name: Run product-audit assurance suite
+        run: python3 -m unittest audits.test_project_audit
       - name: Run product-scope audit
         run: python3 audits/project_audit.py --output-dir /tmp/product-audit
       - name: Upload audit report

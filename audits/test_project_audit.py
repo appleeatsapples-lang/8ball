@@ -363,6 +363,15 @@ def stub_comparator(payload):
 GOOD_COMPARISON = {
     "comparedYears": 200,
     "incomplete": [],
+    # The 2026-07-30 finding-L fields. The comparator indexes by its own
+    # canonical term list rather than by the fixture's, and reports here
+    # whether the fixture's declared order and per-year term positions agree
+    # with it -- so a rotated/relabelled authority record is diagnosed as a
+    # forged fixture instead of as 2,400 ordinary calendar mismatches.
+    "termOrderCanonical": True,
+    "declaredTermOrder": list(pa.HKO_CANONICAL_TERM_ORDER),
+    "semanticViolationCount": 0,
+    "semanticViolations": [],
     "solarComparisons": 2400,
     "solarMismatchCount": 0,
     "solarMismatches": [],
@@ -595,10 +604,124 @@ class HkoProvenanceTests(HkoBlockingFailureMixin, unittest.TestCase):
         fx["source"]["term_order"] = order
         self.assert_fixture_problem(fx, "term_order")
 
+    def test_rotated_term_order_alone_fails(self):
+        """Well-formed, 12 unique names, wrong order. The shape check above
+        passes it; only the canonical pin catches it."""
+        fx = real_fixture_dict()
+        order = list(fx["source"]["term_order"])
+        fx["source"]["term_order"] = order[1:] + order[:1]
+        self.assert_fixture_problem(fx, "not the canonical HKO")
+
     def test_schema_version_true_is_rejected_despite_python_bool_equality(self):
         fx = real_fixture_dict()
         fx["schema_version"] = True
         self.assert_fixture_problem(fx, "schema_version is True")
+
+
+class HkoSemanticOrderTests(HkoBlockingFailureMixin, unittest.TestCase):
+    """The rotation tautology (Codex pre-merge audit 2026-07-30, finding L).
+
+    The comparator used to take its term order from `source.term_order` AND
+    look every expected value up by those same fixture-supplied names, so it
+    compared the fixture against itself. Rotating `term_order`, relabelling
+    every year's term values by the same rotation, and regenerating the
+    content digest produced 2,400 comparisons, ZERO mismatches and a PASS
+    with all 200 source hashes untouched -- a complete false green that no
+    structural pin, and not even the digest, could see.
+
+    Both halves of the closure are pinned here: the canonical order lives
+    outside the fixture now, and the index-to-month invariant holds no matter
+    what the terms are called."""
+
+    @staticmethod
+    def rotate(fx, by=1):
+        """The audit's exact forgery: rotate the declared order AND relabel
+        every year's values by the same rotation, so the fixture stays
+        internally consistent."""
+        order = list(fx["source"]["term_order"])
+        rotated = order[by:] + order[:by]
+        fx["source"]["term_order"] = rotated
+        for entry in fx["years"].values():
+            original = entry["terms"]
+            entry["terms"] = {rotated[i]: original[order[i]] for i in range(len(order))}
+        return fx
+
+    def test_the_full_internally_consistent_rotation_is_caught(self):
+        fx = self.rotate(real_fixture_dict())
+        problems = pa.hko_fixture_problems(fx)
+        self.assertTrue(any("not the canonical HKO" in p for p in problems), problems)
+        self.assertTrue(any("index-to-month invariant" in p for p in problems), problems)
+
+    def test_rotation_survives_a_regenerated_digest(self):
+        """The digest cannot catch this: the forger regenerates it. Every
+        remaining problem must therefore be a structural one."""
+        fx = self.rotate(real_fixture_dict())
+        with mock.patch.object(pa, "HKO_FIXTURE_CONTENT_SHA256",
+                               pa.hko_fixture_content_digest(fx)):
+            problems = pa.hko_fixture_problems(fx)
+        self.assertFalse(any("content digest" in p for p in problems), problems)
+        self.assertTrue(any("index-to-month invariant" in p for p in problems), problems)
+
+    def test_renaming_the_terms_without_rotating_is_caught(self):
+        """Names alone: keep every date where it is, rename the keys."""
+        fx = real_fixture_dict()
+        order = list(fx["source"]["term_order"])
+        renamed = [f"Term {i}" for i in range(len(order))]
+        fx["source"]["term_order"] = renamed
+        for entry in fx["years"].values():
+            original = entry["terms"]
+            entry["terms"] = {renamed[i]: original[order[i]] for i in range(len(order))}
+        problems = pa.hko_fixture_problems(fx)
+        self.assertTrue(any("not the canonical HKO" in p for p in problems), problems)
+        self.assertTrue(any("names are not the canonical set" in p for p in problems), problems)
+
+    def test_a_single_term_moved_to_the_wrong_month_is_caught(self):
+        fx = real_fixture_dict()
+        fx["years"]["1950"]["terms"]["Spring Commences"] = [7, 4]
+        problems = pa.hko_fixture_problems(fx)
+        self.assertTrue(any("index-to-month invariant" in p for p in problems), problems)
+        self.assertTrue(any("starts in month 7, expected 2" in p for p in problems), problems)
+
+    def test_an_out_of_range_day_is_caught(self):
+        fx = real_fixture_dict()
+        fx["years"]["1950"]["terms"]["Cold Dew"] = [10, 44]
+        problems = pa.hko_fixture_problems(fx)
+        self.assertTrue(any("outside 1-31" in p for p in problems), problems)
+
+    def test_a_non_pair_term_value_is_caught(self):
+        fx = real_fixture_dict()
+        fx["years"]["1950"]["terms"]["Heavy Snow"] = "12-08"
+        problems = pa.hko_fixture_problems(fx)
+        self.assertTrue(any("is not a [month, day] pair" in p for p in problems), problems)
+
+    def test_the_shipped_fixture_satisfies_every_semantic_invariant(self):
+        """Positive control: without it the pins above could all pass against
+        an invariant no real fixture can meet."""
+        fx = real_fixture_dict()
+        self.assertEqual(tuple(fx["source"]["term_order"]), pa.HKO_CANONICAL_TERM_ORDER)
+        for year, entry in fx["years"].items():
+            self.assertEqual(set(entry["terms"]), set(pa.HKO_CANONICAL_TERM_ORDER), year)
+            for index, term in enumerate(pa.HKO_CANONICAL_TERM_ORDER):
+                self.assertEqual(entry["terms"][term][0], pa.HKO_TERM_START_MONTHS[index],
+                                 f"{year} {term}")
+
+    def test_the_real_comparator_reports_a_rotated_fixture_as_forged(self):
+        """End-to-end through the real comparator, with the fixture-problems
+        gate stubbed out so the comparator is genuinely reached. Two
+        independent instruments have to catch this: the fixture validator
+        (covered above) and the comparator itself, which indexes by its own
+        canonical list rather than by the fixture's."""
+        fx = self.rotate(real_fixture_dict())
+        with tempfile.TemporaryDirectory() as d:
+            root = build_hko_root(d, fixture=fx)
+            with mock.patch.object(pa, "hko_fixture_problems", return_value=[]):
+                chk = pa.check_hko_calendar(root)
+        self.assert_blocking_failure(chk)
+        self.assertIn("termOrderCanonical=False", chk["summary"])
+        self.assertIn("semanticViolationCount", chk["summary"])
+        # And the rotation shows up as real date disagreements too, because
+        # the comparator no longer takes its order from the file under test.
+        self.assertGreater(chk["evidence"]["solarMismatchCount"], 0)
 
 
 class HkoContentDigestTests(HkoBlockingFailureMixin, unittest.TestCase):
@@ -771,6 +894,8 @@ class HkoEvaluatorUnitTests(unittest.TestCase):
             "solarMismatchCount": 1,
             "lunarMismatchCount": 1,
             "incomplete": [1901],
+            "semanticViolationCount": 1,
+            "termOrderCanonical": False,
         }
         for key, bad_value in mutations.items():
             with self.subTest(pin=key):
@@ -781,7 +906,8 @@ class HkoEvaluatorUnitTests(unittest.TestCase):
 
     def test_missing_key_fails_rather_than_passing_on_none(self):
         for key in ("comparedYears", "solarComparisons", "lunarComparisonCount",
-                    "solarMismatchCount", "lunarMismatchCount", "incomplete"):
+                    "solarMismatchCount", "lunarMismatchCount", "incomplete",
+                    "semanticViolationCount", "termOrderCanonical"):
             with self.subTest(missing=key):
                 result = dict(GOOD_COMPARISON)
                 del result[key]
@@ -832,6 +958,152 @@ class HkoPositiveControlTests(unittest.TestCase):
 
     def test_shipped_fixture_has_no_integrity_or_provenance_problems(self):
         self.assertEqual(pa.hko_fixture_problems(real_fixture_dict()), [])
+
+
+# ── executed-suite CI-gate coverage ─────────────────────────────────────
+#
+# Codex's 2026-07-30 pre-merge audit (finding G) showed both CI-doctrine
+# checks could report green without proving their claims, because both only
+# grepped prose: three of the four required ci.yml substrings already existed
+# at e3c2586; removing the live doctrine exclusion but leaving its text in an
+# inert comment still passed; and a comment-only tests file carrying the two
+# magic strings satisfied the regression check outright. Both now execute the
+# real suites. The pins below are the negative coverage for that execution --
+# above all that "zero failures" alone is NOT a pass, since zero failures over
+# zero tests is exactly what a deleted or comment-only suite reports.
+
+def vitest_report(*, passed_names=(), num_failed=0, num_passed=None):
+    """A minimal vitest JSON report shaped like the real reporter's output."""
+    names = list(passed_names)
+    return {
+        "numTotalTests": len(names) + num_failed,
+        "numPassedTests": len(names) if num_passed is None else num_passed,
+        "numFailedTests": num_failed,
+        "testResults": [{
+            "assertionResults": [
+                {"status": "passed", "fullName": name} for name in names
+            ],
+        }],
+    }
+
+
+class ExecutedSuiteEvaluatorTests(unittest.TestCase):
+    REQUIRED = ("load bearing one", "load bearing two")
+
+    def evaluate(self, rc, report, min_tests=2):
+        violations, _ = pa.evaluate_vitest_suite(rc, report, min_tests, self.REQUIRED)
+        return violations
+
+    def test_a_complete_passing_report_has_no_violations(self):
+        report = vitest_report(passed_names=self.REQUIRED)
+        self.assertEqual(self.evaluate(0, report), [])
+
+    def test_comment_only_suite_is_rejected_despite_zero_failures(self):
+        # The exact finding-G dodge: a file with no executable tests reports
+        # zero failures. Under a mismatch-count-only predicate that is a pass.
+        report = vitest_report(passed_names=())
+        violations = self.evaluate(0, report)
+        self.assertTrue(any("expected at least" in v for v in violations), violations)
+        self.assertTrue(any("load-bearing" in v for v in violations), violations)
+
+    def test_dropping_one_load_bearing_test_is_rejected_even_at_full_count(self):
+        # The surgical case: the count is met by filler, but the test that
+        # actually proves the gate is gone.
+        report = vitest_report(passed_names=("load bearing one", "filler", "more filler"))
+        violations = self.evaluate(0, report)
+        self.assertTrue(any("load bearing two" in v for v in violations), violations)
+
+    def test_reduced_passing_count_is_rejected(self):
+        report = vitest_report(passed_names=self.REQUIRED)
+        violations = self.evaluate(0, report, min_tests=31)
+        self.assertTrue(any("expected at least 31" in v for v in violations), violations)
+
+    def test_a_failing_test_is_rejected(self):
+        report = vitest_report(passed_names=self.REQUIRED, num_failed=1)
+        self.assertTrue(any("1 test(s) failed" in v for v in self.evaluate(0, report)))
+
+    def test_nonzero_exit_fails_even_with_a_perfect_payload(self):
+        report = vitest_report(passed_names=self.REQUIRED)
+        self.assertTrue(any("vitest exited 1" in v for v in self.evaluate(1, report)))
+
+    def test_boolean_counts_are_rejected_as_non_integers(self):
+        # `isinstance(True, int)` is True and `False == 0`, so a JSON boolean
+        # would otherwise satisfy the zero-failure and minimum-count pins.
+        report = vitest_report(passed_names=self.REQUIRED)
+        report["numFailedTests"] = False
+        report["numPassedTests"] = True
+        violations = self.evaluate(0, report)
+        self.assertTrue(any("numFailedTests" in v for v in violations), violations)
+        self.assertTrue(any("numPassedTests" in v for v in violations), violations)
+
+    def test_missing_counts_fail_rather_than_passing_on_none(self):
+        report = vitest_report(passed_names=self.REQUIRED)
+        del report["numPassedTests"]
+        del report["numFailedTests"]
+        violations = self.evaluate(0, report)
+        self.assertEqual(len(violations), 2, violations)
+
+
+class ExecutedSuiteCheckTests(unittest.TestCase):
+    def test_missing_suite_file_is_a_blocking_failure_not_a_skip(self):
+        # Fails closed. An absent regression suite is the precise state these
+        # checks exist to detect, so it must never read as "nothing to do".
+        with tempfile.TemporaryDirectory() as d:
+            chk = pa.executed_suite_check(
+                Path(d), "product.example", "example",
+                "tests/does_not_exist.test.js", 1, ("anything",),
+            )
+        self.assertEqual(chk["status"], "fail")
+        self.assertEqual(chk["severity"], "blocking")
+        self.assertIn("fails closed", chk["summary"])
+
+    def test_both_shipped_gate_checks_pass_in_this_repo(self):
+        # Positive control. Without it every negative test above could pass
+        # against a check that can no longer succeed at all.
+        for check_fn, check_id in (
+            (pa.check_ci_doctrine_gate, "product.ci_doctrine_gate"),
+            (pa.check_ci_doctrine_regression, "product.ci_doctrine_regression"),
+        ):
+            with self.subTest(check=check_id):
+                chk = check_fn(REPO_ROOT)
+                self.assertEqual(chk["id"], check_id)
+                self.assertEqual(chk["severity"], "blocking")
+                self.assertEqual(chk["status"], "pass", chk["summary"])
+                self.assertEqual(chk["evidence"]["numFailedTests"], 0)
+                self.assertGreaterEqual(
+                    chk["evidence"]["numPassedTests"], chk["evidence"]["minimumRequired"]
+                )
+
+
+class LocalPiiSeverityTests(unittest.TestCase):
+    """A blocking check that skips on every run in CI is claiming an assurance
+    it never provides (2026-07-30 Codex pre-merge audit, finding H). The
+    pattern file is gitignored and operator-local, so absent IS the permanent
+    CI state -- that branch reports `info`. The branch where the scan actually
+    runs must stay blocking."""
+
+    def test_absent_pattern_file_skips_as_info_not_blocking(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "audits").mkdir()
+            (root / "audits" / "run_local_audit.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+            chk = pa.check_local_pii(root)
+        self.assertEqual(chk["status"], "skip")
+        self.assertEqual(chk["severity"], "info")
+        self.assertFalse(chk["evidence"]["pattern_file_exists"])
+
+    def test_a_real_pii_hit_is_still_a_blocking_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            audits_dir = root / "audits"
+            audits_dir.mkdir()
+            (audits_dir / "local_personal_data.txt").write_text("dummy pattern\n")
+            script = audits_dir / "run_local_audit.sh"
+            script.write_text("#!/usr/bin/env bash\necho 'a hit'\nexit 1\n")
+            script.chmod(script.stat().st_mode | stat.S_IEXEC)
+            chk = pa.check_local_pii(root)
+        self.assertEqual(chk["status"], "fail")
+        self.assertEqual(chk["severity"], "blocking")
 
 
 def check_explodes(product_root):

@@ -17,6 +17,20 @@ const SHANGHAI_OFFSET_HOURS = 8;
 // late. Across 1900–2100 that is four dates: lunar new year 1916 (the visible
 // defect — a 1916-02-03 birth was filed under the previous year's animal) and
 // three pre-1929 solar terms (1911 lixia, 1912 xiaohan, 1927 bailu).
+//
+// CORRECTION, 2026-07-30 (Codex pre-merge audit, finding F). Two of those
+// three solar terms were moved the WRONG WAY. Checked against the official
+// HKO tables, 1911 lixia belongs on May 7 and 1912 xiaohan on Jan 7 — the
+// dates this offset moved them off. HKO_SOLAR_TERM_CORRECTIONS below restores
+// both, so the net effect of the pre-1929 offset on solar terms is 1927 bailu
+// alone; the lunar-new-year 1916 correction stands unaffected and is the
+// change that actually fixed a user-visible defect.
+//
+// The offset is still the right model — the USNO calendar reference records
+// the 116°25′ Beijing meridian before 1929 and 120°E after — but "right model"
+// and "right answer at every boundary" are different claims, and only the
+// second one is testable against HKO. Where they disagree, HKO wins: it is
+// the authority this project's dates are defined against.
 const BEIJING_LMT_HOURS = 7 + 45 / 60 + 40 / 3600;
 const RANGE_MIN = 1900;
 const RANGE_MAX = 2100;
@@ -218,7 +232,20 @@ const ROUGH_TERM_DATES = [
 // range happen to land within about 15 minutes of midnight Shanghai civil
 // time (as little as 12 seconds for 2047 jingzhe) — close enough that the
 // documented error budget flips which calendar day the crossing is assigned
-// to. All eight computed one day EARLY against the Hong Kong Observatory's
+// to.
+//
+// Read that paragraph as motivation, NOT as a demonstrated cause (2026-07-30
+// Codex pre-merge audit, finding E). An error bound is not a deterministic
+// threshold: instrumenting the full range finds 7 crossings within 60s of
+// midnight, 10 within 120s, 19 within 300s and 55 within 900s, while only
+// these 8 actually disagree with HKO — a nearer crossing can agree by luck
+// and a farther one fail. No independent high-precision ephemeris artifact
+// exists to separate solarLongitude()'s formula error from the ignored TT−UT
+// delta, so which of the two dominates is unproven. What IS established is
+// the authority: each value below was read from HKO's own file for that year.
+// These are authority-pinned residual corrections, not a physical diagnosis.
+//
+// All eight computed one day EARLY against the Hong Kong Observatory's
 // published tables. This table corrects exactly those eight; every other
 // (year, animalIndex) pair in range is untouched and still uses the
 // computed crossing. Source: the HKO 1901–2100 text-calendar index,
@@ -229,9 +256,12 @@ const ROUGH_TERM_DATES = [
 // this table applied; lunarNewYearDate() needed no correction (0/200 before
 // and after — it does not call monthAnimalSolarTerm).
 const HKO_SOLAR_TERM_CORRECTIONS = Object.freeze({
-  '1911:3': Object.freeze([5, 7]),   // lixia / Summer Commences — T1911e.txt
+  // The two marked RESTORES are not new discoveries: calc v3.1's pre-1929
+  // offset moved these off their HKO dates, and this table puts them back.
+  // See the CORRECTION note at the top of this file.
+  '1911:3': Object.freeze([5, 7]),   // lixia / Summer Commences — T1911e.txt — RESTORES calc v3.1
   '1912:8': Object.freeze([10, 9]),  // hanlu / Cold Dew — T1912e.txt
-  '1912:11': Object.freeze([1, 7]),  // xiaohan / Moderate Cold — T1912e.txt
+  '1912:11': Object.freeze([1, 7]),  // xiaohan / Moderate Cold — T1912e.txt — RESTORES calc v3.1
   '2014:1': Object.freeze([3, 6]),   // jingzhe / Insects Waken — T2014e.txt
   '2016:5': Object.freeze([7, 7]),   // xiaoshu / Moderate Heat — T2016e.txt
   '2045:5': Object.freeze([7, 7]),   // xiaoshu / Moderate Heat — T2045e.txt

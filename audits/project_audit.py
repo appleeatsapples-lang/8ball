@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -182,10 +183,18 @@ def check_local_pii(product_root):
     cmd = ["bash", "audits/run_local_audit.sh"]
     pattern_file = product_root / "audits" / "local_personal_data.txt"
     if not pattern_file.exists():
+        # Reported as `info`, not `blocking`, in this branch only. The pattern
+        # file is gitignored and operator-local, so its absence is the
+        # PERMANENT state in CI — a check that is blocking-severity and
+        # skipped on every single run is claiming an assurance it never
+        # provides (2026-07-30 Codex pre-merge audit, finding H). The severity
+        # below, on the path where the scan actually runs, stays blocking: a
+        # real PII hit must still fail the audit.
         return make_check(
-            check_id, title, "blocking", "skip",
+            check_id, title, "info", "skip",
             "audits/local_personal_data.txt is absent (gitignored, operator-local) — "
-            "expected in a fresh CI checkout, not a defect",
+            "expected in a fresh CI checkout, not a defect; this check provides no "
+            "assurance in CI and is reported as info rather than blocking",
             0.0, cmd, "", {"pattern_file_exists": False},
         )
 
@@ -263,6 +272,31 @@ HKO_EXPECTED_SOLAR_COMPARISONS = 2400
 HKO_EXPECTED_LUNAR_COMPARISONS = 200
 HKO_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 HKO_RETRIEVED_AT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+# The canonical 12 month-starting (jié) terms in HKO's own English wording,
+# in the order core/calendar.js indexes them: index 0 starts the tiger month,
+# index 11 the ox month.
+#
+# Pinned here, outside the fixture. Until 2026-07-30 the term order lived
+# ONLY in `source.term_order` and every per-year value was keyed by those
+# same fixture-controlled names, so the comparison was between the fixture
+# and itself. Codex's pre-merge audit (finding L) rotated `term_order`,
+# relabelled every year's term values by the same rotation and regenerated
+# the content digest: 2,400 comparisons, zero mismatches, PASS, with all 200
+# source hashes untouched — a complete false green that no structural pin,
+# and not even the digest, could see.
+HKO_CANONICAL_TERM_ORDER = (
+    "Spring Commences", "Insects Waken", "Bright & Clear", "Summer Commences",
+    "Corn on Ear", "Moderate Heat", "Autumn Commences", "White Dew",
+    "Cold Dew", "Winter Commences", "Heavy Snow", "Moderate Cold",
+)
+# The Gregorian month each term starts, by index — the semantic invariant
+# that survives ANY renaming, because no relabelling of the fixture can move
+# "Spring Commences" off February. Chronological by construction: indices
+# 0..10 run February through December, and index 11 is January of the same
+# Gregorian year (the ox month, preceding the next year's lichun).
+HKO_TERM_START_MONTHS = (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1)
+HKO_SEMANTIC_SAMPLE = 3
 
 # Content digest of the accepted fixture, over a canonical (key-sorted,
 # whitespace-free) serialization of the whole parsed object — so reformatting
@@ -350,6 +384,15 @@ def hko_fixture_problems(fixture):
                 and all(isinstance(t, str) and t.strip() for t in term_order)
                 and len(set(term_order)) == 12):
             problems.append("source.term_order is not a list of 12 unique non-empty term names")
+        elif tuple(term_order) != HKO_CANONICAL_TERM_ORDER:
+            # `elif`, so a malformed order reports one problem rather than
+            # two. This branch is the rotation case: well-formed, 12 unique
+            # names, wrong order.
+            problems.append(
+                "source.term_order is well-formed but is not the canonical HKO "
+                f"month-starting order — expected {list(HKO_CANONICAL_TERM_ORDER)}, "
+                f"got {term_order}"
+            )
 
     hashes = fixture.get("source_sha256")
     if not isinstance(hashes, dict):
@@ -400,6 +443,47 @@ def hko_fixture_problems(fixture):
                 f"(first: {deficient[0]})"
             )
 
+        # Per-year semantic invariants, independent of the fixture's own
+        # names. Years already reported by the density check above are
+        # skipped so one defect yields one problem.
+        canonical_terms = set(HKO_CANONICAL_TERM_ORDER)
+        wrong_key_sets = []
+        wrong_positions = []
+        for year in sorted(years):
+            entry = years[year]
+            if not isinstance(entry, dict):
+                continue
+            terms = entry.get("terms")
+            if not isinstance(terms, dict) or len(terms) != 12:
+                continue
+            if set(terms) != canonical_terms:
+                wrong_key_sets.append(year)
+                continue
+            for index, term in enumerate(HKO_CANONICAL_TERM_ORDER):
+                value = terms[term]
+                if not (isinstance(value, list) and len(value) == 2
+                        and all(isinstance(n, int) and not isinstance(n, bool) for n in value)):
+                    wrong_positions.append(f"{year} {term}: {value!r} is not a [month, day] pair")
+                elif value[0] != HKO_TERM_START_MONTHS[index]:
+                    wrong_positions.append(
+                        f"{year} {term} starts in month {value[0]}, "
+                        f"expected {HKO_TERM_START_MONTHS[index]}"
+                    )
+                elif not 1 <= value[1] <= 31:
+                    wrong_positions.append(f"{year} {term} has day {value[1]}, outside 1-31")
+
+        if wrong_key_sets:
+            problems.append(
+                f"{len(wrong_key_sets)} year entries have 12 terms whose names are not the "
+                f"canonical set (first: {wrong_key_sets[0]})"
+            )
+        if wrong_positions:
+            problems.append(
+                f"{len(wrong_positions)} term values violate the index-to-month invariant "
+                f"(first {min(HKO_SEMANTIC_SAMPLE, len(wrong_positions))}: "
+                + "; ".join(wrong_positions[:HKO_SEMANTIC_SAMPLE]) + ")"
+            )
+
     if fixture.get("incomplete_years") != []:
         problems.append(
             f"incomplete_years is {fixture.get('incomplete_years')!r}, expected []"
@@ -429,7 +513,16 @@ def evaluate_hko_comparison(rc, result):
         elif actual != required:
             violated.append(f"{name}={actual!r} (required {required!r})")
 
-    for name, actual, required in (("exit code", rc, 0), ("incomplete", result.get("incomplete"), [])):
+    for name, actual, required in (
+        ("exit code", rc, 0),
+        ("incomplete", result.get("incomplete"), []),
+        # The comparator indexes by its OWN canonical term list, so these two
+        # report on the fixture rather than on the calendar: a rotated or
+        # relabelled authority record is a forged fixture, not 2,400 ordinary
+        # calendar disagreements, and must be named as such.
+        ("semanticViolationCount", result.get("semanticViolationCount"), 0),
+        ("termOrderCanonical", result.get("termOrderCanonical"), True),
+    ):
         if actual != required:
             violated.append(f"{name}={actual!r} (required {required!r})")
     if violated:
@@ -523,78 +616,169 @@ def check_hko_calendar(product_root):
     return make_check(check_id, title, "blocking", status, summary, duration, cmd, combined_output, evidence)
 
 
-def check_ci_doctrine_gate(product_root):
-    check_id = "product.ci_doctrine_gate"
-    title = "CI l48-gate doctrine-only false-green closure (ci.yml, P1-C)"
-    path = product_root / ".github" / "workflows" / "ci.yml"
-    start = time.monotonic()
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        duration = time.monotonic() - start
-        return make_check(check_id, title, "blocking", "fail",
-                           f"could not read ci.yml: {exc}", duration, None, "", {})
+# ── executable CI-gate verification ───────────────────────────────────────
+# Both checks below used to grep prose: one for four substrings in ci.yml,
+# one for a tests/ file mentioning "DOCTRINE.md" and "docs-only". Codex's
+# 2026-07-30 pre-merge audit (finding G) demonstrated that neither proved
+# its claim. Three of the four required ci.yml substrings already existed at
+# e3c2586, BEFORE the fix they were supposed to verify. Removing the live
+# doctrine exclusion while leaving its exact text in an inert comment still
+# returned `pass` — while the executable composition suite failed four
+# tests. And a comment-only tests/l48_composition.test.js containing the two
+# magic strings satisfied the regression check outright.
+#
+# Presence of prose is not behavior. Both checks now EXECUTE the suites that
+# run the real bash extracted from ci.yml against real two-remote git
+# repositories, and pin the individual tests carrying the load — so removing
+# or neutering one is a failure rather than a quieter pass. A pinned minimum
+# passing count catches wholesale deletion; the named-test list catches the
+# surgical case where the load-bearing test is dropped and filler remains.
+L48_COMPOSITION_TEST = "tests/l48_gate_composition.test.js"
+L48_COMPOSITION_MIN_TESTS = 8
+L48_COMPOSITION_REQUIRED = (
+    "the FIXED l48-gate job fails this exact diff",
+    "the FIXED test-job doctrine step also fails this exact diff",
+    "the composition of both jobs is red",
+    "an ordinary docs-only PR (no DOCTRINE.md) is still exempt",
+    "a DOCTRINE.md change WITH a validly-added response artifact",
+    "still fails (the #133 dodge)",
+)
 
-    # Substrings verified against the real file (commit f223174, "fix(ci):
-    # close doctrine-only L48 false-green (P1-C)") rather than guessed.
-    required = {
-        # The l48-gate job's docs-only exemption explicitly falls through to
-        # the strict check when DOCTRINE.md changed, instead of taking the
-        # early "all files end in .md" exit.
-        "l48_docs_only_excludes_doctrine": "if ! echo \"$CHANGED\" | grep -qE '^DOCTRINE\\.md$'",
-        # The strict verdict/override artifact filename shape.
-        "artifact_shape_premerge_audit": "premerge_audit_",
-        "artifact_shape_l48_override": "L48_override_pr",
-        # PR-number-interpolated added-file check (rename/copy-aware).
-        "added_files_pr_interpolation": 'ART=$(echo "$ADDED"',
+L48_PREDICATE_TEST = "tests/l48_gate.test.js"
+L48_PREDICATE_MIN_TESTS = 31
+L48_PREDICATE_REQUIRED = (
+    # The 2026-07-30 finding-A pins: the shape is compiled twice (l48 job and
+    # the test job's DOCTRINE step) and a whole-file first-match read landed
+    # on the wrong copy, so weakening the real gate left the suite green.
+    "ci.yml defines the artifact shape exactly twice",
+    "both definitions are byte-identical",
+    "computes ADDED= exactly twice, identically, and rename-detecting",
+    "rejects a brief",
+    "matches the shape against files ADDED by the PR",
+)
+
+
+def run_vitest_json(product_root, rel_path, timeout=300):
+    """Execute one vitest file and return (rc, report|None, error|None,
+    duration, cmd, output).
+
+    The JSON reporter is written to a temp file rather than read off stdout:
+    vitest interleaves its own progress output with the report there, so a
+    stdout parse fails for formatting reasons and reads as a tooling problem
+    rather than as the test failure it actually is."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out_path = Path(tmp) / "vitest.json"
+        cmd = ["npx", "vitest", "run", "--reporter=json",
+               f"--outputFile={out_path}", rel_path]
+        rc, out, err, duration, exc = run_cmd(cmd, cwd=product_root, timeout=timeout)
+        combined = clip(out + err)
+        if exc is not None:
+            return rc, None, f"runner error: {type(exc).__name__}: {exc}", duration, cmd, combined
+        try:
+            report = json.loads(out_path.read_text(encoding="utf-8"))
+        except OSError as read_exc:
+            return rc, None, f"vitest wrote no JSON report ({read_exc})", duration, cmd, combined
+        except (ValueError, json.JSONDecodeError) as parse_exc:
+            return rc, None, f"vitest JSON report is unparseable: {parse_exc}", duration, cmd, combined
+        if not isinstance(report, dict):
+            return (rc, None,
+                    f"vitest JSON report is a {type(report).__name__}, expected an object",
+                    duration, cmd, combined)
+        return rc, report, None, duration, cmd, combined
+
+
+def evaluate_vitest_suite(rc, report, min_tests, required_names):
+    """Strict pins over one vitest JSON report. Returns (violations,
+    passed_names). Zero failures is NOT sufficient on its own — zero failures
+    over zero tests is exactly the shape a deleted or comment-only suite
+    produces, which is the dodge finding G exercised."""
+    passed_names = [
+        (assertion.get("fullName") or assertion.get("title") or "")
+        for suite in (report.get("testResults") or [])
+        for assertion in (suite.get("assertionResults") or [])
+        if assertion.get("status") == "passed"
+    ]
+    violations = []
+    if rc != 0:
+        violations.append(f"vitest exited {rc}")
+
+    num_failed = report.get("numFailedTests")
+    # `isinstance(True, int)` is True and `False == 0`, so a JSON boolean
+    # would otherwise satisfy the zero-failure pin.
+    if isinstance(num_failed, bool) or not isinstance(num_failed, int):
+        violations.append(f"numFailedTests={num_failed!r} is not an integer")
+    elif num_failed != 0:
+        violations.append(f"{num_failed} test(s) failed")
+
+    num_passed = report.get("numPassedTests")
+    if isinstance(num_passed, bool) or not isinstance(num_passed, int):
+        violations.append(f"numPassedTests={num_passed!r} is not an integer")
+    elif num_passed < min_tests:
+        violations.append(
+            f"only {num_passed} test(s) passed, expected at least {min_tests} — "
+            "tests were removed, skipped, or the file no longer defines any"
+        )
+
+    missing = [name for name in required_names
+               if not any(name in passed for passed in passed_names)]
+    if missing:
+        violations.append(
+            "load-bearing test(s) absent or not passing: " + "; ".join(missing)
+        )
+    return violations, passed_names
+
+
+def executed_suite_check(product_root, check_id, title, rel_path, min_tests, required_names):
+    """Shared body for the two executed-suite checks. Fails closed: a missing
+    suite file is a blocking failure, never a skip — an absent regression
+    suite is precisely the state these checks exist to detect."""
+    start = time.monotonic()
+    path = product_root / rel_path
+    if not path.is_file():
+        return make_check(
+            check_id, title, "blocking", "fail",
+            f"required suite missing (this check fails closed): {rel_path}",
+            time.monotonic() - start, None, "", {"suite": rel_path, "exists": False},
+        )
+
+    rc, report, error, duration, cmd, output = run_vitest_json(product_root, rel_path)
+    if error is not None:
+        return make_check(check_id, title, "blocking", "fail", error, duration, cmd, output,
+                          {"suite": rel_path})
+
+    violations, passed_names = evaluate_vitest_suite(rc, report, min_tests, required_names)
+    evidence = {
+        "suite": rel_path,
+        "numPassedTests": report.get("numPassedTests"),
+        "numFailedTests": report.get("numFailedTests"),
+        "minimumRequired": min_tests,
+        "violations": violations,
     }
-    found = {key: (substr in text) for key, substr in required.items()}
-    duration = time.monotonic() - start
-    missing = [k for k, v in found.items() if not v]
-    status = "pass" if not missing else "fail"
-    summary = (
-        "all required doctrine-gate substrings present in ci.yml" if not missing
-        else f"missing required ci.yml substrings: {', '.join(missing)}"
+    if violations:
+        return make_check(check_id, title, "blocking", "fail",
+                          f"{rel_path}: " + "; ".join(violations),
+                          duration, cmd, output, evidence)
+    return make_check(
+        check_id, title, "blocking", "pass",
+        f"{rel_path}: {len(passed_names)} test(s) passed, all {len(required_names)} "
+        "load-bearing tests present",
+        duration, cmd, output, evidence,
     )
-    return make_check(check_id, title, "blocking", status, summary, duration, None, "",
-                       {"found": found, "missing": missing})
+
+
+def check_ci_doctrine_gate(product_root):
+    return executed_suite_check(
+        product_root, "product.ci_doctrine_gate",
+        "CI doctrine-only L48 false-green closure (executes the composition suite)",
+        L48_COMPOSITION_TEST, L48_COMPOSITION_MIN_TESTS, L48_COMPOSITION_REQUIRED,
+    )
 
 
 def check_ci_doctrine_regression(product_root):
-    check_id = "product.ci_doctrine_regression"
-    title = "regression test guarding the doctrine-only L48 false-green"
-    tests_dir = product_root / "tests"
-    start = time.monotonic()
-
-    candidates = []
-    if tests_dir.is_dir():
-        candidates = sorted(tests_dir.glob("*l48*composition*.test.js"))
-        if not candidates:
-            candidates = sorted(tests_dir.glob("*l48*.test.js"))
-
-    match = None
-    for p in candidates:
-        try:
-            text = p.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if "DOCTRINE.md" in text and "docs-only" in text:
-            match = p
-            break
-    duration = time.monotonic() - start
-
-    if match is None:
-        return make_check(
-            check_id, title, "advisory", "fail",
-            "no tests/*l48*.test.js file found mentioning both 'DOCTRINE.md' and 'docs-only'",
-            duration, None, "",
-            {"candidates": [str(p.relative_to(product_root)) for p in candidates]},
-        )
-    rel = str(match.relative_to(product_root))
-    return make_check(
-        check_id, title, "advisory", "pass",
-        f"{rel} exists and mentions both DOCTRINE.md and docs-only",
-        duration, None, "", {"file": rel},
+    return executed_suite_check(
+        product_root, "product.ci_doctrine_regression",
+        "L48 artifact-predicate regression pins (executes the predicate suite)",
+        L48_PREDICATE_TEST, L48_PREDICATE_MIN_TESTS, L48_PREDICATE_REQUIRED,
     )
 
 

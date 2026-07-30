@@ -118,3 +118,44 @@ Suite: **43 files / 1500 tests green.**
    that is a fixture addition, not a code change.
 4. **This lane wrote both the change and its evidence.** The oracles are
    independent; the framing is not.
+
+---
+
+## Correction appended 2026-07-30 — residuals 2 and 3 both resolved, and one claim in this packet is superseded
+
+Appended, not edited: the record above stands verbatim per L17. Filed after the
+Codex pre-merge audit of `e3c2586..516acbc` (finding F).
+
+**Residual 2 is closed, and it went against this packet.** HKO has since been
+reached directly: all 200 official `T1901e.txt`–`T2100e.txt` files are on disk
+under `audits/fixtures/hko_calendar_authority_1901_2100.json`, with every
+source SHA-256 tracked and independently re-derived. Against that authority,
+**two of the three solar-term changes recorded in this packet's blast-radius
+section are wrong**:
+
+| boundary | this packet | HKO | disposition |
+|---|---|---|---|
+| 1911 lixia | May 7 → **6** | **May 7** | reverted by `HKO_SOLAR_TERM_CORRECTIONS` |
+| 1912 xiaohan | Jan 7 → **6** | **Jan 7** | reverted by `HKO_SOLAR_TERM_CORRECTIONS` |
+| 1927 bailu | Sep 9 → **8** | Sep 8 | stands |
+
+The lunar-new-year result — 1916 Feb 4 → Feb 3, the change that fixed the
+user-visible defect — is confirmed by HKO and is untouched.
+
+**Residual 3 is closed the way it asked to be:** those boundaries are no longer
+asserted only by the jieqi-window test. Every one of the 12 month-starting
+terms, for all 200 years, is now compared against the HKO fixture by
+`audits/hko_compare.mjs` under `audits/project_audit.py`'s blocking
+`product.hko_calendar` check.
+
+**Scope claim to read narrowly.** This packet's oracles — sxtwl, lunardate,
+borax — were used as **lunar-new-year** oracles. The comparison table above is
+entirely lunar-new-year dates, and no run recorded here evaluates lunardate or
+borax at a solar-term boundary. Later prose that cited this file as evidence of
+a three-library *solar-term* consensus overstated it; the DOCTRINE §3 calc v3.1
+erratum of 2026-07-30 corrects that attribution.
+
+**Residual 4 still stands, and is now the load-bearing one.** This lane wrote
+both the change and its evidence. The two reversals above are exactly the class
+of error that produces — a plausible mechanism, applied one boundary too far,
+with no authority available to contradict it.

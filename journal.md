@@ -5,6 +5,60 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-07-27`
 `next_analytics_read: 2026-07-17`
 
+## 2026-07-30 — Codex pre-merge audit `e3c2586..516acbc`: seven P1 fixes applied — STAGED
+
+**Status: STAGED, not merged.** Codex returned **MERGE WITH FIXES** on the branch as it stood: the product fixes were
+correct and no P0 remained, but seven P1 assurance/documentation defects had to be closed first. All seven are closed
+here, plus four of the P2s. Still on `claude/audit-p1-hko-calendar`; no push, merge, or deploy. The L48 filename gate
+still needs an in-PR `audits/<model>_pr<N>_premerge_audit_<date>_response.md` once a PR number exists.
+
+**The two false-greens the audit demonstrated, and what closed them.**
+
+1. **The L48 gate's own test read the wrong copy of the predicate.** Two jobs compile the artifact-shape regex — the
+   `l48` job and the `test` job's DOCTRINE step — and `tests/l48_gate.test.js` extracted it with a whole-file
+   `.exec()`, which returns the *first* match: the test job's. Codex weakened only the real gate's matcher in a scratch
+   tree and got 34/34 green. The file now slices each job by name, pins that the shape is defined exactly twice, that
+   the two definitions are byte-identical, and that both compile to the same accept/reject behavior. Re-running the
+   same mutation now fails 8 tests. `ADDED=` had the identical first-match bug and is pinned the same way.
+2. **The HKO comparator was checking the fixture against itself.** `audits/hko_compare.mjs` took its term order from
+   `fixture.source.term_order` *and* looked every expected value up by those same fixture-supplied names. Codex rotated
+   the order, relabelled every year's values by the same rotation and regenerated the content digest: 2,400
+   comparisons, **zero mismatches, PASS**, all 200 source hashes untouched. The canonical 12-name order now lives in the
+   comparator and in `project_audit.py`, not in the file under test, alongside an index-to-month invariant that no
+   relabelling can satisfy. The same forgery now fails.
+
+**Also closed.** The auditor's own 69-test assurance suite was in-repo but invoked by nothing — no workflow, no npm
+script — so CI ran `project_audit.py` while nothing proved its checks could still fail; it now runs first in the
+`product-audit` job. Both "CI doctrine" checks were substring greps that passed on inert comment text (three of the
+four required substrings predated the fix they verified); both now execute the real suites and pin the load-bearing
+tests by name. And the P0's most damaging path — stored `t4` + `?paid=t1` persisting `t1` irreversibly — had no
+regression at all, because all five new cases drove `getRenderTier()` and none invoked `handlePaidReturn()`. Four new
+cases pin it; they fail against `233dde8^`.
+
+**The record correction (§3 calc v3.1, L17 amendment).** Three claims in the constitutional record were wrong and are
+struck rather than edited. The eight HKO mismatches were **not** "outside this entry's four-date blast radius" — 1911
+lixia and 1912 xiaohan are two of those four, and the correction table restores the very dates calc v3.1 moved them
+off, so at those two boundaries the pre-1929 offset was a regression this table reverses. Only six are new; only 1927
+bailu of the original three solar-term changes still stands. The three-library consensus (sxtwl, lunardate, borax) was
+used as a **lunar-new-year** oracle only — nothing on file shows lunardate or borax evaluated at a solar-term boundary,
+so the solar-term disagreement was misattributed to them. And the ~15-minute error budget is motivation, not a
+demonstrated cause: instrumenting the range finds 55 crossings within 900s of midnight and only 8 that disagree, so
+the eight are **authority-pinned residual corrections**, not a physical diagnosis. Scope corrected in the same pass:
+the comparison covers the 12 month-starting terms plus lunar new year, not HKO's "full index" — the 12 major terms
+carry no direct coverage. The eight override values themselves are unaffected and re-verified against all 200 official
+source files.
+
+**P2s taken:** the doc-scope and causal overclaims above; the legacy-credit test's claim to distinguish `RETIRED_TIERS`
+from the accidental grandfather path, which its assertions cannot do (retitled as the no-regression pin it actually
+is); and `product.local_pii`'s severity — blocking-and-skipped on every CI run claimed an assurance it never provides,
+so the absent-pattern-file branch now reports `info` while a real hit stays blocking.
+
+**Not taken:** Codex's finding-E note that the proposed Hong Kong-local-time substitution is the wrong calendar model —
+that was a proposal in the outgoing brief, never in the code; the USNO 116°25′/120°E rule the code implements is the
+one it endorses, and a pointer to that source is now in `core/calendar.js`.
+
+Suite 48 files / 1,657 tests green; Python assurance suite 90/90; product audit PASS, 0 blocking failures.
+
 ## 2026-07-29 — P1: eight HKO solar-boundary mismatches corrected, zero remaining — STAGED
 
 **Status: STAGED, not merged.** Fixed on `claude/audit-p1-hko-calendar` in response to the same-day independent
