@@ -2,8 +2,29 @@
 
 Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the muscle memory carries across.
 
-`next_strategic_read: 2026-07-27`
-`next_analytics_read: 2026-07-17`
+`next_strategic_read: 2026-08-13`
+`next_analytics_read: 2026-08-06`
+
+## 2026-07-30 (late) — #187 MERGED with the L48 chain complete; operating-reads gate cleared; footer flipped
+
+**The entry below ("STAGED, not merged") is superseded on its status line.** After it was written, the corrected
+branch passed the fresh independent read L48 requires — Codex re-audit **SAFE TO MERGE** at `e34458a`
+(`audits/codex_pr187_premerge_reaudit_2026-07-30_response.md`, correction commits `98792b1`+`e34458a` closing all
+six P1 / two P2) — and #187 was squash-merged to `main` as `2cdaa3c`. The dyad is live in code and commercially
+fail-closed (`T5_PRODUCT_URL` empty; single-$3 sprint surface untouched). DOCTRINE v0.61 footer flipped
+STAGED→SHIPPED per the mechanical-footer precedent (`audits/mechanical_footer_correction_v061_2026-07-30.md`).
+
+**Operating reads, both file-backed as of tonight** (this is what the front-matter bump above records):
+strategic read = the 2026-07-30 four-seat fleet round, filed `~/8ball/reach/strategic_read_2026-07-30.md`
+(binding constraint unchanged: attention, not product; K1 CLOSED FAIL same day); analytics read filed
+`~/8ball/reach/analytics_read_2026-07-20_pasteback.md` (2026-07-30, 13 days late, bot-inflation caveat on the
+2,188-uniques headline). Next: strategic 2026-08-13 (post-sprint reconstruction) · analytics 2026-08-06 (feeds
+the Day-14 decision).
+
+**Standing next action:** REACH-X-OFFER-01 — one operator-tapped $3 offer post on X, 72h measured window.
+Execution packet `~/8ball/sessions/packet_offer_x_sprint_2026-07-31.md`; Codex critic brief
+`audits/codex_x_offer_preflight_2026-07-31_brief.md`. Authority: operator words "stage ; repo" to the Cowork
+seat, 2026-07-30 ~23:30 +03. Docs only in this commit — no product code touched.
 
 ## 2026-07-30 — PR #187 audit remediation: all six P1 findings closed — STAGED
 
@@ -822,7 +843,7 @@ both PRs and was not attempted.
   controller's call. It will be re-litigated on the next label fix.
 - **The #152 gate breach** needs a sighting number and a decision on whether a
   retroactive read is wanted, per the #89–#91 / #103 retroactive precedent.
-- `next_strategic_read: 2026-07-27` and `next_analytics_read: 2026-07-17` both
+- `next_strategic_read: 2026-08-13` and `next_analytics_read: 2026-08-06` both
   remain stale at the top of this file; untouched by this cycle.
 
 **Verification.** Suite **45 files / 1580 tests green** (baseline 1577; the +3
@@ -1534,7 +1555,7 @@ submits anything externally.
 
 **Bootstrap checks, on record.** §8 A1 rule-kill: last review 2026-06-30,
 26 days old at this ship — under the 30-day accelerator, not run.
-`next_strategic_read: 2026-07-27` — not yet due. `next_analytics_read:
+`next_strategic_read: 2026-08-13` — not yet due. `next_analytics_read:
 2026-07-17` — **overdue 9 days**; an operator/inspector dashboard read
 (Netlify + Gumroad), flagged here rather than faked: the sprint's Day-0
 baseline capture (packet requirement) would satisfy it and is an operator
@@ -2026,7 +2047,7 @@ Every pinned number was re-derived by script against this tree before writing (t
 
 - **v0.52–v0.54 WIP stack: PARKED.** `~/8ball/worktrees/codex-all-coordinates-clickable` left untouched (25 dirty entries @ `ef198cd`); loss-protection snapshot verified complete at `~/8ball/audits/wip_snapshot_codex_all_coordinates_2026-07-20/` (23-file `tracked_files.patch` at 603+/195− plus the two untracked v2 content files). Resumption path if ever wanted: 8BALL §3 row 8 decision amendment (masters preserved) through cross-model audit FIRST, then rebase across #97–#109 (`sessions/codex_rebase_note_all_coordinates_clickable_2026-07-20.md` already scopes it). A product-direction call deferred to measured demand, not a bug.
 - **Lane hygiene executed (~05:35).** Worktrees removed: `8ball-handoff-sr-rc-t3-df6ca2` (held `main`), `8ball-session-execution-04653d`, `sr-rc-audit-brief-1f2e65`, `sr-rc-audit-brief-b42e71`; refs pruned. Primary `~/dev/8ball` moved off the parked grok branch onto `main`. Local spent branches deleted ×10; remote spent deleted ×5; `grok/clear-pr104` verified a spent pre-rebase twin of merged #104 before deletion. Post-entry: #108/#109 merged and their remote branches went with their own words; the local `claude/pr104-codex-closure` ref and the #109 lane's worktree are the next batch, not pruned mid-flight by this lane.
-- **Analytics read: STAGED, blocked on dashboard tap.** `next_analytics_read: 2026-07-17` stays unbumped (bump rides read completion, per the 07-12→07-17 precedent). Pasteback skeleton with the exact fields at `~/8ball/reach/analytics_read_2026-07-20_pasteback.md`; the K1 Top-Sources rewording (due 2026-07-27) keys off the same paste.
+- **Analytics read: STAGED, blocked on dashboard tap.** `next_analytics_read: 2026-08-06` stays unbumped (bump rides read completion, per the 07-12→07-17 precedent). Pasteback skeleton with the exact fields at `~/8ball/reach/analytics_read_2026-07-20_pasteback.md`; the K1 Top-Sources rewording (due 2026-07-27) keys off the same paste.
 
 **L48 note for this PR (verdict landed pre-merge — the clean shape).** Docs-only diff → exempt by the gate's letter; the relay audit ran anyway on the explicit push-time word. Fresh non-author Codex session (codex CLI 0.144.6, `gpt-5.6-sol`, reasoning xhigh) on the PR head `2ec2904` in a dedicated detached worktree, run `20260720-161411-relay-pr110`: **SAFE TO MERGE — findings: none**, every sweep claim reviewer-reproduced (both suite baselines, the PII sets, the 110-second #103 window, the history flips, the WIP snapshot byte-match, the added-line PII grep). Response filed in-repo at `audits/codex_pr110_premerge_audit_2026-07-20_response.md`.
 
