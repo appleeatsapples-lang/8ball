@@ -35,18 +35,31 @@ export function dobIsoFromProfile(profile) {
 }
 
 /**
- * The three rendered strings of the block, derived purely from a reading.
- * Ranked families read as a numbered run in the catalog register; the
- * anti-fit is labeled as such rather than implied; the role line is the
- * engine's own join, unmodified.
+ * The rendered strings of the block, derived purely from a reading. Ranked
+ * families read as a numbered run in the catalog register; the anti-fit is
+ * labeled as such rather than implied; the role line is the engine's own
+ * join, unmodified.
  *
- * @returns {{families: string, antiFit: string, roleLine: string}}
+ * `bridge` is the fourth string and is empty for most readings. When the
+ * birthday is a master value (calc v4, §1.B v0.62) the mode is read from the
+ * base number through `MASTER_MODE_BRIDGE`, and this carries the engine's own
+ * `mode.bridgeNote` so the substitution is VISIBLE rather than merely present
+ * in the returned object. Without it a sheet showing birthday `11` sat beside
+ * a role line built from mode `2` with nothing connecting them — which is the
+ * silent substitution §1.D v0.62 names as the wrong fix, recreated one layer
+ * down at the render surface (PR audit, 2026-07-31, P1).
+ *
+ * Still no copy of its own: every one of the four strings is the engine's,
+ * joined or passed through.
+ *
+ * @returns {{families: string, antiFit: string, roleLine: string, bridge: string}}
  */
 export function formatPublicRead(reading) {
   return {
     families: reading.families.map(f => `${f.rank} ${f.label}`).join(' · '),
     antiFit: `anti-fit · ${reading.antiFit.label}`,
     roleLine: reading.roleLine,
+    bridge: reading.mode && reading.mode.bridged ? reading.mode.bridgeNote : '',
   };
 }
 
@@ -68,9 +81,71 @@ export function publicReadFor(profile) {
 // ── DI injection (refs + hooks at boot) ───────────────────────────
 
 let _refs = null;
+let _bridge = null;
+
+// Scoped CSS for the injected node, in the §6 v0.23 shape ui/meanings.js and
+// ui/dyad.js already use: the module injects its own markup and style rather
+// than touching index.html's static blocks, so the single-file budget and the
+// host's four-ref boot wiring are both untouched.
+//
+// `:empty` rather than the `hidden` attribute, deliberately. This repo has a
+// logged instance of an author `display:` rule beating the UA `[hidden]` rule
+// and shipping a "hidden" control visible in production (the F1 bug class,
+// pinned in tests/public_surface.test.js). `:empty` collapses on the node's
+// actual content, so there is no attribute for a cascade to override.
+const BRIDGE_STYLE = `
+.public-bridge:empty { display: none; }
+.public-bridge { margin-top: 8px; }
+`;
+
+const BRIDGE_CLASS = 'card-note public-bridge';
+
+function injectBridgeStyle() {
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  if (document.getElementById('public-bridge-style')) return;
+  if (!document.createElement || !document.head || !document.head.appendChild) return;
+  const style = document.createElement('style');
+  style.id = 'public-bridge-style';
+  style.textContent = BRIDGE_STYLE;
+  document.head.appendChild(style);
+}
+
+/**
+ * Resolve the node the bridge note is written to.
+ *
+ * A caller MAY supply `refs.bridge` (the test surface does, so the write path
+ * is driven directly rather than through a mock document). Otherwise the node
+ * is created and appended to the block root — index.html carries no fifth id
+ * and is byte-unchanged, which `tests/public_surface.test.js` pins by asserting
+ * the boot call names exactly four ids.
+ *
+ * Returns null when neither is possible; every write below is null-guarded, so
+ * a host without DOM degrades to the pre-existing three-line block rather than
+ * throwing.
+ */
+function resolveBridgeNode(refs) {
+  if (!refs) return null;
+  if (refs.bridge) return refs.bridge;
+  const root = refs.root;
+  if (!root || typeof root.appendChild !== 'function') return null;
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
+  const existing = root.querySelector && root.querySelector('.public-bridge');
+  if (existing) return existing;
+  const node = document.createElement('div');
+  node.className = BRIDGE_CLASS;
+  root.appendChild(node);
+  return node;
+}
 
 export function initPublicUI(refs) {
   _refs = refs || null;
+  // Unconditional, and deliberately not tied to whether THIS module created a
+  // node: ui/sheet.js emits `.public-bridge` in the two dyad sheets it builds,
+  // and those rely on the same `:empty` collapse. Tying the style to the host
+  // node's creation would leave an empty bordered line under both dyad sheets
+  // whenever a ref was supplied instead.
+  injectBridgeStyle();
+  _bridge = resolveBridgeNode(_refs);
 }
 
 /**
@@ -99,5 +174,9 @@ export function renderPublicRead(profile, { entitled } = {}) {
   if (families) families.textContent = read ? read.families : '';
   if (antiFit) antiFit.textContent = read ? read.antiFit : '';
   if (roleLine) roleLine.textContent = read ? read.roleLine : '';
+  // Cleared on the same branch as every other value node: a sealed or
+  // downgraded render must leave no entitled string behind (§1.D v0.37), and
+  // an unbridged reading must not keep the previous profile's bridge note.
+  if (_bridge) _bridge.textContent = read ? read.bridge : '';
   return read;
 }

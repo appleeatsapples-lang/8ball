@@ -5,6 +5,66 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-07-31 (later) — calc v4 audit remediation: the disclosure now reaches the reader — STAGED
+
+**Status: still STAGED on `claude/master-number-preservation`.** A Codex pre-merge audit read
+`d03a768` and returned **DO NOT MERGE — CHANGES REQUESTED**: 0 P0, 1 P1, 2 P2. Every finding is
+correct and none is disputed. Response filed at
+`audits/codex_calc_v4_premerge_audit_2026-07-31_response.md`. Per L48 this remediation clears
+nothing — a **fresh** independent read of the corrected HEAD is required before merge
+consideration, and the merge is the controller's.
+
+**P1 — the bridge disclosure never reached the user, and it was my own clause it contradicted.**
+`core/public.js` correctly returned `mode.modeKey` / `mode.bridged` / `mode.bridgeNote`. The sole
+production formatter, `formatPublicRead` in `ui/public.js`, discarded all three and emitted its
+usual three strings. So a reader whose sheet showed birthday `11` received mode-`2` copy with
+nothing connecting the two — **the exact silent substitution DOCTRINE §1.D v0.62 names as the
+wrong fix, recreated one layer down at the render surface.** The clause was written and the
+engine was right; the last ten lines of the path threw the disclosure away.
+
+It survived a 1,814-test suite because **every existing surface test used a non-master
+birthday**. That is the whole lesson and it is the same one this cycle already wrote down
+about all-negative assertions: a widening is invisible to a test that never supplies a widened
+value. I added the paired pins for the calc layer and did not carry the same suspicion down to
+the surface I had just changed.
+
+The block now carries a fourth line — the engine's own `bridgeNote`, empty when unbridged —
+on the host sheet **and on both dyad sheets**, because a second person with a master birthday
+is exactly as entitled to the disclosure as the first. `index.html` is byte-identical:
+`ui/public.js` injects the node and its scoped CSS at init in the §6 v0.23 DI shape
+`ui/meanings.js` and `ui/dyad.js` already use, so the host's four-id boot wiring — which a test
+pins — is unchanged. The node collapses on `:empty` rather than the `hidden` attribute,
+deliberately: this repo has a logged case of an author `display:` rule beating the UA `[hidden]`
+rule and shipping a "hidden" control visible in production.
+
+**P2 — active statements still named the retired facet key.** `8BALL.md`'s content-version row,
+the `ui/sheet.js` render comment, and the `tests/readings.test.js` untouched-payment-keys pin all
+still said `_v2`. The last one mattered beyond tidiness: it seeded two generations, so it would
+have greened while the archive scrubbed the **active** key. All three now name `_v3`; the
+DOCTRINE §5 `_v2` bullet carries an explicit RETIRED/lineage marker with its body preserved
+verbatim per L17.
+
+**P2 — `meanings.v3` restated v2's nine themes instead of carrying them.** The output matched,
+but "carried across unchanged" was a claim about two hand-maintained lists rather than a property
+of the code — the drift §4's versioning rule exists to prevent, one level up. v3 now spreads v2's
+`NUMEROLOGY_MEANINGS` and authors only the three master themes, and a cross-version test pins
+that the difference between the two registries is **exactly** `['11','22','33']`.
+
+**Live-fire caught what the suite could not, again.** Driving the real product: birthday `22`
+renders the disclosure under the role line with the sheet cell above it reading `22`; a
+non-master render after a master one clears the line rather than keeping it; the dyad's second
+sheet carries its own disclosure and the back control scrubs every trace of person B, verified
+against a whole-screen leak sentinel. Zero console errors. **One thing worth recording because
+it nearly became a false report:** my first probe clicked `dyad-back-btn`, which does not exist
+— the control is `dyad-back` — so the close silently no-opped and the note appeared to survive.
+Checking the id before filing turned a phantom P1 into nothing. A probe that fails open looks
+exactly like a product that fails open.
+
+**Test counts.** Full suite **51 files / 1,824 tests PASS** (was 1,814 at the audited HEAD;
++10). Auditor assurance 93 PASS. Product audit PASS, 13/0/1/0. Local PII audit clean.
+`index.html` byte-identical at **1497** lines. Shipped content files and `package.json`
+byte-unchanged.
+
 ## 2026-07-31 — calc v4: master numbers 11/22/33 restored — controller word — STAGED
 
 **Status: STAGED on `claude/master-number-preservation`. Not committed to `main`, not pushed, no PR, no merge,

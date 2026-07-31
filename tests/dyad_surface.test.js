@@ -217,7 +217,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
     }
     for (const attr of ['title', 'catalog', 'name', 'type', 'habit', 'note',
-      'families', 'antifit', 'roleline', 'face', 'entry', 'public']) {
+      'families', 'antifit', 'roleline', 'public-bridge', 'face', 'entry', 'public']) {
       if (attr === 'title') {
         for (const lead of Object.keys(ROW_TITLES)) {
           byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, makeNode());
@@ -620,7 +620,7 @@ function makeStandaloneSheetHost(prefix) {
     byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
   }
   for (const attr of ['catalog', 'name', 'type', 'habit', 'note',
-    'families', 'antifit', 'roleline']) {
+    'families', 'antifit', 'roleline', 'public-bridge']) {
     byAttr.set(`[data-sheet-${attr}="${prefix}"]`, mk());
   }
   for (const attr of ['face', 'entry', 'public']) {
@@ -723,6 +723,43 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
       .toBe(publicOpen && publicRead ? publicRead.antiFit : '');
     expect(sheetHost.querySelector('[data-sheet-roleline="x"]').textContent, `${label}/${tier} roleline`)
       .toBe(publicOpen && publicRead ? publicRead.roleLine : '');
+    // The master-birthday disclosure travels with the block (§1.B v0.62). The
+    // `high (master 22)` profile below is born on the 4th, so its BIRTHDAY is
+    // not a master and this stays empty for it — which is why the dedicated
+    // master-birthday case follows rather than relying on this sweep.
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent, `${label}/${tier} bridge`)
+      .toBe(publicOpen && publicRead ? publicRead.bridge : '');
+  });
+
+  // The sweep above varies the LIFE PATH across facet-anchor groups; the
+  // bridge is driven by the BIRTHDAY, so it needs its own case or the
+  // disclosure ships to person B untested (PR audit, 2026-07-31, P1).
+  it.each([
+    ['birthday 11 → mode 2', buildProfile('diff m11', '1980-06-11'), '11'],
+    ['birthday 22 → mode 4', buildProfile('diff m22', '1995-09-22'), '22'],
+  ])('a second person with a master birthday sees the disclosure (%s)', (_label, profile, master) => {
+    const { host: sheetHost } = makeStandaloneSheetHost('x');
+    const sheet = createSheet(sheetHost, { prefix: 'x' });
+    const publicRead = publicReadFor(profile);
+    expect(publicRead.bridge).toContain(master);
+
+    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent)
+      .toBe(publicRead.bridge);
+
+    // Below t3 the whole block seals, disclosure included — an unentitled
+    // render carries no entitled string (§1.D v0.37).
+    sheet.render(profile, 't2', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent).toBe('');
+
+    // And `clear()` scrubs it: the node is in valueNodes(), so a list that
+    // fell behind the fill path — the F1 defect this module already carries a
+    // fix for — would leave person B's disclosure in live hidden DOM.
+    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent.length)
+      .toBeGreaterThan(0);
+    sheet.clear();
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent).toBe('');
   });
 });
 

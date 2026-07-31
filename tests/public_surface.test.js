@@ -42,14 +42,26 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 const makeNode = () => ({ textContent: 'STALE', classList: makeClassList() });
+// `bridge` is supplied explicitly here. In production index.html names four
+// ids and ui/public.js injects the fifth node itself (§6 v0.23 DI shape, the
+// pattern ui/meanings.js and ui/dyad.js already use) — pinned separately
+// below, along with the four-id boot call that proves index.html is untouched.
 const makeRefs = () => ({
   root: { classList: makeClassList() },
   families: makeNode(),
   antiFit: makeNode(),
   roleLine: makeNode(),
+  bridge: makeNode(),
 });
 
 const PROFILE = buildProfile('specimen', '2000-01-01');
+// Calc v4 (§1.B v0.62): both master birthday values reachable from a day of
+// the month. Each reads a BASE work mode through MASTER_MODE_BRIDGE, so each
+// must carry the disclosure on the rendered surface.
+const MASTER_PROFILES = [
+  ['birthday 11 → mode 2', buildProfile('specimen', '2000-01-11'), '11', '2'],
+  ['birthday 22 → mode 4', buildProfile('specimen', '2000-01-22'), '22', '4'],
+];
 
 describe('public read — render', () => {
   it('fills the block when entitled (t3)', () => {
@@ -63,6 +75,9 @@ describe('public read — render', () => {
     expect(refs.roleLine.textContent)
       .toBe('a role held as the setting of order, worked from a standing start, one line at a time.');
     expect(refs.root.classList.contains('sealed')).toBe(false);
+    // Birthday 1 is not a master, so nothing is bridged and the line is empty
+    // rather than absent — the negative half of the master pins below.
+    expect(refs.bridge.textContent).toBe('');
   });
 
   it('seals below t3 and leaves NO entitled string in the DOM', () => {
@@ -75,6 +90,7 @@ describe('public read — render', () => {
       expect(refs.families.textContent).toBe('');
       expect(refs.antiFit.textContent).toBe('');
       expect(refs.roleLine.textContent).toBe('');
+      expect(refs.bridge.textContent).toBe('');
       expect(refs.root.classList.contains('sealed')).toBe(true);
     }
   });
@@ -88,6 +104,81 @@ describe('public read — render', () => {
     expect(refs.roleLine.textContent.length).toBeGreaterThan(0);
     renderPublicRead(PROFILE, { entitled: false });
     expect(refs.roleLine.textContent).toBe('');
+  });
+
+  // ── the master-birthday disclosure (§1.B v0.62 / §1.D v0.62) ─────
+  //
+  // The P1 this suite could not previously catch: every case above uses a
+  // NON-master birthday, so the engine's bridge fields were correct while the
+  // formatter discarded them and the block silently showed base-mode copy.
+  // Both reachable master values are driven end to end, through the real
+  // engine, the real formatter and the real render.
+
+  it.each(MASTER_PROFILES)(
+    'a master birthday DISCLOSES its base mode on the rendered surface (%s)',
+    (_label, profile, master, base) => {
+      const refs = makeRefs();
+      initPublicUI(refs);
+      const read = renderPublicRead(profile, { entitled: true });
+      expect(read).not.toBeNull();
+      // The reading is complete — the bridge is a disclosure, not a fallback.
+      expect(refs.families.textContent.length).toBeGreaterThan(0);
+      expect(refs.antiFit.textContent).toMatch(/^anti-fit · /);
+      expect(refs.roleLine.textContent.endsWith('.')).toBe(true);
+      // ...and the substitution is VISIBLE, naming both numbers.
+      const note = refs.bridge.textContent;
+      expect(note.length).toBeGreaterThan(0);
+      expect(note).toContain(master);
+      expect(note).toContain(base);
+      // It is the engine's own string, not copy this module authored.
+      expect(note).toBe(buildPublicReading(dobIsoFromProfile(profile)).mode.bridgeNote);
+    }
+  );
+
+  it.each(MASTER_PROFILES)(
+    'a sealed render clears a previously disclosed bridge note (%s)',
+    (_label, profile) => {
+      const refs = makeRefs();
+      initPublicUI(refs);
+      renderPublicRead(profile, { entitled: true });
+      expect(refs.bridge.textContent.length).toBeGreaterThan(0);
+      renderPublicRead(profile, { entitled: false });
+      expect(refs.bridge.textContent).toBe('');
+    }
+  );
+
+  it('a non-master render after a master one does not keep the stale note', () => {
+    // The sharp case a per-branch clear would miss: both renders are ENTITLED,
+    // so the sealed branch never runs. Shared-device / try-another path.
+    const refs = makeRefs();
+    initPublicUI(refs);
+    renderPublicRead(MASTER_PROFILES[0][1], { entitled: true });
+    expect(refs.bridge.textContent.length).toBeGreaterThan(0);
+    renderPublicRead(PROFILE, { entitled: true });
+    expect(refs.bridge.textContent).toBe('');
+  });
+
+  it('the formatter emits the bridge, and emits it empty when unbridged', () => {
+    // Directly on formatPublicRead, so a render-layer pin cannot be the only
+    // thing standing between the engine's disclosure and the user.
+    const bridged = formatPublicRead(buildPublicReading('2000-01-22'));
+    expect(bridged.bridge).toBe(buildPublicReading('2000-01-22').mode.bridgeNote);
+    expect(bridged.bridge).toContain('22');
+    const direct = formatPublicRead(buildPublicReading('2000-01-09'));
+    expect(direct.bridge).toBe('');
+  });
+
+  it('injects its own node rather than asking index.html for a fifth id', () => {
+    // §6 v0.23: the module owns its markup and scoped CSS. This is what keeps
+    // index.html byte-identical and the four-id boot pin below true.
+    const src = readFileSync(join(__dirname, '..', 'ui', 'public.js'), 'utf-8');
+    expect(src).toMatch(/document\.createElement\('div'\)/);
+    expect(src).toContain('public-bridge');
+    expect(html).not.toContain('public-bridge');
+    // `:empty`, never the `hidden` attribute — this repo has a logged case of
+    // an author display rule beating the UA [hidden] rule (the F1 bug class
+    // pinned further down this file).
+    expect(src).toMatch(/\.public-bridge:empty \{[^}]*display:\s*none/);
   });
 
   it('seals rather than throws on a profile that cannot resolve a date', () => {

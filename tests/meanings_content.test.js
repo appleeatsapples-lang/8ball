@@ -23,6 +23,7 @@ import {
   NUMEROLOGY_MEANINGS,
   COORDINATE_CONTEXT,
 } from '../content/meanings.v3.js';
+import { NUMEROLOGY_MEANINGS as V2_NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
   BANNED_PATTERNS,
@@ -250,6 +251,26 @@ describe('content/meanings.v3.js — all-coordinate context layer', () => {
     // Not a registry of every integer: 10 is a plausible key no reduction
     // can terminate on, and widening to the masters must not admit it.
     expect(NUMEROLOGY_MEANINGS).not.toHaveProperty('10');
+  });
+
+  it("carries v2's nine active entries across UNCHANGED, structurally", () => {
+    // v3 widens the domain and does nothing else to the nine v2 already had.
+    // A first draft restated all twelve themes in v3, which made "carried
+    // across unchanged" a claim about two hand-maintained lists rather than a
+    // property of the code (PR audit, 2026-07-31, P2). v3 now spreads v2's
+    // entries; this is the pin that keeps the claim true whichever way a
+    // later author writes it.
+    for (const [key, entry] of Object.entries(V2_NUMEROLOGY_MEANINGS)) {
+      expect(NUMEROLOGY_MEANINGS, `v3 dropped v2's ${key}`).toHaveProperty(key);
+      expect(NUMEROLOGY_MEANINGS[key].theme, `${key} theme`).toBe(entry.theme);
+      expect(NUMEROLOGY_MEANINGS[key].register, `${key} register`).toBe(entry.register);
+      expect(NUMEROLOGY_MEANINGS[key].body, `${key} body`).toBe(entry.body);
+    }
+    // v3 is exactly v2 plus the three masters — no fourth addition slipped in.
+    const added = Object.keys(NUMEROLOGY_MEANINGS)
+      .filter(key => !(key in V2_NUMEROLOGY_MEANINGS));
+    expect(added.sort()).toEqual(['11', '22', '33']);
+    expect(Object.keys(V2_NUMEROLOGY_MEANINGS)).toHaveLength(9);
   });
 
   it('reuses the immutable v1 master entries byte-for-byte — no re-authoring', () => {

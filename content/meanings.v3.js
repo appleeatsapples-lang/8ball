@@ -43,31 +43,41 @@ import {
 import {
   ELEMENT_MEANINGS,
   COORDINATE_CONTEXT,
+  NUMEROLOGY_MEANINGS as V2_NUMEROLOGY_MEANINGS,
 } from './meanings.v2.js';
 
 // Carried over unedited — the v1/v2 tables ARE the v3 tables.
 export { ARCANA_MEANINGS, SUN_MEANINGS, ANIMAL_MEANINGS, LIFE_PATH_MEANINGS };
 export { ELEMENT_MEANINGS, COORDINATE_CONTEXT };
 
-// Process-language equivalent of each value's v1 role noun, used only for the
-// `with the other numbers` synthesis. 1..9 are v2's themes, carried across
-// unchanged; 11 / 22 / 33 are the three this version adds.
-const NUMEROLOGY_THEMES = Object.freeze({
-  1: 'initiative', 2: 'cooperation', 3: 'expression',
-  4: 'structure', 5: 'change', 6: 'care',
-  7: 'analysis', 8: 'command', 9: 'service',
-  11: 'intuition', 22: 'construction', 33: 'guidance',
-});
+// Process-language equivalent of each MASTER value's v1 role noun, used only
+// for the `with the other numbers` synthesis. These three are the whole of
+// what this file authors.
+//
+// The nine non-master themes are NOT restated here. A first draft of this file
+// listed all twelve, which made "1..9 are v2's themes, carried across
+// unchanged" a claim about two hand-maintained lists rather than a property of
+// the code — the exact drift §4's versioning rule exists to prevent, one level
+// up (PR audit, 2026-07-31, P2). v2's nine entries are spread below instead,
+// so the carry-over is structural and cannot silently diverge.
+const MASTER_THEMES = Object.freeze({ 11: 'intuition', 22: 'construction', 33: 'guidance' });
 
 /**
  * The active numerology registry: every value the immutable v1 table filed,
  * each entry that exact v1 record plus its theme. Twelve entries under calc
- * v4 — the nine single digits and the three master stops.
+ * v4 — v2's nine, carried across by construction, and the three master stops.
+ *
+ * The master entries are built the same way v2 built its nine: the immutable
+ * v1 record spread, plus a `theme`. So all twelve are the v1 bodies, and the
+ * only thing that varies by version is which of them are ACTIVE.
  */
-export const NUMEROLOGY_MEANINGS = Object.freeze(Object.fromEntries(
-  Object.entries(LIFE_PATH_MEANINGS).map(([key, entry]) => {
-    const theme = NUMEROLOGY_THEMES[Number(key)];
-    if (!theme) throw new Error(`meanings.v3: no theme for numerology value ${key}`);
-    return [key, Object.freeze({ ...entry, theme })];
-  })
-));
+export const NUMEROLOGY_MEANINGS = Object.freeze({
+  ...V2_NUMEROLOGY_MEANINGS,
+  ...Object.fromEntries(
+    Object.entries(MASTER_THEMES).map(([key, theme]) => {
+      const entry = LIFE_PATH_MEANINGS[key];
+      if (!entry) throw new Error(`meanings.v3: no v1 entry for master value ${key}`);
+      return [key, Object.freeze({ ...entry, theme })];
+    })
+  ),
+});
