@@ -128,6 +128,8 @@ the render surface.
 
 * Vitest: **51 files / 1,824 tests passed** (was 1,814; +10 for the disclosure and
   cross-version coverage)
+* Self-audit: 28 findings filed by six adversarial lenses, 27 refuted, 1 confirmed and fixed
+  (DOCTRINE §1.C, above)
 * Auditor assurance: 93/93 passed
 * Product audit: 13 pass / 0 fail / 1 disclosed warning (`product.git_status`, the three
   known untracked paths)
@@ -135,6 +137,30 @@ the render surface.
 * `index.html`: 1,497 lines, byte-identical
 * Historical content files and `package.json`: byte-unchanged
 * Browser live-fire re-run against the corrected branch, master birthdays included
+
+### Self-audit after remediation (implementer, same day)
+
+Rather than trust a second green suite, a 35-agent adversarial verification was run over the
+corrected branch: six independent lenses — production reachability, sealed-DOM purity,
+doctrine-vs-code contradiction, test integrity (would each new test fail if the fix were
+removed), a completeness critic sweeping every consumer of a numerology coordinate for OTHER
+instances of the P1's defect class, and immutability/versioning — with every finding handed to
+an independent skeptic whose default verdict was "refuted".
+
+**28 findings filed · 27 refuted · 1 survived.** The survivor was the same class Codex filed:
+`DOCTRINE.md:69` (§1.C) still asserted in active voice that the life-path reduction in
+`core/profile.js` "floors at a single digit `1..9`". Calc v4 makes that false, no v0.62
+amendment had touched §1.C, and `git log -G "pre-calc-v3 lineage"` shows the calc v3 commit
+(`7d3285a`) rewrote that exact parenthetical in lockstep with its own calculation change — so
+this document's history treats the line as calc-version-coupled rather than transitively
+superseded. Fixed in the same shape, with the superseded wording preserved as lineage per L17
+and the birth-card contract (`22 → 0 · the fool`) restated as untouched.
+
+Two results worth recording because they are negative: the **completeness critic found no
+other** nine-valued table, range assumption, layout assumption, regex or nine-arm lookup
+reached by a twelve-valued input anywhere in `core/`, `ui/`, `content/` or `index.html`; and
+the **immutability lens re-confirmed** zero lines changed in every shipped content file,
+`package.json` and `index.html`.
 
 **Status: STAGED.** L48 is not cleared by this disposition. A fresh independent Codex read of
 the corrected HEAD is required before merge consideration, and the merge itself is the

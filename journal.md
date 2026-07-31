@@ -60,6 +60,21 @@ it nearly became a false report:** my first probe clicked `dyad-back-btn`, which
 Checking the id before filing turned a phantom P1 into nothing. A probe that fails open looks
 exactly like a product that fails open.
 
+**Self-audit after the remediation, and the one thing it found.** Rather than trust a green
+suite twice in one day, I ran a 35-agent adversarial verification over the corrected branch —
+six independent lenses (production reachability, sealed-DOM purity, doctrine-vs-code
+contradiction, test integrity, a completeness critic sweeping every consumer of a numerology
+coordinate for other silent substitutions, and immutability/versioning), each finding then
+handed to an independent skeptic whose default was "refuted". **28 findings filed, 27
+refuted, 1 survived** — and the survivor is the same defect class Codex had just filed:
+DOCTRINE §1.C still asserted in active voice that the life-path reduction in `core/profile.js`
+"floors at a single digit `1..9`". Calc v4 makes that false, and `git log -G` shows calc v3
+rewrote that exact parenthetical in lockstep with ITS calculation change — so this document's
+own history treats the line as calc-version-coupled, and calc v4 skipped it. Fixed in the same
+shape, with the superseded wording preserved as lineage per L17. The completeness critic found
+no other nine-valued table, range assumption or layout assumption reached by a twelve-valued
+input; the immutability lens re-confirmed zero lines changed in any shipped content file.
+
 **Test counts.** Full suite **51 files / 1,824 tests PASS** (was 1,814 at the audited HEAD;
 +10). Auditor assurance 93 PASS. Product audit PASS, 13/0/1/0. Local PII audit clean.
 `index.html` byte-identical at **1497** lines. Shipped content files and `package.json`
