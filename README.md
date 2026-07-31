@@ -34,7 +34,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ```
 8ball/
 ├── index.html               UI + boot, single file, ES modules (≤1500 LOC per §6)
-├── core/                    10 pure-logic ES modules — no DOM
+├── core/                    12 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution
 │   ├── rising.js            Meeus ascendant — DST + historical-tz aware
@@ -44,8 +44,10 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── calendar.js          Meeus lunar new year + solar terms, 1900–2100
 │   ├── cities.js            city autocomplete loader (lazy-loads assets/cities.json)
 │   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
+│   ├── public.js            public-reading resolution + disclosed master-mode bridge
+│   ├── dyad.js              pure two-profile relation calculation
 │   └── payments.js          pure state machines: new-profile reads + t3 facet rotation
-├── ui/                      10 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
+├── ui/                      13 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
 │   ├── tiers.js             compartment-card render + shareRowRefs + provenance/atlas/density
 │   ├── payments.js          paywall/paid-return controller + t3 current-facet storage
 │   ├── profile.js           profile persistence + form helpers
@@ -54,16 +56,24 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
 │   ├── meanings.js          all-cell value meaning + deterministic sheet context (§1.G v0.53)
+│   ├── public.js            public-reading formatter + master-mode bridge disclosure
+│   ├── dyad.js              second-profile entry + paired-sheet rendering (§1.J)
+│   ├── sheet.js             shared sheet value mapping/render helpers
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
-├── content/
+├── content/                 12 versioned registry modules
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
 │   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53)
 │   ├── meanings.v3.js       ACTIVE registry — all twelve terminal values, masters reused from v1 (§1.G v0.62)
 │   ├── concordance.v1.js    immutable historical relation registry (§1.I v0.51)
 │   ├── concordance.v2.js    superseded registry for the strict 1–9 numerology cut (§1.I v0.54)
-│   └── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)
+│   ├── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)
+│   ├── dyad.v1.js           immutable two-profile relation tables (§1.J v0.61)
+│   ├── dyad.v2.js           ACTIVE dyad tables + master-preserving combined-path frame (§1.J v0.62)
+│   ├── public.v1.js         immutable public-reading mode registry (§1.D)
+│   ├── public.v2.js         superseded public-reading registry
+│   └── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified

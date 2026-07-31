@@ -761,6 +761,31 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     sheet.clear();
     expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent).toBe('');
   });
+
+  it('index boot supplies publicReadFor and the real dyad render carries both bridge notes', () => {
+    // The direct createSheet cases above pin the leaf renderer. This drives
+    // initDyadUI → submitSecond → render with the same hook index.html ships,
+    // so deleting either the host hook or ui/dyad.js's hook consumption fails.
+    expect(html).toMatch(/initDyadUI\([\s\S]*?getPublicRead:\s*publicReadFor/);
+
+    const profileA = buildProfile('wire a', '1980-06-11');
+    const profileB = buildProfile('wire b', '1995-09-22');
+    const inst = harness('t5', {
+      profileA,
+      second: profileB,
+      publicRead: publicReadFor,
+    });
+
+    inst.withDom(() => submitSecond());
+    const bridgeA = inst.byAttr.get('[data-sheet-public-bridge="a"]');
+    const bridgeB = inst.byAttr.get('[data-sheet-public-bridge="b"]');
+    expect(bridgeA.textContent).toContain('11');
+    expect(bridgeB.textContent).toContain('22');
+
+    inst.withDom(() => closeDyad());
+    expect(bridgeA.textContent).toBe('');
+    expect(bridgeB.textContent).toBe('');
+  });
 });
 
 describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {

@@ -5,6 +5,111 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-01 — final-worktree audit P2s absorbed; production seams and storefront truth closed — STAGED
+
+**Fresh independent final-worktree audit: MERGE WITH FOLLOW-UP — 0 P0 / 0 P1 / 3 P2.**
+The read was bound to `origin/main` `2cdaa3c` → HEAD `7fae4ea` plus the exact unstaged closure
+diff and the two relevant untracked audit responses; `_to_delete/` and `audits/automated/` stayed
+explicitly excluded user-owned paths. Full response is durable at
+`~/8ball/audits/codex_calc_v4_final_worktree_audit_2026-08-01_response.md`.
+
+**P2-1 — active version labels, absorbed.** `8BALL.md` no longer calls the calculation core v3 and
+its active content row now includes the t5 entitlement rung. The shared voice-register helper names
+active `meanings.v3` / `concordance.v3`. `core/dyad.js` now distinguishes active `dyad.v2` from the
+immutable v1 relation tables it carries. These are source-truth repairs only; no runtime expression
+changed.
+
+**P2-2 — the two production wiring seams now have behavior tests, absorbed.** The host suite no
+longer proves the master bridge only by injecting `refs.bridge`: a new case boots `ui/public.js`
+without that ref, drives the real create/append path, renders both reachable master birthdays, then
+proves unbridged and sealed renders clear it. The dyad suite now drives
+`initDyadUI → submitSecond → render → close` with the exact `publicReadFor` hook shipped by
+`index.html`, proves both sheets carry their own bridge note, and proves close scrubs both. This is
+two new tests, not a product-code change.
+
+**P2-3 — storefront truth, absorbed without an account mutation.** The prior doctrine said the
+t1/t2 products stayed live at $1/$2, the t5 product did not exist, and sprint expiry mechanically
+restored the old ladder. Authenticated preflight evidence says otherwise: `xjpvp` is the published
+$3 complete-single-sheet offer; `neysyv` is an existing $6 comparative listing and `rzqezp` an
+existing $9 public listing, both unpublished and not for sale. A new L17 supersession now separates
+stored entitlements from storefront availability, preserves every existing owner, records
+`T5_PRODUCT_URL` empty/no fulfillment path, and requires a fresh decision plus ordinary gates for
+any post-sprint storefront expansion. `ui/dyad.js` carries the same current truth. No Gumroad save,
+publication, archive or other external change occurred.
+
+**Gates on the absorbed state.** Focused surface suites **2 files / 98 tests PASS**. Full suite
+**51 files / 1,826 tests PASS**. Local PII audit **clean over 862 files**. `index.html`, package
+manifests, protected shipped content, entitlements and runtime product code are unchanged by this
+absorb except for source-comment truth in `core/dyad.js` / `ui/dyad.js`; product behavior is
+unchanged.
+
+**Lifecycle stays STAGED.** The corrected state requires a fresh independent re-audit before any
+stage/commit decision. The PR-numbered L48 response remains a separate PR-time prerequisite. No
+Git stage, commit, push, PR, merge, deploy, public post, profile save or account action occurred.
+
+## 2026-07-31 (latest) — audit P2 closed; canon inventory repaired under approved Codex handoff — STAGED
+
+**Codex re-audit of `7fae4ea` returned MERGE WITH FOLLOW-UP — 0 P0 / 0 P1 / 1 P2.** All three
+original findings verified closed: the bridge disclosure renders on the host and both dyad
+sheets and clears on the sealed, non-master and dyad-close paths; active surfaces use `_v3`
+with `_v1`/`_v2` surviving only as retired lineage and migration keys; `meanings.v3`
+structurally spreads v2's nine and authors only `11/22/33`. Response filed at
+`audits/codex_calc_v4_premerge_reaudit_2026-07-31_response.md`.
+
+**The P2, fixed rather than deferred.** The ACTIVE v0.62 doctrine footer still said `1814
+tests` after the remediation made it 1824. Now corrected, with the delta stated in place —
+`1814 at the first-audited HEAD d03a768; the remediation above added ten` — so the line
+records its own history instead of silently swapping a number.
+
+**Worth more than the fix: this is the THIRD instance of one class on this branch, and each
+was found by a DIFFERENT reviewer.** Codex found the stale `_v2` facet references; my own
+35-agent self-audit found DOCTRINE §1.C's life-path parenthetical; Codex's fresh read found
+this count. Three independent finds of the same shape is evidence the class was
+under-swept, not that it is exhausted — so I swept it deliberately this time rather than
+fixing the third instance and moving on.
+
+**Named, because it is a property of how this repo works.** DOCTRINE runs on L17 —
+*amendments supersede, never edit* — which is the right rule and has a cost: the document is
+deliberately full of stale text that is CORRECT to leave alone, so **staleness is the default
+state and currency is the thing that needs doing.** The consequence is mechanical: a
+versioning or count change must sweep for every ACTIVE restatement of the value it moves, and
+must classify each hit as lineage-that-stays or active-that-changes. That is the discovery
+scan this cycle's brief already required for the nine-number vocabulary — the gap was that I
+ran it over the *vocabulary* and not over the *numbers*, and not again after each subsequent
+commit changed one.
+
+**Role handoff and approved scope.** After Claude Code reached its user limit, the controller
+assigned Codex as the temporary REPO implementer under `8BALL.md`'s cross-seat bridge. That is
+an explicit operator override of the root audit-only default for this pass. The approved scope
+is narrow: preserve Claude's doctrine fix, journal draft and re-audit artifact; repair the
+active documentation drift; rerun all gates; send only the final private docs diff through the
+Grok/Codex relay; and stop before Git staging or commit.
+
+**Closure sweep, corrected.** Claude's draft described the follow-up scan as exhaustive. The
+temporary implementer recount found an additional active documentation cluster and repaired it:
+`CLAUDE.md` said the 1497-line host was 1494 with about six lines of headroom; `8BALL.md` omitted
+three of the 12 core modules and called the 13-module UI a 10-module UI; and `README.md` called
+the same trees 10/10 while omitting the new public, dyad and sheet modules from its structure
+map. The README content tree also now names all 12 shipped versioned registry modules. These are
+pre-existing documentation defects, not product-code changes, but once discovered they belong
+in this truth-repair pass rather than in a knowingly incomplete follow-up.
+
+Historical claims remain untouched: the `1758 / 1585 / 1578 / 1560 / 1500 / 1438` test counts
+under `**superseded:**` footer entries and the `1499/1500` line counts inside dated
+v0.37–v0.40 amendments are lineage by construction; the journal's `1,814` references and the
+first audit response describe the HEAD each actually read; and `CLAUDE.md`'s dated `38 files /
+1369 tests` note is not an active count. The active CI-pinned shape is 12 core modules, 13 UI
+modules and 51 Vitest files.
+
+**Gates after the fix.** Suite **51 files / 1,824 tests PASS**; auditor assurance **93/93
+PASS**; product audit **PASS 13/0/1/0**; local PII clean over **862 files**; `index.html`
+byte-identical at **1497** lines; shipped content files and `package.json` byte-unchanged. The
+scoped repair is Markdown-only.
+
+**Still lifecycle-STAGED; Git changes remain unstaged.** Whether this docs-only closure clears
+the P2 for merge is the controller's call, and the merge itself is the controller's. No push,
+PR, merge or deploy performed.
+
 ## 2026-07-31 (later) — calc v4 audit remediation: the disclosure now reaches the reader — STAGED
 
 **Status: still STAGED on `claude/master-number-preservation`.** A Codex pre-merge audit read

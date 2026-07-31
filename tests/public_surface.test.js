@@ -181,6 +181,59 @@ describe('public read — render', () => {
     expect(src).toMatch(/\.public-bridge:empty \{[^}]*display:\s*none/);
   });
 
+  it('production fallback creates, fills and clears the bridge without refs.bridge', () => {
+    // The former P1 lived in this seam: index.html supplies only four refs,
+    // so production depends on resolveBridgeNode creating the fifth node.
+    // Source-shape assertions above cannot prove that append/write/clear path.
+    const priorDocument = globalThis.document;
+    const children = [];
+    const styles = [];
+    const root = {
+      classList: makeClassList(),
+      appendChild(node) { children.push(node); return node; },
+      querySelector(selector) {
+        if (selector !== '.public-bridge') return null;
+        return children.find(node => String(node.className || '').split(/\s+/).includes('public-bridge')) || null;
+      },
+    };
+    const makeElement = tag => ({
+      tagName: String(tag).toUpperCase(),
+      id: '', className: '', textContent: '', classList: makeClassList(),
+    });
+    globalThis.document = {
+      getElementById: id => styles.find(node => node.id === id) || null,
+      createElement: makeElement,
+      head: { appendChild(node) { styles.push(node); return node; } },
+    };
+
+    try {
+      const refs = {
+        root,
+        families: makeNode(),
+        antiFit: makeNode(),
+        roleLine: makeNode(),
+      };
+      initPublicUI(refs); // deliberately no refs.bridge — production shape
+      expect(children).toHaveLength(1);
+      const bridge = children[0];
+      expect(bridge.className).toContain('public-bridge');
+
+      renderPublicRead(MASTER_PROFILES[0][1], { entitled: true });
+      expect(bridge.textContent).toContain('11');
+      expect(bridge.textContent).toContain('2');
+
+      renderPublicRead(PROFILE, { entitled: true });
+      expect(bridge.textContent).toBe('');
+      renderPublicRead(MASTER_PROFILES[1][1], { entitled: true });
+      expect(bridge.textContent).toContain('22');
+      renderPublicRead(MASTER_PROFILES[1][1], { entitled: false });
+      expect(bridge.textContent).toBe('');
+    } finally {
+      initPublicUI(null);
+      globalThis.document = priorDocument;
+    }
+  });
+
   it('seals rather than throws on a profile that cannot resolve a date', () => {
     for (const bad of [null, {}, { yyyy: 2000 }, { yyyy: 2001, mm: 2, dd: 29 }]) {
       const refs = makeRefs();

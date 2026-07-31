@@ -89,7 +89,7 @@ naming only two.)
   are the fail-closed gates — a missing comparator, fixture or regression
   suite is a failure, never a skip.
 - **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1494, so there are ~6 lines of headroom; past that, split into `ui/*.js`
+  at 1497, so there are 3 lines of headroom; past that, split into `ui/*.js`
   per §6 rather than trimming to squeeze under. The §1.J dyad tier spent 6 of
   the previous 9 by design — its screen, styles and entry control are all
   injected from `ui/dyad.js`, and what remains in the host is only the import

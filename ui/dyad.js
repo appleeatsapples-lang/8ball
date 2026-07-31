@@ -54,9 +54,10 @@ import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
 // ── the rung is not live, and fails closed until it is ────────────
-// The Gumroad product does not exist; creating it is the controller's action,
-// never an agent's (§10). While this constant is empty the CTA carries no
-// href and stays hidden, so no visitor can reach a dead checkout. Unlike the
+// The $6 comparative Gumroad listing exists but is unpublished and not for
+// sale; publishing or changing it is the operator's action, never an agent's
+// (§10). No fulfillment path is wired. While this constant is empty the CTA
+// carries no href and stays hidden, so no visitor can reach a dead checkout. Unlike the
 // retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
 // deliberately NOT sufficient on its own to make the rung buyable: entry
 // visibility (`dyadEntryVisible`, below) is entitlement-only and does not

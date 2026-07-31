@@ -2,7 +2,8 @@
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no storage, no
 // model call at runtime or at any other time: every value below is a lookup
-// or an integer reduction over the frozen tables in content/dyad.v1.js. Two
+// or an integer reduction over active content/dyad.v2.js, which carries the
+// immutable v1 relation tables and versions only the calc-v4 frames. Two
 // profiles in, byte-identical object out, forever.
 //
 // INPUT — two ALREADY-CALCULATED profiles, not two payloads. This is the
@@ -311,7 +312,8 @@ export function bracketPair(lifePathA, lifePathB) {
  * cell) and the life-path brackets (which drive the written note position).
  *
  * NO deck string is read. The catalog numerals are positional output of
- * getCard, and both passages come from content/dyad.v1.js — so the t3
+ * getCard, and both passages come through active content/dyad.v2.js from its
+ * immutable v1 relation tables — so the t3
  * written entry is not given away, recombined, or paraphrased at t5.
  */
 export function cardPair(profileA, profileB) {
