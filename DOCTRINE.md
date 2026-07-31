@@ -444,6 +444,7 @@ Both entries are validated by the existing archive loader and recomputed through
 ## §6. Architecture
 
 - Single repo, private on GitHub as of v0.2.0 (was public through v0.1.4; flipped private to protect the future paid card-content layer at `~/dev/8ball-private/`).
+- **Visibility correction (2026-08-01; L17).** The sentence above is preserved as historical lineage but superseded as current state: the GitHub repository is **PUBLIC**, verified against authenticated GitHub state on 2026-08-01. The separate authoring source at `~/dev/8ball-private/` remains private. Repository visibility is not content security: §1 v0.22 already records that the public bundle contains the full deck bytes and that its lock is a UI convention.
 - Static site. Deployed on Netlify Pro ($20/mo) from `main` branch. (Was misdocumented as free tier; corrected 2026-07-20 to match 8BALL.md / README ops truth — mechanical, no product change.)
 - ES modules in the browser. No build step.
 - Four-folder source layout: `core/` (pure-logic ES modules), `ui/` (DOM-touching ES modules with `init*UI({refs}, {hooks})` DI shape per the v0.23 amendment below), `content/` (versioned static data — card deck, coordinate meanings, and the §1.I concordance registry), `tests/` (gates + `fixtures.json`). This clause pins the layout *shape*, not the file list — **v0.44 correction: no per-folder counts are hardcoded here anymore.** They drifted twice already (v0.41's "6 ui / 24 tests" was stale within two content cycles, per the 2026-07-04 drift-sweep) precisely because this clause restates a number it says elsewhere shouldn't live here. The canonical module/test inventory lives in `CLAUDE.md` (with `README.md`) — that is the single place to check current counts; this clause will not restate them again. Plus `index.html` and config. The private location at `~/dev/8ball-private/cards.v1.full.js` remains the authoring source; the public `content/cards.v1.full.js` is a verbatim copy maintained via `cp` at release-prep time.
@@ -536,6 +537,8 @@ For per-cycle artifact locations (briefs, audits, directives, reports), see `age
 ## §11. PII rule
 
 Personal data of the operator, family, friends, or any other identifiable person is NEVER tracked content. The repo is private as of v0.2.0, but this rule is independent of repo visibility — tracked content is the durable boundary, not the current ACL state. Repos can flip; the rule survives the flip.
+
+**Visibility correction (2026-08-01; L17).** The historical current-state sentence above is superseded: the repository is **PUBLIC**, verified against authenticated GitHub state on 2026-08-01. The PII rule is unchanged and remains deliberately visibility-independent; public visibility makes the tracked-content boundary immediately observable, not newly applicable.
 
 Specifically forbidden in any tracked file:
 

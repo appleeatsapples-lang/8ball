@@ -5,6 +5,25 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-01 — repository-visibility truth repaired against authenticated GitHub state — STAGED
+
+Authenticated GitHub inspection reports `appleeatsapples-lang/8ball` as **PUBLIC**. Active state
+claims in `8BALL.md` and the current-state readings of DOCTRINE §6 / §11 still called it private
+from the v0.2.0 flip. That wording was stale, not an instruction to change the repository setting.
+
+`8BALL.md` now records the current public state, preserves the public → private → public history,
+and removes the false claim that `main` never carried the cards: v0.3.0 ships the full deck bytes
+at `content/cards.v1.full.js`, with the paid lock explicitly a UI convention. DOCTRINE keeps its
+original v0.2.0 sentences as lineage and adds L17 current-state corrections. The private authoring
+source at `~/dev/8ball-private/` remains private, and the visibility-independent tracked-content PII
+boundary is unchanged.
+
+No GitHub visibility or account setting changed. No product code, calculation, content, storefront,
+offer, runtime, dependency, test, generated artifact, or protected quarantine path changed. The
+operator authorized a commit of these three documentation files and a push to
+`origin/claude/master-number-preservation` only. PR #188 advances with that branch; no new PR,
+merge, or deploy is authorized.
+
 ## 2026-08-01 — final-worktree audit P2s absorbed; production seams and storefront truth closed — STAGED
 
 **Fresh independent final-worktree audit: MERGE WITH FOLLOW-UP — 0 P0 / 0 P1 / 3 P2.**

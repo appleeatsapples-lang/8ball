@@ -1,7 +1,7 @@
 # 8BALL.md — Canonical Context
 
 **Audience:** Claude (in any chat) and any other AI working on 8ball, in any role.
-**Last refreshed:** 2026-07-19.
+**Last refreshed:** 2026-08-01.
 **Companion (operator-personal):** `~/MUHAB.md` — read first for cross-project preferences.
 
 This file is the source-of-truth for 8ball project context. Read it at the start of any 8ball work session, after `~/MUHAB.md` §1–§8. Memory is index-only; this file is canonical.
@@ -39,7 +39,7 @@ A magic 8-ball that knows you. **Current-surface spec: read `README.md` (top par
 **Metaphorically: SIRR is the engine, 8-Ball is the deniability layer. Architecturally: siblings — no code shared, no imports.** "Deniability layer" is a privacy/identity split — 8ball public + materialistic, SIRR unnamed + private — not a status claim: it does NOT require 8ball to stay small, hidden, or unserious; 8ball may stand as a first-class public object (v0.35). The load-bearing rule is `DOCTRINE.md §9` (no SIRR string in tracked content), which is unchanged. SIRR (sacred, private, personal) and 8ball (materialistic, public, commercial) are sibling repos. They share NOTHING in code. They share calculation rigor by example, not by import. (See `DOCTRINE.md §9`.)
 
 **Production:** `https://the-eight-ball.netlify.app` (Netlify **Pro $20/mo** — corrected 2026-07-10, was misdocumented as free tier; GitHub-connected, auto-deploys on push to main).
-**Repo:** `github.com/appleeatsapples-lang/8ball` (PRIVATE as of v0.2.0 — was public through v0.1.4; flipped private to protect the future paid card-content layer).
+**Repo:** `github.com/appleeatsapples-lang/8ball` (**PUBLIC**, verified against authenticated GitHub state 2026-08-01; historically public through v0.1.4, private from v0.2.0, and later returned public).
 **Stack:** static HTML/CSS/ES-modules. No build step. Vitest for tests. GitHub Actions for CI. Netlify for hosting.
 
 ---
@@ -66,7 +66,7 @@ Layered source:
 
 | # | Decision | Locked value |
 |---|---|---|
-| 1 | Repo visibility | Private as of v0.2.0 (was public through v0.1.4; flipped to protect the future paid card-content layer) |
+| 1 | Repo visibility | **Public** (verified against authenticated GitHub state 2026-08-01). Historical sequence: public through v0.1.4, private from v0.2.0, later returned public. |
 | 2 | Domain | netlify.app subdomain `the-eight-ball.netlify.app` (live as of 2026-05-08) |
 | 3 | Product display name | `8 ball` (lowercase, space). Folder & repo: `8ball`. |
 | 4 | License | MIT |
@@ -124,7 +124,7 @@ The product persists only approved local state in `localStorage`, on the user's 
 
 **PII rule (DOCTRINE.md §11):**
 
-Operator personal data is NEVER tracked content. The repo is private as of v0.2.0, but the rule is independent of repo visibility — tracked content is the durable boundary, not the current ACL state. Two-layer audit:
+Operator personal data is NEVER tracked content. The repo is public as verified 2026-08-01, but the rule is independent of repo visibility — tracked content is the durable boundary, not the current ACL state. Two-layer audit:
 
 1. **Public CI scan** (`tests/pii_scan.test.js`) — operator name, SIRR cross-references, labeled-DOB shapes.
 2. **Local audit** (`audits/run_local_audit.sh`) — operator's personal-data file (gitignored), grepped against tracked content before push.
@@ -193,7 +193,7 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 **Canonical paths:**
 
-- Repo: `~/dev/8ball/` (private as of v0.2.0)
+- Repo: `~/dev/8ball/` (public on GitHub, verified 2026-08-01)
 - Desktop materializations: `~/8ball/` (sessions, audits, demos — separate from code; mirrors `~/Desktop/SIRR/` pattern)
 - This file: `~/dev/8ball/8BALL.md`
 
@@ -219,7 +219,7 @@ Merge → Netlify auto-deploys. Smoke-test live. Append to `journal.md`. Update 
 
 **Distribution-fleet standing note (added 2026-07-28):** four autonomous posting surfaces (X, TikTok, Instagram, Threads) run on launchd out of `~/8ball/reach`, **entirely outside this repo** — no product code imports them and nothing here drives them; they consume only the hosted `cards/*.jpg` this repo serves. The single machine-checkable home for their caps, slots and pens is `~/8ball/reach/board.json`, verified by `~/8ball/reach/drift_check.py` (exit 1 on any drift; `--markdown` regenerates the board table, `--credits` reads the live balance), which a launchd watchdog runs daily into `~/8ball/reach/drift_check.log`. **Do not read a cadence or credit number out of prose — here or anywhere else; run the generator.** The reason is the 2026-07-28 incident: the same fact lived in four documents, three of them stale, while three surfaces sat frozen for hours behind a fail-closed ledger rail that could not self-recover. The rail now self-heals inside a bounded window and the numbers moved to one generated home. That lesson is the §13 refresh discipline in miniature — one home per fact, everything else points at it. Ops record: `~/8ball/reach/REPAIR_2026-07-28.md`.
 
-**Repo-history standing note:** the repo is private as of v0.2.0; the 144-card deck was briefly public on the since-deleted `phase-2f-1-card-engine` branch (2F-1 through the v0.2.0 private-flip) — sunk-cost, and `main` never carried cards in its history. The PII boundary is *tracked content*, independent of repo visibility (DOCTRINE §11).
+**Repo-history standing note:** the repo is public as verified 2026-08-01. It was public through v0.1.4, became private at v0.2.0, and later returned public. The 144-card deck was briefly exposed on the since-deleted `phase-2f-1-card-engine` branch before the private flip; v0.3.0 later shipped the full card-content layer on `main` in the public bundle at `content/cards.v1.full.js`. The lock is a UI convention, not protection of the deck bytes (§1 v0.22 / §5.C). The PII boundary remains *tracked content*, independent of repo visibility (DOCTRINE §11).
 
 
 ---
