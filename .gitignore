@@ -58,3 +58,13 @@ content/cards.*.js
 # python bytecode (scripts/ build tool)
 __pycache__/
 *.pyc
+
+# product-auditor report output. `audits/project_audit.py` defaults its
+# --output-dir to <repo>/audits/automated/, so every local run drops a
+# timestamped JSON+markdown pair there. Generated, never reviewed as source,
+# and never tracked — CI writes its own copy to /tmp/product-audit and uploads
+# it as a build artifact instead (.github/workflows/ci.yml). Untracked-but-not-
+# ignored, it also inflated a PII-scan file count in the PR #190 cycle, because
+# run_local_audit.sh selects with `git ls-files --cached --others
+# --exclude-standard` and so counted these reports as scannable files.
+audits/automated/
