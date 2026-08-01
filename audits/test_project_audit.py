@@ -1189,3 +1189,103 @@ class GuardedCheckTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ── path redaction (PR #191 pre-merge audit, P3) ────────────────────────────
+#
+# The auditor's reports are shared: CI uploads them as a build artifact and a
+# local run is often pasted into an audit packet. They used to embed the
+# operator's home directory — and therefore their account name — by three
+# independent routes: the `product_root` field, an absolute path inside a
+# captured `command` list, and captured subprocess output that printed its cwd.
+#
+# These tests pin the redaction AND pin that it lives at the serialization
+# boundary rather than in each check, because the failure mode being prevented
+# is a future check forgetting to redact.
+
+def _home_leak_hits(text):
+    """Every absolute home-ish path still present in a rendered report.
+
+    Shared by the real-run assertion and by the guard-the-guard case below, so
+    the sentinel exercises the exact predicate the real test relies on.
+    """
+    home = os.path.expanduser("~")
+    needles = [n for n in {home, os.path.realpath(home)} if n and n != os.sep]
+    return [n for n in needles if n in text]
+
+
+class PathRedactionHelperTests(unittest.TestCase):
+    """Unit-level: the helper itself, with no subprocess involved."""
+
+    def test_redacts_product_root_and_home_in_a_nested_structure(self):
+        root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
+        pairs = pa.redaction_map(root)
+        payload = {
+            "product_root": root,
+            "checks": [
+                {"command": ["node", os.path.join(root, "audits", "hko_compare.mjs")],
+                 "output": f"RUN v4 {root}\nhome was {os.path.expanduser('~')}\n",
+                 "evidence": {"nested": {"deep": [root]}}},
+            ],
+        }
+        out = pa.redact_paths(payload, pairs)
+        rendered = json.dumps(out)
+        self.assertEqual(_home_leak_hits(rendered), [],
+                         f"home path survived redaction: {rendered}")
+        self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out["product_root"])
+        # recursion actually reached a list inside a dict inside a list
+        self.assertEqual(out["checks"][0]["evidence"]["nested"]["deep"],
+                         [pa.PRODUCT_ROOT_PLACEHOLDER])
+
+    def test_product_root_wins_over_home_when_nested(self):
+        """Longest-needle-first ordering. If home were replaced first, the
+        product root would become `<home>/dev/8ball` and the more specific
+        token would never appear."""
+        root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
+        out = pa.redact_paths(root, pa.redaction_map(root))
+        self.assertEqual(out, pa.PRODUCT_ROOT_PLACEHOLDER)
+
+    def test_non_string_leaves_are_untouched(self):
+        pairs = pa.redaction_map(str(REPO_ROOT))
+        self.assertEqual(pa.redact_paths({"n": 3, "f": 1.5, "b": True, "z": None}, pairs),
+                         {"n": 3, "f": 1.5, "b": True, "z": None})
+
+    def test_guard_can_fail(self):
+        """Guard-the-guard: the leak predicate must actually fire on a report
+        that was NOT redacted, or every assertion built on it is a false green."""
+        leaky = json.dumps({"product_root": str(REPO_ROOT),
+                            "output": f"RUN v4 {REPO_ROOT}"})
+        self.assertNotEqual(_home_leak_hits(leaky), [],
+                            "the leak detector cannot see an unredacted report, so "
+                            "the real-run test below proves nothing")
+
+
+class PathRedactionRealRunTests(unittest.TestCase):
+    """End-to-end: a real audit of the real repo must emit no home path in
+    either artifact. This is the assertion that would have caught the original
+    defect, and it drives the real writer rather than the helper."""
+
+    def test_real_report_artifacts_carry_no_absolute_home_path(self):
+        with tempfile.TemporaryDirectory() as out_dir:
+            subprocess.run(
+                [sys.executable, str(SCRIPT), "--output-dir", out_dir],
+                cwd=str(REPO_ROOT), text=True, capture_output=True, timeout=280,
+            )
+            for name in ("latest.json", "latest.md"):
+                text = (Path(out_dir) / name).read_text()
+                self.assertEqual(_home_leak_hits(text), [],
+                                 f"{name} still embeds an absolute home path")
+                # ...and the assertion is not vacuous: the report is real.
+                self.assertGreater(len(text), 500, f"{name} looks empty")
+
+    def test_redaction_is_applied_at_serialization_not_per_check(self):
+        """Structural. If redaction moved into individual checks, a check
+        record synthesised outside them would come back unredacted — which is
+        precisely the future-check-forgets defect this placement prevents."""
+        source = SCRIPT.read_text()
+        serialize_at = source.index("json_text = json.dumps(report")
+        redact_at = source.index("report = redact_paths(report")
+        self.assertLess(redact_at, serialize_at,
+                        "redaction must run before the report is serialized")
+        self.assertLess(source.index("md_text = render_markdown(report)") - redact_at, 400,
+                        "markdown is rendered from the same redacted report")
