@@ -5,6 +5,34 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-01 — calc v4 master numbers merged, deployed and live-proven — SHIPPED
+
+The controller explicitly said “settle it” after the remaining boundary was named. PR #188 moved
+out of draft and squash-merged to `main` as `a00c18cfbf765ea4c683ed7ece65fb435ff9887d` at
+04:03 Asia/Riyadh. The merge used the fresh PR-numbered independent audit at `ed9bfec`:
+**SAFE TO MERGE — 0 P0 / 0 P1 / 0 P2 / 0 P3**. All three post-merge GitHub checks passed:
+`test`, `product-audit`, and `l48-gate`.
+
+Netlify's automatic main deploy `6a6d45dbf081030009df9960` carried calc v4 but, because the
+full-bleed card batch was still local, briefly restored the old tracked card bytes. No Instagram
+slot fired during that interval. The release was immediately rebuilt from clean merged `main`
+plus only the already-verified `cards/` overlay. The resulting 662-file release shipped as
+production deploy `6a6d46dc5bd35a044238c48b` at 04:07:44; it is the current published deploy.
+The production calculator bytes match merged `core/profile.js`, and
+`aa25_snake-x-monkey.jpg` retains the reviewed full-bleed SHA-256
+`b9452bce5705e46e077b00567d3facbaa3fab76ef1749a5741f19b75274f172b`.
+
+Live verification exercised the deployed code and the real form-to-sheet path, not only HTTP:
+`Ann · 1970-01-04` rendered life path `22`, name number `11`, and maturity `33` on the
+complete sheet. `Test · 2000-01-11` rendered birthday `11` and visibly disclosed that the
+finite work-mode table reads it through base number `2`. The terminal domain is exactly
+`1..9, 11, 22, 33`; meanings for all three masters resolve; zero console/page errors occurred.
+
+The master-number blocker is closed. `REACH-X-OFFER-01` remains STOP only for its separate
+copy, destination, creative-revalidation, and fresh-preflight gates; this closeout does not
+publish an offer or mutate any account. Reach drift remained CLEAN at 04:09 with every surface
+0/3, zero PENDING, and all 621 queued codes pairwise disjoint.
+
 ## 2026-08-01 — PR #188 fresh exact-head audit clears implementation; L48 response filed — STAGED
 
 Codex independently re-read the complete PR diff from `origin/main` `2cdaa3c` through exact
