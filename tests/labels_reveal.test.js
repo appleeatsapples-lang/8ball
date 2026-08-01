@@ -118,3 +118,40 @@ describe('ui/labels.js DI shape (DOCTRINE §6)', () => {
     expect(html).toMatch(/initLabelsUI\(/);
   });
 });
+
+// iOS/WebKit revealed-label overlap fix (2026-08-02): revealed labels make
+// the card taller than its compact 5/8 face, and the flip-stage box that
+// wraps it doesn't reliably grow to match on WebKit, so the excess paints
+// over the result rail stacked below it on mobile. ui/labels.js now toggles
+// a layout-state class on #flip-stage in the same function that toggles
+// #card-face, and self-injects the mobile-only CSS that consumes it (the
+// same pattern tests/dyad_surface.test.js pins for ui/dyad.js's
+// injectStyle/STYLE). These are source pins; tests/meanings_behavior.test.js
+// runs initLabelsUI for real and asserts the class actually moves together
+// on both elements through every call path (click + boot-time apply).
+describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
+  it('index.html wires #flip-stage into initLabelsUI', () => {
+    expect(html).toMatch(/initLabelsUI\(\{[^}]*flipStage:\s*\$\('flip-stage'\)/);
+  });
+
+  it('applyLabelsState toggles labels-revealed on flipStage, not just cardFace', () => {
+    expect(labelsJs).toMatch(
+      /flipStage\.classList\.toggle\(\s*['"]labels-revealed['"]\s*,\s*revealed\s*\)/
+    );
+  });
+
+  it('the mobile-only intrinsic-height override lives below the 720px side-rail breakpoint', () => {
+    expect(labelsJs).toMatch(/@media \(max-width: 719px\)/);
+    expect(labelsJs).toMatch(/\.flip-stage\.labels-revealed\s*\{[^}]*height:\s*auto/);
+  });
+
+  it('does not touch the ≥720px desktop side-rail breakpoint (index.html owns that block)', () => {
+    expect(labelsJs).not.toMatch(/min-width:\s*720px/);
+    expect(html).not.toMatch(/\.flip-stage\.labels-revealed/);
+  });
+
+  it('self-injects its stylesheet the same way ui/dyad.js does (idempotent, scoped <style> id)', () => {
+    expect(labelsJs).toMatch(/document\.getElementById\(\s*['"]labels-style['"]\s*\)/);
+    expect(labelsJs).toMatch(/style\.id = ['"]labels-style['"]/);
+  });
+});

@@ -384,23 +384,32 @@ describe('ui/labels.js behavior', () => {
     };
     const cardFace = makeNode();
     const labelsToggle = makeNode('button');
-    const ui = initLabelsUI({ cardFace, labelsToggle }, {});
+    const flipStage = makeNode();
+    const ui = initLabelsUI({ cardFace, labelsToggle, flipStage }, {});
 
     labelsToggle._fire('click');
     expect(cardFace.classList.contains('labels-revealed')).toBe(true);
     expect(labelsToggle.textContent).toBe('→ hide labels');
     expect(labelsToggle.attrs['aria-pressed']).toBe('true');
     expect(isLabelsRevealed()).toBe(true);
+    // flip-stage (mobile intrinsic-height layout, iOS/WebKit fix) tracks
+    // cardFace's own labels-revealed class in lockstep, every path through.
+    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
 
     labelsToggle._fire('click');
     expect(cardFace.classList.contains('labels-revealed')).toBe(false);
     expect(labelsToggle.textContent).toBe('→ reveal labels');
     expect(labelsToggle.attrs['aria-pressed']).toBe('false');
     expect(isLabelsRevealed()).toBe(false);
+    expect(flipStage.classList.contains('labels-revealed')).toBe(false);
 
-    // applyLabelsState is the boot path — apply without persisting
+    // applyLabelsState is the boot path — apply without persisting; this is
+    // also how a stored preference (isLabelsRevealed() reading true from a
+    // prior session) reaches the layout state on load, so this call doubles
+    // as that initialization-path coverage.
     ui.applyLabelsState(true);
     expect(cardFace.classList.contains('labels-revealed')).toBe(true);
+    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
     expect(isLabelsRevealed()).toBe(false); // storage untouched by apply
   });
 
