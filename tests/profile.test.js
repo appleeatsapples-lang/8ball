@@ -291,7 +291,7 @@ describe('calculation contract — 2F-3 additive fields', () => {
     expect(getInnerAnimal(1985, 1, 4)).toBe('rat');
   });
 
-  // Soul urge: vowel sum, Pythagorean values, reduced into 1..9.
+  // Soul urge: vowel sum, Pythagorean values, reduced with master stops preserved (calc v4).
   it('soul urge of empty name is unresolved, never a displayed zero', () => {
     expect(getSoulUrge('')).toBeNull();
     expect(getSoulUrgeSum('')).toBe(0);

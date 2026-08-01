@@ -5,6 +5,58 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-01 — calc v4 doctrine/code drift follow-up: two more instances of the stale-active-statement class — STAGED
+
+**Docs-and-comment only, filed as a small follow-up against the already-SHIPPED entry below rather
+than reopening it.** Calc v4 (master numbers 11/22/33) merged, deployed and live-verified via #188
+before this was found — nothing here blocks or revises that shipment.
+
+**Context.** Across this cycle three separate reviews each independently caught one instance of the
+same defect class — an ACTIVE present-tense statement left behind by the calc v3→v4 widening: the
+`_v2` facet-key references (first Codex audit), DOCTRINE §1.C's life-path parenthetical (my own
+35-agent self-audit), and the doctrine footer's stale test count (Codex's fresh re-audit of `7fae4ea`).
+Each was fixed as found. Running my own further adversarial sweep over the branch turned up two more,
+both still live on merged `main` at the time of this fix:
+
+1. **`DOCTRINE.md` §1.I's base register-law clause** (not an amendment paragraph — the original
+   clause) still said the concordance registry `tests/concordance.test.js` pins is "the active v2
+   registry, which reuses every non-numerology table and retires the master-reduction links," and
+   named `content/concordance.v2.js` as "the active registry." Both were true when written (v0.54)
+   and false since v0.62 restored the masters into `content/concordance.v3.js` — the v0.62 registry
+   amendment lower in the same section superseded the *rule*, but never touched this aside naming
+   the *version*. Fixed in place, old wording preserved as explicit lineage per L17 rather than
+   deleted.
+2. **`core/birthcard.js`'s header comment** said the life-path `reduce()` in `profile.js` "floors at
+   a single digit" — the exact code-comment twin of the §1.C doctrine finding, just never caught
+   because it lives in a different file. Fixed to name the master-preserving behavior and note the
+   birth-card's own `≤ 22` contract is untouched by calc v4.
+
+A third, cosmetic-only instance (`tests/profile.test.js`'s "reduced into 1..9" comment above one
+soul-urge test) was fixed in the same pass since it cost nothing.
+
+**Three independent reviewers finding one instance each, followed by a fourth sweep finding two
+more, is itself the finding worth recording:** this repo's L17 convention (supersede, never edit)
+makes stale active text the default state rather than the exception, so a version-moving change
+has to sweep for every active restatement of what it moved — and evidently needs to sweep more than
+once. `8BALL.md`'s calc-version header line (`` `core/profile.js` is the calculation core. Calc
+version v4 (since doctrine v0.62): ``) was ALSO caught by the same sweep but is not touched here —
+it was already fixed by the closure commits that shipped in #188, confirmed by reading it directly
+off `origin/main` before filing this branch.
+
+**Verification.** Full suite **51 files / 1,826 tests PASS** — the same count `origin/main` already
+carries; this fix is comment and canon prose only and adds no test. Auditor assurance 93/93 PASS.
+Product audit PASS 13/0/1/0. Local PII audit clean. `index.html` byte-identical at 1497 lines; no
+content file, `package.json`, or calculation module touched.
+
+**Branched off current `origin/main`, not off the merged-and-superseded
+`claude/master-number-preservation`.** That branch's own history was squash-merged as #188 and no
+longer shares a base with `main`'s actual tree; continuing to commit onto it would not reach `main`
+without another squash. New branch: `claude/calc-v4-doctrine-drift-followup`.
+
+**STAGED. No push, PR, or merge performed or requested by this entry — filed locally, pending
+controller instruction on whether this small a docs-only follow-up warrants its own PR or should
+ride the next doctrine-touching cycle.**
+
 ## 2026-08-01 — calc v4 master numbers merged, deployed and live-proven — SHIPPED
 
 The controller explicitly said “settle it” after the remaining boundary was named. PR #188 moved
