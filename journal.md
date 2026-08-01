@@ -5,6 +5,62 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-01 — Dyad presentation refinement (spine, collapsed axes, pannable mobile) — SHIPPED
+
+**Presentation implementation scoped to two product/test files, plus the required L48 audit
+artifact.** `ui/dyad.js` and `tests/dyad_surface.test.js` carry the whole behavioral change: a
+dedicated ≥720px paired-sheet layout, a decorative SVG relation spine with a reduced-motion-aware
+320ms draw-in beat, the three relation axes collapsed into `<details>` behind terse symbolic heads
+(`earth ⇄ metal`, `4 + 11 → 6`, `no. X × no. Y` — full label/register + prose preserved inside), and
+a horizontally pannable mobile strip so the two sheets stay adjacent instead of stacking. Axis
+summaries carry a 44px tap target and an explicit `:focus-visible` outline. The merged PR carries a
+third file, `audits/codex_pr192_premerge_audit_2026-08-01_response.md` — the L48 gate artifact
+`.github/workflows/ci.yml`'s `l48-gate` job requires in-PR for anything that isn't docs-only, not a
+behavioral change. `core/`, `content/`, tiers, payments, persistence, sharing, checkout, and product
+copy are untouched — no entitlement, calc, or commercial-state change.
+
+**A real defect found by going past the obvious fix, worth recording.** The first pass reset
+`#dyad-sheets.scrollLeft` in `clearOutput()` before hiding `#dyad-output` — correct per the CSSOM
+View spec (a scrollLeft write on a boxless/display:none element is a no-op) and enough to pass a
+plain-numeric test mock. A pre-merge local browser live-fire pass — driving the actual pan → close →
+reopen → submit-next-pair sequence against a local build, not the deployed site — found it
+insufficient anyway: the stale panned offset resurfaced regardless, because `close()` hides the
+screen ROOT before ever calling `clearOutput()`, making that reset typically already moot by the
+time it runs on that path. The decisive fix is a second reset in `render()`, immediately after
+`#dyad-output` regains its layout box. Both resets are now precisely, separately pinned by dedicated
+regression tests — proven load-bearing (not just written) by disabling each in turn and confirming
+exactly which test fails without it. The harness mock was strengthened to model both the CSSOM
+no-op-while-hidden write and the hidden→visible restoration the local live-fire pass found, so a
+static-only test pass could not have caught this the way the earlier plain-numeric fake would have
+missed it. Production, checked after merge, confirmed the repaired behavior — it did not surface the
+original defect; the local pass did.
+
+**Verification.** Vitest 70/70 (dyad surface suite alone), 128/128 (dyad-focused: surface + engine +
+content voice), 51 files / 1,836/1,836 full suite.
+
+Local browser (pre-merge, local build): the complete pan → close → reopen → submit-next-pair
+sequence returns `scrollLeft: 0` with every axis collapsed (the sequence that found the defect
+above, then confirmed its fix); real keyboard Tab navigation reaches a summary row and produces a
+visible 2px solid `:focus-visible` outline; the injected stylesheet's own `@media (prefers-reduced-
+motion: reduce)` rule was inspected through the browser's parsed CSSOM (not a source-text read) and
+computes `animation: none` for the reveal state; the paired layout visibly widens at desktop and the
+mobile strip visibly pans sheet-to-sheet instead of stacking.
+
+Production (post-merge, `https://the-eight-ball.netlify.app/`): a live functional pass — real form
+submission, not just an HTTP 200 — showed `#dyad-output` visible, the spine present and revealed,
+all three axes present and collapsed by default, summary tap targets measuring 44px via
+`getBoundingClientRect()`, and zero console errors. Test-only `localStorage` state was cleared
+afterward.
+
+**Audit and merge.** Independent Codex pre-merge audit returned **SAFE TO MERGE — PASS, no P0–P3
+findings remain open** (`audits/codex_pr192_premerge_audit_2026-08-01_response.md`), closing out one
+earlier non-blocking P3 (comments overclaiming both scroll resets as equally required — corrected,
+comments/test-narration only, no behavior change). PR #192 squash-merged to `main` as `1eb9473`
+(`1eb947316dd986990517e897e6a65f1326c67e4a`). Post-merge GitHub checks on the push to `main`
+(run `30716960889`) all green: `test`, `product-audit`, `l48-gate`. The transplant branch and its
+worktree were deleted post-merge — nothing lost, since squash-merge already preserved every commit's
+content in `main`.
+
 ## 2026-08-01 — calc v4 doctrine/code drift follow-up: two more instances of the stale-active-statement class — STAGED
 
 **Docs-and-comment only, filed as a small follow-up against the already-SHIPPED entry below rather
