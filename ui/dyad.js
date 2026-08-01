@@ -100,10 +100,18 @@ export function dyadEntryVisible(tier) {
 // each carries. ONE enumeration: render() fills through it and clearOutput()
 // blanks through it, so a node added to the block is cleared without a second
 // edit. This is the anti-drift shape F1 was missing.
+//
+// The `dyad-spine-*` entries are the terse symbolic heads shown on the
+// always-visible spine/summary row; the fuller `*-head` strings (label,
+// register) now live inside the collapsed per-axis detail alongside the
+// prose they used to sit above. cardPairHead is reused verbatim for its own
+// spine node — `no. A × no. B` was already exactly the terse form.
 export const DYAD_RELATION_NODES = Object.freeze({
+  'dyad-spine-element': 'elementSpine',
   'dyad-element-head': 'elementHead',
   'dyad-element-ab': 'elementAB',
   'dyad-element-ba': 'elementBA',
+  'dyad-spine-numerology': 'numerologySpine',
   'dyad-numerology-head': 'numerologyHead',
   'dyad-numerology-reduction': 'numerologyReduction',
   'dyad-numerology-meaning': 'numerologyMeaning',
@@ -112,12 +120,24 @@ export const DYAD_RELATION_NODES = Object.freeze({
   'dyad-qualifier': 'qualifier',
 });
 
+// The three collapsible <details> wrappers, by id. ONE list, addressed by
+// $(id) the same way DYAD_RELATION_NODES is — clearOutput() closes each of
+// these on every reset, so an axis a reader expanded on the FIRST pair
+// cannot stay expanded (stale, and pointing at blanked content) on the next.
+export const DYAD_AXIS_IDS = Object.freeze([
+  'dyad-axis-element', 'dyad-axis-numerology', 'dyad-axis-cardpair',
+]);
+
 /**
  * The rendered strings of the relation layer, derived purely from a reading.
  */
 export function formatDyadRelation(reading) {
   const { element, numerology, cardPair, qualifier } = reading.relation;
   return {
+    // Terse symbolic heads for the spine/summary row — no label, no
+    // register, just the two-sided shape a reader can take in at a glance.
+    elementSpine: `${element.a.element} ⇄ ${element.b.element}`,
+    numerologySpine: `${numerology.lifePathA} + ${numerology.lifePathB} → ${numerology.combined}`,
     elementHead: `${element.a.element} → ${element.b.element} · ${element.aToB.label}`,
     elementAB: element.aToB.body,
     elementBA: element.bToA.body,
@@ -155,13 +175,63 @@ export function dyadRelationFor(profileA, profileB) {
 const STYLE = `
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
-#dyad-screen .dyad-sheets { display: grid; gap: 1.25rem; margin: 1rem 0; }
-@media (min-width: 720px) { #dyad-screen .dyad-sheets { grid-template-columns: 1fr 1fr; } }
+/* Dedicated wider paired-sheet layout (desktop only — mobile keeps the
+   general 380px screen budget, see the pan rule below). Two 360px .card
+   sheets plus the gap need ~760px, the same budget #result already spends
+   on its own desktop side rail. */
+@media (min-width: 720px) { #dyad-screen { max-width: 760px; } }
+/* Adjacency, not stacking (the audit's point 5): the pair stays side by side
+   at every width. Narrow screens get a horizontally pannable strip instead
+   of shrinking the cards or falling back to a single column; ≥720px has
+   room for both without scrolling. */
+#dyad-screen .dyad-sheets {
+  display: flex; gap: 1.25rem; margin: 1rem 0;
+  overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+#dyad-screen .dyad-sheets > div { flex: 0 0 auto; width: min(84vw, 320px); scroll-snap-align: center; }
+@media (min-width: 720px) {
+  #dyad-screen .dyad-sheets { overflow-x: visible; }
+  #dyad-screen .dyad-sheets > div { width: auto; flex: 1 1 0; }
+}
 #dyad-screen .dyad-sheet-label {
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem;
   opacity: 0.7; margin-bottom: 0.35rem; }
+/* The relation spine — a decorative connector between the two sheets, drawn
+   once per render. Resting state (no JS, or the class below never lands) is
+   fully drawn and static, so the diagram never depends on the animation to
+   be legible. */
+#dyad-screen .dyad-spine-wrap { margin: 0.25rem 0 0.75rem; }
+#dyad-screen .dyad-spine { display: block; width: 100%; height: 44px; overflow: visible; }
+#dyad-screen .dyad-spine-line {
+  stroke: var(--rule); stroke-width: 1; fill: none;
+  stroke-dasharray: 1; stroke-dashoffset: 0;
+}
+#dyad-screen .dyad-spine-dot { fill: var(--rule); }
+#dyad-screen .dyad-spine.dyad-spine-revealing .dyad-spine-line {
+  animation: dyadSpineDraw 320ms ease both;
+}
+@keyframes dyadSpineDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  #dyad-screen .dyad-spine.dyad-spine-revealing .dyad-spine-line { animation: none; }
+}
 #dyad-screen .dyad-relation { margin-top: 1rem; position: relative; }
-#dyad-screen .dyad-axis { margin-bottom: 0.9rem; }
+#dyad-screen .dyad-axis {
+  margin-bottom: 0.6rem; border: none; border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+#dyad-screen .dyad-axis > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: center; justify-content: space-between; min-height: 44px;
+  text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; opacity: 0.7; }
+#dyad-screen .dyad-axis > summary::-webkit-details-marker { display: none; }
+#dyad-screen .dyad-axis > summary::after { content: '+'; opacity: 0.6; }
+#dyad-screen .dyad-axis[open] > summary::after { content: '−'; }
+/* Explicit visible focus ring — a <summary> is natively keyboard-focusable
+   (it's the interactive part of <details>), and the general .info-icon
+   focus-visible treatment elsewhere in the app doesn't reach into this
+   module's own scoped stylesheet. */
+#dyad-screen .dyad-axis > summary:focus-visible {
+  outline: 2px solid var(--text); outline-offset: 2px; }
+#dyad-screen .dyad-axis-detail { margin-top: 0.5rem; }
 #dyad-screen .dyad-axis-head {
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; opacity: 0.7; }
 #dyad-screen .dyad-axis-body { font-size: 0.86rem; line-height: 1.45; }
@@ -198,20 +268,38 @@ const SCREEN_HTML =
   '<button type="submit" class="btn btn-block" id="dyad-submit">read the pair</button>' +
   '</form>' +
   '<div id="dyad-output" hidden>' +
-  '<div class="dyad-sheets">' +
+  '<div class="dyad-sheets" id="dyad-sheets">' +
   `<div><div class="dyad-sheet-label" id="dyad-head-a"></div>${buildSheetMarkup('a')}</div>` +
   `<div><div class="dyad-sheet-label" id="dyad-head-b"></div>${buildSheetMarkup('b')}</div>` +
   '</div>' +
+  '<div class="dyad-spine-wrap">' +
+  '<svg class="dyad-spine" id="dyad-spine" viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+  '<line class="dyad-spine-line" x1="4" y1="9" x2="96" y2="9" pathLength="1"></line>' +
+  '<circle class="dyad-spine-dot" cx="4" cy="9" r="2"></circle>' +
+  '<circle class="dyad-spine-dot" cx="96" cy="9" r="2"></circle>' +
+  '<line class="dyad-spine-line" x1="4" y1="27" x2="96" y2="27" pathLength="1"></line>' +
+  '<circle class="dyad-spine-dot" cx="4" cy="27" r="2"></circle>' +
+  '<circle class="dyad-spine-dot" cx="96" cy="27" r="2"></circle>' +
+  '<line class="dyad-spine-line" x1="4" y1="45" x2="96" y2="45" pathLength="1"></line>' +
+  '<circle class="dyad-spine-dot" cx="4" cy="45" r="2"></circle>' +
+  '<circle class="dyad-spine-dot" cx="96" cy="45" r="2"></circle>' +
+  '</svg>' +
+  '</div>' +
   '<div class="dyad-relation" id="dyad-relation">' +
-  '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-element-head"></div>' +
+  '<details class="dyad-axis" id="dyad-axis-element"><summary id="dyad-spine-element"></summary>' +
+  '<div class="dyad-axis-detail">' +
+  '<div class="dyad-axis-head" id="dyad-element-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-element-ab"></div>' +
-  '<div class="dyad-axis-body" id="dyad-element-ba"></div></div>' +
-  '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-numerology-head"></div>' +
+  '<div class="dyad-axis-body" id="dyad-element-ba"></div></div></details>' +
+  '<details class="dyad-axis" id="dyad-axis-numerology"><summary id="dyad-spine-numerology"></summary>' +
+  '<div class="dyad-axis-detail">' +
+  '<div class="dyad-axis-head" id="dyad-numerology-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-numerology-reduction"></div>' +
   '<div class="dyad-cite-label">numerology registry</div>' +
-  '<div class="dyad-axis-body dyad-cite" id="dyad-numerology-meaning"></div></div>' +
-  '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-cardpair-head"></div>' +
-  '<div class="dyad-axis-body" id="dyad-cardpair-body"></div></div>' +
+  '<div class="dyad-axis-body dyad-cite" id="dyad-numerology-meaning"></div></div></details>' +
+  '<details class="dyad-axis" id="dyad-axis-cardpair"><summary id="dyad-cardpair-head"></summary>' +
+  '<div class="dyad-axis-detail">' +
+  '<div class="dyad-axis-body" id="dyad-cardpair-body"></div></div></details>' +
   '<div class="dyad-qualifier" id="dyad-qualifier"></div>' +
   '</div>' +
   '<a class="btn btn-block" id="dyad-cta" hidden></a>' +
@@ -395,6 +483,19 @@ export function close() {
  */
 export function clearOutput() {
   _second = null;
+  // The pannable mobile strip (STYLE's .dyad-sheets) resets to its leading
+  // edge too. Ordered before #dyad-output is hidden below on principle — a
+  // scrollLeft write on a boxless (display:none-ancestor) element is a
+  // CSSOM View no-op — but in this file's own close() the screen ROOT is
+  // already hidden before clearOutput() ever runs, so THIS write is
+  // typically already moot by the time it executes there; render()'s
+  // post-reveal reset (below) is what a live-fire pass confirmed actually
+  // lands for the close → reopen → next-pair path. This one still matters
+  // on its own for a path render() never reaches: an invalid re-submission
+  // (§ submitSecond) invalidates a STILL-VISIBLE pair mid-session, where
+  // #dyad-output has a real layout box at the moment of the write.
+  const sheetsWrap = $('dyad-sheets');
+  if (sheetsWrap) sheetsWrap.scrollLeft = 0;
   const output = $('dyad-output');
   if (output) output.hidden = true;
   if (_sheetA) _sheetA.clear();
@@ -407,6 +508,19 @@ export function clearOutput() {
     if (block.classList) block.classList.remove('sealed');
     if (block.removeAttribute) block.removeAttribute('aria-label');
   }
+  // Every axis a reader may have expanded on the PREVIOUS pair closes here,
+  // so opening again (or landing a new pair mid-session) never shows an
+  // axis pre-expanded over content that hasn't rendered yet.
+  for (const id of DYAD_AXIS_IDS) {
+    const axis = $(id);
+    if (axis) axis.open = false;
+  }
+  // Always cleared here, re-added only by a fresh render — the same
+  // remove-then-reapply shape ui/tiers.js uses for its 'unsealing' beat, so
+  // the draw-in animation restarts on every new pair rather than firing once
+  // and going stale.
+  const spine = $('dyad-spine');
+  if (spine && spine.classList) spine.classList.remove('dyad-spine-revealing');
   const cta = $('dyad-cta');
   if (cta) {
     cta.hidden = true;
@@ -533,6 +647,8 @@ export function render() {
   for (const [id, field] of Object.entries(DYAD_RELATION_NODES)) {
     setText(id, relation ? relation[field] : '');
   }
+  const spine = $('dyad-spine');
+  if (spine && spine.classList && relation) spine.classList.add('dyad-spine-revealing');
 
   // The rung is owned here by definition, so there is nothing to offer. The
   // CTA stays hidden and href-less; it exists only so that filling
@@ -547,5 +663,16 @@ export function render() {
   const errEl = $('dyad-error');
   if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
   if (output) output.hidden = false;
+  // THE decisive reset for close() → reopen() → next-pair: by this line
+  // #dyad-sheets provably has a layout box (output.hidden just went false,
+  // and open() left the screen root visible), so the write is guaranteed to
+  // land — unlike clearOutput()'s pre-hide attempt, which close() usually
+  // makes moot by hiding the screen root first. A live-fire pass against a
+  // real browser (not this suite's plain-numeric harness fake) is what
+  // caught the gap: content-refill-driven layout shift on this reveal
+  // resurrected the OLD panned offset when this line was absent. Idempotent
+  // either way — a fresh pair always starts on sheet A.
+  const sheetsWrapAfterReveal = $('dyad-sheets');
+  if (sheetsWrapAfterReveal) sheetsWrapAfterReveal.scrollLeft = 0;
   return { tier, relation, entitled: true };
 }
