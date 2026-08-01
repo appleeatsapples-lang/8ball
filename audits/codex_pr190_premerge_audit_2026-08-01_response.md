@@ -11,7 +11,11 @@ SAFE TO MERGE
 **Date:** 2026-08-01
 
 Each round ran against a **detached worktree pinned at the exact audited
-commit**, so the audit artifacts themselves were never inside the audited range.
+commit**, so no round could see a later remediation and the verdict artifact was
+never inside any audited range. Stated rather than glossed: the brief was
+committed at `d047add`, so rounds 2 and 3 carried it as an inert added file
+inside `origin/main...<head>` — held out of review by the brief's own scope
+boundary, not by the pinning.
 
 ## Verdict as received
 
@@ -102,15 +106,27 @@ implementer's local runs alone and are **not** independently confirmed:
 - `bash audits/run_local_audit.sh` — `audits/local_personal_data.txt` is
   operator-local and absent from the worktree
 
-Implementer's local runs at `d1d8c51`: **51 files / 1826 tests passed**,
-assurance **93 tests OK**, product audit **PASS** (13 pass / 0 blocking; one
-advisory `product.git_status` for untracked local dirs), local PII audit clean.
+Implementer's local runs, re-run on the final tree of this PR (the audited
+content of `d1d8c51` plus the docs-only sighting corrections above it):
+**51 files / 1826 tests passed**, assurance **93 tests OK**, product audit
+**PASS** (13 pass / 0 blocking; one advisory `product.git_status` for untracked
+local dirs), local PII audit clean, `git diff --check` clean. The first three
+are content-derived and identical at `d1d8c51`; only the PII file COUNT moves
+with the commit, and it is stated below rather than left ambiguous.
 
-**Corrected on the auditor's evidence:** the PR body originally claimed **869**
-files for the PII scan. That count came from a working checkout carrying 37
-untracked local files plus the audit brief. The clean-tree count is **832–833**
-depending on the commit, as the auditor measured. The PR body was corrected
-rather than left standing.
+**Two counting corrections, both caught by review rather than by this lane.**
+
+1. The PR body first claimed **869** files for the PII scan. `run_local_audit.sh`
+   selects with `git ls-files --cached --others --exclude-standard`, so it counts
+   untracked-but-unignored files — this checkout carries 41 of them
+   (`audits/automated/` reports, `_to_delete/`). The **clean-tree** count, which
+   is what a fresh checkout and CI see, is **834** at this PR's head.
+2. An earlier draft of this artifact said the runs were "at `d1d8c51`" while the
+   PR body's evidence table said `951b69f` — the same four results attributed to
+   two different commits, one of which had to be wrong about its own method. The
+   PII figure is what disambiguates it (832 clean-tree at `951b69f`, 834 here).
+   Both documents now name the same tree. Nobody in three independent sweeps
+   joined those two halves; the adjudicating pass did.
 
 ## L48 disposition
 

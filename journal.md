@@ -57,9 +57,19 @@ content file or `package.json` touched, and **no executable calculation code cha
 longer shares a base with `main`'s actual tree; continuing to commit onto it would not reach `main`
 without another squash. New branch: `claude/calc-v4-doctrine-drift-followup`.
 
-**STAGED. No push, PR, or merge performed or requested by this entry — filed locally, pending
-controller instruction on whether this small a docs-only follow-up warrants its own PR or should
-ride the next doctrine-touching cycle.**
+**Superseded on sighting, same day — the paragraph below was accurate only at `951b69f`.** The
+branch was pushed and opened as **PR #190**; the Codex pre-merge audit ran three rounds (`951b69f`
+DO NOT MERGE, `11c88ba` DO NOT MERGE, `d1d8c51` **SAFE TO MERGE**, no P0-P3) and is filed at
+`audits/codex_pr190_premerge_audit_2026-08-01_brief.md` and `..._response.md` — the two artifacts
+this entry already cites twice above, which is what made the stale paragraph self-contradicting
+rather than merely out of date. Lifecycle stays **STAGED — not merged**; the merge is the
+controller's word. This was the FIFTH stale-active statement produced by a change whose sole
+purpose is removing them, and the first one none of this lane's own sweeps caught — it was found by
+an independent reader, because the lane's sweeps searched for the *phrasing* of the known defect
+("in place", "qualified") rather than for the *condition*, and this instance used none of those
+words. Was: "**STAGED. No push, PR, or merge performed or requested by this entry — filed locally,
+pending controller instruction on whether this small a docs-only follow-up warrants its own PR or
+should ride the next doctrine-touching cycle.**"
 
 ## 2026-08-01 — calc v4 master numbers merged, deployed and live-proven — SHIPPED
 
