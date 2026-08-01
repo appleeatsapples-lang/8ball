@@ -5,6 +5,41 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-02 — Product-audit path redaction, hardened by cross-model review — SHIPPED
+
+**Scope.** `audits/project_audit.py` and `audits/test_project_audit.py` only — no `core/`,
+`content/`, or UI change. A CC audit of a prior commit on this branch (`e81dcac`) found the
+product-audit report's redaction step rewrote dict *values* but not dict *keys* (a path landing in a
+key, e.g. a per-file evidence map, still leaked), and that the assurance suite's `unittest.main()`
+launcher ran before four new `TestCase` classes were defined later in the file, so direct execution
+(`python3 audits/test_project_audit.py`, as opposed to the canonical `-m unittest` invocation) would
+silently skip all four. Both fixed in `072f0b4`: `redact_paths()` now redacts keys too, with a
+`#2`/`#3`… disambiguating suffix if two distinct keys collide on the same redacted string; the
+launcher moved to the true end of the file, with a regression test pinning its position.
+
+**A second-order defect, caught only by independent review.** A `relay --base origin/main`
+cross-model pass (codex + grok + claude; gemini auth-failed) on the resulting PR (#194) found that
+the new key-collision test itself was vacuous: it appended two full-path needles to
+`redaction_map()`'s own output, but that output already contains the bare `home` needle ahead of
+them, so sequential `.replace()` disambiguated the two keys before either appended needle could ever
+fire — `len(out) == 2` passed whether or not the disambiguation branch existed. Fixed in `fd79231` by
+using only the two forcing pairs (no bare `home` needle in the list), verified by confirming the test
+**fails** when the disambiguation branch is temporarily deleted and **passes** with it restored — the
+check the earlier version should have been.
+
+**Verification.** `python3 -m unittest audits.test_project_audit` 102/102 (99 → 102 with the new
+tests). Real audit run: 13/14 PASS, no blocking failures, the same pre-existing non-blocking warn as
+baseline. `grep` confirmed no `$HOME` path in the emitted JSON/markdown report.
+`bash audits/run_local_audit.sh` clean (837 files).
+
+**Audit and merge.** Relay reconciliation verdict: **MERGE WITH FIXES → fix landed, now SAFE TO
+MERGE** (`audits/relay_pr194_premerge_audit_2026-08-02_response.md`), with two medium-severity gaps
+(temp-dir path leakage, non-`str`/`Path` leaf bypass of the redaction string branch) and lower-
+severity findings adjudicated non-blocking — real but outside this PR's stated threat model
+(operator home directory → account name), left as tracked fast-follows rather than fixed here. PR
+#194 squash-merged to `main` as `e7836fc`, all CI checks green (`test`, `product-audit`, `l48-gate`).
+Branch `claude/audit-report-path-redaction` deleted post-merge.
+
 ## 2026-08-01 — Dyad presentation refinement (spine, collapsed axes, pannable mobile) — SHIPPED
 
 **Presentation implementation scoped to two product/test files, plus the required L48 audit
