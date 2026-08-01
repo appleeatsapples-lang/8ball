@@ -47,7 +47,7 @@ import { openModal, closeModal, trapTab } from './modals.js';
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
 export const TIER_KEY = 'eight_ball_tier_v1';
-export const FACET_KEY = 'eight_ball_facet_index_v2';
+export const FACET_KEY = 'eight_ball_facet_index_v3';
 // Pre-calc-v3 facet position (v0.49–v0.53). A former-master profile could
 // anchor `high` here; under calc v3 that life path reduces (11→2, 22→4,
 // 33→6), so the stored position may contradict the new anchor. Retired:
@@ -56,6 +56,17 @@ export const FACET_KEY = 'eight_ball_facet_index_v2';
 // the first v3 load re-anchors every device (accepted cost — journal
 // 2026-07-20 §3 row 8 supersession entry).
 export const LEGACY_FACET_KEY = 'eight_ball_facet_index_v1';
+// Calc-v3 facet position (v0.54–v0.61). Calc v4 restores the master values
+// (§1.B v0.62), so a device that stored a position under calc v3 stored it
+// against a life path that has since MOVED — 1970-01-04 anchored `mid` as a
+// reduced 4 and anchors `third` as the restored 22. Reading a v2 position
+// under calc v4 would therefore render a note slot that was never computed
+// for the life path now on screen. The key is versioned rather than
+// migrated for exactly the reason v1 was: the single stored index cannot
+// represent how it got there, so there is nothing to migrate, and both
+// retired generations are cleared once on the first v3 facet read.
+export const LEGACY_FACET_KEY_V2 = 'eight_ball_facet_index_v2';
+const RETIRED_FACET_KEYS = [LEGACY_FACET_KEY, LEGACY_FACET_KEY_V2];
 
 // Controller-authorized c.1: reuse immutable v1 note slots positionally.
 // These are render positions, not newly authored lateral copy.
@@ -128,9 +139,12 @@ export function getRenderTier() {
   return resolved;
 }
 export function getFacetIndex() {
-  // One-shot calc-v3 migration: drop any pre-v3 position before reading the
-  // active key, so a stale former-master anchor can never render again.
-  try { localStorage.removeItem(LEGACY_FACET_KEY); } catch (_) {}
+  // One-shot calc-v4 migration: drop BOTH retired generations before reading
+  // the active key, so neither a pre-v3 former-master anchor nor a v3 anchor
+  // computed against a since-restored master life path can render again.
+  for (const key of RETIRED_FACET_KEYS) {
+    try { localStorage.removeItem(key); } catch (_) {}
+  }
   try { return normalizeFacetIndex(localStorage.getItem(FACET_KEY)); }
   catch (_) { return null; }
 }
@@ -141,7 +155,9 @@ export function setFacetIndex(index) {
 }
 export function clearFacetIndex() {
   try { localStorage.removeItem(FACET_KEY); } catch (_) {}
-  try { localStorage.removeItem(LEGACY_FACET_KEY); } catch (_) {}
+  for (const key of RETIRED_FACET_KEYS) {
+    try { localStorage.removeItem(key); } catch (_) {}
+  }
 }
 export function ensureFacetIndex(lifePath, { reset = false } = {}) {
   const stored = reset ? null : getFacetIndex();

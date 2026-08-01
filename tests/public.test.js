@@ -1,7 +1,7 @@
 // 8ball / tests / public.test.js
 //
 // Public-tier computation engine (core/public.js) + its tables
-// (content/public.v2.js, which carries content/public.v1.js unedited).
+// (content/public.v3.js, which carries content/public.v1.js + v2 unedited).
 //
 // Five required properties, per the tier brief, each with its own describe
 // block below: determinism, table coverage with no gaps, a date-only path
@@ -28,6 +28,7 @@ import {
   getSeason,
   getFavorability,
   getWorkMode,
+  resolveModeKey,
   rankDomainFamilies,
   getAntiFitFamily,
   getRolePosture,
@@ -44,11 +45,12 @@ import {
   DOMAIN_FAMILIES,
   FAMILY_CHARACTERS,
   WORK_MODES,
+  MASTER_MODE_BRIDGE,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
-} from '../content/public.v2.js';
-import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
-import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
+} from '../content/public.v3.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { TIER_COORDS } from '../ui/tiers.js';
 import { ANIMALS, buildProfile, getInnerAnimal, getBirthday } from '../core/profile.js';
 import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
@@ -67,11 +69,14 @@ const fixture = JSON.parse(
 );
 const publicSrc = readFileSync(join(REPO_ROOT, 'core', 'public.js'), 'utf-8');
 
-// The mode driver's domain is the shipped nine-number registry — imported,
+// The mode driver's domain is the shipped numerology registry — imported,
 // not restated, so this tier can never disagree with §1.B about which values
-// exist. As of §1.D v0.59 the driver is the BIRTHDAY number, whose domain is
-// the same nine values (day-of-month reduced).
-const NINE = LIFE_PATH_VALUES;
+// exist. As of §1.D v0.59 the driver is the BIRTHDAY number; as of §1.B v0.62
+// that number keeps its master value, so the domain is the full terminal
+// domain and the nine-entry mode table is reached through MASTER_MODE_BRIDGE.
+const TERMINAL = LIFE_PATH_VALUES;
+// The nine keys the authored mode table actually carries.
+const NINE = LIFE_PATH_VALUES.filter(n => n <= 9);
 const FREE_COORD_KEYS = TIER_COORDS.free;
 
 // A deterministic sweep across the whole supported solar-term range. The
@@ -211,7 +216,9 @@ describe('public tier — coverage, no gaps', () => {
     for (const dob of sweepDates()) {
       const r = buildPublicReading(dob);
       count += 1;
-      expect(NINE, dob).toContain(r.mode.birthday);
+      expect(TERMINAL, dob).toContain(r.mode.birthday);
+      expect(NINE, dob).toContain(r.mode.modeKey);
+      expect(r.mode.bridged, dob).toBe(MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined);
       expect(r.posture.number, dob).toBeGreaterThanOrEqual(0);
       expect(r.posture.number, dob).toBeLessThanOrEqual(21);
       expect(r.families, dob).toHaveLength(3);
@@ -322,8 +329,14 @@ describe('public tier — snapshot fixtures', () => {
     expect(new Set(readings.map(r => r.dayMaster.element)).size).toBe(5);
     expect(new Set(readings.map(r => r.strength)).size).toBe(2);
     expect(new Set(readings.map(r => r.season.state)).size).toBe(5);
+    // Every authored mode key, plus both master birthday values reachable
+    // from a day of the month (calc v4, §1.B v0.62) — so the fixture set
+    // covers the bridged read as well as the nine direct ones.
     expect([...new Set(readings.map(r => r.mode.birthday))].sort((a, b) => a - b))
+      .toEqual([...NINE, 11, 22]);
+    expect([...new Set(readings.map(r => r.mode.modeKey))].sort((a, b) => a - b))
       .toEqual([...NINE]);
+    expect(readings.filter(r => r.mode.bridged).length).toBeGreaterThanOrEqual(2);
     for (const c of fixture.cases) expect(c.note.length).toBeGreaterThan(10);
   });
 
@@ -425,19 +438,71 @@ describe('public tier — independent anchors', () => {
     expect(codeOnly(publicSrc)).not.toMatch(/getLifePath/);
   });
 
-  it('reduces the day of the month, and every day of a month resolves', () => {
-    // No master stops are reachable here: the largest day is 31 → 4.
-    expect(buildPublicReading('2000-01-29').mode).toMatchObject({ dayOfMonth: 29, birthday: 2 });
+  it('reduces the day of the month, keeping master days master, and every day resolves', () => {
+    // Days 11 and 22 are master stops under calc v4 and stay themselves;
+    // 33 is not reachable from a day of the month. 29 stops at 11 rather
+    // than running on to 2 — the case the nine-number rule used to swallow.
+    expect(buildPublicReading('2000-01-29').mode).toMatchObject({ dayOfMonth: 29, birthday: 11 });
+    expect(buildPublicReading('2000-01-11').mode).toMatchObject({ dayOfMonth: 11, birthday: 11 });
+    expect(buildPublicReading('2000-01-22').mode).toMatchObject({ dayOfMonth: 22, birthday: 22 });
     expect(buildPublicReading('2000-01-31').mode).toMatchObject({ dayOfMonth: 31, birthday: 4 });
     expect(buildPublicReading('2000-01-09').mode).toMatchObject({ dayOfMonth: 9, birthday: 9 });
     const seen = new Set();
     for (let d = 1; d <= 31; d++) {
       const iso = `2000-01-${String(d).padStart(2, '0')}`;
       const { mode } = buildPublicReading(iso);
-      expect(NINE, iso).toContain(mode.birthday);
+      expect(TERMINAL, iso).toContain(mode.birthday);
       seen.add(mode.birthday);
     }
-    expect([...seen].sort((a, b) => a - b)).toEqual([...NINE]);
+    // Every single digit plus the two reachable master stops.
+    expect([...seen].sort((a, b) => a - b)).toEqual([...NINE, 11, 22]);
+  });
+
+  it('a master birthday reads a base mode through a DISCLOSED bridge', () => {
+    // §1.B v0.62: the coordinate keeps its master value, the nine-entry mode
+    // table is reached through the declared bridge, and the reading SAYS so.
+    // Silently indexing a nine-entry table with 11 is the failure this pins.
+    expect(MASTER_MODE_BRIDGE).toEqual({ 11: 2, 22: 4, 33: 6 });
+    for (const [masterKey, base] of Object.entries(MASTER_MODE_BRIDGE)) {
+      const master = Number(masterKey);
+      expect(resolveModeKey(master)).toEqual({ key: base, bridged: true, from: master });
+      // The mode read for a master is byte-identical to its base's mode...
+      expect(getWorkMode(master)).toBe(WORK_MODES[base]);
+      // ...and the table itself gains no master entry, so nothing here can
+      // pass a bridged read off as authored master content.
+      expect(WORK_MODES[master]).toBeUndefined();
+    }
+    const bridged = buildPublicReading('2000-01-11');
+    expect(bridged.mode.birthday).toBe(11);
+    expect(bridged.mode.modeKey).toBe(2);
+    expect(bridged.mode.bridged).toBe(true);
+    expect(bridged.mode.bridgeNote).toContain('11');
+    expect(bridged.mode.bridgeNote).toContain('2');
+    expect(bridged.mode.theme).toBe(WORK_MODES[2].theme);
+    // The provenance line names the bridge rather than a rule it does not run.
+    expect(PUBLIC_SOURCES.mode).toMatch(/master/);
+    expect(PUBLIC_SOURCES.mode).not.toMatch(/nine-number/);
+
+    // An unbridged birthday reports the absence of a bridge explicitly, so a
+    // consumer can distinguish "no bridge" from "field not populated".
+    const direct = buildPublicReading('2000-01-09');
+    expect(direct.mode).toMatchObject({ birthday: 9, modeKey: 9, bridged: false, bridgeNote: null });
+    expect(resolveModeKey(9)).toEqual({ key: 9, bridged: false, from: 9 });
+  });
+
+  it('a master birthday produces a complete reading — families, anti-fit, role line', () => {
+    // The bridge must not be a place the reading can half-resolve. Every
+    // downstream consumer of the mode is driven, on a real master date.
+    for (const iso of ['2000-01-11', '2000-01-22', '1984-03-29']) {
+      const r = buildPublicReading(iso);
+      expect(TERMINAL, iso).toContain(r.mode.birthday);
+      expect(r.mode.bridged, iso).toBe(true);
+      expect(r.families, iso).toHaveLength(3);
+      expect(r.families.map(f => f.rank), iso).toEqual([1, 2, 3]);
+      expect(r.antiFit.key, iso).toBeTruthy();
+      expect(r.roleLine.endsWith('.'), iso).toBe(true);
+      expect(collectStrings(r).every(({ text }) => text.length > 0), iso).toBe(true);
+    }
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
@@ -494,13 +559,18 @@ describe('public tier — table integrity', () => {
     expect(DOMAIN_FAMILIES.water.map(f => f.key).sort()).toEqual(['communication', 'logistics', 'trade']);
   });
 
-  it('the modes are exactly nine and reuse the meanings.v2 theme vocabulary', () => {
-    // No master-number entries survive the 2026-07-29 collapse, and the tier
-    // introduces no numerology vocabulary of its own.
+  it('the modes stay exactly nine and reuse the meanings.v3 theme vocabulary', () => {
+    // Calc v4 restores the master values but authors NO master work mode —
+    // the table is still nine entries, reached for a master through the
+    // declared bridge. A fourth-through-twelfth entry appearing here would
+    // mean new paid copy shipped under cover of a calculation change.
     expect(Object.keys(WORK_MODES)).toHaveLength(9);
     expect(WORK_MODES[11]).toBeUndefined();
     expect(WORK_MODES[22]).toBeUndefined();
-    expect(() => getWorkMode(11)).toThrow('No work mode');
+    expect(WORK_MODES[33]).toBeUndefined();
+    // A value that is neither a mode key nor a bridged master still throws.
+    expect(() => getWorkMode(10)).toThrow('No work mode');
+    expect(() => getWorkMode(44)).toThrow('No work mode');
     for (let n = 1; n <= 9; n++) {
       expect(WORK_MODES[n].theme, `mode ${n}`).toBe(NUMEROLOGY_MEANINGS[String(n)].theme);
     }

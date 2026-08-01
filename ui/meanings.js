@@ -24,7 +24,7 @@ import {
   NUMEROLOGY_MEANINGS,
   ELEMENT_MEANINGS,
   COORDINATE_CONTEXT,
-} from '../content/meanings.v2.js';
+} from '../content/meanings.v3.js';
 
 const TABLES = {
   arcana: ARCANA_MEANINGS,

@@ -54,9 +54,10 @@ import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
 // ── the rung is not live, and fails closed until it is ────────────
-// The Gumroad product does not exist; creating it is the controller's action,
-// never an agent's (§10). While this constant is empty the CTA carries no
-// href and stays hidden, so no visitor can reach a dead checkout. Unlike the
+// The $6 comparative Gumroad listing exists but is unpublished and not for
+// sale; publishing or changing it is the operator's action, never an agent's
+// (§10). No fulfillment path is wired. While this constant is empty the CTA
+// carries no href and stays hidden, so no visitor can reach a dead checkout. Unlike the
 // retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
 // deliberately NOT sufficient on its own to make the rung buyable: entry
 // visibility (`dyadEntryVisible`, below) is entitlement-only and does not
@@ -123,7 +124,7 @@ export function formatDyadRelation(reading) {
     numerologyHead: `${numerology.lifePathA} + ${numerology.lifePathB} → ${numerology.combined} · ${numerology.register}`,
     // Two separate strings on purpose (§1.J content-source rule, PR #187 F6):
     // the reduction is authored for this tier and carries no meaning; the
-    // meaning is the nine-number registry's OWN body, rendered unmodified and
+    // meaning is the numerology registry's OWN body, rendered unmodified and
     // labelled as the citation it is. They must never be merged into one
     // sentence — that is how the re-authored copy got written the first time.
     numerologyReduction: numerology.reduction,
@@ -207,7 +208,7 @@ const SCREEN_HTML =
   '<div class="dyad-axis-body" id="dyad-element-ba"></div></div>' +
   '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-numerology-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-numerology-reduction"></div>' +
-  '<div class="dyad-cite-label">nine-number registry</div>' +
+  '<div class="dyad-cite-label">numerology registry</div>' +
   '<div class="dyad-axis-body dyad-cite" id="dyad-numerology-meaning"></div></div>' +
   '<div class="dyad-axis"><div class="dyad-axis-head" id="dyad-cardpair-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-cardpair-body"></div></div>' +

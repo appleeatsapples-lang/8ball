@@ -184,8 +184,36 @@ describe('ui/meanings.js behavior', () => {
     expect(p._byId['meaning-body'].textContent).not.toContain('derived by');
   });
 
-  it('rejects retired master-number values from the active meaning registry', () => {
-    vals.lifePath.textContent = '11';
+  it('opens the filed master entry for every master value, on every numerology cell', () => {
+    // Calc v4 (§1.G v0.62): the twelve terminal values all resolve a meaning
+    // and a context without falling through to "meaning not filed". Every
+    // numerology cell is exercised, not just the life path, because each
+    // reads the same registry through its own coordinate role.
+    const cases = [
+      ['lifePath', '11', 'the illuminator (master number)'],
+      ['nameNumber', '22', 'the master builder (master number)'],
+      ['soulUrge', '33', 'the master teacher (master number)'],
+      ['personality', '11', 'the illuminator (master number)'],
+      ['birthday', '22', 'the master builder (master number)'],
+      ['maturity', '33', 'the master teacher (master number)'],
+    ];
+    for (const [key, value, register] of cases) {
+      vals[key].textContent = value;
+      cardFace._fire('click', { target: vals[key] });
+      const p = panel();
+      expect(p._byId['meaning-title'].textContent, `${key}=${value}`).toBe(register);
+      expect(p._byId['meaning-body'].textContent, `${key}=${value} body`).not.toBe('');
+      expect(p._byId['meaning-context'].textContent, `${key}=${value} context`).not.toBe('');
+      expect(p._byId['meaning-context-head'].textContent).toBe('with the other numbers');
+      // Close so the next iteration opens rather than toggling shut.
+      cardFace._fire('click', { target: vals[key] });
+    }
+  });
+
+  it('still refuses a value the calculator cannot produce', () => {
+    // The negative half of the pin above. Widening the registry to twelve
+    // values must not turn it into a registry of every integer.
+    vals.lifePath.textContent = '10';
     cardFace._fire('click', { target: vals.lifePath });
     expect(panel()._byId['meaning-title'].textContent).toBe('meaning not filed');
   });

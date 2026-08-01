@@ -127,6 +127,7 @@ export function buildSheetMarkup(prefix) {
     `<div class="card-habit" data-sheet-families="${prefix}"></div>` +
     `<div class="card-note" data-sheet-antifit="${prefix}"></div>` +
     `<div class="card-note" data-sheet-roleline="${prefix}"></div>` +
+    `<div class="card-note public-bridge" data-sheet-public-bridge="${prefix}"></div>` +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +
     '</article>';
 }
@@ -158,6 +159,7 @@ export function createSheet(host, { prefix } = {}) {
     q(`[data-sheet-families="${prefix}"]`),
     q(`[data-sheet-antifit="${prefix}"]`),
     q(`[data-sheet-roleline="${prefix}"]`),
+    q(`[data-sheet-public-bridge="${prefix}"]`),
   ];
 
   function setCell(key, state, text) {
@@ -181,8 +183,10 @@ export function createSheet(host, { prefix } = {}) {
      * @param {string} tier
      * @param {{noteSlot?: 'low'|'mid'|'high'}} opts
      *        noteSlot is handed in, never read from storage: the written-entry
-     *        rotation lives in `eight_ball_facet_index_v2` and a second
-     *        person's sheet must not touch it (§5 — no storage write).
+     *        rotation lives in `eight_ball_facet_index_v3` (§1.H v0.62; `_v1`
+     *        and `_v2` are retired generations, cleared once on first read)
+     *        and a second person's sheet must not touch it (§5 — no storage
+     *        write).
      *
      *        publicRead is likewise handed in rather than computed. This module
      *        deliberately does NOT import the public-tier surface: that engine
@@ -243,6 +247,12 @@ export function createSheet(host, { prefix } = {}) {
       setText(`[data-sheet-families="${prefix}"]`, read ? read.families : '');
       setText(`[data-sheet-antifit="${prefix}"]`, read ? read.antiFit : '');
       setText(`[data-sheet-roleline="${prefix}"]`, read ? read.roleLine : '');
+      // The master-birthday disclosure (§1.B v0.62). Both sheets carry it for
+      // the same reason the host does: a second person whose birthday is 11 or
+      // 22 must not receive base-mode copy with nothing saying so. Empty for
+      // an unbridged reading, and cleared on the sealed branch like every
+      // other value node.
+      setText(`[data-sheet-public-bridge="${prefix}"]`, read ? (read.bridge || '') : '');
 
       return { cardEntry: entryOpen, publicRead: !!read };
     },

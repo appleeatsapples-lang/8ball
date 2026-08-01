@@ -2,7 +2,8 @@
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no storage, no
 // model call at runtime or at any other time: every value below is a lookup
-// or an integer reduction over the frozen tables in content/dyad.v1.js. Two
+// or an integer reduction over active content/dyad.v2.js, which carries the
+// immutable v1 relation tables and versions only the calc-v4 frames. Two
 // profiles in, byte-identical object out, forever.
 //
 // INPUT — two ALREADY-CALCULATED profiles, not two payloads. This is the
@@ -37,8 +38,8 @@
 import { getCard, resolveBracket } from './engine.js';
 import { STEMS, STEM_ELEMENTS } from './pillars.js';
 import { sumDigits } from './math.js';
-import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
-import { LIFE_PATH_VALUES } from '../content/concordance.v2.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import {
   ELEMENT_SHENG,
   ELEMENT_KE,
@@ -52,7 +53,7 @@ import {
   BRACKET_REGISTERS,
   DYAD_SOURCES,
   DYAD_QUALIFIER,
-} from '../content/dyad.v1.js';
+} from '../content/dyad.v2.js';
 
 // ── 1. Day master ───────────────────────────────────────────────────────────
 //
@@ -138,36 +139,51 @@ export function elementDirection(from, to) {
 
 // ── 3. Combined life path ───────────────────────────────────────────────────
 
-// The §1.B v0.54 nine-number reduction, applied to the SUM of two life paths.
-// core/profile.js owns this rule for a single reading but keeps its reducer
-// private and exposes it only through per-coordinate functions, none of which
-// takes an arbitrary total. Rather than widen that module's surface for one
-// caller, the rule is restated here in its canonical form (repeated digit sum
-// until a single digit remains) and pinned against the shipped behaviour by a
-// differential test: tests/dyad.test.js checks this against core/profile.js
-// getBirthday — the one exported function that reduces an arbitrary positive
-// integer — across the whole reachable domain and well beyond it.
-export function reduceNine(total) {
+// The §1.B v0.62 master-preserving reduction, applied to the SUM of two life
+// paths. core/profile.js owns this rule for a single reading but keeps its
+// reducer private and exposes it only through per-coordinate functions, none
+// of which takes an arbitrary total. Rather than widen that module's surface
+// for one caller, the rule is restated here in its canonical form (repeated
+// digit sum while the value is above 9, stopping at a master value) and
+// pinned against the shipped behaviour by a differential test:
+// tests/dyad.test.js checks this against core/profile.js getBirthday — the
+// one exported function that reduces an arbitrary positive integer — across
+// the whole reachable domain and well beyond it.
+//
+// Renamed from `reduceNine` (calc v3): the old name asserted a domain the
+// rule no longer has, and a function called `reduceNine` that can return 22
+// is worse than one with a neutral name.
+const MASTER_STOPS = new Set([11, 22, 33]);
+
+export function reduceTerminal(total) {
   if (!Number.isInteger(total) || total <= 0) return null;
   let n = total;
-  while (n > 9) n = sumDigits(n);
+  while (n > 9 && !MASTER_STOPS.has(n)) n = sumDigits(n);
   return n;
 }
 
 /**
  * The reduction clause: the arithmetic, and nothing else. Two frames, chosen
- * by whether the sum actually needed reducing — a single frame would have to
- * say "sums to 6, which reduces to 6" whenever the sum already sat inside the
- * range, which is a claim about a reduction that did not happen.
+ * by whether the sum ACTUALLY CHANGED — a single frame would have to say
+ * "sums to 6, which reduces to 6" whenever the sum was already terminal,
+ * which is a claim about a reduction that did not happen.
+ *
+ * The test is `sum !== combined`, not `sum > 9`. Under calc v3 those were the
+ * same test because every terminal value was a single digit; under calc v4
+ * they are not — a life path 9 beside a 2 sums to 11, which STOPS at 11, and
+ * `sum > 9` would fire the reduced frame to announce that 11 reduces to 11.
  */
 export function combinedPathClause(sum, combined) {
-  const frame = sum > 9 ? COMBINED_PATH_FRAMES.reduced : COMBINED_PATH_FRAMES.direct;
+  const frame = sum === combined ? COMBINED_PATH_FRAMES.direct : COMBINED_PATH_FRAMES.reduced;
   return frame.replace('{sum}', String(sum)).replace('{combined}', String(combined));
 }
 
 /**
- * The numerology axis. Both life paths are 1..9 (calc v3), so the sum is
- * 2..18 and the reduction lands back in 1..9 with every value reachable.
+ * The numerology axis. Both life paths are in the calc-v4 terminal domain
+ * (`1..9, 11, 22, 33`), so the sum runs 2..66 and the reduction lands back in
+ * the same domain — including on a master value, which 9+2, 11+11 and 11+22
+ * all reach. A combined path may therefore itself be 11, 22 or 33, and reads
+ * the registry entry for that value like any other.
  *
  * The returned object separates the two things §1.J requires to stay separate:
  *
@@ -185,20 +201,22 @@ export function combinedPathClause(sum, combined) {
 export function combinedPath(lifePathA, lifePathB) {
   // Both inputs are validated against the ACTIVE domain before they are
   // summed, not merely checked for integer-ness. Summing first hides the
-  // whole class of bad input this guard exists for: a retired master value
-  // (11 / 22 / 33) is a perfectly good integer, so `11 + 4` would reduce to a
-  // plausible 6 and render a combined path built on a coordinate calc v3
-  // retired. `resolveBracket` rejects those values on the single sheet; the
+  // whole class of bad input this guard exists for: an out-of-domain value is
+  // often a perfectly good integer, so `10 + 4` would reduce to a plausible 5
+  // and render a combined path built on a coordinate the calculator cannot
+  // produce. `resolveBracket` rejects those values on the single sheet; the
   // dyad has to reject them too or it becomes the one surface where a stale
   // hand-edited profile still reads. 0 and negatives fail here for the same
-  // reason — they survive a sum but are not numerology coordinates.
+  // reason — they survive a sum but are not numerology coordinates. The
+  // domain widened at calc v4 to admit 11 / 22 / 33; it did not stop being a
+  // domain.
   for (const value of [lifePathA, lifePathB]) {
     if (!LIFE_PATH_VALUES.includes(value)) {
       throw new TypeError(`invalid life path pair: ${lifePathA} / ${lifePathB}`);
     }
   }
   const sum = lifePathA + lifePathB;
-  const combined = reduceNine(sum);
+  const combined = reduceTerminal(sum);
   if (combined === null) {
     throw new TypeError(`invalid life path pair: ${lifePathA} / ${lifePathB}`);
   }
@@ -214,7 +232,7 @@ export function combinedPath(lifePathA, lifePathB) {
     // The registry's own body, carried unmodified. If this is ever replaced by
     // a locally authored string, F6 has recurred.
     meaning: entry.body,
-    meaningSource: 'content/meanings.v2.js NUMEROLOGY_MEANINGS',
+    meaningSource: 'content/meanings.v3.js NUMEROLOGY_MEANINGS',
   };
 }
 
@@ -294,7 +312,8 @@ export function bracketPair(lifePathA, lifePathB) {
  * cell) and the life-path brackets (which drive the written note position).
  *
  * NO deck string is read. The catalog numerals are positional output of
- * getCard, and both passages come from content/dyad.v1.js — so the t3
+ * getCard, and both passages come through active content/dyad.v2.js from its
+ * immutable v1 relation tables — so the t3
  * written entry is not given away, recombined, or paraphrased at t5.
  */
 export function cardPair(profileA, profileB) {

@@ -217,7 +217,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
     }
     for (const attr of ['title', 'catalog', 'name', 'type', 'habit', 'note',
-      'families', 'antifit', 'roleline', 'face', 'entry', 'public']) {
+      'families', 'antifit', 'roleline', 'public-bridge', 'face', 'entry', 'public']) {
       if (attr === 'title') {
         for (const lead of Object.keys(ROW_TITLES)) {
           byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, makeNode());
@@ -620,7 +620,7 @@ function makeStandaloneSheetHost(prefix) {
     byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
   }
   for (const attr of ['catalog', 'name', 'type', 'habit', 'note',
-    'families', 'antifit', 'roleline']) {
+    'families', 'antifit', 'roleline', 'public-bridge']) {
     byAttr.set(`[data-sheet-${attr}="${prefix}"]`, mk());
   }
   for (const attr of ['face', 'entry', 'public']) {
@@ -645,9 +645,15 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
   // host and a real `createSheet(...).render(...)`, cell by cell.
   const LONDON = { time: '14:15', lat: 51.5074, lng: -0.1278, tz: 'Europe/London' };
   const ANCHOR_PROFILES = [
-    ['low (1-3)', buildProfile('diff low', '1988-06-15', { ...LONDON, time: '08:30' })],
+    ['low (1-3)', buildProfile('diff low', '1900-01-01', { ...LONDON, time: '08:30' })],
     ['mid (4-6)', buildProfile('diff mid', '2000-01-01', LONDON)],
     ['high (7-9)', buildProfile('diff high', '1990-07-10', { ...LONDON, time: '22:05' })],
+    // Calc v4 (§1.B v0.62): a master life path is a fourth REPRESENTATIVE of
+    // the same three anchor groups, not a fourth group — it shares `high`
+    // with 7-9. It is exercised here because its numerology cells carry
+    // two-character values, which is the one shape the differential had
+    // never seen on either side of the comparison.
+    ['high (master 22)', buildProfile('diff master', '1970-01-04', { ...LONDON, time: '11:40' })],
   ];
   const TIERS = ['free', 't1', 't2', 't3', 't5'];
   const CASES = ANCHOR_PROFILES.flatMap(([label, profile]) =>
@@ -717,6 +723,68 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
       .toBe(publicOpen && publicRead ? publicRead.antiFit : '');
     expect(sheetHost.querySelector('[data-sheet-roleline="x"]').textContent, `${label}/${tier} roleline`)
       .toBe(publicOpen && publicRead ? publicRead.roleLine : '');
+    // The master-birthday disclosure travels with the block (§1.B v0.62). The
+    // `high (master 22)` profile below is born on the 4th, so its BIRTHDAY is
+    // not a master and this stays empty for it — which is why the dedicated
+    // master-birthday case follows rather than relying on this sweep.
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent, `${label}/${tier} bridge`)
+      .toBe(publicOpen && publicRead ? publicRead.bridge : '');
+  });
+
+  // The sweep above varies the LIFE PATH across facet-anchor groups; the
+  // bridge is driven by the BIRTHDAY, so it needs its own case or the
+  // disclosure ships to person B untested (PR audit, 2026-07-31, P1).
+  it.each([
+    ['birthday 11 → mode 2', buildProfile('diff m11', '1980-06-11'), '11'],
+    ['birthday 22 → mode 4', buildProfile('diff m22', '1995-09-22'), '22'],
+  ])('a second person with a master birthday sees the disclosure (%s)', (_label, profile, master) => {
+    const { host: sheetHost } = makeStandaloneSheetHost('x');
+    const sheet = createSheet(sheetHost, { prefix: 'x' });
+    const publicRead = publicReadFor(profile);
+    expect(publicRead.bridge).toContain(master);
+
+    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent)
+      .toBe(publicRead.bridge);
+
+    // Below t3 the whole block seals, disclosure included — an unentitled
+    // render carries no entitled string (§1.D v0.37).
+    sheet.render(profile, 't2', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent).toBe('');
+
+    // And `clear()` scrubs it: the node is in valueNodes(), so a list that
+    // fell behind the fill path — the F1 defect this module already carries a
+    // fix for — would leave person B's disclosure in live hidden DOM.
+    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent.length)
+      .toBeGreaterThan(0);
+    sheet.clear();
+    expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent).toBe('');
+  });
+
+  it('index boot supplies publicReadFor and the real dyad render carries both bridge notes', () => {
+    // The direct createSheet cases above pin the leaf renderer. This drives
+    // initDyadUI → submitSecond → render with the same hook index.html ships,
+    // so deleting either the host hook or ui/dyad.js's hook consumption fails.
+    expect(html).toMatch(/initDyadUI\([\s\S]*?getPublicRead:\s*publicReadFor/);
+
+    const profileA = buildProfile('wire a', '1980-06-11');
+    const profileB = buildProfile('wire b', '1995-09-22');
+    const inst = harness('t5', {
+      profileA,
+      second: profileB,
+      publicRead: publicReadFor,
+    });
+
+    inst.withDom(() => submitSecond());
+    const bridgeA = inst.byAttr.get('[data-sheet-public-bridge="a"]');
+    const bridgeB = inst.byAttr.get('[data-sheet-public-bridge="b"]');
+    expect(bridgeA.textContent).toContain('11');
+    expect(bridgeB.textContent).toContain('22');
+
+    inst.withDom(() => closeDyad());
+    expect(bridgeA.textContent).toBe('');
+    expect(bridgeB.textContent).toBe('');
   });
 });
 
@@ -727,19 +795,23 @@ describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {
     else globalThis.localStorage = originalStorage;
   });
 
-  it('B (life path 1-3) always renders the FRESH low anchor, even while A/current sits rotated to mid or high', () => {
+  it('B always renders its OWN fresh anchor, even while A/current sits rotated elsewhere', () => {
     // A = the module fixture (lifePath 4, the mid bucket). Simulate a device
-    // that has already flipped its OWN written entry past its anchor, to
-    // 'high' (stored index 2), before ever opening the dyad screen.
-    const store = new Map([[FACET_KEY, '2']]);
+    // that has already flipped its OWN written entry off its anchor, to
+    // 'low' (stored index 0), before ever opening the dyad screen.
+    const store = new Map([[FACET_KEY, '0']]);
     globalThis.localStorage = {
       getItem: k => (store.has(k) ? store.get(k) : null),
       setItem: (k, v) => store.set(k, String(v)),
       removeItem: k => store.delete(k),
     };
     expect(anchorFacetIndex(A.lifePath)).toBe(1); // A anchors mid...
-    expect(getFacetSlot(A.lifePath)).toBe('high'); // ...but the device is rotated to high.
-    expect(anchorFacetIndex(B.lifePath)).toBe(0); // B (module fixture) anchors low.
+    expect(getFacetSlot(A.lifePath)).toBe('low'); // ...but the device is rotated to low.
+    // B (module fixture) carries a master life path under calc v4, which
+    // anchors the THIRD position — so the two slots genuinely differ and the
+    // assertions below are not vacuous.
+    expect(B.lifePath).toBe(11);
+    expect(anchorFacetIndex(B.lifePath)).toBe(2);
 
     const calls = [];
     const noteSlot = (p, role) => {
@@ -758,12 +830,12 @@ describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {
     const aCard = CARDS[A.sunSign][A.animal];
     const bCard = CARDS[B.sunSign][B.animal];
     // A rendered at the device's ROTATED (stored) position...
-    expect(inst.byAttr.get('[data-sheet-note="a"]').textContent).toBe(aCard.note.high);
+    expect(inst.byAttr.get('[data-sheet-note="a"]').textContent).toBe(aCard.note.low);
     // ...while B rendered its FRESH anchor, ignoring the exact same stored
     // index — the R2 defect was B silently inheriting A's rotated slot.
-    expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).toBe(bCard.note.low);
+    expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).toBe(bCard.note.high);
     if (bCard.note.high !== bCard.note.low) {
-      expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).not.toBe(bCard.note.high);
+      expect(inst.byAttr.get('[data-sheet-note="b"]').textContent).not.toBe(bCard.note.low);
     }
   });
 });

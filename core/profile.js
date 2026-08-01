@@ -12,6 +12,11 @@
 // city profiles pass opts.tz directly; legacy v0.2.1+ country payloads
 // derive a representative IANA timezone from core/countries.js first.
 // See DOCTRINE.md §1.A.
+// v4 (calc v4, DOCTRINE §1.B v0.62) restores master-number preservation:
+// the active terminal domain is `1..9, 11, 22, 33` across all six numerology
+// coordinates. This supersedes calc v3's strict nine-number reduction and
+// keeps its null/unresolved guard. Lunar, solar-term, rising, pillar,
+// birth-card and catalog-index algorithms are untouched.
 
 import { getCountryTimeZoneByCode } from './countries.js';
 import { computeRising } from './rising.js';
@@ -148,12 +153,29 @@ export function getInnerAnimal(year, month, day) {
   return 'rat';
 }
 
-// Active numerology is a strict nine-number system. Every positive total is
-// reduced by repeated digit sum until it lands in 1..9; historical master
-// values (11/22/33) are not retained as separate outputs.
+// Active numerology preserves the three master numbers (calc v4, §1.B v0.62).
+// The terminal domain is exactly `1..9, 11, 22, 33`: every positive total is
+// reduced by repeated digit sum while it sits above 9, stopping immediately
+// at a master value. So 29 → 11 and 38 → 11, while 44 → 8 (44 is not a stop,
+// and its digit sum is already single-digit).
+//
+// The null guard is calc-v3 behaviour and is deliberately retained: an
+// invalid or non-positive total is UNRESOLVED, never the tenth value `0`.
+// That is the one part of the nine-number cut that outlived it.
+export const MASTER_NUMBERS = Object.freeze([11, 22, 33]);
+const MASTER_STOPS = new Set(MASTER_NUMBERS);
+
+// The active terminal domain, in ascending order. Exported so consumers
+// validate against the calculation core rather than re-deriving the list;
+// content/concordance.v3.js re-exports it as the Concordance life-path
+// domain so the registry and the calculator cannot disagree.
+export const TERMINAL_NUMBERS = Object.freeze(
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, ...MASTER_NUMBERS]
+);
+
 const reduce = n => {
   if (!Number.isInteger(n) || n <= 0) return null;
-  while (n > 9) n = sumDigits(n);
+  while (n > 9 && !MASTER_STOPS.has(n)) n = sumDigits(n);
   return n;
 };
 
@@ -222,14 +244,18 @@ export function getSoulUrge(name) {
   return reduce(getSoulUrgeSum(name));
 }
 
-// Birthday: day-of-month from DOB, reduced into the active 1..9 system.
+// Birthday: day-of-month from DOB, reduced into the active terminal domain.
+// Days 11 and 22 are master stops and stay 11 and 22; 33 is not reachable
+// from a day of the month, but the reducer treats it the same way everywhere.
 export function getBirthday(day) {
   return reduce(day);
 }
 
 // Maturity: reduced life path plus reduced expression/name number, then
 // reduced again. Combining the canonical components rather than their raw
-// totals keeps maturity inside the same reproducible nine-number system.
+// totals is the standard method — adding the raw pre-reduction sums instead
+// can fabricate or suppress a master number that would not appear otherwise
+// (see journal 2026-07-06).
 export function getMaturitySum(year, month, day, name) {
   const lifePath = getLifePath(year, month, day);
   const nameNumber = getNameNumber(name);

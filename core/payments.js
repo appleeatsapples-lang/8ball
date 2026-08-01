@@ -29,9 +29,14 @@ export function normalizeCounter(value) {
 
 export const FACET_COUNT = 3;
 
+// Facet anchor groups, in lockstep with resolveBracket's brackets in
+// core/engine.js (§1.H v0.62). The three master values anchor at the THIRD
+// position for the same reason they resolve to the `high` bracket — the two
+// groupings are the same partition of the calc-v4 terminal domain and must
+// not be allowed to disagree (tests/facet_rotation.test.js pins that).
 const FIRST_FACET_LIFE_PATHS = new Set([1, 2, 3]);
 const SECOND_FACET_LIFE_PATHS = new Set([4, 5, 6]);
-const THIRD_FACET_LIFE_PATHS = new Set([7, 8, 9]);
+const THIRD_FACET_LIFE_PATHS = new Set([7, 8, 9, 11, 22, 33]);
 
 export function anchorFacetIndex(lifePath) {
   if (FIRST_FACET_LIFE_PATHS.has(lifePath)) return 0;

@@ -1,6 +1,6 @@
 // 8ball / tests / dyad.test.js
 //
-// The dyad relation engine (core/dyad.js) and its tables (content/dyad.v1.js).
+// The dyad relation engine (core/dyad.js) and its tables (content/dyad.v2.js).
 // Voice/grammar policy lives in tests/dyad_content.test.js; the surface lives
 // in tests/dyad_surface.test.js. This file covers the engine's five load-
 // bearing properties:
@@ -34,7 +34,7 @@ import {
   dyadDayMaster,
   elementRelationKind,
   elementDirection,
-  reduceNine,
+  reduceTerminal,
   combinedPath,
   combinedPathClause,
   branchPairKey,
@@ -55,7 +55,7 @@ import {
   BRACKET_REGISTERS,
   DYAD_SOURCES,
   DYAD_QUALIFIER,
-} from '../content/dyad.v1.js';
+} from '../content/dyad.v2.js';
 import { CONCORDANCE_QUALIFIER } from '../content/concordance.v1.js';
 import { buildProfile, getBirthday, ANIMALS } from '../core/profile.js';
 import { getDayPillar, STEMS } from '../core/pillars.js';
@@ -67,7 +67,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 import { getCard, resolveBracket } from '../core/engine.js';
 import { getDayMaster } from '../core/public.js';
 import { buildConcordance } from '../ui/concordance.js';
-import { NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
+import { TERMINAL_NUMBERS } from '../core/profile.js';
 
 // A spread of synthetic dates covering both calibration anchors, the calc
 // v3.1 correction dates, a leap day, and the ends of the table range.
@@ -282,34 +283,47 @@ describe('dyad — element axis totality', () => {
 });
 
 describe('dyad — combined life path', () => {
-  it('reduceNine agrees with the shipped nine-number reduction', () => {
+  it('reduceTerminal agrees with the shipped master-preserving reduction', () => {
     // getBirthday is core/profile.js's only exported function that reduces an
     // arbitrary positive integer, so it is the oracle for the private reducer
-    // this module restates. Swept well past the reachable 2..18 domain.
+    // this module restates. Swept well past the reachable 2..66 domain.
     for (let n = 1; n <= 2000; n++) {
-      expect(reduceNine(n), `n=${n}`).toBe(getBirthday(n));
+      expect(reduceTerminal(n), `n=${n}`).toBe(getBirthday(n));
     }
+    // Named cases, so a sweep against a co-mutated oracle cannot green.
+    expect(reduceTerminal(11)).toBe(11);
+    expect(reduceTerminal(22)).toBe(22);
+    expect(reduceTerminal(33)).toBe(33);
+    expect(reduceTerminal(29)).toBe(11);
+    expect(reduceTerminal(38)).toBe(11);
+    expect(reduceTerminal(44)).toBe(8);
   });
 
-  it('reduceNine rejects non-positive and non-integer totals', () => {
+  it('reduceTerminal rejects non-positive and non-integer totals', () => {
     for (const bad of [0, -1, 1.5, NaN, Infinity, null, undefined, '9']) {
-      expect(reduceNine(bad), String(bad)).toBeNull();
+      expect(reduceTerminal(bad), String(bad)).toBeNull();
     }
   });
 
-  it('every 1..9 × 1..9 life-path pair resolves inside the nine-number domain', () => {
+  it('every pair over the terminal domain resolves back inside it', () => {
     const reached = new Set();
-    for (let a = 1; a <= 9; a++) {
-      for (let b = 1; b <= 9; b++) {
+    for (const a of TERMINAL_NUMBERS) {
+      for (const b of TERMINAL_NUMBERS) {
         const out = combinedPath(a, b);
         expect(out.sum).toBe(a + b);
-        expect(out.combined).toBeGreaterThanOrEqual(1);
-        expect(out.combined).toBeLessThanOrEqual(9);
+        expect(TERMINAL_NUMBERS, `${a}+${b} → ${out.combined}`).toContain(out.combined);
         reached.add(out.combined);
       }
     }
-    // No unreachable value: all nine are hit by a real pair.
-    expect([...reached].sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    // Every single digit is reachable, and so is the master stop 11 — 9+2,
+    // 11+11 and 11+22 all land on a master, which is the property that makes
+    // a combined path able to BE a master rather than merely contain one.
+    for (const value of [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33]) {
+      expect([...reached], `combined ${value} unreachable`).toContain(value);
+    }
+    expect(combinedPath(9, 2).combined).toBe(11);
+    expect(combinedPath(11, 11).combined).toBe(22);
+    expect(combinedPath(11, 22).combined).toBe(33);
   });
 
   it('emits the registry meaning VERBATIM — no second copy (F6)', () => {
@@ -317,8 +331,8 @@ describe('dyad — combined life path', () => {
     // own clauses (for n=1, "starting a sequence rather than joining one"
     // against the registry's "...joining one already underway"). Identity, not
     // similarity, is the contract.
-    for (let a = 1; a <= 9; a++) {
-      for (let b = 1; b <= 9; b++) {
+    for (const a of TERMINAL_NUMBERS) {
+      for (const b of TERMINAL_NUMBERS) {
         const out = combinedPath(a, b);
         const registry = NUMEROLOGY_MEANINGS[String(out.combined)];
         expect(out.meaning, `${a}+${b}`).toBe(registry.body);
@@ -333,8 +347,8 @@ describe('dyad — combined life path', () => {
     // creeps back in, the clause has started restating the number's meaning.
     const themes = Object.values(NUMEROLOGY_MEANINGS).map(m => m.theme);
     const registers = Object.values(NUMEROLOGY_MEANINGS).map(m => m.register);
-    for (let a = 1; a <= 9; a++) {
-      for (let b = 1; b <= 9; b++) {
+    for (const a of TERMINAL_NUMBERS) {
+      for (const b of TERMINAL_NUMBERS) {
         const out = combinedPath(a, b);
         expect(out.reduction).toBe(combinedPathClause(out.sum, out.combined));
         for (const theme of themes) {
@@ -350,19 +364,38 @@ describe('dyad — combined life path', () => {
     }
   });
 
-  it('uses the reducing frame only when the sum actually reduced', () => {
+  it('uses the reducing frame only when the sum actually changed', () => {
     expect(combinedPath(4, 2).reduction).toBe(COMBINED_PATH_FRAMES.direct
       .replace('{combined}', '6'));
     expect(combinedPath(9, 9).reduction).toBe(COMBINED_PATH_FRAMES.reduced
       .replace('{sum}', '18').replace('{combined}', '9'));
-    // The degenerate sentence the two frames exist to avoid.
-    expect(combinedPath(4, 2).reduction).not.toMatch(/sum to 6, which .* reduces to 6/);
+    // The calc-v4 case the `sum > 9` test could not express: 9+2 sums to 11
+    // and STOPS there, so nothing was reduced and the direct frame is the
+    // truthful one. Under the old rule this said "sum to 11, which the rule
+    // reduces to 11" — a claim about a reduction that did not happen.
+    expect(combinedPath(9, 2).reduction).toBe(COMBINED_PATH_FRAMES.direct
+      .replace('{combined}', '11'));
+    expect(combinedPath(11, 11).reduction).toBe(COMBINED_PATH_FRAMES.direct
+      .replace('{combined}', '22'));
+    // A master sum that DOES reduce still reads as a reduction.
+    expect(combinedPath(33, 33).reduction).toBe(COMBINED_PATH_FRAMES.reduced
+      .replace('{sum}', '66').replace('{combined}', '3'));
+    // The degenerate sentence the two frames exist to avoid — swept over the
+    // whole domain rather than spot-checked, since the sum-equals-combined
+    // case is exactly what widening the domain made reachable.
+    for (const a of TERMINAL_NUMBERS) {
+      for (const b of TERMINAL_NUMBERS) {
+        const out = combinedPath(a, b);
+        expect(out.reduction, `${a}+${b}`)
+          .not.toMatch(new RegExp(`sum to ${out.combined}, which .* reduces to ${out.combined}`));
+      }
+    }
   });
 
   it('no locally authored per-number body survives in the content file', () => {
     // Code only — the file's header explains the retired export by name, and
     // that history is worth keeping readable.
-    const src = readFileSync(join(__dirname, '..', 'content', 'dyad.v1.js'), 'utf-8')
+    const src = readFileSync(join(__dirname, '..', 'content', 'dyad.v2.js'), 'utf-8')
       .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     expect(src).not.toMatch(/COMBINED_PATH_NOTES/);
     // The two frames are templates, not nine entries.
@@ -370,17 +403,30 @@ describe('dyad — combined life path', () => {
   });
 
   it('is order-insensitive in the value, since a sum is', () => {
-    for (let a = 1; a <= 9; a++) {
-      for (let b = 1; b <= 9; b++) {
+    for (const a of TERMINAL_NUMBERS) {
+      for (const b of TERMINAL_NUMBERS) {
         expect(combinedPath(a, b).combined).toBe(combinedPath(b, a).combined);
       }
     }
   });
 
-  it('rejects a life path outside the active nine-number domain', () => {
-    for (const bad of [0, 11, 22, 33, -3, null, undefined, '4', 1.5]) {
+  it('rejects a life path outside the active terminal domain', () => {
+    // 10 / 12 / 44 are the sharp cases: plausible integers no reduction can
+    // terminate on. Admitting 11/22/33 must not admit them, and a master
+    // must be validated BEFORE the sum — `10 + 4` reduces to a plausible 5.
+    for (const bad of [0, 10, 12, 44, -3, null, undefined, '4', 1.5]) {
       expect(() => combinedPath(bad, 4), String(bad)).toThrow(TypeError);
       expect(() => combinedPath(4, bad), String(bad)).toThrow(TypeError);
+    }
+  });
+
+  it('accepts every master value as an input life path', () => {
+    for (const master of [11, 22, 33]) {
+      expect(() => combinedPath(master, 4), String(master)).not.toThrow();
+      expect(() => combinedPath(4, master), String(master)).not.toThrow();
+      // Consumed unreduced: the sum is built from the master itself.
+      expect(combinedPath(master, 4).sum).toBe(master + 4);
+      expect(combinedPath(master, 4).lifePathA).toBe(master);
     }
   });
 });
