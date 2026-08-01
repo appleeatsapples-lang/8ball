@@ -34,6 +34,85 @@ from pathlib import Path
 MAX_CAPTURE_CHARS = 16_000
 
 
+# ── path redaction (PR #191 audit, P3) ─────────────────────────────────────
+#
+# Reports are shared: CI uploads the JSON+markdown as a build artifact, and a
+# local run is often pasted into an audit packet. Three separate routes put an
+# absolute filesystem path into one — the `product_root` field, an absolute
+# path inside a captured `command` list (e.g. audits/hko_compare.mjs), and
+# captured subprocess output that happens to print its cwd (vitest prints
+# `RUN v4.1.9 <repo>`). Those paths carry the operator's home directory, and
+# therefore their account name.
+#
+# The redaction runs ONCE, over the whole report, at serialization — not
+# per-check. That placement is the point: a redaction each new check has to
+# remember is a redaction that will be forgotten the first time someone adds a
+# check, and nothing would fail when it is. Applied at the boundary, a check
+# author cannot leak a path even by accident.
+#
+# Console stdout is deliberately NOT redacted: the summary line names the
+# report files so the operator can open them, and stdout is not the artifact
+# that gets shared.
+PRODUCT_ROOT_PLACEHOLDER = "<product-root>"
+HOME_PLACEHOLDER = "<home>"
+
+
+def redaction_map(product_root):
+    """(needle, token) pairs, longest needle first.
+
+    Longest-first matters: the product root is normally *inside* the home
+    directory, so replacing home first would turn `/Users/x/dev/8ball` into
+    `<home>/dev/8ball` and the more specific token would never apply. Both the
+    literal and the realpath form are included because macOS resolves
+    /var -> /private/var, and a subprocess may print either.
+    """
+    pairs = []
+    for raw, token in ((str(product_root), PRODUCT_ROOT_PLACEHOLDER),
+                       (os.path.expanduser("~"), HOME_PLACEHOLDER)):
+        if not raw or raw == os.sep:
+            continue
+        for form in {raw, os.path.realpath(raw)}:
+            pairs.append((form, token))
+    # Deduplicate while keeping the longest needles first.
+    seen = set()
+    unique = []
+    for needle, token in sorted(pairs, key=lambda pair: len(pair[0]), reverse=True):
+        if needle not in seen:
+            seen.add(needle)
+            unique.append((needle, token))
+    return unique
+
+
+def redact_paths(value, pairs):
+    """Recursively rewrite every string in a JSON-shaped structure,
+    including dict keys — a path can land in a key (e.g. a per-file
+    evidence map) just as easily as in a value."""
+    if isinstance(value, str):
+        for needle, token in pairs:
+            value = value.replace(needle, token)
+        return value
+    if isinstance(value, list):
+        return [redact_paths(item, pairs) for item in value]
+    if isinstance(value, tuple):
+        return [redact_paths(item, pairs) for item in value]
+    if isinstance(value, dict):
+        out = {}
+        for key, item in value.items():
+            redacted_key = redact_paths(key, pairs) if isinstance(key, str) else key
+            if redacted_key in out:
+                # Two distinct keys redacted to the same string: disambiguate
+                # rather than silently dropping one of the entries.
+                suffix = 2
+                candidate = f"{redacted_key}#{suffix}"
+                while candidate in out:
+                    suffix += 1
+                    candidate = f"{redacted_key}#{suffix}"
+                redacted_key = candidate
+            out[redacted_key] = redact_paths(item, pairs)
+        return out
+    return value
+
+
 def clip(text, limit=MAX_CAPTURE_CHARS):
     if text is None:
         return ""
@@ -1084,6 +1163,9 @@ def main():
     md_path = output_dir / f"product_audit_{timestamp}.md"
     latest_json = output_dir / "latest.json"
     latest_md = output_dir / "latest.md"
+
+    # One pass, at the boundary, over everything that gets written out.
+    report = redact_paths(report, redaction_map(product_root))
 
     json_text = json.dumps(report, indent=2, default=str)
     md_text = render_markdown(report)
