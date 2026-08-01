@@ -46,7 +46,7 @@ off `origin/main` before filing this branch.
 **Verification.** Full suite **51 files / 1,826 tests PASS** — the same count `origin/main` already
 carries; this fix is comment and canon prose only and adds no test. Auditor assurance 93/93 PASS.
 Product audit PASS 13/0/1/0. Local PII audit clean. `index.html` byte-identical at 1497 lines; no
-content file, `package.json`, or calculation module touched.
+content file or `package.json` touched, and **no executable calculation code changed** — `core/birthcard.js` IS modified, comments only. (The first wording claimed no calculation module was touched at all, which the PR #190 pre-merge audit correctly called false against this entry's own diff: understating the audited surface in canonical history is the failure this journal exists to prevent.)
 
 **Branched off current `origin/main`, not off the merged-and-superseded
 `claude/master-number-preservation`.** That branch's own history was squash-merged as #188 and no
