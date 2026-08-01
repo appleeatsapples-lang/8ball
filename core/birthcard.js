@@ -6,9 +6,10 @@
 // text, no per-card prose — that stays the paid card-content layer (§1).
 //
 // Reduction tradition: DIGIT-SUM (locked by operator, see journal 2026-05). Sum every digit of the DOB, reduce by repeated digit-sum until <= 22.
-// Distinct from the life-path reduce() in profile.js — that floors at a
-// single digit; this one floors at <=22 because the target range is the
-// 22 Major Arcana.
+// Distinct from the life-path reduce() in profile.js — that one preserves the
+// master stops 11/22/33 (calc v4, DOCTRINE §1.B v0.62) rather than flooring at
+// a single digit; this one floors at <=22 because the target range is the
+// 22 Major Arcana, and that is a separate contract calc v4 does not touch.
 //
 // Fool mapping: a reduced value of 22 maps to 0 · the fool (operator-locked
 // "fool yes"). Without it, 22 would render as an out-of-range XXII coordinate.
