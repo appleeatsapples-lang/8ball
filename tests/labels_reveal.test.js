@@ -141,8 +141,26 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   });
 
   it('the mobile-only intrinsic-height override lives below the 720px side-rail breakpoint', () => {
-    expect(labelsJs).toMatch(/@media \(max-width: 719px\)/);
+    expect(labelsJs).toMatch(/@media \(max-width: 719\.98px\)/);
     expect(labelsJs).toMatch(/\.flip-stage\.labels-revealed\s*\{[^}]*height:\s*auto/);
+  });
+
+  // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
+  // index.html sets NO height — only the 5/8 aspect-ratio box — so
+  // `height: auto` above pins a no-op declaration. `aspect-ratio: auto` is
+  // the property that actually releases the fixed box; without this pin the
+  // suite stayed green with the fix deleted.
+  it('pins aspect-ratio: auto — the declaration that actually releases the 5/8 box', () => {
+    expect(labelsJs).toMatch(/\.flip-stage\.labels-revealed\s*\{[^}]*aspect-ratio:\s*auto/);
+  });
+
+  // PR-196 premerge audit: only the FRONT card drops to intrinsic height.
+  // The back face keeps index.html's height:100% (definite once the front's
+  // content has sized the grid row), so the pre-flip back-beat paints a
+  // full-height card back, not a content-height strip in a tall stage.
+  it('drops only the front card to intrinsic height; the back face keeps its full-height rule', () => {
+    expect(labelsJs).toMatch(/\.flip-side \.card\s*\{[^}]*height:\s*auto/);
+    expect(labelsJs).not.toMatch(/\.flip-side \.card-back/);
   });
 
   it('does not touch the ≥720px desktop side-rail breakpoint (index.html owns that block)', () => {

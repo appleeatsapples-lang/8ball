@@ -417,4 +417,36 @@ describe('ui/labels.js behavior', () => {
     globalThis.localStorage = { getItem: () => { throw new Error('denied'); } };
     expect(isLabelsRevealed()).toBe(false);
   });
+
+  // PR-196 premerge audit (2026-08-02): in this Node environment `document`
+  // is undefined, so injectStyle()'s own guard made it a silent no-op in
+  // every earlier run — the CSS payload, the fix's actual delivery
+  // mechanism, could be deleted without any test noticing. This stubs a
+  // document the way tests/dyad_surface.test.js does for ui/dyad.js's
+  // injectStyle, so init runs the real injection code.
+  it('init injects the #labels-style payload into head exactly once (real injectStyle path)', () => {
+    const byId = new Map();
+    const appended = [];
+    const prior = globalThis.document;
+    globalThis.document = {
+      getElementById: id => byId.get(id) || null,
+      createElement: tag => makeNode(tag),
+      head: { appendChild: n => { appended.push(n); if (n.id) byId.set(n.id, n); } },
+    };
+    try {
+      const refs = () => ({ cardFace: makeNode(), labelsToggle: makeNode('button'), flipStage: makeNode() });
+      initLabelsUI(refs(), {});
+      const style = byId.get('labels-style');
+      expect(style).toBeTruthy();
+      // the payload is the mobile override itself, not an empty shell
+      expect(style.textContent).toMatch(/aspect-ratio:\s*auto/);
+      expect(style.textContent).toMatch(/@media \(max-width: 719\.98px\)/);
+      // idempotent: a second init finds the node by id and does not re-append
+      initLabelsUI(refs(), {});
+      expect(appended.length).toBe(1);
+    } finally {
+      if (prior === undefined) delete globalThis.document;
+      else globalThis.document = prior;
+    }
+  });
 });
