@@ -1187,10 +1187,6 @@ class GuardedCheckTests(unittest.TestCase):
         self.assertGreaterEqual(report["blocking_failure_count"], 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 # ── path redaction (PR #191 pre-merge audit, P3) ────────────────────────────
 #
 # The auditor's reports are shared: CI uploads them as a build artifact and a
@@ -1250,6 +1246,41 @@ class PathRedactionHelperTests(unittest.TestCase):
         self.assertEqual(pa.redact_paths({"n": 3, "f": 1.5, "b": True, "z": None}, pairs),
                          {"n": 3, "f": 1.5, "b": True, "z": None})
 
+    def test_redacts_dict_keys_not_only_values(self):
+        """P1 (PR #194 pre-merge audit): a path landing in a dict key — e.g.
+        a per-file evidence map keyed by absolute path — must be redacted
+        just like a value. Reproduces the exact leak shape the audit found:
+        {"<home>/...": "value"}."""
+        root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
+        pairs = pa.redaction_map(root)
+        payload = {root: "value", os.path.expanduser("~"): "other"}
+        out = pa.redact_paths(payload, pairs)
+        rendered = json.dumps(out)
+        self.assertEqual(_home_leak_hits(rendered), [],
+                         f"home path survived key redaction: {rendered}")
+        self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out)
+
+    def test_key_redaction_collision_keeps_both_entries(self):
+        """Two distinct keys that redact to the same string must not
+        silently clobber one another."""
+        home = os.path.expanduser("~")
+        pairs = pa.redaction_map(str(REPO_ROOT))
+        payload = {
+            os.path.join(home, "a", "secret1"): 1,
+            os.path.join(home, "b", "secret2"): 2,
+        }
+        # Force both keys to redact to the identical placeholder so the
+        # collision path is actually exercised.
+        collapsing_pairs = pairs + [
+            (os.path.join(home, "a", "secret1"), pa.HOME_PLACEHOLDER),
+            (os.path.join(home, "b", "secret2"), pa.HOME_PLACEHOLDER),
+        ]
+        out = pa.redact_paths(payload, collapsing_pairs)
+        self.assertEqual(len(out), 2, f"a colliding key silently dropped an entry: {out}")
+        self.assertEqual(sorted(out.values()), [1, 2])
+        self.assertTrue(all(k.startswith(pa.HOME_PLACEHOLDER) for k in out),
+                        f"disambiguated keys should still carry the placeholder: {out}")
+
     def test_guard_can_fail(self):
         """Guard-the-guard: the leak predicate must actually fire on a report
         that was NOT redacted, or every assertion built on it is a false green."""
@@ -1289,3 +1320,26 @@ class PathRedactionRealRunTests(unittest.TestCase):
                         "redaction must run before the report is serialized")
         self.assertLess(source.index("md_text = render_markdown(report)") - redact_at, 400,
                         "markdown is rendered from the same redacted report")
+
+
+class TestLauncherPositionTests(unittest.TestCase):
+    """P2 (PR #194 pre-merge audit): `unittest.main()` must run after every
+    TestCase class is defined. Direct execution (`python3
+    audits/test_project_audit.py`) evaluates top-to-bottom, so a launcher
+    placed mid-file silently drops every class defined below it — that
+    class body is never even reached before unittest.main() calls
+    sys.exit()."""
+
+    def test_launcher_runs_after_the_last_test_class(self):
+        this_file = Path(__file__).resolve()
+        source = this_file.read_text()
+        launcher_at = source.rindex('if __name__ == "__main__":')
+        last_class_at = source.rindex("\nclass ")
+        self.assertLess(last_class_at, launcher_at,
+                        "unittest.main() launcher must come after every "
+                        "TestCase class, or direct execution silently "
+                        "skips whatever follows it")
+
+
+if __name__ == "__main__":
+    unittest.main()

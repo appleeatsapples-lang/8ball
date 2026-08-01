@@ -84,7 +84,9 @@ def redaction_map(product_root):
 
 
 def redact_paths(value, pairs):
-    """Recursively rewrite every string in a JSON-shaped structure."""
+    """Recursively rewrite every string in a JSON-shaped structure,
+    including dict keys — a path can land in a key (e.g. a per-file
+    evidence map) just as easily as in a value."""
     if isinstance(value, str):
         for needle, token in pairs:
             value = value.replace(needle, token)
@@ -94,7 +96,20 @@ def redact_paths(value, pairs):
     if isinstance(value, tuple):
         return [redact_paths(item, pairs) for item in value]
     if isinstance(value, dict):
-        return {key: redact_paths(item, pairs) for key, item in value.items()}
+        out = {}
+        for key, item in value.items():
+            redacted_key = redact_paths(key, pairs) if isinstance(key, str) else key
+            if redacted_key in out:
+                # Two distinct keys redacted to the same string: disambiguate
+                # rather than silently dropping one of the entries.
+                suffix = 2
+                candidate = f"{redacted_key}#{suffix}"
+                while candidate in out:
+                    suffix += 1
+                    candidate = f"{redacted_key}#{suffix}"
+                redacted_key = candidate
+            out[redacted_key] = redact_paths(item, pairs)
+        return out
     return value
 
 
