@@ -24,8 +24,12 @@ both still live on merged `main` at the time of this fix:
    named `content/concordance.v2.js` as "the active registry." Both were true when written (v0.54)
    and false since v0.62 restored the masters into `content/concordance.v3.js` — the v0.62 registry
    amendment lower in the same section superseded the *rule*, but never touched this aside naming
-   the *version*. Fixed in place, old wording preserved as explicit lineage per L17 rather than
-   deleted.
+   the *version*. Corrected by a **separate dated v0.62 registry-currency amendment** beneath the
+   clause; the base clause itself is left **byte-identical** to its shipped form as lineage per L17.
+   (This sentence first read "fixed in place, old wording preserved as explicit lineage" — which
+   described the approach the PR #190 pre-merge audit REJECTED and which the amendment above it
+   explicitly disavows. It was the third stale-active statement in a change whose entire purpose is
+   to eliminate them, and the second one this cycle written by the lane doing the eliminating.)
 2. **`core/birthcard.js`'s header comment** said the life-path `reduce()` in `profile.js` "floors at
    a single digit" — the exact code-comment twin of the §1.C doctrine finding, just never caught
    because it lives in a different file. Fixed to name the master-preserving behavior and note the
