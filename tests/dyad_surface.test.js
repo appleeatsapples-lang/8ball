@@ -32,6 +32,7 @@ import { makeClassList } from './helpers/dom.js';
 import {
   T5_PRODUCT_URL,
   DYAD_RELATION_NODES,
+  DYAD_AXIS_IDS,
   dyadEntitled,
   dyadEntryVisible,
   formatDyadRelation,
@@ -202,12 +203,60 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-cta', 'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
     'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
-    'dyad-open-btn', 'dyad-style',
+    'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
+    ...DYAD_AXIS_IDS,
     ...Object.keys(DYAD_RELATION_NODES),
   ];
   for (const id of ids) if (!byId.has(id)) byId.set(id, makeNode());
   byId.delete('dyad-open-btn');
   byId.delete('dyad-style');
+
+  // #dyad-sheets models TWO real-browser behaviors a plain numeric fake
+  // would miss, both load-bearing for clearOutput()/render()'s scroll-reset
+  // fixes (P1):
+  //
+  //   1. CSSOM View: a scrollLeft WRITE on an element with no associated
+  //      layout box (here, because #dyad-output — its ancestor — is
+  //      display:none via `hidden`) is a documented no-op. Without this, a
+  //      reset ordered AFTER the hide would appear to work in a test even
+  //      though it silently does nothing in a real browser.
+  //   2. A live-fire pass against the real app (not this suite) found that
+  //      #dyad-output regaining its layout box — hidden:true → false —
+  //      can resurface a stale PRE-hide pan offset on its own, independent
+  //      of any reset performed while boxless. This reproduced specifically
+  //      when the hidden→visible transition coincided with the sheets'
+  //      content being refilled (a snap/scroll-anchor style restoration),
+  //      not on a bare hide/show toggle — but the externally observable
+  //      shape is simple: SET to visible, GET an old value back, until
+  //      something writes again. Modeled generally here as "restore the
+  //      last real pan on every hidden→visible transition" so a fix that
+  //      relies solely on clearOutput()'s pre-hide reset (necessary, not
+  //      sufficient) fails this mock exactly as it failed the real browser,
+  //      and only a fix that ALSO resets after render() reveals the block
+  //      survives it.
+  {
+    const outputNode = byId.get('dyad-output');
+    const sheetsNode = byId.get('dyad-sheets');
+    let appliedScrollLeft = 0;
+    let lastRealPan = 0; // the value the hidden→visible transition "restores"
+    let wasHidden = !!outputNode.hidden;
+    Object.defineProperty(sheetsNode, 'scrollLeft', {
+      get: () => appliedScrollLeft,
+      set: v => {
+        if (outputNode.hidden) return; // CSSOM no-op while boxless
+        appliedScrollLeft = v;
+        if (v !== 0) lastRealPan = v;
+      },
+    });
+    Object.defineProperty(outputNode, 'hidden', {
+      get: () => wasHidden,
+      set: v => {
+        const nextHidden = !!v;
+        if (wasHidden && !nextHidden) appliedScrollLeft = lastRealPan;
+        wasHidden = nextHidden;
+      },
+    });
+  }
 
   for (const prefix of ['a', 'b']) {
     for (const key of CELL_KEYS) {
@@ -368,6 +417,177 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(h.cell('b', 'arcana').textContent).toBe(B.birthCard.label);
     expect(h.get('dyad-head-a').textContent).toBe('specimen');
     expect(h.get('dyad-element-ab').textContent).toBeTruthy();
+  });
+});
+
+describe('dyad surface — presentation: spine heads + reveal beat', () => {
+  it('the spine carries the terse symbolic heads, distinct from the fuller collapsed-detail heads', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    // Terse: no label suffix, no register suffix.
+    expect(relation.elementSpine)
+      .toBe(`${reading.relation.element.a.element} ⇄ ${reading.relation.element.b.element}`);
+    expect(relation.elementSpine).not.toContain('·');
+    expect(relation.numerologySpine).toMatch(/^\d+ \+ \d+ → \d+$/);
+    // The fuller heads still carry what the spine strips out.
+    expect(relation.elementHead).toContain('·');
+    expect(relation.elementHead.startsWith(relation.elementSpine.split(' ⇄ ')[0])).toBe(true);
+    expect(relation.numerologyHead.startsWith(relation.numerologySpine)).toBe(true);
+    // cardPairHead is reused verbatim as the card-pair spine text — no
+    // separate field, since the existing head was already the terse form.
+    expect(relation.cardPairHead).toMatch(/^no\. .+ × no\. .+$/);
+  });
+
+  it('render() fires the draw-in beat on the spine; a fresh clear/close always resets it first', () => {
+    const h = harness('t5');
+    expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(false);
+
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(true);
+
+    // close() drops the beat along with everything else (F1 shape) — the
+    // next open must not inherit a stale "already revealed" class.
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(false);
+
+    // And it re-fires on a second pair, not just the first — close() blanks
+    // the typed inputs too (F1 shape), so they're re-entered here exactly as
+    // a real second visit would.
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      return submitSecond();
+    });
+    expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(true);
+  });
+
+  it('a failed second-profile build bails before render(), so the beat never fires', () => {
+    const h = harness('t5', { buildSecond: () => null });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(false);
+  });
+});
+
+describe('dyad surface — presentation: axis collapse + pan-position reset (lifecycle)', () => {
+  // A reader can expand any of the three collapsible axes and pan the mobile
+  // sheet strip. Neither state is part of the render fill, so it is not
+  // covered by DYAD_RELATION_NODES' clear enumeration — it needs its own
+  // reset, exercised here the same way F1 exercises the rest of clearOutput().
+  it('clearOutput() closes every DYAD_AXIS_IDS <details> and re-lists all three', () => {
+    expect(DYAD_AXIS_IDS).toEqual(['dyad-axis-element', 'dyad-axis-numerology', 'dyad-axis-cardpair']);
+
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    // Simulate a reader who expanded every axis on this pair.
+    for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
+
+    h.withDom(() => closeDyad());
+    for (const id of DYAD_AXIS_IDS) expect(h.get(id).open, id).toBe(false);
+  });
+
+  it('clearOutput() resets the pannable .dyad-sheets strip to its leading edge', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    // Simulate a reader who panned to sheet B.
+    h.get('dyad-sheets').scrollLeft = 240;
+
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-sheets').scrollLeft).toBe(0);
+  });
+
+  it('an invalid re-submission resets both — not just the render fill — before the new attempt', () => {
+    // Mirrors the existing "invalidate first" F1 case: this drives the same
+    // clearOutput() call an invalid re-submission takes, and checks the two
+    // pieces of state that call adds beyond the render fill.
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
+    h.get('dyad-sheets').scrollLeft = 180;
+
+    h.withDom(() => {
+      h.get('dyad-name-input').value = '   ';       // whitespace-only
+      h.get('dyad-dob-input').value = '2099-01-01'; // future
+      return submitSecond();
+    });
+
+    for (const id of DYAD_AXIS_IDS) expect(h.get(id).open, id).toBe(false);
+    expect(h.get('dyad-sheets').scrollLeft).toBe(0);
+  });
+
+  it('opening again starts every axis collapsed and the strip at its leading edge', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
+    h.get('dyad-sheets').scrollLeft = 300;
+
+    h.withDom(() => closeDyad());
+    h.withDom(() => openDyad());
+
+    for (const id of DYAD_AXIS_IDS) expect(h.get(id).open, id).toBe(false);
+    expect(h.get('dyad-sheets').scrollLeft).toBe(0);
+  });
+
+  it('the complete pan → close → reopen → next-pair sequence lands on sheet A (P1)', () => {
+    // Two fixes, both required, both modeled by the harness's #dyad-sheets/
+    // #dyad-output mock above:
+    //   (a) clearOutput() resets #dyad-sheets.scrollLeft WHILE #dyad-output
+    //       is still visible, before hiding it — a reset ordered AFTER the
+    //       hide is a documented CSSOM View no-op and would silently do
+    //       nothing.
+    //   (b) render() resets it AGAIN right after revealing #dyad-output —
+    //       a live-fire pass against the real app found the hidden→visible
+    //       transition alone can resurface the stale PRE-hide offset (a
+    //       snap/scroll-anchor style restoration), independent of (a).
+    // Removing either fix fails this test: asserting immediately after
+    // close()/open() cannot catch either regression, since #dyad-output is
+    // hidden throughout that window either way — this carries the sequence
+    // through a second full submitSecond() → render() to the exact point
+    // the real bug resurfaced.
+    const h = harness('t5');
+
+    // Pair 1: submit, expand every axis, pan to sheet B.
+    h.withDom(() => submitSecond());
+    for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
+    h.get('dyad-sheets').scrollLeft = 320;
+    expect(h.get('dyad-sheets').scrollLeft).toBe(320); // panned while visible — takes effect
+
+    // Close (hides #dyad-output) and reopen (still hidden — nothing has
+    // rendered yet).
+    h.withDom(() => closeDyad());
+    h.withDom(() => openDyad());
+    expect(h.get('dyad-output').hidden).toBe(true);
+
+    // Pair 2: a fresh valid submission, re-entering the typed fields close()
+    // blanked (F1 shape) — this is the render() call that reveals
+    // #dyad-output again and would resurface a stale offset.
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      return submitSecond();
+    });
+
+    expect(h.get('dyad-output').hidden).toBe(false);
+    // scrollLeft 0 is sheet A's leading position — the strip must not carry
+    // pair 1's pan into pair 2's render.
+    expect(h.get('dyad-sheets').scrollLeft).toBe(0);
+    for (const id of DYAD_AXIS_IDS) expect(h.get(id).open, id).toBe(false);
+  });
+});
+
+describe('dyad surface — presentation: axis interaction CSS (44px target + focus-visible)', () => {
+  // Presentation-only: pinned against the injected stylesheet source, the
+  // same way the doctrine-wording pins below check other CSS-adjacent
+  // strings. This is a rule-text pin, not a real layout measurement (§12 —
+  // no jsdom, no computed styles in this suite); the browser live-fire pass
+  // is what confirms the rendered box.
+  it('.dyad-axis > summary declares a 44px minimum tap target', () => {
+    expect(dyadJs).toMatch(/#dyad-screen \.dyad-axis > summary \{[\s\S]*?min-height:\s*44px/);
+  });
+
+  it('.dyad-axis > summary has an explicit :focus-visible outline', () => {
+    expect(dyadJs).toMatch(
+      /#dyad-screen \.dyad-axis > summary:focus-visible \{[\s\S]*?outline:\s*2px solid var\(--text\)/);
   });
 });
 
