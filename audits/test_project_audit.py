@@ -1262,24 +1262,31 @@ class PathRedactionHelperTests(unittest.TestCase):
 
     def test_key_redaction_collision_keeps_both_entries(self):
         """Two distinct keys that redact to the same string must not
-        silently clobber one another."""
+        silently clobber one another.
+
+        This must use ONLY the two full-path needles below — not
+        `redaction_map()`'s output, which already contains the bare `home`
+        needle. Since `redact_paths` applies needles in list order via
+        sequential `.replace()`, a bare `home` needle ahead of these two
+        would rewrite each key to a *distinct* string (`<home>/a/secret1`
+        vs `<home>/b/secret2`) before either full-path needle got a chance
+        to fire — so `len(out) == 2` would pass trivially even with the
+        disambiguation branch deleted. (Caught by cross-model pre-merge
+        review of PR #194 — the first version of this test did exactly
+        that and never exercised the collision branch at all.)"""
         home = os.path.expanduser("~")
-        pairs = pa.redaction_map(str(REPO_ROOT))
-        payload = {
-            os.path.join(home, "a", "secret1"): 1,
-            os.path.join(home, "b", "secret2"): 2,
-        }
-        # Force both keys to redact to the identical placeholder so the
-        # collision path is actually exercised.
-        collapsing_pairs = pairs + [
-            (os.path.join(home, "a", "secret1"), pa.HOME_PLACEHOLDER),
-            (os.path.join(home, "b", "secret2"), pa.HOME_PLACEHOLDER),
+        secret1 = os.path.join(home, "a", "secret1")
+        secret2 = os.path.join(home, "b", "secret2")
+        payload = {secret1: 1, secret2: 2}
+        collapsing_pairs = [
+            (secret1, pa.HOME_PLACEHOLDER),
+            (secret2, pa.HOME_PLACEHOLDER),
         ]
         out = pa.redact_paths(payload, collapsing_pairs)
         self.assertEqual(len(out), 2, f"a colliding key silently dropped an entry: {out}")
         self.assertEqual(sorted(out.values()), [1, 2])
-        self.assertTrue(all(k.startswith(pa.HOME_PLACEHOLDER) for k in out),
-                        f"disambiguated keys should still carry the placeholder: {out}")
+        self.assertEqual(set(out.keys()), {pa.HOME_PLACEHOLDER, f"{pa.HOME_PLACEHOLDER}#2"},
+                         f"expected exactly the disambiguated key set: {out}")
 
     def test_guard_can_fail(self):
         """Guard-the-guard: the leak predicate must actually fire on a report
