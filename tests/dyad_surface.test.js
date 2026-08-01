@@ -212,28 +212,27 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   byId.delete('dyad-style');
 
   // #dyad-sheets models TWO real-browser behaviors a plain numeric fake
-  // would miss, both load-bearing for clearOutput()/render()'s scroll-reset
-  // fixes (P1):
+  // would miss:
   //
   //   1. CSSOM View: a scrollLeft WRITE on an element with no associated
   //      layout box (here, because #dyad-output — its ancestor — is
-  //      display:none via `hidden`) is a documented no-op. Without this, a
-  //      reset ordered AFTER the hide would appear to work in a test even
-  //      though it silently does nothing in a real browser.
+  //      display:none via `hidden`) is a documented no-op. This is WHY
+  //      clearOutput()'s own pre-hide reset is typically moot via close(),
+  //      which hides the screen root before ever calling clearOutput() —
+  //      it still matters on the path close() doesn't take: an invalid
+  //      re-submission clearing a STILL-VISIBLE pair mid-session.
   //   2. A live-fire pass against the real app (not this suite) found that
   //      #dyad-output regaining its layout box — hidden:true → false —
-  //      can resurface a stale PRE-hide pan offset on its own, independent
-  //      of any reset performed while boxless. This reproduced specifically
-  //      when the hidden→visible transition coincided with the sheets'
-  //      content being refilled (a snap/scroll-anchor style restoration),
-  //      not on a bare hide/show toggle — but the externally observable
-  //      shape is simple: SET to visible, GET an old value back, until
-  //      something writes again. Modeled generally here as "restore the
-  //      last real pan on every hidden→visible transition" so a fix that
-  //      relies solely on clearOutput()'s pre-hide reset (necessary, not
-  //      sufficient) fails this mock exactly as it failed the real browser,
-  //      and only a fix that ALSO resets after render() reveals the block
-  //      survives it.
+  //      can resurface a stale PRE-hide pan offset on its own. This
+  //      reproduced specifically when the hidden→visible transition
+  //      coincided with the sheets' content being refilled (a snap/scroll-
+  //      anchor style restoration), not on a bare hide/show toggle — but
+  //      the externally observable shape is simple: SET to visible, GET an
+  //      old value back, until something writes again. Modeled generally
+  //      here as "restore the last real pan on every hidden→visible
+  //      transition", so a mock-driven test only passes when render()'s
+  //      post-reveal reset — the decisive fix for close() → reopen() →
+  //      next-pair — is present.
   {
     const outputNode = byId.get('dyad-output');
     const sheetsNode = byId.get('dyad-sheets');
@@ -487,6 +486,13 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
   });
 
   it('clearOutput() resets the pannable .dyad-sheets strip to its leading edge', () => {
+    // This is the test that actually pins clearOutput()'s OWN pre-hide
+    // reset (disabling it fails this one; the "complete pan → close →
+    // reopen → next-pair" case below stays green either way, since
+    // render()'s post-reveal reset alone decides that one — see its
+    // comment). Here #dyad-output is still visible at the moment
+    // clearOutput() runs (submitSecond() rendered it, closeDyad() hasn't
+    // hidden it yet), so the write has a real layout box and lands.
     const h = harness('t5');
     h.withDom(() => submitSecond());
     // Simulate a reader who panned to sheet B.
@@ -529,21 +535,22 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
   });
 
   it('the complete pan → close → reopen → next-pair sequence lands on sheet A (P1)', () => {
-    // Two fixes, both required, both modeled by the harness's #dyad-sheets/
-    // #dyad-output mock above:
-    //   (a) clearOutput() resets #dyad-sheets.scrollLeft WHILE #dyad-output
-    //       is still visible, before hiding it — a reset ordered AFTER the
-    //       hide is a documented CSSOM View no-op and would silently do
-    //       nothing.
-    //   (b) render() resets it AGAIN right after revealing #dyad-output —
-    //       a live-fire pass against the real app found the hidden→visible
-    //       transition alone can resurface the stale PRE-hide offset (a
-    //       snap/scroll-anchor style restoration), independent of (a).
-    // Removing either fix fails this test: asserting immediately after
-    // close()/open() cannot catch either regression, since #dyad-output is
-    // hidden throughout that window either way — this carries the sequence
-    // through a second full submitSecond() → render() to the exact point
-    // the real bug resurfaced.
+    // The FINAL assertion below is decided by render()'s post-reveal reset
+    // alone: close() hides the screen root before ever calling
+    // clearOutput(), so clearOutput()'s own pre-hide reset is moot by the
+    // time it runs anywhere in THIS sequence (verified — disabling it
+    // leaves this test green; only disabling render()'s reset fails it).
+    // clearOutput()'s reset is real and necessary elsewhere — the simpler
+    // "clearOutput() resets the pannable .dyad-sheets strip to its leading
+    // edge" case above pins IT specifically, for the path render() never
+    // reaches (an invalid re-submission clearing a still-visible pair).
+    // What this test proves that the simpler ones don't: a live-fire pass
+    // against the real app found the hidden→visible transition itself can
+    // resurrect a stale pre-hide offset (a snap/scroll-anchor style
+    // restoration) — asserting right after close()/open() can't catch that,
+    // since #dyad-output is hidden throughout that window either way; this
+    // carries the sequence through a second full submitSecond() → render()
+    // to the exact point the real bug resurfaced.
     const h = harness('t5');
 
     // Pair 1: submit, expand every axis, pan to sheet B.

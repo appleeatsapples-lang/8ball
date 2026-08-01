@@ -483,15 +483,17 @@ export function close() {
  */
 export function clearOutput() {
   _second = null;
-  // The pannable mobile strip (STYLE's .dyad-sheets, ≥720px scrolls freely
-  // but sits flush at the narrow widths this matters for) resets to its
-  // leading edge too — a reader who panned to sheet B on the first pair
-  // must not land on B's position for a fresh, still-empty pair. This MUST
-  // run before #dyad-output is hidden below: per the CSSOM View spec, a
-  // scrollLeft write on an element with no associated layout box (i.e. a
-  // descendant of a display:none ancestor) is a no-op, so resetting after
-  // the hide would silently fail to stick, and the stale panned offset
-  // would resurface the next time render() reveals the block again.
+  // The pannable mobile strip (STYLE's .dyad-sheets) resets to its leading
+  // edge too. Ordered before #dyad-output is hidden below on principle — a
+  // scrollLeft write on a boxless (display:none-ancestor) element is a
+  // CSSOM View no-op — but in this file's own close() the screen ROOT is
+  // already hidden before clearOutput() ever runs, so THIS write is
+  // typically already moot by the time it executes there; render()'s
+  // post-reveal reset (below) is what a live-fire pass confirmed actually
+  // lands for the close → reopen → next-pair path. This one still matters
+  // on its own for a path render() never reaches: an invalid re-submission
+  // (§ submitSecond) invalidates a STILL-VISIBLE pair mid-session, where
+  // #dyad-output has a real layout box at the moment of the write.
   const sheetsWrap = $('dyad-sheets');
   if (sheetsWrap) sheetsWrap.scrollLeft = 0;
   const output = $('dyad-output');
@@ -661,14 +663,15 @@ export function render() {
   const errEl = $('dyad-error');
   if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
   if (output) output.hidden = false;
-  // Reset the pan position AGAIN here, at the moment the strip actually
-  // regains its layout box. clearOutput()'s pre-hide reset is necessary but
-  // not sufficient on its own: a live-fire pass caught a real browser (not
-  // this suite's plain-numeric harness fake) re-asserting the OLD panned
-  // offset when #dyad-output's hide→show cycle coincided with the sheets'
-  // content being refilled — content-driven layout shift resurrecting a
-  // scroll-anchor/snap-restore the write-before-hide alone didn't survive.
-  // Idempotent and correct either way: a fresh pair always starts on sheet A.
+  // THE decisive reset for close() → reopen() → next-pair: by this line
+  // #dyad-sheets provably has a layout box (output.hidden just went false,
+  // and open() left the screen root visible), so the write is guaranteed to
+  // land — unlike clearOutput()'s pre-hide attempt, which close() usually
+  // makes moot by hiding the screen root first. A live-fire pass against a
+  // real browser (not this suite's plain-numeric harness fake) is what
+  // caught the gap: content-refill-driven layout shift on this reveal
+  // resurrected the OLD panned offset when this line was absent. Idempotent
+  // either way — a fresh pair always starts on sheet A.
   const sheetsWrapAfterReveal = $('dyad-sheets');
   if (sheetsWrapAfterReveal) sheetsWrapAfterReveal.scrollLeft = 0;
   return { tier, relation, entitled: true };
