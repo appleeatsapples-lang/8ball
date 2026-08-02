@@ -5,7 +5,55 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-02 — Product-audit path redaction, hardened by cross-model review — SHIPPED
+## 2026-08-02 — Mobile revealed-label overlap fix, four audit findings closed pre-merge, WebKit-verified — SHIPPED
+
+**Scope.** `index.html` (one DI line), `ui/labels.js`, `tests/labels_reveal.test.js`,
+`tests/meanings_behavior.test.js`, plus the L48 artifact. No `core/`, `content/`, tier, payments,
+or persistence change. The base fix: revealed labels make the result card taller than its compact
+5/8 flip-stage box, and on the WebKit build the defect was reported from (iOS/Threads in-app
+browser) the stage doesn't grow to match, so the excess painted over the result rail stacked below
+it on mobile. `ui/labels.js` now toggles a `labels-revealed` layout class on `#flip-stage` in
+lockstep with `#card-face` and self-injects the sub-720px CSS that consumes it (the `ui/dyad.js`
+injectStyle pattern — index.html sits at 1497/1500, so runtime CSS is where these lines go).
+
+**The audit earned its keep: four real defects fixed on the branch before merge.** A triple-lane
+pass — `relay --base origin/main` (grok + claude reconciled; codex refused on its lane's process
+gate; gemini auth-failed), an 11-agent CC workflow (four review dimensions, every finding
+re-derived by a refutation-first verifier, completeness critic), and direct local verification —
+found: (1) the load-bearing declaration was unpinned — base `.flip-stage` sets no `height`, only
+the 5/8 `aspect-ratio` box, so the new test's `height: auto` pin guarded a no-op and deleting
+`aspect-ratio: auto` left the suite green with the fix gone. Third instance of the vacuous-pin
+class caught in pre-merge review this cycle. (2) `injectStyle()` was a silent no-op in every test
+run (`document` undefined in the vitest env), so the CSS payload — the fix's whole delivery
+mechanism — was deletable without a failure; it now has a behavioral test with a stubbed document,
+the `dyad_surface` pattern. (3) The blanket `.card-back { height: auto }` collapsed the pre-flip
+back-beat to a ~115px clipped strip inside the 951px stage whenever labels were revealed — every
+`showResult`/`shakeAgain` on mobile; the override now targets only the front card, the back keeps
+`height: 100%` (definite via grid stretch once the front sizes the row). (4) Fractional viewports
+in (719, 720) matched neither media query, restoring the original geometry in that band; bound
+moved to 719.98px. **Every new or updated guard was proven load-bearing by mutation** — five
+mutations, each failing exactly its guard, restored baseline green — not just written.
+
+**Verification.** Vitest 51 files / 1,844 green (branch tip and a clean trial-merge of main).
+Product audit PASS; auditor assurance suite OK; PII audit clean (837 files). Live-fire in three
+environments, all with real form submits and measured geometry, console-clean, test-only
+localStorage cleared after: local Chromium at 375×812 and 1280×800 (including the frozen back-beat
+screenshot both broken and repaired, and a counterfactual with the style removed); the Netlify
+deploy preview; and — after the L48 artifact was filed — a real WebKit pass (Playwright WebKit
+2336, engine 605.1.15/Safari 26.5, driver in a scratch dir per the live-fire rule): every
+fix-present measurement matches Chromium exactly. The counterfactual there is the finding worth
+keeping: current desktop WebKit **also** grows the stage without the fix, so the field defect is
+specific to the embedded WKWebView environment it was reported from — the fix's value is making
+the revealed-state layout explicit instead of trusting any engine's ratio-box growth behavior.
+
+**Merge and the race.** PR #196 squash-merged to `main` as `e27014b` with all four audit fixes and
+the artifact aboard; all three checks green (`test`, `product-audit`, `l48-gate` — the gate went
+red→green the moment the artifact landed, exactly as designed). The merge landed while the WebKit
+pass was still running, so the artifact's WebKit addendum missed the squash — it ships in this
+entry's closure PR (the #99/#108 pattern: refetch found the PR already merged; addendum + journal
+ride a docs-only closure branch, no force-push, feature branch deleted after). Production checked
+post-deploy on the live domain: real submit → reveal → stage grows, no overlap, the amended
+stylesheet (719.98px bound, front-only override) served, zero console errors.
 
 **Scope.** `audits/project_audit.py` and `audits/test_project_audit.py` only — no `core/`,
 `content/`, or UI change. A CC audit of a prior commit on this branch (`e81dcac`) found the
