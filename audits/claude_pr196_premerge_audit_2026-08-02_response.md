@@ -79,6 +79,22 @@ repo-shape counts, PII scanner surface).
   cached locally. The fix's mechanism (intrinsic `auto` sizing at every level) is
   engine-independent by construction, which is the design's own mitigation for exactly this
   unverifiable premise.
+
+  **WebKit-pass addendum (2026-08-02, on operator instruction, before merge):** Playwright
+  WebKit 2336 (WebKit 605.1.15, Safari 26.5 engine) was downloaded to a scratch directory
+  (driver outside the repo, per the live-fire rule) and the full sequence re-run headless at
+  375×812 and 1280×800 against the branch tip. **Every fix-present measurement matches
+  Chromium exactly**: hidden 735.8px 5/8 box → revealed 951.1px with `aspect-ratio: auto`
+  computed, content inside the stage, rail 14px below, back-beat 951.1px (full), boot-path
+  lockstep with one `#labels-style`, desktop ratio/rail restored, `(max-width: 719.98px)`
+  matching at 719px, zero console errors. **Counterfactual: with the injected style removed,
+  this WebKit build also grows the stage** (951.1px, no overflow, no rail overlap) — current
+  desktop WebKit does not exhibit the non-growth defect any more than Chromium does. The
+  field defect is therefore specific to the embedded iOS/Threads WKWebView environment it was
+  reported from (or an older WebKit), and remains unreproduced in any engine available here.
+  The fix is verified correct and inert-safe in both engines; its value is that it makes the
+  revealed-state layout explicit instead of relying on any engine's ratio-box content-growth
+  behavior.
 - **`flipStage` is an unguarded required ref** (`applyLabelsState` throws if a future caller
   omits it). The workflow's adversarial verifier REFUTED this as a defect: the caller inventory
   is exhaustive (one real call site, wired correctly; one test mock, wired correctly), no live
