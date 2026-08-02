@@ -1140,7 +1140,7 @@ const cardCatalog = $('card-catalog');
 const cardFace = $('card-face');
 const densityStrip = $('density-strip');
 // labels-reveal toggle controller (ui/labels.js — §6 split).
-const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle') }, {});
+const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle'), flipStage: $('flip-stage') }, {});
 
 // v0.7.0 compartment card (DOCTRINE §1.D v0.37). Per-cell fill/seal lives
 // in ui/tiers.js; refs are the .coord-val nodes (cell roots resolved there).

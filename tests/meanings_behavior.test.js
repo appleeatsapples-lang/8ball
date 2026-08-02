@@ -384,28 +384,69 @@ describe('ui/labels.js behavior', () => {
     };
     const cardFace = makeNode();
     const labelsToggle = makeNode('button');
-    const ui = initLabelsUI({ cardFace, labelsToggle }, {});
+    const flipStage = makeNode();
+    const ui = initLabelsUI({ cardFace, labelsToggle, flipStage }, {});
 
     labelsToggle._fire('click');
     expect(cardFace.classList.contains('labels-revealed')).toBe(true);
     expect(labelsToggle.textContent).toBe('→ hide labels');
     expect(labelsToggle.attrs['aria-pressed']).toBe('true');
     expect(isLabelsRevealed()).toBe(true);
+    // flip-stage (mobile intrinsic-height layout, iOS/WebKit fix) tracks
+    // cardFace's own labels-revealed class in lockstep, every path through.
+    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
 
     labelsToggle._fire('click');
     expect(cardFace.classList.contains('labels-revealed')).toBe(false);
     expect(labelsToggle.textContent).toBe('→ reveal labels');
     expect(labelsToggle.attrs['aria-pressed']).toBe('false');
     expect(isLabelsRevealed()).toBe(false);
+    expect(flipStage.classList.contains('labels-revealed')).toBe(false);
 
-    // applyLabelsState is the boot path — apply without persisting
+    // applyLabelsState is the boot path — apply without persisting; this is
+    // also how a stored preference (isLabelsRevealed() reading true from a
+    // prior session) reaches the layout state on load, so this call doubles
+    // as that initialization-path coverage.
     ui.applyLabelsState(true);
     expect(cardFace.classList.contains('labels-revealed')).toBe(true);
+    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
     expect(isLabelsRevealed()).toBe(false); // storage untouched by apply
   });
 
   it('an unreadable store reads as not-revealed instead of throwing', () => {
     globalThis.localStorage = { getItem: () => { throw new Error('denied'); } };
     expect(isLabelsRevealed()).toBe(false);
+  });
+
+  // PR-196 premerge audit (2026-08-02): in this Node environment `document`
+  // is undefined, so injectStyle()'s own guard made it a silent no-op in
+  // every earlier run — the CSS payload, the fix's actual delivery
+  // mechanism, could be deleted without any test noticing. This stubs a
+  // document the way tests/dyad_surface.test.js does for ui/dyad.js's
+  // injectStyle, so init runs the real injection code.
+  it('init injects the #labels-style payload into head exactly once (real injectStyle path)', () => {
+    const byId = new Map();
+    const appended = [];
+    const prior = globalThis.document;
+    globalThis.document = {
+      getElementById: id => byId.get(id) || null,
+      createElement: tag => makeNode(tag),
+      head: { appendChild: n => { appended.push(n); if (n.id) byId.set(n.id, n); } },
+    };
+    try {
+      const refs = () => ({ cardFace: makeNode(), labelsToggle: makeNode('button'), flipStage: makeNode() });
+      initLabelsUI(refs(), {});
+      const style = byId.get('labels-style');
+      expect(style).toBeTruthy();
+      // the payload is the mobile override itself, not an empty shell
+      expect(style.textContent).toMatch(/aspect-ratio:\s*auto/);
+      expect(style.textContent).toMatch(/@media \(max-width: 719\.98px\)/);
+      // idempotent: a second init finds the node by id and does not re-append
+      initLabelsUI(refs(), {});
+      expect(appended.length).toBe(1);
+    } finally {
+      if (prior === undefined) delete globalThis.document;
+      else globalThis.document = prior;
+    }
   });
 });
