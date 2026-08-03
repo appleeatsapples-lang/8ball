@@ -1081,7 +1081,8 @@ const offerBtn = $('offer-btn');
 const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
-initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner,
+  specimen: { name: $('specimen-entry-name'), type: $('specimen-entry-type'), habit: $('specimen-entry-habit'), note: $('specimen-entry-note') } });
 let readingsUI = null;
 // about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
@@ -1419,22 +1420,6 @@ cardLockIcon.addEventListener('click', e => {
   openPurchase();
 });
 offerBtn.addEventListener('click', openPurchase);
-
-// ── paywall specimen preview (§4.B v0.56) ────────────────────────
-// One FIXED catalog cell (no. v = aries × dragon — the same cell the
-// /cards/spec_no-v.jpg sheet shows), rendered from the public deck
-// bundle the page already imports. Constant for every visitor: never
-// the visitor's profile, tier, or facet position. The visitor's own
-// written entry stays t3-gated (§1.D / §5.C).
-{
-  const specimenCell = CARDS.aries && CARDS.aries.dragon;
-  if (specimenCell) {
-    $('specimen-entry-name').textContent = specimenCell.name;
-    $('specimen-entry-type').textContent = specimenCell.type;
-    $('specimen-entry-habit').textContent = specimenCell.habit;
-    $('specimen-entry-note').textContent = specimenCell.note.mid;
-  }
-}
 
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small

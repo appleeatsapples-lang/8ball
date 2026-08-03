@@ -196,7 +196,7 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     // The entry slots ship EMPTY in static markup — content strings stay in
     // content/cards.v1.full.js (§4), filled at boot from the deck import.
     expect(subtree).toMatch(/<span id="specimen-entry-name"><\/span>/);
-    expect(html).toMatch(/CARDS\.aries && CARDS\.aries\.dragon/);
+    expect(paymentsJs).toMatch(/CARDS\.aries && CARDS\.aries\.dragon/);
     // The preview image URL is same-origin-relative and bare.
     const src = subtree.match(/src="([^"]+)"/)[1];
     expect(src.startsWith('/cards/')).toBe(true);
