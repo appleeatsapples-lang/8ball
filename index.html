@@ -1044,6 +1044,7 @@ import {
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
+import { initKuaUI, renderKuaRead, kuaReadFor, getGenderInput, setGenderInput } from './ui/kua.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
 import {
@@ -1162,6 +1163,7 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
+initKuaUI({ cardFace, form: profileForm, anchor: risingFields });
 initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
@@ -1171,7 +1173,7 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySe
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
     buildSecond: profileFromPayload,
     getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
-    getPublicRead: publicReadFor,
+    getPublicRead: publicReadFor, getKua: kuaReadFor,
     onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1218,7 +1220,7 @@ function renderCard(profile, opts) {
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
   const density = tierDensitySummary(tier);
-  const blockTail = coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed';
+  const blockTail = (coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed') + (coordsForTier(tier).has('kuaRead') ? '' : ' · kua sealed');
   densityStrip.textContent = (density.sealed > 0
     ? `${density.open} of ${density.total} coordinates open · ${density.sealed} sealed at paid tiers`
     : `${density.total} of ${density.total} coordinates open · full sheet`) + blockTail;
@@ -1241,6 +1243,7 @@ function renderCard(profile, opts) {
   // from the same `tier` the seals use, never inside ui/public.js.
   const publicOpen = coordsForTier(tier).has('publicRead');
   renderPublicRead(profile, { entitled: publicOpen });
+  renderKuaRead(profile, { entitled: coordsForTier(tier).has('kuaRead') });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;

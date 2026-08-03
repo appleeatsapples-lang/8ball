@@ -143,7 +143,7 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     // §1.D v0.60 folded the public read into t3 rather than selling it as a
     // fourth rung. Both ceiling additions are BLOCKS, not compartments, so
     // the cell grid and the §1.F census are unmoved by either.
-    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead']);
+    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
   });
 
   it('the ladder is strictly cumulative — every tier is a superset of the one below', () => {
@@ -1058,9 +1058,9 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     );
   });
 
-  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus both ceiling blocks', () => {
+  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus all three ceiling blocks', () => {
     expect(newlyEntitledCells('t1', 't3')).toEqual(
-      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead']
+      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead']
     );
   });
 

@@ -157,7 +157,7 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
       .toEqual(['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']);
     expect(newlyEntitledCells('t1', 't2'))
       .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
-    expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead']);
+    expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
   });
 });
 
@@ -265,7 +265,8 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
     }
     for (const attr of ['title', 'catalog', 'name', 'type', 'habit', 'note',
-      'families', 'antifit', 'roleline', 'public-bridge', 'face', 'entry', 'public']) {
+      'families', 'antifit', 'roleline', 'public-bridge', 'face', 'entry', 'public',
+      'kua', 'kua-primary', 'kua-secondary', 'kua-note']) {
       if (attr === 'title') {
         for (const lead of Object.keys(ROW_TITLES)) {
           byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, makeNode());
