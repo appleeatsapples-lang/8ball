@@ -5,6 +5,47 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-03 — Kua block + optional gender input (§1.D v0.63, controller override) — STAGED
+
+**Scope.** The product's first gender-keyed surface, on branch
+`claude/gender-reading-influence-citp5k` (six commits, unmerged, push per
+plan approval): the Eight Mansions kua number as a third t3 ceiling block,
+fed by a new optional `gender` profile field. Vehicle, tier, and process
+were the controller's explicit 2026-08-03 decisions (recorded in the §1.D
+v0.63 clause); the freeze override follows the §1.G v0.44 precedent.
+
+**The train.** (1) §6 headroom split — the §4.B specimen fill moves into
+`ui/payments.js`; host 1497 → 1482. (2) `core/kua.js` — male 11−S /
+female 4+S over the solar-year digit sum, Li Chun boundary from the
+HKO-pinned term table (stricter than fixed Feb-4; 2021 = Feb 3 is the
+discriminating test), visible 5→2/5→8 remap, century-sweep equivalence to
+the classical 19xx statements, post-2000 competing school named-not-
+implemented; `buildProfile` gender passthrough (§3 additive, fixtures
+byte-untouched). (3) `content/kua.v1.js` — eight citation-register
+entries, registry facts only (no-guidance pin; §12 no-oracle), provenance
+naming Ba Zhai Ming Jing + the named limitation. (4) `ui/kua.js` — dyad-
+posture injection (style, block node, gender select all module-created; 3
+net host lines), ui/public.js render contract, dual-value honest degrade
+when no gender is on file, `registerKuaRoot` unseal-beat wiring, dyad-
+sheet parity via handed-in reads. (5) Persistence — gender inside
+`eight_ball_profile_v1` (no new key), strict two-token vocabulary at every
+write seam (saveProfile, optsFromPayload, archive compaction, dyad
+person-B), setGender rehydrate/forget hook, about-modal privacy sentence.
+(6) This entry + DOCTRINE §1.D v0.63 + §5 v0.63 + the cross-model brief.
+
+**Verification.** Suite 54 files / 1887 tests green at every commit;
+product audit PASS throughout; three live-fire passes (paywall specimen
+after the split; kua sealed-empty at free with density tail + dual-mode
+fill at ?paid=t3; gendered submit → storage → reload rehydration →
+forget clears), zero page errors. index.html ends at 1486/1500.
+
+**Open at merge time.** The PR-time L48/journal gates need the
+`pr<N>`-named audit response (or override) file once the PR number exists
+— the brief is in `audits/`, PR-number-free by necessity. Cross-model
+audit runs as an operator relay (Codex lane parked, PR #198 precedent).
+Copy polish queued for that round: gender field label, dual-display and
+remap note wording, `· kua sealed` density tail, about-modal sentence.
+
 ## 2026-08-02 — Mobile revealed-label overlap fix, four audit findings closed pre-merge, WebKit-verified — SHIPPED
 
 **Scope.** `index.html` (one DI line), `ui/labels.js`, `tests/labels_reveal.test.js`,
