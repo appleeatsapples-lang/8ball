@@ -35,6 +35,9 @@ import {
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
 import { openModal, closeModal, trapTab } from './modals.js';
+// Public deck bundle for the fixed paywall specimen cell (§4.B v0.56) —
+// same import edge ui/sheet.js already carries.
+import { CARDS } from '../content/cards.v1.full.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
 // CREDITS_KEY and PENDING_KEY are §5 v0.22 allow-list keys; TIER_KEY and
@@ -217,7 +220,7 @@ let paywallModal = null;
 let paywallClose = null;
 let paidBanner = null;
 
-export function initPaywallUI({ modal, closeBtn, banner }) {
+export function initPaywallUI({ modal, closeBtn, banner, specimen }) {
   paywallModal = modal;
   paywallClose = closeBtn;
   paidBanner = banner;
@@ -226,6 +229,22 @@ export function initPaywallUI({ modal, closeBtn, banner }) {
     if (e.target === paywallModal) closePaywall();
   });
   trapTab(paywallModal);
+  // ── paywall specimen preview (§4.B v0.56) ──────────────────────
+  // One FIXED catalog cell (no. v = aries × dragon — the same cell the
+  // /cards/spec_no-v.jpg sheet shows), rendered from the public deck
+  // bundle this module already ships with. Constant for every visitor:
+  // never the visitor's profile, tier, or facet position. The visitor's
+  // own written entry stays t3-gated (§1.D / §5.C). `specimen` refs are
+  // optional so pre-split callers (and tests) stay valid.
+  if (specimen) {
+    const specimenCell = CARDS.aries && CARDS.aries.dragon;
+    if (specimenCell) {
+      specimen.name.textContent = specimenCell.name;
+      specimen.type.textContent = specimenCell.type;
+      specimen.habit.textContent = specimenCell.habit;
+      specimen.note.textContent = specimenCell.note.mid;
+    }
+  }
 }
 
 export function openPaywall() {

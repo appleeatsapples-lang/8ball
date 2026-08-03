@@ -38,7 +38,8 @@ describe('Saved Readings persistence', () => {
     const storage = makeStorage();
     addSavedReading(mkProfile('First specimen', '1990-01-01', {
       time: '03:31', city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh',
-      lat: 26.2886, lng: 50.114, unexpected: 'drop', sunSign: 'drop',
+      lat: 26.2886, lng: 50.114, gender: 'female',
+      unexpected: 'drop', sunSign: 'drop',
     }), { storage, now: '2026-07-18T08:00:00.000Z' });
     addSavedReading(mkProfile('Second specimen', '1991-02-02'), {
       storage, now: '2026-07-18T09:00:00.000Z',
@@ -52,14 +53,19 @@ describe('Saved Readings persistence', () => {
     expect(loaded.readings[1].profile).toEqual({
       name: 'First specimen', dob: '1990-01-01', time: '03:31',
       city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+      gender: 'female',
     });
     expect(loaded.readings[1].profile).not.toHaveProperty('sunSign');
     expect(loaded.readings[1].profile).not.toHaveProperty('unexpected');
     const persisted = JSON.parse(storage.snapshot()[READINGS_KEY]);
     expect(Object.keys(persisted[0]).sort()).toEqual(['id', 'profile', 'savedAt', 'title']);
     expect(Object.keys(persisted[1].profile).sort()).toEqual([
-      'cc', 'city', 'dob', 'lat', 'lng', 'name', 'time', 'tz',
+      'cc', 'city', 'dob', 'gender', 'lat', 'lng', 'name', 'time', 'tz',
     ]);
+    // §5.E strict vocabulary: an off-vocabulary gender never reaches the
+    // archive (same drop posture as `unexpected` above).
+    expect(compactReadingProfile({ name: 'X', dob: '1990-01-01', gender: 'other' }))
+      .toEqual({ name: 'X', dob: '1990-01-01' });
   });
 
   it('deduplicates an exact input profile after reload', () => {

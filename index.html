@@ -983,7 +983,7 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>nothing leaves your device on its own. inputs — including the optional gender, which feeds only the kua line and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
     <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the sheet to that rung on this device — permanently, for every reading — the three-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
@@ -1044,6 +1044,7 @@ import {
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
+import { initKuaUI, renderKuaRead, kuaReadFor, getGenderInput, setGenderInput } from './ui/kua.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
 import {
@@ -1081,7 +1082,8 @@ const offerBtn = $('offer-btn');
 const paywallModal = $('paywall-modal');
 const paywallClose = $('paywall-close');
 const paidBanner = $('paid-banner');
-initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner });
+initPaywallUI({ modal: paywallModal, closeBtn: paywallClose, banner: paidBanner,
+  specimen: { name: $('specimen-entry-name'), type: $('specimen-entry-type'), habit: $('specimen-entry-habit'), note: $('specimen-entry-note') } });
 let readingsUI = null;
 // about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
@@ -1098,7 +1100,7 @@ let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
   { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; }, setGender: setGenderInput },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
@@ -1161,6 +1163,7 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
+initKuaUI({ cardFace, form: profileForm, anchor: risingFields });
 initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
@@ -1170,7 +1173,7 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySe
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
     buildSecond: profileFromPayload,
     getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
-    getPublicRead: publicReadFor,
+    getPublicRead: publicReadFor, getKua: kuaReadFor,
     onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
@@ -1217,7 +1220,7 @@ function renderCard(profile, opts) {
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
   const density = tierDensitySummary(tier);
-  const blockTail = coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed';
+  const blockTail = (coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed') + (coordsForTier(tier).has('kuaRead') ? '' : ' · kua sealed');
   densityStrip.textContent = (density.sealed > 0
     ? `${density.open} of ${density.total} coordinates open · ${density.sealed} sealed at paid tiers`
     : `${density.total} of ${density.total} coordinates open · full sheet`) + blockTail;
@@ -1240,6 +1243,7 @@ function renderCard(profile, opts) {
   // from the same `tier` the seals use, never inside ui/public.js.
   const publicOpen = coordsForTier(tier).has('publicRead');
   renderPublicRead(profile, { entitled: publicOpen });
+  renderKuaRead(profile, { entitled: coordsForTier(tier).has('kuaRead') });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;
@@ -1360,6 +1364,7 @@ profileForm.addEventListener('submit', e => {
   // is null and rising sign isn't computed — bare sun line falls
   // through naturally per profile.js's gates.
   const opts = { time };
+  const g = getGenderInput(); if (g) opts.gender = g;
   if (selectedCity) {
     opts.city = selectedCity.name;
     opts.cc = selectedCity.countryCode;
@@ -1419,22 +1424,6 @@ cardLockIcon.addEventListener('click', e => {
   openPurchase();
 });
 offerBtn.addEventListener('click', openPurchase);
-
-// ── paywall specimen preview (§4.B v0.56) ────────────────────────
-// One FIXED catalog cell (no. v = aries × dragon — the same cell the
-// /cards/spec_no-v.jpg sheet shows), rendered from the public deck
-// bundle the page already imports. Constant for every visitor: never
-// the visitor's profile, tier, or facet position. The visitor's own
-// written entry stays t3-gated (§1.D / §5.C).
-{
-  const specimenCell = CARDS.aries && CARDS.aries.dragon;
-  if (specimenCell) {
-    $('specimen-entry-name').textContent = specimenCell.name;
-    $('specimen-entry-type').textContent = specimenCell.type;
-    $('specimen-entry-habit').textContent = specimenCell.habit;
-    $('specimen-entry-note').textContent = specimenCell.note.mid;
-  }
-}
 
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small

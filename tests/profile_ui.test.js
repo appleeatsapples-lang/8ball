@@ -87,6 +87,7 @@ describe('ui/profile.js persistence boundary', () => {
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
+      gender: 'female',
       unexpected: 'must not persist',
     });
 
@@ -101,6 +102,7 @@ describe('ui/profile.js persistence boundary', () => {
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
+      gender: 'female',
     });
     expect(loadSavedProfile()).toEqual(payload);
   });
@@ -112,6 +114,9 @@ describe('ui/profile.js persistence boundary', () => {
       city: 'Dhahran',
       lat: Number.NaN,
       lng: 'not-a-number',
+      // §5 amendment: off-vocabulary gender is dropped at the write seam,
+      // never stored — same posture as the invalid coordinates above.
+      gender: 'other',
     });
 
     const payload = JSON.parse(storage.snapshot()[PROFILE_KEY]);
@@ -164,6 +169,10 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
+      // gender IS a calculation input (the kua block reads profile.gender)
+      // — dropping it here would make cold-boot recompute a different
+      // reading than the fresh submit (§5 recompute-on-load).
+      gender: 'female',
       city: 'Dhahran',
       cc: 'SA',
       name: 'Profile Specimen',
@@ -174,9 +183,20 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
+      gender: 'female',
     });
 
-    expect(optsFromPayload({ lat: '26.2886', lng: null, tz: null })).toEqual({});
+    expect(optsFromPayload({ lat: '26.2886', lng: null, tz: null, gender: 'x' })).toEqual({});
+  });
+
+  it('rehydrates and clears the gender control through the setGender hook', () => {
+    const refs = makeRefs();
+    const calls = [];
+    initProfileUI(refs, { setGender: v => calls.push(v) });
+    populateRisingFields({ gender: 'female' });
+    expect(calls).toEqual(['female']);
+    resetFormDisplay();
+    expect(calls).toEqual(['female', '']);
   });
 });
 

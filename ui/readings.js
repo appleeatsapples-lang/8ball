@@ -30,6 +30,12 @@ export function compactReadingProfile(input) {
   for (const key of NUMBER_PROFILE_FIELDS) {
     if (typeof input[key] === 'number' && Number.isFinite(input[key])) profile[key] = input[key];
   }
+  // §5.E kua amendment: gender is calc-driving (the kua block), so the
+  // archive must carry it or a reopened reading recomputes differently
+  // than the fresh submit did. Strict two-token vocabulary — deliberately
+  // NOT the generic string copier, so an off-vocabulary value is dropped
+  // at this write seam like every other.
+  if (input.gender === 'male' || input.gender === 'female') profile.gender = input.gender;
   return profile;
 }
 
