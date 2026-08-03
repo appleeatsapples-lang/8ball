@@ -538,7 +538,7 @@ export function clearOutput() {
  *  blank the stale result without discarding what the user is mid-way through
  *  correcting. */
 function clearEntryFields() {
-  for (const id of ['dyad-name-input', 'dyad-dob-input', 'dyad-time-input']) {
+  for (const id of ['dyad-name-input', 'dyad-dob-input', 'dyad-time-input', 'dyad-gender-input']) {
     const el = $(id);
     if (el) el.value = '';
   }

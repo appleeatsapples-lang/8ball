@@ -33,9 +33,11 @@ describe('kua formula anchors', () => {
     expect(getKua(1977, 6, 1, 'female')).toEqual({ number: 1, remapped: false });
   });
 
-  it('2005 (the named-limitation worked example): single continuous rule → male 4, female 2', () => {
-    // The competing post-2000 school would say male 2 here; this product
-    // ships the single continuous rule and names the fork in provenance.
+  it('2005: single continuous rule → male 4, female 2', () => {
+    // NOT a divergence example — see the equivalence sweep below and
+    // core/kua.js's NAMED LIMITATION comment. The competing post-2000
+    // school (male 9−S, female 6+S, S = last-two-digits sum) gives the
+    // same numbers here too.
     expect(getKua(2005, 6, 1, 'male')).toEqual({ number: 4, remapped: false });
     expect(getKua(2005, 6, 1, 'female')).toEqual({ number: 2, remapped: false });
   });
@@ -70,6 +72,24 @@ describe('classical equivalence (19xx)', () => {
       if (m === 0) m = 9;
       const male = m === 5 ? { number: 2, remapped: true } : { number: m, remapped: false };
       let f = (((yy - 4) % 9) + 9) % 9;
+      if (f === 0) f = 9;
+      const female = f === 5 ? { number: 8, remapped: true } : { number: f, remapped: false };
+      // July 1 is safely after Li Chun, so the solar year is y itself.
+      expect(getKua(y, 7, 1, 'male')).toEqual(male);
+      expect(getKua(y, 7, 1, 'female')).toEqual(female);
+    }
+  });
+});
+
+describe('named-limitation citation check (20xx)', () => {
+  it('the commonly-cited post-2000 formula (male 9−S, female 6+S, S = last-two-digits digit-sum) never diverges from this module\'s continuous rule, 2000–2099', () => {
+    const reduce = n => { while (n > 9) n = String(n).split('').reduce((a, c) => a + Number(c), 0); return n; };
+    for (let y = 2000; y <= 2099; y++) {
+      const s2 = reduce(y % 100);
+      let m = 9 - s2;
+      if (m === 0) m = 9;
+      const male = m === 5 ? { number: 2, remapped: true } : { number: m, remapped: false };
+      let f = reduce(6 + s2);
       if (f === 0) f = 9;
       const female = f === 5 ? { number: 8, remapped: true } : { number: f, remapped: false };
       // July 1 is safely after Li Chun, so the solar year is y itself.

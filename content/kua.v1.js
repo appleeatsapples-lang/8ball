@@ -79,5 +79,5 @@ export const KUA_TRIGRAMS = Object.freeze({
 export const KUA_SOURCES = Object.freeze({
   kua: 'ba zhai ming jing (eight mansions) · kua number by solar birth year and gender; male 11−S, female 4+S over the year digit sum; a raw 5 files male→2, female→8, disclosed at render',
   boundary: 'solar year turns at li chun per the HKO-pinned solar-term table (core/calendar.js), at-or-after',
-  limitation: 'a competing modern school changes the constants for post-2000 births (male 9−S, female 6+S); this registry ships the single continuous rule and names the fork here instead of carrying both',
+  limitation: 'a competing modern school states the constants differently for post-2000 births (male 9−S, female 6+S, S = last-two-digits sum); hand-checked across 2000–2099 that scoping matches the continuous-rule output shipped here for every year, so the fork is a documented alternate derivation, not a verified output difference — this registry still ships the single continuous rule and names the fork instead of carrying both',
 });

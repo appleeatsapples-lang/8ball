@@ -731,6 +731,27 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
     expect(inst.get('dyad-dob-input').value).toBe('');
   });
 
+  it("person B's gender does not survive close()/open() — every other typed field already didn't", () => {
+    // Regression: clearEntryFields() originally cleared name/dob/time but not
+    // gender, so an unconsented next person B would silently inherit the
+    // prior person's gender through the hidden re-open path — the same class
+    // of stale-hidden-DOM leak the rest of this F1 suite exists to close.
+    const inst = harness('t5');
+    inst.withDom(() => {
+      inst.get('dyad-gender-input').value = 'female';
+      return submitSecond();
+    });
+    inst.withDom(() => closeDyad());
+    expect(inst.get('dyad-gender-input').value).toBe('');
+
+    inst.withDom(() => {
+      inst.get('dyad-gender-input').value = 'male';
+      return submitSecond();
+    });
+    inst.withDom(() => openDyad());
+    expect(inst.get('dyad-gender-input').value).toBe('');
+  });
+
   it('render() with no second person shows nothing', () => {
     const inst = harness('t5');
     expect(inst.withDom(() => renderDyad())).toBeNull();

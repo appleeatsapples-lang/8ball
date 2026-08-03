@@ -21,11 +21,19 @@
 // RETURNED (`remapped: true`), never silent — the §1.B v0.62 lesson that
 // a value shown must be the value read.
 //
-// NAMED LIMITATION. A competing modern school changes the constants for
-// post-2000 births (male 9 − S, female 6 + S; e.g. 2005 → S=7 → male 4
-// here, 2 there). This module ships the single continuous rule and names
-// the fork in KUA (content provenance) rather than implementing both —
-// a switchable dual-school table is the wrong fix (§1.D kua amendment).
+// NAMED LIMITATION. A competing modern school states the constants
+// differently for post-2000 births — male = 9 − S, female = 6 + S —
+// where its S is the digit sum of the birth year's LAST TWO DIGITS, not
+// the full year this module's S is. Hand-checked by exhaustive sweep
+// (tests/kua.test.js, 2000–2099): scoped that way, the "competing"
+// formula produces the same number as this module's continuous rule for
+// every year in the range — the century's own digit-root offset is
+// exactly what separates "11 − S(full year)" from "9 − S(last two
+// digits)". So this is a documented alternate derivation, not a verified
+// behavioral difference. This module still ships the single continuous
+// rule and names the fork in KUA (content provenance); a switchable
+// dual-school table would be the wrong fix regardless (§1.D kua
+// amendment).
 //
 // YEAR BOUNDARY. The solar year turns at Li Chun (立春), not Jan 1 —
 // derived from core/calendar.js's authority-pinned term table

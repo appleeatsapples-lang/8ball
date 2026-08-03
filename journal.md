@@ -5,6 +5,61 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-04 — Kua block + optional gender input (PR #199): cross-model audit complete, fixes landed — STAGED, MERGE WITH FIXES
+
+**What happened.** The 2026-08-03 entry below staged this PR with the
+cross-model audit brief filed but not yet run (Codex lane parked). This
+entry records that relay: `codex + grok + claude` fan-out (`gemini`
+errored on auth, same known pattern as PR #194), reconciled by `claude`.
+Full record: `audits/relay_pr199_premerge_audit_2026-08-04_response.md`.
+Reconciled verdict: **MERGE WITH FIXES** — three items, all landed and
+re-verified in this entry's commit.
+
+**1. Real regression, caught pre-merge.** `ui/dyad.js`'s
+`clearEntryFields()` cleared `dyad-name-input` / `dyad-dob-input` /
+`dyad-time-input` on dyad close/reopen but not `dyad-gender-input` — an
+unconsented next person B would silently inherit the prior person's
+gender through the hidden re-open path. This is the exact stale-hidden-
+DOM defect class PR #187's F1 fix exists to close, and the existing F1
+suite never asserted on the gender field, so it went uncaught. Fixed:
+`dyad-gender-input` added to the clear list; a dedicated regression test
+added asserting it blanks on both `close()` and `open()`.
+
+**2. Citation-accuracy correction, not a behavior change.** The NAMED
+LIMITATION in `core/kua.js`, `content/kua.v1.js`'s `KUA_SOURCES.limitation`,
+and a `tests/kua.test.js` comment claimed the "competing post-2000 school"
+(male 9−S, female 6+S) gives a different number than this module for
+2005, using this module's own full-year S. The commonly-published formula
+actually scopes S to the birth year's *last two digits*. Hand-checked by
+exhaustive sweep across all of 2000–2099 (new test, `tests/kua.test.js`
+"named-limitation citation check"): with S correctly scoped, the two
+formulas never diverge in that range — the century's digital-root offset
+is exactly what separates `11 − S(full year)` from `9 − S(last two
+digits)`. All three citation sites corrected to describe this honestly
+rather than repeat the unverified/incorrect contrast. The shipped
+calculation is unchanged; this was a documentation-accuracy fix only.
+
+**3. Doctrine footer.** `DOCTRINE.md`'s version footer still read
+`2026-07-31 · v0.62` with no `v0.63` history entry, despite the `§1.D
+v0.63` / `§5 v0.63` amendments already existing in the body. Bumped the
+footer to v0.63 with a full summary (superseding the prior v0.62 footer
+paragraph, kept immediately below as `doctrine version, prior:`), and
+added the corresponding condensed `- v0.63:` line at the top of the
+changelog bullet list.
+
+**Verification after all three fixes.** `npm test`: 54 files / **1889**
+tests green (1887 before this entry's two new regression tests).
+`python3 audits/project_audit.py`: PASS 12/0/1/0. `bash
+audits/run_local_audit.sh`: clean, 848 files. `index.html`: 1486/1500,
+unchanged by this entry (no `index.html` edit). Scope of this commit:
+`ui/dyad.js`, `tests/dyad_surface.test.js`, `core/kua.js`,
+`content/kua.v1.js`, `tests/kua.test.js`, `DOCTRINE.md`, this entry, the
+relay response artifact.
+
+**Still open.** Operator merge word per §10/L48 — this entry and the
+relay's reconciled verdict are not a substitute for it. No push beyond
+this branch, no merge, no deploy performed or claimed here.
+
 ## 2026-08-03 — Kua block + optional gender input (§1.D v0.63, controller override) — STAGED
 
 **Scope.** The product's first gender-keyed surface, on branch
