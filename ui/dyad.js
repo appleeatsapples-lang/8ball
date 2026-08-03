@@ -261,6 +261,8 @@ const SCREEN_HTML =
   '<p class="field-error" id="dyad-dob-error" hidden>enter a valid past date.</p></div>' +
   '<div class="field dyad-field"><label for="dyad-time-input">second birth time (optional)</label>' +
   '<input id="dyad-time-input" type="time"></div>' +
+  '<div class="field dyad-field"><label for="dyad-gender-input">second gender (optional · kua line only)</label>' +
+  '<select id="dyad-gender-input"><option value="">—</option><option value="male">male</option><option value="female">female</option></select></div>' +
   '<div class="field city-field dyad-field"><label for="dyad-city-input">second birthplace (optional)</label>' +
   '<input id="dyad-city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false">' +
   '<ul class="city-suggestions" id="dyad-city-suggestions" role="listbox" aria-label="city suggestions"></ul>' +
@@ -575,6 +577,7 @@ export function submitSecond() {
   const name = String(($('dyad-name-input') || {}).value || '');
   const dob = String(($('dyad-dob-input') || {}).value || '');
   const time = String(($('dyad-time-input') || {}).value || '');
+  const gender = String(($('dyad-gender-input') || {}).value || '');
 
   const validate = _hooks.validateEntry;
   if (typeof validate === 'function') {
@@ -594,6 +597,10 @@ export function submitSecond() {
     // which is why the wrong field name was invisible to rising specifically.
     profile = build({
       name: name.trim(), dob, time,
+      // One entry contract (§1.J): person B's optional gender rides the same
+      // payload shape as the primary form's, transient like everything else
+      // about B — never persisted (§5.F).
+      ...(gender === 'male' || gender === 'female' ? { gender } : {}),
       ...(_city ? { city: _city.name, cc: _city.countryCode, tz: _city.tz, lat: _city.lat, lng: _city.lng } : {}),
     });
   } catch (_) {

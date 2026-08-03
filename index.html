@@ -983,7 +983,7 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>nothing leaves your device on its own. inputs — including the optional gender, which feeds only the kua line and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
     <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the sheet to that rung on this device — permanently, for every reading — the three-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
@@ -1100,7 +1100,7 @@ let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
   { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; }, setGender: setGenderInput },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
@@ -1364,6 +1364,7 @@ profileForm.addEventListener('submit', e => {
   // is null and rising sign isn't computed — bare sun line falls
   // through naturally per profile.js's gates.
   const opts = { time };
+  const g = getGenderInput(); if (g) opts.gender = g;
   if (selectedCity) {
     opts.city = selectedCity.name;
     opts.cc = selectedCity.countryCode;
