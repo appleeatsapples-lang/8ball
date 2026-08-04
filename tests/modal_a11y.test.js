@@ -124,6 +124,24 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     expect(prevented).toBe(2);
   });
 
+  it('keyboard-cycles through native summary and eligible tabindex controls', () => {
+    const refs = makeModalRefs();
+    const summary = makeEl('summary');
+    const customControl = makeEl('customControl');
+    let selector = '';
+    refs.aboutModal.querySelectorAll = value => {
+      selector = value;
+      return [summary, customControl];
+    };
+    initModalsUI(refs, {});
+    refs.aboutBtn._fire('click');
+    globalThis.document.activeElement = customControl;
+    refs.aboutModal._fire('keydown', { key: 'Tab', shiftKey: false, preventDefault() {} });
+    expect(selector).toContain('summary');
+    expect(selector).toContain('[tabindex]:not([tabindex="-1"])');
+    expect(globalThis.document.activeElement).toBe(summary);
+  });
+
   it('a CLOSED modal never traps Tab (regression: invisible keyboard trap)', () => {
     // Closed modals stay in the DOM (hidden via opacity/visibility). If the
     // trap engaged on them, a keyboard user tabbing into a residually

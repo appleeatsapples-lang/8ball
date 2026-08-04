@@ -58,7 +58,8 @@ export function trapTab(modalEl) {
     if (!modalEl.classList.contains('open')) return;
     if (typeof modalEl.querySelectorAll !== 'function') return;
     const focusables = modalEl.querySelectorAll(
-      'a[href], button:not([disabled]), textarea, input, select'
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), ' +
+      'select:not([disabled]), summary, [tabindex]:not([tabindex="-1"]):not([disabled])'
     );
     if (!focusables.length) return;
     const first = focusables[0];
@@ -78,7 +79,7 @@ export function trapTab(modalEl) {
 export function initModalsUI(refs, hooks) {
   const {
     aboutModal, aboutBtn, aboutClose,
-    forgetModal, forgetBtn, forgetCancel, forgetConfirm,
+    forgetModal, forgetBtn, forgetCancel, forgetConfirm, forgetStatus,
   } = refs;
   const h = hooks || {};
 
@@ -89,17 +90,48 @@ export function initModalsUI(refs, hooks) {
   aboutClose.addEventListener('click', closeAbout);
   aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAbout(); });
 
-  // forget-device is the full erase: clear the current profile plus the
-  // Saved Readings archive, then return the form to its empty state.
+  // forget-device is the full erase: clear the current profile, Saved
+  // Readings archive, and facet state, then return the form to its empty
+  // state. Every deletion hook read-verifies its own storage key(s). A
+  // partial/no-op erase must stay retryable and must never reset the visible
+  // form as though the device had been cleared.
   // Distinct from "try another", which clears only the form DOM.
   // Focus lands on "leave it" so Enter can't erase by accident.
-  function openForget() { openModal(forgetModal, forgetCancel); }
+  function openForget() {
+    if (forgetStatus) {
+      forgetStatus.hidden = true;
+      forgetStatus.textContent = '';
+    }
+    openModal(forgetModal, forgetCancel);
+  }
   function closeForget() { closeModal(forgetModal); }
   forgetBtn.addEventListener('click', openForget);
   forgetCancel.addEventListener('click', closeForget);
   forgetConfirm.addEventListener('click', () => {
-    if (h.clearProfile) h.clearProfile();
-    if (h.clearSavedReadings) h.clearSavedReadings();
+    const verified = hook => {
+      if (typeof hook !== 'function') return false;
+      try {
+        const outcome = hook();
+        return outcome === true || Boolean(outcome && outcome.ok === true);
+      } catch (_) { return false; }
+    };
+    const erased = [
+      verified(h.clearProfile),
+      verified(h.clearSavedReadings),
+      verified(h.clearFacetState),
+      verified(h.clearPendingProfile),
+    ].every(Boolean);
+    if (!erased) {
+      if (forgetStatus) {
+        forgetStatus.textContent = 'could not erase all local data. check browser storage access, then try again.';
+        forgetStatus.hidden = false;
+      }
+      return;
+    }
+    if (forgetStatus) {
+      forgetStatus.hidden = true;
+      forgetStatus.textContent = '';
+    }
     closeForget();
     if (h.resetFormDisplay) h.resetFormDisplay();
   });

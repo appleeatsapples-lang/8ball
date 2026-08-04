@@ -11,7 +11,10 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
+vi.mock('../core/cities.js', () => ({
+  searchCities: vi.fn(),
+  isCityLoadExhausted: error => error?.code === 'CITY_LOAD_EXHAUSTED',
+}));
 
 import { searchCities } from '../core/cities.js';
 import {
@@ -46,6 +49,12 @@ describe('ui/citysearch.js DI shape (DOCTRINE §6 v0.23)', () => {
     expect(html).not.toMatch(/function renderSuggestions\s*\(/);
     expect(html).not.toMatch(/function selectCity\s*\(/);
     expect(html).not.toMatch(/citySearchDebounce/);
+  });
+
+  it('keeps each dynamic suggestion a 44px, flex-aligned pointer target', () => {
+    expect(cityJs).toMatch(/\.city-suggestions li\s*\{[^}]*min-height:\s*44px/s);
+    expect(cityJs).toMatch(/\.city-suggestions li\s*\{[^}]*display:\s*flex/s);
+    expect(cityJs).toMatch(/\.city-suggestions li\s*\{[^}]*align-items:\s*center/s);
   });
 });
 
@@ -95,9 +104,12 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     });
     const cityInput = makeNode('input');
     cityInput.value = '';
+    const cityStatus = makeNode('p');
+    cityStatus.hidden = true;
     return {
       cityInput,
       citySuggestions,
+      cityStatus,
       legacyHint: { hidden: false },
       polarMessage: { hidden: true },
     };
@@ -106,14 +118,14 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
   const OSLO = { name: 'Oslo', country: 'Norway', countryCode: 'NO', lat: 59.91, lng: 10.75, tz: 'Europe/Oslo' };
   const LONGYEARBYEN = { name: 'Longyearbyen', country: 'Norway', countryCode: 'NO', lat: 78.22, lng: 15.64, tz: 'Arctic/Longyearbyen' };
 
-  let refs, selected;
+  let refs, selected, controller;
   beforeEach(() => {
     vi.useFakeTimers();
     searchCities.mockReset();
     globalThis.document = { createElement: makeNode };
     refs = makeRefs();
     selected = undefined;
-    initCitySearchUI(refs, { setSelectedCity: c => { selected = c; } });
+    controller = initCitySearchUI(refs, { setSelectedCity: c => { selected = c; } });
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -141,6 +153,8 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     expect(refs.citySuggestions.children[0].attrs.role).toBe('option');
     expect(refs.citySuggestions.children[0].children[0].textContent).toBe('Oslo');
     expect(refs.citySuggestions.children[0].children[1].textContent).toBe(' · Norway');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+    expect(refs.citySuggestions.attrs['aria-busy']).toBe('false');
   });
 
   it('exposes the birthplace field as an ARIA combobox tied to the suggestion list', async () => {
@@ -148,12 +162,48 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     expect(refs.cityInput.attrs['aria-autocomplete']).toBe('list');
     expect(refs.cityInput.attrs['aria-controls']).toBe('city-suggestions');
     expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+    expect(refs.cityStatus.attrs.role).toBe('status');
+    expect(refs.cityStatus.attrs['aria-live']).toBe('polite');
 
     searchCities.mockResolvedValue([OSLO]);
     refs.cityInput.value = 'os';
     refs.cityInput._fire('input');
     await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
     expect(refs.cityInput.attrs['aria-expanded']).toBe('true');
+  });
+
+  it('announces an in-flight lookup politely and marks the combobox/listbox busy', async () => {
+    let resolveSearch;
+    searchCities.mockReturnValue(new Promise(resolve => { resolveSearch = resolve; }));
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+
+    expect(refs.cityStatus.hidden).toBe(false);
+    expect(refs.cityStatus.textContent).toBe('searching birthplaces…');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('true');
+    expect(refs.citySuggestions.attrs['aria-busy']).toBe('true');
+
+    resolveSearch([OSLO]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refs.cityStatus.hidden).toBe(true);
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+    expect(refs.citySuggestions.attrs['aria-busy']).toBe('false');
+  });
+
+  it('distinguishes a valid empty result set from a lookup failure', async () => {
+    searchCities.mockResolvedValue([]);
+    refs.cityInput.value = 'notacity';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+
+    expect(refs.citySuggestions.children).toHaveLength(0);
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.cityStatus.hidden).toBe(false);
+    expect(refs.cityStatus.textContent)
+      .toBe('no matching birthplace found · try another spelling or nearby city.');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
   });
 
   it('Arrow keys move the active option and Enter selects it', async () => {
@@ -216,6 +266,57 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     refs.cityInput.value = 'oslo airport'; // user kept typing; no new input event yet
     await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
     expect(refs.citySuggestions.children).toHaveLength(0);
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+    expect(refs.cityStatus.hidden).toBe(true);
+  });
+
+  it('generation guard drops a rejection from before reset/retype of identical text', async () => {
+    let rejectFirst, resolveSecond;
+    searchCities
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+      .mockImplementationOnce(() => new Promise(resolve => { resolveSecond = resolve; }));
+
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    controller.reset();
+
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    expect(refs.cityStatus.textContent).toBe('searching birthplaces…');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('true');
+
+    rejectFirst(new Error('stale load failed'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refs.cityStatus.textContent).toBe('searching birthplaces…');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('true');
+
+    resolveSecond([OSLO]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refs.citySuggestions.children).toHaveLength(1);
+    expect(refs.cityStatus.hidden).toBe(true);
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+  });
+
+  it('generation guard drops a rejection after a newer input value', async () => {
+    let rejectFirst;
+    searchCities
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+      .mockResolvedValueOnce([OSLO]);
+
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    refs.cityInput.value = 'osl';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    expect(refs.citySuggestions.children).toHaveLength(1);
+
+    rejectFirst(new Error('stale load failed'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refs.citySuggestions.children).toHaveLength(1);
+    expect(refs.cityStatus.hidden).toBe(true);
   });
 
   it('a rejected search clears suggestions instead of throwing', async () => {
@@ -224,6 +325,29 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     refs.cityInput._fire('input');
     await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
     expect(refs.citySuggestions.children).toHaveLength(0);
+    expect(refs.cityStatus.hidden).toBe(false);
+    expect(refs.cityStatus.textContent).toBe('birthplace lookup unavailable · type again to retry.');
+
+    searchCities.mockResolvedValue([OSLO]);
+    refs.cityInput.value = 'osl';
+    refs.cityInput._fire('input');
+    expect(refs.cityStatus.hidden).toBe(true);
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    expect(refs.citySuggestions.children).toHaveLength(1);
+  });
+
+  it('instructs reload, not another input, once bounded asset attempts are exhausted', async () => {
+    const error = Object.assign(new Error('load failed'), { code: 'CITY_LOAD_EXHAUSTED' });
+    searchCities.mockRejectedValue(error);
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+
+    expect(refs.cityStatus.hidden).toBe(false);
+    expect(refs.cityStatus.textContent)
+      .toBe('birthplace lookup unavailable · reload this page to try again.');
+    expect(refs.cityStatus.textContent).not.toContain('type again');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
   });
 
   it('mousedown selection sets the city via the hook, fills the input, and prevents focus loss', async () => {

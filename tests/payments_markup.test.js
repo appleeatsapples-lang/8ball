@@ -29,12 +29,19 @@ import { fileURLToPath } from 'node:url';
 import * as paymentsUI from '../ui/payments.js';
 import {
   CREDITS_KEY,
+  PAID_SUCCESS_MESSAGE,
   PENDING_KEY,
+  PROFILE_SAVE_STORAGE_MESSAGE,
+  PURCHASE_STORAGE_MESSAGE,
+  RETURN_STORAGE_MESSAGE,
   TIER_KEY,
+  clearPendingProfile,
   getCredits,
   handlePaidReturn,
   initPaywallUI,
+  setTier,
   showPaidBanner,
+  stagePurchase,
 } from '../ui/payments.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -168,13 +175,18 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(t3).not.toMatch(/destiny|fate|secret|reveal your/i);
   });
 
-  it('paywall title and body carry the single-offer ownership framing (v0.56)', () => {
+  it('paywall title and body carry the single-offer ownership framing (v0.56, permanence restored v0.63)', () => {
     const subtree = modalSubtree('paywall-modal');
-    expect(subtree).toMatch(/complete 8ball · \$3 once/);
-    expect(subtree).toMatch(/every coordinate and the written card, permanently, for every reading on this device/);
-    expect(subtree).toMatch(/yours for good/);
-    // A t1/t2 owner keeps what they bought — monotonicity stays disclosed.
-    expect(subtree).toMatch(/the highest rung bought holds/);
+    expect(subtree).toMatch(/complete your sheet · \$3 once/);
+    expect(subtree).toMatch(/adds 10 coordinates, their meanings, the written card, domain fit, and the kua line/);
+    expect(subtree).toMatch(/permanently, for every reading in this browser/);
+    expect(subtree).toMatch(/\$3 once · no subscription · no 8ball account/);
+    expect(subtree).toMatch(/aria-describedby="paywall-value paywall-facts paywall-disclosure"/);
+    // DOCTRINE v0.55: "a rung purchase is permanent and unlimited" — load-bearing,
+    // must stay disclosed (regression: briefly dropped during the v0.63 UI
+    // refinement pass, caught pre-merge by cross-model audit, restored here).
+    expect(subtree).toMatch(/yours for good/i);
+    expect(subtree).toMatch(/the highest rung bought holds/i);
     // The metered framing is gone: no tries, no reads-count promises.
     expect(subtree).not.toMatch(/three tries/);
     expect(subtree).not.toMatch(/three more reads/);
@@ -269,7 +281,7 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     const m = html.match(/<div([^>]*id="paid-banner"[^>]*)>([\s\S]*?)<\/div>/);
     expect(m, 'paid-banner element not found').not.toBeNull();
     expect(m[1]).toMatch(/\bhidden\b/);
-    expect(m[2].trim()).toBe('rung opened. yours for good.');
+    expect(m[2].trim()).toBe(PAID_SUCCESS_MESSAGE);
   });
 
   // 5. paid_query_handler (URL handling lives in ui/payments.js) ────
@@ -300,6 +312,7 @@ describe('paid-return banner behavior', () => {
 
     showPaidBanner();
 
+    expect(banner.textContent).toBe(PAID_SUCCESS_MESSAGE);
     expect(banner.hidden).toBe(false);
     expect(banner.classList.contains('visible')).toBe(true);
 
@@ -309,6 +322,14 @@ describe('paid-return banner behavior', () => {
 
     vi.advanceTimersByTime(600);
     expect(banner.hidden).toBe(true);
+  });
+
+  it('showPaidBanner can surface storage recovery in the same live region', () => {
+    vi.useFakeTimers();
+    const banner = installPaywallUI();
+    showPaidBanner(RETURN_STORAGE_MESSAGE);
+    expect(banner.textContent).toBe(RETURN_STORAGE_MESSAGE);
+    expect(banner.classList.contains('visible')).toBe(true);
   });
 
   it('handlePaidReturn shows the banner and persists exactly the tier (v0.55)', () => {
@@ -353,6 +374,44 @@ describe('paid-return banner behavior', () => {
     expect(handlePaidReturn()).toBe(false);
     expect(banner.hidden).toBe(true);
     expect(banner.classList.contains('visible')).toBe(false);
+  });
+});
+
+describe('verified purchase storage boundary', () => {
+  it('read-verifies pending state before opening checkout', () => {
+    vi.useFakeTimers();
+    const banner = makeElement();
+    const modal = makeElement();
+    initPaywallUI({ modal, closeBtn: makeElement(), banner });
+    const storage = makeStorage();
+    globalThis.localStorage = storage;
+    const pending = mk('Prepared Buyer', '1990-01-01');
+    expect(stagePurchase(pending)).toBe(true);
+    expect(JSON.parse(storage.snapshot()[PENDING_KEY])).toEqual(pending);
+    expect(modal.classList.contains('open')).toBe(true);
+  });
+
+  it('blocks checkout and explains recovery when the pending write is a no-op', () => {
+    vi.useFakeTimers();
+    const banner = makeElement();
+    const modal = makeElement();
+    initPaywallUI({ modal, closeBtn: makeElement(), banner });
+    const storage = makeStorage();
+    storage.setItem = vi.fn();
+    globalThis.localStorage = storage;
+    expect(stagePurchase(mk('No Storage', '1990-01-01'))).toBe(false);
+    expect(modal.classList.contains('open')).toBe(false);
+    expect(banner.textContent).toBe(PURCHASE_STORAGE_MESSAGE);
+  });
+
+  it('keeps tier grants monotonic and verifies pending cleanup', () => {
+    const pending = mk('Cleanup Buyer', '1990-01-01');
+    const storage = makeStorage({ [TIER_KEY]: 't3', [PENDING_KEY]: JSON.stringify(pending) });
+    globalThis.localStorage = storage;
+    expect(setTier('t1')).toBe(true);
+    expect(storage.snapshot()[TIER_KEY]).toBe('t3');
+    expect(clearPendingProfile()).toBe(true);
+    expect(storage.snapshot()).not.toHaveProperty(PENDING_KEY);
   });
 });
 
@@ -480,7 +539,7 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
 
   it('about-modal: discloses on-device data boundary', () => {
     expect(aboutSubtree).toMatch(
-      /your name, DOB, and reading stay on this device/
+      /your name, DOB, optional gender, and reading stay in this browser/
     );
   });
 
@@ -492,14 +551,15 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/the lock is a convention, not a vault/);
   });
 
-  it('about-modal: discloses what a rung buys — permanent density, not reads (v0.55)', () => {
-    expect(aboutSubtree).toMatch(/opens the sheet to that rung on this device — permanently, for every reading/);
+  it('about-modal: discloses what the offer buys, permanently (v0.55 ownership, restored v0.63)', () => {
+    expect(aboutSubtree).toMatch(/opens the ten sealed coordinates, their meanings, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the kua line — permanently, for every reading in this browser/);
+    expect(aboutSubtree).toMatch(/what you bought stays bought/);
     expect(aboutSubtree).not.toMatch(/three more reads/);
     expect(aboutSubtree).not.toMatch(/adds three more reads/);
   });
 
-  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.55)', () => {
-    expect(aboutSubtree).toMatch(/the three-dollar rung carries the written card entry/);
+  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.55, permanence restored v0.63)', () => {
+    expect(aboutSubtree).toMatch(/the written card/);
     expect(aboutSubtree).toMatch(/the paid rung/); // §5 storage disclosure
     expect(aboutSubtree).toMatch(/upgrades the sheet/);
     expect(aboutSubtree).toMatch(/what you bought stays bought/);
@@ -539,11 +599,11 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('paywall modal disclosure routes payment + email to Gumroad', () => {
-    expect(paywallSubtree).toMatch(/payment \+ email go to them/);
+    expect(paywallSubtree).toMatch(/gumroad handles payment and email/);
   });
 
   it('paywall modal disclosure keeps reading on-device', () => {
-    expect(paywallSubtree).toMatch(/your reading stays here/);
+    expect(paywallSubtree).toMatch(/your name, birth data, optional gender, and reading stay in this browser/);
   });
 });
 
@@ -556,14 +616,30 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
   // → show-paywall) is retired at v0.55: submits always render, so the
   // lock-tap is the ONLY paywall trigger left.
 
-  it('setPendingProfile is called immediately before openPaywall (Path B, the only path)', () => {
-    const matches = html.match(
-      /setPendingProfile\([^)]*\)\s*;\s*\n\s*(?:if[^\n]*\n\s*)?openPaywall\(\s*\)/g
-    );
-    expect(matches, 'setPendingProfile → openPaywall sequence not found').not.toBeNull();
-    expect(matches.length).toBe(1);
+  it('stagePurchase read-verifies pending state before openPaywall (Path B)', () => {
+    expect(html).toMatch(/stagePurchase\(loadSavedProfile\(\)\)/);
+    const match = paymentsJs.match(/export function stagePurchase\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+    expect(match, 'stagePurchase body not found').not.toBeNull();
+    expect(match[1]).toMatch(/!setPendingProfile\(payload\)/);
+    expect(match[1]).toMatch(/showPaidBanner\(PURCHASE_STORAGE_MESSAGE\)/);
+    expect(match[1]).toMatch(/openPaywall\(\)/);
     // And the submit handler carries no paywall branch at all.
     expect(html).not.toMatch(/show-paywall/);
+  });
+
+  it('a failed saveProfile write is surfaced immediately, not discovered later at purchase time', () => {
+    // Regression: the archive-reopen and form-submit call sites used to
+    // discard saveProfile()'s read-verified boolean return. A blocked-
+    // storage write (private browsing, quota) would then render a full
+    // result as if nothing was wrong, and the failure would only surface
+    // later — confusingly — when stagePurchase() correctly refused to
+    // open the paywall on a profile it couldn't re-read. Both call sites
+    // must now check the return and warn immediately instead.
+    // (The third saveProfile call site, inside handlePaidReturn's
+    // onConsumePending callback, is unrelated: handlePaidReturn already
+    // checks that callback's return value itself — see ui/payments.js.)
+    expect(html).toMatch(/if \(!saveProfile\(payload\.name, payload\.dob, payload\)\) showPaidBanner\(PROFILE_SAVE_STORAGE_MESSAGE\)/);
+    expect(html).toMatch(/if \(!saveProfile\(name, dob, opts\)\) showPaidBanner\(PROFILE_SAVE_STORAGE_MESSAGE\)/);
   });
 
   it('the actual localStorage write for the pending profile lives in ui/payments.js', () => {

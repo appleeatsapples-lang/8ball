@@ -33,9 +33,10 @@ const STORAGE_KEY = 'eight_ball_profile_v1';
 
 // ── pure persistence ─────────────────────────────────────────────
 // Every read defends against a localStorage exception (private mode,
-// quota, etc.) by returning null / silently no-op'ing. The v0.2.7.2
-// city+tz payload shape is preserved verbatim — saveProfile copies
-// every known key only if present and well-typed.
+// quota, etc.) by returning null. Persistence mutations return read-verified
+// booleans so paid-return recovery and device erasure can remain retryable.
+// The v0.2.7.2 city+tz payload shape is preserved verbatim — saveProfile
+// copies every known key only if present and well-typed.
 
 export function loadSavedProfile() {
   try {
@@ -61,12 +62,18 @@ export function saveProfile(name, dob, opts) {
     // every write seam — anything else is dropped, not stored.
     if (opts.gender === 'male' || opts.gender === 'female') payload.gender = opts.gender;
   }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }
-  catch (_) {}
+  try {
+    const raw = JSON.stringify(payload);
+    localStorage.setItem(STORAGE_KEY, raw);
+    return localStorage.getItem(STORAGE_KEY) === raw;
+  } catch (_) { return false; }
 }
 
 export function clearProfile() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    return localStorage.getItem(STORAGE_KEY) === null;
+  } catch (_) { return false; }
 }
 
 export function optsFromPayload(obj) {
@@ -121,14 +128,45 @@ export function validateBirthInput({ name, dob }, today = todayIsoLocal()) {
   if (!trimmed) return { ok: false, field: 'name', reason: 'name' };
   const iso = String(dob == null ? '' : dob);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { ok: false, field: 'dob', reason: 'dob' };
-  // ISO date strings compare lexicographically the same as chronologically,
-  // so `iso > today` catches today-plus-one through any future year cleanly.
-  if (iso > today) return { ok: false, field: 'dob', reason: 'future' };
-  const y = Number(iso.slice(0, 4));
+  const [y, month, day] = iso.split('-').map(Number);
   // core/calendar.js's lunar-new-year and solar-term tables span 1900-2100; a
   // year below that would yield a confidently wrong animal rather than an error.
   if (!Number.isInteger(y) || y < 1900) return { ok: false, field: 'dob', reason: 'year' };
+  const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12 || day < 1 || day > monthDays[month - 1]) {
+    return { ok: false, field: 'dob', reason: 'dob' };
+  }
+  // ISO date strings compare lexicographically the same as chronologically,
+  // so `iso > today` catches today-plus-one through any future year cleanly.
+  if (iso > today) return { ok: false, field: 'dob', reason: 'future' };
   return { ok: true, name: trimmed, dob: iso };
+}
+
+export const BIRTH_INPUT_ERROR_MESSAGES = Object.freeze({
+  dob: 'enter a valid date of birth.',
+  future: "date of birth can't be in the future.",
+  year: 'date of birth must be 1900 or later.',
+});
+
+// Apply the shared validator's result to the primary form without severing
+// the input/error relationship. `aria-describedby` remains in markup at all
+// times; only visibility and aria-invalid change. The failing control takes
+// focus so keyboard and screen-reader users land where recovery starts.
+export function applyBirthInputValidationState(entry, refs) {
+  const { nameInput, dobInput, dobError } = refs;
+  const invalidDob = !entry.ok && entry.field === 'dob';
+  dobError.hidden = !invalidDob;
+  dobInput.setAttribute('aria-invalid', String(invalidDob));
+  if (invalidDob) {
+    dobError.textContent = BIRTH_INPUT_ERROR_MESSAGES[entry.reason]
+      || BIRTH_INPUT_ERROR_MESSAGES.dob;
+  }
+  if (!entry.ok) {
+    const target = entry.field === 'dob' ? dobInput : nameInput;
+    if (target && typeof target.focus === 'function') target.focus();
+  }
+  return entry.ok;
 }
 
 // ── DOM-touching form helpers (DI injected at boot) ───────────────

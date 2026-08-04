@@ -105,6 +105,47 @@ const COUNTRY_NAMES = {
 let _cache = null;
 let _loading = null;
 
+// A typed terminal signal lets the UI distinguish a transient asset failure
+// (where another input can advance to the next bounded URL) from exhaustion
+// (where only a page reload can start a fresh module map). Callers should use
+// isCityLoadExhausted rather than matching an error message.
+export const CITY_LOAD_EXHAUSTED_CODE = 'CITY_LOAD_EXHAUSTED';
+
+export function isCityLoadExhausted(error) {
+  return Boolean(error && error.code === CITY_LOAD_EXHAUSTED_CODE);
+}
+
+function cityLoadExhaustedError(cause) {
+  const error = new Error('city dataset load attempts exhausted');
+  error.name = 'CityLoadExhaustedError';
+  error.code = CITY_LOAD_EXHAUSTED_CODE;
+  error.cause = cause;
+  return error;
+}
+
+// Browsers keep failed module fetches in the module map. Resetting `_loading`
+// alone therefore does not make a second import of the same URL retry. Give a
+// session three deterministic same-origin specifiers: the normal cacheable
+// asset, then two bounded recovery URLs. A successful load still collapses to
+// `_cache`; exhausting all three fails closed until reload rather than creating
+// unbounded cache-busting traffic.
+const CITY_IMPORTERS = Object.freeze([
+  () => import('../assets/cities.json', { with: { type: 'json' } }),
+  () => import('../assets/cities.json?retry=1', { with: { type: 'json' } }),
+  () => import('../assets/cities.json?retry=2', { with: { type: 'json' } }),
+]);
+let _importAttempt = 0;
+let _lastImportError = null;
+
+function importCityData() {
+  if (_importAttempt >= CITY_IMPORTERS.length) {
+    return Promise.reject(cityLoadExhaustedError(_lastImportError));
+  }
+  const importer = CITY_IMPORTERS[_importAttempt];
+  _importAttempt++;
+  return importer();
+}
+
 /**
  * Resolve the city dataset on demand.
  *
@@ -117,14 +158,29 @@ export async function loadCities() {
   if (_cache) return _cache;
   if (_loading) return _loading;
   _loading = (async () => {
-    // The finally-reset matters: if the import rejects (transient network
-    // failure on the lazy asset fetch), `_loading` must not keep the
-    // rejected promise, or every later call would be handed the same
-    // rejection and the session could never retry.
+    // The finally-reset lets a later caller advance to the next bounded
+    // specifier after a transient failure; concurrent callers still share one
+    // in-flight promise.
     try {
-      const mod = await import('../assets/cities.json', { with: { type: 'json' } });
+      const mod = await importCityData();
+      if (!mod || !mod.default || !Array.isArray(mod.default.tz) ||
+          !Array.isArray(mod.default.cities)) {
+        throw new TypeError('invalid city dataset');
+      }
       _cache = mod.default;
+      _importAttempt = 0;
+      _lastImportError = null;
       return _cache;
+    } catch (error) {
+      if (isCityLoadExhausted(error)) throw error;
+      _lastImportError = error;
+      // The final bounded URL has now failed. Tag this rejection immediately
+      // so the UI does not invite a fourth input that cannot perform a new
+      // request in the browser's failed-module map.
+      if (_importAttempt >= CITY_IMPORTERS.length) {
+        throw cityLoadExhaustedError(error);
+      }
+      throw error;
     } finally {
       _loading = null;
     }

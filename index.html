@@ -805,6 +805,7 @@
     #result .result-controls { margin-top: 0; }
   }
 </style>
+<link rel="stylesheet" href="/ui/experience.css">
 </head>
 <body>
 
@@ -813,7 +814,7 @@
   <span class="wordmark">8 ball</span>
   <div class="topbar-actions">
     <button class="text-link readings-nav" id="readings-btn" type="button">previous readings</button>
-    <button class="info-icon" id="about-btn" aria-label="about" type="button">i</button>
+    <button class="info-icon" id="about-btn" aria-label="about 8 ball" type="button">i</button>
   </div>
 </header>
 
@@ -821,7 +822,7 @@
 
   <!-- ── welcome screen ──────────────────────────────────────────── -->
   <section class="screen" id="onboarding">
-    <div class="registry-header">specimen registry · new entry</div>
+    <h1 class="registry-header">specimen registry · new entry</h1>
     <p class="hint" id="mechanism-strip">name + birth data in. one fixed identity sheet out — tarot, western astrology, chinese zodiac, and numerology filed on one card.</p>
     <form id="profile-form" autocomplete="off">
       <div class="field">
@@ -830,8 +831,8 @@
       </div>
       <div class="field">
         <label for="dob-input">date of birth</label>
-        <input id="dob-input" type="date" required>
-        <p class="field-error" id="dob-error" hidden>can't be a future date.</p>
+        <input id="dob-input" type="date" required aria-describedby="dob-error" aria-invalid="false">
+        <p class="field-error" id="dob-error" role="alert" aria-live="assertive" hidden>enter a valid date of birth.</p>
       </div>
       <details class="field-group" id="rising-fields" open>
         <summary>birth time &amp; place — adds your rising sign (optional)</summary>
@@ -843,6 +844,7 @@
           <label for="city-input">birthplace</label>
           <input id="city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false">
           <ul class="city-suggestions" id="city-suggestions" role="listbox" aria-label="city suggestions"></ul>
+          <p class="city-status" id="city-status" role="status" aria-live="polite" hidden></p>
         </div>
         <p class="hint" id="rising-hint">type a city to fill timezone and coordinates. dst and historical timezone changes are adjusted automatically. above 66.5° latitude rising sign is unavailable.</p>
         <p class="polar-message" id="polar-message" hidden>rising unavailable at this latitude.</p>
@@ -868,7 +870,7 @@
              resting side, and the rotated-away face must leave the focus/AT
              tree (backface-visibility hides pixels, not tab stops) -->
         <div class="flip-side back" inert aria-hidden="true">
-          <div class="card-back" id="card-back" tabindex="0" aria-label="card back — tap to reveal">
+          <div class="card-back" id="card-back" role="button" tabindex="0" aria-label="flip card">
             <div class="glyph">8</div>
             <div class="glyph-label">ball</div>
           </div>
@@ -950,7 +952,7 @@
       <button class="btn btn-block" id="share-btn" type="button">share</button>
       <button class="btn btn-block btn-secondary" id="try-another-btn" type="button">try another</button>
       <p class="reading-save-status" id="save-reading-status" role="status" aria-live="polite" hidden></p>
-      <div class="share-status" id="share-status" hidden></div>
+      <div class="share-status" id="share-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>
       <div class="disclaimer">stored only on this device.</div>
       <div class="footer-actions">
         <button class="text-link" id="forget-btn" type="button">forget this device</button>
@@ -984,7 +986,7 @@
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
     <p>nothing leaves your device on its own. inputs — including the optional gender, which feeds only the kua line and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the sheet to that rung on this device — permanently, for every reading — the three-dollar rung carries the written card entry: name, type, habit, and one of three rotating note positions, first anchored by your life path. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. one tap, no account, no subscription. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay on this device. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
+    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the ten sealed coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the kua line — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -993,10 +995,11 @@
 
 <!-- ── forget-me modal ─────────────────────────────────────────── -->
 <div class="modal-bg" id="forget-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title" aria-describedby="forget-copy forget-status">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
-    <p>removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
+    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
+    <p class="modal-status" id="forget-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
     <div class="modal-actions">
       <button class="btn" id="forget-cancel" type="button">leave it</button>
       <button class="btn" id="forget-confirm" type="button">erase it</button>
@@ -1006,10 +1009,11 @@
 
 <!-- ── paywall modal (single complete offer — DOCTRINE §2 / §4.B v0.56 sprint presentation / §5.B Call 2 / §5.C; ownership v0.55: t1/t2 products, ?paid= returns, and stored tiers stay live — only the buyer-facing choice narrows) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title">
-    <h2 id="paywall-title">complete 8ball · $3 once</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title" aria-describedby="paywall-value paywall-facts paywall-disclosure">
+    <h2 id="paywall-title">complete your sheet · $3 once</h2>
     <div class="modal-rule"></div>
-    <p>every coordinate and the written card, permanently, for every reading on this device. one tap. no account. a one-time purchase — yours for good. the highest rung bought holds.</p>
+    <p id="paywall-value">adds 10 coordinates, their meanings, the written card, domain fit, and the kua line — permanently, for every reading in this browser. a one-time purchase, yours for good; the highest rung bought holds.</p>
+    <p class="paywall-facts" id="paywall-facts">$3 once · no subscription · no 8ball account</p>
     <details class="paywall-specimen" id="paywall-specimen">
       <summary>see a complete specimen — an example, not your sheet</summary>
       <img src="/cards/spec_no-v.jpg" alt="specimen no. v — a complete sheet, all fifteen coordinates open" loading="lazy" decoding="async" width="1080" height="1350">
@@ -1019,7 +1023,7 @@
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
     <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
-    <p class="modal-disclosure">checkout via gumroad. payment + email go to them; your reading stays here.</p>
+    <p class="modal-disclosure" id="paywall-disclosure">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
     </div>
@@ -1027,20 +1031,20 @@
 </div>
 
 <!-- ── paid-return banner (v0.3.0; ownership copy v0.55) ────────── -->
-<div class="paid-banner" id="paid-banner" hidden>rung opened. yours for good.</div>
+<div class="paid-banner" id="paid-banner" role="status" aria-live="polite" hidden>complete sheet open in this browser.</div>
 
 <script type="module">
 import { buildProfile } from './core/profile.js';
 import { initCitySearchUI } from './ui/citysearch.js';
+import { initResultUI } from './ui/result.js';
 import { getCard, MissingCardError } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState } from './core/payments.js';
 import {
   getRenderTier,
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
-  setPendingProfile,
-  initPaywallUI, openPaywall, closePaywall, isPaywallOpen,
-  handlePaidReturn,
+  initPaywallUI, stagePurchase, closePaywall, isPaywallOpen,
+  handlePaidReturn, showPaidBanner, PROFILE_SAVE_STORAGE_MESSAGE, clearPendingProfile,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
@@ -1051,7 +1055,7 @@ import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile,
   profileFromPayload, validateBirthInput, todayIsoLocal,
-  populateRisingFields, resetFormDisplay,
+  applyBirthInputValidationState, populateRisingFields, resetFormDisplay,
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
@@ -1070,6 +1074,7 @@ const risingFields = $('rising-fields');
 const timeInput = $('time-input');
 const cityInput = $('city-input');
 const citySuggestions = $('city-suggestions');
+const cityStatus = $('city-status');
 const polarMessage = $('polar-message');
 const legacyHint = $('legacy-hint');
 const flipInner = $('flip-inner');
@@ -1088,10 +1093,14 @@ let readingsUI = null;
 // about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
   { aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
-    forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'), forgetCancel: $('forget-cancel'), forgetConfirm: $('forget-confirm') },
-  { clearProfile: () => { clearProfile(); clearFacetIndex(); },
-    clearSavedReadings: () => { clearAllSavedReadings(); if (readingsUI) readingsUI.setActiveReading(null); },
-    resetFormDisplay, isPaywallOpen, closePaywall },
+    forgetModal: $('forget-modal'), forgetBtn: $('forget-btn'), forgetCancel: $('forget-cancel'),
+    forgetConfirm: $('forget-confirm'), forgetStatus: $('forget-status') },
+  { clearProfile,
+    clearSavedReadings: () => { const outcome = clearAllSavedReadings(); if (outcome.ok && readingsUI) readingsUI.setActiveReading(null); return outcome; },
+    clearFacetState: clearFacetIndex,
+    clearPendingProfile,
+    resetFormDisplay: () => { resetResultTransitions(); resetFormDisplay(); cityUI.reset(); },
+    isPaywallOpen, closePaywall },
 );
 // Host-owned state, declared BEFORE any init*UI call whose injected
 // setters close over these bindings — a setter fired synchronously
@@ -1110,7 +1119,7 @@ readingsUI = initReadingsUI(
       const payload = reading.profile;
       const prev = loadSavedProfile();
       const profile = profileFromPayload(payload);
-      saveProfile(payload.name, payload.dob, payload);
+      if (!saveProfile(payload.name, payload.dob, payload)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);
       populateRisingFields(payload);
       const tier = getRenderTier();
       // Archive-open mirrors submit-path facet anchoring (§1.H): a different pair re-anchors; the same pair preserves, like a reload.
@@ -1131,7 +1140,17 @@ readingsUI = initReadingsUI(
 // HTML5 max= is a soft fence (devtools-bypassable); the submit handler
 // is the real gate. Both sites share this helper.
 dobInput.max = todayIsoLocal();
-dobInput.addEventListener('input', () => { dobError.hidden = true; });
+const birthValidationRefs = { nameInput, dobInput, dobError };
+dobInput.addEventListener('input', () => {
+  applyBirthInputValidationState({ ok: true }, birthValidationRefs);
+});
+dobInput.addEventListener('invalid', () => {
+  const entry = validateBirthInput({ name: nameInput.value, dob: dobInput.value });
+  applyBirthInputValidationState(
+    entry.ok ? { ok: false, field: 'dob', reason: 'dob' } : entry,
+    birthValidationRefs,
+  );
+});
 const cardLockIcon = $('card-lock-icon');
 const cardName = $('card-name');
 const cardType = $('card-type');
@@ -1191,7 +1210,6 @@ initShareUI(
   {}
 );
 
-let flipLocked = false;
 // v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
 // state is kept here — density is resolved from storage at render time
 // via getRenderTier(), the single helper, on every path.
@@ -1201,8 +1219,8 @@ let flipLocked = false;
 // the init wiring) so the form submit can read tz/lat/lng atomically. The
 // module clears it via the injected setter when the user types without
 // selecting, so stale state never propagates to buildProfile.
-initCitySearchUI(
-  { cityInput, citySuggestions, legacyHint, polarMessage },
+const cityUI = initCitySearchUI(
+  { cityInput, citySuggestions, cityStatus, legacyHint, polarMessage },
   { setSelectedCity: c => { selectedCity = c; } },
 );
 
@@ -1282,60 +1300,18 @@ function renderCard(profile, opts) {
   // are unlimited at every tier; the density strip above is the only meter.
 }
 
-// ── shake / flip control ──────────────────────────────────────────
-// The two flip faces coexist in the DOM; backface-visibility hides the
-// rotated-away one visually but leaves its controls focusable. inert +
-// aria-hidden track the face state so only the visible side is reachable.
-const flipSideBack = flipInner.querySelector('.flip-side.back');
-const flipSideFront = flipInner.querySelector('.flip-side.front');
-function setFaceUp(up) {
-  flipInner.classList.toggle('face-up', up);
-  flipSideBack.inert = !up;
-  flipSideBack.setAttribute('aria-hidden', String(!up));
-  flipSideFront.inert = up;
-  flipSideFront.setAttribute('aria-hidden', String(up));
-}
-
-function showResult(profile, opts) {
-  currentProfile = profile;
-  onboarding.classList.add('hidden');
-  result.classList.remove('hidden');
-  result.classList.add('reveal');
-  // Land on the back side first; card-back shows for ~300ms before flip.
-  setFaceUp(true);
-  renderCard(profile, opts);
-  // M4: on the form→result transition, small viewports (320×568) leave the
-  // result below the fold with focus stranded on the submit button — bring
-  // it into view, move focus, and announce politely once the face lands.
-  // Boot rehydration deliberately skips this: stealing focus and scroll
-  // position on page load is its own defect.
-  const arrive = opts && opts.arrive;
-  if (arrive) {
-    resultAnnounce.textContent = '';
-    result.scrollIntoView({ block: 'start' });
-    result.focus({ preventScroll: true });
-  }
-  setTimeout(() => {
-    setFaceUp(false);
-    if (arrive) resultAnnounce.textContent = 'specimen sheet ready';
-  }, 300);
-}
-
-function shakeAgain() {
-  if (flipLocked || !currentProfile) return;
-  const tier = getRenderTier();
-  // Free/t1/t2 flips stay cosmetic. A t3 flip advances the written-entry
-  // slot — owned, unlimited (§1.H v0.55) — before the 320ms reveal beat.
-  const facetState = coordsForTier(tier).has('cardEntry') ? consumeFacetShake(currentProfile.lifePath) : null;
-  flipLocked = true;
-  setFaceUp(true);
-  setTimeout(() => {
-    renderCard(currentProfile, { tier });
-    setFaceUp(false);
-    if (facetState) resultAnnounce.textContent = `written entry changed · ${facetState.facetIndex + 1} of 3`;
-    flipLocked = false;
-  }, 320);
-}
+// ── result arrival + shake controller ─────────────────────────────
+// Transition ownership lives in ui/result.js so stale arrival/shake timers
+// cannot redraw a newer profile or announce a facet write that did not stick.
+const { showResult, reset: resetResultTransitions } = initResultUI(
+  { flipInner, cardBack, shakeAgainBtn, result, onboarding, announce: resultAnnounce },
+  { setCurrentProfile: profile => { currentProfile = profile; },
+    getCurrentProfile: () => currentProfile,
+    getTier: getRenderTier,
+    ownsCardEntry: tier => coordsForTier(tier).has('cardEntry'),
+    advanceFacet: profile => consumeFacetShake(profile.lifePath),
+    renderCard },
+);
 
 // ── form submit ───────────────────────────────────────────────────
 // Ownership model (DOCTRINE §4.B v0.55 / §6 / §7): the typed payload is
@@ -1352,11 +1328,7 @@ profileForm.addEventListener('submit', e => {
   // real local-today future gate, 1900 floor. Inline error surfaces; the
   // input event hides it on next edit.
   const entry = validateBirthInput({ name: nameInput.value, dob: dobInput.value });
-  if (!entry.ok) {
-    dobError.hidden = entry.field !== 'dob';
-    return;
-  }
-  dobError.hidden = true;
+  if (!applyBirthInputValidationState(entry, birthValidationRefs)) return;
   const { name, dob } = entry;
   const time = timeInput.value || undefined;
   // v0.2.7.2: rising opts derive from the selected-city state. If the
@@ -1379,7 +1351,7 @@ profileForm.addEventListener('submit', e => {
 
   try {
     const profile = buildProfile(name, dob, opts);
-    saveProfile(name, dob, opts);
+    if (!saveProfile(name, dob, opts)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);
     // §6.3/§6.5 + §1.D (R1): density is the device's entitled tier on
     // every action — render and render-idempotent alike. Nothing decides
     // how many readings; the stored tier decides how much sheet. The
@@ -1393,19 +1365,15 @@ profileForm.addEventListener('submit', e => {
   }
 });
 
-// ── shake interactions ────────────────────────────────────────────
-shakeAgainBtn.addEventListener('click', shakeAgain);
 tryAnotherBtn.addEventListener('click', () => {
   // DOCTRINE §6.8 (β idempotence): clears the form DOM only, NOT
   // eight_ball_profile_v1. Re-entering the same (name, dob) remains
   // idempotent — the facet position survives. To erase the stored
   // profile, use "forget this device".
   readingsUI.setActiveReading(null);
+  resetResultTransitions();
   resetFormDisplay();
-});
-cardBack.addEventListener('click', shakeAgain);
-cardBack.addEventListener('keydown', e => {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shakeAgain(); }
+  cityUI.reset();
 });
 
 // ── purchase entry — Path B (DOCTRINE §6.7 / §4.B v0.55–v0.56) ───
@@ -1414,9 +1382,7 @@ cardBack.addEventListener('keydown', e => {
 // for the paid round-trip, then open the paywall. The paid return
 // writes the tier and re-renders the same profile at the bought density.
 function openPurchase() {
-  const stored = loadSavedProfile();
-  if (stored) setPendingProfile(stored);
-  openPaywall();
+  stagePurchase(loadSavedProfile());
 }
 cardLockIcon.addEventListener('click', e => {
   e.preventDefault();

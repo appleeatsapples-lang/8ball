@@ -175,6 +175,7 @@ export function dyadRelationFor(profileA, profileB) {
 const STYLE = `
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
+#dyad-screen #dyad-output { scroll-margin-top: calc(var(--topbar-height, 56px) + 12px); }
 /* Dedicated wider paired-sheet layout (desktop only — mobile keeps the
    general 380px screen budget, see the pan rule below). Two 360px .card
    sheets plus the gap need ~760px, the same budget #result already spends
@@ -269,7 +270,7 @@ const SCREEN_HTML =
   '<p class="polar-message" id="dyad-polar-message" hidden>rising unavailable at this latitude.</p></div>' +
   '<button type="submit" class="btn btn-block" id="dyad-submit">read the pair</button>' +
   '</form>' +
-  '<div id="dyad-output" hidden>' +
+  '<div id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden>' +
   '<div class="dyad-sheets" id="dyad-sheets">' +
   `<div><div class="dyad-sheet-label" id="dyad-head-a"></div>${buildSheetMarkup('a')}</div>` +
   `<div><div class="dyad-sheet-label" id="dyad-head-b"></div>${buildSheetMarkup('b')}</div>` +
@@ -673,7 +674,14 @@ export function render() {
 
   const errEl = $('dyad-error');
   if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
-  if (output) output.hidden = false;
+  if (output) {
+    output.hidden = false;
+    // On short mobile viewports the completed pair begins just below the
+    // still-visible form. Move the new result into view and focus its named
+    // region so submit never appears to do nothing to sighted or AT users.
+    if (typeof output.scrollIntoView === 'function') output.scrollIntoView({ block: 'start' });
+    if (typeof output.focus === 'function') output.focus({ preventScroll: true });
+  }
   // THE decisive reset for close() → reopen() → next-pair: by this line
   // #dyad-sheets provably has a layout box (output.hidden just went false,
   // and open() left the screen root visible), so the write is guaranteed to

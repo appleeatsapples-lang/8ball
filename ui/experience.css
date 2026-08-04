@@ -1,0 +1,534 @@
+/*
+ * 8ball experience layer
+ *
+ * Presentation-only refinements kept outside the line-budgeted host. The
+ * visual language stays inside the project contract: black, white, rules,
+ * specimen typography, and one recurring circular 8-ball mark.
+ */
+
+:root {
+  --tap-target: 44px;
+  --control-height: 48px;
+  --topbar-height: 64px;
+  color-scheme: dark;
+}
+
+body {
+  padding-top: var(--topbar-height);
+}
+
+.topbar {
+  height: var(--topbar-height);
+  padding-inline: max(20px, env(safe-area-inset-left));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wordmark {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.info-icon {
+  position: relative;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  border: 0;
+  color: var(--text-muted);
+}
+
+.info-icon::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.info-icon:hover::before,
+.info-icon:focus::before {
+  border-color: var(--text);
+  background: var(--interaction-fill);
+}
+
+.stage {
+  justify-content: flex-start;
+  padding: clamp(28px, 6vh, 56px) 20px 56px;
+}
+
+#onboarding {
+  max-width: 420px;
+}
+
+#result {
+  scroll-margin-top: calc(var(--topbar-height) + 16px);
+}
+
+#onboarding > .registry-header {
+  margin: 0 0 24px;
+  color: var(--text);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+#onboarding > .registry-header::before {
+  content: "8";
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  place-items: center;
+  border: 1px solid var(--text);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+#mechanism-strip {
+  max-width: 390px;
+  margin: 0 auto 28px;
+  padding-left: 14px;
+  border-left: 1px solid var(--rule);
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.field label {
+  margin-bottom: 4px;
+}
+
+.field input,
+.field select {
+  min-height: var(--tap-target);
+  padding-block: 10px;
+}
+
+.feedback-form input[type="text"] {
+  min-height: var(--tap-target);
+}
+
+.field-group {
+  margin-bottom: 20px;
+}
+
+#rising-fields .field {
+  min-width: 0;
+}
+
+.field-group summary,
+.feedback-details summary,
+.paywall-specimen summary {
+  min-height: var(--tap-target);
+  display: flex;
+  align-items: center;
+}
+
+.field-group summary {
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.btn {
+  min-height: var(--control-height);
+  padding: 12px 18px;
+  line-height: 1.35;
+}
+
+#enter-btn {
+  border-color: rgba(255, 255, 255, 0.78);
+}
+
+.text-link,
+.labels-toggle {
+  min-height: var(--tap-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-link {
+  padding-inline: 8px;
+}
+
+.labels-toggle {
+  padding: 0 4px;
+}
+
+.flip-inner {
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.22, 0.72, 0.24, 1);
+}
+
+.card,
+.card-back {
+  border-color: rgba(255, 255, 255, 0.62);
+}
+
+/* Labels are opt-in. Before reveal, collapse their reserved line boxes so the
+   coordinate sheet reads as one compact object instead of a tall blank form. */
+.card:not(.labels-revealed) .coord-title {
+  height: 4px;
+  margin-bottom: 2px;
+  line-height: 4px;
+  overflow: hidden;
+}
+
+.card:not(.labels-revealed) .public-title,
+.card:not(.labels-revealed) .kua-title {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.card-back .glyph {
+  display: grid;
+  width: 132px;
+  height: 132px;
+  place-items: center;
+  border: 1px solid var(--text);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 18px rgba(255, 255, 255, 0.08);
+  font-size: 58px;
+}
+
+.card .lock-icon {
+  top: 4px;
+  left: 5px;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  padding: 13px;
+}
+
+.result-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.result-controls .btn + .btn {
+  margin-top: 0;
+}
+
+#offer-btn,
+#shake-again-btn,
+#try-another-btn,
+.reading-save-status,
+.share-status,
+.result-controls > .disclaimer,
+.result-controls > .footer-actions {
+  grid-column: 1 / -1;
+}
+
+#offer-btn:not([hidden]) {
+  border-color: var(--text);
+}
+
+.result-controls .disclaimer,
+.result-controls .footer-actions {
+  margin-top: 6px;
+}
+
+.feedback-details {
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+.modal {
+  max-width: 400px;
+  padding: 28px;
+  border-color: rgba(255, 255, 255, 0.62);
+}
+
+.modal h2 {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.modal .paywall-facts {
+  margin-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--text-muted);
+}
+
+.modal .modal-status {
+  margin-top: 14px;
+  color: var(--text);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.modal .modal-actions .btn,
+.modal .modal-cta {
+  min-height: var(--control-height);
+}
+
+.paid-banner {
+  width: min(420px, calc(100vw - 32px));
+  text-align: center;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+}
+
+@media (min-width: 720px) {
+  .stage {
+    padding-top: 24px;
+  }
+
+  #onboarding > .registry-header {
+    margin-bottom: 16px;
+  }
+
+  #onboarding > .registry-header::before {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.08);
+    font-size: 16px;
+  }
+
+  #mechanism-strip {
+    margin-bottom: 20px;
+  }
+
+  #profile-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+
+  #profile-form > #rising-fields,
+  #profile-form > #enter-btn {
+    grid-column: 1 / -1;
+  }
+
+  #profile-form > .field {
+    margin-bottom: 16px;
+  }
+
+  #rising-fields[open] {
+    display: block;
+  }
+
+  #rising-fields .field {
+    float: left;
+    width: calc(50% - 12px);
+    margin-bottom: 14px;
+  }
+
+  #rising-fields .field:first-of-type {
+    margin-right: 24px;
+  }
+
+  #rising-hint,
+  #polar-message,
+  #legacy-hint {
+    clear: both;
+  }
+
+  #result {
+    max-width: 820px;
+  }
+
+  #result .result-main {
+    align-items: center;
+    gap: 48px;
+  }
+
+  #result .result-rail {
+    flex: 0 1 320px;
+  }
+
+  #result .labels-toggle {
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --topbar-height: 56px;
+  }
+
+  .topbar {
+    padding-inline: 12px;
+  }
+
+  .topbar-actions {
+    gap: 0;
+  }
+
+  .readings-nav {
+    max-width: 142px;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+  }
+
+  .stage {
+    padding: 20px 16px 48px;
+  }
+
+  #onboarding > .registry-header {
+    margin-bottom: 18px;
+  }
+
+  #onboarding > .registry-header::before {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 14px;
+    box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.08);
+    font-size: 16px;
+  }
+
+  #mechanism-strip {
+    margin-bottom: 20px;
+  }
+
+  #rising-fields[open] {
+    display: block;
+  }
+
+  #rising-fields .field {
+    float: left;
+    margin-bottom: 14px;
+  }
+
+  #rising-fields .field:first-of-type {
+    width: calc(38% - 8px);
+    margin-right: 16px;
+  }
+
+  #rising-fields .field:nth-of-type(2) {
+    width: calc(62% - 8px);
+  }
+
+  #rising-hint,
+  #polar-message,
+  #legacy-hint {
+    clear: both;
+    margin-top: 0;
+  }
+
+  #profile-form {
+    padding-bottom: 72px;
+  }
+
+  #enter-btn {
+    position: fixed;
+    z-index: 9;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: auto;
+    width: 72px;
+    min-height: 72px;
+    padding: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.96);
+    box-shadow: 0 0 0 12px rgba(0, 0, 0, 0.96);
+    letter-spacing: 0.16em;
+  }
+
+  /* Progressive enhancement: browsers without :has() keep a visible fixed
+     submit. Supporting browsers reveal it once the two required fields are
+     valid, and move it away while an optional rising field has focus. */
+  @supports selector(form:has(input:valid)) {
+    #enter-btn {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
+    }
+
+    #profile-form:has(#name-input:valid):has(#dob-input:valid) #enter-btn {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(#rising-fields :focus) #enter-btn,
+    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(.kua-gender-field :focus) #enter-btn {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+
+  .modal-bg {
+    align-items: flex-end;
+    padding: 24px 0 0;
+  }
+
+  .modal {
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    padding: 24px 20px max(24px, env(safe-area-inset-bottom));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 480px) and (max-height: 680px) {
+  .stage {
+    padding-top: 12px;
+  }
+
+  #onboarding > .registry-header {
+    margin-bottom: 12px;
+  }
+
+  #onboarding > .registry-header::before {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 10px;
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+  }
+
+  #mechanism-strip {
+    margin-bottom: 14px;
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field-group {
+    margin-bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

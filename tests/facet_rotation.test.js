@@ -21,6 +21,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf8');
 const paymentsUi = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf8');
+const resultUi = readFileSync(join(__dirname, '..', 'ui', 'result.js'), 'utf8');
 
 function makeStorage(initial = {}) {
   const store = new Map(Object.entries(initial).map(([k, v]) => [k, String(v)]));
@@ -127,7 +128,7 @@ describe('facet storage and v1 slot selection', () => {
   });
 
   it('preserves the visible position across re-read/reload', () => {
-    setFacetIndex(2);
+    expect(setFacetIndex(2)).toBe(2);
     expect(ensureFacetIndex(1)).toBe(2);
     expect(getFacetSlot(1)).toBe('high');
   });
@@ -169,6 +170,15 @@ describe('facet storage and v1 slot selection', () => {
     expect(localStorage.snapshot()[FACET_KEY]).toBe('2');
   });
 
+  it('returns null and preserves the visible facet when a write is blocked', () => {
+    const storage = makeStorage({ [FACET_KEY]: 0 });
+    globalThis.localStorage = { ...storage, setItem() {} };
+    expect(setFacetIndex(1)).toBeNull();
+    expect(consumeFacetShake(1)).toBeNull();
+    expect(getFacetIndex()).toBe(0);
+    expect(getFacetSlot(1)).toBe('low');
+  });
+
   it('getFreshFacetSlot ignores any stored position and slots by life-path anchor alone', () => {
     globalThis.localStorage = makeStorage({ [FACET_KEY]: 2 });
     for (const lifePath of [1, 2, 3]) expect(getFreshFacetSlot(lifePath)).toBe('low');
@@ -196,7 +206,7 @@ describe('facet storage and v1 slot selection', () => {
 
   it('forget removes the position', () => {
     setFacetIndex(1);
-    clearFacetIndex();
+    expect(clearFacetIndex()).toBe(true);
     expect(getFacetIndex()).toBeNull();
     expect(localStorage.snapshot()).not.toHaveProperty(FACET_KEY);
   });
@@ -208,8 +218,10 @@ describe('facet storage and v1 slot selection', () => {
       removeItem() { throw new Error('blocked'); },
     };
     expect(getFacetIndex()).toBeNull();
-    expect(() => setFacetIndex(1)).not.toThrow();
-    expect(() => clearFacetIndex()).not.toThrow();
+    expect(setFacetIndex(1)).toBeNull();
+    expect(ensureFacetIndex(5)).toBeNull();
+    expect(consumeFacetShake(5)).toBeNull();
+    expect(clearFacetIndex()).toBe(false);
     expect(getFacetSlot(8)).toBe('high');
   });
 });
@@ -279,7 +291,7 @@ describe('calc-v4 facet-key migration (one-shot clear of BOTH retired keys)', ()
     globalThis.localStorage = makeStorage({
       [LEGACY_FACET_KEY]: 1, [LEGACY_FACET_KEY_V2]: 1, [FACET_KEY]: 1,
     });
-    clearFacetIndex();
+    expect(clearFacetIndex()).toBe(true);
     const snap = localStorage.snapshot();
     expect(snap).not.toHaveProperty(FACET_KEY);
     for (const key of RETIRED) expect(snap, key).not.toHaveProperty(key);
@@ -293,17 +305,17 @@ describe('t3-only host wiring', () => {
     // entry rendered off an index that could never advance or re-anchor —
     // $9 buying strictly less rotation than $3. The gate now asks the ladder
     // table which tiers own the entry, so a fifth rung cannot repeat it.
-    expect(html).toMatch(
-      /const facetState = coordsForTier\(tier\)\.has\('cardEntry'\) \? consumeFacetShake\(currentProfile\.lifePath\) : null/
-    );
-    expect(html).not.toMatch(/tier === 't3'/);
+    expect(html).toMatch(/ownsCardEntry:\s*tier\s*=>\s*coordsForTier\(tier\)\.has\('cardEntry'\)/);
+    expect(html).toMatch(/advanceFacet:\s*profile\s*=>\s*consumeFacetShake\(profile\.lifePath\)/);
+    expect(resultUi).toMatch(/hooks\.ownsCardEntry\(tier\)[\s\S]*?hooks\.advanceFacet\(currentProfile\)/);
+    expect(`${html}\n${resultUi}`).not.toMatch(/tier === 't3'/);
   });
 
   it('rotation never opens the paywall or touches pending intent (v0.55)', () => {
     // The zero-credit branch is gone: shakeAgain carries no paywall exit,
     // no pending-profile clear, and no facetState action gate.
-    expect(html).not.toMatch(/facetState && facetState\.action === 'show-paywall'/);
-    const shakeBlock = html.match(/function shakeAgain\(\)[\s\S]*?\n\}/);
+    expect(`${html}\n${resultUi}`).not.toMatch(/facetState && facetState\.action === 'show-paywall'/);
+    const shakeBlock = resultUi.match(/function shakeAgain\(\)[\s\S]*?\n  \}/);
     expect(shakeBlock).not.toBeNull();
     expect(shakeBlock[0]).not.toMatch(/openPaywall|PendingProfile/);
   });
@@ -318,7 +330,10 @@ describe('t3-only host wiring', () => {
   });
 
   it('forget and corrupt-profile cleanup clear the facet position', () => {
-    expect(html.match(/clearFacetIndex\(\)/g)).toHaveLength(2);
+    expect(html).toMatch(/clearFacetState:\s*clearFacetIndex/);
+    expect(html).toMatch(
+      /catch\s*\([^)]*\)\s*\{[\s\S]*?clearProfile\(\);[\s\S]*?clearFacetIndex\(\);[\s\S]*?resetFormDisplay\(\);/,
+    );
   });
 
   it('mechanical c.1 mapping is explicit and does not claim v2 content', () => {

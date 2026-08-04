@@ -173,6 +173,7 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
 function makeNode(tag = 'div') {
   return {
     tag, textContent: '', value: '', hidden: false, innerHTML: '',
+    focusCalls: [], scrollCalls: [],
     classList: makeClassList(), attrs: {}, listeners: {}, children: [],
     style: { setProperty() {}, removeProperty() {} },
     setAttribute(k, v) { this.attrs[k] = v; },
@@ -180,7 +181,8 @@ function makeNode(tag = 'div') {
     getAttribute(k) { return this.attrs[k]; },
     addEventListener(t, fn) { this.listeners[t] = fn; },
     appendChild(c) { this.children.push(c); return c; },
-    focus() {},
+    focus(opts) { this.focusCalls.push(opts); },
+    scrollIntoView(opts) { this.scrollCalls.push(opts); },
   };
 }
 
@@ -422,6 +424,16 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
 });
 
 describe('dyad surface — presentation: spine heads + reveal beat', () => {
+  it('moves a valid paired result into a named focusable region', () => {
+    expect(dyadJs).toMatch(
+      /id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden/,
+    );
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-output').scrollCalls).toEqual([{ block: 'start' }]);
+    expect(h.get('dyad-output').focusCalls).toEqual([{ preventScroll: true }]);
+  });
+
   it('the spine carries the terse symbolic heads, distinct from the fuller collapsed-detail heads', () => {
     const reading = buildDyadReading(A, B);
     const relation = formatDyadRelation(reading);

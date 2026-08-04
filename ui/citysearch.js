@@ -19,7 +19,7 @@
 // here — core/rising.js isPolarLatitude is the single authority for the
 // polar-circle boundary; this module and ui/profile.js both import it.
 
-import { searchCities } from '../core/cities.js';
+import { searchCities, isCityLoadExhausted } from '../core/cities.js';
 import { isPolarLatitude } from '../core/rising.js';
 
 // ── pure exports ─────────────────────────────────────────────────
@@ -56,6 +56,10 @@ const STYLE = `
 }
 .city-suggestions:empty { display: none; }
 .city-suggestions li {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   padding: 8px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -73,6 +77,14 @@ const STYLE = `
   color: var(--text-muted);
   letter-spacing: 0.10em;
 }
+.city-status {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.city-status[hidden] { display: none; }
 `;
 
 function injectStyle() {
@@ -116,6 +128,28 @@ export function initCitySearchUI(refs, hooks) {
   let _debounce = null;
   let _results = [];
   let _activeIndex = -1;
+  // A query-string comparison alone cannot distinguish two searches for the
+  // same text separated by reset() (or by typing away and back). Incrementing
+  // this generation on every input/reset/selection invalidates both stale
+  // fulfillments and stale rejections without trying to cancel the import.
+  let _searchGeneration = 0;
+
+  function setBusy(busy) {
+    const value = busy ? 'true' : 'false';
+    refs.cityInput.setAttribute('aria-busy', value);
+    // Some host/test adapters expose only the list mutation methods used by
+    // suggestions. The combobox remains the required ARIA owner; enrich the
+    // live listbox too when its DOM attribute API is available.
+    if (typeof refs.citySuggestions.setAttribute === 'function') {
+      refs.citySuggestions.setAttribute('aria-busy', value);
+    }
+  }
+
+  function setStatus(message = '') {
+    if (!refs.cityStatus) return;
+    refs.cityStatus.textContent = message;
+    refs.cityStatus.hidden = !message;
+  }
 
   function clearSuggestions() {
     refs.citySuggestions.innerHTML = '';
@@ -127,7 +161,11 @@ export function initCitySearchUI(refs, hooks) {
 
   function renderSuggestions(results) {
     clearSuggestions();
-    if (!results.length) return;
+    if (!results.length) {
+      setStatus('no matching birthplace found · try another spelling or nearby city.');
+      return;
+    }
+    setStatus();
     _results = results.slice();
     refs.cityInput.setAttribute('aria-expanded', 'true');
     for (const [index, c] of results.entries()) {
@@ -167,6 +205,11 @@ export function initCitySearchUI(refs, hooks) {
   }
 
   function selectCity(c) {
+    _searchGeneration++;
+    if (_debounce) clearTimeout(_debounce);
+    _debounce = null;
+    setBusy(false);
+    setStatus();
     if (_hooks.setSelectedCity) _hooks.setSelectedCity(c);
     refs.cityInput.value = formatCityLabel(c);
     clearSuggestions();
@@ -183,22 +226,47 @@ export function initCitySearchUI(refs, hooks) {
     // never silently propagates to buildProfile. Guarded like every other
     // hook call in ui/ — a partial DI object must degrade, not throw from
     // inside the input handler.
+    const generation = ++_searchGeneration;
     if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
     if (refs.polarMessage) refs.polarMessage.hidden = true;
     if (_debounce) clearTimeout(_debounce);
+    _debounce = null;
     clearSuggestions();
+    setBusy(false);
+    setStatus();
     const q = refs.cityInput.value.trim();
     if (q.length < MIN_QUERY_LEN) {
       return;
     }
     _debounce = setTimeout(async () => {
+      _debounce = null;
+      if (generation !== _searchGeneration) return;
+      setBusy(true);
+      setStatus('searching birthplaces…');
       try {
         const results = await searchCities(q, 12);
-        // Race guard: drop results if the input has changed since dispatch.
-        if (refs.cityInput.value.trim() !== q) return;
+        // Both guards matter: value catches programmatic edits that do not
+        // emit input; generation distinguishes reset/retype of identical text.
+        if (generation !== _searchGeneration) return;
+        if (refs.cityInput.value.trim() !== q) {
+          setBusy(false);
+          setStatus();
+          return;
+        }
+        setBusy(false);
         renderSuggestions(results);
-      } catch (_) {
+      } catch (error) {
+        if (generation !== _searchGeneration) return;
+        if (refs.cityInput.value.trim() !== q) {
+          setBusy(false);
+          setStatus();
+          return;
+        }
+        setBusy(false);
         clearSuggestions();
+        setStatus(isCityLoadExhausted(error)
+          ? 'birthplace lookup unavailable · reload this page to try again.'
+          : 'birthplace lookup unavailable · type again to retry.');
       }
     }, SEARCH_DEBOUNCE_MS);
   }
@@ -230,6 +298,11 @@ export function initCitySearchUI(refs, hooks) {
   refs.cityInput.setAttribute('aria-autocomplete', 'list');
   refs.cityInput.setAttribute('aria-controls', refs.citySuggestions.id);
   refs.cityInput.setAttribute('aria-expanded', 'false');
+  setBusy(false);
+  if (refs.cityStatus && typeof refs.cityStatus.setAttribute === 'function') {
+    refs.cityStatus.setAttribute('role', 'status');
+    refs.cityStatus.setAttribute('aria-live', 'polite');
+  }
   refs.cityInput.addEventListener('input', onInput);
   refs.cityInput.addEventListener('keydown', onKeydown);
   refs.cityInput.addEventListener('blur', () => {
@@ -240,10 +313,13 @@ export function initCitySearchUI(refs, hooks) {
   return {
     /** Blank the field and drop any pending suggestion state. */
     reset() {
+      _searchGeneration++;
       refs.cityInput.value = '';
       if (_debounce) clearTimeout(_debounce);
       _debounce = null;
       clearSuggestions();
+      setBusy(false);
+      setStatus();
       if (refs.polarMessage) refs.polarMessage.hidden = true;
       if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
     },

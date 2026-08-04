@@ -57,11 +57,12 @@ export function makeEl(name) {
   };
 }
 
-// The seven refs initModalsUI wires: about / forget.
+// The modal refs initModalsUI wires: about / forget plus erase status.
 export function makeModalRefs() {
   return {
     aboutModal: makeEl('aboutModal'), aboutBtn: makeEl('aboutBtn'), aboutClose: makeEl('aboutClose'),
     forgetModal: makeEl('forgetModal'), forgetBtn: makeEl('forgetBtn'),
     forgetCancel: makeEl('forgetCancel'), forgetConfirm: makeEl('forgetConfirm'),
+    forgetStatus: makeEl('forgetStatus'),
   };
 }
