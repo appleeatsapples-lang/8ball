@@ -79,6 +79,11 @@ const FACET_SLOTS = ['low', 'mid', 'high'];
 export const PAID_SUCCESS_MESSAGE = 'complete sheet open in this browser.';
 export const PURCHASE_STORAGE_MESSAGE = 'purchase paused — allow local storage, then try again.';
 export const RETURN_STORAGE_MESSAGE = 'purchase return not finalized — allow local storage, then reload.';
+// Surfaced immediately at save time (not later, at purchase time) when
+// saveProfile()'s read-verified write fails — so a blocked-storage buyer
+// sees why before, not after, stagePurchase() correctly refuses to open
+// the paywall on a profile it can't re-read.
+export const PROFILE_SAVE_STORAGE_MESSAGE = 'reading not saved — allow local storage to purchase or reopen it later.';
 
 // ── storage shims ─────────────────────────────────────────────────
 // Two payment-state payloads live in localStorage (ownership model, §5 v0.55):

@@ -31,6 +31,7 @@ import {
   CREDITS_KEY,
   PAID_SUCCESS_MESSAGE,
   PENDING_KEY,
+  PROFILE_SAVE_STORAGE_MESSAGE,
   PURCHASE_STORAGE_MESSAGE,
   RETURN_STORAGE_MESSAGE,
   TIER_KEY,
@@ -620,6 +621,21 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
     expect(match[1]).toMatch(/openPaywall\(\)/);
     // And the submit handler carries no paywall branch at all.
     expect(html).not.toMatch(/show-paywall/);
+  });
+
+  it('a failed saveProfile write is surfaced immediately, not discovered later at purchase time', () => {
+    // Regression: the archive-reopen and form-submit call sites used to
+    // discard saveProfile()'s read-verified boolean return. A blocked-
+    // storage write (private browsing, quota) would then render a full
+    // result as if nothing was wrong, and the failure would only surface
+    // later — confusingly — when stagePurchase() correctly refused to
+    // open the paywall on a profile it couldn't re-read. Both call sites
+    // must now check the return and warn immediately instead.
+    // (The third saveProfile call site, inside handlePaidReturn's
+    // onConsumePending callback, is unrelated: handlePaidReturn already
+    // checks that callback's return value itself — see ui/payments.js.)
+    expect(html).toMatch(/if \(!saveProfile\(payload\.name, payload\.dob, payload\)\) showPaidBanner\(PROFILE_SAVE_STORAGE_MESSAGE\)/);
+    expect(html).toMatch(/if \(!saveProfile\(name, dob, opts\)\) showPaidBanner\(PROFILE_SAVE_STORAGE_MESSAGE\)/);
   });
 
   it('the actual localStorage write for the pending profile lives in ui/payments.js', () => {

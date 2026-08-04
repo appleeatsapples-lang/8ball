@@ -870,7 +870,7 @@
              resting side, and the rotated-away face must leave the focus/AT
              tree (backface-visibility hides pixels, not tab stops) -->
         <div class="flip-side back" inert aria-hidden="true">
-          <div class="card-back" id="card-back" role="button" tabindex="0" aria-label="flip card again">
+          <div class="card-back" id="card-back" role="button" tabindex="0" aria-label="flip card">
             <div class="glyph">8</div>
             <div class="glyph-label">ball</div>
           </div>
@@ -1044,7 +1044,7 @@ import {
   getRenderTier,
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
   initPaywallUI, stagePurchase, closePaywall, isPaywallOpen,
-  handlePaidReturn,
+  handlePaidReturn, showPaidBanner, PROFILE_SAVE_STORAGE_MESSAGE, clearPendingProfile,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
@@ -1098,7 +1098,8 @@ const modalsUI = initModalsUI(
   { clearProfile,
     clearSavedReadings: () => { const outcome = clearAllSavedReadings(); if (outcome.ok && readingsUI) readingsUI.setActiveReading(null); return outcome; },
     clearFacetState: clearFacetIndex,
-    resetFormDisplay: () => { resetResultTransitions(); resetFormDisplay(); },
+    clearPendingProfile,
+    resetFormDisplay: () => { resetResultTransitions(); resetFormDisplay(); cityUI.reset(); },
     isPaywallOpen, closePaywall },
 );
 // Host-owned state, declared BEFORE any init*UI call whose injected
@@ -1118,7 +1119,7 @@ readingsUI = initReadingsUI(
       const payload = reading.profile;
       const prev = loadSavedProfile();
       const profile = profileFromPayload(payload);
-      saveProfile(payload.name, payload.dob, payload);
+      if (!saveProfile(payload.name, payload.dob, payload)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);
       populateRisingFields(payload);
       const tier = getRenderTier();
       // Archive-open mirrors submit-path facet anchoring (§1.H): a different pair re-anchors; the same pair preserves, like a reload.
@@ -1218,7 +1219,7 @@ initShareUI(
 // the init wiring) so the form submit can read tz/lat/lng atomically. The
 // module clears it via the injected setter when the user types without
 // selecting, so stale state never propagates to buildProfile.
-initCitySearchUI(
+const cityUI = initCitySearchUI(
   { cityInput, citySuggestions, cityStatus, legacyHint, polarMessage },
   { setSelectedCity: c => { selectedCity = c; } },
 );
@@ -1350,7 +1351,7 @@ profileForm.addEventListener('submit', e => {
 
   try {
     const profile = buildProfile(name, dob, opts);
-    saveProfile(name, dob, opts);
+    if (!saveProfile(name, dob, opts)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);
     // §6.3/§6.5 + §1.D (R1): density is the device's entitled tier on
     // every action — render and render-idempotent alike. Nothing decides
     // how many readings; the stored tier decides how much sheet. The
@@ -1372,6 +1373,7 @@ tryAnotherBtn.addEventListener('click', () => {
   readingsUI.setActiveReading(null);
   resetResultTransitions();
   resetFormDisplay();
+  cityUI.reset();
 });
 
 // ── purchase entry — Path B (DOCTRINE §6.7 / §4.B v0.55–v0.56) ───

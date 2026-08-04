@@ -73,7 +73,7 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     if (originalLocalStorage === undefined) delete globalThis.localStorage; else globalThis.localStorage = originalLocalStorage;
   });
 
-  it('forget-confirm closes and resets only after all three erasures verify', () => {
+  it('forget-confirm closes and resets only after all four erasures verify', () => {
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
     const order = [];
@@ -81,11 +81,12 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => { order.push('clear-profile'); return true; },
       clearSavedReadings: () => { order.push('clear-readings'); return { ok: true }; },
       clearFacetState: () => { order.push('clear-facet'); return true; },
+      clearPendingProfile: () => { order.push('clear-pending'); return true; },
       resetFormDisplay: () => order.push('reset'),
     });
     api.openForget();
     refs.forgetConfirm._fire('click');
-    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'reset']);
+    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'clear-pending', 'reset']);
     expect(refs.forgetModal.classList.contains('open')).toBe(false);
     expect(refs.forgetStatus.hidden).toBe(true);
   });
@@ -98,6 +99,7 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => true,
       clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
       clearFacetState: () => true,
+      clearPendingProfile: () => true,
       resetFormDisplay,
     });
     api.openForget();
@@ -106,6 +108,25 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     expect(resetFormDisplay).not.toHaveBeenCalled();
     expect(refs.forgetStatus.hidden).toBe(false);
     expect(refs.forgetStatus.textContent).toMatch(/could not erase all local data/i);
+  });
+
+  it('reopening after a failed erase clears the stale status instead of showing it again', () => {
+    globalThis.localStorage = makeStorage();
+    const refs = makeModalRefs();
+    const api = initModalsUI(refs, {
+      clearProfile: () => true,
+      clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
+      clearFacetState: () => true,
+      clearPendingProfile: () => true,
+      resetFormDisplay: () => {},
+    });
+    api.openForget();
+    refs.forgetConfirm._fire('click');
+    expect(refs.forgetStatus.hidden).toBe(false); // failed attempt staged a visible message
+    api.closeForget();
+    api.openForget();
+    expect(refs.forgetStatus.hidden).toBe(true);
+    expect(refs.forgetStatus.textContent).toBe('');
   });
 
   it('forget status is a persistent polite atomic live region', () => {

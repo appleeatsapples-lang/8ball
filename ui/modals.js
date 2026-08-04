@@ -119,6 +119,7 @@ export function initModalsUI(refs, hooks) {
       verified(h.clearProfile),
       verified(h.clearSavedReadings),
       verified(h.clearFacetState),
+      verified(h.clearPendingProfile),
     ].every(Boolean);
     if (!erased) {
       if (forgetStatus) {

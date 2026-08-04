@@ -65,7 +65,7 @@ beforeEach(() => vi.useFakeTimers());
 describe('result controller — arrival and face accessibility', () => {
   it('exposes the focusable card-back action with button semantics', () => {
     expect(indexSource).toMatch(
-      /id="card-back" role="button" tabindex="0" aria-label="flip card again"/
+      /id="card-back" role="button" tabindex="0" aria-label="flip card"/
     );
   });
 
