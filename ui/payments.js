@@ -30,7 +30,8 @@
 
 import {
   anchorFacetIndex, applyPaidReturn, isTier, nextFacetState,
-  normalizeCounter, normalizeFacetIndex, normalizeTier, resolveRenderTier,
+  maxTier, normalizeCounter, normalizeFacetIndex, normalizeTier,
+  resolveRenderTier,
 } from '../core/payments.js';
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
@@ -75,6 +76,10 @@ const RETIRED_FACET_KEYS = [LEGACY_FACET_KEY, LEGACY_FACET_KEY_V2];
 // These are render positions, not newly authored lateral copy.
 const FACET_SLOTS = ['low', 'mid', 'high'];
 
+export const PAID_SUCCESS_MESSAGE = 'complete sheet open in this browser.';
+export const PURCHASE_STORAGE_MESSAGE = 'purchase paused — allow local storage, then try again.';
+export const RETURN_STORAGE_MESSAGE = 'purchase return not finalized — allow local storage, then reload.';
+
 // ── storage shims ─────────────────────────────────────────────────
 // Two payment-state payloads live in localStorage (ownership model, §5 v0.55):
 //   credits     LEGACY, read-only int — written by pre-v0.55 purchases,
@@ -89,8 +94,10 @@ const FACET_SLOTS = ['low', 'mid', 'high'];
 // Every read defends against a localStorage exception (private mode,
 // quota, etc.) by returning a safe zero/null default. Corrupt legacy
 // payloads are normalized to whole non-negative integers before use.
-// Writes silently no-op on exception — the worst case is state resetting
-// on the next visit, which is the same shape as a fresh user.
+// Purchase-critical writes return a read-verified boolean so checkout or
+// return finalization can stop without consuming the recovery record.
+// Facet display state is also read-verified: a blocked/no-op write must not
+// make the UI claim that a different written entry is now visible.
 
 export function getCredits() {
   try { return normalizeCounter(localStorage.getItem(CREDITS_KEY)); }
@@ -120,8 +127,17 @@ export function getTier() {
   } catch (_) { return null; }
 }
 export function setTier(tier) {
-  if (!isTier(tier)) return;
-  try { localStorage.setItem(TIER_KEY, tier); } catch (_) {}
+  if (!isTier(tier)) return false;
+  try {
+    // Re-resolve at the write boundary so every caller gets monotonic
+    // behavior, not only handlePaidReturn's pure-state preflight.
+    const next = maxTier(normalizeTier(getTier()), tier);
+    localStorage.setItem(TIER_KEY, next);
+    const stored = normalizeTier(localStorage.getItem(TIER_KEY));
+    // A concurrent higher-rung write is also success; a missing/lower value
+    // means the grant was not durably verified and must remain retryable.
+    return isTier(stored) && maxTier(stored, next) === stored;
+  } catch (_) { return false; }
 }
 // THE single render-density helper (remediation R1, PR #36 Codex inv.
 // 5+11): every render path — cold-boot rehydration, same-card shake,
@@ -153,20 +169,30 @@ export function getFacetIndex() {
 }
 export function setFacetIndex(index) {
   const clean = normalizeFacetIndex(index);
-  if (clean === null) return;
-  try { localStorage.setItem(FACET_KEY, String(clean)); } catch (_) {}
+  if (clean === null) return null;
+  try {
+    localStorage.setItem(FACET_KEY, String(clean));
+    const stored = normalizeFacetIndex(localStorage.getItem(FACET_KEY));
+    return stored === clean ? stored : null;
+  } catch (_) { return null; }
 }
 export function clearFacetIndex() {
-  try { localStorage.removeItem(FACET_KEY); } catch (_) {}
-  for (const key of RETIRED_FACET_KEYS) {
-    try { localStorage.removeItem(key); } catch (_) {}
+  const keys = [FACET_KEY, ...RETIRED_FACET_KEYS];
+  let verified = true;
+  for (const key of keys) {
+    try { localStorage.removeItem(key); }
+    catch (_) { verified = false; }
   }
+  for (const key of keys) {
+    try { if (localStorage.getItem(key) !== null) verified = false; }
+    catch (_) { verified = false; }
+  }
+  return verified;
 }
 export function ensureFacetIndex(lifePath, { reset = false } = {}) {
   const stored = reset ? null : getFacetIndex();
   const resolved = stored === null ? anchorFacetIndex(lifePath) : stored;
-  if (stored === null) setFacetIndex(resolved);
-  return resolved;
+  return stored === null ? setFacetIndex(resolved) : resolved;
 }
 export function getFacetSlot(lifePath) {
   const stored = getFacetIndex();
@@ -189,8 +215,8 @@ export function consumeFacetShake(lifePath) {
   const state = nextFacetState({
     facetIndex: stored === null ? anchorFacetIndex(lifePath) : stored,
   });
-  setFacetIndex(state.facetIndex);
-  return state;
+  const verified = setFacetIndex(state.facetIndex);
+  return verified === null ? null : { ...state, facetIndex: verified };
 }
 export function getPendingProfile() {
   try {
@@ -202,11 +228,18 @@ export function getPendingProfile() {
   } catch (_) { return null; }
 }
 export function setPendingProfile(payload) {
-  try { localStorage.setItem(PENDING_KEY, JSON.stringify(payload)); }
-  catch (_) {}
+  if (!payload || !payload.name || !payload.dob) return false;
+  try {
+    const raw = JSON.stringify(payload);
+    localStorage.setItem(PENDING_KEY, raw);
+    return localStorage.getItem(PENDING_KEY) === raw;
+  } catch (_) { return false; }
 }
 export function clearPendingProfile() {
-  try { localStorage.removeItem(PENDING_KEY); } catch (_) {}
+  try {
+    localStorage.removeItem(PENDING_KEY);
+    return localStorage.getItem(PENDING_KEY) === null;
+  } catch (_) { return false; }
 }
 
 // ── paywall modal + banner ────────────────────────────────────────
@@ -261,7 +294,8 @@ export function isPaywallOpen() {
   return paywallModal != null && paywallModal.classList.contains('open');
 }
 
-export function showPaidBanner() {
+export function showPaidBanner(message = PAID_SUCCESS_MESSAGE) {
+  paidBanner.textContent = message;
   paidBanner.hidden = false;
   // Force reflow so the opacity transition fires from 0 → 1.
   void paidBanner.offsetWidth;
@@ -270,6 +304,18 @@ export function showPaidBanner() {
     paidBanner.classList.remove('visible');
     setTimeout(() => { paidBanner.hidden = true; }, 600);
   }, 4000);
+}
+
+// Checkout is safe to expose only after the pending profile has been written
+// and read back. Without that recovery record, a buyer can pay successfully
+// but return to a browser that cannot reconstruct the sheet they purchased.
+export function stagePurchase(payload) {
+  if (!setPendingProfile(payload)) {
+    showPaidBanner(PURCHASE_STORAGE_MESSAGE);
+    return false;
+  }
+  openPaywall();
+  return true;
 }
 
 // ── paid-return handler (§5.B Call 2 / §6.6 / §7.2; ownership v0.55) ──
@@ -299,17 +345,36 @@ export function handlePaidReturn(onConsumePending) {
     tier: getTier(),
     purchasedTier: purchased
   });
-  setTier(paidState.tier);
-  clearPendingProfile();
+  // The tier key is the entire ownership record. Never claim success, clear
+  // recovery state, or strip the retry URL until its write is read back.
+  if (!setTier(paidState.tier)) {
+    showPaidBanner(RETURN_STORAGE_MESSAGE);
+    return false;
+  }
   let consumedPending = false;
   if (paidState.action === 'render-unlocked' && paidState.profile) {
-    if (typeof onConsumePending === 'function') {
-      onConsumePending(paidState.profile);
+    if (typeof onConsumePending !== 'function') {
+      showPaidBanner(RETURN_STORAGE_MESSAGE);
+      return false;
+    }
+    try {
+      if (onConsumePending(paidState.profile) === false) {
+        showPaidBanner(RETURN_STORAGE_MESSAGE);
+        return false;
+      }
+    } catch (_) {
+      showPaidBanner(RETURN_STORAGE_MESSAGE);
+      return false;
     }
     consumedPending = true;
   }
+  if (!clearPendingProfile()) {
+    showPaidBanner(RETURN_STORAGE_MESSAGE);
+    return false;
+  }
   if (window.history && window.history.replaceState) {
-    window.history.replaceState({}, '', window.location.pathname);
+    try { window.history.replaceState({}, '', window.location.pathname); }
+    catch (_) {} // Entitlement is durable; history cleanup is best-effort.
   }
   showPaidBanner();
   return consumedPending;

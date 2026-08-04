@@ -127,6 +127,13 @@ describe('Saved Readings persistence', () => {
     expect(storage.snapshot()).toEqual({ unrelated: 'keep' });
   });
 
+  it('reports a silent no-op archive deletion so device erase stays retryable', () => {
+    const storage = makeStorage({ [READINGS_KEY]: JSON.stringify([]), unrelated: 'keep' });
+    storage.removeItem = () => {};
+    expect(clearAllSavedReadings(storage)).toEqual({ ok: false, status: 'unavailable' });
+    expect(storage.snapshot()).toHaveProperty(READINGS_KEY);
+  });
+
   it('reports corrupt and partially valid archives without throwing', () => {
     const corrupt = makeStorage({ [READINGS_KEY]: '{bad-json' });
     expect(loadSavedReadings(corrupt)).toEqual({ status: 'corrupt', readings: [] });

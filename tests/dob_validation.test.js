@@ -11,20 +11,31 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { validateBirthInput, todayIsoLocal } from '../ui/profile.js';
+import {
+  applyBirthInputValidationState,
+  BIRTH_INPUT_ERROR_MESSAGES,
+  validateBirthInput,
+  todayIsoLocal,
+} from '../ui/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 
 describe('DOB validation markup (v0.3.0 fix B)', () => {
-  it('dob-error element exists with id, class, and hidden attribute', () => {
-    expect(html).toMatch(/<p\s+class="field-error"\s+id="dob-error"\s+hidden>/);
+  it('dob-error element exists with id, class, alert semantics, and hidden attribute', () => {
+    // role="alert"/aria-live="assertive" added so a second failure on an
+    // already-focused field (no DOM focus event to re-trigger announcement)
+    // still gets read by assistive tech. Assertive, not polite like
+    // forget-status/share-status: this interrupts a form submission, not a
+    // background status update.
+    expect(html).toMatch(/<p\s+class="field-error"\s+id="dob-error"\s+role="alert"\s+aria-live="assertive"\s+hidden>/);
   });
 
-  it('dob-error copy names the failure mode ("future")', () => {
-    const m = html.match(/<p[^>]*id="dob-error"[^>]*>([\s\S]*?)<\/p>/);
-    expect(m, 'dob-error subtree not found').not.toBeNull();
-    expect(m[1]).toMatch(/future/i);
+  it('DOB keeps a persistent error description and starts valid', () => {
+    const m = html.match(/<input[^>]*id="dob-input"[^>]*>/);
+    expect(m, 'dob-input not found').not.toBeNull();
+    expect(m[0]).toMatch(/aria-describedby="dob-error"/);
+    expect(m[0]).toMatch(/aria-invalid="false"/);
   });
 
   it('dob-error lives inside the DOB field block (adjacent to dob-input)', () => {
@@ -48,10 +59,12 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     expect(html).toMatch(/dobInput\.max\s*=\s*todayIsoLocal\(\s*\)/);
   });
 
-  it('input event handler hides dob-error on edit', () => {
-    expect(html).toMatch(
-      /dobInput\.addEventListener\(\s*['"]input['"]\s*,\s*\(\s*\)\s*=>\s*\{\s*dobError\.hidden\s*=\s*true/
-    );
+  it('input event handler clears validation state through the shared helper', () => {
+    expect(html).toMatch(/dobInput\.addEventListener\([\s\S]*?applyBirthInputValidationState\(\{\s*ok:\s*true\s*\}/);
+  });
+
+  it('native constraint failures route into the same persistent error state', () => {
+    expect(html).toMatch(/dobInput\.addEventListener\(\s*['"]invalid['"][\s\S]*?validateBirthInput[\s\S]*?applyBirthInputValidationState/);
   });
 
   // §1.J remediation (PR #187 F3): the future-date rule and the local-today
@@ -103,12 +116,34 @@ describe('DOB validation JS wiring (v0.3.0 fix B)', () => {
     expect(validateBirthInput({ name: 'a', dob: '1900-01-01' }, today).ok).toBe(true);
     expect(validateBirthInput({ name: ' bramble ', dob: '1988-06-15' }, today))
       .toEqual({ ok: true, name: 'bramble', dob: '1988-06-15' });
+    expect(validateBirthInput({ name: 'a', dob: '2025-02-29' }, today).reason).toBe('dob');
+    expect(validateBirthInput({ name: 'a', dob: '2024-02-29' }, today).ok).toBe(true);
   });
 
-  it('submit handler surfaces dobError on future-DOB rejection', () => {
-    // The error is shown inside the future-DOB branch — assert the
-    // `dobError.hidden = false` write exists in the file.
-    expect(html).toMatch(/dobError\.hidden\s*=\s*entry\.field\s*!==\s*'dob'/);
+  it('uses reason-specific invalid, future, and year copy', () => {
+    expect(BIRTH_INPUT_ERROR_MESSAGES.dob).toMatch(/valid date/i);
+    expect(BIRTH_INPUT_ERROR_MESSAGES.future).toMatch(/future/i);
+    expect(BIRTH_INPUT_ERROR_MESSAGES.year).toMatch(/1900/i);
+  });
+
+  it.each([
+    ['dob', BIRTH_INPUT_ERROR_MESSAGES.dob],
+    ['future', BIRTH_INPUT_ERROR_MESSAGES.future],
+    ['year', BIRTH_INPUT_ERROR_MESSAGES.year],
+  ])('surfaces %s DOB copy, marks invalid, and focuses the field', (reason, copy) => {
+    const nameInput = { focus() {} };
+    const dobInput = {
+      attrs: {}, focused: false,
+      setAttribute(key, value) { this.attrs[key] = value; },
+      focus() { this.focused = true; },
+    };
+    const dobError = { hidden: true, textContent: '' };
+    expect(applyBirthInputValidationState(
+      { ok: false, field: 'dob', reason }, { nameInput, dobInput, dobError },
+    )).toBe(false);
+    expect(dobInput.attrs['aria-invalid']).toBe('true');
+    expect(dobInput.focused).toBe(true);
+    expect(dobError).toEqual({ hidden: false, textContent: copy });
   });
 
   it('dobError DOM reference is declared near other field refs', () => {

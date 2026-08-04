@@ -51,6 +51,7 @@ import { makeClassList } from './helpers/dom.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
+const resultJs = readFileSync(join(__dirname, '..', 'ui', 'result.js'), 'utf-8');
 
 // Same labeled-DOB-regex dodge as tests/payments_state.test.js: the pii
 // scan's `me` alternation lacks a leading word-boundary and matches the
@@ -418,8 +419,9 @@ describe('tiers — R1 wiring: every render path resolves via getRenderTier (ind
   });
 
   it('same-card shake renders at getRenderTier()', () => {
-    const m = html.match(/function shakeAgain\(\)[\s\S]*?const tier = getRenderTier\(\);[\s\S]*?renderCard\(currentProfile,\s*\{\s*tier\s*\}/);
-    expect(m, 'shakeAgain renderCard must resolve via getRenderTier').not.toBeNull();
+    expect(html).toMatch(/getTier:\s*getRenderTier/);
+    const m = resultJs.match(/function shakeAgain\(\)[\s\S]*?const tier = hooks\.getTier\(\);[\s\S]*?hooks\.renderCard\(currentProfile,\s*\{\s*tier\s*\}/);
+    expect(m, 'result-controller shake must resolve and render through the injected tier hook').not.toBeNull();
   });
 
   it('t3 density end-to-end: the resolved tier renders the full sheet open including the card entry', () => {

@@ -31,7 +31,13 @@ vi.mock('../assets/cities.json', () => ({
   },
 }));
 
-import { searchCities, loadCities, getCountryName } from '../core/cities.js';
+import {
+  searchCities,
+  loadCities,
+  getCountryName,
+  CITY_LOAD_EXHAUSTED_CODE,
+  isCityLoadExhausted,
+} from '../core/cities.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const citiesJs = readFileSync(join(__dirname, '..', 'core', 'cities.js'), 'utf-8');
@@ -88,14 +94,28 @@ describe('core/cities.js — loadCities caching', () => {
     expect(a.cities).toHaveLength(4);
   });
 
-  it('source pin: a failed load resets _loading so the session can retry', () => {
-    // Regression pin for the rejected-promise caching bug (2026-07-05
-    // standards pass): before the fix, a transient import failure left
-    // the rejected promise in _loading and every later caller received
-    // the same rejection with no retry path. The runtime path is hard
-    // to exercise under the module cache, so the try/finally reset is
-    // pinned structurally alongside the caching behavior test above.
-    expect(citiesJs).toMatch(/try\s*\{[\s\S]*?await import\([\s\S]*?\}\s*finally\s*\{\s*_loading = null;?\s*\}/);
+  it('uses bounded alternate specifiers and resets _loading after a failed module request', () => {
+    // Chromium caches a failed module URL, so resetting the promise alone
+    // cannot retry it. The recovery set is finite and same-origin: normal,
+    // retry=1, retry=2. Browser live-fire covers the real module-map behavior.
+    const specifiers = [...citiesJs.matchAll(/import\(['"]\.\.\/(assets\/cities\.json(?:\?retry=\d+)?)['"]/g)]
+      .map(m => m[1]);
+    expect(specifiers).toEqual([
+      'assets/cities.json',
+      'assets/cities.json?retry=1',
+      'assets/cities.json?retry=2',
+    ]);
+    expect(citiesJs).toMatch(/_importAttempt\s*>=\s*CITY_IMPORTERS\.length/);
+    expect(citiesJs).toMatch(/const importer = CITY_IMPORTERS\[_importAttempt\]/);
+    expect(citiesJs).toMatch(/_importAttempt\+\+/);
+    expect(citiesJs).toMatch(/finally\s*\{\s*_loading = null;?\s*\}/);
+  });
+
+  it('exposes a stable terminal-error discriminator for callers', () => {
+    expect(CITY_LOAD_EXHAUSTED_CODE).toBe('CITY_LOAD_EXHAUSTED');
+    expect(isCityLoadExhausted({ code: CITY_LOAD_EXHAUSTED_CODE })).toBe(true);
+    expect(isCityLoadExhausted(new Error('transient failure'))).toBe(false);
+    expect(isCityLoadExhausted(null)).toBe(false);
   });
 });
 

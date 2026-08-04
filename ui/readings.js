@@ -163,6 +163,9 @@ export function clearAllSavedReadings(storage = defaultStorage()) {
   if (!storage) return { ok: false, status: 'unavailable' };
   try {
     storage.removeItem(READINGS_KEY);
+    if (storage.getItem(READINGS_KEY) !== null) {
+      return { ok: false, status: 'unavailable' };
+    }
     return { ok: true, status: 'ok', readings: [] };
   } catch (_) {
     return { ok: false, status: 'unavailable' };

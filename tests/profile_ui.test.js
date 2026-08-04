@@ -79,7 +79,7 @@ describe('ui/profile.js persistence boundary', () => {
     // country holds the v0.2.1 country/zone CODE, not the display name —
     // the legacy <select> stored opt.value = c.code (f3666cb:index.html:571;
     // PR #90 audit MED flipped this fixture from 'Saudi Arabia' to 'SA').
-    saveProfile('Profile Specimen', '1990-01-01', {
+    expect(saveProfile('Profile Specimen', '1990-01-01', {
       time: '03:31',
       city: 'Dhahran',
       cc: 'SA',
@@ -89,7 +89,7 @@ describe('ui/profile.js persistence boundary', () => {
       lng: 50.114,
       gender: 'female',
       unexpected: 'must not persist',
-    });
+    })).toBe(true);
 
     const payload = JSON.parse(storage.snapshot()[PROFILE_KEY]);
     expect(payload).toEqual({
@@ -145,8 +145,15 @@ describe('ui/profile.js persistence boundary', () => {
     };
 
     expect(loadSavedProfile()).toBeNull();
-    expect(() => saveProfile('Profile Specimen', '1990-01-01')).not.toThrow();
-    expect(() => clearProfile()).not.toThrow();
+    expect(saveProfile('Profile Specimen', '1990-01-01')).toBe(false);
+    expect(clearProfile()).toBe(false);
+  });
+
+  it('reports a silent no-op profile write so a paid return stays retryable', () => {
+    const storage = installStorage();
+    storage.setItem = vi.fn();
+    expect(saveProfile('Profile Specimen', '1990-01-01')).toBe(false);
+    expect(storage.snapshot()).not.toHaveProperty(PROFILE_KEY);
   });
 
   it('clearProfile removes only the profile key', () => {
@@ -155,11 +162,20 @@ describe('ui/profile.js persistence boundary', () => {
       unrelated: 'preserve',
     });
 
-    clearProfile();
+    expect(clearProfile()).toBe(true);
 
     expect(storage.snapshot()).toEqual({ unrelated: 'preserve' });
     expect(storage.removeItem).toHaveBeenCalledOnce();
     expect(storage.removeItem).toHaveBeenCalledWith(PROFILE_KEY);
+  });
+
+  it('reports a silent no-op profile deletion so device erase stays retryable', () => {
+    const storage = installStorage({
+      [PROFILE_KEY]: JSON.stringify({ name: 'Profile Specimen', dob: '1990-01-01' }),
+    });
+    storage.removeItem = vi.fn();
+    expect(clearProfile()).toBe(false);
+    expect(storage.snapshot()).toHaveProperty(PROFILE_KEY);
   });
 
   it('optsFromPayload forwards only calculation inputs with valid primitive types', () => {

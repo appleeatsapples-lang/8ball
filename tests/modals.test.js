@@ -6,7 +6,7 @@
 // wiring. (The 18+ age-gate controller this suite used to also cover was
 // retired — journal 2026-07-06.)
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,19 +73,43 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     if (originalLocalStorage === undefined) delete globalThis.localStorage; else globalThis.localStorage = originalLocalStorage;
   });
 
-  it('forget-confirm clears current and saved readings before resetting the form', () => {
+  it('forget-confirm closes and resets only after all three erasures verify', () => {
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
     const order = [];
     const api = initModalsUI(refs, {
-      clearProfile: () => order.push('clear-profile'),
-      clearSavedReadings: () => order.push('clear-readings'),
+      clearProfile: () => { order.push('clear-profile'); return true; },
+      clearSavedReadings: () => { order.push('clear-readings'); return { ok: true }; },
+      clearFacetState: () => { order.push('clear-facet'); return true; },
       resetFormDisplay: () => order.push('reset'),
     });
     api.openForget();
     refs.forgetConfirm._fire('click');
-    expect(order).toEqual(['clear-profile', 'clear-readings', 'reset']);
+    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'reset']);
     expect(refs.forgetModal.classList.contains('open')).toBe(false);
+    expect(refs.forgetStatus.hidden).toBe(true);
+  });
+
+  it('a partially failed erase stays open, keeps the form, and exposes retry status', () => {
+    globalThis.localStorage = makeStorage();
+    const refs = makeModalRefs();
+    const resetFormDisplay = vi.fn();
+    const api = initModalsUI(refs, {
+      clearProfile: () => true,
+      clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
+      clearFacetState: () => true,
+      resetFormDisplay,
+    });
+    api.openForget();
+    refs.forgetConfirm._fire('click');
+    expect(refs.forgetModal.classList.contains('open')).toBe(true);
+    expect(resetFormDisplay).not.toHaveBeenCalled();
+    expect(refs.forgetStatus.hidden).toBe(false);
+    expect(refs.forgetStatus.textContent).toMatch(/could not erase all local data/i);
+  });
+
+  it('forget status is a persistent polite atomic live region', () => {
+    expect(html).toMatch(/id="forget-status"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"[^>]*hidden/);
   });
 
   it('Escape closes an open about modal and routes to the injected paywall close', () => {
