@@ -7,7 +7,9 @@
 
 ## Verdict
 
-**Initial reconciled verdict: DO NOT MERGE** (real regressions + an inaccurately-scoped L48 sighting). Four of five blockers are now fixed and re-verified in this response's commit. **The fifth is a genuine product-promise question that needs the operator's decision, not an implementer's** — see Outstanding below. Not self-clearing this PR.
+**Initial reconciled verdict: DO NOT MERGE** (real regressions + an inaccurately-scoped L48 sighting). All five blockers are now fixed and re-verified. **SAFE TO MERGE per this artifact's own read — pending the operator's own read and the explicit merge word (§10/L48); this response does not self-clear the PR.**
+
+**Update, same date:** the operator reviewed the Outstanding item below and chose **restore** — the permanence language is back in both the about-modal and paywall-modal copy, and the corresponding test assertions were reverted to require it. See the "Outstanding, resolved" section at the end of this artifact for the exact wording and verification.
 
 ## What was reviewed
 
@@ -44,14 +46,16 @@ Fixed and re-verified in this response's commit:
 
 Full suite re-verified green after all fixes: **56 files / 1927 tests** (1925 before this response's two new regression tests). Product audit: PASS 13/0/1/0. Local PII scan: clean, 855 files. `git diff origin/main --check`: clean.
 
-## Outstanding — operator decision required, not fixed here
+## Outstanding, resolved — operator chose restore
 
-**The purchase-permanence copy change (Consensus finding #1).** This is a genuine change to what a paying customer is promised, sitting inside a PR framed as pure UI refinement, contradicting `DOCTRINE.md`'s own load-bearing language. It is not this response's place to unilaterally pick a resolution. Two paths, named so neither is silently chosen:
+**The purchase-permanence copy change (Consensus finding #1).** Operator word: restore the permanence language. Applied:
 
-- **Restore** the permanence language ("permanently... what you bought stays bought") in both the about-modal and paywall-modal copy, and revert `tests/payments_markup.test.js`'s flipped assertions — treats this as an unintended copy regression from the redesign pass.
-- **Keep** the new, arguably more technically honest wording (this product has no account/server backend, so "permanent" was always contingent on not clearing browser data) — but that requires an actual `DOCTRINE.md` amendment with a journal entry, per this project's own rules for load-bearing copy changes, not a silent change inside a UI PR.
+- **About-modal** (`index.html`, the offer paragraph): restored *"...permanently, for every reading in this browser... a higher rung bought later upgrades the sheet — what you bought stays bought."* The written-card rotation/anchor disclosure that had also been silently dropped in the same rewrite (a separate, lower-severity finding from the earlier transplant-review pass) was restored in the same edit: *"the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path)"*. The `"access is stored here; clearing this site's data removes that local record"` sentence was removed from this paragraph — it directly undercut the restored promise; the general local-storage disclosure already lives in the modal's earlier paragraph (*"nothing leaves your device on its own... stored locally..."*), so removing the redundant, contradictory copy here is not a coverage loss.
+- **Paywall-modal**: `#paywall-value` restored to *"...permanently, for every reading in this browser. a one-time purchase, yours for good; the highest rung bought holds."* `#paywall-disclosure` had the same contradictory clearing-data sentence removed, for the same reason.
+- Both retain everything genuinely new and correct from the redesign: the "10 sealed coordinates" / kua-line description, the `optional gender` privacy mention (a real DOCTRINE §1.D v0.63 requirement, not part of the permanence issue), and the `paywall-value`/`paywall-facts`/`paywall-disclosure` `aria-describedby` structure.
+- `tests/payments_markup.test.js`: the flipped `not.toMatch(/permanent|yours for good/i)` assertion reverted to require the restored language (`toMatch`); the about-modal offer-paragraph test and the "t3 written-entry ceiling" test (which had independently been updated to assert the now-removed `"upgrades the stored access... without downgrading it"` phrasing) updated to match the restored wording.
 
-This PR does not merge until that decision is made and applied.
+Verified after restoration: **56 files / 1927 tests green**, product audit PASS 13/0/1/0, PII scan clean (856 files), `index.html` 1452/1500, `git diff origin/main --check` clean. Both modals visually checked on a live local dev server — render correctly, no markup breakage.
 
 ## Full reconciliation output
 
@@ -59,4 +63,4 @@ This PR does not merge until that decision is made and applied.
 
 ## Recommendation
 
-Once the permanence-disclosure decision is made and applied (either path), re-run `npm test` + `project_audit.py` to confirm still green, and this PR is ready for the operator's own read and the explicit merge word per §10/L48.
+All five blockers fixed and re-verified, including the operator-resolved permanence disclosure. Ready for the operator's own read and the explicit merge word per §10/L48.

@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions — STAGED, DO NOT MERGE pending one operator decision
+## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
 state truth, birthplace search recovery, forms/dialogs/erasure a11y, a
@@ -37,25 +37,32 @@ inaccurate L48 self-sighting.
    pre-diff label was equally wrong on *later* flips); the
    `openForget()` stale-status-clear fix had no regression test (added).
 
-**Not fixed — genuine operator decision, not an implementer's call.**
-The about-modal and paywall-modal copy silently dropped the purchase-
-permanence guarantee ("permanently... what you bought stays bought" →
-"access is stored here; clearing this site's data removes that local
-record"), and `tests/payments_markup.test.js` was flipped in the same
-diff to require the *absence* of that language. `DOCTRINE.md` v0.55
-states a rung purchase is "permanent and unlimited" and calls this
-disclosure load-bearing. This PR's own L48 sighting incorrectly claimed
-"no DOCTRINE.md change, no pricing change." Two paths named, neither
-chosen here: restore the permanence language (treat as an unintended
-copy regression), or keep the new wording as an intentional change —
-which needs an actual DOCTRINE.md amendment + journal entry, not a
-silent change inside a UI-refinement PR. **This PR does not merge until
-the operator decides and it's applied.**
+**Genuine operator decision, not an implementer's call — resolved same
+session.** The about-modal and paywall-modal copy had silently dropped
+the purchase-permanence guarantee ("permanently... what you bought
+stays bought" → "access is stored here; clearing this site's data
+removes that local record"), and `tests/payments_markup.test.js` was
+flipped in the same diff to require the *absence* of that language.
+`DOCTRINE.md` v0.55 states a rung purchase is "permanent and unlimited"
+and calls this disclosure load-bearing; this PR's own L48 sighting had
+incorrectly claimed "no DOCTRINE.md change, no pricing change." Operator
+word: **restore.** Applied to both modals (the about-modal's also-
+dropped written-card rotation/anchor disclosure restored in the same
+edit, a lower-severity finding from the earlier transplant-review pass);
+the contradictory "clearing this site's data..." sentence removed from
+both since it directly undercut the restored promise (the general
+local-storage disclosure already lives elsewhere in the about-modal).
+Everything genuinely new and correct from the redesign — the "10 sealed
+coordinates" wording, the optional-gender privacy mention, the
+`aria-describedby` structure — was kept. Tests reverted to require the
+restored language. Full detail:
+`audits/relay_pr200_premerge_audit_2026-08-04.md`.
 
-**Verification after fixes 1-5.** Suite 56 files / **1927** tests green
-(1925 before this entry's two new regression tests). Product audit PASS
-13/0/1/0. Local PII scan clean, 855 files. `git diff origin/main
---check` clean.
+**Verification after all fixes, including the restoration.** Suite 56
+files / **1927** tests green (1925 before this entry's two new
+regression tests). Product audit PASS 13/0/1/0. Local PII scan clean,
+856 files. `index.html` 1452/1500. `git diff origin/main --check`
+clean. Both modals visually verified on a live local dev server.
 
 Also left open, disposed as non-blocking by the reconciliation:
 `ensureFacetIndex`'s null-on-failed-write return discarded at 3 call

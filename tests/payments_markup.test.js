@@ -175,14 +175,18 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(t3).not.toMatch(/destiny|fate|secret|reveal your/i);
   });
 
-  it('paywall title and body carry the single-offer ownership framing (v0.56)', () => {
+  it('paywall title and body carry the single-offer ownership framing (v0.56, permanence restored v0.63)', () => {
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(/complete your sheet · \$3 once/);
     expect(subtree).toMatch(/adds 10 coordinates, their meanings, the written card, domain fit, and the kua line/);
-    expect(subtree).toMatch(/for every reading in this browser/);
+    expect(subtree).toMatch(/permanently, for every reading in this browser/);
     expect(subtree).toMatch(/\$3 once · no subscription · no 8ball account/);
     expect(subtree).toMatch(/aria-describedby="paywall-value paywall-facts paywall-disclosure"/);
-    expect(subtree).not.toMatch(/permanent|yours for good/i);
+    // DOCTRINE v0.55: "a rung purchase is permanent and unlimited" — load-bearing,
+    // must stay disclosed (regression: briefly dropped during the v0.63 UI
+    // refinement pass, caught pre-merge by cross-model audit, restored here).
+    expect(subtree).toMatch(/yours for good/i);
+    expect(subtree).toMatch(/the highest rung bought holds/i);
     // The metered framing is gone: no tries, no reads-count promises.
     expect(subtree).not.toMatch(/three tries/);
     expect(subtree).not.toMatch(/three more reads/);
@@ -547,18 +551,18 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
     expect(aboutSubtree).toMatch(/the lock is a convention, not a vault/);
   });
 
-  it('about-modal: discloses what the offer buys and the browser-local boundary', () => {
-    expect(aboutSubtree).toMatch(/opens the ten sealed coordinates, their meanings, the written card, domain fit, and the kua line for every reading in this browser/);
-    expect(aboutSubtree).toMatch(/clearing this site's data removes that local record/);
+  it('about-modal: discloses what the offer buys, permanently (v0.55 ownership, restored v0.63)', () => {
+    expect(aboutSubtree).toMatch(/opens the ten sealed coordinates, their meanings, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the kua line — permanently, for every reading in this browser/);
+    expect(aboutSubtree).toMatch(/what you bought stays bought/);
     expect(aboutSubtree).not.toMatch(/three more reads/);
     expect(aboutSubtree).not.toMatch(/adds three more reads/);
   });
 
-  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.55)', () => {
+  it('about-modal: discloses the t3 written-entry ceiling and the stored rung (v0.55, permanence restored v0.63)', () => {
     expect(aboutSubtree).toMatch(/the written card/);
     expect(aboutSubtree).toMatch(/the paid rung/); // §5 storage disclosure
-    expect(aboutSubtree).toMatch(/upgrades the stored access/);
-    expect(aboutSubtree).toMatch(/without downgrading it/);
+    expect(aboutSubtree).toMatch(/upgrades the sheet/);
+    expect(aboutSubtree).toMatch(/what you bought stays bought/);
   });
 
   it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
