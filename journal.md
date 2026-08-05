@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-06 — Moon sign (§1.K, ASTRO-MOON-ADD-01): sixteenth coordinate at t1 — STAGED, cross-model audit pending
+## 2026-08-06 — Moon sign (§1.K, ASTRO-MOON-ADD-01): sixteenth coordinate at t1 — STAGED, grok relay audit MERGE WITH FIXES, fixes landed
 
 **What happened.** On a direct freeze-override word (ASTRO-MOON-ADD-01,
 authorized through merge), the sheet gains a moon-sign compartment at t1
@@ -87,10 +87,35 @@ amendment cycle.
 1457/1500. No new dependency, no network call, no new localStorage key,
 no calc-version bump (additive per §3).
 
-**Process.** STAGED on a claude/* branch; per §10/L48 and the
-no-self-certification law the diff goes to an independent cross-model
-read (grok lane requested by name) before the PR merges. The freeze
-override authorizes build and merge intent; it does not skip the audit.
+**Cross-model audit (grok via relay, claude reconciliation) — MERGE
+WITH FIXES, both fixes landed same session.** The relay run
+(`~/ai-relay/runs/20260806-010205-8ball`) reviewed the branch diff vs
+origin/main; the reconciler independently re-derived each finding.
+Two confirmed defects, both fixed:
+1. **False tz-parity fixture (the good catch).** moon_cases row 2
+   claimed "same UTC instant as row 1" at 19:00 America/New_York —
+   but US DST began 1992-04-05, so April 11 was EDT (UTC-4), making
+   that 23:00 UTC, one hour off. The moon still landed in leo, so the
+   sign-string parity test stayed green while its label was false.
+   Fixed: row 2 → 20:00 EDT (lands on JD 2448724.5 exactly), and the
+   parity test now asserts resolved-JD identity + longitude identity,
+   not just sign equality — a tz-wiring regression can no longer hide
+   inside a 30° sign bucket.
+2. **Stale paywall copy.** The about-modal "opens the ten sealed
+   coordinates" and paywall "adds 10 coordinates" undercounted the
+   offer after the census moved to 5/11/16. Both now read eleven/11,
+   with their payments_markup pins updated in lockstep.
+Non-blocking absorb: the core/profile.js comment claiming moon shares
+"the SUN ↑ RISING-style card row" reworded (moon has its own MOON
+row). The reconciler confirmed the ch.47 math, the gating design and
+the count-pin sweep sound, and scored the two §1.K disclosed residuals
+as honest. Post-fix verification: suite 57 files / 1953 tests green ·
+product audit PASS 13/0/1/0 · local PII scan clean (858 files).
+
+**Process.** STAGED on `claude/astro-moon-sign-1k`; the freeze override
+authorizes build and merge intent, the grok relay read satisfies the
+independent-eyes requirement, and the L48 artifact rides the PR. Merge
+remains the operator's word.
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
 state truth, birthplace search recovery, forms/dialogs/erasure a11y, a

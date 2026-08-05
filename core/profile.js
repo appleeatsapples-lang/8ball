@@ -308,8 +308,9 @@ export function buildProfile(name, dobIso, opts) {
   //
   // moonSign (DOCTRINE §1.K) piggybacks on this same validated tz — its
   // own math needs no lat/lng, but gating it identically to risingSign
-  // keeps the two coordinates available/unavailable together, which is
-  // what the shared SUN ↑ RISING-style card row assumes.
+  // keeps the two time-and-place astrology coordinates available or
+  // absent together (product-UX pair coherence per §1.K; moon renders
+  // in its own MOON row, not the sun row).
   let risingSign;
   let moonSign;
   if (opts && opts.time

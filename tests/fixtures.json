@@ -292,9 +292,9 @@
       }
     },
     {
-      "label": "Meeus Example 47.a instant via America/New_York (tz parity, same UTC instant as row 1) — leo",
+      "label": "Meeus Example 47.a instant via America/New_York (tz parity, same UTC instant as row 1; 20:00 EDT — US DST began 1992-04-05, so the offset is -4, not EST's -5) — leo",
       "dob": "1992-04-11",
-      "time": "19:00",
+      "time": "20:00",
       "tz": "America/New_York",
       "lat": 40.7128,
       "lng": -74.006,

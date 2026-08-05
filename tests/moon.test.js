@@ -16,6 +16,7 @@ import { dirname, join } from 'node:path';
 
 import { buildProfile } from '../core/profile.js';
 import { computeMoonSign, geocentricLongitudeDeg } from '../core/moon.js';
+import { julianDay, offsetMinutesForWallTime } from '../core/rising.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
@@ -58,8 +59,25 @@ describe('moon sign — computeMoonSign (fixtures)', () => {
     });
   }
 
-  it('rows 1-2 are the same UTC instant expressed via two IANA zones and must agree', () => {
+  it('rows 1-2 are the same UTC instant expressed via two IANA zones — JD, longitude and sign must all agree', () => {
+    // Sign-string equality alone is a weak pin (the moon moves ~0.5°/hr, so
+    // two instants an hour apart usually still share a sign — the relay
+    // audit caught exactly that false-green in this fixture's first cut,
+    // which assumed EST when 1992-04-11 was already EDT). Assert the
+    // resolved JDs are IDENTICAL, so a tz-wiring regression cannot hide.
     const [utc, nyc] = fixtures.moon_cases;
+    const jdOf = c => {
+      const [y, m, d] = parseDob(c.dob);
+      const [hour, minute] = parseTime(c.time);
+      const off = offsetMinutesForWallTime(y, m, d, hour, minute, c.tz);
+      expect(off, `${c.tz} must resolve`).not.toBeNull();
+      return julianDay(y, m, d, hour + minute / 60 - off / 60);
+    };
+    const jdUtc = jdOf(utc);
+    const jdNyc = jdOf(nyc);
+    expect(jdUtc).toBe(2448724.5); // the Meeus Example 47.a instant exactly
+    expect(jdNyc).toBe(jdUtc);
+    expect(geocentricLongitudeDeg(jdNyc)).toBe(geocentricLongitudeDeg(jdUtc));
     expect(utc.expected.moonSign).toBe(nyc.expected.moonSign);
   });
 });
