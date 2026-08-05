@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ATLAS_NOTE, atlasText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
+import { ATLAS_NOTE, atlasText, provText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
 import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,30 +29,50 @@ const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 const NOTES = Object.values(ATLAS_NOTE);
 
 describe('ATLAS legend (CLP cut 2)', () => {
-  it('covers the abbreviated rows; self-naming rows are deliberately omitted', () => {
-    // The 10 cells whose title is abbreviated or omits the tradition (the
-    // moon row's bare MOON title omits "sign", §1.K). The
-    // personality/birthday/maturity row and the day/hour pillar rows already
-    // spell every coordinate out in their .coord-title, so they carry NO
-    // atlas note (a line there would only echo the title).
-    expect(Object.keys(ATLAS_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
-      'lifePath', 'nameNumber', 'soulUrge',
-    ]);
-    for (const k of ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar']) {
-      expect(ATLAS_NOTE[k], `${k} must be self-naming (no atlas note)`).toBeUndefined();
+  it('every compartment carries a note, so the legend aligns positionally with the cells (§1.L v0.66)', () => {
+    // THE bug this pins: the legend is read positionally against the
+    // compartments beside it. When the four-line regrouping put the
+    // formerly self-naming cells (personality/birthday/maturity, the two
+    // pillars) on lines beside noted cells, a partial ATLAS_NOTE rendered
+    // three notes against the ANIMALS line's five compartments — and a
+    // reader could not tell the year five-element `water` from the hour
+    // pillar's stem element in `rat · water`. Found in live-fire, by
+    // someone reading the card and asking why water was repeated.
+    for (const keys of Object.values(ROW_KEYS)) {
+      expect(atlasText(keys).split(' · '), `row ${keys[0]} legend misaligned`)
+        .toHaveLength(keys.length);
+      expect(provText(keys).split(' · '), `row ${keys[0]} placard misaligned`)
+        .toHaveLength(keys.length);
     }
+    // and the specific line that regressed, spelled out
+    expect(atlasText(ROW_KEYS.animals))
+      .toBe('chinese five-element · year animal · month animal · day pillar · hour pillar');
   });
 
-  it('atlasText joins a row’s system names in cell order; self-naming rows → ""', () => {
+  it('covers every cell in DOM order', () => {
+    // §1.L v0.66: all fifteen, in DOM order. No cell is self-naming any
+    // more — the four system titles name a SYSTEM, not its coordinates.
+    expect(Object.keys(ATLAS_NOTE)).toEqual([
+      'arcana',
+      'sun', 'rising', 'moon',
+      'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+      'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
+    ]);
+  });
+
+  it('atlasText joins a row’s system names in cell order; unknown keys contribute nothing', () => {
     expect(atlasText(['lifePath', 'nameNumber', 'soulUrge']))
       .toBe('life-path · expression · soul-urge');
     expect(atlasText(['animal', 'innerAnimal'])).toBe('year animal · month animal');
     expect(atlasText(['arcana'])).toBe('tarot arcana');
-    // self-naming rows carry no note → empty (attachAtlas skips them).
-    expect(atlasText(['personality', 'birthday', 'maturity'])).toBe('');
-    expect(atlasText(['dayPillar'])).toBe('');
-    expect(atlasText(['hourPillar'])).toBe('');
+    // §1.L v0.66: no cell is self-naming any more — every one has a note so
+    // the legend can be read positionally against the compartments.
+    expect(atlasText(['personality', 'birthday', 'maturity']))
+      .toBe('personality · birthday · maturity');
+    expect(atlasText(['dayPillar'])).toBe('day pillar');
+    // an unknown key still contributes nothing (the join stays total)
+    expect(atlasText(['notACell'])).toBe('');
+    expect(atlasText(['hourPillar'])).toBe('hour pillar');
   });
 
   it('every note is a clinical system name — no mysticism/interpretation (§2)', () => {
@@ -244,7 +264,7 @@ describe('ATLAS legend — DOM write (cut-2 wiring)', () => {
     expect(cells.element.root.classList.contains('sealed')).toBe(true);
     expect(cells.innerAnimal.root.classList.contains('sealed')).toBe(true);
     expect(sections.animals.querySelector('.coord-atlas').textContent)
-      .toBe('chinese five-element · year animal · month animal');
+      .toBe('chinese five-element · year animal · month animal · day pillar · hour pillar');
     // ...and the astro line still names rising + moon while both are sealed.
     expect(cells.rising.root.classList.contains('sealed')).toBe(true);
     expect(sections.astro.querySelector('.coord-atlas').textContent)

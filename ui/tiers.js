@@ -525,21 +525,34 @@ function attachProvenance() {
 // PII (names the system, never a name/DOB/value). Rendered in .coord-atlas,
 // OUTSIDE .coord-title, so ui/share.js rowTitleOf never reads it — atlas
 // stays out of the §5.D PNG. Gated by the existing .card.labels-revealed
-// toggle (no new key). Only the rows whose title is abbreviated or omits
-// the tradition carry a note: the personality/birthday/maturity row and the
-// day/hour pillar rows already self-name in their .coord-title, so they are
-// deliberately omitted (an atlas line there would only echo the title).
+// toggle (no new key).
+//
+// EVERY cell carries a note as of §1.L v0.66, and that is a correctness
+// requirement, not a completeness preference. The legend is read
+// POSITIONALLY against the compartments beside it, so a partial map
+// silently misaligns: before this change the personality/birthday/maturity
+// and day/hour-pillar cells were deliberately omitted because their own row
+// titles self-named them — but the four-line regrouping put them on lines
+// beside noted cells, so the ANIMALS legend rendered three notes against
+// five compartments and a reader could not tell the year five-element
+// (`water`) from the hour pillar's stem element (`rat · water`). Keyed in
+// DOM order so the join is the cell order by construction.
 const ATLAS_NOTE = {
   arcana: 'tarot arcana',
-  element: 'chinese five-element',
   sun: 'sun sign',
   rising: 'rising sign',
   moon: 'moon sign',
-  animal: 'year animal',
-  innerAnimal: 'month animal',
   lifePath: 'life-path',
   nameNumber: 'expression',
   soulUrge: 'soul-urge',
+  personality: 'personality',
+  birthday: 'birthday',
+  maturity: 'maturity',
+  element: 'chinese five-element',
+  animal: 'year animal',
+  innerAnimal: 'month animal',
+  dayPillar: 'day pillar',
+  hourPillar: 'hour pillar',
 };
 
 export { ATLAS_NOTE };
