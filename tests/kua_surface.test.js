@@ -4,8 +4,10 @@
 // Core behaviour is pinned in tests/kua.test.js; this file covers the
 // seams, twinned from tests/public_surface.test.js:
 //
-//   1. ui/kua.js render — sealed below t3, filled at t3, DOM-pure either
-//      way (§1.D v0.37); single-gender and both-values modes; the 5-remap
+//   1. ui/kua.js render — the three-state contract (§1.D v0.65): open at
+//      t3 for a gendered profile, sealed below t3, ABSENT (hidden, never
+//      a seal or a dual-value fallback) for a no-gender or unresolvable
+//      profile; DOM-pure in every state (§1.D v0.37); the 5-remap
 //      disclosure visible, never silent.
 //   2. Injection — index.html carries no kua markup, no gender control,
 //      no kua CSS; the module builds all three and the boot call names
@@ -111,6 +113,10 @@ describe('kua render — contract', () => {
     expect(aria).toBe('kua trigram · not derived');
   });
 
+  it('the absent state\'s CSS hide rule is pinned verbatim (a vanished rule would leave an invisible-class no-op)', () => {
+    expect(kuaJs).toMatch(/\.kua-read\.kua-absent \{ display: none; \}/);
+  });
+
   it('the retired both-values fallback stays retired — no module path renders two genders at once', () => {
     // Source pin: the v0.63 dual-value strings and their register note are
     // gone from ui/kua.js, so no future refactor can quietly resurrect the
@@ -128,6 +134,7 @@ describe('kua render — contract', () => {
     const read = renderKuaRead(P_FEMALE, { entitled: false });
     expect(read).toBeNull();
     expect(refs.root.classList.contains('sealed')).toBe(true);
+    expect(refs.root.classList.contains('kua-absent')).toBe(false); // sealed and absent are mutually exclusive
     expect(refs.primary.textContent).toBe('');
     expect(refs.secondary.textContent).toBe('');
     expect(refs.note.textContent).toBe('');
@@ -263,6 +270,7 @@ describe('dyad-sheet parity', () => {
     const sealed = sheet.render(P_FEMALE, 't2', { kua: read });
     expect(sealed.kua).toBe(false);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(true);
+    expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('kua-absent')).toBe(false); // mutual exclusion, sheet side
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe('');

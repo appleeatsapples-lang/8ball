@@ -80,7 +80,8 @@ export function getKua(year, month, day, gender) {
   return { number: raw, remapped: false };
 }
 
-// Both classical values for a date — the no-gender-on-file read.
+// Symmetric both-gender helper — engine surface only, not a product
+// path since §1.D v0.65 (the no-gender render is absent, not dual).
 export function getKuaBoth(year, month, day) {
   return {
     male: getKua(year, month, day, 'male'),

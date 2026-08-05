@@ -48,9 +48,24 @@ amendments touch disjoint clauses, either merge order reads coherently,
 and whoever merges second absorbs the expected journal/footer
 top-insert conflict.
 
-**Process.** STAGED on `claude/kua-no-gender-absent`; grok relay audit
-before the PR per §10/L48 and the no-self-certification law; merge is
-the operator's word.
+**Cross-model audit (grok via relay, claude reconciliation) — MERGE
+WITH FIXES (low-risk), all five absorbs landed same session.** The
+reconciler verified every finding against the diff and confirmed the
+runtime change correct: three-state model consistent across host block
+and dyad sheets, F4 respected, the fallback genuinely gone, the L17
+supersession proper. Five test-coverage/doc-drift gaps, none
+functional, all landed: sealed-state tests now pin sealed/absent
+mutual exclusion on both the host and sheet sides; the `.kua-read
+.kua-absent { display: none; }` rule gets a verbatim style pin (a
+vanished rule would leave an invisible-class no-op); the test-file
+header rewritten to the three-state contract; core/kua.js's
+`getKuaBoth` comment reframed as engine-only surface, not a product
+path. Post-absorb: suite 56 files / 1931 tests green · product audit
+PASS 13/0/1/0 · local PII scan clean.
+
+**Process.** STAGED on `claude/kua-no-gender-absent`; the grok relay
+read satisfies the independent-eyes requirement and the L48 artifact
+rides the PR; merge is the operator's word.
 
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
