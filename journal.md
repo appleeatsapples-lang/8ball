@@ -5,6 +5,53 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — No-gender kua fallback cut (§1.D v0.65, operator word) — STAGED, cross-model audit pending
+
+**What happened.** The operator pasted the kua block's no-gender output
+verbatim — the male line, the female line, and the "no gender on file"
+register note — with the word "cut this out." Implemented as §1.D
+v0.65: a profile without gender now renders NO kua block at all. The
+v0.63 both-classical-values fallback and its note are retired; the
+block is ABSENT (hidden, value nodes empty), deliberately not sealed —
+sealed remains the below-t3 state only, per the F4 sealed ≠
+unresolvable rule — and deliberately not a silent single-gender
+default, which stays the named wrong fix. What v0.63's rule (3)
+protected survives: the method's gender dependence is never hidden
+behind a defaulted value; absence discloses by showing nothing.
+
+**Mechanics.** `ui/kua.js`: `kuaReadFor` returns null for a no-gender
+profile; `formatKuaBoth` and the `getKuaBoth` import are deleted;
+`renderKuaRead` gains the three-state rule (open · sealed · absent)
+with a `.kua-absent` display:none class and an honest aria label per
+state. `ui/sheet.js`: the dyad sheets follow the same rule, so a
+no-gender person B carries no kua block beside a gendered person A;
+`clear()` drops the new class. `core/kua.js` untouched — `getKuaBoth`
+stays pure engine surface under `tests/kua.test.js` /
+`tests/kua_content.test.js`. Comment currency in `ui/tiers.js` and
+`ui/dyad.js` updated. Gendered profiles render exactly as v0.63
+shipped; the optional field and strict vocabulary are untouched.
+
+**Tests.** `tests/kua_surface.test.js` rewritten to the new contract:
+the both-values test becomes the absent-state pin (null read, hidden
+root, sealed false, empty nodes, honest aria — rendered AFTER a
+gendered read so stale residue would be caught, the F1 class);
+a return-path test (absent → gendered clears the state); the
+unresolvable-profile totality test now expects absent, not a seal at
+full entitlement; a source pin keeps the retired fallback from quietly
+returning; dyad-sheet parity re-anchored on a gendered profile plus a
+dedicated no-gender absent-sheet test. Suite 56 files / 1930 tests
+green.
+
+**Doctrine numbering note.** v0.64 (§1.K moon sign, PR #201) was
+STAGED and unmerged on an independent branch when this was cut; the two
+amendments touch disjoint clauses, either merge order reads coherently,
+and whoever merges second absorbs the expected journal/footer
+top-insert conflict.
+
+**Process.** STAGED on `claude/kua-no-gender-absent`; grok relay audit
+before the PR per §10/L48 and the no-self-certification law; merge is
+the operator's word.
+
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer

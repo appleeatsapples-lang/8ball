@@ -640,7 +640,8 @@ export function render() {
   const publicRead = p => (typeof _hooks.getPublicRead === 'function' ? _hooks.getPublicRead(p) : null);
   // Kua is handed in like the public read (same single-consumer rationale,
   // ui/sheet.js render doc): each side carries its own, so a no-gender
-  // person B shows both classical values beside a gendered person A.
+  // person B simply carries no kua block beside a gendered person A
+  // (§1.D v0.65 — the block is absent without a gender on file).
   const kua = p => (typeof _hooks.getKua === 'function' ? _hooks.getKua(p) : null);
 
   if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA), kua: kua(profileA) });
