@@ -272,7 +272,13 @@ export function createSheet(host, { prefix } = {}) {
       const kuaOpen = coords.has('kuaRead');
       const kuaRoot = q(`[data-sheet-kua="${prefix}"]`);
       const kuaRead = kuaOpen ? kua : null;
-      if (kuaRoot && kuaRoot.classList) kuaRoot.classList.toggle('sealed', !kuaRead);
+      // Same three-state rule as the host block (§1.D v0.65): sealed only
+      // below entitlement; entitled-but-null (no gender on file) hides the
+      // block rather than sealing it or showing a dual-value fallback.
+      if (kuaRoot && kuaRoot.classList) {
+        kuaRoot.classList.toggle('sealed', !kuaOpen);
+        kuaRoot.classList.toggle('kua-absent', kuaOpen && !kuaRead);
+      }
       setText(`[data-sheet-kua-primary="${prefix}"]`, kuaRead ? kuaRead.primary : '');
       setText(`[data-sheet-kua-secondary="${prefix}"]`, kuaRead ? kuaRead.secondary : '');
       setText(`[data-sheet-kua-note="${prefix}"]`, kuaRead ? (kuaRead.note || '') : '');
@@ -305,6 +311,7 @@ export function createSheet(host, { prefix } = {}) {
         if (node && node.classList) {
           node.classList.remove('unlocked');
           node.classList.remove('sealed');
+          node.classList.remove('kua-absent');
         }
       }
       const sunTitle = titleNode('sun');

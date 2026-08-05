@@ -15,15 +15,15 @@
 // dyad.js injection posture applied at block scale, which is what keeps
 // the §6 single-file budget flat.
 //
-// The read has two modes, both honest:
+// The read renders for a gendered profile only:
 //   gender on file  → that gender's kua, trigram registry line, and the
 //                     5→2/5→8 remap note whenever core disclosed one.
-//   no gender       → BOTH classical values, labeled, plus a register
-//                     note saying why there are two — never a silent
-//                     default to one gender (the sibling-engine defect
-//                     class this product refuses to import).
+//   no gender       → the block is ABSENT (hidden, value nodes empty) —
+//                     no dual-value fallback, and never a silent default
+//                     to one gender. Cut on the 2026-08-06 word (§1.D
+//                     v0.65); the v0.63 both-values render is retired.
 
-import { getKua, getKuaBoth } from '../core/kua.js';
+import { getKua } from '../core/kua.js';
 import { KUA_TRIGRAMS } from '../content/kua.v1.js';
 import { registerKuaRoot } from './tiers.js';
 
@@ -50,29 +50,13 @@ export function formatKuaRead(kua, gender) {
 }
 
 /**
- * Both-genders read for a profile with no gender on file. One value per
- * line, labeled; the note names the method's gender dependence rather
- * than hiding it. At most one of the two values can be a remap for any
- * year, so the disclosures compose without colliding.
- */
-export function formatKuaBoth(both) {
-  const tm = KUA_TRIGRAMS[both.male.number];
-  const tf = KUA_TRIGRAMS[both.female.number];
-  let note = 'no gender on file — the eight mansions method assigns by gender; both classical values shown.';
-  if (both.male.remapped) note += ` ${remapNote(both.male.number)}`;
-  if (both.female.remapped) note += ` ${remapNote(both.female.number)}`;
-  return {
-    primary: `male · ${trigramLine(both.male.number, tm)}`,
-    secondary: `female · ${trigramLine(both.female.number, tf)}`,
-    note,
-  };
-}
-
-/**
- * Full block content for a profile, or null when the profile cannot
- * resolve. Total: a malformed profile or an out-of-calendar-range year
- * seals the block rather than throwing into the render path (the
- * publicReadFor shape).
+ * Full block content for a profile, or null when it cannot resolve —
+ * which since §1.D v0.65 includes the no-gender profile: the eight
+ * mansions method assigns by gender, and with no gender on file the
+ * block renders nothing rather than a dual-value fallback. Total: a
+ * malformed profile or an out-of-calendar-range year likewise returns
+ * null rather than throwing into the render path (the publicReadFor
+ * shape).
  */
 export function kuaReadFor(profile) {
   if (!profile) return null;
@@ -80,11 +64,9 @@ export function kuaReadFor(profile) {
   if (!Number.isInteger(yyyy) || !Number.isInteger(mm) || !Number.isInteger(dd)) {
     return null;
   }
+  if (gender !== 'male' && gender !== 'female') return null;
   try {
-    if (gender === 'male' || gender === 'female') {
-      return formatKuaRead(getKua(yyyy, mm, dd, gender), gender);
-    }
-    return formatKuaBoth(getKuaBoth(yyyy, mm, dd));
+    return formatKuaRead(getKua(yyyy, mm, dd, gender), gender);
   } catch (_) {
     return null;
   }
@@ -109,6 +91,7 @@ const KUA_STYLE = `
 .card.labels-revealed .kua-title { visibility: visible; }
 .kua-read .coord-seal { inset: 16px 10% 4px; }
 .kua-note:empty { display: none; }
+.kua-read.kua-absent { display: none; }
 .kua-read.unsealing .card-habit,
 .kua-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
 @media (prefers-reduced-motion: reduce) {
@@ -220,9 +203,30 @@ export function setGenderInput(v) {
 export function renderKuaRead(profile, { entitled } = {}) {
   if (!_root) return null;
   const read = entitled ? kuaReadFor(profile) : null;
-  _root.classList.toggle('sealed', !read);
+  // Three states (§1.D v0.65): open (entitled, gendered, resolvable) ·
+  // sealed (unentitled — the seal hatch, like every block) · ABSENT
+  // (entitled but no read: no gender on file, or unresolvable). Absent
+  // hides the whole block — a seal at full entitlement would violate F4
+  // (sealed ≠ unresolvable), and the retired dual-value fallback is not
+  // rendered in its place.
+  const absent = !!entitled && !read;
+  _root.classList.toggle('sealed', !entitled);
+  _root.classList.toggle('kua-absent', absent);
+  // An absent block must carry no pending unseal beat: renderTierSections
+  // (which runs before this in the host flow) adds `.unsealing` on an
+  // upgrade render even when the block is hidden, and display:none→visible
+  // restarts CSS animations — so a later same-tier gendered render would
+  // replay the flash. Strip it while absent; a legit gendered upgrade
+  // render has absent=false and keeps its beat.
+  if (absent) {
+    _root.classList.remove('unsealing');
+    if (_root.style && _root.style.removeProperty) _root.style.removeProperty('--unseal-delay');
+  }
   if (_root.setAttribute) {
-    _root.setAttribute('aria-label', read ? 'kua trigram' : 'kua trigram · sealed at this device tier');
+    _root.setAttribute('aria-label',
+      read ? 'kua trigram'
+        : absent ? 'kua trigram · not derived'
+          : 'kua trigram · sealed at this device tier');
   }
   if (_nodes) {
     if (_nodes.primary) _nodes.primary.textContent = read ? read.primary : '';

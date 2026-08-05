@@ -4,8 +4,10 @@
 // Core behaviour is pinned in tests/kua.test.js; this file covers the
 // seams, twinned from tests/public_surface.test.js:
 //
-//   1. ui/kua.js render — sealed below t3, filled at t3, DOM-pure either
-//      way (§1.D v0.37); single-gender and both-values modes; the 5-remap
+//   1. ui/kua.js render — the three-state contract (§1.D v0.65): open at
+//      t3 for a gendered profile, sealed below t3, ABSENT (hidden, never
+//      a seal or a dual-value fallback) for a no-gender or unresolvable
+//      profile; DOM-pure in every state (§1.D v0.37); the 5-remap
 //      disclosure visible, never silent.
 //   2. Injection — index.html carries no kua markup, no gender control,
 //      no kua CSS; the module builds all three and the boot call names
@@ -27,7 +29,6 @@ import { fileURLToPath } from 'node:url';
 import { makeClassList } from './helpers/dom.js';
 import {
   formatKuaRead,
-  formatKuaBoth,
   kuaReadFor,
   initKuaUI,
   renderKuaRead,
@@ -83,14 +84,61 @@ describe('kua render — contract', () => {
     expect(refs.note.textContent).toBe('');
   });
 
-  it('no gender on file → BOTH classical values, labeled, with the register note', () => {
+  it('an absent render strips a pending unseal beat — no replay on the later gendered render (codex finding)', () => {
+    // renderTierSections adds `.unsealing` to the kua root on an upgrade
+    // render even when the block is absent (hidden); display:none→visible
+    // restarts CSS animations, so a stale beat would replay on a same-tier
+    // absent→gendered transition. The absent render must strip it.
     const refs = makeRefs();
     initKuaUI(refs);
+    refs.root.classList.add('unsealing'); // simulate the upgrade beat landing pre-render
+    renderKuaRead(P_NONE, { entitled: true });
+    expect(refs.root.classList.contains('unsealing')).toBe(false);
+    // ...and a legit gendered render keeps a beat that lands on it.
+    refs.root.classList.add('unsealing');
+    renderKuaRead(P_FEMALE, { entitled: true });
+    expect(refs.root.classList.contains('unsealing')).toBe(true);
+  });
+
+  it('a gendered render after an absent one clears the absent state (the block returns)', () => {
+    const refs = makeRefs();
+    initKuaUI(refs);
+    renderKuaRead(P_NONE, { entitled: true });
+    expect(refs.root.classList.contains('kua-absent')).toBe(true);
+    const read = renderKuaRead(P_FEMALE, { entitled: true });
+    expect(read).not.toBeNull();
+    expect(refs.root.classList.contains('kua-absent')).toBe(false);
+    expect(refs.primary.textContent).toMatch(/^female · kua /);
+  });
+
+  it('no gender on file → the block is ABSENT: null read, hidden root, empty nodes, no dual-value fallback (§1.D v0.65)', () => {
+    const refs = makeRefs();
+    let aria = null;
+    refs.root.setAttribute = (k, v) => { if (k === 'aria-label') aria = v; };
+    initKuaUI(refs);
+    // Render a gendered read first so absence must actively clear it —
+    // a stale prior value surviving would be the F1 residue class.
+    renderKuaRead(P_MALE, { entitled: true });
     const read = renderKuaRead(P_NONE, { entitled: true });
-    expect(read.primary).toMatch(/^male · kua 1 /);
-    expect(read.secondary).toMatch(/^female · kua 8 /);
-    expect(refs.note.textContent).toMatch(/no gender on file/);
-    expect(refs.note.textContent).toMatch(/a raw 5 has no trigram/); // the female remap
+    expect(read).toBeNull();
+    expect(refs.root.classList.contains('kua-absent')).toBe(true);
+    expect(refs.root.classList.contains('sealed')).toBe(false); // F4: not a seal at full entitlement
+    expect(refs.primary.textContent).toBe('');
+    expect(refs.secondary.textContent).toBe('');
+    expect(refs.note.textContent).toBe('');
+    expect(aria).toBe('kua trigram · not derived');
+  });
+
+  it('the absent state\'s CSS hide rule is pinned verbatim (a vanished rule would leave an invisible-class no-op)', () => {
+    expect(kuaJs).toMatch(/\.kua-read\.kua-absent \{ display: none; \}/);
+  });
+
+  it('the retired both-values fallback stays retired — no module path renders two genders at once', () => {
+    // Source pin: the v0.63 dual-value strings and their register note are
+    // gone from ui/kua.js, so no future refactor can quietly resurrect the
+    // fallback the 2026-08-06 word cut.
+    expect(kuaJs).not.toMatch(/formatKuaBoth|getKuaBoth/);
+    expect(kuaJs).not.toMatch(/both classical values shown/);
   });
 
   it('sealed below entitlement: every value node emptied, aria says sealed (§1.D v0.37)', () => {
@@ -102,18 +150,20 @@ describe('kua render — contract', () => {
     const read = renderKuaRead(P_FEMALE, { entitled: false });
     expect(read).toBeNull();
     expect(refs.root.classList.contains('sealed')).toBe(true);
+    expect(refs.root.classList.contains('kua-absent')).toBe(false); // sealed and absent are mutually exclusive
     expect(refs.primary.textContent).toBe('');
     expect(refs.secondary.textContent).toBe('');
     expect(refs.note.textContent).toBe('');
     expect(aria).toBe('kua trigram · sealed at this device tier');
   });
 
-  it('seals rather than throws on an unresolvable profile', () => {
+  it('hides rather than throws on an unresolvable profile — absent, never a seal at full entitlement (F4)', () => {
     const refs = makeRefs();
     initKuaUI(refs);
     for (const bad of [null, {}, { yyyy: 'x', mm: 1, dd: 1 }]) {
       expect(renderKuaRead(bad, { entitled: true })).toBeNull();
-      expect(refs.root.classList.contains('sealed')).toBe(true);
+      expect(refs.root.classList.contains('kua-absent')).toBe(true);
+      expect(refs.root.classList.contains('sealed')).toBe(false);
     }
   });
 
@@ -136,8 +186,6 @@ describe('kua render — contract', () => {
   it('format helpers are pure and total over the registry', () => {
     expect(formatKuaRead({ number: 6, remapped: false }, 'male').primary)
       .toBe('male · kua 6 · qian ☰ · northwest · west group');
-    const both = formatKuaBoth({ male: { number: 2, remapped: true }, female: { number: 1, remapped: false } });
-    expect(both.note).toMatch(/kun \(2\)/);
   });
 });
 
@@ -201,14 +249,16 @@ describe('single-importer twin (the tests/public.test.js pattern, scoped)', () =
   it('ui/kua.js is the ONLY consumer of core/kua.js', () => {
     const consumers = [];
     for (const dir of ['core', 'ui']) {
-      const re = dir === 'core' ? /from '\.\/kua\.js'/ : /from '\.\.\/core\/kua\.js'/;
+      // Both quote styles — a double-quoted import must not slip the scan
+      // (codex finding, PR #202 second read).
+      const re = dir === 'core' ? /from ['"]\.\/kua\.js['"]/ : /from ['"]\.\.\/core\/kua\.js['"]/;
       for (const f of readdirSync(join(__dirname, '..', dir))) {
         if (!f.endsWith('.js')) continue;
         const src = readFileSync(join(__dirname, '..', dir, f), 'utf-8');
         if (re.test(src)) consumers.push(join(dir, f));
       }
     }
-    if (/from '[^']*core\/kua\.js'/.test(html)) consumers.push('index.html');
+    if (/from ['"][^'"]*core\/kua\.js['"]/.test(html)) consumers.push('index.html');
     expect(consumers).toEqual([join('ui', 'kua.js')]);
   });
 });
@@ -225,18 +275,36 @@ describe('dyad-sheet parity', () => {
   it('a sheet renders the same handed-in read the host block shows, and seals below t3', () => {
     const { host, byAttr } = makeSheetHost('b');
     const sheet = createSheet(host, { prefix: 'b' });
-    const read = kuaReadFor(P_NONE);
+    const read = kuaReadFor(P_FEMALE);
 
-    const flags = sheet.render(P_NONE, 't3', { kua: read });
+    const flags = sheet.render(P_FEMALE, 't3', { kua: read });
     expect(flags.kua).toBe(true);
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe(read.primary);
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe(read.secondary);
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe(read.note);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(false);
+    expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('kua-absent')).toBe(false);
 
-    const sealed = sheet.render(P_NONE, 't2', { kua: read });
+    const sealed = sheet.render(P_FEMALE, 't2', { kua: read });
     expect(sealed.kua).toBe(false);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(true);
+    expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('kua-absent')).toBe(false); // mutual exclusion, sheet side
+    expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe('');
+    expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe('');
+    expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe('');
+  });
+
+  it('a no-gender person on a sheet gets the ABSENT block at t3 — hidden, not sealed, no fallback (§1.D v0.65)', () => {
+    const { host, byAttr } = makeSheetHost('b');
+    const sheet = createSheet(host, { prefix: 'b' });
+    const read = kuaReadFor(P_NONE);
+    expect(read).toBeNull();
+
+    const flags = sheet.render(P_NONE, 't3', { kua: read });
+    expect(flags.kua).toBe(false);
+    const root = byAttr.get('[data-sheet-kua="b"]');
+    expect(root.classList.contains('kua-absent')).toBe(true);
+    expect(root.classList.contains('sealed')).toBe(false); // F4 at full entitlement
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe('');
