@@ -30,12 +30,13 @@ const NOTES = Object.values(ATLAS_NOTE);
 
 describe('ATLAS legend (CLP cut 2)', () => {
   it('covers the abbreviated rows; self-naming rows are deliberately omitted', () => {
-    // The 9 cells whose title is abbreviated or omits the tradition. The
+    // The 10 cells whose title is abbreviated or omits the tradition (the
+    // moon row's bare MOON title omits "sign", §1.K). The
     // personality/birthday/maturity row and the day/hour pillar rows already
     // spell every coordinate out in their .coord-title, so they carry NO
     // atlas note (a line there would only echo the title).
     expect(Object.keys(ATLAS_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge',
     ]);
     for (const k of ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar']) {

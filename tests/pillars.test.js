@@ -257,7 +257,7 @@ describe('buildProfile integration — additive only', () => {
     'name', 'firstName', 'sunSign', 'chineseElement', 'animal', 'innerAnimal',
     'lifePath', 'lifePathSum', 'nameNumber', 'nameNumberSum', 'soulUrge',
     'soulUrgeSum', 'personality', 'personalitySum', 'birthday', 'maturity',
-    'maturitySum', 'yyyy', 'mm', 'dd', 'risingSign', 'birthCard',
+    'maturitySum', 'yyyy', 'mm', 'dd', 'risingSign', 'moonSign', 'birthCard',
   ];
 
   it('adds exactly dayPillar + hourPillar (+ the §1.D kua-amendment gender passthrough), in order, removing/reordering none', () => {
@@ -290,6 +290,7 @@ describe('buildProfile integration — additive only', () => {
       maturitySum: getMaturitySum(y, m, d, name),
       yyyy: y, mm: m, dd: d,
       risingSign: undefined,
+      moonSign: undefined,
       birthCard: getBirthCard(y, m, d),
     };
     for (const k of PREEXISTING_KEYS) {

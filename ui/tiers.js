@@ -68,8 +68,11 @@ import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 // invariant) joins free; `numerology` narrows to the name-derived inner
 // pair (expression/name number, soul urge) and stays t1. Free carries
 // five coordinate VALUES; the t1 numerology line is a pair, not a triplet.
+// §1.K (ASTRO-MOON-ADD-01) — `moon` joins t1 alongside `rising`: same
+// input gate (birth time + place), own coordinate key (not pooled into
+// `rising`) because it is DOCTRINE's own clause, not a name-derived pair.
 const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
-const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
+const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
@@ -107,13 +110,13 @@ export const TIER_COORDS = {
 // coordinate at t1. The §1.B space-separated guarantee survives in the
 // compartment gaps and in the per-cell share snapshot.
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+  'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
   'lifePath', 'nameNumber', 'soulUrge',
   'personality', 'birthday', 'maturity',
   'dayPillar', 'hourPillar',
 ];
 const CELL_COORD = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising',
+  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising', moon: 'moon',
   animal: 'animal', innerAnimal: 'innerAnimal',
   lifePath: 'lifePath', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
@@ -129,13 +132,14 @@ export function coordsForTier(tier) {
  * Aggregate coordinate census for a tier (CLP cut 3 — density strip).
  * Derived PURELY from the tier constants (CELL_KEYS + CELL_COORD via
  * coordsForTier) — NEVER from a profile, so it carries no coordinate VALUE
- * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
+ * and no PII. Counts the 15 sheet cells PLUS the catalog numeral, which is
  * a free coordinate per §1.D (always open, never a sealable cell) — so the
- * base (15) matches the product-wide "five coordinates" free framing
- * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). Blocks are
- * excluded — cardEntry, publicRead and dyadRelation are not coordinates, so
- * t3 and t5 return the identical census.
- * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
+ * base (16) matches the product-wide "five coordinates" free framing
+ * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5, unchanged —
+ * `moon` joins t1, not free). Blocks are excluded — cardEntry, publicRead
+ * and dyadRelation are not coordinates, so t3 and t5 return the identical
+ * census.
+ * open = open cells + catalog · sealed = sealable cells still hidden · total = 16.
  * Returns { open, sealed, total }.
  */
 export function tierDensitySummary(tier) {
@@ -281,6 +285,7 @@ const PLAIN_VALUE = {
   element: p => p.chineseElement,
   sun: p => p.sunSign,
   rising: p => p.risingSign,
+  moon: p => p.moonSign,
   animal: p => p.animal,
   innerAnimal: p => p.innerAnimal,
 };
@@ -384,6 +389,7 @@ const SHARE_ROWS = [
   ['arcana'],
   ['element'],
   ['sun', 'rising'],
+  ['moon'],
   ['animal', 'innerAnimal'],
   ['lifePath', 'nameNumber', 'soulUrge'],
   ['personality', 'birthday', 'maturity'],
@@ -447,6 +453,7 @@ const PROV_NOTE = {
   element: 'year stem',
   sun: 'tropical zodiac',
   rising: 'ascendant',
+  moon: 'lunar longitude',
   animal: 'lunar new year',
   innerAnimal: 'solar term',
   lifePath: 'digit-sum reduction',
@@ -508,6 +515,7 @@ const ATLAS_NOTE = {
   element: 'chinese five-element',
   sun: 'sun sign',
   rising: 'rising sign',
+  moon: 'moon sign',
   animal: 'year animal',
   innerAnimal: 'month animal',
   lifePath: 'life-path',

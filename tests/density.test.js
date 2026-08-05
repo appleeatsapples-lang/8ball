@@ -17,23 +17,25 @@ const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
 describe('tierDensitySummary count math (derived from tier constants)', () => {
-  // base = 15: the 14 sheet cells + the always-open catalog numeral (a free
+  // base = 16: the 15 sheet cells + the always-open catalog numeral (a free
   // coordinate per §1.D), so the free count (5) matches the product-wide
   // "five coordinates" framing. sealed counts only the sealable cells.
-  it('free: 5 of 15 open, 10 sealed', () => {
-    expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 10, total: 15 });
+  // §1.K adds the moon cell at t1 — free's open count is unchanged (moon is
+  // not a free coordinate), every total gains 1, and t1+ each gain 1 open.
+  it('free: 5 of 16 open, 11 sealed', () => {
+    expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
-  it('t1: 10 open, 5 sealed', () => {
-    expect(tierDensitySummary('t1')).toEqual({ open: 10, sealed: 5, total: 15 });
+  it('t1: 11 open, 5 sealed', () => {
+    expect(tierDensitySummary('t1')).toEqual({ open: 11, sealed: 5, total: 16 });
   });
-  it('t2: 14 open, 1 sealed', () => {
-    expect(tierDensitySummary('t2')).toEqual({ open: 14, sealed: 1, total: 15 });
+  it('t2: 15 open, 1 sealed', () => {
+    expect(tierDensitySummary('t2')).toEqual({ open: 15, sealed: 1, total: 16 });
   });
-  it('t3: 15 of 15 open, 0 sealed (written entry is a block, not a coordinate)', () => {
-    expect(tierDensitySummary('t3')).toEqual({ open: 15, sealed: 0, total: 15 });
+  it('t3: 16 of 16 open, 0 sealed (written entry is a block, not a coordinate)', () => {
+    expect(tierDensitySummary('t3')).toEqual({ open: 16, sealed: 0, total: 16 });
   });
   it('unknown tier falls back to free', () => {
-    expect(tierDensitySummary('bogus')).toEqual({ open: 5, sealed: 10, total: 15 });
+    expect(tierDensitySummary('bogus')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
   it('free open count matches the product-wide "five coordinates" framing', () => {
     // couples the strip numerator to prose_coordinate_count's base

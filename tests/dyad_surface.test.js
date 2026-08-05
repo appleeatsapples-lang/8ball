@@ -137,7 +137,7 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
 
   it('the §1.F census does not move — dyadRelation is a block, not a cell', () => {
     expect(tierDensitySummary('t5')).toEqual(tierDensitySummary('t3'));
-    expect(tierDensitySummary('t5')).toEqual({ open: 15, sealed: 0, total: 15 });
+    expect(tierDensitySummary('t5')).toEqual({ open: 16, sealed: 0, total: 16 });
     expect(Object.values(CELL_COORD)).not.toContain('dyadRelation');
   });
 
@@ -154,7 +154,7 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
     // line used to compare newlyEntitledCells('free','t1') WITH ITSELF, which
     // can never fail. It carries the literal expected set now.
     expect(newlyEntitledCells('free', 't1'))
-      .toEqual(['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']);
+      .toEqual(['element', 'rising', 'moon', 'innerAnimal', 'nameNumber', 'soulUrge']);
     expect(newlyEntitledCells('t1', 't2'))
       .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
     expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
@@ -648,7 +648,7 @@ describe('dyad surface — F5: both sides are real standalone sheets', () => {
     const builtTitles = [...buildSheetMarkup('x')
       .matchAll(/<div class="coord-title"[^>]*>([^<]+)<\/div>/g)].map(m => m[1].trim());
     expect(builtTitles).toEqual(hostTitles);
-    expect(builtTitles).toHaveLength(8);
+    expect(builtTitles).toHaveLength(9);
   });
 
   it('the built sheet emits NO id, so it cannot collide with the host sheet (G2)', () => {

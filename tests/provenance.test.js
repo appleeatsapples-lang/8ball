@@ -26,9 +26,9 @@ const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 const NOTES = Object.values(PROV_NOTE);
 
 describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
-  it('covers every one of the 14 coordinate cells in DOM order', () => {
+  it('covers every one of the 15 coordinate cells in DOM order', () => {
     expect(Object.keys(PROV_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge',
       'personality', 'birthday', 'maturity',
       'dayPillar', 'hourPillar',

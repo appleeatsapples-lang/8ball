@@ -254,10 +254,10 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   });
 
   it('compartment cells and seal layers are present (v0.7.0)', () => {
-    expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
-    // 14 cell seals + 1 written-entry block seal.
-    // 14 cells + the t3 entry block + the t4 public block (§1.D v0.58).
-    expect((html.match(/class="coord-seal"/g) || []).length).toBe(16);
+    expect((html.match(/class="coord-cell"/g) || []).length).toBe(15);
+    // 15 cells (§1.K moon joined the sheet) + the t3 entry block + the t4
+    // public block (§1.D v0.58) — one seal layer each.
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(17);
     expect(html).toMatch(/id="card-entry"/);
   });
 

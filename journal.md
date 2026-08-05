@@ -5,7 +5,92 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
+## 2026-08-06 — Moon sign (§1.K, ASTRO-MOON-ADD-01): sixteenth coordinate at t1 — STAGED, cross-model audit pending
+
+**What happened.** On a direct freeze-override word (ASTRO-MOON-ADD-01,
+authorized through merge), the sheet gains a moon-sign compartment at t1
+beside rising — DOCTRINE new §1.K, v0.64. This reverses an explicit
+deferral: 8BALL.md item 10 held moon sign behind v0.3.0 with "may not
+return," and the pillars build (build A) scoped it out by name. The
+override class is the §1.G v0.44 / kua-block precedent; the reach freeze
+is otherwise unchanged.
+
+**The math.** New `core/moon.js`: geocentric ecliptic longitude of the
+Moon via the full 59-term Meeus ch.47 Table 47.A longitude series plus
+the Venus/Jupiter perturbation terms (the 60th published term has a zero
+longitude coefficient — omitting it is exact, not truncation; constants
+cross-checked against the MIT-licensed Fabiz/MeeusJs transcription).
+Verified against Meeus's own worked Example 47.a: this implementation
+reproduces the book's published 133.162655° to ~0.001 arcsec, and
+`tests/moon.test.js` pins that value directly. Geometric, not apparent —
+nutation (≤~0.005°) is three orders of magnitude under a 30° sign
+bucket, the same disclosed-approximation class as calendar.js treating
+JDE as JD-UT. The old journal estimate ("reuses calendar.js Meeus
+infra") proved optimistic: ch.25/ch.49 code gives no lunar longitude at
+an arbitrary instant, so this is a fresh ch.47 implementation, closer in
+weight to rising.js than to a table reuse.
+
+**The wiring.** `computeMoonSign({year,month,day,hour,minute,tz})`
+mirrors computeRising's contract (string | null on bad tz), reusing
+rising.js's julianDay + offsetMinutesForWallTime rather than a third tz
+implementation. `buildProfile` resolves the additive `moonSign` field
+inside the same validated time/tz block as risingSign — the pair is
+available or absent together by construction. One recorded asymmetry
+(§1.K): no polar-latitude guard, because moon-sign has no
+observer-location dependency at all; a polar profile renders rising
+unavailable beside a normally-resolved moon sign, and the tests pin
+exactly that divergence.
+
+**Surface.** `ui/tiers.js` gains the `moon` cell (CELL_KEYS 14→15,
+`moon` coordinate key at t1 in TIER_COORDS, PLAIN_VALUE, PROV_NOTE
+`lunar longitude`, ATLAS_NOTE `moon sign`, its own SHARE_ROWS row);
+`ui/sheet.js` ROW_TITLES gains `MOON`; `index.html` gains the MOON
+coord-section, the refs wiring, the ninth share-symbols ref, and the
+about-modal ladder copy naming moon sign ("sixteen coordinates").
+Census base 15→16 (`tierDensitySummary`); free surface untouched at
+five VALUES — moon is t1, needs birth time + place, and the free =
+DOB-only invariant never meets it.
+
+**Fixtures honesty.** `tests/fixtures.json` gains `moon_cases` (7 rows,
+additive — every existing case byte-identical per §3): rows 1–2 are
+Example 47.a-anchored, including a tz-parity row proving the same UTC
+instant through America/New_York, and rows 3–7 are self-consistency
+spread pins generated from this verified implementation — the
+anchored-vs-self-pinned distinction disclosed in `_moon_cases_comment`,
+same honesty convention `_rising_tz_cases_comment` set. New
+`tests/moon.test.js`: 26 tests (reference case, fixtures, input guards,
+lat/lng-irrelevance, buildProfile integration incl. the polar
+divergence and the legacy-country path).
+
+**Count-pin sweep.** The 15-cell sheet moved literals in ten suites:
+density (16-base census), labels_reveal (9 rows / 15 value nodes),
+payments_markup (15 cells / 17 seals), prose_coordinate_count (moon in
+the ladder names; 9 share refs), provenance/atlas (PROV/ATLAS key
+lists), tiers (t1 composition, unseal deltas, shareRowRefs indices, the
+local mock's CELL_KEYS/sections), dyad_surface (census + 9 titles),
+kua_surface + public_surface (census). CLAUDE.md repo-shape counts:
+core 13→14 modules, tests 56→57 files.
+
+**Known residuals, stated rather than found.** (1) The 611 pre-rendered
+`/cards` JPEGs and the paywall's fixed specimen preview (spec_no-v alt
+text "all fifteen coordinates open") show the pre-§1.K sheet; the alt
+text stays accurate to its image, and regenerating the catalog assets
+is separate work §1.K does not claim. (2) Found in the live browser
+pass, not the suite: the moon compartment has no §1.G meanings tap
+binding — every other compartment shows a details button, moon takes no
+tap. Disclosed in §1.K as a supersession-in-part of §1.G's
+all-compartments-interactive currency; twelve authored moon-sign
+citation entries need their own versioned content file + §1.G
+amendment cycle.
+
+**Verification.** Suite 57 files / 1953 tests green. index.html
+1457/1500. No new dependency, no network call, no new localStorage key,
+no calc-version bump (additive per §3).
+
+**Process.** STAGED on a claude/* branch; per §10/L48 and the
+no-self-certification law the diff goes to an independent cross-model
+read (grok lane requested by name) before the PR merges. The freeze
+override authorizes build and merge intent; it does not skip the audit.
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
 state truth, birthplace search recovery, forms/dialogs/erasure a11y, a

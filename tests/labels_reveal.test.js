@@ -25,25 +25,25 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/id="labels-toggle"[^>]*aria-pressed="false"/);
   });
 
-  // v0.6.0: eight coordinate rows — arcana (lead) + element + sun + animal
-  // + numerology + numbers2 + day pillar + hour pillar. Visibility per
-  // tier is JS-gated by ui/tiers.js (tests/tiers.test.js); the markup
-  // ships all eight rows.
-  it('eight coord-section elements present', () => {
+  // v0.6.0 shipped eight coordinate rows; §1.K adds the moon row — nine:
+  // arcana (lead) + element + sun + moon + animal + numerology + numbers2
+  // + day pillar + hour pillar. Visibility per tier is JS-gated by
+  // ui/tiers.js (tests/tiers.test.js); the markup ships all nine rows.
+  it('nine coord-section elements present', () => {
     const matches = html.match(/class="coord-section"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(9);
   });
 
-  it('eight coord-title elements present', () => {
+  it('nine coord-title elements present', () => {
     const matches = html.match(/class="coord-title"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(9);
   });
 
-  it('fourteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
-    // 1+1+2+2+3+3+1+1 cells per the §1.D v0.37 row table; every cell
-    // carries one .coord-val value node.
+  it('fifteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
+    // 1+1+2+1+2+3+3+1+1 cells per the §1.D v0.37 row table (+moon, §1.K);
+    // every cell carries one .coord-val value node.
     const matches = html.match(/class="coord-val"/g) || [];
-    expect(matches.length).toBe(14);
+    expect(matches.length).toBe(15);
   });
 
   it('locked title copy: FIVE-ELEMENT', () => {

@@ -35,6 +35,7 @@ const FREE_COORDINATE_NAMES = [
 // …and across the paid rungs (DOCTRINE §1.D ladder, cumulative).
 const LADDER_COORDINATE_NAMES = [
   'rising sign',
+  'moon sign',
   'five-element',
   'private animal',
   'name number',

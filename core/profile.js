@@ -17,9 +17,13 @@
 // coordinates. This supersedes calc v3's strict nine-number reduction and
 // keeps its null/unresolved guard. Lunar, solar-term, rising, pillar,
 // birth-card and catalog-index algorithms are untouched.
+// moonSign (additive, DOCTRINE §1.K) is computed via core/moon.js's
+// computeMoonSign — same input gate as risingSign (see below); no lat/lng
+// needed by the math itself but gated identically for product-UX parity.
 
 import { getCountryTimeZoneByCode } from './countries.js';
 import { computeRising } from './rising.js';
+import { computeMoonSign } from './moon.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 import { getBirthCard } from './birthcard.js';
 import { mod, sumDigits } from './math.js';
@@ -285,19 +289,29 @@ export function buildProfile(name, dobIso, opts) {
     throw new Error('DOB out of range');
   }
   const cleanName = (name || '').trim();
-  // ── Rising sign resolution (IANA-tz path for fresh + legacy profiles)
+  // ── Rising + moon sign resolution (IANA-tz path for fresh + legacy profiles)
   //
-  // Result legend:
+  // Result legend (both coordinates):
   //   undefined  → required inputs missing or invalid; line-2 falls back to bare sun
   //   string     → astrologically resolved sign
-  //   null       → polar latitude (|lat| > 66.5°); UI surfaces "rising unavailable"
+  //   null       → risingSign: polar latitude (|lat| > 66.5°); UI surfaces
+  //                "rising unavailable". moonSign: unresolvable tz — in
+  //                practice unreachable here, since `tz` was already proven
+  //                resolvable by the `if (tz)` guard below; kept for parity
+  //                with computeMoonSign's own null-on-bad-tz contract.
   //
   // v0.2.7.2+ profiles supply `opts.tz` directly. Older profiles supply
   // `opts.country`; for those we resolve a representative IANA timezone
   // from the legacy country/zone code, then use the same computeRising
   // path. UI still surfaces a non-blocking "update your birthplace for
   // accuracy" hint when rising <details> opens (brief §2.4).
+  //
+  // moonSign (DOCTRINE §1.K) piggybacks on this same validated tz — its
+  // own math needs no lat/lng, but gating it identically to risingSign
+  // keeps the two coordinates available/unavailable together, which is
+  // what the shared SUN ↑ RISING-style card row assumes.
   let risingSign;
+  let moonSign;
   if (opts && opts.time
       && typeof opts.lat === 'number' && typeof opts.lng === 'number') {
     const tm = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
@@ -315,6 +329,9 @@ export function buildProfile(name, dobIso, opts) {
           risingSign = computeRising({
             year: y, month: m, day: d, hour, minute,
             tz, lat: opts.lat, lng: opts.lng
+          });
+          moonSign = computeMoonSign({
+            year: y, month: m, day: d, hour, minute, tz
           });
         }
       }
@@ -362,6 +379,7 @@ export function buildProfile(name, dobIso, opts) {
     maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
     risingSign,
+    moonSign,
     birthCard: getBirthCard(y, m, d),
     dayPillar: getDayPillar(y, m, d),
     hourPillar,

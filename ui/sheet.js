@@ -74,6 +74,7 @@ export const ROW_TITLES = Object.freeze({
   arcana: 'ARCANA',
   element: 'FIVE-ELEMENT',
   sun: 'SUN ↑ RISING',
+  moon: 'MOON',
   animal: 'PUBLIC ⇌ PRIVATE',
   lifePath: 'LIFE · NAME · SOUL',
   personality: 'PERSONALITY · BIRTHDAY · MATURITY',

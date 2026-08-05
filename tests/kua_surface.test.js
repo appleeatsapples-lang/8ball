@@ -173,8 +173,8 @@ describe('kua ladder — a block on the t3 ceiling', () => {
   });
 
   it('is a block, not a compartment: carrying it does not move the census', () => {
-    expect(tierDensitySummary('t3')).toEqual({ open: 15, sealed: 0, total: 15 });
-    expect(tierDensitySummary('t5')).toEqual({ open: 15, sealed: 0, total: 15 });
+    expect(tierDensitySummary('t3')).toEqual({ open: 16, sealed: 0, total: 16 });
+    expect(tierDensitySummary('t5')).toEqual({ open: 16, sealed: 0, total: 16 });
   });
 
   it('joins the unseal delta on a t2 → t3 upgrade and nothing above', () => {
