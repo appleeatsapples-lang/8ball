@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { buildProfile } from '../core/profile.js';
-import { computeMoonSign, geocentricLongitudeDeg } from '../core/moon.js';
+import { computeMoonSign, geocentricLongitudeDeg, deltaTSeconds } from '../core/moon.js';
 import { julianDay, offsetMinutesForWallTime } from '../core/rising.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +45,63 @@ describe('moon sign — geocentric longitude vs Meeus Example 47.a', () => {
       const lng = geocentricLongitudeDeg(jd);
       expect(lng).toBeGreaterThanOrEqual(0);
       expect(lng).toBeLessThan(360);
+    }
+  });
+});
+
+describe('moon sign — TT-UT (deltaT) correction (PR #201 codex finding)', () => {
+  // The Moon moves ~0.55 deg/hour, so an uncorrected TT-UT delta (~67s in
+  // 2010) silently misfiles any birth instant landing inside that window
+  // of a sign cusp. calendar.js can ignore the same delta because its
+  // cusps are date-precision; this coordinate cannot.
+  it('deltaTSeconds tracks the published Espenak-Meeus values across the supported range', () => {
+    // Published ~values; 1.0s tolerance is far tighter than the ~0.008 deg
+    // of lunar motion it buys, and the polynomials are the canon's own.
+    const cases = [[1920, 21.2], [1950, 29.1], [1975, 45.5], [1992, 58.3],
+      [2000, 63.8], [2020, 72.0]];
+    for (const [year, expected] of cases) {
+      expect(deltaTSeconds(year, 6.5), `deltaT ${year}`).toBeCloseTo(expected, 0);
+    }
+  });
+
+  it('clamps outside 1900-2100 rather than extrapolating a runaway polynomial', () => {
+    // The clamp bounds the DECIMAL year, so an out-of-range input resolves
+    // to the bound exactly (y = 1900.0 / 2100.0) rather than to the same
+    // month's in-range value — the invariant under test is that two wildly
+    // different out-of-range inputs collapse onto one finite bound value,
+    // never a polynomial that runs away with distance.
+    expect(deltaTSeconds(1700, 6)).toBe(deltaTSeconds(1800, 1));
+    expect(deltaTSeconds(2500, 6)).toBe(deltaTSeconds(3000, 1));
+    for (const v of [deltaTSeconds(1700, 6), deltaTSeconds(2500, 6)]) {
+      expect(Number.isFinite(v)).toBe(true);
+      expect(Math.abs(v)).toBeLessThan(600); // seconds — nowhere near a sign bucket
+    }
+  });
+
+  it('flips a real cusp instant that the uncorrected math misfiled', () => {
+    // 2010-06-01 05:09 UT sits 0.0026 deg BELOW the capricorn/aquarius
+    // boundary (300 deg) when TT-UT is ignored, and 0.0067 deg above it
+    // once the ~66.9s correction lands. Located numerically, then pinned:
+    // this is the exact defect class the correction exists to close.
+    const jdUt = julianDay(2010, 6, 1, 5 + 9 / 60);
+    const uncorrected = geocentricLongitudeDeg(jdUt);
+    const corrected = geocentricLongitudeDeg(jdUt + deltaTSeconds(2010, 6) / 86400);
+    expect(Math.floor(uncorrected / 30)).toBe(9);   // capricorn, the wrong answer
+    expect(Math.floor(corrected / 30)).toBe(10);    // aquarius, the right one
+    // ...and the public API must return the corrected sign end-to-end.
+    expect(computeMoonSign({
+      year: 2010, month: 6, day: 1, hour: 5, minute: 9, tz: 'Etc/UTC'
+    })).toBe('aquarius');
+  });
+
+  it('leaves every non-cusp fixture sign unmoved (the correction is surgical)', () => {
+    // Same rows as fixtures.moon_cases: a correction that changed ordinary
+    // instants would be a regression, not a fix.
+    for (const c of fixtures.moon_cases) {
+      const [year, month, day] = parseDob(c.dob);
+      const [hour, minute] = parseTime(c.time);
+      expect(computeMoonSign({ year, month, day, hour, minute, tz: c.tz }))
+        .toBe(c.expected.moonSign);
     }
   });
 });

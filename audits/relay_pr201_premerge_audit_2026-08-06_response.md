@@ -81,10 +81,17 @@ Recorded at the audited HEAD and re-recorded after the fix commit `24f8076`:
   cell (empty value node, census "5 of 16 coordinates open · 11 sealed");
   t3 with no stored birthplace renders the `—` unres field (F4
   sealed ≠ unresolvable contract); t3 with 1992-04-12 00:00
-  Europe/London renders **moon: leo** — the Meeus Example 47.a anchor
-  instant resolved through the product's own form → city-lookup →
-  buildProfile path; provenance "lunar longitude" and atlas "moon sign"
-  render under reveal-labels.
+  Europe/London renders **moon: leo** through the product's own form →
+  city-lookup → buildProfile path; provenance "lunar longitude" and
+  atlas "moon sign" render under reveal-labels. **Correction (codex
+  second read, below): that instant is NOT the Example 47.a anchor** —
+  London was on BST (UTC+1) in April 1992, so the wall clock resolves to
+  1992-04-11 23:00 UT (JD 2448724.4583), an hour before the anchor's JD
+  2448724.5. The rendered sign is still correct; the anchor claim was
+  not, and it is the same DST slip this cycle already caught once in
+  fixture row 2. The anchor itself is pinned directly in
+  `tests/moon.test.js` against JD 2448724.5, which is where that claim
+  belongs.
 
 ## Process note
 
@@ -94,3 +101,71 @@ return" deferral recorded in 8BALL.md item 10. Per the
 no-self-certification law this artifact records an independent
 cross-model read of the implementer's diff; the merge itself remains the
 operator's word, and this PR does not self-merge.
+
+---
+
+## Addendum — codex second read (triple-force upgrade, same day)
+
+On the controller's extension of the standing audit word ("add codex to
+become a triple force audit"), a codex relay round ran against this
+branch after the grok absorbs. **Verdict: MERGE WITH FIXES.** The
+reconciler independently re-derived every claim; two of codex's items
+were adjudicated down (see below), four landed.
+
+### Landed
+
+1. **MEDIUM, the only functional item — ΔT (TT−UT) was ignored.**
+   `computeMoonSign` fed a UT-derived JD straight into the ch.47
+   evaluation. calendar.js can ignore the same delta because its cusps
+   are date-precision; this coordinate cannot — the Moon moves
+   ~0.55°/hour, so an uncorrected ~67s ΔT silently misfiles any birth
+   instant inside that window of a sign cusp (~1-in-3000 instants) in a
+   paid coordinate sold as calculator-grade. **FIXED:** new exported
+   `deltaTSeconds` (Espenak–Meeus piecewise polynomials, 1900–2100
+   segments, clamped outside) converts UT→TT before the longitude call.
+   Pinned by four new tests, including a **numerically located real cusp
+   case**: 2010-06-01 05:09 UT sits 0.0026° *below* the
+   capricorn/aquarius boundary uncorrected and 0.0067° *above* it
+   corrected, so the fix flips a genuinely wrong answer to the right one
+   end-to-end. Every existing fixture sign is unmoved (also pinned).
+2. **LOW — Meeus coefficient typo.** The Sun's mean-anomaly T² term read
+   `-0.0001535` against the published `-0.0001536`. Numerically inert
+   (~0.36 mas), **FIXED** anyway — a transcription table is either right
+   or it is not trustworthy.
+3. **MEDIUM — `8BALL.md` contradicted the feature shipping in the same
+   PR.** Item 10 still listed moon sign in the *deferred* queue with
+   "may not return." **FIXED:** struck through with the ASTRO-MOON-ADD-01
+   reversal recorded, the original preserved as lineage per L17.
+   `README.md`'s stale pre-§1.K counts ("fourteen sheet cells",
+   "fifteen coordinates", t1 list missing moon) corrected in the same
+   pass.
+4. **MEDIUM — the paywall/about copy overclaimed meanings.** "their
+   meanings" promised a tap panel on every unlocked coordinate, which
+   §1.K discloses the moon cell does not have. **FIXED:** both strings
+   now say "meanings on all but the moon cell" / "a meanings panel on
+   each but the moon cell", pins in lockstep. (This artifact's own
+   earlier grok round scored the same item a nit; the reconciler
+   adjudicated it up to Medium — disclosed-in-doctrine is not the same
+   as honest-on-the-monetization-surface.)
+5. **The Europe/London anchor error in this very artifact** — corrected
+   in place above. Second occurrence of the same DST class in one PR
+   cycle; the standing lesson is that any claim of the form "this wall
+   clock IS instant X" must be computed, never eyeballed.
+
+### Adjudicated down (not landed)
+
+- **`tests/share_surface.test.js` "8-row" fixtures** — codex read these
+  as stale count pins. They are synthetic `buildCardSVGFromSnapshot`
+  builder inputs, not production-shape assertions; the real wiring pin
+  is already correctly at 9. Same non-issue the grok round raised and
+  self-resolved. **Discarded.**
+- **`tests/moon.test.js` computing JD outside `computeMoonSign`** —
+  real but low-risk: `buildProfile` passes `tz` through with no
+  divergent logic and the integration tests already drive the real path.
+  Cosmetic hardening, not a coverage hole. **Not landed this round.**
+
+Post-absorb verification: vitest **57 files / 1957 tests green** (1953
+before the four ΔT tests) · `audits/project_audit.py` **PASS 13/0/1/0** ·
+local PII audit clean. The grok verdict above stands; with these absorbs
+landed the artifact's SAFE TO MERGE remains, still pending the
+controller's own read and the explicit merge word.

@@ -17,8 +17,13 @@
 // Geometric (not apparent) longitude: nutation would add at most ~0.005°
 // here, three orders of magnitude below a 30° sign boundary, so — same
 // call the project already makes for solarLongitude's documented "low
-// accuracy, better than 0.01°" and calendar.js's JDE-as-JD-UT
-// approximation (< 70s TT-UT delta across 1900-2100) — it's skipped.
+// accuracy, better than 0.01°" — it's skipped. TT−UT (ΔT) is NOT
+// skipped: unlike calendar.js's date-precision cusps, the Moon moves
+// ~0.55°/hour, so an uncorrected ~70–200s ΔT silently misfiles a birth
+// instant landing within that window of a sign cusp (~1-in-3000
+// instants — the PR #201 codex finding). computeMoonSign converts the
+// resolved UT instant to TT via deltaTSeconds (Espenak–Meeus piecewise
+// polynomials, 1900–2100, clamped outside) before the ch.47 evaluation.
 // Verified against Meeus's own worked Example 47.a (1992-04-12.0 TT,
 // JDE 2448724.5): this file's geocentricLongitudeDeg(2448724.5) agrees
 // with the book's published 133.162655° to five decimal places.
@@ -78,7 +83,7 @@ export function geocentricLongitudeDeg(jd) {
            + T3 / 538841 - T4 / 65194000;
   const D  = 297.8501921 + 445267.1114034 * T - 0.0018819 * T2
            + T3 / 545868 - T4 / 113065000;
-  const M  = 357.5291092 + 35999.0502909 * T - 0.0001535 * T2
+  const M  = 357.5291092 + 35999.0502909 * T - 0.0001536 * T2
            + T3 / 24490000;
   const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T2
            + T3 / 69699 - T4 / 14712000;
@@ -106,6 +111,49 @@ export function geocentricLongitudeDeg(jd) {
   return normalizeDeg(Lp + sumL * 1e-6);
 }
 
+// ── ΔT (TT − UT), seconds ────────────────────────────────────────────
+// Espenak–Meeus piecewise polynomials (the Five Millennium Canon set,
+// https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html), 1900–2100
+// segments only — the product's supported range (calendar.js RANGE_MIN/
+// MAX). Years outside clamp to the nearest bound: sub-second-of-arc
+// drift at the clamp is far below the 30° bucket. Exported for the cusp
+// regression test.
+export function deltaTSeconds(year, month) {
+  // decimal year at mid-month, per the source's convention
+  let y = year + (month - 0.5) / 12;
+  if (y < 1900) y = 1900;
+  if (y > 2100) y = 2100;
+  let t;
+  if (y < 1920) {
+    t = y - 1900;
+    return -2.79 + 1.494119 * t - 0.0598939 * t * t + 0.0061966 * t * t * t
+      - 0.000197 * t * t * t * t;
+  }
+  if (y < 1941) {
+    t = y - 1920;
+    return 21.20 + 0.84493 * t - 0.076100 * t * t + 0.0020936 * t * t * t;
+  }
+  if (y < 1961) {
+    t = y - 1950;
+    return 29.07 + 0.407 * t - (t * t) / 233 + (t * t * t) / 2547;
+  }
+  if (y < 1986) {
+    t = y - 1975;
+    return 45.45 + 1.067 * t - (t * t) / 260 - (t * t * t) / 718;
+  }
+  if (y < 2005) {
+    t = y - 2000;
+    return 63.86 + 0.3345 * t - 0.060374 * t * t + 0.0017275 * t * t * t
+      + 0.000651814 * t * t * t * t + 0.00002373599 * t * t * t * t * t;
+  }
+  if (y < 2050) {
+    t = y - 2000;
+    return 62.92 + 0.32217 * t + 0.005589 * t * t;
+  }
+  // 2050–2100 (the canon's 2050–2150 expression)
+  return -20 + 32 * ((y - 1820) / 100) * ((y - 1820) / 100) - 0.5628 * (2150 - y);
+}
+
 // ── Public API ───────────────────────────────────────────────────────
 // computeMoonSign({ year, month, day, hour, minute, tz }) →
 //   string sign  on success
@@ -125,6 +173,9 @@ export function computeMoonSign(opts) {
   // reasons.
   const utHours = hour + minute / 60 - offset / 60;
   const jd = julianDay(year, month, day, utHours);
-  const lng = geocentricLongitudeDeg(jd);
+  // UT → TT before the ch.47 evaluation (see header: at ~0.55°/hr an
+  // uncorrected ΔT flips the sign for instants inside the cusp window).
+  const jde = jd + deltaTSeconds(year, month) / 86400;
+  const lng = geocentricLongitudeDeg(jde);
   return SIGNS[Math.floor(lng / 30) % 12];
 }

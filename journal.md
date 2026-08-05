@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-06 — Moon sign (§1.K, ASTRO-MOON-ADD-01): sixteenth coordinate at t1 — STAGED, grok relay audit MERGE WITH FIXES, fixes landed
+## 2026-08-06 — Moon sign (§1.K, ASTRO-MOON-ADD-01): sixteenth coordinate at t1 — STAGED, grok+codex relay audits complete, absorbs landed
 
 **What happened.** On a direct freeze-override word (ASTRO-MOON-ADD-01,
 authorized through merge), the sheet gains a moon-sign compartment at t1
@@ -112,10 +112,48 @@ the count-pin sweep sound, and scored the two §1.K disclosed residuals
 as honest. Post-fix verification: suite 57 files / 1953 tests green ·
 product audit PASS 13/0/1/0 · local PII scan clean (858 files).
 
+**Second read (codex via relay — the triple-force word landed
+mid-cycle) — MERGE WITH FIXES, four absorbs landed, two adjudicated
+down.** Codex found the one real correctness defect the grok round
+missed: **ΔT (TT−UT) was ignored.** `computeMoonSign` fed a UT-derived
+JD straight into the ch.47 evaluation — calendar.js can ignore the same
+delta because its cusps are date-precision, but the Moon moves
+~0.55°/hour, so an uncorrected ~67s ΔT silently misfiles any birth
+instant landing inside that window of a sign cusp (~1-in-3000), in a
+paid coordinate sold as calculator-grade. Fixed with an exported
+`deltaTSeconds` (Espenak–Meeus piecewise polynomials, 1900–2100,
+clamped outside) converting UT→TT before the longitude call, and pinned
+by a **numerically located real cusp case**: 2010-06-01 05:09 UT sits
+0.0026° below the capricorn/aquarius boundary uncorrected and 0.0067°
+above it corrected — the fix turns a genuinely wrong answer right, and
+every existing fixture sign is pinned unmoved. Also landed: the Sun
+mean-anomaly T² coefficient corrected `-0.0001535` → `-0.0001536` (inert
+at ~0.36 mas, fixed because a transcription table is either right or
+untrustworthy); `8BALL.md` item 10 struck through — it still listed moon
+sign as deferred with "may not return" while the same PR shipped it —
+with `README.md`'s stale pre-§1.K counts corrected alongside; and the
+paywall/about "their meanings" overclaim softened to name the moon
+cell's disclosed missing tap panel.
+
+**Two adjudicated down.** The `share_surface` "8-row" fixtures are
+synthetic SVG-builder inputs, not production count pins (the same
+non-issue grok raised and self-resolved) — discarded. The
+JD-computed-outside-`computeMoonSign` note is real but low-risk given
+the `buildProfile` integration coverage — not landed this round.
+
+**One correction to our own audit artifact.** Its live-fire note claimed
+1992-04-12 00:00 Europe/London *is* the Example 47.a anchor instant.
+London was on BST, so that wall clock is 1992-04-11 23:00 UT (JD
+2448724.4583), an hour early — the rendered sign was still right, the
+claim was not. Corrected in place. That is the **second** occurrence of
+this DST class in one PR cycle (fixture row 2 was the first): the
+standing lesson is that "this wall clock IS instant X" must be computed,
+never eyeballed.
+
 **Process.** STAGED on `claude/astro-moon-sign-1k`; the freeze override
-authorizes build and merge intent, the grok relay read satisfies the
-independent-eyes requirement, and the L48 artifact rides the PR. Merge
-remains the operator's word.
+authorizes build and merge intent, grok + codex relay reads (claude
+reconciliation) satisfy the independent-eyes requirement, and the L48
+artifact rides the PR. Merge remains the operator's word.
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
 state truth, birthplace search recovery, forms/dialogs/erasure a11y, a

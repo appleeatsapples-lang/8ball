@@ -178,7 +178,7 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   it('paywall title and body carry the single-offer ownership framing (v0.56, permanence restored v0.63)', () => {
     const subtree = modalSubtree('paywall-modal');
     expect(subtree).toMatch(/complete your sheet · \$3 once/);
-    expect(subtree).toMatch(/adds 11 coordinates, their meanings, the written card, domain fit, and the kua line/);
+    expect(subtree).toMatch(/adds 11 coordinates, meanings on all but the moon cell, the written card, domain fit, and the kua line/);
     expect(subtree).toMatch(/permanently, for every reading in this browser/);
     expect(subtree).toMatch(/\$3 once · no subscription · no 8ball account/);
     expect(subtree).toMatch(/aria-describedby="paywall-value paywall-facts paywall-disclosure"/);
@@ -552,7 +552,7 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('about-modal: discloses what the offer buys, permanently (v0.55 ownership, restored v0.63)', () => {
-    expect(aboutSubtree).toMatch(/opens the eleven sealed coordinates, their meanings, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the kua line — permanently, for every reading in this browser/);
+    expect(aboutSubtree).toMatch(/opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the kua line — permanently, for every reading in this browser/);
     expect(aboutSubtree).toMatch(/what you bought stays bought/);
     expect(aboutSubtree).not.toMatch(/three more reads/);
     expect(aboutSubtree).not.toMatch(/adds three more reads/);
