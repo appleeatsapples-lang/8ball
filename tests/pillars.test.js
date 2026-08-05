@@ -335,11 +335,18 @@ describe('surface wiring (v0.6.0 — build B authorized, supersedes the build-A 
   // override recorded 2026-06-11, brief §preamble; DOCTRINE §1.D), so
   // the tripwire flips: the rows must now exist, gated to t2/t3 by
   // ui/tiers.js (tests/tiers.test.js pins the gating itself).
-  it('index.html ships the day/hour pillar rows for the tier gate', () => {
-    expect(html).toContain('id="coord-daypillar-symbol"');
-    expect(html).toContain('id="coord-hourpillar-symbol"');
-    expect(html).toMatch(/>DAY PILLAR</);
-    expect(html).toMatch(/>HOUR PILLAR</);
+  it('index.html ships the day/hour pillar compartments on the ANIMALS line', () => {
+    // §1.L v0.66 — the pillars no longer have rows of their own; they are
+    // the last two compartments of the four-line sheet's ANIMALS system
+    // line. What must still be true is that both cells ship in the markup
+    // at every tier (the seal, not the markup, is the tier gate).
+    expect(html).toMatch(/id="coord-daypillar-symbol"/);
+    expect(html).toMatch(/id="coord-hourpillar-symbol"/);
+    expect(html).toMatch(/<div class="coord-title">ANIMALS<\/div>/);
+    // both ids sit inside the ANIMALS section, not a row of their own
+    const animals = html.slice(html.indexOf('>ANIMALS<'), html.indexOf('id="card-entry"'));
+    expect(animals).toMatch(/coord-daypillar-symbol/);
+    expect(animals).toMatch(/coord-hourpillar-symbol/);
   });
 
   it('pillars stay out of the catalog driver (DOCTRINE §1.D — surface-only)', () => {

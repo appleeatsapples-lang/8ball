@@ -25,6 +25,7 @@ import {
 } from '../core/payments.js';
 import {
   TIER_COORDS,
+  ROW_TITLES,
   coordsForTier,
   formatPillar,
   initTiersUI,
@@ -635,10 +636,10 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity',
-  'dayPillar', 'hourPillar',
+  'arcana',
+  'sun', 'rising', 'moon',
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+  'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
 ];
 
 function makeClassSet() {
@@ -682,44 +683,34 @@ function makeCompartmentCell(section) {
   return { root, val };
 }
 
+// §1.L v0.66 — four system sections; every cell maps to its system's line.
 const CELL_SECTION = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
-  moon: 'moon',
-  animal: 'animal', innerAnimal: 'animal',
+  arcana: 'tarot',
+  sun: 'astro', rising: 'astro', moon: 'astro',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
-  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
-  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
+  personality: 'numerology', birthday: 'numerology', maturity: 'numerology',
+  element: 'animals', animal: 'animals', innerAnimal: 'animals',
+  dayPillar: 'animals', hourPillar: 'animals',
 };
 
 function installCompartments() {
   const sections = {
-    arcana: makeSection('ARCANA'),
-    element: makeSection('FIVE-ELEMENT'),
-    sun: makeSection('SUN ↑ RISING'),
-    moon: makeSection('MOON'),
-    animal: makeSection('PUBLIC ⇌ PRIVATE'),
-    numerology: makeSection('LIFE · NAME · SOUL'),
-    numbers2: makeSection('PERSONALITY · BIRTHDAY · MATURITY'),
-    dayPillar: makeSection('DAY PILLAR'),
-    hourPillar: makeSection('HOUR PILLAR'),
+    tarot: makeSection('TAROT'),
+    astro: makeSection('ASTRO'),
+    numerology: makeSection('NUMEROLOGY'),
+    animals: makeSection('ANIMALS'),
   };
   const cells = {};
   for (const key of CELL_KEYS) {
     cells[key] = makeCompartmentCell(sections[CELL_SECTION[key]]);
   }
   const entry = { classList: makeClassSet(), style: makeStyle() };
-  // The dynamic titles ARE the section title nodes, as in index.html.
+  // Titles are static markup since §1.L v0.66 — no title refs are handed in.
   initTiersUI({
-    sunTitle: sections.sun.titleNode,
-    animalTitle: sections.animal.titleNode,
     entry,
     cells: Object.fromEntries(CELL_KEYS.map(key => [key, cells[key].val])),
   }, {});
-  return {
-    cells, entry, sections,
-    sunTitle: sections.sun.titleNode,
-    animalTitle: sections.animal.titleNode,
-  };
+  return { cells, entry, sections };
 }
 
 const sealed = cell => cell.root.classList.contains('sealed');
@@ -750,8 +741,9 @@ const PROFILE = {
 // §1.D v0.38: life path is free (DOB-derived) — sealed at NO tier;
 // expression/name number + soul urge stay sealed at free.
 const SEALED_AT = {
-  free: ['element', 'rising', 'moon', 'innerAnimal', 'nameNumber', 'soulUrge',
-    'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
+  free: ['rising', 'moon', 'nameNumber', 'soulUrge',
+    'personality', 'birthday', 'maturity', 'element', 'innerAnimal',
+    'dayPillar', 'hourPillar'],
   t1: ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
   t2: ['hourPillar'],
   t3: [],
@@ -762,9 +754,9 @@ const SEALED_AT = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', () => {
-  it('all nine .coord-section rows ship without hidden attributes', () => {
+  it('all four .coord-section rows ship without hidden attributes', () => {
     const sections = html.match(/<div class="coord-section"[^>]*>/g) || [];
-    expect(sections).toHaveLength(9);
+    expect(sections).toHaveLength(4);
     for (const tag of sections) {
       expect(tag, 'coord-section must never carry hidden').not.toMatch(/\bhidden\b/);
     }
@@ -972,7 +964,7 @@ describe('tiers — seal iff above tier (§2 locked table)', () => {
 // F4 sealed ≠ unresolvable + paired-row title grammar
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LOCKED)', () => {
+describe('tiers — F4 sealed ≠ unresolvable + the four static line titles (§1.L v0.66)', () => {
   it('t3 without birth time: hour pillar renders the — empty field, never a seal', () => {
     const { cells } = installCompartments();
     renderTierSections({ ...PROFILE, hourPillar: null }, 't3');
@@ -981,13 +973,15 @@ describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LO
     expect(unres(cells.hourPillar)).toBe(true);
   });
 
-  it('t1 without computable rising: — empty field, no seal, title SUN · RISING', () => {
-    const { cells, sunTitle } = installCompartments();
+  it('t1 without computable rising: — empty field, no seal (the ASTRO title is unaffected)', () => {
+    const { cells, sections } = installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined }, 't1');
     expect(cells.rising.val.textContent).toBe('—');
     expect(sealed(cells.rising)).toBe(false);
     expect(unres(cells.rising)).toBe(true);
-    expect(sunTitle.textContent).toBe('SUN · RISING');
+    // §1.L v0.66: the title names the SYSTEM, not the pair's resolution
+    // state — the `—` in the compartment is the whole disclosure now.
+    expect(sections.astro.titleNode.textContent).toBe('ASTRO');
   });
 
   it('free render: rising is paywalled → seal (not —) even when uncomputable', () => {
@@ -1006,43 +1000,42 @@ describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LO
     }
   });
 
-  it('SUN ↑ RISING only when rising is entitled AND computed', () => {
-    const { sunTitle } = installCompartments();
-    renderTierSections(PROFILE, 't1');
-    expect(sunTitle.textContent).toBe('SUN ↑ RISING');
-  });
-
-  it('SUN · RISING while the rising cell is sealed (free)', () => {
-    const { sunTitle } = installCompartments();
-    renderTierSections(PROFILE, 'free');
-    expect(sunTitle.textContent).toBe('SUN · RISING');
-  });
-
-  it('a bare SUN title never renders — every state names the rising compartment', () => {
-    const { sunTitle } = installCompartments();
+  it('every line title is STATIC — no render at any tier rewrites one (§1.L v0.66)', () => {
+    // Supersedes the v0.37 paired-row grammar (SUN ↑ RISING / PUBLIC ⇌
+    // PRIVATE), whose job was to mark a resolved entitled pair in the
+    // title. A line now spans a whole system, and the resolved/sealed/
+    // unresolved fact is carried per compartment, so the title must not
+    // move — including across the exact tier + resolution combinations
+    // that used to flip it.
+    const { sections } = installCompartments();
+    const expected = { tarot: 'TAROT', astro: 'ASTRO', numerology: 'NUMEROLOGY', animals: 'ANIMALS' };
     for (const [profile, tier] of [
-      [PROFILE, 'free'], [PROFILE, 't1'], [PROFILE, 't3'],
+      [PROFILE, 'free'], [PROFILE, 't1'], [PROFILE, 't2'], [PROFILE, 't3'],
       [{ ...PROFILE, risingSign: undefined }, 'free'],
       [{ ...PROFILE, risingSign: undefined }, 't1'],
-      [{ ...PROFILE, risingSign: undefined }, 't3'],
+      [{ ...PROFILE, risingSign: undefined, moonSign: undefined }, 't3'],
+      [{ ...PROFILE, hourPillar: null }, 't3'],
     ]) {
       renderTierSections(profile, tier);
-      expect(sunTitle.textContent).not.toBe('SUN');
-      expect(sunTitle.textContent).toMatch(/^SUN [·↑] RISING$/);
+      for (const [key, title] of Object.entries(expected)) {
+        expect(sections[key].titleNode.textContent, `${key} title moved at ${tier}`).toBe(title);
+      }
     }
-    // Source pin: no bare 'SUN' string assignment survives in the module.
-    expect(tiersJs).not.toMatch(/['"`]SUN['"`]/);
+    // Source pins: the retired grammar's strings are gone from the module,
+    // so no refactor can quietly reintroduce a title that renders state.
+    expect(tiersJs).not.toMatch(/SUN [·↑] RISING/);
+    expect(tiersJs).not.toMatch(/PUBLIC [·⇌] PRIVATE/);
+    expect(tiersJs).not.toMatch(/(sunTitle|animalTitle)\s*\.textContent\s*=/);
   });
 
-  it('animal title: PUBLIC · PRIVATE while private is sealed; PUBLIC ⇌ PRIVATE at t1+', () => {
-    const { animalTitle } = installCompartments();
-    renderTierSections(PROFILE, 'free');
-    expect(animalTitle.textContent).toBe('PUBLIC · PRIVATE');
-    renderTierSections(PROFILE, 't1');
-    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
-    renderTierSections(PROFILE, 't3');
-    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
-    expect(tiersJs).not.toMatch(/['"`]PUBLIC['"`]/);
+  it('ROW_TITLES is the single source both sheets read (no second copy to drift)', () => {
+    expect(ROW_TITLES).toEqual({
+      arcana: 'TAROT', sun: 'ASTRO', lifePath: 'NUMEROLOGY', element: 'ANIMALS',
+    });
+    // ui/sheet.js must re-export rather than restate it.
+    const sheetJs = readFileSync(join(__dirname, '..', 'ui', 'sheet.js'), 'utf-8');
+    expect(sheetJs).toMatch(/export \{ ROW_TITLES \}/);
+    expect(sheetJs).not.toMatch(/ROW_TITLES = Object\.freeze/);
   });
 
   it('formatPillar renders the clinical animal · stem-element register', () => {
@@ -1060,7 +1053,7 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     // §1.D v0.38: life path is already open at free, so it is NOT in the
     // free → t1 unseal delta; the numerology pair (expression/soul urge) is.
     expect(newlyEntitledCells('free', 't1')).toEqual(
-      ['element', 'rising', 'moon', 'innerAnimal', 'nameNumber', 'soulUrge']
+      ['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal']
     );
   });
 
@@ -1082,7 +1075,7 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     const { cells } = installCompartments();
     primeUnsealBaseline('free');
     renderTierSections(PROFILE, 't1');
-    const flagged = ['element', 'rising', 'moon', 'innerAnimal', 'nameNumber', 'soulUrge'];
+    const flagged = ['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal'];
     flagged.forEach((key, i) => {
       expect(unsealing(cells[key]), `${key} must unseal on the upgrade render`).toBe(true);
       expect(cells[key].root.style.props['--unseal-delay']).toBe(`${i * 100}ms`);
@@ -1149,10 +1142,10 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
 describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', () => {
   const flatCells = rows => rows.flatMap(r => r.cells);
 
-  it('returns 9 row refs, each with a title string and a cells array (15 cells total)', () => {
+  it('returns 4 row refs, each with a title string and a cells array (15 cells total)', () => {
     installCompartments();
     const rows = shareRowRefs();
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(4);
     for (const row of rows) {
       expect(typeof row.title).toBe('string');
       expect(Array.isArray(row.cells)).toBe(true);
@@ -1160,7 +1153,7 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     expect(flatCells(rows)).toHaveLength(15);
   });
 
-  it('free render: 4 open cells, 11 sealed; sealed carry no value, none leak', () => {
+  it('free render: 4 open cells, 11 sealed across the four system lines; sealed carry no value, none leak', () => {
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const cells = flatCells(shareRowRefs());
@@ -1169,8 +1162,10 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     for (const c of cells.filter(c => c.state === 'sealed')) {
       expect(c.value).toBe('');
     }
+    // DOM order is now tarot · astro · numerology · animals, so the open
+    // free values read arcana → sun → lifePath → animal.
     expect(cells.filter(c => c.state === 'open').map(c => c.value))
-      .toEqual(['XXI · the world', 'gemini', 'horse', '3']);
+      .toEqual(['XXI · the world', 'gemini', '3', 'horse']);
     const all = cells.map(c => c.value).join('|');
     for (const leaked of ['virgo', 'pisces', 'rabbit', 'metal', 'dragon', 'rat', '8']) {
       expect(all, `sealed value "${leaked}" leaked into the share snapshot`).not.toContain(leaked);
@@ -1181,50 +1176,62 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const rows = shareRowRefs();
-    expect(rows[2].cells).toEqual([
+    // astro line: sun open, rising + moon sealed at free.
+    expect(rows[1].cells).toEqual([
       { state: 'open', value: 'gemini' },
       { state: 'sealed', value: '' },
-    ]);
-    expect(rows[3].cells).toEqual([
       { state: 'sealed', value: '' },
-    ]); // moon (§1.K) — sealed at free
-    expect(rows[5].cells).toEqual([
+    ]);
+    // numerology line: life path open (free, DOB-derived §1.D v0.38), the
+    // other five sealed — the widest mixed-entitlement line on the sheet.
+    expect(rows[2].cells).toEqual([
       { state: 'open', value: '3' },
       { state: 'sealed', value: '' },
       { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
     ]);
+    // animals line: public animal open, the rest sealed.
+    expect(rows[3].cells.map(c => c.state)).toEqual(
+      ['sealed', 'open', 'sealed', 'sealed', 'sealed']
+    );
   });
 
   it('t1 render: pair + triplet cells all open', () => {
     installCompartments();
     renderTierSections(PROFILE, 't1');
     const rows = shareRowRefs();
-    expect(rows[2].cells.map(c => c.value)).toEqual(['gemini', 'virgo']);
-    expect(rows[3].cells.map(c => c.value)).toEqual(['pisces']); // moon, open at t1 (§1.K)
-    expect(rows[4].cells.map(c => c.value)).toEqual(['horse', 'rabbit']);
-    expect(rows[5].cells.map(c => c.value)).toEqual(['3', '8', '3']);
-    expect(rows[1].cells.map(c => c.value)).toEqual(['metal']);
-    expect(rows[2].cells.every(c => c.state === 'open')).toBe(true);
+    expect(rows[1].cells.map(c => c.value)).toEqual(['gemini', 'virgo', 'pisces']);
+    expect(rows[2].cells.map(c => c.value)).toEqual(['3', '8', '3', '', '', '']);
+    expect(rows[3].cells.map(c => c.value)).toEqual(['metal', 'horse', 'rabbit', '', '']);
+    expect(rows[1].cells.every(c => c.state === 'open')).toBe(true);
   });
 
   it('unresolved cells carry state unres + the — field, never a seal (F4)', () => {
     installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined, hourPillar: null }, 't3');
     const rows = shareRowRefs();
-    expect(rows[2].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising
-    expect(rows[8].cells[0]).toEqual({ state: 'unres', value: '—' }); // hour pillar
+    expect(rows[1].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising, astro line
+    expect(rows[3].cells[4]).toEqual({ state: 'unres', value: '—' }); // hour pillar, animals line
   });
 
-  it('row titles resolve through the live section (dynamic pair titles reach the PNG)', () => {
+  it('row titles resolve through the live section — the four system titles reach the PNG unchanged by tier', () => {
+    // The v0.37 version of this test proved a DYNAMIC pair title reached
+    // the artifact. Titles are static now (§1.L v0.66), so what must be
+    // proven is the other half of the same contract: the PNG reads the
+    // LIVE section node (not a constant), and that node says the same
+    // thing at every tier.
     installCompartments();
-    renderTierSections(PROFILE, 't1');
-    expect(shareRowRefs()[2].title).toBe('SUN ↑ RISING');
-    renderTierSections(PROFILE, 'free');
-    expect(shareRowRefs()[2].title).toBe('SUN · RISING');
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      renderTierSections(PROFILE, tier);
+      expect(shareRowRefs().map(r => r.title))
+        .toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
+    }
   });
 
   it('index.html wires the share surface through shareRowRefs', () => {
     expect(html).toMatch(/\] = shareRowRefs\(\)/);
-    expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareMoon, shareAnimal/);
+    expect(html).toMatch(/symbols:\s*\[shareTarot, shareAstro, shareNumerology, shareAnimals\]/);
   });
 });

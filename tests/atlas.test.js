@@ -157,25 +157,31 @@ function makeCell(section) {
 }
 
 const SECTION_OF = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
-  animal: 'animal', innerAnimal: 'animal',
+  arcana: 'tarot',
+  sun: 'astro', rising: 'astro', moon: 'astro',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
-  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
-  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
+  personality: 'numerology', birthday: 'numerology', maturity: 'numerology',
+  element: 'animals', animal: 'animals', innerAnimal: 'animals',
+  dayPillar: 'animals', hourPillar: 'animals',
 };
 const ROW_KEYS = {
-  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'],
-  animal: ['animal', 'innerAnimal'], numerology: ['lifePath', 'nameNumber', 'soulUrge'],
-  numbers2: ['personality', 'birthday', 'maturity'], dayPillar: ['dayPillar'], hourPillar: ['hourPillar'],
+  tarot: ['arcana'],
+  astro: ['sun', 'rising', 'moon'],
+  numerology: ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'],
+  animals: ['element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar'],
 };
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar',
+  'arcana',
+  'sun', 'rising', 'moon',
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+  'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
 ];
-// Rows that carry an atlas legend vs the self-naming rows that do not.
-const ATLAS_ROWS = ['arcana', 'element', 'sun', 'animal', 'numerology'];
-const SELF_NAMING_ROWS = ['numbers2', 'dayPillar', 'hourPillar'];
+// §1.L v0.66 — every one of the four system lines now contains at least one
+// cell carrying an atlas note, so no line is self-naming any more: the
+// former self-naming rows (numbers2, day/hour pillar) were absorbed into
+// the numerology and animals lines beside cells that DO carry notes.
+const ATLAS_ROWS = ['tarot', 'astro', 'numerology', 'animals'];
+const SELF_NAMING_ROWS = [];
 
 const PROFILE = {
   sunSign: 'capricorn', risingSign: 'leo', animal: 'rabbit', innerAnimal: 'dog',
@@ -192,7 +198,6 @@ function buildDom() {
   const cells = {};
   for (const key of CELL_KEYS) cells[key] = makeCell(sections[SECTION_OF[key]]);
   initTiersUI({
-    sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
     entry: { classList: makeClassSet(), style: makeStyle() },
     cells: Object.fromEntries(CELL_KEYS.map(k => [k, cells[k].val])),
   }, {});
@@ -231,14 +236,19 @@ describe('ATLAS legend — DOM write (cut-2 wiring)', () => {
   it('a SEALED compartment still shows its legend (tier-invariant)', () => {
     const { sections, cells } = buildDom();
     renderTierSections(PROFILE, 'free'); // seals every t1+ cell
-    // five-element is sealed at free — its legend must still be present.
+    // five-element and the private (month) animal are both sealed at free
+    // and both live on the ANIMALS line — its legend must still name every
+    // cell it spans, sealed ones included (that is the whole point of the
+    // tier-invariance: a hatched cell reads as a withheld coordinate, not
+    // a rendering failure).
     expect(cells.element.root.classList.contains('sealed')).toBe(true);
-    expect(sections.element.querySelector('.coord-atlas').textContent)
-      .toBe('chinese five-element');
-    // private (inner) animal sealed at free — the animal row legend survives.
     expect(cells.innerAnimal.root.classList.contains('sealed')).toBe(true);
-    expect(sections.animal.querySelector('.coord-atlas').textContent)
-      .toBe('year animal · month animal');
+    expect(sections.animals.querySelector('.coord-atlas').textContent)
+      .toBe('chinese five-element · year animal · month animal');
+    // ...and the astro line still names rising + moon while both are sealed.
+    expect(cells.rising.root.classList.contains('sealed')).toBe(true);
+    expect(sections.astro.querySelector('.coord-atlas').textContent)
+      .toBe('sun sign · rising sign · moon sign');
   });
 
   it('is idempotent — re-init over the same sections does not duplicate legends', () => {
@@ -246,8 +256,7 @@ describe('ATLAS legend — DOM write (cut-2 wiring)', () => {
     const cells2 = Object.fromEntries(
       CELL_KEYS.map(k => [k, makeCell(sections[SECTION_OF[k]]).val]));
     initTiersUI({
-      sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
-      entry: { classList: makeClassSet(), style: makeStyle() }, cells: cells2,
+        entry: { classList: makeClassSet(), style: makeStyle() }, cells: cells2,
     }, {});
     for (const s of ATLAS_ROWS) {
       const atlases = sections[s].kids.filter(k => k.className === 'coord-atlas');

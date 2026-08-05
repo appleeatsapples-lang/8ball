@@ -270,11 +270,11 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     expect(svg).not.toContain('url(#seal-hatch)');
   });
 
-  it('index.html passes all nine coordinate rows to initShareUI', () => {
+  it('index.html passes all four system rows to initShareUI', () => {
     const m = html.match(/symbols:\s*\[([^\]]+)\]/);
     expect(m, 'initShareUI symbols array not found').not.toBeNull();
     const refs = m[1].split(',').map(s => s.trim()).filter(Boolean);
-    expect(refs).toHaveLength(9);
+    expect(refs).toHaveLength(4);
   });
 
   it('the builder renders per-cell from the row refs, not a hidden-filter', () => {

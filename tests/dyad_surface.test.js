@@ -154,7 +154,7 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
     // line used to compare newlyEntitledCells('free','t1') WITH ITSELF, which
     // can never fail. It carries the literal expected set now.
     expect(newlyEntitledCells('free', 't1'))
-      .toEqual(['element', 'rising', 'moon', 'innerAnimal', 'nameNumber', 'soulUrge']);
+      .toEqual(['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal']);
     expect(newlyEntitledCells('t1', 't2'))
       .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
     expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
@@ -648,7 +648,8 @@ describe('dyad surface — F5: both sides are real standalone sheets', () => {
     const builtTitles = [...buildSheetMarkup('x')
       .matchAll(/<div class="coord-title"[^>]*>([^<]+)<\/div>/g)].map(m => m[1].trim());
     expect(builtTitles).toEqual(hostTitles);
-    expect(builtTitles).toHaveLength(9);
+    expect(builtTitles).toHaveLength(4);
+    expect(builtTitles).toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
   });
 
   it('the built sheet emits NO id, so it cannot collide with the host sheet (G2)', () => {

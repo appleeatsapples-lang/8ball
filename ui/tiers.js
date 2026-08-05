@@ -39,13 +39,16 @@
 //
 // refs contract (v0.7.0 — widened to per-cell nodes):
 //   refs: {
-//     sunTitle, animalTitle,   // dynamic .coord-title nodes
 //     entry,                   // #card-entry block root (seal target)
-//     cells: { arcana, element, sun, rising, animal, innerAnimal,
+//     cells: { arcana,
+//              sun, rising, moon,
 //              lifePath, nameNumber, soulUrge,
 //              personality, birthday, maturity,
+//              element, animal, innerAnimal,
 //              dayPillar, hourPillar },   // .coord-val nodes, one per cell
 //   }
+// (`sunTitle` / `animalTitle` are retired with the v0.37 paired-row title
+// grammar at §1.L v0.66 — titles are static markup now, see ROW_TITLES.)
 // Each cell's bordered .coord-cell root is resolved from its value node
 // at init via closest('.coord-cell'). hooks: reserved for parity with the
 // other ui/*.js modules; unused today.
@@ -110,19 +113,46 @@ export const TIER_COORDS = {
 // expression/name number and soul urge share the name-derived `numerology`
 // coordinate at t1. The §1.B space-separated guarantee survives in the
 // compartment gaps and in the per-cell share snapshot.
+// §1.L (v0.66) — the sheet is FOUR system lines, one per divination system,
+// no interleaving: tarot · astro · numerology · animals. DOM order below IS
+// that grouping. Entitlement is unchanged and still strictly per CELL_COORD,
+// so a line now MIXES tiers (animals carries `element` at t1 beside
+// `hourPillar` at t3) — the §1.D v0.37 per-compartment seal contract already
+// governs that case; what is new is only how many cells sit in one row.
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity',
-  'dayPillar', 'hourPillar',
+  'arcana',
+  'sun', 'rising', 'moon',
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+  'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
 ];
 const CELL_COORD = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising', moon: 'moon',
-  animal: 'animal', innerAnimal: 'innerAnimal',
+  arcana: 'arcana',
+  sun: 'sun', rising: 'rising', moon: 'moon',
   lifePath: 'lifePath', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
+  element: 'element', animal: 'animal', innerAnimal: 'innerAnimal',
   dayPillar: 'dayPillar', hourPillar: 'hourPillar',
 };
+
+// The four line titles, keyed by each line's LEAD cell so ui/sheet.js and
+// index.html read one source instead of restating it (the ROW_TITLES
+// duplication tests/dyad_surface.test.js used to pin across two files).
+// §1.L v0.66: these are STATIC. The v0.37 paired-row grammar — which
+// rewrote the sun and animal titles per render, swapping a dot for a
+// relation glyph to mark a resolved entitled pair — is superseded (the
+// retired literals stay quoted in DOCTRINE §1.L per L17, deliberately not
+// here: tests/tiers.test.js source-pins this module against them, so a
+// refactor cannot reintroduce a title that renders state). A line now
+// spans a whole system rather than a pair, and the resolved/sealed/
+// unresolved fact the grammar echoed is already carried per compartment
+// (value · `—` · seal). No information is lost, only a redundant second
+// rendering of it.
+export const ROW_TITLES = Object.freeze({
+  arcana: 'TAROT',
+  sun: 'ASTRO',
+  lifePath: 'NUMEROLOGY',
+  element: 'ANIMALS',
+});
 
 /** Coordinate keys for a tier, as a Set. Unknown tiers resolve to free. */
 export function coordsForTier(tier) {
@@ -323,17 +353,9 @@ export { CELL_KEYS, CELL_COORD };
 export function renderTierSections(profile, tier) {
   const coords = coordsForTier(tier);
 
-  // Sun row (paired-row title grammar): `SUN ↑ RISING` only when rising
-  // is entitled AND computed; `SUN · RISING` while sealed (free) or
-  // unresolved (`—` at t1+ without birth time/place).
-  const risingEntitled = coords.has('rising');
-  const withRising = risingEntitled && !!profile.risingSign;
-  if (_refs.sunTitle) _refs.sunTitle.textContent = withRising ? 'SUN ↑ RISING' : 'SUN · RISING';
-
-  // Animal row: `PUBLIC · PRIVATE` while the private (month) animal is
-  // sealed at free; `PUBLIC ⇌ PRIVATE` at t1+ (always computable).
-  const withInner = coords.has('innerAnimal');
-  if (_refs.animalTitle) _refs.animalTitle.textContent = withInner ? 'PUBLIC ⇌ PRIVATE' : 'PUBLIC · PRIVATE';
+  // Line titles are static since §1.L v0.66 (see ROW_TITLES) — the render
+  // path no longer touches them, so nothing here depends on which cells
+  // happen to be entitled or resolved.
 
   // Every cell resolves through the one pure mapping above, so the sheet and
   // the dyad surface cannot disagree about what a coordinate shows. Life path
@@ -383,19 +405,14 @@ export function renderTierSections(profile, tier) {
 // live cell state so ui/share.js renders the FULL compartment sheet:
 // open cells → value, sealed cells → hatch (the value is never read),
 // unres cells → the `—` empty field. Per-cell (not per-row): a mixed row
-// like SUN · RISING surfaces the open sun value AND the sealed rising
-// compartment. The sealed VALUE never leaves the DOM (sealed cells hold
+// such as the astro line surfaces the open sun value AND the sealed
+// rising/moon compartments. The sealed VALUE never leaves the DOM (sealed cells hold
 // textContent === '') and is forced to '' here as a second guarantee.
 const SHARE_ROWS = [
   ['arcana'],
-  ['element'],
-  ['sun', 'rising'],
-  ['moon'],
-  ['animal', 'innerAnimal'],
-  ['lifePath', 'nameNumber', 'soulUrge'],
-  ['personality', 'birthday', 'maturity'],
-  ['dayPillar'],
-  ['hourPillar'],
+  ['sun', 'rising', 'moon'],
+  ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'],
+  ['element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar'],
 ];
 
 // Exported additively so ui/sheet.js can build a second standalone sheet from
@@ -498,7 +515,8 @@ function attachProvenance() {
 // ── ATLAS legend (Coordinate Legibility Pack cut 2, under §1.D/§5.D) ──
 // One system NAME per coordinate, surfaced per row in cell order — the
 // gloss that decodes a compressed .coord-title (LIFE·NAME·SOUL → life-path
-// · expression · soul-urge; PUBLIC ⇌ PRIVATE → year animal · month animal).
+// · expression · soul-urge; the animals line → year animal · month animal
+// · the two pillars).
 // Same rails as the §1.E provenance placard: surface-only · TIER-INVARIANT
 // (a coordinate's system never changes with seal state → written ONCE at
 // init, never on render) · catalog-isolated (keyed off CELL_KEYS via

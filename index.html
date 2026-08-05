@@ -185,7 +185,16 @@
      Full cell structure at every tier; sealed cell = EMPTY value node +
      seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
      defined once — bars/stamp later is a single-token swap. Mono only. */
-  .coord-cells { display: flex; gap: 6px; justify-content: center; }
+  /* §1.L v0.66: a system line can carry six compartments (numerology), so
+     the row MUST be allowed to wrap — with nowrap the flex row's min-content
+     width pushed #card-face wider than its .flip-stage and the card ran off
+     a 375px viewport, clipped silently by body{overflow-x:hidden} rather
+     than scrolling. Wrapping keeps one SECTION per system while the
+     compartments reflow inside the card at narrow widths; a system line
+     taking two visual rows on a phone is accepted (operator ruling,
+     2026-08-06) — cell size stays at the 52px touch target rather than
+     shrinking to force one row. */
+  .coord-cells { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
   .coord-cell {
     position: relative; display: inline-flex;
     align-items: center; justify-content: center;
@@ -889,40 +898,20 @@
             <div class="card-name" id="card-name"></div>
             <div class="card-type" id="card-type"></div>
             <div class="coord-section">
-              <div class="coord-title">ARCANA</div>
+              <div class="coord-title">TAROT</div>
               <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-arcana-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title">FIVE-ELEMENT</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-element-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">ASTRO</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-moon-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">NUMEROLOGY</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title">MOON</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-moon-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title" id="coord-animal-title">PUBLIC ⇌ PRIVATE</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-animal-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-inner-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">LIFE · NAME · SOUL</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">PERSONALITY · BIRTHDAY · MATURITY</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">DAY PILLAR</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-daypillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">HOUR PILLAR</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-hourpillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">ANIMALS</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-element-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-animal-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-inner-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-daypillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-hourpillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="card-entry" id="card-entry">
               <div class="card-prose-rule"></div>
@@ -1170,18 +1159,17 @@ const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle'), flip
 // v0.7.0 compartment card (DOCTRINE §1.D v0.37). Per-cell fill/seal lives
 // in ui/tiers.js; refs are the .coord-val nodes (cell roots resolved there).
 initTiersUI({
-  sunTitle: $('coord-sun-title'),
-  animalTitle: $('coord-animal-title'),
   entry: $('card-entry'),
   publicRead: $('public-read'),
   cells: {
-    arcana: $('coord-arcana-symbol'), element: $('coord-element-symbol'),
+    arcana: $('coord-arcana-symbol'),
     sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'),
     moon: $('coord-moon-symbol'),
-    animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
     lifePath: $('coord-lifepath-symbol'), nameNumber: $('coord-namenumber-symbol'),
     soulUrge: $('coord-soulurge-symbol'), personality: $('coord-personality-symbol'),
     birthday: $('coord-birthday-symbol'), maturity: $('coord-maturity-symbol'),
+    element: $('coord-element-symbol'),
+    animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
     dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
@@ -1202,15 +1190,13 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySe
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
-const [shareArcana, shareElement, shareSun, shareMoon, shareAnimal,
-  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
+const [shareTarot, shareAstro, shareNumerology, shareAnimals] = shareRowRefs();
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [shareArcana, shareElement, shareSun, shareMoon, shareAnimal,
-      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar],
+    symbols: [shareTarot, shareAstro, shareNumerology, shareAnimals],
   },
   {}
 );

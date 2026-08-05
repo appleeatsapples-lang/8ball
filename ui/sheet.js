@@ -52,6 +52,7 @@ import {
   CELL_KEYS,
   CELL_COORD,
   SHEET_ROWS,
+  ROW_TITLES,
   cellRenderState,
   coordsForTier,
   PROV_NOTE,
@@ -64,23 +65,17 @@ import { getCard, MissingCardError } from '../core/engine.js';
 
 // ── markup ────────────────────────────────────────────────────────
 //
-// Row titles are markup, so they live here rather than in ui/tiers.js. The
-// sun and animal titles are rewritten per render (the paired-row grammar:
-// the dot form names structure, the relation glyph marks a resolved entitled
-// pair), exactly as renderTierSections does for the host sheet.
-// `tests/dyad_surface.test.js` pins this list against index.html's own
-// coord-section titles so the two structures cannot drift apart.
-export const ROW_TITLES = Object.freeze({
-  arcana: 'ARCANA',
-  element: 'FIVE-ELEMENT',
-  sun: 'SUN ↑ RISING',
-  moon: 'MOON',
-  animal: 'PUBLIC ⇌ PRIVATE',
-  lifePath: 'LIFE · NAME · SOUL',
-  personality: 'PERSONALITY · BIRTHDAY · MATURITY',
-  dayPillar: 'DAY PILLAR',
-  hourPillar: 'HOUR PILLAR',
-});
+// Row titles come from ui/tiers.js ROW_TITLES (§1.L v0.66) — one constant
+// for the host sheet and every instanced sheet. They are STATIC: the
+// v0.37 paired-row grammar that rewrote a title per render is retired
+// with the nine-row structure. `tests/dyad_surface.test.js` still pins the
+// rendered titles against index.html's own coord-section titles.
+// Re-exported, not restated: §1.L v0.66 moved the four line titles into
+// ui/tiers.js so the host sheet and these instanced sheets read ONE
+// constant. The old nine-entry copy here was the drift risk
+// tests/dyad_surface.test.js had to pin across two files; the pin now has
+// nothing to catch because there is nothing to diverge.
+export { ROW_TITLES };
 
 const cellHtml = (prefix, key) =>
   '<span class="coord-cell">' +
@@ -152,7 +147,6 @@ export function buildSheetMarkup(prefix) {
 export function createSheet(host, { prefix } = {}) {
   const q = sel => (host && host.querySelector ? host.querySelector(sel) : null);
   const cellNode = key => q(`[data-sheet-cell="${prefix}:${key}"]`);
-  const titleNode = key => q(`[data-sheet-title="${prefix}:${key}"]`);
 
   // Every node this instance can write, so clear() is derived from the same
   // list render() fills rather than hand-maintained beside it. The PR #187 F1
@@ -209,15 +203,6 @@ export function createSheet(host, { prefix } = {}) {
     render(profile, tier, { noteSlot = 'mid', publicRead = null, kua = null } = {}) {
       if (!profile) return null;
       const coords = coordsForTier(tier);
-
-      // Paired-row titles, same grammar as the host sheet.
-      const risingOpen = coords.has('rising') && !!profile.risingSign;
-      const sunTitle = titleNode('sun');
-      if (sunTitle) sunTitle.textContent = risingOpen ? 'SUN ↑ RISING' : 'SUN · RISING';
-      const animalTitle = titleNode('animal');
-      if (animalTitle) {
-        animalTitle.textContent = coords.has('innerAnimal') ? 'PUBLIC ⇌ PRIVATE' : 'PUBLIC · PRIVATE';
-      }
 
       // THE shared mapping. Identical call renderTierSections makes.
       for (const key of CELL_KEYS) {
@@ -314,10 +299,8 @@ export function createSheet(host, { prefix } = {}) {
           node.classList.remove('kua-absent');
         }
       }
-      const sunTitle = titleNode('sun');
-      if (sunTitle) sunTitle.textContent = ROW_TITLES.sun;
-      const animalTitle = titleNode('animal');
-      if (animalTitle) animalTitle.textContent = ROW_TITLES.animal;
+      // Titles are static since §1.L v0.66 — a cleared sheet keeps them,
+      // so there is nothing to restore here.
     },
 
     /** Read-only view of what is currently rendered — for tests and for the
