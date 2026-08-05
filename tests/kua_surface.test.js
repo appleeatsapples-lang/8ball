@@ -84,6 +84,22 @@ describe('kua render — contract', () => {
     expect(refs.note.textContent).toBe('');
   });
 
+  it('an absent render strips a pending unseal beat — no replay on the later gendered render (codex finding)', () => {
+    // renderTierSections adds `.unsealing` to the kua root on an upgrade
+    // render even when the block is absent (hidden); display:none→visible
+    // restarts CSS animations, so a stale beat would replay on a same-tier
+    // absent→gendered transition. The absent render must strip it.
+    const refs = makeRefs();
+    initKuaUI(refs);
+    refs.root.classList.add('unsealing'); // simulate the upgrade beat landing pre-render
+    renderKuaRead(P_NONE, { entitled: true });
+    expect(refs.root.classList.contains('unsealing')).toBe(false);
+    // ...and a legit gendered render keeps a beat that lands on it.
+    refs.root.classList.add('unsealing');
+    renderKuaRead(P_FEMALE, { entitled: true });
+    expect(refs.root.classList.contains('unsealing')).toBe(true);
+  });
+
   it('a gendered render after an absent one clears the absent state (the block returns)', () => {
     const refs = makeRefs();
     initKuaUI(refs);
@@ -233,14 +249,16 @@ describe('single-importer twin (the tests/public.test.js pattern, scoped)', () =
   it('ui/kua.js is the ONLY consumer of core/kua.js', () => {
     const consumers = [];
     for (const dir of ['core', 'ui']) {
-      const re = dir === 'core' ? /from '\.\/kua\.js'/ : /from '\.\.\/core\/kua\.js'/;
+      // Both quote styles — a double-quoted import must not slip the scan
+      // (codex finding, PR #202 second read).
+      const re = dir === 'core' ? /from ['"]\.\/kua\.js['"]/ : /from ['"]\.\.\/core\/kua\.js['"]/;
       for (const f of readdirSync(join(__dirname, '..', dir))) {
         if (!f.endsWith('.js')) continue;
         const src = readFileSync(join(__dirname, '..', dir, f), 'utf-8');
         if (re.test(src)) consumers.push(join(dir, f));
       }
     }
-    if (/from '[^']*core\/kua\.js'/.test(html)) consumers.push('index.html');
+    if (/from ['"][^'"]*core\/kua\.js['"]/.test(html)) consumers.push('index.html');
     expect(consumers).toEqual([join('ui', 'kua.js')]);
   });
 });

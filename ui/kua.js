@@ -212,6 +212,16 @@ export function renderKuaRead(profile, { entitled } = {}) {
   const absent = !!entitled && !read;
   _root.classList.toggle('sealed', !entitled);
   _root.classList.toggle('kua-absent', absent);
+  // An absent block must carry no pending unseal beat: renderTierSections
+  // (which runs before this in the host flow) adds `.unsealing` on an
+  // upgrade render even when the block is hidden, and display:none→visible
+  // restarts CSS animations — so a later same-tier gendered render would
+  // replay the flash. Strip it while absent; a legit gendered upgrade
+  // render has absent=false and keeps its beat.
+  if (absent) {
+    _root.classList.remove('unsealing');
+    if (_root.style && _root.style.removeProperty) _root.style.removeProperty('--unseal-delay');
+  }
   if (_root.setAttribute) {
     _root.setAttribute('aria-label',
       read ? 'kua trigram'

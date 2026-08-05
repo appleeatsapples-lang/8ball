@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-06 — No-gender kua fallback cut (§1.D v0.65, operator word) — STAGED, cross-model audit pending
+## 2026-08-06 — No-gender kua fallback cut (§1.D v0.65, operator word) — STAGED, grok+codex relay audits complete, absorbs landed
 
 **What happened.** The operator pasted the kua block's no-gender output
 verbatim — the male line, the female line, and the "no gender on file"
@@ -63,9 +63,26 @@ header rewritten to the three-state contract; core/kua.js's
 path. Post-absorb: suite 56 files / 1931 tests green · product audit
 PASS 13/0/1/0 · local PII scan clean.
 
-**Process.** STAGED on `claude/kua-no-gender-absent`; the grok relay
-read satisfies the independent-eyes requirement and the L48 artifact
-rides the PR; merge is the operator's word.
+**Second read (codex via relay — the triple-force word landed
+mid-cycle) — MERGE WITH FIXES, all five absorbs landed same session.**
+Codex found what grok missed, headlined by the one buyer-facing item:
+the paywall/about copy promised "the kua line — for every reading,"
+which the v0.65 cut silently falsified for a no-gender buyer — the
+diff never touched that string, but it changed its truth value. Fixed:
+both offer strings now carry the gender qualifier, pins in lockstep.
+Also landed: the stale `.unsealing` beat could replay on an
+absent→gendered same-tier render (display:none restarts CSS
+animations; renderKuaRead now strips the beat while absent, with a
+regression test); the single-importer scan regexes accept both quote
+styles; the v0.65 clause's "core/kua.js is untouched" self-
+contradiction reworded to "unchanged in behavior and API" (the comment
+reframe is recorded); and this entry's own stale STAGED header flipped
+per the mechanical-correction precedent.
+
+**Process.** STAGED on `claude/kua-no-gender-absent`; grok + codex
+relay reads (claude reconciliation) satisfy the independent-eyes
+requirement and the L48 artifact rides the PR; merge is the operator's
+word.
 
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 

@@ -68,3 +68,53 @@ merge itself remains the operator's word, and this PR does not
 self-merge. v0.64 (§1.K moon sign) rides PR #201 on an independent
 branch — disjoint clauses; whichever merges second absorbs the expected
 journal/footer top-insert conflict.
+
+---
+
+## Addendum — codex second read (triple-force upgrade, same day)
+
+On the controller's extension of the standing audit word ("add codex to
+become a triple force audit"), a codex relay round ran against the same
+branch after the grok absorbs. **Verdict: MERGE WITH FIXES — five
+findings, all independently verified by the reconciler, all landed in
+the follow-up absorb commit.**
+
+1. **MEDIUM (the catch of the round) — the paywall promised a coordinate
+   a no-gender buyer no longer receives.** `index.html`'s about copy
+   ("…and the kua line — permanently, for every reading…") and
+   `#paywall-value` ("adds … and the kua line —") were untouched by this
+   branch — but the v0.65 cut changed their truth value: under v0.63 a
+   no-gender profile still rendered a (dual-value) kua; under the cut it
+   renders nothing. **FIXED:** both offer strings now carry the gender
+   qualifier ("rendered when a gender is supplied" / "with a gender
+   supplied"), with both `payments_markup` pins updated in lockstep and
+   the rendered copy live-fire verified.
+2. **LOW — stale unseal beat could replay.** `renderTierSections` adds
+   `.unsealing` to the kua root on an upgrade render even while the
+   block is absent (hidden); `display:none`→visible restarts CSS
+   animations, so a later same-tier gendered render would replay the
+   flash. **FIXED:** the absent render strips the beat + `--unseal-delay`
+   (a gendered render keeps its legit beat), with a dedicated regression
+   test.
+3. **LOW — quote-blind import scans.** The single-importer regexes
+   matched single-quoted imports only; a double-quoted
+   `import … from "../core/kua.js"` would have slipped both the per-file
+   and index.html scans. **FIXED:** both regexes accept either quote
+   style. (The reconciler noted codex conflated this with the ui/kua.js
+   substring pin, which was already quote-proof — the narrow gap was
+   real, the cited mechanism partly imprecise.)
+4. **LOW — DOCTRINE self-contradiction.** The v0.65 clause said
+   "`core/kua.js` is untouched" while recording the `getKuaBoth` comment
+   reframe in the same paragraph. **FIXED:** reworded to "unchanged in
+   behavior and API," in the clause, the footer entry and the short-list
+   line.
+5. **NIT — stale journal header.** The entry's header still read
+   "cross-model audit pending" after the audit completed. **FIXED** per
+   the repo's mechanical-correction precedent.
+
+Post-absorb verification: vitest **56 files / 1932 tests green** ·
+`audits/project_audit.py` **PASS 13/0/1/0** · local PII audit **clean,
+857 files** · qualified paywall/about copy live-fire verified in the
+rendered DOM. The grok verdict above stands; with the codex absorbs
+landed the artifact's SAFE TO MERGE remains, still pending the
+controller's own read and the explicit merge word.
