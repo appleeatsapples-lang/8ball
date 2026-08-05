@@ -102,7 +102,11 @@ export function buildSheetMarkup(prefix) {
     return '<div class="coord-section">' +
       `<div class="coord-title" data-sheet-title="${prefix}:${lead}">${ROW_TITLES[lead]}</div>` +
       (atlas ? `<div class="coord-atlas">${atlas}</div>` : '') +
-      `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
+      // The numerology line carries the §1.M hexagon class so an instanced
+      // sheet has the same geometry as the host (the dyad differential test
+      // pins structure, and a flat row beside a hexagon would be a real
+      // divergence, not a cosmetic one).
+      `<div class="coord-cells${keys.length === 6 ? ' coord-cells-hex' : ''}">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
       `<div class="coord-prov">${provText(keys)}</div>` +
       '</div>';
   }).join('');

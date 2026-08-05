@@ -5,6 +5,106 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Four system lines + the numerology hexagon (§1.L / §1.M, operator word) — STAGED, audit pending
+
+**What happened.** On operator word the specimen sheet's nine
+per-coordinate rows collapsed to exactly four, one per divination
+system, no interleaving — TAROT · ASTRO (sun · rising · moon) ·
+NUMEROLOGY (the six numbers) · ANIMALS (five-element · year animal ·
+month animal · day pillar · hour pillar) — and the numerology six moved
+to the six vertices of a hexagon. All fifteen compartments survive; only
+their grouping moved, so the §1.F census is unchanged at 16 and
+entitlement stays strictly per compartment. A line now legitimately
+mixes tiers (ANIMALS spans four), which the §1.D v0.37 per-compartment
+seal contract already governed.
+
+**Two calls flagged before building, not after.** The brief said
+"Sun + Saturn + Moon"; the product has no Saturn coordinate and building
+one would be a new ephemeris feature rather than a reformat, so ASTRO
+reads sun · rising · moon. And the five-element went on ANIMALS because
+it is the year-stem element of the same lunar-year derivation as the
+year animal — Chinese-system, not a fourth tradition.
+
+**The hexagon is a restoration, and the old objection is spent.**
+v0.2.2 shipped an inline-SVG hexagon on 2026-05-09 (`fa552ca`) whose six
+vertices were exactly these six coordinates; v0.2.3 reverted it the next
+day. At that point three of the six — personality, birthday, maturity —
+were data-only calc fields, so the shape had empty vertices. §1.D v0.6.0
+surfaced all three at t2, so every vertex now carries a value. Built as
+a CSS grid rather than an SVG polygon on purpose: each vertex stays a
+real `.coord-cell` with its own `.coord-seal`, so sealed-DOM purity and
+the F4 sealed-vs-unresolvable rule survive untouched instead of needing
+reimplementation inside a polygon. DOM order stays 1..6, which is what
+keeps the legend alignment and the screen-reader order honest.
+
+**Both real defects this cycle were found by LOOKING at the card, with
+the suite green throughout.** Worth recording as a pattern, not just as
+two fixes.
+
+1. **The card ran off the phone, and the check said it didn't.** With
+   `nowrap`, the six-cell numerology line's min-content width pushed
+   `#card-face` wider than its `.flip-stage`. `body{overflow-x:hidden}`
+   clipped it *silently* — so a geometry probe that asked the document
+   about scroll width reported clean while the rendered card had lost
+   its last compartment and the catalog numeral. The screenshot showed
+   it immediately. Fixed by wrapping; a system line taking two visual
+   rows on a phone is accepted (operator ruling), cells keep the 52px
+   touch target rather than shrinking.
+2. **The legend silently misaligned, and the operator caught it.** Asked
+   why `water` appeared twice on the ANIMALS line. It was not a
+   duplicate render: `water` is the year five-element and `rat · water`
+   is the hour pillar's stem element — different derivations that
+   collide in value for this profile. But the reason it was
+   *indistinguishable* was a real defect: the §1.F legend is read
+   POSITIONALLY against its cells, and `ATLAS_NOTE` had deliberately
+   omitted the personality/birthday/maturity and day/hour-pillar cells
+   because their own row titles used to self-name them — titles this
+   restructure deleted. ANIMALS rendered three notes against five
+   compartments. All fifteen cells now carry a note, keyed in DOM order,
+   pinned as a general one-entry-per-cell invariant on every line rather
+   than as a patch to the line that exposed it.
+
+**Doctrine debt, self-inflicted and repaid in this entry.** The code
+shipped citing "§1.L v0.66" across four modules and six test names
+before the clause existed — DOCTRINE was still at v0.65. A mapping
+workflow caught it. §1.L and §1.M are now written, with the v0.66 footer
+entry; the retired paired-row title literals are quoted in §1.L as
+lineage precisely because the modules are now source-pinned against
+them.
+
+**Test pins.** Moved across 8 suites. Three whose intent DIED were
+replaced rather than edited: the paired-row grammar tests become a
+static-title-at-every-tier contract with source pins against the retired
+literals; the dynamic-title-reaches-the-PNG proof becomes the four-title
+contract read from live section nodes; the sealed legend/placard tests
+now span whole system lines.
+
+**Verification.** Suite 57 files / 1954 tests green · product audit PASS
+13/0/1/0 · local PII scan clean · `index.html` 1467/1500 · live-fire at
+375px and desktop: four lines correct, hexagon geometry symmetric about
+the centre, no clipping, no overflow, reveal-labels gate intact both
+directions.
+
+**Open on this branch:** the symbolic line-mark phase (see the design
+finding below), and the prose condensation. **A design workflow
+disqualified the glyph-ONLY titles the brief asked for**, on three
+grounds it verified rather than asserted: the product's own about-copy
+claims "there is no mystery layer" and a gated decode installs one; the
+§5.D share PNG has no toggle, no hover and no assistive tech, and the
+atlas/provenance layers are architecturally excluded from it, so a
+glyph-only title makes the artifact four undecodable marks; and it
+inverts accessibility (screen readers would get the word, sighted users
+a symbol). It also parsed the actual macOS font cmap tables and found
+`☉` and `☽` are ABSENT from SF Mono and Courier New — the obvious astro
+glyphs would have rendered as tofu for most users. Recommendation on
+file is the shipped `ui/kua.js` precedent: the mark rides BESIDE the
+word (`◊ TAROT`), both default-visible. Operator's call.
+
+**Process.** STAGED on `claude/specimen-four-line-symbolic`, based on a
+merge of the moon-sign (#201) and kua-cut (#202) branches — noted per
+the operator's step 5. Triple-force relay audit (codex + grok) before
+the PR; merge is the operator's word.
+
 ## 2026-08-06 — No-gender kua fallback cut (§1.D v0.65, operator word) — STAGED, grok+codex relay audits complete, absorbs landed
 
 **What happened.** The operator pasted the kua block's no-gender output

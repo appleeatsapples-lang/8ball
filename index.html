@@ -195,6 +195,30 @@
      2026-08-06) — cell size stays at the 52px touch target rather than
      shrinking to force one row. */
   .coord-cells { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  /* §1.M v0.66 — the numerology line's six coordinates sit at the six
+     vertices of a hexagon, restoring the v0.2.2 surface (shipped 2026-05-09
+     as an inline SVG, reverted next day in v0.2.3 because three of the six
+     vertices were then data-only). All six are surfaced now, so the shape
+     has no empty vertex.
+     Built as a grid, NOT an SVG polygon: every vertex stays a real
+     .coord-cell with its own .coord-seal, so the §1.D v0.37 per-compartment
+     seal contract and the sealed-DOM purity rule are untouched. DOM order
+     is 1..6 and reads top-to-bottom / left-to-right across the vertices,
+     which keeps the §1.F legend positionally aligned with its cells and
+     keeps the tab/screen-reader order coherent.
+        [1][2]
+     [3]      [4]
+        [5][6]                                                          */
+  .coord-cells-hex {
+    display: grid; grid-template-columns: repeat(4, auto);
+    justify-content: center; align-items: center; gap: 6px;
+  }
+  .coord-cells-hex > :nth-child(1) { grid-area: 1 / 2; }
+  .coord-cells-hex > :nth-child(2) { grid-area: 1 / 3; }
+  .coord-cells-hex > :nth-child(3) { grid-area: 2 / 1; }
+  .coord-cells-hex > :nth-child(4) { grid-area: 2 / 4; }
+  .coord-cells-hex > :nth-child(5) { grid-area: 3 / 2; }
+  .coord-cells-hex > :nth-child(6) { grid-area: 3 / 3; }
   .coord-cell {
     position: relative; display: inline-flex;
     align-items: center; justify-content: center;
@@ -907,7 +931,7 @@
             </div>
             <div class="coord-section">
               <div class="coord-title">NUMEROLOGY</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-cells coord-cells-hex"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
               <div class="coord-title">ANIMALS</div>
