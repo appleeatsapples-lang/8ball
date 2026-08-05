@@ -61,8 +61,8 @@ Recorded after the absorb commit `4777ee3`:
 
 ## Process note
 
-The cut is the operator's direct 2026-08-06 word (the pasted no-gender
-output + "cut this out"). Per the no-self-certification law this artifact
+The cut is a direct controller word given 2026-08-06 (the pasted
+no-gender output + "cut this out"). Per the no-self-certification law this artifact
 records an independent cross-model read of the implementer's diff; the
 merge itself remains the operator's word, and this PR does not
 self-merge. v0.64 (§1.K moon sign) rides PR #201 on an independent
