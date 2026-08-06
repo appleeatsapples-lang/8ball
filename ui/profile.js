@@ -177,18 +177,70 @@ export function applyBirthInputValidationState(entry, refs) {
 
 let _refs = null;
 let _hooks = null;
+let _genderSelect = null;
+
+// ── the optional gender control ───────────────────────────────────
+// Rehomed here from ui/kua.js when the kua block was deleted (§1.D
+// v0.67). The field is RETAINED on operator word; the module that used
+// to own it is gone, and the form controller is its natural home.
+//
+// NOTE ON RECORD: §5 admitted this field to the storage allow-list on the
+// stated ground that it "feeds only the kua line". That consumer no
+// longer exists, so the field is currently stored with no reader. Its
+// retention is an explicit operator decision, not an oversight — see the
+// §1.D v0.67 amendment, which records the open question rather than
+// leaving the §5 justification silently void.
+//
+// The strict two-token vocabulary is unchanged: the empty option IS the
+// no-gender state and it is the default; anything off-vocabulary resolves
+// undefined at the read seam.
+function resolveGenderSelect(refs) {
+  if (refs && refs.genderSelect) return refs.genderSelect;
+  const form = refs && refs.form;
+  if (!form || typeof form.appendChild !== 'function') return null;
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
+  const existing = form.querySelector && form.querySelector('#gender-input');
+  if (existing) return existing;
+  const field = document.createElement('div');
+  field.className = 'field gender-field';
+  field.innerHTML = '<label for="gender-input">gender (optional)</label>' +
+    '<select id="gender-input">' +
+    '<option value="">—</option>' +
+    '<option value="male">male</option>' +
+    '<option value="female">female</option>' +
+    '</select>';
+  const anchor = refs && refs.anchor;
+  if (anchor && typeof form.insertBefore === 'function' && anchor.parentNode === form) {
+    form.insertBefore(field, anchor);
+  } else {
+    form.appendChild(field);
+  }
+  return field.querySelector ? field.querySelector('#gender-input') : null;
+}
+
+/** The form control's current value under the strict vocabulary. */
+export function getGenderInput() {
+  const v = _genderSelect && _genderSelect.value;
+  return v === 'male' || v === 'female' ? v : undefined;
+}
+
+/** Rehydrate/clear the control. Invalid or absent resolves ''. */
+export function setGenderInput(v) {
+  if (!_genderSelect) return;
+  _genderSelect.value = v === 'male' || v === 'female' ? v : '';
+}
 
 export function initProfileUI(refs, hooks) {
   _refs = refs;
   _hooks = hooks || {};
+  _genderSelect = resolveGenderSelect(refs);
 }
 
 export function populateRisingFields(obj) {
   const r = _refs;
   r.timeInput.value = obj.time || '';
-  // Rehydrate the injected gender control (ui/kua.js owns the node; the
-  // host wires its setter through this hook). Invalid/absent resolves ''.
-  if (_hooks.setGender) _hooks.setGender(obj.gender);
+  // Rehydrate the gender control (owned by this module since §1.D v0.67).
+  setGenderInput(obj.gender);
   r.legacyHint.hidden = true;
   r.polarMessage.hidden = true;
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
@@ -235,7 +287,10 @@ export function resetFormDisplay() {
   r.timeInput.value = '';
   r.cityInput.value = '';
   r.citySuggestions.innerHTML = '';
-  if (_hooks.setGender) _hooks.setGender('');
+  // Clear the gender control directly (this module owns it since §1.D
+  // v0.67). Routing it through the retired setGender hook silently left a
+  // stale demographic on the form across a reset — the F1 residue class.
+  setGenderInput(undefined);
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   r.polarMessage.hidden = true;
   r.legacyHint.hidden = true;

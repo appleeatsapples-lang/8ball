@@ -5,6 +5,66 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Kua block deleted, gender input retained (§1.D v0.67, operator word) — STAGED, audit pending
+
+**What happened.** Operator word: "gender should be deleted", then
+"keep the input". Read together with the scope answer, that resolves to
+deleting the **kua block** — the reading — while the gender **field**
+stays on the form. Removed: `core/kua.js`, `content/kua.v1.js`,
+`ui/kua.js`, `tests/kua.test.js`, `tests/kua_content.test.js`,
+`tests/kua_surface.test.js`, `kuaRead` from `T3_COORDS` and the unseal
+delta, the block from both dyad sheets, and every trace from
+`index.html`.
+
+**Why the block could not survive the field's demotion.** Eight
+Mansions assigns by gender; PR #202 had just cut the both-values
+fallback, so a profile with no gender renders no kua at all. Once the
+field stops feeding it, the block is permanently absent — dead surface
+plus a paywall promising it. Deleting it outright was the honest option
+and the operator chose it.
+
+**The offer narrowed, and the copy now says so.** The paywall and
+about-modal no longer promise "the kua line". $3 buys the eleven sealed
+coordinates, their meanings (moon excepted per §1.K), the written card
+entry and domain fit. **Price unchanged by operator ruling** — recorded
+as a decision, not absorbed silently, because a rung's contents shrinking
+without a price change is exactly the kind of thing that reads as an
+oversight later. No census change: kua was a BLOCK, never a compartment,
+so §1.F stays at 16.
+
+**The part worth flagging loudest.** §5 v0.63 admitted `gender` to the
+storage allow-list on the stated ground that it "feeds only the kua
+line". That consumer is gone, so the product now **stores a demographic
+input no surface reads**. The retention is explicit operator word, not
+drift — but a stored field with no reader either needs a named purpose
+or needs removing from the allow-list, and §1.D v0.67 records that as an
+open operator decision rather than quietly leaving the justification
+vacant. Vocabulary, off-vocabulary dropping at every write seam, archive
+round-trip and the free-tier exclusion are all unchanged.
+
+**A real defect surfaced by the move, caught by its own test.**
+`getGenderInput`/`setGenderInput` and the control's DOM creation lived
+inside the deleted `ui/kua.js`, so keeping the input meant rehoming them
+into `ui/profile.js` (the form controller). That exposed a bug I
+introduced in the same edit: `resetFormDisplay` had cleared the field
+through the now-retired `setGender` hook, so a **stale gender survived a
+form reset** — the F1 residue class PR #187 exists to prevent. Fixed by
+clearing the control directly; the rewritten test asserts the round-trip
+on the real select instead of on a hook spy, which is why it failed
+loudly instead of passing vacuously.
+
+**Person B's second-gender input was NOT retained.** It existed solely
+to key person B's kua line; keeping it would collect a demographic for
+no surface whatsoever.
+
+**Verification.** Suite 54 files / 1906 tests green (was 57 files —
+three kua suites deleted) · product audit PASS 13/0/1/0 · local PII scan
+clean (854 files) · `index.html` 1459/1500 · repo-shape counts updated
+(core 14→13, ui 15→14, tests 57→54).
+
+**Process.** STAGED on `claude/specimen-four-line-symbolic`; triple-force
+relay audit (codex + grok) before the PR; merge is the operator's word.
+
 ## 2026-08-06 — Four system lines + the numerology hexagon (§1.L / §1.M, operator word) — STAGED, audit pending
 
 **What happened.** On operator word the specimen sheet's nine

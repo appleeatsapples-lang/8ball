@@ -129,13 +129,6 @@ export function buildSheetMarkup(prefix) {
     `<div class="card-note" data-sheet-roleline="${prefix}"></div>` +
     `<div class="card-note public-bridge" data-sheet-public-bridge="${prefix}"></div>` +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +
-    '<div class="kua-read" data-sheet-kua="' + prefix + '">' +
-    '<div class="card-prose-rule"></div>' +
-    '<div class="kua-title">KUA</div>' +
-    `<div class="card-habit" data-sheet-kua-primary="${prefix}"></div>` +
-    `<div class="card-note" data-sheet-kua-secondary="${prefix}"></div>` +
-    `<div class="card-note kua-note" data-sheet-kua-note="${prefix}"></div>` +
-    '<span class="coord-seal" aria-hidden="true"></span></div>' +
     '</article>';
 }
 
@@ -166,9 +159,6 @@ export function createSheet(host, { prefix } = {}) {
     q(`[data-sheet-antifit="${prefix}"]`),
     q(`[data-sheet-roleline="${prefix}"]`),
     q(`[data-sheet-public-bridge="${prefix}"]`),
-    q(`[data-sheet-kua-primary="${prefix}"]`),
-    q(`[data-sheet-kua-secondary="${prefix}"]`),
-    q(`[data-sheet-kua-note="${prefix}"]`),
   ];
 
   function setCell(key, state, text) {
@@ -204,7 +194,7 @@ export function createSheet(host, { prefix } = {}) {
      *        caller is the wrong direction. The host injects the read through
      *        ui/dyad.js, which is the §6 DI shape anyway.
      */
-    render(profile, tier, { noteSlot = 'mid', publicRead = null, kua = null } = {}) {
+    render(profile, tier, { noteSlot = 'mid', publicRead = null } = {}) {
       if (!profile) return null;
       const coords = coordsForTier(tier);
 
@@ -254,25 +244,7 @@ export function createSheet(host, { prefix } = {}) {
       // other value node.
       setText(`[data-sheet-public-bridge="${prefix}"]`, read ? (read.bridge || '') : '');
 
-      // Kua trigram — the third t3 ceiling block (§1.D kua amendment).
-      // Handed in like publicRead, and for the same reason: core/kua.js
-      // carries a single-consumer pin (tests/kua_surface.test.js) and this
-      // module must not become its second importer.
-      const kuaOpen = coords.has('kuaRead');
-      const kuaRoot = q(`[data-sheet-kua="${prefix}"]`);
-      const kuaRead = kuaOpen ? kua : null;
-      // Same three-state rule as the host block (§1.D v0.65): sealed only
-      // below entitlement; entitled-but-null (no gender on file) hides the
-      // block rather than sealing it or showing a dual-value fallback.
-      if (kuaRoot && kuaRoot.classList) {
-        kuaRoot.classList.toggle('sealed', !kuaOpen);
-        kuaRoot.classList.toggle('kua-absent', kuaOpen && !kuaRead);
-      }
-      setText(`[data-sheet-kua-primary="${prefix}"]`, kuaRead ? kuaRead.primary : '');
-      setText(`[data-sheet-kua-secondary="${prefix}"]`, kuaRead ? kuaRead.secondary : '');
-      setText(`[data-sheet-kua-note="${prefix}"]`, kuaRead ? (kuaRead.note || '') : '');
-
-      return { cardEntry: entryOpen, publicRead: !!read, kua: !!kuaRead };
+      return { cardEntry: entryOpen, publicRead: !!read };
     },
 
     /**
@@ -295,12 +267,11 @@ export function createSheet(host, { prefix } = {}) {
         }
       }
       for (const sel of [`[data-sheet-face="${prefix}"]`, `[data-sheet-entry="${prefix}"]`,
-        `[data-sheet-public="${prefix}"]`, `[data-sheet-kua="${prefix}"]`]) {
+        `[data-sheet-public="${prefix}"]`]) {
         const node = q(sel);
         if (node && node.classList) {
           node.classList.remove('unlocked');
           node.classList.remove('sealed');
-          node.classList.remove('kua-absent');
         }
       }
       // Titles are static since §1.L v0.66 — a cleared sheet keeps them,

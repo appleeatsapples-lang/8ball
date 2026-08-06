@@ -8,12 +8,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearProfile,
+  getGenderInput,
   initProfileUI,
   loadSavedProfile,
   optsFromPayload,
   populateRisingFields,
   resetFormDisplay,
   saveProfile,
+  setGenderInput,
 } from '../ui/profile.js';
 import { makeEl } from './helpers/dom.js';
 
@@ -45,6 +47,8 @@ function makeRefs() {
     polarMessage: makeEl('polarMessage'),
     legacyHint: makeEl('legacyHint'),
     risingFields: makeEl('risingFields'),
+    // handed in directly so the module skips DOM creation (§6 DI shape)
+    genderSelect: { value: '' },
   };
   refs.onboarding.classList.add('hidden');
   for (const key of ['nameInput', 'dobInput', 'timeInput', 'cityInput']) {
@@ -185,9 +189,10 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
-      // gender IS a calculation input (the kua block reads profile.gender)
-      // — dropping it here would make cold-boot recompute a different
-      // reading than the fresh submit (§5 recompute-on-load).
+      // gender is still forwarded as a stored input even though no surface
+      // reads it since §1.D v0.67 deleted the kua block — the field was
+      // retained on operator word, and dropping it here would silently
+      // discard a value the user supplied and the archive round-trips.
       gender: 'female',
       city: 'Dhahran',
       cc: 'SA',
@@ -205,14 +210,29 @@ describe('ui/profile.js persistence boundary', () => {
     expect(optsFromPayload({ lat: '26.2886', lng: null, tz: null, gender: 'x' })).toEqual({});
   });
 
-  it('rehydrates and clears the gender control through the setGender hook', () => {
+  it('rehydrates and clears the gender control directly (the module owns it since §1.D v0.67)', () => {
+    // The control used to live in ui/kua.js and was driven through a
+    // setGender hook; ui/profile.js owns the node now that the kua block
+    // is deleted, so the round-trip is asserted on the real select.
     const refs = makeRefs();
-    const calls = [];
-    initProfileUI(refs, { setGender: v => calls.push(v) });
+    initProfileUI(refs, {});
     populateRisingFields({ gender: 'female' });
-    expect(calls).toEqual(['female']);
+    expect(getGenderInput()).toBe('female');
     resetFormDisplay();
-    expect(calls).toEqual(['female', '']);
+    expect(getGenderInput()).toBeUndefined();
+    expect(refs.genderSelect.value).toBe('');
+  });
+
+  it('holds the strict two-token vocabulary in both directions', () => {
+    const refs = makeRefs();
+    initProfileUI(refs, {});
+    setGenderInput('male');
+    expect(getGenderInput()).toBe('male');
+    setGenderInput('anything-else');
+    expect(getGenderInput()).toBeUndefined();
+    expect(refs.genderSelect.value).toBe('');
+    refs.genderSelect.value = 'female';
+    expect(getGenderInput()).toBe('female');
   });
 });
 
