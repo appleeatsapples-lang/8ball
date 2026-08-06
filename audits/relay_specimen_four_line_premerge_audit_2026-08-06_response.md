@@ -745,3 +745,100 @@ and the whole-file diff contains no removal beyond those two label lines.
 - local PII audit **clean, 862 files** · `index.html` **1474/1500**
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 6 — audit of `69c77ed`: four bounded findings, all real
+
+**Verdict received:** MERGE WITH FIXES — F1/F2/F3 P2, F4 P3. PASS on every
+originally reported bypass form, no product-runtime or privacy drift,
+v0.71/v0.70 bodies byte-identical, audit and journal additions append-only.
+**After verification: all four CONFIRMED, all four absorbed.**
+
+**Three of the four are defects in the repair v0.72 announced**, so v0.72's
+guarantee — "every SPELLED read fails the suite, wherever it sits" — **was
+false as written**. Corrected additively in §5 v0.73; v0.72 stands unedited.
+
+## F1 — the lexer still swallowed live code
+
+Four sub-forms tested against the real helper. Three were already closed by
+the in-flight repair; **one was live and is the one that matters**, because it
+fires on ordinary code:
+
+| form | before | after |
+|---|---|---|
+| `/\//` after a control head | caught | caught |
+| `/}/`, `/[}]/`, `/{/` | caught (regex kind) | caught |
+| identifier-before-division | correct | correct |
+| **`plain / 2 /* } */`** | **body 43, tokens `[]`** | **body 94, tokens found** |
+
+The live one: the regex-start test matched its keyword alternation
+**unanchored**, so the `in` inside the identifier `plain` made the following
+`/` open a regex. Nobody writes `if (x) /[//]/.test(x)` by accident — but
+everybody writes `plain / 2`. **FIXED** by anchoring the keyword half on an
+identifier boundary, judging punctuation on the last character only, and
+widening the token window so `instanceof` survives.
+
+Also carried in this change (found by the red-team, before this audit landed):
+regex characters became their own lexical kind so a `}` in a regex cannot move
+a brace counter, and control-head parens are tracked so the `)` of `if (...)`
+is distinguished from the `)` of `(a+b)/2`. **Seven counter-cases now pin the
+class, plus a division case pinning the other direction** — because a lexer
+that is too eager swallows real code just as effectively as one that is too
+lax.
+
+## F2 — the guarantee was written broader than the scan reached
+
+The `core/`+`ui/` sweep read only top-level `.js`; the host guard matched only
+the **first** `<script type="module">`. A module in a future subdirectory, or a
+second inline module, would have carried a reader neither saw. Both are flat
+and single today and nothing forbade either.
+
+**FIXED** by doing both things the finding offered rather than choosing:
+the sweep recurses, the host guard concatenates every module block, and the
+scan now asserts it actually reached its corpus — including that every file on
+its own allow-list was visited, so an allow-list entry can no longer point at
+a file the scan never opens. The single-inline-module count is pinned
+separately as a §6 invariant that the guard no longer depends on.
+
+## F3 — v0.72 miscounted its own scope
+
+"Defeated three ways" appears in the amendment heading, the footer entry and
+the changelog bullet, while the amendment enumerates four categories —
+literal-stripping order, brace/comment order, scope, word boundary — across
+five concrete bypasses. **Correct count: four categories, five bypasses.**
+Corrected in v0.73; v0.72's text stands per L17.
+
+## F4 — two assurance claims overclaimed
+
+"They share one function, so they cannot drift apart again" was too strong:
+the host guard and the module sweep share the **classifier and the matcher
+constant**, not one whole function, because they answer different questions (a
+count per file versus which lines carry it). Narrowed to what is true and now
+literally so — the two things that were separately wrong before, how source is
+stripped and what pattern is matched, have exactly one definition each.
+
+And the limits prose named a Unicode-escape bypass (`profile.gender`)
+that **no test asserted**. It now ships as a counter-case beside the other two,
+so the documented limits are all pinned rather than two of three.
+
+## The guarantee, restated
+
+Every SPELLED read fails the suite — anywhere in the host's inline module or in
+any `core/`/`ui/` module outside the three-file input path, **at any nesting
+depth**. It still does not stop an adversary: a runtime-built key, a Unicode
+escape in the property name, and a value-scanning sniff all pass, and no
+lexical check closes that class. The runtime differential over the pure
+surfaces remains the real guarantee; this is the fence around what it cannot
+reach, and it fails closed.
+
+## Verification
+
+- vitest **56 files / 2001 tests green** (1999 → 2001)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1474/1500**
+- L17 re-checked programmatically before commit: the §5 v0.72 clause and the
+  v0.72/v0.71 footer bodies are byte-identical to `69c77ed`; the whole-file
+  diff removes nothing but the two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

@@ -55,7 +55,7 @@ import { entryFor, harmonyFor } from '../ui/meanings.js';
 import { compactReadingProfile } from '../ui/readings.js';
 // Lexical classifier for the inline-render guard — see the header of
 // tests/helpers/js-lex.js for the two regex failures that made it necessary.
-import { COMMENT, classify, functionBody, genderTokens } from './helpers/js-lex.js';
+import { COMMENT, classify, functionBody, genderTokens, startsRegex } from './helpers/js-lex.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -736,28 +736,57 @@ function genderTokensIn(extracted) {
   return genderTokens(extracted);
 }
 
-// Every mention of the identifier in a JS source, comments excluded. Shared
-// by the core/ + ui/ module scan and by the inline-module guard so the two
-// cannot drift — the previous versions used two different regexes and both
-// were separately defeated.
+// Every mention of the identifier in a JS source, comments excluded.
+//
+// The core/+ui/ scan and the inline-module guard share the CLASSIFIER and the
+// matcher constant below, not one whole function — they answer different
+// questions (a count per file, versus which lines carry it). "They cannot
+// drift" would be too strong and an audit said so; what is true is that the
+// two things that were separately wrong before — how source is stripped, and
+// what pattern is matched — now have exactly one definition each.
+// NO word boundary: `getGenderInput()` reads the live control and changes the
+// card while naming no property, and `\bgender\b` could not see it.
+const GENDER_RE = /gender/gi;
+
 function genderMentionsInSource(src) {
   const kind = classify(src);
   let code = '';
   for (let i = 0; i < src.length; i++) code += kind[i] === COMMENT ? ' ' : src[i];
-  return code.match(/gender/gi) || [];
+  return code.match(GENDER_RE) || [];
 }
 
-// index.html's single inline module, lexed, with COMMENT characters blanked
+// Every tracked .js under a directory, RECURSING. The scan read only the top
+// level, so a module in a future `core/x/` or `ui/x/` would have been outside
+// it — an audit flagged that the guarantee was written broader than the scan.
+function jsFilesUnder(dir) {
+  const out = [];
+  for (const entry of readdirSync(join(__dirname, '..', dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...jsFilesUnder(rel));
+    else if (entry.name.endsWith('.js')) out.push(rel);
+  }
+  return out;
+}
+
+// index.html's inline module(s), lexed, with COMMENT characters blanked
 // and everything executable or literal preserved. The module-wide guard runs
 // on this so a reader hidden in any helper — not just renderCard — is caught.
+function inlineModuleBlocks(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  // ALL of them, not the first. The previous version matched a single block,
+  // so a second inline module would have carried a reader the guard never saw.
+  const blocks = [...html.matchAll(/<script\b[^>]*type=(["'])module\1[^>]*>([\s\S]*?)<\/script>/g)]
+    .map(m => m[2]);
+  if (!blocks.length) throw new Error('index.html carries no inline module');
+  return blocks;
+}
+
 function inlineModuleCode(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
-  const m = html.match(/<script type="module">([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('index.html carries no inline module');
-  const src = m[1];
-  const kind = classify(src);
-  let out = '';
-  for (let i = 0; i < src.length; i++) out += kind[i] === COMMENT ? ' ' : src[i];
-  return out;
+  return inlineModuleBlocks(html).map(src => {
+    const kind = classify(src);
+    let out = '';
+    for (let i = 0; i < src.length; i++) out += kind[i] === COMMENT ? ' ' : src[i];
+    return out;
+  }).join('\n');
 }
 
 describe('the optional gender field — no downstream surface reads it', () => {
@@ -847,15 +876,18 @@ describe('the optional gender field — no downstream surface reads it', () => {
       'ui/profile.js',     // the form control and the write seam
       'ui/readings.js',    // the §5.E archive round-trip
     ]);
+    const scanned = [...jsFilesUnder('core'), ...jsFilesUnder('ui')];
     const offenders = [];
-    for (const dir of ['core', 'ui']) {
-      for (const file of readdirSync(join(__dirname, '..', dir))) {
-        if (!file.endsWith('.js')) continue;
-        const rel = `${dir}/${file}`;
-        if (ALLOWED.has(rel)) continue;
-        const hits = genderMentionsInSource(readFileSync(join(__dirname, '..', rel), 'utf-8')).length;
-        if (hits) offenders.push(`${rel} (${hits})`);
-      }
+    for (const rel of scanned) {
+      if (ALLOWED.has(rel)) continue;
+      const hits = genderMentionsInSource(readFileSync(join(__dirname, '..', rel), 'utf-8')).length;
+      if (hits) offenders.push(`${rel} (${hits})`);
+    }
+    // The scan must actually have reached the corpus it claims to cover.
+    expect(scanned.length, 'the recursive scan found no modules — it is not scanning what it claims')
+      .toBeGreaterThanOrEqual(20);
+    for (const allowed of ALLOWED) {
+      expect(scanned, `the allow-list names ${allowed}, which the scan did not reach`).toContain(allowed);
     }
     expect(
       offenders,
@@ -892,7 +924,7 @@ describe('the optional gender field — no downstream surface reads it', () => {
     const lines = inlineModuleCode()
       .split('\n')
       .map(l => l.trim())
-      .filter(l => /gender/i.test(l));
+      .filter(l => new RegExp(GENDER_RE.source, 'i').test(l));
     expect(
       lines.length,
       `index.html gained a gender touchpoint — the field is collected and forwarded, never read:\n${lines.join('\n')}`
@@ -1051,6 +1083,49 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // pinned lines above — a deliberate, reviewed act — not to loosen the
   // matcher. A guard that occasionally asks a human to look is worth far more
   // than one that quietly misses a reader.
+  it('index.html carries exactly ONE inline module — and the guard reads them all anyway', () => {
+    // Both halves matter. The count is a §6 single-file invariant worth
+    // knowing about if it ever moves; the guard no longer DEPENDS on it,
+    // because inlineModuleCode concatenates every block instead of matching
+    // the first — an audit flagged that a second module would have evaded it.
+    expect(inlineModuleBlocks()).toHaveLength(1);
+    const twoBlocks = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')
+      .replace('</script>', `</script>\n<script type="module">const x = p['gender'];</script>`);
+    expect(inlineModuleBlocks(twoBlocks), 'a second inline module is not being read').toHaveLength(2);
+    expect(inlineModuleCode(twoBlocks)).toMatch(/gender/i);
+  });
+
+  it('the lexer resolves regex-vs-division without swallowing live code', () => {
+    // Every case here defeated an earlier version of the lexer, and every one
+    // is ordinary JavaScript rather than an attack.
+    const cases = [
+      ['regex containing a brace', 'function f(p) {\n  s.replace(/\\}/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex character class brace', 'function f(p) {\n  s.replace(/[}]/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex opening brace', 'function f(p) {\n  s.replace(/{/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex after if() with //', 'function f(p) {\n  if (p.x) /[//]/.test(p.x);\n  const { gender } = p; return gender;\n}'],
+      ['regex after if() with /*', 'function f(p) {\n  if (p.x) /[/*]/.test(p.x);\n  const { gender } = p; if (gender) { p.y = 1; }\n  q.replace(/[*\\/]+$/, "");\n}'],
+      ['escaped slash after if()', 'function f(p) {\n  if (p.x) /\\//.test(p.x);\n  const g2 = p.gender ? "f" : "";\n  return g2;\n}'],
+      ['identifier containing a keyword', 'function f(p) {\n  const plain = 4; const r = plain / 2 /* } */;\n  const { gender } = p; return gender ? r : 0;\n}'],
+    ];
+    for (const [name, src] of cases) {
+      const extracted = functionBody(src, src.slice(0, src.indexOf('{') + 1));
+      expect(genderTokensIn(extracted), `${name}: the reader was swallowed`).not.toEqual([]);
+    }
+
+    // …and plain division must NOT be read as a regex, or the lexer swallows
+    // real code in the other direction.
+    const division = 'function f(a) {\n  const inx = 10; const r = inx / 2; const z = a / 3;\n  return r + z;\n}';
+    expect(functionBody(division, 'function f(a) {').body, 'division was lexed as a regex')
+      .toContain('return r + z;');
+    expect(genderTokensIn(functionBody(division, 'function f(a) {'))).toEqual([]);
+
+    // The regex-start decision itself, at the boundary that caused the bug.
+    for (const [tok, expected] of [['plain', false], ['in', true], ['of', true],
+      ['do', true], ['return', true], ['instanceof', true], ['x', false], [')', false]]) {
+      expect(startsRegex(tok), `startsRegex(${JSON.stringify(tok)})`).toBe(expected);
+    }
+  });
+
   it('the module scan catches every spelled form, comments excepted', () => {
     // The scan that covers core/ and ui/, exercised directly. Its previous
     // property-only regex missed the first of these in ui/result.js while the
@@ -1084,6 +1159,9 @@ describe('the optional gender field — no downstream surface reads it', () => {
     const evade = [
       `profile['gen' + 'der']`,
       `Object.values(profile).includes('female')`,
+      // Named in the prose above and previously unasserted, which an audit
+      // caught: `profile.gend\u0065r` is a valid read of the same property.
+      'profile.gend\\u0065r',
     ];
     for (const form of evade) {
       expect(genderTokens({ body: form, kind: classify(form) }), form).toEqual([]);

@@ -25,7 +25,29 @@
 // string forms with escapes, nested template interpolation, and regex literals
 // via the standard previous-significant-token heuristic.
 
-export const CODE = 0, COMMENT = 1, STRING = 2;
+// REGEX is its own kind, not CODE. A regex literal's characters must never be
+// counted as structure: `replace(/\}/g, '')` is ordinary code, and while its
+// `}` was classified CODE it closed renderCard's block 198 characters early
+// and everything below went unscanned. Regex TEXT is still scanned for the
+// identifier (fail closed), it just cannot move a brace counter.
+export const CODE = 0, COMMENT = 1, STRING = 2, REGEX = 3;
+
+// Does a `/` here open a regex literal, judged from the previous significant
+// token? Both halves are ANCHORED, and that is the whole point: an earlier
+// version tested the alternation `…|in|of|do|…` against the whole token, so
+// the `in` inside `plain` matched and `plain / 2 /* } */` lexed as a regex —
+// truncating an extracted body from 90 characters to 43 with a live reader
+// below it. Keywords must match the END of the token on an identifier
+// boundary; punctuation is judged on the last character only.
+const REGEX_AFTER_KEYWORD =
+  /(^|[^A-Za-z0-9_$])(return|typeof|instanceof|case|in|of|do|else|await|void|throw|delete|yield|new)$/;
+const REGEX_AFTER_PUNCT = /[=(,:[!&|?{};+\-*%~^<>]/;
+
+export function startsRegex(prevSig) {
+  if (prevSig === '') return true;                       // start of source
+  if (REGEX_AFTER_PUNCT.test(prevSig.slice(-1))) return true;
+  return REGEX_AFTER_KEYWORD.test(prevSig);
+}
 
 export function classify(src) {
   const kind = new Uint8Array(src.length);
@@ -33,6 +55,10 @@ export function classify(src) {
   // `${...}` interpolation (so its closing `}` returns us to the template).
   const stack = [];
   let i = 0, prevSig = '';
+  // Paren bookkeeping so the `)` of a control head can be told from the `)`
+  // of an expression — the difference between a regex and a division.
+  let parenDepth = 0, afterControlParen = false;
+  const controlHeads = new Set();
   const inTemplate = () => stack.length && stack[stack.length - 1].t === 'tpl';
 
   while (i < src.length) {
@@ -74,33 +100,50 @@ export function classify(src) {
     }
     if (c === '`') { kind[i++] = STRING; stack.push({ t: 'tpl' }); continue; }
 
-    // regex literal, by the standard prev-significant-token heuristic
-    if (c === '/' && /^$|[=(,:[!&|?{};+\-*%~^<>]|return|typeof|case|in|of|do|else/.test(prevSig)) {
-      kind[i++] = CODE;
+    // Regex literal, by the standard prev-significant-token heuristic PLUS the
+    // control-head case: ES permits a regex immediately after the `)` of
+    // `if (...)` / `while (...)` / `for (...)`, where a bare `)` would
+    // otherwise read as division. Missing that let `if (x) /[//]/.test(x)` be
+    // lexed as division-then-line-comment, blanking every live statement to
+    // the end of the line; the `[/*]` form blanked five lines.
+    if (c === '/' && (afterControlParen || startsRegex(prevSig))) {
+      kind[i++] = REGEX;
       let cls = false;
       while (i < src.length) {
         const d = src[i];
-        if (d === '\\') { kind[i++] = CODE; kind[i++] = CODE; continue; }
+        if (d === '\\') { kind[i++] = REGEX; kind[i++] = REGEX; continue; }
         if (d === '[') cls = true;
         else if (d === ']') cls = false;
-        else if (d === '/' && !cls) { kind[i++] = CODE; break; }
+        else if (d === '/' && !cls) { kind[i++] = REGEX; break; }
         else if (d === '\n') break;
-        kind[i++] = CODE;
+        kind[i++] = REGEX;
       }
-      while (i < src.length && /[a-z]/.test(src[i])) kind[i++] = CODE;  // flags
-      prevSig = '/'; continue;
+      while (i < src.length && /[a-z]/.test(src[i])) kind[i++] = REGEX;  // flags
+      prevSig = '/'; afterControlParen = false; continue;
     }
 
     // ordinary code
     kind[i] = CODE;
+    if (c === '(') {
+      parenDepth++;
+      if (/(^|[^A-Za-z0-9_$])(if|while|for|switch|catch|with)$/.test(prevSig)) controlHeads.add(parenDepth);
+      afterControlParen = false;
+    } else if (c === ')') {
+      afterControlParen = controlHeads.delete(parenDepth);
+      parenDepth--;
+    } else if (!/\s/.test(c)) {
+      afterControlParen = false;
+    }
     if (c === '{' && stack.length && stack[stack.length - 1].t === 'sub') {
       stack[stack.length - 1].depth++;
     } else if (c === '}' && stack.length && stack[stack.length - 1].t === 'sub') {
       if (--stack[stack.length - 1].depth === 0) stack.pop();   // back into the template
     }
     if (!/\s/.test(c)) {
+      // 12, not 7: `instanceof` is ten characters and must survive intact
+      // for the anchored keyword test above to see it.
       prevSig = /[A-Za-z0-9_$]/.test(c)
-        ? (/[A-Za-z0-9_$]/.test(prevSig) ? prevSig + c : c).slice(-7)
+        ? (/[A-Za-z0-9_$]/.test(prevSig) ? prevSig + c : c).slice(-12)
         : c;
     }
     i++;
@@ -146,5 +189,7 @@ export function functionBody(src, signature) {
 export function genderTokens({ body, kind }) {
   let out = '';
   for (let i = 0; i < body.length; i++) out += kind[i] === COMMENT ? ' ' : body[i];
-  return out.match(/\bgender\b/gi) || [];
+  // NO word boundary: `getGenderInput()` reads the live control and changes
+  // the card while naming no property, and `\bgender\b` could not see it.
+  return out.match(/gender/gi) || [];
 }

@@ -5,6 +5,58 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The repair needed repairing; `plain / 2` was the tell — STAGED
+
+**Four bounded findings, all four real, and three of them are defects in the
+repair v0.72 announced.** So v0.72's guarantee — "every SPELLED read fails the
+suite, wherever it sits" — was false as written. Corrected additively in v0.73;
+v0.72 stands unedited, and I checked that programmatically before committing
+rather than after being told.
+
+**The finding worth keeping.** My regex-start test matched its keyword
+alternation **unanchored**, so the `in` inside the identifier `plain` made the
+next `/` open a regex: `plain / 2 /* } */` truncated a 94-character body to 43
+and hid a live reader below it. Every adversarial case the red-team threw at
+this guard needed contrived code — `if (x) /[//]/.test(x)` is not something
+anyone writes. **`plain / 2` is.** The dangerous bug was not the clever bypass;
+it was the ordinary expression the clever bypass distracted me from, and it was
+sitting in the same regex I had just rewritten to be more careful.
+
+The other two lexer forms were already closed by work in flight when the audit
+landed: a `}` inside a regex was counted as structure (so `replace(/\}/g, '')`
+truncated extraction — again ordinary code), and a regex after `if (...)` read
+as division so its `//` opened a comment. Regex characters are now their own
+lexical kind, control-head parens are tracked, and **seven counter-cases pin
+the class plus a division case pinning the other direction** — a lexer that is
+too eager swallows real code just as effectively as one that is too lax.
+
+**The scan's reach was narrower than the sentence describing it.** `core/` and
+`ui/` were read top-level only, and the host guard matched only the FIRST
+inline module block. Both are flat and single today; nothing forbade either. I
+did both remedies rather than picking one: recurse, read every block, and make
+the scan assert it reached its own allow-list — so an allow-list entry can no
+longer name a file the scan never opens.
+
+**Two claims of mine were simply too big.** "They share one function, so they
+cannot drift" — they share the classifier and the matcher constant, not one
+function. And the limits prose named a Unicode-escape bypass that no test
+asserted; two of three documented limits were pinned and the third was prose. A
+limitation you have not tested is a guess about your own tool.
+
+**And v0.72 miscounted itself** — "defeated three ways" in three places while
+enumerating four categories across five bypasses.
+
+The pattern from three entries ago has not stopped: the substance keeps being
+right and the *method* keeps being the defect. What is different this round is
+that the L17 check ran before the commit, unprompted, and the counter-cases now
+cover both directions rather than only the one I was worried about.
+
+Suite **56 files / 2001 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1474/1500**
+· DOCTRINE at **v0.73**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — The guard failed twice more, then a red-team found three more — STAGED
 
 **One P2 residual, confirmed, plus three further holes an adversarial pass
