@@ -5,6 +5,56 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The sentence declaring the error fixed contained the error — STAGED
+
+**One P2, and it is the same defect for the fourth time.** Addendum 10's table
+declared v0.73's rendering of the Unicode bypass "correct" — and rendered it
+**without its backslash, in that same row**. So v0.77's claim, written in the
+same change, that "only addenda 6 and 7 printed the malformed form" was false
+at the moment I wrote it. Addendum 10 was one of them.
+
+Scanning every `profile.gend` occurrence in the artifact — rather than
+re-reading the passage — turned up **a second site the audit had not flagged**:
+Addendum 8's own erratum, the one headed *"this is the correction"*, renders it
+bare in its prose too. The true count is three: addenda 6, 8 and 10.
+
+**Four attempts, each a careful re-reading, each producing the same defect.**
+Addendum 6 printed it bare. Addendum 8 said "this is the correction" and
+printed it bare. Addendum 10 declared the matter settled and printed it bare.
+v0.77 then described that history wrongly. **A missing backslash is invisible
+to the kind of review I kept applying to it** — I was checking whether the
+sentence said the right thing, and it always did; the bytes were what differed.
+
+So it is no longer left to prose. `tests/prose_coordinate_count.test.js` now
+requires every line naming `profile.gend` in DOCTRINE, this journal and the
+audit artifact to carry the real escape sequence, or to appear verbatim on an
+allowlist of lines that deliberately render the ordinary read. Removing one
+backslash reds the suite; the pin also asserts its own constant holds a `0x5c`
+at the right offset, so it cannot pass vacuously against bare prose. It earned
+its keep immediately — writing this entry and v0.78 tripped it twice, and both
+new lines had to be reviewed and allowlisted on purpose.
+
+**One thing done differently, and disclosed.** The two malformed sites were
+repaired **in place**, which is not the append-only posture used everywhere
+else this cycle. Narrowly justified: each sentence had already declared its
+intent in words while its glyphs contradicted it, so restoring the glyph
+revises no finding, verdict or count. Verified with `od -c` and an exact
+fixed-string match — not by reading, which is the check that failed four times.
+
+**What this run has actually taught me.** The fixes have been right throughout;
+the failures have all been one layer up — in the sentence, the fixture, the
+citation, the rendering. And the correction mechanism I trusted for all of them
+was *reading more carefully*, which is exactly the mechanism that cannot see a
+missing byte. **When the same defect survives three corrections, stop
+correcting it and go pin it.** That is the only step here that changed the
+outcome rather than the wording.
+
+Suite **56 files / 2012 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1477/1500**
+· DOCTRINE at **v0.78**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — I rebuilt the guard on the tool I'd already condemned — STAGED
 
 **The finding I should have anticipated.** Two amendments ago I wrote that a

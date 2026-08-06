@@ -855,7 +855,7 @@ original counter-case battery passes.
 
 Addendum 6 says the limits prose named a Unicode-escape bypass "(`profile.gender`)".
 **That is a transcription error.** The bypass, and the fixture that ships for it,
-is `profile.gender` — an escaped `e` inside the property name, which is a
+is `profile.gend\u0065r` — an escaped `e` inside the property name, which is a
 valid read of the same property while containing no literal `gender` substring.
 Written as `profile.gender` the sentence describes an ordinary read that every
 guard catches, which inverts the point. Addendum 6 stands unedited; this is the
@@ -1143,7 +1143,7 @@ and the addenda. **Both are wrong.** Verified line by line:
 | site | renders |
 |---|---|
 | v0.72 (`DOCTRINE.md:456`) | **no example at all** — names the class generically |
-| v0.73 (`:471`) | `profile.gender` — **correct** |
+| v0.73 (`:471`) | `profile.gend\u0065r` — **correct** |
 | v0.74 (`:482`) | `profile.gender` — but this is its **separate spread/regex repro**, a different bypass |
 | v0.74 (`:493`) | **no example at all** |
 | Addenda 6, 7 | the malformed Unicode form |
@@ -1168,5 +1168,83 @@ pre-rename `opts.gender = g`. Both corrected.
 - local PII audit **clean, 862 files** · `index.html` **1477/1500**
 - L17 verified before commit: the §5 v0.76 clause and its footer body are
   byte-identical to `657d4de`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 11 — audit of `d1c93e4`: Addendum 10 did the thing it said only others did
+
+**Verdict received:** MERGE WITH FIXES — one P2 truth defect.
+**CONFIRMED at byte level, repaired, and pinned so it cannot recur.**
+
+## The defect
+
+Addendum 10's table declared v0.73's rendering "correct" — and rendered it
+**without its backslash**, in the same row. Its bytes held no `0x5c`. An exact
+fixed-string search for the escaped form found Addendum 8 and not Addendum 10.
+
+So v0.77's claim, written in the same change — "only audit addenda 6 and 7
+printed the malformed form" — was **false on arrival**.
+
+**A second site the audit did not flag.** Addendum 8's own erratum, the one
+headed "this is the correction", says *"The bypass, and the fixture that ships
+for it, is …"* and renders it bare too. Found by scanning every
+`profile.gend` occurrence in this file rather than by re-reading the passage.
+**The true count is three: addenda 6, 8 (in prose) and 10.**
+
+## Repair, and why it is in place rather than appended
+
+Both sites now hold a real `0x5c`, confirmed with `od -c` and an exact
+fixed-string match — not by reading, which is precisely the check that failed
+four times running.
+
+This is an **in-place byte repair**, which is not the append-only posture used
+everywhere else in this cycle. It is deliberate and narrow: each sentence had
+already declared its intent in words — "correct", "what the fixture actually
+contains" — while its glyphs said the opposite. Restoring the glyph to the
+stated intent revises no finding, verdict or count. Disclosed here rather than
+done silently.
+
+## Why prose review was never going to fix this
+
+Four attempts, each a careful re-reading:
+
+| attempt | outcome |
+|---|---|
+| Addendum 6 | printed it bare |
+| Addendum 8's erratum | "this is the correction" — printed it bare in prose |
+| Addendum 10 | declared the matter settled — printed it bare a third time |
+| §5 v0.77 | described that history wrongly |
+
+**A missing backslash is invisible to the kind of review that keeps being
+applied to it.** So it is no longer left to prose.
+`tests/prose_coordinate_count.test.js` now requires that every line naming
+`profile.gend` in DOCTRINE, the journal and this artifact either carries the
+real escape sequence **or** appears verbatim on an allowlist of lines that
+deliberately render the ORDINARY read — the historical error being quoted, or
+the unrelated spread repro. Verified by counterfactual: removing one backslash
+reds the suite. The pin also guards itself, asserting its own constant holds a
+`0x5c` at the right offset, so it cannot pass vacuously against bare prose.
+
+## The record, corrected
+
+| site | renders |
+|---|---|
+| §5 v0.72, v0.74 | no Unicode example at all |
+| §5 v0.73 | `profile.gend\u0065r` — correct |
+| addenda 6, 8 (prose), 10 | malformed — now repaired |
+| §5 v0.75, v0.76, v0.77 | each mis-stated part of the above; all stand unedited per L17 |
+
+Corrected additively in §5 v0.78.
+
+## Verification
+
+- vitest **56 files / 2012 tests green** (2008 → 2012)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1477/1500**
+- L17: the §5 v0.77 clause and its footer body are byte-identical to
+  `d1c93e4`; nothing removed but two demoted labels. `d1c93e4` is not amended.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
