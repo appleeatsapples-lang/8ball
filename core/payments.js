@@ -217,7 +217,7 @@ export function maxTier(a, b) {
  * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
- * @returns {string} 'free' | 't1' | 't2' | 't3' | 't5'
+ * @returns {string} 'free' | 't1' | 't2' | 't3'
  */
 export function resolveRenderTier({ tier, credits }) {
   const cleanCredits = normalizeCounter(credits);

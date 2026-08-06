@@ -83,10 +83,12 @@ export function optsFromPayload(obj) {
   if (obj.country) opts.country = obj.country;
   if (typeof obj.lat === 'number') opts.lat = obj.lat;
   if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  // Calc-driving (the kua block reads profile.gender), so it MUST forward
-  // here — unlike display-only city/cc. A field present in saveProfile but
-  // absent here would make cold-boot recompute a different reading than
-  // the fresh submit (§5 recompute-on-load).
+  // Forwarded because it is USER-ENTERED and persisted, not because any
+  // surface reads it: §1.D v0.67 deleted the kua block, so gender has NO
+  // consumer and is retained by operator word alone. Dropping it here
+  // would silently discard a value the user supplied and the archive
+  // round-trips. It drives no coordinate (§5 recompute-on-load is
+  // unaffected either way).
   if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;
   return opts;
 }

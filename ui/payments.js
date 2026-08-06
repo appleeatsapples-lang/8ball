@@ -204,7 +204,7 @@ export function getFacetSlot(lifePath) {
   return FACET_SLOTS[stored === null ? anchorFacetIndex(lifePath) : stored];
 }
 // The note slot a FRESH standalone profile would show — never reads the
-// stored position. §1.J's second person (dyad `t5`) is never anchored,
+// stored position. §1.J's second person (the comparative) is never anchored,
 // rotated or persisted (§5.F), so resolving their note through getFacetSlot
 // would apply THIS DEVICE's stored position (anchored or since rotated by A)
 // to a life path it was never computed for (PR #187 R2). A fresh profile's

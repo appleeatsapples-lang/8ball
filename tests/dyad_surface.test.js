@@ -149,13 +149,26 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
     expect(Object.values(CELL_COORD)).not.toContain('dyadRelation');
   });
 
-  it('the fold changes no sheet cell — every compartment renders as it did at t3', () => {
+  it('the fold changes no sheet cell — t3 entitles every compartment, and none maps to the block', () => {
+    // This assertion previously compared cellRenderState(...) WITH ITSELF —
+    // a tautology that could never fail, the same false-green class PR #187
+    // F7.1 caught on newlyEntitledCells. Caught here by the grok pre-merge
+    // audit. It now pins the actual property: at t3 every compartment is
+    // ENTITLED (so none is sealed), and no compartment is keyed to the
+    // dyadRelation block, which is what makes the fold census-neutral.
+    const coords = coordsForTier('t3');
     for (const key of CELL_KEYS) {
-      const entitled = coordsForTier('t3').has(CELL_COORD[key]);
-      expect(cellRenderState(A, key, entitled), key).toEqual(cellRenderState(A, key, entitled));
-      // dyadRelation is not a compartment, so no cell's entitlement moved
-      expect(CELL_COORD[key]).not.toBe('dyadRelation');
+      expect(coords.has(CELL_COORD[key]), `${key} must be entitled at t3`).toBe(true);
+      expect(CELL_COORD[key], `${key} must not be keyed to the block`).not.toBe('dyadRelation');
+      // entitled ⇒ never sealed; a complete profile resolves to a value
+      const state = cellRenderState(A, key, true).state;
+      expect(state, `${key} must not be sealed at t3`).not.toBe('sealed');
+      expect(['value', 'unres']).toContain(state);
     }
+    // ...and an UNENTITLED render of the same cell IS sealed — proving the
+    // assertion above discriminates rather than passing on any input.
+    expect(cellRenderState(A, 'hourPillar', false).state).toBe('sealed');
+    expect(cellRenderState(A, 'hourPillar', false).text).toBe('');
   });
 
   it('the sheet is complete at t3, and the comparative adds no compartment to unseal', () => {

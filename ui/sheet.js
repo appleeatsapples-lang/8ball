@@ -1,6 +1,7 @@
 // 8ball / ui / sheet.js — a complete standalone specimen sheet, instanced
 //
-// WHY THIS EXISTS. The dyad (§1.J, t5) sells "A's standalone reading + B's
+// WHY THIS EXISTS. The dyad (§1.J, entitled at t3 since §1.D v0.68) sells
+// "A's standalone reading + B's
 // standalone reading + a relation layer". The first implementation rendered a
 // bespoke two-column coordinate table instead, and a Codex pre-merge audit
 // (PR #187, finding F5) correctly refused it: a narrowed table is not the

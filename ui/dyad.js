@@ -1,4 +1,5 @@
-// 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J, tier t5)
+// 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J; entitled at t3
+// since §1.D v0.68 folded the comparative into the $3 rung and retired t5)
 //
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initDyadUI({refs}, {hooks}) injection point below, no module-level DOM
@@ -10,13 +11,13 @@
 // NOT MERGE. Four of its eight findings landed here; each is named at the code
 // that answers it.
 //
-// ── F2 · WHAT t5 BUYS, AND WHEN THE SCREEN EXISTS AT ALL ──────────
+// ── F2 · WHAT THE ENTITLED RUNG BUYS, AND WHEN THE SCREEN EXISTS ──
 // The first version injected the entry control on every rendered result and
 // gated only the relation passages, so a free device could open the form,
 // submit a second person, and receive their sheet at free density; a t3 device
-// received person B's COMPLETE sheet for nothing. DOCTRINE §1.D v0.61 says t5
+// received person B's COMPLETE sheet for nothing. DOCTRINE §1.D v0.68 says t3
 // buys a second complete sheet PLUS the relation layer. The code now says the
-// same thing: `dyadEntitled(tier)` is a single predicate, and below t5 the
+// same thing: `dyadEntitled(tier)` is a single predicate, and below it the
 // entry control is absent, `open()` refuses, `submitSecond()` refuses, and
 // `render()` produces nothing. There is no partial dyad.
 //
@@ -61,7 +62,7 @@ import { todayIsoLocal } from './profile.js';
 // retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
 // deliberately NOT sufficient on its own to make the rung buyable: entry
 // visibility (`dyadEntryVisible`, below) is entitlement-only and does not
-// react to it (PR #187 R6 — a prior draft made the entry visible below t5
+// react to it (PR #187 R6 — a prior draft made the entry visible below the rung
 // once this was non-empty, with no click path behind it, a visible dead
 // button). Turning the rung commercially live needs a real offer path shipped
 // as its own change; this constant alone stays inert until that exists.
@@ -72,7 +73,7 @@ export const T5_PRODUCT_URL = '';
 /**
  * Does this device own the dyad? ONE predicate, consulted by every gate, so
  * the entry control, the submit path and the render cannot disagree about
- * what t5 sells (PR #187 F2 — they did).
+ * what the rung sells (PR #187 F2 — they did).
  */
 export function dyadEntitled(tier) {
   return coordsForTier(tier).has('dyadRelation');
@@ -82,14 +83,14 @@ export function dyadEntitled(tier) {
  * Should the entry control exist on the result rail?
  *
  * Only for a device that owns the rung (DOCTRINE §1.J "entitlement is
- * all-or-nothing... below t5 the entry control is absent"). This does NOT
- * react to `T5_PRODUCT_URL`: a prior draft showed the control below t5 once
+ * all-or-nothing... below the entitled rung the entry control is absent"). This does NOT
+ * react to `T5_PRODUCT_URL`: a prior draft showed the control below the rung once
  * that constant was non-empty, but the click handler still only knew how to
  * `open()` the screen an unentitled device cannot use — a visible button with
- * no reachable checkout behind it (PR #187 R6). A real below-t5 offer needs
+ * no reachable checkout behind it (PR #187 R6). A real below-rung offer needs
  * its own coherent click path (e.g. a checkout redirect) designed and shipped
  * together with the control that triggers it, not a second condition bolted
- * onto this predicate. Until that ships, the entry stays absent below t5,
+ * onto this predicate. Until that ships, the entry stays absent below t3,
  * full stop.
  */
 export function dyadEntryVisible(tier) {
@@ -457,7 +458,7 @@ export function initDyadUI(refs, hooks) {
   return _root;
 }
 
-/** Open the dyad screen. Refuses below t5 — the screen is the product. */
+/** Open the dyad screen. Refuses below t3 — the screen is the product. */
 export function open() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
@@ -609,7 +610,7 @@ export function submitSecond() {
 /**
  * Render both standalone sheets and the relation layer.
  *
- * Below t5 this produces nothing at all — not a sealed preview, nothing. The
+ * Below t3 this produces nothing at all — not a sealed preview, nothing. The
  * screen is unreachable there by three independent gates, and this is the
  * last of them.
  */

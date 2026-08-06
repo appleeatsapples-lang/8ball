@@ -1,4 +1,5 @@
-// 8ball / core / dyad.js — the dyad relation layer (DOCTRINE §1.J, t5)
+// 8ball / core / dyad.js — the dyad relation layer (DOCTRINE §1.J;
+// entitled at t3 since §1.D v0.68 retired t5)
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no storage, no
 // model call at runtime or at any other time: every value below is a lookup
@@ -23,7 +24,7 @@
 // rule — it CALLS both, on each profile separately, exactly as the single
 // render does. It computes no new coordinate for either person: the catalog
 // index, the bracket, the day master and the life path are all values the
-// single sheet already carries. What t5 adds is the relation BETWEEN two
+// single sheet already carries. What the comparative adds is the relation BETWEEN two
 // sheets, which is why §1.J files it as a block and the §1.F census does not
 // move (see ui/tiers.js T5_COORDS).
 //
@@ -314,7 +315,7 @@ export function bracketPair(lifePathA, lifePathB) {
  * NO deck string is read. The catalog numerals are positional output of
  * getCard, and both passages come through active content/dyad.v2.js from its
  * immutable v1 relation tables — so the t3
- * written entry is not given away, recombined, or paraphrased at t5.
+ * written entry is not given away, recombined, or paraphrased here.
  */
 export function cardPair(profileA, profileB) {
   const branch = branchRelation(profileA.animal, profileB.animal);
@@ -337,7 +338,7 @@ export function cardPair(profileA, profileB) {
  *
  * Returns `{ a, b, relation }`. `a` and `b` are the SAME objects handed in —
  * not copies, not rebuilt — so each side is byte-identical to the standalone
- * reading by construction. `relation` is the t5 layer and the only thing this
+ * reading by construction. `relation` is the comparative layer and the only thing this
  * module authors a shape for.
  *
  * Throws a TypeError on anything that is not a pair of calculated profiles,

@@ -47,8 +47,9 @@ const DEFAULT_PNG_NAME = '8ball-specimen.png';
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
 // Row positions are computed from the row count (the stack distributes
-// evenly between STACK_TOP and STACK_BOTTOM). v0.39: all 8 rows render at
-// every tier (the full sheet); the geometry still holds 1..8 rows by count.
+// evenly between STACK_TOP and STACK_BOTTOM). v0.39: every row renders at
+// every tier (the full sheet); the geometry is driven by SHARE_ROWS.length
+// (four system lines since §1.L), not a fixed count.
 const CARD_W = 320;
 const CARD_H = 480;
 const SCALE = 3;
@@ -69,7 +70,7 @@ const RULE = '#737373';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status, catalog, symbols: [...] } — the eight row snapshot
+// refs:  { btn, status, catalog, symbols: [...] } — the per-row snapshot
 //        refs from ui/tiers.js shareRowRefs(), in DOM order. Each exposes
 //        { title, cells: [{state, value}] } read from live cell state;
 //        sealed cells carry no value (§5.D v0.39). The full sheet renders.

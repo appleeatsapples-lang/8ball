@@ -5,6 +5,78 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Pre-merge audit absorbs (grok lane); codex lane FAILED — STAGED
+
+**Lane outcome first, because it qualifies everything below.** The
+triple-force run (`~/ai-relay/runs/20260806-042710-8ball`, 5,375 diff
+lines) delivered **one reviewer, not three**. grok completed a full
+adversarial review. **codex failed** — its response file is the echoed
+prompt and diff ending in `ERROR ... timeout_ms must be at least 10000`,
+with no verdict; the "verdict" strings inside it are this repo's own
+prior audit artifacts being quoted back by the diff, not codex's
+opinion. **The claude reconciliation also failed** — `RECONCILIATION.md`
+is 0 bytes, almost certainly because codex's 1.4MB output exhausted its
+context. Recorded plainly: a partial audit that reads like a full one is
+worse than no audit, and L48 is NOT satisfied by one lane.
+
+**Verdict (grok): MERGE WITH FIXES.** "No sealed-value leak, entitlement
+bypass, or moon/ΔT correctness bug found. Ship-blocking risk is false
+orientation claims + one test that no longer asserts anything." All six
+findings absorbed.
+
+**The finding that matters most is mine.** The rewritten dyad pin read
+`expect(cellRenderState(A,key,entitled)).toEqual(cellRenderState(A,key,entitled))`
+— the same value compared with itself, a tautology that can never fail.
+I wrote it while inverting that test for the comparative fold. **This
+repo already recorded this exact failure mode**: PR #187 F7.1 caught the
+identical self-comparison on `newlyEntitledCells`, and it is in the
+standing memory as "a differential test that calls one shared function
+twice proves nothing." I repeated it anyway. The replacement pins the
+real property (at t3 every compartment is entitled, none sealed, none
+keyed to the block) and carries a discriminating counter-case, so it
+fails in either direction.
+
+**The second-worst was a half-edit, also mine.** `8BALL.md:77` had its
+header updated to "three-rung ladder (§1.D as amended through v0.68)"
+while the body still listed `t5 = + a second complete sheet` as live,
+omitted moon from t1, and omitted the public read and comparative from
+t3. A header and body that disagree are worse than either being
+uniformly stale — grok called it "the partial edit class." Fixed across
+all three clauses.
+
+**Also absorbed.** Stale "below t5" / "tier t5" comments across
+`ui/dyad.js` (12 sites) plus `core/dyad.js`, `ui/sheet.js`,
+`ui/tiers.js`, `ui/payments.js` — runtime was correct, but grok named
+the risk exactly: "next edit can 'restore' a t5 check and re-break F2."
+Two comments in `ui/profile.js` and `ui/readings.js` still called gender
+"calc-driving (the kua block reads profile.gender)" — asserting a
+purpose the field lost at §1.D v0.67, the precise error the operator's
+instruction forbids; both now state it is forwarded because it is
+user-entered and persisted, with NO reader. A second `@returns` in
+`core/payments.js` still advertised `'t5'` (an earlier fix caught only
+the first, differently-formatted one). `ui/share.js` comments still said
+"8 rows" when the geometry is driven by `SHARE_ROWS.length`.
+
+**A gotcha worth recording:** the PII scanner forbids the literal token
+`SIRR` in tracked files — the audit artifact tripped it merely by saying
+"no SIRR" in its process note. The guard is correct (§9 says never
+reference it); the artifact was reworded.
+
+**What grok checked and passed:** the ch.47 moon math and the ΔT fix
+("complete, not decorative"), the kua deletion leaving no runtime
+reference, per-cell sealed-DOM purity, the a11y name carrying no sealed
+value, ATLAS covering all 15 cells, and the t5→t3 fold's superset
+migration with F2 gates rewritten rather than weakened.
+
+**Verification.** Suite 54 files / 1904 tests green · product audit PASS
+13/0/1/0 · local PII clean (855 files) · index.html 1466/1500 · residual
+scan for `below t5` / `tier t5` / `calc-driving` in `ui/` and `core/`
+returns nothing.
+
+**Open:** a second independent lane has not read this branch. Artifact:
+`audits/relay_specimen_four_line_premerge_audit_2026-08-06_response.md`.
+STAGED; no push, no PR touched, no storefront mutation.
+
 ## 2026-08-06 — Ten-pass refinement (§1.L/§1.M/§1.D v0.68 surfaces) — STAGED, audit pending
 
 **What this was.** Ten evidence-based review passes over the branch at

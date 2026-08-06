@@ -163,8 +163,8 @@ export function coordsForTier(tier) {
  * base (16) matches the product-wide "five coordinates" free framing
  * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5, unchanged —
  * `moon` joins t1, not free). Blocks are excluded — cardEntry, publicRead
- * and dyadRelation are not coordinates, so t3 and t5 return the identical
- * census.
+ * and dyadRelation are not coordinates, so carrying them leaves t3's
+ * census unmoved.
  * open = open cells + catalog · sealed = sealable cells still hidden · total = 16.
  * Returns { open, sealed, total }.
  */
