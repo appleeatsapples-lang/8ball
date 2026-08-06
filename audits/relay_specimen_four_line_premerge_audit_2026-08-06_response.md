@@ -316,3 +316,123 @@ controller's word. The L48 second-lane gap this artifact was opened to
 record is now closed; what replaces it is a narrower open item — the
 relay's codex adapter should pass `-o/--output-last-message`, or every
 future codex lane will keep returning transcripts instead of verdicts.
+
+---
+
+# ADDENDUM 2 — the offer/measurement delta, reviewed and absorbed
+
+**Scope reviewed:** `fe946fb..73bac41` — the five commits this cycle added
+(offer copy, gender disclosure, measurement contract, artifacts).
+**Verdict received:** MERGE WITH FIXES, 7 findings (4×P1, 3×P2).
+**Verdict after verification: all 7 CONFIRMED. All 7 absorbed.**
+
+**Nothing was rejected this round**, which is itself worth recording: the
+previous addendum rejected 6 of 14 as artifacts of a path-scoped corpus. This
+lane was given the whole delta and its hit rate went to 100%. That is the
+clearest evidence available that the corpus boundary, not the reviewer, was
+the problem — and it retires the "verify everything because half of it is
+phantom" posture in favour of "verify everything because that is the rule".
+
+Each finding was verified by an agent required to REPRODUCE or refute it
+against the files rather than reason from its description. Three findings had
+proposed fixes that were wrong in a way worth recording.
+
+## The two that were real defects in shipped behaviour
+
+**F1 — `ui/dyad.js` recorded `comparative_opened` before the screen opened.**
+The record sat after the first entitlement gate but before `_hooks.onOpen()`
+and before `open()` — and `open()` carries its OWN gate, returning `false`
+without touching the DOM. `currentTier()` was also called twice, so the record
+could name a rung the gate never checked. Reproduced by driving the real
+listener through a fake DOM: a throwing host hook and a mid-handler tier
+change each emitted `{comparative_opened, t3}` with the screen still hidden.
+**FIXED:** one tier snapshot, hook, then `if (!open()) return;` before the
+record. **Severity honestly low, not P1:** the shipped `onOpen` is a single
+`classList` write on a static element and cannot throw; the stored tier is
+monotonic with no clearing path; and the sink is null with no collector, so no
+number anywhere was ever wrong. Fixed because it is three lines and the
+contract is entirely about when a thing is counted.
+
+**F3 — `tests/css_structure.test.js` was blind to the shape it was written
+for.** Its `preludes()` scan reset at every `}` without examining what it had
+accumulated, so a malformed rule that is the LAST rule in a block was never
+handed to any check. The lane's counterexample —
+`@media(max-width:480px){.victim, height:0;}` — passed brace balance, the
+declaration-leak check and the dangling-comma check, while a real CSS engine
+dropped `.victim` entirely. **This is the same class as the bug the file was
+created to catch, one nesting level down.** FIXED with a block-aware scan that
+tracks whether each open block holds rules or declarations, plus the assertion
+the heuristics could not express: *text in a rule position that no `{` opens*.
+**21 fixtures added** — 7 malformed shapes it must catch, 14 legal ones it must
+not flag (`:has()` chains, `rgba()` commas, `grid-template-areas`,
+`@keyframes`, a brace inside a string). A checker that only reports green on
+good input proves nothing about itself.
+
+## The one that was a claim this repo had just finished making
+
+**F2 — three of four call-site tests matched SOURCE TEXT while the file header
+and DOCTRINE §5 v0.70 both said all four were driven against real functions.**
+One of those string matches was pinning the exact call ordering F1 proves
+wrong — a test asserting the defect. FIXED by driving three of them with
+harnesses that already existed (`tests/dyad_surface.test.js` `harness()`;
+`tests/share_behavior.test.js`, which already boots the real `onShare()` end to
+end), covering the refusal paths as well as the happy ones. The dyad drive was
+counterfactually checked: reintroducing F1 reds two of the new tests.
+
+`reading_completed` **cannot** be driven — `renderCard` lives inside
+`index.html`'s single inline module and nothing in `tests/` evaluates it.
+Extracting it would refactor the §6 single-file posture for a call site nobody
+disputes, so it stays a source pin, is **labelled** one, and both overclaiming
+sentences were corrected. Claiming behavioural coverage one does not have is
+the same defect as the false greens this cycle spent its time deleting.
+
+## The four documentation/precision findings
+
+- **F4** — version metadata still read v0.68 with two amendments landed.
+  Promoted to v0.70, v0.69 as prior, older entries demoted to superseded with
+  bodies byte-identical per L17.
+- **F5** — "nothing reads gender" was false. `saveProfile`, `optsFromPayload`,
+  `populateRisingFields`, the archive round-trip and `buildProfile` all read
+  it; every one is persistence or rehydration, none is a **calculation or
+  output reader**. That is the precise form and the precision is load-bearing,
+  because the easier sentence is the false one. The differential also only
+  compared `buildProfile` OUTPUT, so a reader added downstream would have
+  stayed green — a second differential now compares what the profile
+  **produces** (`getCard`'s catalog cell, `cellRenderState` over every
+  compartment at full entitlement), both directions, with vacuity guards.
+- **F6** — the storefront draft overclaimed: "your reading never leaves your
+  browser" and "there is no server" are both false, because share deliberately
+  exports the sheet and the feedback form posts (§5.B's two permitted
+  user-initiated calls). Rewritten to the product's own boundary — *nothing
+  leaves on its own* — naming the three things that travel and only when
+  pressed. **The name/DOB clause was NOT hedged**: it is unconditionally true
+  under §5.D and both §5.B calls, and is the strongest line in the section.
+- **F7** — the plan called `reading_completed` "the denominator" and never
+  wrote a formula. Three rates added with their tier restrictions, plus what
+  the payload makes uncomputable (not a funnel, not per person, not a cohort,
+  not attribution). The finding's second half — restate "no collector" — was
+  **declined**: it is already stated four times and a fifth is churn.
+
+## Fixes deliberately NOT made, with reasons
+
+- **Extracting `renderCard`** into a `ui/` module to make it testable (F2) —
+  a §6 posture refactor for an undisputed call site.
+- **A rollback path when `open()` returns false** (F1) — dead code under a
+  monotonic tier.
+- **Aiming the gender differential at `ui/share.js`** (F5) — that module
+  imports nothing and never receives a profile; it serializes DOM refs, so it
+  is covered transitively.
+- **A fifth restatement of "no collector"** in the plan (F7).
+
+## Verification after absorption
+
+- vitest **56 files / 1970 tests green** (1936 → 1970, +34)
+- `audits/project_audit.py` **PASS 13 / 0 / 1 / 0**
+- local PII audit **clean, 861 files**
+- `index.html` **1474/1500**
+- **Browser re-verified**: `comparative_opened` fires with the dyad screen
+  actually revealed and the result screen hidden; a refused tap at t1 emits
+  nothing and the entry control is absent. No console errors.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation. Merge
+remains the controller's word.

@@ -5,6 +5,83 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Codex read the offer/measurement delta: 7 findings, 7 real — STAGED
+
+**Seven findings, all seven confirmed, none rejected.** The previous round
+rejected 6 of 14 as artifacts of a path-scoped corpus. This lane got the whole
+delta and its hit rate went to 100%. That is the cleanest evidence I could
+have asked for that the corpus boundary was the problem and not the reviewer,
+and it settles how to run this lane: whole corpus, always.
+
+Each finding went to an agent required to REPRODUCE or refute it against the
+files rather than reason from its description. Three arrived with proposed
+fixes that were wrong in a way worth recording.
+
+**Two were real defects.** `ui/dyad.js` recorded `comparative_opened` before
+`onOpen()` and before `open()` — and `open()` carries its own entitlement gate
+and returns false without touching the DOM, so a throwing hook or the second
+gate could count a screen that never opened. The verifier drove the real
+listener and produced the phantom record twice. I had rated my own comment
+"recorded AFTER the entitlement gate" as sufficient; it was true and
+irrelevant, because the gate is not the thing that opens the screen. Honestly
+low severity — the shipped `onOpen` is a classList write that cannot throw,
+the tier is monotonic, and the sink is null — but it is three lines and the
+whole contract is about *when* a thing is counted.
+
+The second is worse in kind: **`tests/css_structure.test.js` was blind to the
+shape it was written for.** Its scan reset at every `}` without examining what
+it had accumulated, so a malformed rule that is the LAST in a block was never
+checked. `@media(max-width:480px){.victim, height:0;}` passed all three of my
+assertions while Blink dropped `.victim` entirely. I wrote that file two
+commits ago specifically to pin this class, and it caught the instance and
+missed the class one nesting level down. Replaced with a block-aware scan plus
+the assertion the heuristics could not express — text in a rule position that
+no `{` opens — and 21 fixtures, 7 malformed shapes it must catch and 14 legal
+ones it must not flag. **A checker that only ever reports green on good input
+proves nothing about itself**, which is the lesson I should have taken the
+first time.
+
+**One was a claim I had just finished making.** Three of four call-site tests
+matched source text while the file header AND DOCTRINE §5 v0.70 both said all
+four were driven against the real functions. One of those string matches was
+pinning the exact call ordering the dyad defect proves wrong — a test
+asserting the bug. Now driven, with harnesses that already existed
+(`tests/share_behavior.test.js` already boots the real `onShare()` end to
+end — I had not looked). `reading_completed` genuinely cannot be driven:
+`renderCard` is inside index.html's inline module and nothing evaluates it.
+So it stays a source pin, is **labelled** one, and both overclaiming sentences
+are corrected. Claiming coverage you do not have is the same defect as the
+false greens this cycle exists to delete, and I shipped it in the same week.
+
+**Four precision findings.** The version metadata still read v0.68 with two
+amendments landed. "Nothing reads gender" was false — five readers exist, all
+persistence and rehydration, none a calculation or output reader, and the
+precise form matters because the easy sentence is the false one; the
+differential also only compared `buildProfile` output, so a downstream reader
+would have stayed green, and now `getCard` and `cellRenderState` are compared
+too. The storefront draft overclaimed "your reading never leaves your browser"
+and "there is no server" — both false, since share exports the sheet and the
+feedback form posts; rewritten to the product's own *nothing leaves on its
+own*, with the name/DOB clause deliberately NOT hedged because it is
+unconditionally true and it is the best line in the section. And the
+measurement plan called `reading_completed` "the denominator" without ever
+writing a formula; three rates added, plus what the payload makes
+uncomputable.
+
+**Declined, with reasons:** extracting `renderCard` to make it testable (a §6
+posture refactor for an undisputed call site); a rollback path when `open()`
+returns false (dead code under a monotonic tier); aiming the gender
+differential at `ui/share.js` (it imports nothing and never receives a
+profile); and a fifth restatement of "no collector" in the plan.
+
+Suite **56 files / 1970 tests green** (+34) · product audit **PASS 13/0/1/0**
+· local PII audit **clean, 861 files** · `index.html` **1474/1500** · browser
+re-verified: `comparative_opened` fires only with the screen actually
+revealed, and not at all on a refused tap.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+DOCTRINE is at v0.70. Merge is the controller's word.
+
 ## 2026-08-06 — Second lane closed; the offer names what it sells; a measurement contract with no collector — STAGED
 
 **The second lane is in, and the recorded reason the first two failed was
