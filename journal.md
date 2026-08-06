@@ -5,6 +5,105 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Second lane closed; the offer names what it sells; a measurement contract with no collector — STAGED
+
+**The second lane is in, and the recorded reason the first two failed was
+wrong.** The lane outcome below blamed oversized relay input (~5,000 diff
+lines) and prescribed splitting by commit. A control run on the smallest
+commit on the branch — `ee72770`, 163 diff lines, 10KB of context —
+reproduced the failure exactly: `codex exec` explores the repo and echoes
+whole files, so the captured response is a 340KB transcript with no verdict
+in it. Size was a correlate. The fix is `-o/--output-last-message`, which
+writes only the final message, plus an instruction that the diff is the
+complete corpus. Every run after that returned a clean sub-400-word verdict.
+**That is an adapter property, not a property of this branch** — the relay's
+codex adapter will keep returning transcripts until it passes `-o`.
+
+**My own lane design was the other mistake, and it is worth not repeating.**
+I ran three path-scoped lanes by subsystem before running one over the whole
+code corpus. **Six of fourteen findings were artifacts of the corpus
+boundary** — a lane that cannot see `ui/tiers.js` reports `dyadRelation`
+missing from t3, one that cannot see `ui/profile.js` reports the gender
+control deleted, one that cannot see `index.html` reports the kua imports
+never removed. All three arrived as blockers, and two lanes returned DO NOT
+MERGE on that basis. Path-scoping is fine for a lane reasoning about one
+file; it manufactures blockers for anything reasoning about wiring.
+
+**What the lane actually caught, and it earned its keep on the first one.**
+`ui/experience.css:195` was a rule with **no opening brace** — §1.D v0.67
+deleted the kua half of a two-selector list and left the trailing comma. This
+does not fail locally: CSS error recovery consumes a malformed prelude up to
+the next `{`, so the declarations were absorbed into the selector list and
+the following rule, `.card-back .glyph`, was swallowed with them. **Two
+surfaces were dead in production and 1904 tests said nothing, because no test
+in this repo read a stylesheet.** Verified both directions in a browser:
+feeding the engine the pre-fix text yields exactly one parsed rule; the fixed
+text yields all three. `tests/css_structure.test.js` now pins the class, and
+fails on the reintroduced bug — checked by counterfactual, not assumed.
+
+Seven more absorbed: the "t3 renders both sheets and the relation" test
+asserted neither person A's sheet nor any relation node (the relation layer
+is exactly what §1.D v0.68 moved into $3); the gender field's only contract
+tests were deleted with the kua suite though neither tested kua; the gender
+control's DOM-creation branch was exercised by nothing, so the control could
+have been deleted outright with the suite green; §1.F still described a
+14-cell/base-15 census after §1.K made it 15/16; `8BALL.md`'s orientation
+paragraph contradicted its own row 9; `core/dyad.js` pointed at a `T5_COORDS`
+that no longer exists; and the deleted `content/kua.v1.js` declared itself
+immutable, which now has its archival pointer recorded rather than left to be
+discovered. Six rejected with reasons, in the artifact.
+
+**The offer now names the two-person comparison it has been selling.** §1.D
+v0.68 folded the comparative into t3 and changed no buyer-facing string, so
+for a cycle the $3 rung sold a second person's complete sheet and said "every
+coordinate + the written card". Copy only — no new flow, no new CTA, no price
+change, `core/payments.js` and `ui/tiers.js` byte-untouched. The §1.J entry
+control moved from "read beside another sheet" (which described the layout)
+to "compare with a second person" (which names the purchase). **$1/$2 needed
+no work to stay secondary and were deliberately left alone:** §4.B v0.56
+gives the paywall exactly one purchase choice, and per the v0.62 commercial
+truth neither lower rung is a live storefront offer — both listings are
+unpublished. A $1/$2 CTA would have superseded v0.56 mid-sprint *and* pointed
+at listings nobody can buy.
+
+**The gender field says what it is now.** `optional · stored on this device ·
+does not affect your reading`, bound to the select by `aria-describedby`.
+The third clause is the one the kua deletion made necessary, and it is held
+by a differential over two real `buildProfile` calls in both directions
+(male-vs-female as well as valued-vs-absent — a single comparison would pass
+if a coordinate keyed off mere presence). The copy claims nothing further,
+and a test rejects `never`/`always`/`anonymised`/`encrypted`/`private`/
+`secure`/`guarantee` so a later "improvement" cannot smuggle in a guarantee
+the code does not enforce. **The open question is not closed:** a disclosure
+is not a purpose. The product still stores a demographic no surface reads.
+
+**Four measurement events, and nothing counts them.** `core/measurement.js`
+names `reading_completed`, `paid_t3_cta_clicked`, `comparative_opened`,
+`share_completed`, fixes the payload at `{event, tier}`, and ships with a
+null sink. No analytics, no collector, no storage key, no network call; §7
+gate 7 unqualified. The payload is BUILT from an object literal rather than
+filtered down from a caller's object, and `recordMeasurement` takes two
+positional values — so there is no object for a call site to over-populate.
+No id, no counter, no timestamp: two records of the same event on one device
+are byte-identical, which is the property that keeps them from being ordered
+or joined. `ui/share.js` takes it through a hook rather than an import
+because that module's §5.D posture is to import nothing and know no tier
+constant — the posture won, and a test pins that the host wires it.
+
+**Browser pass at 320 / 390 / desktop.** No horizontal scroll at any width;
+copy wraps inside its boxes, measured with `Range.getClientRects` rather than
+`scrollWidth`, because `overflow: hidden` makes `scrollWidth` report the
+clipped box and lie. All four events observed firing live with correct tiers
+and no extra fields. No console errors.
+
+Suite **56 files / 1936 tests green** · product audit **PASS 13/0/1/0** ·
+local PII audit **clean, 860 files** · `index.html` **1474/1500**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation, no
+sibling repo touched. A Codex brief for this delta is filed at
+`audits/codex_audit_brief_offer_measurement_2026-08-06.md` and has NOT been
+run. Merge is the controller's word.
+
 ## 2026-08-06 — Pre-merge audit absorbs (grok lane); codex lane FAILED — STAGED
 
 **Lane outcome first, because it qualifies everything below.** The
