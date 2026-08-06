@@ -355,8 +355,10 @@ export function buildProfile(name, dobIso, opts) {
   }
   // ── Gender passthrough (additive). Strict two-token vocabulary;
   // anything else resolves undefined (same absent-shape as risingSign).
-  // NO CONSUMER since §1.D v0.67 deleted the kua read — the field is
-  // retained by operator word and is stored/round-tripped only. No
+  // NO CALCULATION OR OUTPUT READER since §1.D v0.67 deleted the kua read
+  // — this copy onto the profile object is itself one of the persistence
+  // reads. The field is retained by operator word and is stored and
+  // round-tripped only. No
   // coordinate derives from it, so free = DOB-only (§1.D) is unaffected.
   const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))
     ? opts.gender

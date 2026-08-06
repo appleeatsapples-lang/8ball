@@ -33,7 +33,9 @@ export function compactReadingProfile(input) {
   // §5.E: the archive carries gender because it is a user-entered input
   // the reopened reading must reproduce, NOT because it drives a
   // calculation — §1.D v0.67 deleted the kua block and left the field
-  // with no reader. Strict two-token vocabulary — deliberately
+  // with no calculation or output reader. This archive round-trip is
+  // itself one of the persistence reads that remain. Strict two-token
+  // vocabulary — deliberately
   // NOT the generic string copier, so an off-vocabulary value is dropped
   // at this write seam like every other.
   if (input.gender === 'male' || input.gender === 'female') profile.gender = input.gender;

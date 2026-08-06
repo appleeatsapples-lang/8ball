@@ -21,7 +21,7 @@ about what the product is — and it is the controller's, not an agent's.
 | event | fires when | why it is worth counting |
 |---|---|---|
 | `reading_completed` | a card render finishes | the denominator (of renders, not people — see below). Without it every other number is a rate with no base. |
-| `paid_t3_cta_clicked` | the $3 CTA in the paywall is tapped | separates "nobody sees the offer" from "everybody sees it and declines". These are opposite problems with opposite fixes. |
+| `paid_t3_cta_clicked` | the $3 CTA inside the open paywall is tapped | the one point where a device hands itself to checkout. It counts taps, not exposures — the offer control and the modal open are both uncounted, so a render with no tap names no cause. See the limitation under rate 1. |
 | `comparative_opened` | the two-person screen is opened | the comparative just became half of what $3 buys. If it is never opened, the offer is mispriced against its own contents. |
 | `share_completed` | a share or download of the sheet PNG finishes | the only reach signal the product can observe at all without tracking anyone. |
 
@@ -93,7 +93,8 @@ window — never a funnel, never a per-person rate, never a cohort.
 Three rates. Each denominator is a RESTRICTION of `reading_completed`, not the
 raw total:
 
-**1. Offer tap rate** — does the $3 CTA land?
+**1. Checkout-start rate per unentitled render** — how often does an unentitled
+render end in a hand-off to Gumroad?
 
 ```
 count(paid_t3_cta_clicked) / count(reading_completed where tier in {free, t1, t2})
@@ -102,6 +103,22 @@ count(paid_t3_cta_clicked) / count(reading_completed where tier in {free, t1, t2
 Restricted to the unentitled rungs: a t3 device tapping the CTA is not a
 prospective buyer, and leaving t3 renders in the base dilutes the only number
 this event exists to produce.
+
+**It does not measure whether the offer was seen, and must not be quoted as if
+it did.** Three uncounted steps sit between the two counted ones. `renderCard`
+puts the lock icon and the offer control on every sub-t3 sheet, but neither
+emits anything, and being in the DOM is not being in a viewport. Tapping one
+calls `stagePurchase`, which refuses to open the modal at all if the pending
+profile cannot be written and read back. Only then does the CTA — with the
+price, the value paragraph and the specimen — exist to be tapped. So a render
+with no tap is equally consistent with: the control was never noticed, storage
+was blocked, the modal was opened and dismissed with "maybe later", or the
+offer was read in full and refused. **This rate cannot tell those apart, and no
+combination of the four events can** — none of them fires when the paywall
+opens. Separating exposure from refusal needs an offer-exposure event on modal
+open. That is a fifth event, which is a doctrine amendment rather than an edit,
+and it is not proposed here. Until it is argued and won, a low value here is
+not evidence that the offer was rejected.
 
 **2. Comparative uptake** — is half of what $3 buys ever opened?
 
@@ -143,9 +160,14 @@ the standing strategic finding actually turns on.
   first-party server logs, and is not representable here at all.
 
 These definitions are written down now so a future §5 amendment argues about a
-named number instead of inventing one under deadline. Nothing above is computed
-anywhere today: the default sink is `null`, so all four counts are structurally
-zero.
+named number instead of inventing one under deadline. **None of them is
+computable today**, and the reason is worth stating exactly. Under the default
+`null` sink, `recordMeasurement` builds its record, returns it, and drops it:
+nothing accumulates, no counter exists, and the module exports no way to read
+one back. The four counts are therefore **unobserved, not zero**. Zero would be
+a finding about the world — "no device has ever tapped the CTA" — and nothing
+here has established that. Every rate above is undefined rather than 0, because
+its denominator is unobserved too.
 
 ## What would have to be true to adopt a collector
 

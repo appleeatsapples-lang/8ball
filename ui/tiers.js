@@ -87,7 +87,7 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.67 — `kuaRead` is DELETED with the kua block it gated. The t3
 // ceiling is the written entry + the public read; the optional gender
 // input survives the deletion (operator word) but no longer feeds any
-// surface. No census change: kua was a BLOCK, never a compartment.
+// calculation or rendered output. No census change: kua was a BLOCK, never a compartment.
 // §1.D v0.68 — `dyadRelation` joins the t3 ceiling: one $3 price now
 // carries the comparative. Like `cardEntry` and `publicRead` it is a BLOCK,
 // not a compartment, so the §1.F census is unmoved at 16; and it is still

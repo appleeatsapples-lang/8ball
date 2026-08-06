@@ -13,7 +13,7 @@
 //     so doctrine, deck shape, and policy enforcement stay co-located.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -34,7 +34,25 @@ import {
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
-import { CELL_KEYS, cellRenderState } from '../ui/tiers.js';
+import { CELL_KEYS, cellRenderState, ROW_TITLES, SHEET_ROWS } from '../ui/tiers.js';
+// Every OTHER output surface a profile feeds, reached through its pure export
+// so the gender differential below runs in plain node (§12 — no jsdom):
+//   ui/payments.js   the written entry's note slot (facet anchor)
+//   ui/public.js     the DOMAIN FIT block
+//   ui/dyad.js       the comparative relation layer
+//   ui/concordance.js the archive compare axes
+//   ui/share.js      the §5.D PNG/caption artifact
+//   ui/meanings.js   the per-coordinate meanings drawer
+//   ui/readings.js   the local archive record (the ONE deliberate carrier)
+import { getFreshFacetSlot } from '../ui/payments.js';
+import { publicReadFor } from '../ui/public.js';
+import { dyadRelationFor } from '../ui/dyad.js';
+import { buildConcordance } from '../ui/concordance.js';
+import {
+  buildCaptionFromSnapshot, buildCardSVGFromSnapshot, rowSections,
+} from '../ui/share.js';
+import { entryFor, harmonyFor } from '../ui/meanings.js';
+import { compactReadingProfile } from '../ui/readings.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -484,10 +502,161 @@ describe('calculation contract — 2G-2 additive fields', () => {
 //
 // They are load-bearing again as of this change, because the form now tells
 // the user at the point of entry that the field "does not affect your
-// reading". The second test is the only thing in the repo that makes that
-// sentence true rather than merely written down: it is a differential over
-// two real buildProfile calls, so if gender ever begins to move a
-// coordinate, the claim on the form goes red here.
+// reading". Two real buildProfile calls make the first half of that claim
+// true — if gender ever begins to move a coordinate, the sentence on the
+// form goes red here. The SECOND half (no reader further down) is the
+// downstream suite below, which runs the same differential over every
+// output surface a profile feeds.
+
+// ── the fixture both differentials run on ─────────────────────────
+//
+// FULL optional input — time AND tz AND lat AND lng. All four are required:
+// buildProfile's rising/moon gate is
+//   opts.time && typeof opts.lat === 'number' && typeof opts.lng === 'number'
+//   && a resolvable tz
+// so a `{ time: '08:30' }` fixture leaves risingSign and moonSign UNDEFINED
+// and their two compartments compare `—` to `—` in every variant. A gender
+// reader placed on the rising or moon path would then be invisible to this
+// suite, which is exactly the hole a re-audit found in the first version of
+// these tests. `resolves every coordinate` below is the pin that keeps the
+// fixture full; do not thin it.
+const GENDER_NAME = 'Test Name';
+const GENDER_DOB = '1990-06-15';
+const GENDER_OPTS = Object.freeze({
+  time: '08:30', tz: 'America/New_York', lat: 40.7128, lng: -74.0060,
+});
+// A second, DIFFERENT person for the two pair surfaces (dyad + concordance):
+// same-profile pairs collapse every relation to its identity case and would
+// hide a reader that only fires on a mismatch.
+const GENDER_PARTNER = buildProfile('Other Person', '1984-11-02', {
+  time: '21:15', tz: 'Europe/Berlin', lat: 52.5200, lng: 13.4050,
+});
+
+// The written 144-card entry, resolved the way index.html's renderCard
+// resolves it: CARDS[sunSign][animal] for name/type/habit, and note[slot]
+// for the rotating position. ALL THREE note slots, not only the anchored
+// one — the stored facet index is a rotation position, so a reader could
+// sit in any of them.
+function genderCardEntry(profile) {
+  const row = CARDS[profile.sunSign];
+  const cell = row ? row[profile.animal] : null;
+  if (!cell) return null;
+  return {
+    name: cell.name,
+    type: cell.type,
+    habit: cell.habit,
+    notes: Object.keys(cell.note).sort().map(slot => [slot, cell.note[slot]]),
+    anchoredNote: cell.note[getFreshFacetSlot(profile.lifePath)],
+  };
+}
+
+// The §5.D share snapshot, rebuilt from the SAME pure cell mapping the DOM
+// path reads: ui/tiers.js cellRenderState decides each cell, setCell paints
+// it, shareRowRefs reads it back as { state, value } with 'value' → 'open'.
+// Reconstructing it here keeps the artifact in the differential without a
+// DOM (§12).
+function genderShareSnapshot(profile) {
+  return {
+    catalog: `no. ${getCard(profile).catalog}`,
+    sections: SHEET_ROWS.map(keys => ({
+      title: ROW_TITLES[keys[0]],
+      cells: keys.map(key => {
+        const { state, text } = cellRenderState(profile, key, true);
+        if (state === 'value') return { state: 'open', value: text };
+        if (state === 'unres') return { state: 'unres', value: '—' };
+        return { state: 'sealed', value: '' };
+      }),
+    })),
+  };
+}
+
+function genderShareArtifact(profile) {
+  const snap = genderShareSnapshot(profile);
+  const sections = rowSections(snap.sections);
+  return {
+    sections,
+    svg: buildCardSVGFromSnapshot({ catalog: snap.catalog, sections }),
+    caption: buildCaptionFromSnapshot({ catalog: snap.catalog, sections }),
+  };
+}
+
+// The meanings drawer reads the RENDERED cell strings, so it is driven from
+// cellRenderState rather than the profile — same input the live panel gets.
+function genderMeanings(profile) {
+  const values = {};
+  for (const key of CELL_KEYS) values[key] = cellRenderState(profile, key, true).text;
+  return CELL_KEYS.map(key => {
+    const entry = entryFor(key, values[key]);
+    return { key, entry, harmony: entry ? harmonyFor(key, entry, values) : null };
+  });
+}
+
+// Every output surface a profile feeds that is reachable from a pure
+// function. `probe` is the per-surface vacuity guard: it asserts the surface
+// actually produced its real content, so no row can pass by comparing two
+// empty, null, or unresolved things.
+const GENDER_SURFACES = [
+  {
+    name: 'sheet — every compartment at full entitlement',
+    of: p => CELL_KEYS.map(k => cellRenderState(p, k, true)),
+    probe: (v, p) => v.length === CELL_KEYS.length
+      && v.every(c => c.state === 'value')
+      && v.some(c => c.text === p.risingSign)   // rising RESOLVED and rendered
+      && v.some(c => c.text === p.moonSign),    // moon RESOLVED and rendered
+  },
+  {
+    name: 'catalog cell — core/engine getCard',
+    of: p => getCard(p),
+    probe: v => /^[ivxlcdm]+$/.test(v.catalog),
+  },
+  {
+    name: 'written card entry — the 144-cell copy and all three note slots',
+    of: p => genderCardEntry(p),
+    probe: v => !!v && !!v.name && !!v.type && !!v.habit
+      && v.notes.length === 3 && v.notes.every(([, note]) => !!note)
+      && !!v.anchoredNote,
+  },
+  {
+    name: 'note-slot anchor — bracket and facet position',
+    of: p => ({ bracket: resolveBracket(p.lifePath), slot: getFreshFacetSlot(p.lifePath) }),
+    probe: v => ['low', 'mid', 'high'].includes(v.slot) && v.slot === v.bracket,
+  },
+  {
+    name: 'public read — the DOMAIN FIT block',
+    of: p => publicReadFor(p),
+    probe: v => !!v && !!v.roleLine && !!v.families && !!v.antiFit,
+  },
+  {
+    name: 'dyad relation — this profile in the A position',
+    of: p => dyadRelationFor(p, GENDER_PARTNER),
+    probe: v => !!v && !!v.elementHead && !!v.cardPairHead && !!v.numerologyMeaning,
+  },
+  {
+    name: 'dyad relation — this profile in the B position',
+    of: p => dyadRelationFor(GENDER_PARTNER, p),
+    probe: v => !!v && !!v.elementHead && !!v.cardPairHead && !!v.numerologyMeaning,
+  },
+  {
+    name: 'concordance axes — the archive compare surface',
+    of: p => buildConcordance(p, GENDER_PARTNER, { tier: 't3' }),
+    probe: v => v.axes.length >= 5 && v.axes.every(a => !!a.label),
+  },
+  {
+    name: 'share artifact — snapshot rows, SVG and caption',
+    of: p => genderShareArtifact(p),
+    probe: (v, p) => v.svg.includes(p.risingSign) && v.svg.includes(p.moonSign)
+      && v.caption.includes(p.risingSign) && v.caption.includes(p.moonSign),
+  },
+  {
+    name: 'meanings drawer — entry and harmony per coordinate',
+    of: p => genderMeanings(p),
+    // 14 of the 15 cells have a meanings entry (moon has none by design);
+    // the floor is set below that so the row cannot pass on a null sweep.
+    probe: v => v.filter(e => e.entry).length >= 12
+      && v.filter(e => e.harmony).length >= 12,
+  },
+];
+
 describe('buildProfile — the optional gender field', () => {
   it('carries a strict two-token gender and drops everything else', () => {
     expect(buildProfile('Test Name', '1990-06-15', { gender: 'female' }).gender).toBe('female');
@@ -499,9 +668,9 @@ describe('buildProfile — the optional gender field', () => {
   });
 
   it('changes NOTHING else on the profile — the field drives no coordinate', () => {
-    const without = buildProfile('Test Name', '1990-06-15', { time: '08:30' });
-    const withF = buildProfile('Test Name', '1990-06-15', { time: '08:30', gender: 'female' });
-    const withM = buildProfile('Test Name', '1990-06-15', { time: '08:30', gender: 'male' });
+    const without = buildProfile(GENDER_NAME, GENDER_DOB, GENDER_OPTS);
+    const withF = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'female' });
+    const withM = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'male' });
     const strip = ({ gender, ...rest }) => rest;
     // Two directions, not one: female-vs-absent AND male-vs-female. A single
     // comparison would still pass if some coordinate keyed off "gender is
@@ -513,37 +682,130 @@ describe('buildProfile — the optional gender field', () => {
     // and proving nothing.
     expect(withF.gender).toBe('female');
     expect(withM.gender).toBe('male');
+    // …and the profile being compared is the FULL one. On a time-only
+    // fixture risingSign and moonSign are undefined in every variant and
+    // this differential says nothing about the two coordinates that consume
+    // the most input.
+    expect(typeof withF.risingSign).toBe('string');
+    expect(typeof withF.moonSign).toBe('string');
+  });
+});
+
+// ── the downstream differential (every output surface) ─────────────
+//
+// The two tests above compare buildProfile's own output, which stays green
+// if a READER is added further down. This suite runs the same two-direction
+// differential over every surface a profile feeds that a pure function can
+// reach: the catalog cell, the written 144-card entry and its three note
+// slots, the note-slot anchor, the sheet's compartments, the DOMAIN FIT
+// public read, the dyad relation in BOTH positions, the concordance axes,
+// the §5.D share artifact (rows + SVG + caption), and the meanings drawer.
+//
+// It matters because the form tells the user at the point of entry that the
+// field "does not affect your reading". This suite is what makes that
+// sentence true rather than merely written down.
+describe('the optional gender field — no downstream surface reads it', () => {
+  const without = buildProfile(GENDER_NAME, GENDER_DOB, GENDER_OPTS);
+  const withF = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'female' });
+  const withM = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'male' });
+
+  it('resolves every coordinate — no cell compares one empty field to another', () => {
+    // The anti-vacuity pin for the whole suite. If the fixture is ever
+    // thinned back to `{ time }`, rising and moon go unresolved and their
+    // compartments compare `—` to `—`; this fails first and says why.
+    for (const p of [without, withF, withM]) {
+      expect(typeof p.risingSign, 'rising must RESOLVE — fixture needs tz+lat+lng').toBe('string');
+      expect(typeof p.moonSign, 'moon must RESOLVE — fixture needs tz+lat+lng').toBe('string');
+      expect(p.hourPillar, 'hour pillar must resolve — fixture needs a birth time').toBeTruthy();
+      expect(
+        CELL_KEYS.map(k => cellRenderState(p, k, true).state),
+        'every compartment must carry a value, so none can compare — to —'
+      ).toEqual(CELL_KEYS.map(() => 'value'));
+    }
+    // And the three profiles really do differ in the one field under test.
+    expect([without.gender, withF.gender, withM.gender])
+      .toEqual([undefined, 'female', 'male']);
   });
 
-  it('no DOWNSTREAM surface reads it either — card and sheet render identically', () => {
-    // The differential above compares buildProfile's own output, which would
-    // stay green if a READER were added further down: getCard keys the
-    // catalog, and cellRenderState decides what every compartment shows. A
-    // pre-merge lane pointed out that gap, and it matters because the form
-    // now tells the user in so many words that the field "does not affect
-    // your reading" — so the claim has to hold at the surfaces that produce
-    // the reading, not only at the object that feeds them.
-    const base = ['Test Name', '1990-06-15'];
-    const opts = { time: '08:30' };
-    const without = buildProfile(...base, opts);
-    const withF = buildProfile(...base, { ...opts, gender: 'female' });
-    const withM = buildProfile(...base, { ...opts, gender: 'male' });
+  it('covers every coordinate the sheet can show', () => {
+    // A coordinate added to the sheet but not to CELL_KEYS (or the reverse)
+    // would slip past the differential. The two lists are the same set.
+    expect([...SHEET_ROWS.flat()].sort()).toEqual([...CELL_KEYS].sort());
+  });
 
-    // The catalog cell — the one coordinate that is a compound lookup.
-    const card = p => getCard(p);
-    expect(card(withF)).toEqual(card(without));
-    expect(card(withM)).toEqual(card(withF));
+  for (const surface of GENDER_SURFACES) {
+    it(`${surface.name} — identical across absent / female / male`, () => {
+      const absent = surface.of(without);
+      const female = surface.of(withF);
+      const male = surface.of(withM);
+      // Vacuity guards, before the comparison: the surface produced real
+      // content, not null / '' / [] / an all-unresolved sweep.
+      expect(absent, 'surface produced nothing').not.toBeNull();
+      expect(JSON.stringify(absent).length, 'surface serialized to a trivial value')
+        .toBeGreaterThan(20);
+      expect(surface.probe(absent, without), 'surface did not produce its real content').toBe(true);
+      expect(surface.probe(female, withF), 'surface did not produce its real content').toBe(true);
+      expect(surface.probe(male, withM), 'surface did not produce its real content').toBe(true);
+      // Both directions: a single comparison would still pass if a reader
+      // keyed off "gender is present" without caring which value it held.
+      expect(female, 'female differs from absent').toEqual(absent);
+      expect(male, 'male differs from female').toEqual(female);
+    });
+  }
 
-    // Every compartment on the sheet, at full entitlement so nothing is
-    // sealed and a difference cannot hide behind an empty string.
-    const sheet = p => CELL_KEYS.map(k => cellRenderState(p, k, true));
-    expect(sheet(withF)).toEqual(sheet(without));
-    expect(sheet(withM)).toEqual(sheet(withF));
+  it('the local archive is the ONE deliberate carrier — the input, never a derivation', () => {
+    // §5.E: ui/readings.js stores gender so a reopened reading reproduces
+    // the user's own input. That is a round-trip of the INPUT, and it is the
+    // only place the token is allowed to survive. Everything else in the
+    // record must be identical across the three variants.
+    const record = p => compactReadingProfile({
+      name: p.name, dob: GENDER_DOB, ...GENDER_OPTS, gender: p.gender,
+    });
+    const absent = record(without);
+    const female = record(withF);
+    const male = record(withM);
+    expect(absent.gender).toBeUndefined();
+    expect(female.gender).toBe('female');
+    expect(male.gender).toBe('male');
+    const strip = ({ gender, ...rest }) => rest;
+    expect(Object.keys(strip(absent)).length, 'archive record is empty').toBeGreaterThan(4);
+    expect(strip(female)).toEqual(strip(absent));
+    expect(strip(male)).toEqual(strip(female));
+  });
 
-    // Guard against the whole test going vacuous: the sheet really did
-    // render values, and the two profiles really did differ in gender.
-    expect(sheet(withF).some(c => c.state === 'value')).toBe(true);
-    expect([withF.gender, withM.gender]).toEqual(['female', 'male']);
+  it('no module outside the input path even names the field', () => {
+    // The runtime differential above can only reach PURE exports. The
+    // written entry is resolved inline in index.html's renderCard, so a
+    // reader added there would be out of its reach. This closes that hole
+    // statically: the property read `.gender` (and its computed form) may
+    // appear ONLY where the field is collected, passed through, or archived.
+    const READ = /\.gender\b|\[['"]gender['"]\]/g;
+    const ALLOWED = new Set([
+      'core/profile.js',   // the passthrough — carried, never consumed
+      'ui/profile.js',     // the form control and the write seam
+      'ui/readings.js',    // the §5.E archive round-trip
+    ]);
+    const offenders = [];
+    for (const dir of ['core', 'ui']) {
+      for (const file of readdirSync(join(__dirname, '..', dir))) {
+        if (!file.endsWith('.js')) continue;
+        const rel = `${dir}/${file}`;
+        if (ALLOWED.has(rel)) continue;
+        const hits = (readFileSync(join(__dirname, '..', rel), 'utf-8').match(READ) || []).length;
+        if (hits) offenders.push(`${rel} (${hits})`);
+      }
+    }
+    expect(
+      offenders,
+      'a module outside the input path reads .gender — §1.D v0.67 leaves the field with NO reader'
+    ).toEqual([]);
+    // index.html collects the field and forwards it into opts. Exactly one
+    // read, and it is that one — a second would be a render-path consumer.
+    const hostReads = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')
+      .split('\n')
+      .filter(line => /\.gender\b/.test(line))
+      .map(line => line.trim());
+    expect(hostReads).toEqual(['const g = getGenderInput(); if (g) opts.gender = g;']);
   });
 });
 

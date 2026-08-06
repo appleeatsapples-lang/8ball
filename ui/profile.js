@@ -83,11 +83,12 @@ export function optsFromPayload(obj) {
   if (obj.country) opts.country = obj.country;
   if (typeof obj.lat === 'number') opts.lat = obj.lat;
   if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  // Forwarded because it is USER-ENTERED and persisted, not because any
-  // surface reads it: §1.D v0.67 deleted the kua block, so gender has NO
-  // consumer and is retained by operator word alone. Dropping it here
-  // would silently discard a value the user supplied and the archive
-  // round-trips. It drives no coordinate (§5 recompute-on-load is
+  // Forwarded because it is USER-ENTERED and persisted, not because a
+  // calculation needs it: §1.D v0.67 deleted the kua block, so gender has
+  // no calculation or output reader and is retained by operator word
+  // alone. This forward is itself one of the persistence reads. Dropping
+  // it here would silently discard a value the user supplied and the
+  // archive round-trips. It drives no coordinate (§5 recompute-on-load is
   // unaffected either way).
   if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;
   return opts;
@@ -209,7 +210,10 @@ let _genderSelect = null;
 // on this device, and it changes nothing about the reading.
 //
 // The third is the one that had to be said. Until §1.D v0.67 the field fed
-// the kua block; that block is deleted and nothing reads the field now, so
+// the kua block; that block is deleted and no calculation or rendered
+// output reads the field now (the reads that remain — saveProfile,
+// optsFromPayload, this control's rehydration, the archive round-trip,
+// buildProfile's copy — are all persistence), so
 // a form that asks for a demographic and explains nothing is asking a
 // person to guess what it is for. The sentence states the CURRENT fact and
 // claims nothing beyond it — no promise about what the field will never be

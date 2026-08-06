@@ -436,3 +436,126 @@ the same defect as the false greens this cycle spent its time deleting.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation. Merge
 remains the controller's word.
+
+---
+
+# ADDENDUM 3 — re-audit of `fc1a2de`: 3 residuals, all real
+
+**Verdict received:** MERGE WITH FIXES, 3 residuals (1×P1, 2×P2). PASS on
+runtime event ordering, share paths, the CSS counterexample, doctrine v0.70
+lineage and the Gumroad privacy copy.
+**After verification: all 3 CONFIRMED, all 3 absorbed.**
+
+**Two of the three were defects in the fixes from the previous round.** That is
+the part worth recording: absorbing an audit finding is itself a change that
+can be wrong, and twice here it was wrong in exactly the way the finding it was
+fixing had been.
+
+## R1 — the fix for a tautological test was itself tautological
+
+The driven open-assertion added last round read
+`expect(h.byId.get('dyad-screen') || h.root).toBeTruthy()`. `h.root` is a
+pre-created harness node, so this can never fail.
+
+**Proven, not argued:** deleting `_root.classList.remove('hidden')` from
+`ui/dyad.js` — the single line that actually reveals the screen — left **all 72
+tests in that file green**. The record fired, the screen stayed hidden, and
+nothing noticed.
+
+This is the **third** instance of the self-comparison / vacuous-assertion class
+in this repo's record (PR #187 F7.1, the grok finding on `cellRenderState`, and
+now this), and it was written **in the commit whose message describes fixing
+tautological assertions**. Recorded plainly rather than as a routine absorb.
+
+**FIXED:** asserts `h.byId.get('dyad-screen')` IS the module's `_root` and that
+the root lost `hidden`. Counterfactual re-run: deleting the reveal now reds the
+test.
+
+## R2 — the gender differential was blind twice over
+
+**(a) Coverage.** It compared only `getCard` and the sheet cells. The written
+card entry, the note anchor, the public read, the dyad relation, the
+concordance axes, the share artifact and the meanings drawer were all absent —
+and every one is reachable from a pure export, so the omission was not forced
+by §12.
+
+**(b) A dead fixture.** It supplied `{ time: '08:30' }` with no tz/lat/lng.
+`buildProfile` gates rising AND moon on `time && lat && lng` plus a resolvable
+tz, so **both coordinates were `undefined` in all three variants** and their
+compartments compared `—` to `—`. The existing vacuity guard did not catch it,
+because 13 of 15 cells still resolved.
+
+**The live counterexample settles it.** With a real gender reader patched onto
+the rising path, the shipped suite reported **3 passed, 0 failed** — fully
+blind. The replacement reports 4 failed.
+
+**FIXED:** a full fixture (`time` + `tz` + `lat` + `lng`, which resolves rising
+to `leo` and moon to `pisces`), a second and DIFFERENT partner profile so the
+pair surfaces are not identity cases, and the differential run over **every
+output surface a pure function can reach** — sheet, catalog, written entry
+across all three note slots, note anchor, public read, dyad relation in both
+positions, concordance axes, share rows + SVG + caption, meanings drawer. Each
+row carries a probe asserting the surface produced real content, and an
+anti-vacuity test fails FIRST with "rising must RESOLVE — fixture needs
+tz+lat+lng" if the fixture is ever thinned.
+
+Two further points the repair had to face honestly:
+
+- **The archive is the ONE deliberate carrier.** `ui/readings.js` stores gender
+  by design (§5.E — a reopened reading must reproduce the user's own input), so
+  that surface asserts the token survives and everything else in the record is
+  identical, rather than demanding equality.
+- **A reader added inside `index.html`'s inline `renderCard` reaches no pure
+  function**, so a runtime differential cannot see it. Covered by a static scan
+  instead — the same honest substitution `reading_completed` already uses.
+
+**Verified by mutation battery**, each reverted, tree clean after: a reader in
+`cellRenderState` → 4 failures; in `getCard` → 4; in `formatPublicRead` → 1; in
+`formatDyadRelation` → 1; on the rising path → 4; inside `renderCard` → 1 (the
+static scan); fixture thinned → 5, naming the fixture first. I re-ran the
+`cellRenderState` mutation independently: 4 failed, 188 passed.
+
+**(c) The wording.** "No surface reads it" survived in current text at
+`index.html`'s about modal and two doctrine sentences. It is false even on the
+narrow reading of *surface* as a rendered one — `populateRisingFields` writes
+the persisted value back into the visible control on every rehydration, which
+is precisely why a stale gender could once survive a form reset. **Two
+canonical forms from here on:** "no calculation or output reader" in doctrine
+and comments, "does not affect your reading" in user copy. The about modal and
+the control now make one claim, in the same words, and it is the claim the
+differentials pin. §1.D v0.67's imprecise phrasing was superseded through the
+v0.69 amendment rather than edited in place — L17, and PR #190 already blocked
+an in-place "correction" once for violating the rule it was written to serve.
+
+## R3 — the plan claimed a measurement the four events cannot make
+
+`paid_t3_cta_clicked / reading_completed` was named "offer tap rate" and the
+events table said it "separates 'nobody sees the offer' from 'everybody sees it
+and declines'". **It cannot.** Three uncounted steps sit between the two
+counted ones: the lock icon and offer control emit nothing and being in the DOM
+is not being in a viewport; `stagePurchase` can refuse to open the modal at all
+if storage is blocked; and only then does the CTA exist to tap. A render with
+no tap is equally consistent with never noticed, storage blocked, opened and
+dismissed, or read in full and refused — and **no combination of the four
+events can separate them**, because none fires when the paywall opens.
+
+**FIXED** by renaming the METRIC to "checkout-start rate per unentitled render"
+and stating the limitation, in the plan and in DOCTRINE §5 v0.70. The EVENT
+name is unchanged — it is load-bearing in `MEASUREMENT_EVENTS` and three test
+files. **No fifth event was added:** an offer-exposure event is what would
+close this, and that is a doctrine amendment, not an edit.
+
+Also corrected: the plan said the counts were "structurally zero". They are
+**unobserved**, not zero. Zero would be a finding about the world; under a null
+sink nothing accumulates and no counter exists, so every rate is undefined
+rather than 0.
+
+## Verification after absorption
+
+- vitest **56 files / 1983 tests green** (1970 → 1983)
+- `audits/project_audit.py` **PASS 13 / 0 / 1 / 0**
+- local PII audit **clean, 861 files** · `index.html` **1474/1500**
+- Browser: the about modal and the gender control now carry the same claim in
+  the same words; no console errors.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

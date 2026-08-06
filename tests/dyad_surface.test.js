@@ -411,7 +411,16 @@ describe('dyad surface — F2: the comparative is part of the t3 product (§1.D 
       expect(seen).toEqual([{ event: 'comparative_opened', tier: 't3' }]);
       expect(Object.keys(seen[0]).sort()).toEqual(['event', 'tier']);
       // The record and the screen agree: the root really did lose `hidden`.
-      expect(h.byId.get('dyad-screen') || h.root).toBeTruthy();
+      // injectScreen short-circuits on the existing `dyad-screen`, so the
+      // module's `_root` IS this node; it carries `screen hidden` from the
+      // harness until open() removes the class. The old form here was
+      // `h.byId.get('dyad-screen') || h.root`, a truthiness check on a
+      // pre-created harness node that can never fail.
+      expect(h.byId.get('dyad-screen')).toBe(h.root);
+      expect(
+        h.root.classList.contains('hidden'),
+        'comparative_opened was recorded but the screen root still carries `hidden`',
+      ).toBe(false);
     });
 
     it('fires NOTHING on a refused tap at every unentitled rung', () => {

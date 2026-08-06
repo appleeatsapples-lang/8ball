@@ -5,6 +5,68 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Re-audit: two of my three fixes were wrong the same way — STAGED
+
+**Three residuals, all three real, and two of them were defects in the fixes I
+shipped in the previous round.** That is the entry's point. Absorbing an audit
+finding is itself a change, and a change can be wrong — twice here it was wrong
+in exactly the way the finding it was fixing had been.
+
+**The one that should sting.** Last round I replaced a tautological test with a
+driven one and wrote, as its success assertion,
+`expect(h.byId.get('dyad-screen') || h.root).toBeTruthy()`. `h.root` is a
+pre-created harness node. It can never fail. Deleting the single line in
+`ui/dyad.js` that actually reveals the screen left **all 72 tests in the file
+green** — the record fired, the screen stayed hidden, nothing noticed. This is
+the **third** instance of this class in the repo's record (PR #187 F7.1, grok
+on `cellRenderState`, now me), and I wrote it **in the commit whose message
+describes fixing tautological assertions**. The rule I keep restating —
+*ask what edit would make this fail* — is evidently not something I apply to
+the assertions I write while applying it.
+
+**The gender differential was blind twice over.** It covered only `getCard` and
+the sheet cells, omitting the written entry, note anchor, public read, dyad
+relation, concordance, share artifact and meanings drawer — all reachable from
+pure exports, so nothing forced the omission. And its fixture passed `time`
+without tz/lat/lng, so rising and moon were `undefined` in every variant and
+those two compartments compared `—` to `—`. The live counterexample settles how
+bad that was: with a real gender reader patched onto the rising path, the
+shipped suite reported **3 passed, 0 failed**. Now: full fixture (rising
+resolves `leo`, moon `pisces`), a second and different partner so pair surfaces
+aren't identity cases, every pure-reachable output surface in the sweep, a
+per-surface content probe, and an anti-vacuity test that fails first and names
+the fixture. Verified by a seven-mutation battery. The archive is handled as
+the ONE deliberate carrier (§5.E) rather than forced to equality, and the one
+hole a runtime differential cannot reach — a reader inside index.html's inline
+`renderCard` — is covered by a static scan, the same honest substitution
+`reading_completed` already uses.
+
+**"No surface reads it" was false and I had left it in three places.**
+`populateRisingFields` writes the persisted value back into the visible
+control on every rehydration, so it is false even on the narrow reading of
+*surface*. Two canonical forms from here on: "no calculation or output reader"
+in doctrine and comments, "does not affect your reading" in user copy — and the
+about modal and the control now say the same thing in the same words. §1.D
+v0.67's phrasing was superseded through the v0.69 amendment rather than edited
+in place; L17, and PR #190 already blocked an in-place "correction" once for
+violating the rule it was written to serve.
+
+**The plan claimed a measurement the four events cannot make.**
+`paid_t3_cta_clicked / reading_completed` was called an "offer tap rate" that
+"separates 'nobody sees the offer' from 'everybody sees it and declines'". It
+cannot: nothing fires when the paywall opens, and three uncounted steps sit
+between the two counted ones, so a render with no tap is equally consistent
+with never noticed, storage blocked, dismissed, or refused. Renamed to
+"checkout-start rate per unentitled render" with the limitation stated. **No
+fifth event was added** — an offer-exposure event is what would close it, and
+that is an amendment, not an edit. Also: under a null sink the counts are
+**unobserved, not zero**; zero would be a finding about the world.
+
+Suite **56 files / 1983 tests green** · product audit **PASS 13/0/1/0** ·
+local PII audit **clean, 861 files** · `index.html` **1474/1500**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — Codex read the offer/measurement delta: 7 findings, 7 real — STAGED
 
 **Seven findings, all seven confirmed, none rejected.** The previous round
