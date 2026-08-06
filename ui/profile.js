@@ -196,6 +196,23 @@ let _genderSelect = null;
 // The strict two-token vocabulary is unchanged: the empty option IS the
 // no-gender state and it is the default; anything off-vocabulary resolves
 // undefined at the read seam.
+//
+// POINT-OF-ENTRY TRUTH. The control carries GENDER_NOTE, wired to the
+// select through `aria-describedby` so it reaches assistive tech as part of
+// the field rather than as loose text beside it. Three facts, in the order
+// a person deciding whether to answer needs them: it is optional, it stays
+// on this device, and it changes nothing about the reading.
+//
+// The third is the one that had to be said. Until §1.D v0.67 the field fed
+// the kua block; that block is deleted and nothing reads the field now, so
+// a form that asks for a demographic and explains nothing is asking a
+// person to guess what it is for. The sentence states the CURRENT fact and
+// claims nothing beyond it — no promise about what the field will never be
+// used for, and no privacy guarantee the code does not already enforce.
+// It is kept true by tests/profile.test.js's differential over two real
+// buildProfile calls, not by this comment.
+export const GENDER_NOTE = 'optional · stored on this device · does not affect your reading';
+
 function resolveGenderSelect(refs) {
   if (refs && refs.genderSelect) return refs.genderSelect;
   const form = refs && refs.form;
@@ -206,11 +223,12 @@ function resolveGenderSelect(refs) {
   const field = document.createElement('div');
   field.className = 'field gender-field';
   field.innerHTML = '<label for="gender-input">gender (optional)</label>' +
-    '<select id="gender-input">' +
+    '<select id="gender-input" aria-describedby="gender-note">' +
     '<option value="">—</option>' +
     '<option value="male">male</option>' +
     '<option value="female">female</option>' +
-    '</select>';
+    '</select>' +
+    `<p class="field-note" id="gender-note">${GENDER_NOTE}</p>`;
   const anchor = refs && refs.anchor;
   if (anchor && typeof form.insertBefore === 'function' && anchor.parentNode === form) {
     form.insertBefore(field, anchor);
