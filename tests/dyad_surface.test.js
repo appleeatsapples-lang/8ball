@@ -371,6 +371,13 @@ describe('dyad surface — F2: the comparative is part of the t3 product (§1.D 
     const h3 = harness('t3');
     h3.withDom(() => syncDyadEntry('t3'));
     expect(h3.get('dyad-open-btn').hidden).toBe(false);
+    // And it names the thing the $3 offer sells, in the offer's own words.
+    // A buyer who paid for "compare two people" has to be able to find it
+    // on the result rail without inferring that "read beside another sheet"
+    // was that purchase. Carries no price and no urgency — it is an entry
+    // to an owned surface, not a second offer (§2 clinical register).
+    expect(h3.get('dyad-open-btn').textContent).toBe('compare with a second person');
+    expect(h3.get('dyad-open-btn').textContent).not.toMatch(/\$|once|buy|now/i);
   });
 
   it('dyadEntryVisible is entitlement-only — a product URL argument never surfaces a dead entry control (PR #187 R6)', () => {

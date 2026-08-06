@@ -368,7 +368,10 @@ function injectEntryButton(controls) {
   btn.type = 'button';
   btn.className = 'btn btn-block btn-secondary';
   btn.id = 'dyad-open-btn';
-  btn.textContent = 'read beside another sheet';
+  // Names the two-person comparison in the same words the $3 offer uses.
+  // "read beside another sheet" described the layout; a buyer arriving from
+  // "compare two people" had to infer that this was the thing they bought.
+  btn.textContent = 'compare with a second person';
   btn.hidden = true; // fail closed until a render says otherwise
   btn.addEventListener('click', () => {
     if (!dyadEntitled(currentTier())) return;

@@ -376,7 +376,7 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
   it('the sprint $3 offer is still the only purchase surface', () => {
     expect((html.match(/gumroad\.com/g) || []).length).toBe(1);
     expect(html).toMatch(/id="paywall-cta-t3"[^>]*href="https:\/\/theeightball\.gumroad\.com\/l\/xjpvp"/);
-    expect(html).toMatch(/id="offer-btn"[^>]*>open the complete sheet · \$3 once</);
+    expect(html).toMatch(/id="offer-btn"[^>]*>complete sheet \+ compare two people · \$3 once</);
   });
 });
 
