@@ -79,7 +79,7 @@ const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', '
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
-// 14-cell sheet and is excluded from the density census, so t3's
+// 15-cell sheet and is excluded from the density census, so t3's
 // open/sealed/total census is unchanged by carrying it. It briefly had its
 // own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
 // so the ladder is three rungs again and the block is the t3 ceiling
@@ -189,9 +189,9 @@ export function formatPillar(pillar) {
 // can only fire on a genuine upgrade render.
 //
 // `dyadRelation` is deliberately absent: this decides the unseal beat for
-// #card-face, and the dyad block does not live there. A t3 → t5 upgrade
-// therefore adds NO sheet cell and correctly returns [] — the single sheet
-// is already complete, which is the whole shape of the append.
+// #card-face, and the dyad block does not live there. It is entitled at t3
+// since §1.D v0.68, so excluding it here is what keeps the beat about
+// compartments only.
 export function newlyEntitledCells(prevTier, tier) {
   const prev = coordsForTier(prevTier);
   const next = coordsForTier(tier);
@@ -355,6 +355,17 @@ export function renderTierSections(profile, tier) {
     _entry.classList.toggle('sealed', !cardEntry);
     _entry.classList.remove('unsealing');
     if (_entry.style && _entry.style.removeProperty) _entry.style.removeProperty('--unseal-delay');
+  }
+  // Same cleanup for the public block. Without it `unsealing` (and its
+  // --unseal-delay) survives every later render: sealOut is fill-mode
+  // both and ends at opacity 0, so the seal would be pinned invisible
+  // for the page's life and a later lower-tier render would paint DOMAIN
+  // FIT sealed-but-unhatched — the F4 conflation in the paint layer.
+  // Unreachable while the stored tier is monotone; one tier-clearing
+  // change from live.
+  if (_publicRoot && _publicRoot.classList) {
+    _publicRoot.classList.remove('unsealing');
+    if (_publicRoot.style && _publicRoot.style.removeProperty) _publicRoot.style.removeProperty('--unseal-delay');
   }
 
   // Unseal beat: fires only when this render's tier exceeds the last

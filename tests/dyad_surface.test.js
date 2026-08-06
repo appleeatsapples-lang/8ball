@@ -649,6 +649,25 @@ describe('dyad surface — F5: both sides are real standalone sheets', () => {
     expect(builtTitles).toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
   });
 
+  it('the hexagon geometry is pinned by VERTEX, not just by class name (§1.M)', () => {
+    // A class-name assertion cannot catch a transposed grid-area, which
+    // would silently reorder the six numerology coordinates on screen
+    // while every other test stayed green. Pin the vertex SET.
+    const vertices = [...html.matchAll(/\.coord-cells-hex > :nth-child\((\d)\) \{ grid-area: (\d) \/ (\d); \}/g)]
+      .map(m => ({ child: +m[1], row: +m[2], col: +m[3] }));
+    expect(vertices, 'six hexagon vertices must be declared').toHaveLength(6);
+    expect(vertices.map(v => v.child)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(vertices.map(v => `${v.row}/${v.col}`))
+      .toEqual(['1/2', '1/3', '2/1', '2/4', '3/2', '3/3']);
+    // ...and only the six-cell numerology line carries the class, on BOTH
+    // the host markup and an instanced sheet (a flat row beside a hexagon
+    // would be a real §1.J divergence, not a cosmetic one).
+    // Count the MARKUP occurrence only — the class also appears in its own
+    // CSS selectors, which would make a naive count read 8.
+    expect((html.match(/class="coord-cells coord-cells-hex"/g) || [])).toHaveLength(1);
+    expect((buildSheetMarkup('x').match(/class="coord-cells coord-cells-hex"/g) || [])).toHaveLength(1);
+  });
+
   it('the built sheet emits NO id, so it cannot collide with the host sheet (G2)', () => {
     // ui/meanings.js binds the host compartments by getElementById. A second
     // sheet carrying the same ids would make that lookup ambiguous and the

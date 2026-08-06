@@ -94,7 +94,7 @@ const STYLE = `
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--text-muted); cursor: pointer; min-height: 44px;
   padding: 8px 16px; }
-.coord-cell.has-detail { cursor: pointer; min-height: 44px; touch-action: manipulation;
+.coord-cell.has-detail { cursor: pointer; touch-action: manipulation;
   transition: background-color 100ms ease-out, border-color 100ms ease-out; }
 @media (hover: hover) {
   .coord-cell.has-detail:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.55); }
@@ -306,7 +306,28 @@ export function initMeaningsUI(refs) {
       cell.setAttribute('role', 'button');
       cell.setAttribute('aria-expanded', 'false');
       cell.setAttribute('aria-controls', 'meaning-panel');
-      cell.setAttribute('aria-label', `${coordinate.label} details`);
+      // NO aria-label. `role="button"` is children-presentational and an
+      // aria-label overrides name-from-contents, so labelling the cell
+      // "<coordinate> details" made the VALUE unreachable to assistive
+      // tech on 14 of 15 compartments — the paid sheet was inaudible, and
+      // the accessible name did not contain the visible text (SC 2.5.3).
+      // A visually-hidden label prepended as the FIRST child instead lets
+      // the computed name be "<coordinate> <value>" — and a sealed cell
+      // still contributes nothing, because its value node is already ''.
+      // Feature-detected like every other DOM write in this module: a
+      // non-DOM test mock must degrade to a no-op, not throw.
+      const canPrepend = typeof cell.insertBefore === 'function'
+        && typeof cell.querySelector === 'function'
+        && typeof document.createElement === 'function';
+      if (canPrepend && !cell.querySelector('.sr-only')) {
+        const sr = document.createElement('span');
+        sr.className = 'sr-only';
+        // Trailing space is load-bearing: accessible-name computation
+        // concatenates inline nodes without one, so the name would compute
+        // as "sunaries" rather than "sun aries" (verified in-browser).
+        sr.textContent = `${coordinate.label} `;
+        cell.insertBefore(sr, cell.firstChild);
+      }
       cell.dataset.coordinateKey = key;
     }
   }

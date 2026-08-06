@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ATLAS_NOTE, atlasText, provText, initTiersUI, renderTierSections, shareRowRefs } from '../ui/tiers.js';
+import { ATLAS_NOTE, atlasText, provText, initTiersUI, renderTierSections, shareRowRefs, SHEET_ROWS } from '../ui/tiers.js';
 import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,7 +38,9 @@ describe('ATLAS legend (CLP cut 2)', () => {
     // reader could not tell the year five-element `water` from the hour
     // pillar's stem element in `rat · water`. Found in live-fire, by
     // someone reading the card and asking why water was repeated.
-    for (const keys of Object.values(ROW_KEYS)) {
+    // Iterate the SHIPPED row constant, not the local mock copy — a
+    // hand-maintained list can agree with itself while the product drifts.
+    for (const keys of SHEET_ROWS) {
       expect(atlasText(keys).split(' · '), `row ${keys[0]} legend misaligned`)
         .toHaveLength(keys.length);
       expect(provText(keys).split(' · '), `row ${keys[0]} placard misaligned`)

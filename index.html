@@ -223,7 +223,7 @@
     position: relative; display: inline-flex;
     align-items: center; justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.42);
-    min-width: 52px; min-height: 27px; padding: 1px 8px;
+    min-width: 52px; min-height: 44px; padding: 1px 8px;
   }
   .coord-cell .coord-val {
     font-size: clamp(13px, 3.6vw, 16px); line-height: 1.5;
@@ -538,6 +538,9 @@
     transition: color 0.15s;
   }
   .text-link:hover, .text-link:focus { color: var(--text); outline: none; }
+  /* the :focus rule above strips the outline; restore a real indicator for
+     keyboard users (muted-on-text is 1.98:1, under SC 2.4.11's 3:1). */
+  .text-link:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
   /* ── result screen ───────────────────────────────────────────── */
   .result-controls {
@@ -868,7 +871,7 @@
         <p class="field-error" id="dob-error" role="alert" aria-live="assertive" hidden>enter a valid date of birth.</p>
       </div>
       <details class="field-group" id="rising-fields" open>
-        <summary>birth time &amp; place — adds your rising sign (optional)</summary>
+        <summary>birth time &amp; place — adds your rising sign and moon sign (optional)</summary>
         <div class="field">
           <label for="time-input">birth time</label>
           <input id="time-input" type="time" placeholder="">
@@ -1001,7 +1004,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the sixteen coordinates are open and how many stay sealed at paid tiers.</p>
+    <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest: rising sign and moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). your name enters the math for four of them — name number, soul urge, personality, maturity; the rest come from the date alone. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the sixteen coordinates are open and how many stay sealed at paid tiers.</p>
     <p>nothing leaves your device on its own. inputs — including the optional gender, which no surface currently reads and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
     <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the comparative — a second person's complete sheet beside yours with the named relation between them — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
@@ -1015,7 +1018,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title" aria-describedby="forget-copy forget-status">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
-    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
+    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. neither is ever sent to a server, so there is no remote copy to erase.</p>
     <p class="modal-status" id="forget-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
     <div class="modal-actions">
       <button class="btn" id="forget-cancel" type="button">leave it</button>
@@ -1067,7 +1070,7 @@ import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tie
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
-import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput, setGenderInput } from './ui/profile.js';
+import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';

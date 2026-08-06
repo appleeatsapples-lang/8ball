@@ -30,6 +30,18 @@ describe('labels-reveal toggle (v0.2.7)', () => {
   // Visibility per tier is still JS-gated per CELL by ui/tiers.js
   // (tests/tiers.test.js); the markup ships all four lines and all
   // fifteen compartments at every tier.
+  it('the compartment row WRAPS — the fix for silent card overflow (§1.L)', () => {
+    // With flex-wrap:nowrap the six-cell numerology line's min-content
+    // width pushed #card-face wider than its .flip-stage, and
+    // body{overflow-x:hidden} CLIPPED it rather than scrolling — so a
+    // scrollWidth probe read clean while the last compartment and the
+    // catalog numeral were lost off-screen. Found by looking at the
+    // rendered card, not by the suite; pinned here so it cannot regress.
+    const rule = html.match(/\.coord-cells \{[^}]*\}/);
+    expect(rule, '.coord-cells rule not found').not.toBeNull();
+    expect(rule[0]).toMatch(/flex-wrap:\s*wrap/);
+  });
+
   it('four coord-section elements present', () => {
     const matches = html.match(/class="coord-section"/g) || [];
     expect(matches.length).toBe(4);

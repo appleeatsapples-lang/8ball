@@ -43,6 +43,11 @@ function makeNode(tag = 'div') {
       if (globalThis.document) globalThis.document.activeElement = this;
     },
     appendChild(c) { this.children.push(c); },
+    insertBefore(node, ref) {
+      const i = ref ? this.children.indexOf(ref) : -1;
+      if (i >= 0) this.children.splice(i, 0, node); else this.children.unshift(node);
+      return node;
+    },
     addEventListener(ev, fn) { handlers[ev] = fn; },
     _fire(ev, e) { return handlers[ev] && handlers[ev](e); },
     querySelector(sel) {
@@ -129,12 +134,25 @@ describe('ui/meanings.js behavior', () => {
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
 
-  it('init marks all 14 coordinate cells interactive and keyboard-reachable', () => {
+  it('init marks all 14 coordinate cells interactive, keyboard-reachable, and audible', () => {
     for (const [key] of coordinates) {
       expect(cells[key].classList.contains('has-detail')).toBe(true);
       expect(cells[key].attrs.tabindex).toBe('0');
       expect(cells[key].attrs.role).toBe('button');
-      expect(cells[key].attrs['aria-label']).toMatch(/ details$/);
+      // NO aria-label: it overrode name-from-contents, so the coordinate
+      // VALUE never reached assistive tech on 14 of 15 compartments (the
+      // paid sheet was inaudible) and the accessible name did not contain
+      // the visible text (SC 2.5.3). The visually-hidden label is
+      // prepended as the FIRST child instead, so the computed name is
+      // "<coordinate> <value>".
+      expect(cells[key].attrs['aria-label']).toBeUndefined();
+      const sr = cells[key].children[0];
+      expect(sr, `${key} must lead with a visually-hidden label`).toBeTruthy();
+      expect(sr.className).toBe('sr-only');
+      expect(typeof sr.textContent).toBe('string');
+      expect(sr.textContent.length).toBeGreaterThan(0);
+    // trailing space so the computed name reads "sun aries", not "sunaries"
+    expect(sr.textContent).toMatch(/ $/);
       expect(cells[key].dataset.coordinateKey).toBe(key);
     }
     expect(panel()).toBeTruthy();

@@ -168,10 +168,15 @@ export function isTier(value) {
 }
 
 /**
- * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3, t5 → 4. The rank is
- * the POSITION, never the digit in the token — `t5` ranks 4 because the
- * ladder skips t4 (see the gap note above). Anything that is not a known
- * tier (null / undefined / garbage) ranks 0 — the free tier.
+ * Ladder POSITION of a tier: t1 → 1, t2 → 2, t3 → 3.
+ *
+ * Anything not in TIER_ORDER ranks 0 (the free tier) — and that
+ * deliberately includes the RETIRED tokens `t4` and `t5`. Run a stored
+ * tier through normalizeTier BEFORE ranking it: `maxTier('t5','t1')`
+ * returns `'t1'`, because an un-normalized 't5' ranks below every rung.
+ * `applyPaidReturn` normalizes first, which is why the runtime is
+ * correct; a caller that ranks a stored tier directly would downgrade a
+ * device holding the unsigned `?paid=t5` return.
  */
 export function tierRank(tier) {
   return TIER_ORDER.indexOf(tier) + 1;

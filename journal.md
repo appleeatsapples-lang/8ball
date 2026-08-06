@@ -5,6 +5,103 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Ten-pass refinement (§1.L/§1.M/§1.D v0.68 surfaces) — STAGED, audit pending
+
+**What this was.** Ten evidence-based review passes over the branch at
+`61294c1`, run as a bounded workflow (four clustered analyses + one
+adversarial verifier, not a 21-agent fan-out). Only reconciled,
+high-confidence changes landed; four passes are honest NO-OPs.
+
+**Bugs caught — all four are real defects, not preferences.**
+
+1. **The paid sheet was inaudible.** `ui/meanings.js` set
+   `aria-label = "<coordinate> details"` on 14 of 15 compartments. With
+   `role="button"` (children-presentational) an aria-label overrides
+   name-from-contents, so the coordinate VALUE never reached assistive
+   tech — a screen-reader user heard "sun details, button" and never
+   "aries". Also an SC 2.5.3 failure (accessible name did not contain
+   the visible text). Fixed with a visually-hidden label prepended as the
+   first child; the name now computes "sun aries". **The existing test
+   ENCODED the defect** (`toMatch(/ details$/)`), so it moved — and the
+   hand-rolled DOM mock was upgraded with a real `insertBefore` so the
+   fix is genuinely exercised rather than asserted.
+2. **`#public-read` kept `unsealing` forever** (`ui/tiers.js`). The
+   module states the beat class is cleared every render and honours that
+   for `_entry` only. Because `sealOut` is `fill-mode: both` ending at
+   `opacity: 0`, the seal would be pinned invisible for the page's life,
+   and a later lower-tier render would paint DOMAIN FIT
+   sealed-but-unhatched — the F4 conflation in the paint layer.
+   Unreachable today (monotone stored tier), one tier-clearing change
+   from live. Latent, fixed, and the test refs now cover the branch that
+   was dead.
+3. **The phone submit-FAB overlapped the gender picker.**
+   `ui/experience.css` still guarded `.kua-gender-field`; the only
+   producer emits `gender-field` (renamed when the control was rehomed
+   out of the deleted kua module). The 72px fixed `#enter-btn` sat over
+   the iOS picker wheel — the exact state the sibling `#rising-fields`
+   clause exists to prevent.
+4. **`tierRank`'s docstring inverted its own contract.** It claimed
+   `t5 → 4`; it actually returns 0, and `maxTier('t5','t1')` returns
+   `'t1'`. Runtime is correct only because `applyPaidReturn` normalizes
+   first — a caller trusting the doc and ranking a stored tier directly
+   would downgrade a device holding the unsigned `?paid=t5` return.
+
+**One predicted bug did NOT reproduce, and the live check is why.** The
+analysis computed a card overflow at 320/390 with labels off (533px of
+flow against a 406px box) and flagged it NEEDS-LIVE-CHECK rather than
+landing a fix blind. In the browser: card bottom == stage bottom,
+`scrollHeight == clientHeight`, no horizontal scroll, at 320 and 390, in
+both label states. The static arithmetic missed that the stage grows.
+**No change made** — recorded so the next reader does not re-derive the
+same false alarm.
+
+**Truth fixes.** The about-modal implied the name drives all eleven paid
+coordinates; it drives exactly four (verified by running two profiles
+that differ only by name: `nameNumber`, `soulUrge`, `personality`,
+`maturity`). The entry-form summary promised only the rising sign while
+moon rides the same gate. The forget-modal claimed "no paperwork exists
+elsewhere", a global negative contradicted by the Gumroad redirect and
+the feedback POST — narrowed to a scoped, true statement. `DOCTRINE.md`
+§1's index still shipped the four-rung ladder my own v0.68 amendment had
+just falsified; `8BALL.md` and `CLAUDE.md` still called the dyad t5 and
+counted fourteen compartments.
+
+**Coverage added** for behaviour that would have failed silently: the
+hexagon's six vertices pinned by GRID-AREA (a class-name assertion
+cannot catch a transposition that reorders the coordinates on screen);
+the `flex-wrap` rule that prevents the silent card clipping; and the
+ATLAS pin now iterates the SHIPPED `SHEET_ROWS` instead of a local
+hand-copy that could agree with itself while the product drifted.
+
+**One pin was generalised rather than rewritten to fit.** The
+conditional-qualifier pin demanded the literal `rising sign (with birth
+time + place)`. The new copy qualifies rising and moon jointly, which
+satisfies the pin's INTENT better; the assertion now tests the
+requirement (each coordinate appears inside a clause stating the input)
+rather than one phrasing.
+
+**NO-OPs, recorded rather than padded.** Hierarchy (every proposed fix
+added height to a card or swapped unpinned arbitrary values); responsive
+(see the non-reproducing bug above); motion (reduced-motion coverage
+verified complete; the 1540ms stagger tail is deliberate); and the
+gender field's privacy copy — I traced all seven seams and both strings
+are accurate in both directions, so they were left alone. **The
+mark+word system titles were also a NO-OP**: they pass font and PNG
+verification (`◊ ° # ×` exist in SF Mono, Menlo and Courier New and
+rasterise through the real SVG→canvas path), but `.coord-title` is
+`visibility: hidden` by default, so a mark would be invisible in the
+card's primary state and merely decorative in the one state where the
+title shows — decoration §2 forbids, for index budget I do not have.
+
+**Verification.** Suite 54 files / 1904 tests green (1902 before the two
+added pins) · product audit PASS 13/0/1/0 · local PII scan clean (854
+files) · index.html 1466/1500 · live-fire at 320 / 390 / desktop, both
+label states, host sheet and dyad screen, t3 and below.
+
+**Process.** STAGED on `claude/specimen-four-line-symbolic`. No push, no
+PR touched, no storefront mutation, no SIRR. Merge is the operator's
+word.
+
 ## 2026-08-06 — The comparative folds into $3; t5 retired (§1.D v0.68, operator word) — STAGED, audit pending
 
 **What happened.** Operator: "$3 one price includes comparative — make it

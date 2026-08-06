@@ -566,10 +566,18 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
-    // Rising needs birth time + place; the hour pillar needs birth time.
-    // Both are paid-rung coordinates sold on the ladder, so the load-
-    // bearing disclosure surface must carry the conditionality.
-    expect(aboutSubtree).toMatch(/rising sign \(with birth time \+ place\)/);
+    // Rising AND moon need birth time + place; the hour pillar needs birth
+    // time. All are paid-rung coordinates sold on the ladder, so the
+    // load-bearing disclosure surface must carry the conditionality.
+    //
+    // The assertion is on the REQUIREMENT, not on one phrasing: the copy
+    // may qualify rising and moon separately or jointly, but each must
+    // appear inside a clause that states the birth time + place input.
+    // (§1.K put moon on the same gate as rising; a pin that only knew the
+    // separate wording would have blocked stating that fact once.)
+    const timeAndPlace = aboutSubtree.match(/[^.]*\(with birth time \+ place\)/g) || [];
+    expect(timeAndPlace.join(' '), 'rising must be qualified').toMatch(/rising sign/);
+    expect(timeAndPlace.join(' '), 'moon must be qualified').toMatch(/moon sign/);
     expect(aboutSubtree).toMatch(/hour pillar \(with birth time\)/);
   });
 

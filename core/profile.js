@@ -353,10 +353,11 @@ export function buildProfile(name, dobIso, opts) {
       }
     }
   }
-  // ── Gender passthrough (additive, §1.D kua amendment). Strict two-token
-  // vocabulary; anything else resolves undefined (same absent-shape as
-  // risingSign). Consumed only by the kua read (ui/kua.js → core/kua.js) —
-  // no free coordinate derives from it, preserving free = DOB-only (§1.D).
+  // ── Gender passthrough (additive). Strict two-token vocabulary;
+  // anything else resolves undefined (same absent-shape as risingSign).
+  // NO CONSUMER since §1.D v0.67 deleted the kua read — the field is
+  // retained by operator word and is stored/round-tripped only. No
+  // coordinate derives from it, so free = DOB-only (§1.D) is unaffected.
   const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))
     ? opts.gender
     : undefined;
