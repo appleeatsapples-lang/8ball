@@ -141,11 +141,11 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     expect(TIER_COORDS.t2).toEqual([...TIER_COORDS.t1, 'numbers2', 'dayPillar']);
   });
 
-  it('t3 adds hour pillar (four pillars complete) + the written entry + the public read', () => {
+  it('t3 adds hour pillar (four pillars complete) + the written entry + the public read + the comparative (§1.D v0.68)', () => {
     // §1.D v0.60 folded the public read into t3 rather than selling it as a
     // fourth rung. Both ceiling additions are BLOCKS, not compartments, so
     // the cell grid and the §1.F census are unmoved by either.
-    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead']);
+    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead', 'dyadRelation']);
   });
 
   it('the ladder is strictly cumulative — every tier is a superset of the one below', () => {
@@ -179,7 +179,7 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
-  it('TIER_ORDER is the locked t1 < t2 < t3 < t5 ladder, with t4 skipped', () => {
+  it('TIER_ORDER is the locked t1 < t2 < t3 ladder — t4 AND t5 are retired (§1.D v0.68)', () => {
     // Four rungs for part of 2026-07-29 (§1.D v0.58); t4 was folded into t3
     // rather than sold (§1.D v0.60), so the ladder went back to three. §1.D
     // v0.61 appends the DYAD rung — and appends it as `t5`, not `t4`, because
@@ -187,7 +187,7 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     // RETIRED_TIERS. Reusing the token would put the same key in both tables
     // and collapse paying dyad devices to t3; the gap is the fix, and
     // RETIREMENT_COLLISIONS below is the derived proof it holds.
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
   });
 
   it('tierRank is ladder POSITION, not the digit in the token', () => {
@@ -198,20 +198,20 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(tierRank('t1')).toBe(1);
     expect(tierRank('t2')).toBe(2);
     expect(tierRank('t3')).toBe(3);
-    // The one that would break a digit-parsing implementation: t5 is the
-    // FOURTH rung. Nothing may read rank off the numeral.
-    expect(tierRank('t5')).toBe(4);
+    // Both retired tokens rank 0 — they are not rungs. The digit-parsing
+    // trap this test was written for still applies to any FUTURE rung:
+    // nothing may read rank off the numeral.
     expect(tierRank('t4')).toBe(0);
+    expect(tierRank('t5')).toBe(0);
   });
 
-  it('isTier accepts exactly the four current rungs', () => {
+  it('isTier accepts exactly the three current rungs', () => {
     expect(isTier('t1')).toBe(true);
     expect(isTier('t2')).toBe(true);
     expect(isTier('t3')).toBe(true);
-    expect(isTier('t5')).toBe(true);
-    // 't4' is retired, NOT current — it must not pass isTier, and the
-    // retirement table is what keeps its holders whole.
-    for (const bad of ['t0', 't4', 't6', 'free', '', null, undefined, 'T2', 1]) {
+    // 't4' and 't5' are retired, NOT current — neither may pass isTier, and
+    // the retirement table is what keeps any holder whole.
+    for (const bad of ['t0', 't4', 't5', 't6', 'free', '', null, undefined, 'T2', 1]) {
       expect(isTier(bad), `${String(bad)} must not be a tier`).toBe(false);
     }
   });

@@ -5,6 +5,62 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The comparative folds into $3; t5 retired (§1.D v0.68, operator word) — STAGED, audit pending
+
+**What happened.** Operator: "$3 one price includes comparative — make it
+possible." `dyadRelation` moves from t5 into `T3_COORDS`, so the single
+$3 rung now carries the §1.J comparative (person B's complete sheet plus
+the named relation layer) beside the written entry and the public read.
+`t5` is retired into `t3`; `TIER_ORDER` is three rungs again.
+
+**This is the v0.60 shape, and the machinery was built for it.**
+`RETIRED_TIERS` becomes `{ t4: 't3', t5: 't3' }` and
+`RETIREMENT_COLLISIONS` — which derives its answer from `TIER_ORDER` and
+`RETIRED_TIERS` rather than restating them — stays empty, because t5
+leaves the ladder in the same change that adds it to the table. That
+derived invariant is exactly the guard §1.D v0.61 built when it chose
+`t5` over reusing the burned `t4` token, and it did its job here without
+modification.
+
+**Nobody is downgraded, and the argument is stronger than at t4's
+retirement.** `T5_PRODUCT_URL` shipped empty for the rung's entire life,
+so no *purchased* t5 can exist; the migration exists only because the
+unsigned `?paid=t5` return was reachable. And the successor is a
+**superset** of the retired rung: everything t5 could render, t3 renders.
+A retirement that cannot reduce access even in principle.
+
+**Census unmoved.** `dyadRelation` is a BLOCK, not a compartment — no
+cell in the 15-cell sheet, excluded from the §1.F census — so t3 stays
+16/0/16 and no compartment's entitlement moved.
+
+**One inversion, deliberate, and rewritten rather than deleted.** The
+suite pinned *"t3 — which buys the complete SINGLE sheet — gets no
+second sheet at all"*, written to lock the F2 fix where a t3 device once
+received person B's complete sheet for free. That sentence is now false
+by product decision. I rewrote the test to assert the flip and to say in
+its own comment that it is a deliberate inversion, rather than quietly
+deleting a guard — a deleted guard looks identical to a guard that was
+never there. **Every other F2 protection survives in kind:** one
+`dyadEntitled` predicate consulted by every gate, entry control absent
+below the entitled rung, `open()`/`submitSecond()` refusing and
+rendering nothing, and the R6 rule that no product-URL constant can
+surface a control with no click path. Only the threshold moved, t5 → t3.
+
+**Buyer copy now names it** in both the about-modal and the paywall, with
+the CI pins moved in lockstep.
+
+**The storefront is NOT updated, and that gap is stated not hidden.** The
+Gumroad listing still describes what it described; changing it is an
+operator-hand action — no agent may mutate the store. Until that happens
+the shipped surface offers more than the listing says. Recorded in §1.D
+v0.68 rather than left for someone to find.
+
+**Verification.** Suite 54 files / 1902 tests green · product audit and
+PII gate below · price unchanged at $3.
+
+**Process.** STAGED on `claude/specimen-four-line-symbolic`; triple-force
+relay audit before any PR; merge is the operator's word.
+
 ## 2026-08-06 — Kua block deleted, gender input retained (§1.D v0.67, operator word) — STAGED, audit pending
 
 **What happened.** Operator word: "gender should be deleted", then

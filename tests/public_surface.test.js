@@ -267,15 +267,17 @@ describe('public read — render', () => {
 });
 
 describe('public read — the t4 retirement must not downgrade anyone', () => {
-  it('t4 is still not current, and the dyad append did not revive it', () => {
+  it('t4 is still not current, and the §1.D v0.68 fold did not revive it', () => {
     // §1.D v0.61 appends a rung. The thing that would silently break every
     // t4-holding device is appending it AS t4, so this pin now carries the
     // whole ladder: t4 stays retired, the successor is unchanged, and the
     // new rung took the clean token instead.
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
     expect(isTier('t4')).toBe(false);
     expect(tierRank('t4')).toBe(0);
-    expect(RETIRED_TIERS).toEqual({ t4: 't3' });
+    // t5 joins the table at §1.D v0.68 (the comparative folded into t3);
+    // t4's own migration is unchanged by that.
+    expect(RETIRED_TIERS).toEqual({ t4: 't3', t5: 't3' });
     expect(TIER_ORDER).not.toContain('t4');
   });
 

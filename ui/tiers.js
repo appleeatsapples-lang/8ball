@@ -88,23 +88,19 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // ceiling is the written entry + the public read; the optional gender
 // input survives the deletion (operator word) but no longer feeds any
 // surface. No census change: kua was a BLOCK, never a compartment.
-const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
-// §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
-// completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus
-// the relation layer between the two. `dyadRelation` is therefore a BLOCK in
-// the `cardEntry` / `publicRead` sense — no compartment, no census weight —
-// and it is the only key here that renders outside #card-face entirely (the
-// dyad screen, ui/dyad.js). Extending t3's list rather than replacing it is
-// what makes the append monotonic: a t5 device holds full single density, so
-// each of the two sheets renders exactly what a t3 buyer sees.
-const T5_COORDS = [...T3_COORDS, 'dyadRelation'];
+// §1.D v0.68 — `dyadRelation` joins the t3 ceiling: one $3 price now
+// carries the comparative. Like `cardEntry` and `publicRead` it is a BLOCK,
+// not a compartment, so the §1.F census is unmoved at 16; and it is still
+// the only key that renders outside #card-face entirely (the dyad screen,
+// ui/dyad.js).
+const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead', 'dyadRelation'];
+
 
 export const TIER_COORDS = {
   free: FREE_COORDS,
   t1: T1_COORDS,
   t2: T2_COORDS,
   t3: T3_COORDS,
-  t5: T5_COORDS,
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
