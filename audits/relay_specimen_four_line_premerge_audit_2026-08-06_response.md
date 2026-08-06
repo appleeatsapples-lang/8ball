@@ -653,3 +653,95 @@ mutation injected: **2 failed**, where before it was 0.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation. Merge
 remains the controller's word.
+
+---
+
+# ADDENDUM 5 — re-audit of `6c98f9d`: one P2, and a red-team behind it
+
+**Verdict received:** MERGE WITH FIXES, 1 P2 test-surface residual. Doctrine/L17
+and KPI lanes PASS.
+**After verification: CONFIRMED, absorbed — and an adversarial pass found three
+more holes of the same class, all closed.**
+
+## The finding, reproduced exactly
+
+The widened `renderCard` gender guard still had false negatives, both from
+getting an ORDER wrong:
+
+- **The matcher stripped string literals before matching**, so
+  `profile["gender"]` became `profile[""]`. Reproduced: that reader, and the
+  template-interpolation form, each returned `tokens: []` while changing what
+  the card displays.
+- **The extractor brace-matched before stripping comments**, so a `// }}}}`
+  prefix truncated the extracted body from **3348 characters to 4**.
+
+## What a red-team then found — three more, same class
+
+Not asked for by the audit; run because a guard that has now failed twice
+deserves an adversary rather than another careful re-read.
+
+1. **`getGenderInput()` called inside `renderCard`.** The accessor reads the
+   live form control and changes the card **while naming no property at all**,
+   and `\bgender\b` could not see its name. **This is ordinary code a
+   maintainer could write by accident** — the most important of the three, and
+   the reason the matcher is now boundary-free.
+2. **A reader in a sibling helper of the same inline module.** The guard read
+   only `renderCard`, so any other function in the host was unscanned.
+3. **A destructured read in `ui/result.js`.** The separate `core/`+`ui/` scan
+   still used the property-only regex — **the same defect I had just repaired
+   in the host, left standing one directory over.** That is the half-applied-
+   rule pattern this cycle keeps producing, and it is why the two scans now
+   share one function.
+
+## The repair
+
+Lexical, in a new `tests/helpers/js-lex.js`: one pass classifies every
+character CODE / COMMENT / STRING with template `${...}` interpolations
+classified as code. Braces are counted only where they are code; the function
+signature is located only in code (a comment quoting it had hijacked the
+extraction to an unrelated block); the identifier scan drops comment text and
+**keeps string text**, because a computed property key lives in a literal —
+which is precisely what stripping literals destroyed.
+
+The primary guard is now **module-wide**, not function-scoped: exactly two
+lines of the inline module may touch the identifier, the accessor's import and
+its single call at the submit seam. The `core/`+`ui/` scan uses the same
+function, so the two cannot drift apart again.
+
+## What it guarantees — stated exactly, because this record has overclaimed three times
+
+Every **spelled** read fails the suite, wherever it sits: property, computed
+with any quote style, destructured, aliased, template-interpolated, or through
+the accessor.
+
+**It does not stop an adversary.** The red-team still got past it with a
+runtime-built key (`profile['gen' + 'der']`), a Unicode escape inside the
+property name, and a `JSON.stringify(profile).includes('"female"')` sniff. Each
+executes and changes the card; none writes the identifier. No lexical check
+closes that class — only executing `renderCard` would, and §6 keeps it in the
+inline module while §12 forbids jsdom. **The runtime differential over the pure
+surfaces is the real guarantee; this is the fence around what it cannot reach.**
+
+It **fails closed** by design. Prospective false positives were confirmed —
+user-visible copy, an aria-label, a CSS class or a data attribute carrying the
+word would all trip it; none exists today. The remedy when one is wanted is to
+add it to the pinned lines, a reviewed act, never to loosen the matcher.
+
+## L17, this time
+
+The corrections are a **new §5 v0.72 amendment**. v0.71 item (4)'s claim that
+the guard "rejects the identifier in any form" was false and is superseded
+there, not edited. v0.71 and v0.70 footer bodies were verified **byte-identical**
+to `6c98f9d` after only their labels were demoted — checked programmatically,
+and the whole-file diff contains no removal beyond those two label lines.
+
+## Verification
+
+- Every bypass above re-run against the repaired guard: each now fails the
+  suite. The two structural ones (sibling helper, `ui/result.js`) verified by
+  live mutation and restore.
+- vitest **56 files / 1999 tests green** (1985 → 1999)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1474/1500**
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

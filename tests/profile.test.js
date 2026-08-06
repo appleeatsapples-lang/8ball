@@ -53,6 +53,9 @@ import {
 } from '../ui/share.js';
 import { entryFor, harmonyFor } from '../ui/meanings.js';
 import { compactReadingProfile } from '../ui/readings.js';
+// Lexical classifier for the inline-render guard — see the header of
+// tests/helpers/js-lex.js for the two regex failures that made it necessary.
+import { COMMENT, classify, functionBody, genderTokens } from './helpers/js-lex.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -705,32 +708,56 @@ describe('buildProfile — the optional gender field', () => {
 // field "does not affect your reading". This suite is what makes that
 // sentence true rather than merely written down.
 
-// `renderCard`'s body, brace-matched out of index.html's inline module and
-// stripped of comments and string literals so a `gender` inside prose or a
-// selector cannot register as a read. Scoped to renderCard alone: the submit
+// `renderCard`'s body, LEXED out of index.html's inline module — braces are
+// counted only where they are code, so a `}` inside a comment or a string
+// cannot truncate the extraction. Scoped to renderCard alone: the submit
 // handler legitimately names the field (`opts.gender = g`) and is not the
 // render path.
+//
+// Two earlier regex versions of this pair were defeated; the reasons are
+// written out in tests/helpers/js-lex.js and pinned by the counter-cases at
+// the bottom of this file.
+const RENDER_CARD_SIG = 'function renderCard(profile, opts) {';
 function renderCardBody(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
-  const start = html.indexOf('function renderCard(profile, opts) {');
-  if (start === -1) throw new Error('renderCard not found in index.html');
-  const open = html.indexOf('{', start);
-  let depth = 0;
-  for (let i = open; i < html.length; i++) {
-    if (html[i] === '{') depth++;
-    else if (html[i] === '}' && --depth === 0) return html.slice(open + 1, i);
-  }
-  throw new Error('renderCard body is unbalanced');
+  return functionBody(html, RENDER_CARD_SIG);
 }
 
-// Every mention of the IDENTIFIER, not of one property syntax. `.gender`,
-// `['gender']`, `{ gender }`, `gender:` and a bare `gender` all register;
-// `getGenderInput` does not, because the word boundary excludes it.
-function genderTokensIn(source) {
-  const code = source
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/^\s*\/\/.*$/gm, ' ')
-    .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
-  return (code.match(/\bgender\b/gi) || []);
+// Every mention of the IDENTIFIER, in any form the language offers:
+// `profile.gender`, `profile['gender']`, `profile["gender"]`,
+// ``profile[`gender`]``, `const { gender } = …`, `{ gender: alias }`, a bare
+// `gender`, and any of those inside a template interpolation.
+//
+// STRING TEXT IS SCANNED ON PURPOSE. A computed property key lives in a string
+// literal, so stripping literals — which is what the first version did — is
+// exactly how `profile["gender"]` escaped. Comment text is the only thing
+// dropped, because a comment is the one place the word is harmless.
+// `getGenderInput` never matches: the word boundary excludes it.
+function genderTokensIn(extracted) {
+  return genderTokens(extracted);
+}
+
+// Every mention of the identifier in a JS source, comments excluded. Shared
+// by the core/ + ui/ module scan and by the inline-module guard so the two
+// cannot drift — the previous versions used two different regexes and both
+// were separately defeated.
+function genderMentionsInSource(src) {
+  const kind = classify(src);
+  let code = '';
+  for (let i = 0; i < src.length; i++) code += kind[i] === COMMENT ? ' ' : src[i];
+  return code.match(/gender/gi) || [];
+}
+
+// index.html's single inline module, lexed, with COMMENT characters blanked
+// and everything executable or literal preserved. The module-wide guard runs
+// on this so a reader hidden in any helper — not just renderCard — is caught.
+function inlineModuleCode(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  const m = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+  if (!m) throw new Error('index.html carries no inline module');
+  const src = m[1];
+  const kind = classify(src);
+  let out = '';
+  for (let i = 0; i < src.length; i++) out += kind[i] === COMMENT ? ' ' : src[i];
+  return out;
 }
 
 describe('the optional gender field — no downstream surface reads it', () => {
@@ -808,7 +835,13 @@ describe('the optional gender field — no downstream surface reads it', () => {
     // reader added there would be out of its reach. This closes that hole
     // statically: the property read `.gender` (and its computed form) may
     // appear ONLY where the field is collected, passed through, or archived.
-    const READ = /\.gender\b|\[['"]gender['"]\]/g;
+    // LEXED, not regexed. This scan used `/\.gender\b|\[['"]gender['"]\]/`,
+    // which sees a property access and nothing else — a red-team put
+    // `const { gender } = …` into ui/result.js and the suite stayed green.
+    // That is the same defect the renderCard guard below was just repaired
+    // for, one directory over, so it gets the same repair: comments blanked,
+    // everything executable or literal scanned, identifier matched in any
+    // form and any casing (so the accessor's own name counts too).
     const ALLOWED = new Set([
       'core/profile.js',   // the passthrough — carried, never consumed
       'ui/profile.js',     // the form control and the write seam
@@ -820,21 +853,14 @@ describe('the optional gender field — no downstream surface reads it', () => {
         if (!file.endsWith('.js')) continue;
         const rel = `${dir}/${file}`;
         if (ALLOWED.has(rel)) continue;
-        const hits = (readFileSync(join(__dirname, '..', rel), 'utf-8').match(READ) || []).length;
+        const hits = genderMentionsInSource(readFileSync(join(__dirname, '..', rel), 'utf-8')).length;
         if (hits) offenders.push(`${rel} (${hits})`);
       }
     }
     expect(
       offenders,
-      'a module outside the input path reads .gender — §1.D v0.67 leaves the field with NO reader'
+      'a module outside the input path names gender — §1.D v0.67 leaves the field with no calculation or output reader'
     ).toEqual([]);
-    // index.html collects the field and forwards it into opts. Exactly one
-    // read, and it is that one — a second would be a render-path consumer.
-    const hostReads = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')
-      .split('\n')
-      .filter(line => /\.gender\b/.test(line))
-      .map(line => line.trim());
-    expect(hostReads).toEqual(['const g = getGenderInput(); if (g) opts.gender = g;']);
   });
 
   // ── the render path, guarded by IDENTIFIER not by property syntax ──
@@ -850,26 +876,218 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // index.html's inline module and no harness executes it, so the runtime
   // matrix above cannot reach it either. This closes the hole by rejecting
   // the IDENTIFIER in any form inside renderCard's body.
-  it('renderCard names gender in NO form — property, computed, or destructured', () => {
+  // The PRIMARY guard, deliberately MODULE-WIDE rather than scoped to
+  // renderCard. Scoping to one function leaves a hole: a reader could sit in
+  // any other helper defined in the same inline module and still change the
+  // card. `core/` and `ui/` are covered by the scan above; this covers the
+  // host. Two lines survive the lexer, and both are the collection path —
+  // anything new fails here and has to be justified line by line.
+  it('the inline module touches gender on exactly TWO lines — import and collection', () => {
+    // NO word boundary, deliberately. `\bgender\b` let `getGenderInput()`
+    // through, and a red-team used exactly that: calling the form's own getter
+    // from inside renderCard reads the live control and changes the card while
+    // naming no property at all. That is ordinary code a maintainer could
+    // write by accident, not obfuscation, so the matcher has to be loose
+    // enough to see the accessor's own name.
+    const lines = inlineModuleCode()
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => /gender/i.test(l));
+    expect(
+      lines.length,
+      `index.html gained a gender touchpoint — the field is collected and forwarded, never read:\n${lines.join('\n')}`
+    ).toBe(2);
+    expect(lines[0], 'the accessor must be imported exactly once')
+      .toMatch(/^import \{[^}]*\bgetGenderInput\b[^}]*\} from '\.\/ui\/profile\.js';$/);
+    expect(lines[1], 'the accessor must be CALLED exactly once, at the submit seam')
+      .toBe('const g = getGenderInput(); if (g) opts.gender = g;');
+  });
+
+  it('renderCard itself names gender in NO form — property, computed, or destructured', () => {
     expect(
       genderTokensIn(renderCardBody()),
       'renderCard names `gender` — the written entry must not read the field (§1.D v0.67)'
     ).toEqual([]);
   });
 
-  it('…and that guard actually catches a destructured reader', () => {
-    // The discriminating counter-case. Without it, the assertion above could
-    // be satisfied by a matcher that matches nothing at all.
-    const real = renderCardBody();
-    const mutated = real.replace(
-      'cardName.textContent = cell.name;',
-      "const { gender } = profile;\n"
-      + "        cardName.textContent = gender === 'female' ? 'f-' + cell.name : cell.name;"
+  // ── the counter-cases: proof the guard has teeth ──────────────────
+  //
+  // Each mutation is applied to the REAL index.html and re-extracted through
+  // the real lexer, so these exercise the shipped guard rather than a copy of
+  // it. Every one changes what the card visibly displays.
+  //
+  // The first three defeated earlier versions of this guard, and the last two
+  // defeated its extraction step rather than its matcher — a `}` in a comment
+  // or a string truncated the brace match, and anything after it stopped being
+  // scanned at all.
+  const ANCHOR = 'cardName.textContent = cell.name;';
+  const READER_FORMS = [
+    ['dot access', `cardName.textContent = profile.gender ? 'f-' + cell.name : cell.name;`],
+    ['computed key, double quotes', `cardName.textContent = profile["gender"] ? cell.name : "x";`],
+    ['computed key, single quotes', `cardName.textContent = profile['gender'] ? cell.name : 'x';`],
+    ['computed key, template', 'cardName.textContent = profile[`gender`] ? cell.name : `x`;'],
+    ['template interpolation', 'cardName.textContent = `${profile["gender"]} ${cell.name}`;'],
+    ['destructured', `const { gender } = profile; cardName.textContent = gender ? 'f' : cell.name;`],
+    ['destructured with alias', `const { gender: g2 } = profile; cardName.textContent = g2 ? 'f' : cell.name;`],
+    ['after a brace-bearing string', `const pad = "}}}}"; cardName.textContent = pad && profile["gender"] ? 'f' : cell.name;`],
+  ];
+
+  for (const [name, reader] of READER_FORMS) {
+    it(`the guard catches a reader written as: ${name}`, () => {
+      const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+      const mutated = html.replace(ANCHOR, reader);
+      expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(html);
+      expect(
+        genderTokensIn(renderCardBody(mutated)),
+        `a ${name} reader slipped past the guard`,
+      ).not.toEqual([]);
+    });
+  }
+
+  // The bypass a red-team found against the word-boundary version, and the
+  // most important one here because it is not obfuscation: renderCard calls
+  // the form's own getter, reads the live control, and changes the card
+  // without naming a property. Both new touchpoints (the call, and any import
+  // it would need) trip the module-wide count.
+  it('the guard catches renderCard calling getGenderInput() directly', () => {
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const mutated = html.replace(
+      'cardType.textContent = cell.type;',
+      `cardType.textContent = (getGenderInput() === 'female' ? 'she of ' : '') + cell.type;`,
     );
-    expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(real);
-    expect(genderTokensIn(mutated)).not.toEqual([]);
-    // And this is precisely what the old property-only pattern missed.
-    expect(mutated).not.toMatch(/\.gender\b|\[['"]gender['"]\]/);
+    expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(html);
+    const lines = inlineModuleCode(mutated)
+      .split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+    expect(lines.length, 'a getGenderInput() call inside renderCard went unnoticed').toBeGreaterThan(2);
+  });
+
+  it('a comment quoting the signature cannot hijack the extraction', () => {
+    // Locating the signature by plain indexOf let a comment that QUOTED it
+    // redirect the brace match to an earlier, unrelated block — the extracted
+    // "body" collapsed to a 66-character argument list. The signature is now
+    // located in CODE only.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const real = renderCardBody(html).body.length;
+    const decoyed = html.replace(
+      'const cityInput',
+      `// Render entry point: \`${RENDER_CARD_SIG}\` — see below.\n  const cityInput`,
+    );
+    expect(decoyed, 'the decoy did not apply — anchor moved').not.toBe(html);
+    expect(renderCardBody(decoyed).body.length).toBe(real);
+  });
+
+  it('a `}` inside a comment cannot truncate the extraction', () => {
+    // The regex version brace-matched before stripping comments, so this
+    // collapsed renderCard's body from 3348 characters to 4 and every reader
+    // below it fell outside the guard entirely.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const real = renderCardBody(html).body.length;
+    const withBraces = renderCardBody(html.replace(RENDER_CARD_SIG, `${RENDER_CARD_SIG} // }}}}`));
+    expect(withBraces.body.length).toBeGreaterThanOrEqual(real);
+    // …and a reader hidden after that comment is still caught.
+    const mutated = html
+      .replace(RENDER_CARD_SIG, `${RENDER_CARD_SIG} // }}}}`)
+      .replace(ANCHOR, `cardName.textContent = profile["gender"] ? 'f' : cell.name;`);
+    expect(genderTokensIn(renderCardBody(mutated))).not.toEqual([]);
+  });
+
+  it('the superseded matcher returned clean on these same forms', () => {
+    // Names the regression precisely rather than implying the guard was
+    // always this strong. This is the PREVIOUS implementation, verbatim, and
+    // its defect is the ORDER: it stripped string literals before matching,
+    // so a computed key's `"gender"` was blanked to `""` and a whole template
+    // literal disappeared with its interpolation inside it.
+    const supersededGuard = source => (source
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ')
+      .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""')
+      .match(/\bgender\b/gi) || []);
+
+    const defeatedIt = [
+      `cardName.textContent = profile["gender"] ? cell.name : "x";`,
+      'cardName.textContent = `${profile["gender"]} ${cell.name}`;',
+      'cardName.textContent = profile[`gender`] ? cell.name : `x`;',
+    ];
+    for (const form of defeatedIt) {
+      expect(supersededGuard(form), `superseded guard should have missed: ${form}`).toEqual([]);
+      expect(genderTokens({ body: form, kind: classify(form) }), `current guard misses: ${form}`)
+        .not.toEqual([]);
+    }
+    // The destructured form is the one it DID catch — included so this test
+    // documents the boundary of the old defect rather than overstating it.
+    expect(supersededGuard('const { gender } = profile;')).not.toEqual([]);
+  });
+
+  // ── what this guard does NOT guarantee ────────────────────────────
+  //
+  // Written down because this repo has now shipped an overclaimed coverage
+  // statement three times, and the honest limit is more useful than a
+  // confident one.
+  //
+  // It is a STATIC, LEXICAL guard over index.html's inline module. It stops
+  // an ACCIDENT, not an adversary. A red-team pass got past it with:
+  //   - a runtime-built key — `profile['gen' + 'der']`
+  //   - a Unicode escape inside the property name
+  //   - value scanning that never names the key — `Object.values(profile).includes('female')`
+  // Each executes and changes the card, and none writes the identifier. No
+  // lexical check can close that class; only executing renderCard could, and
+  // it cannot be executed from vitest (it lives in the inline module, and §12
+  // forbids jsdom).
+  //
+  // What it DOES guarantee, exactly: no line of the inline module, and no
+  // line of any core/ or ui/ module outside the three-file input path,
+  // mentions `gender` in any casing — except the two collection-path lines in
+  // the host. So every SPELLED read (property, computed with any quote style,
+  // destructured, aliased, template-interpolated, or through the accessor)
+  // fails the suite wherever it sits, including in a sibling helper. The
+  // runtime differential above covers the pure surfaces properly and is the
+  // real guarantee; this is the fence around what that differential cannot
+  // reach.
+  //
+  // It FAILS CLOSED, and that is a deliberate trade. A red-team confirmed
+  // prospective false positives: innocent user-visible copy, an aria-label, a
+  // CSS class or a data attribute containing the word would all trip it. None
+  // exists today. When one is genuinely wanted, the fix is to add it to the
+  // pinned lines above — a deliberate, reviewed act — not to loosen the
+  // matcher. A guard that occasionally asks a human to look is worth far more
+  // than one that quietly misses a reader.
+  it('the module scan catches every spelled form, comments excepted', () => {
+    // The scan that covers core/ and ui/, exercised directly. Its previous
+    // property-only regex missed the first of these in ui/result.js while the
+    // whole suite stayed green.
+    const caught = [
+      'export function f(p) { const { gender } = p; return gender ? 1 : 0; }',
+      `export function f(p) { return p['gender']; }`,
+      'export function f(p) { return p["gender"]; }',
+      'export function f(p) { return p.gender; }',
+      'export function f(p) { const { gender: g } = p; return g; }',
+      'export function f() { return getGenderInput(); }',
+      'export function f(p) { return `${p["gender"]}`; }',
+    ];
+    for (const src of caught) {
+      expect(genderMentionsInSource(src), `missed: ${src}`).not.toEqual([]);
+    }
+    // A comment is the one place the word is harmless, and near-misses must
+    // not trip it — otherwise the scan is noise and gets disabled.
+    expect(genderMentionsInSource('// gender is never read here\nexport const x = 1;')).toEqual([]);
+    expect(genderMentionsInSource('/* the gender field */ export const x = 1;')).toEqual([]);
+  });
+
+  it('states its own limits — the escape hatches are known and recorded', () => {
+    // Pinned so the limitation cannot be quietly dropped from the comment
+    // above while the claim elsewhere stays absolute.
+    const self = readFileSync(fileURLToPath(import.meta.url), 'utf-8');
+    expect(self).toMatch(/stops\s+\n?\s*\/\/ an ACCIDENT, not an adversary/);
+    expect(self).toMatch(/runtime-built key/);
+    // And the escape hatches really do escape — asserted, not just described,
+    // so this stays true only as long as the statement above is accurate.
+    const evade = [
+      `profile['gen' + 'der']`,
+      `Object.values(profile).includes('female')`,
+    ];
+    for (const form of evade) {
+      expect(genderTokens({ body: form, kind: classify(form) }), form).toEqual([]);
+    }
   });
 });
 

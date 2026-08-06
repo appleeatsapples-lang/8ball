@@ -5,6 +5,64 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The guard failed twice more, then a red-team found three more — STAGED
+
+**One P2 residual, confirmed, plus three further holes an adversarial pass
+found in the same guard.** The doctrine and KPI lanes passed, so this round is
+entirely about one static check and how many ways it was wrong.
+
+**The reported finding, both halves an ORDER mistake.** The matcher stripped
+string literals *before* matching, so `profile["gender"]` became `profile[""]`
+and a whole template literal vanished with its interpolation. The extractor
+brace-matched *before* stripping comments, so a `// }}}}` prefix cut
+`renderCard`'s body from 3348 characters to 4 and everything below it left the
+scanned region. Both reproduced before touching anything.
+
+**Then I red-teamed it, because a guard that has failed twice deserves an
+adversary rather than another careful re-read.** Three more:
+
+1. **`getGenderInput()` called inside `renderCard`** — reads the live control,
+   changes the card, names no property, and `\bgender\b` cannot see the
+   accessor's own name. **This is ordinary code, not obfuscation.** The most
+   important of the three.
+2. **A reader in a sibling helper of the same inline module** — the guard read
+   only `renderCard`.
+3. **A destructured read in `ui/result.js`** — because the separate `core/`+`ui/`
+   scan *still used the property-only regex*. **I had just fixed exactly that
+   defect in the host and left it standing one directory over.** That is the
+   half-applied-rule tell I wrote into memory two rounds ago, firing again, in
+   the change that was supposed to close it.
+
+**The repair is lexical** — a shared `tests/helpers/js-lex.js` that classifies
+every character CODE/COMMENT/STRING with template interpolations as code.
+Braces and the signature are found only in code; the scan drops comments and
+KEEPS string text, since a computed key lives in a literal. The primary guard
+is now module-wide rather than function-scoped, and one function backs both
+scans so they cannot drift apart again.
+
+**What it guarantees, stated exactly.** Every SPELLED read fails, anywhere in
+the host module or in `core/`/`ui/` outside the three-file input path. **It does
+not stop an adversary:** a runtime-built key, a Unicode escape in the property
+name and a `JSON.stringify` sniff all still pass, and no lexical check closes
+that class — only executing `renderCard` would, and §6 keeps it inline while
+§12 forbids jsdom. The runtime differential over the pure surfaces remains the
+real guarantee; this is a fence around what it cannot reach. It fails closed by
+design, and the confirmed false positives (innocent copy, an aria-label, a CSS
+class) are resolved by adding the line to the pin, never by loosening the
+matcher.
+
+**L17, this time done right.** The corrections are a new §5 v0.72 amendment;
+v0.71's false claim is superseded there, not edited. I verified programmatically
+that the v0.71 and v0.70 footer bodies are byte-identical to `6c98f9d` after
+only their labels moved, and that the whole-file diff removes nothing else.
+Last round I had to be told that; this round the check ran before the commit.
+
+Suite **56 files / 1999 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1474/1500**
+· DOCTRINE at **v0.72**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — I broke L17 while citing L17 — STAGED
 
 **The finding that matters is a process one, and it is mine.** Commit `60366cf`
