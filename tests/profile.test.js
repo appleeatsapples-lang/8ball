@@ -34,6 +34,7 @@ import {
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
+import { CELL_KEYS, cellRenderState } from '../ui/tiers.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -512,6 +513,37 @@ describe('buildProfile — the optional gender field', () => {
     // and proving nothing.
     expect(withF.gender).toBe('female');
     expect(withM.gender).toBe('male');
+  });
+
+  it('no DOWNSTREAM surface reads it either — card and sheet render identically', () => {
+    // The differential above compares buildProfile's own output, which would
+    // stay green if a READER were added further down: getCard keys the
+    // catalog, and cellRenderState decides what every compartment shows. A
+    // pre-merge lane pointed out that gap, and it matters because the form
+    // now tells the user in so many words that the field "does not affect
+    // your reading" — so the claim has to hold at the surfaces that produce
+    // the reading, not only at the object that feeds them.
+    const base = ['Test Name', '1990-06-15'];
+    const opts = { time: '08:30' };
+    const without = buildProfile(...base, opts);
+    const withF = buildProfile(...base, { ...opts, gender: 'female' });
+    const withM = buildProfile(...base, { ...opts, gender: 'male' });
+
+    // The catalog cell — the one coordinate that is a compound lookup.
+    const card = p => getCard(p);
+    expect(card(withF)).toEqual(card(without));
+    expect(card(withM)).toEqual(card(withF));
+
+    // Every compartment on the sheet, at full entitlement so nothing is
+    // sealed and a difference cannot hide behind an empty string.
+    const sheet = p => CELL_KEYS.map(k => cellRenderState(p, k, true));
+    expect(sheet(withF)).toEqual(sheet(without));
+    expect(sheet(withM)).toEqual(sheet(withF));
+
+    // Guard against the whole test going vacuous: the sheet really did
+    // render values, and the two profiles really did differ in gender.
+    expect(sheet(withF).some(c => c.state === 'value')).toBe(true);
+    expect([withF.gender, withM.gender]).toEqual(['female', 'male']);
   });
 });
 

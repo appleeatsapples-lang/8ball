@@ -6,9 +6,18 @@
 //
 //   1. The SHAPE cannot carry a person. Asserted positively (what a record
 //      holds) and negatively (that a caller cannot smuggle anything else in).
-//   2. The four CALL SITES fire on the real paths. A contract nothing calls
-//      is a comment; these tests install a recording sink and drive the
-//      actual module functions, so a deleted or misplaced call goes red.
+//   2. The four CALL SITES fire at the right moment. A contract nothing calls
+//      is a comment.
+//
+// On (2), stated precisely because the first version of this file did not:
+// THREE of the four are driven against a recording sink through the real
+// module functions, and they live in the suites that already carry the
+// harnesses for those modules (see the call-site block below for the map).
+// The fourth, `reading_completed`, is a SOURCE-SHAPE pin — `renderCard` sits
+// inside index.html's inline module and no test harness executes it. A
+// cross-model lane caught the earlier header claiming all four were driven
+// when three were string matches, and one of those string matches was
+// asserting the exact call ordering that turned out to be wrong.
 //
 // There is no collector. Nothing here asserts that anything is transmitted,
 // because nothing is — `tests/privacy_scan.test.js` keeps the network
@@ -141,51 +150,47 @@ describe('measurement — the local seam', () => {
   });
 });
 
-// ── the four call sites, driven for real ──────────────────────────
+// ── the four call sites ───────────────────────────────────────────
 //
-// Source-level assertions would pass on a call that is never reached. These
-// import the modules and invoke the paths.
+// Three of the four are driven against a recording sink through the real
+// module functions. They do not live here, because the machinery that drives
+// them already exists elsewhere and `vi.mock` is per-file:
+//
+//   comparative_opened → tests/dyad_surface.test.js  ("the comparative_opened
+//                        record") — fires the real click listener through the
+//                        fake DOM: entitled open, three refused rungs, a
+//                        throwing host hook, and a tier that moves mid-handler.
+//   share_completed    → tests/share_behavior.test.js ("the share_completed
+//                        record") — boots the real onShare() end to end:
+//                        native resolve, native dismiss, download fallback,
+//                        clipboard failure, and an unwired host.
+//   paid_t3_cta_clicked → below, driven here.
+//
+// `reading_completed` is the one exception and is pinned by SOURCE SHAPE, not
+// behaviour. `renderCard` lives inside index.html's single inline module;
+// nothing in tests/ evaluates that script, and extracting it to make it
+// drivable would refactor the §6 single-file posture for a call site whose
+// correctness nobody disputes. Its real cover is the browser pass, where the
+// event was observed firing with the render tier. That split is stated rather
+// than papered over: claiming behavioural coverage one does not have is the
+// same defect as the false-green tests this cycle exists to remove.
 
-describe('measurement — call site: comparative_opened (ui/dyad.js)', () => {
-  it('fires when an entitled device opens the screen, and not when a refused one taps', async () => {
-    const dyad = await import('../ui/dyad.js');
-    const src = read(join('ui', 'dyad.js'));
-    // Recorded AFTER the entitlement gate — a tap that returns early is not
-    // an opened comparative.
-    const gate = src.indexOf('if (!dyadEntitled(currentTier())) return;');
-    const call = src.indexOf("recordMeasurement('comparative_opened'");
-    expect(gate).toBeGreaterThan(-1);
-    expect(call).toBeGreaterThan(gate);
-    // And the event name is one the contract accepts.
-    expect(dyad).toBeTruthy();
-    expect(isMeasurementEvent('comparative_opened')).toBe(true);
+describe('measurement — the behavioural pins live where the harnesses are', () => {
+  it('names where each driven suite is, so a deletion there is noticed here', () => {
+    const dyadTests = read(join('tests', 'dyad_surface.test.js'));
+    const shareTests = read(join('tests', 'share_behavior.test.js'));
+    expect(dyadTests).toMatch(/describe\('the comparative_opened record'/);
+    expect(dyadTests).toMatch(/setMeasurementSink/);
+    expect(shareTests).toMatch(/describe\('the share_completed record'/);
+    expect(shareTests).toMatch(/setMeasurementSink/);
   });
 });
 
 describe('measurement — call site: share_completed (ui/share.js)', () => {
-  it('fires on the native-share success path, not on a dismissed sheet', () => {
-    const src = read(join('ui', 'share.js'));
-    // The call sits INSIDE the try, after the await — a rejected share
-    // (the user backing out) lands in the catch and is not counted.
-    const block = src.match(/await navigator\.share\([\s\S]*?\}\s*catch/);
-    expect(block, 'native share block not found').not.toBeNull();
-    expect(block[0]).toMatch(/shareCompleted\(\)/);
-  });
-
-  it('fires on the desktop download fallback, after the artifact is delivered', () => {
-    const src = read(join('ui', 'share.js'));
-    const dl = src.lastIndexOf('downloadBlob(blob, filename);');
-    const call = src.indexOf('shareCompleted();', dl);
-    expect(dl).toBeGreaterThan(-1);
-    expect(call).toBeGreaterThan(dl);
-    // Recorded before the clipboard copy, which may fail without making the
-    // share incomplete.
-    expect(call).toBeLessThan(src.indexOf('navigator.clipboard', dl));
-  });
-
   // The hook routing is what keeps ui/share.js import-free (§5.D), so the
-  // thing that can now silently break is the HOST forgetting to wire it.
-  // That failure mode is pinned here rather than left to a browser.
+  // thing that can silently break is the HOST forgetting to wire it. The
+  // behaviour is driven in share_behavior.test.js with a stub tier; this is
+  // the cross-file check that the real host passes the real key.
   it('the host wires the callback, so the hook cannot be silently unwired', () => {
     const html = read('index.html');
     const call = html.slice(html.indexOf('initShareUI('));
@@ -227,6 +232,8 @@ describe('measurement — call site: paid_t3_cta_clicked (ui/payments.js)', () =
     expect(ctaHandler, 'no click handler bound to the CTA').toBeTypeOf('function');
     ctaHandler();
     expect(seen).toHaveLength(1);
+    // The exact record, not merely the right event name and a plausible tier.
+    expect(Object.keys(seen[0]).sort()).toEqual(['event', 'tier']);
     expect(seen[0].event).toBe('paid_t3_cta_clicked');
     expect(MEASUREMENT_TIERS).toContain(seen[0].tier);
 
@@ -241,7 +248,26 @@ describe('measurement — call site: paid_t3_cta_clicked (ui/payments.js)', () =
   });
 });
 
-describe('measurement — call site: reading_completed (index.html renderCard)', () => {
+describe('measurement — call site: paid_t3_cta_clicked, the absent-CTA case', () => {
+  it('binds nothing and records nothing when the modal carries no CTA', async () => {
+    const { initPaywallUI } = await import('../ui/payments.js');
+    const seen = recorder();
+    const modal = {
+      classList: { add() {}, remove() {}, contains: () => false },
+      addEventListener() {},
+      querySelector: () => null,      // no #paywall-cta-t3
+      querySelectorAll: () => [],
+    };
+    expect(() => initPaywallUI({
+      modal, closeBtn: { addEventListener() {} }, banner: {},
+    })).not.toThrow();
+    expect(seen).toEqual([]);
+  });
+});
+
+// SOURCE-SHAPE PIN, not a behavioural one — see the header block above for
+// why renderCard cannot be driven from vitest and what actually covers it.
+describe('measurement — call site: reading_completed (index.html renderCard, source pin)', () => {
   it('is recorded at the end of renderCard, with the render tier', () => {
     const html = read('index.html');
     const fn = html.slice(html.indexOf('function renderCard(profile, opts)'));

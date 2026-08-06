@@ -20,7 +20,7 @@ about what the product is — and it is the controller's, not an agent's.
 
 | event | fires when | why it is worth counting |
 |---|---|---|
-| `reading_completed` | a card render finishes | the denominator. Without it every other number is a rate with no base. |
+| `reading_completed` | a card render finishes | the denominator (of renders, not people — see below). Without it every other number is a rate with no base. |
 | `paid_t3_cta_clicked` | the $3 CTA in the paywall is tapped | separates "nobody sees the offer" from "everybody sees it and declines". These are opposite problems with opposite fixes. |
 | `comparative_opened` | the two-person screen is opened | the comparative just became half of what $3 buys. If it is never opened, the offer is mispriced against its own contents. |
 | `share_completed` | a share or download of the sheet PNG finishes | the only reach signal the product can observe at all without tracking anyone. |
@@ -74,9 +74,78 @@ happened rather than at the moment it was requested:
 | `comparative_opened` | `ui/dyad.js`, after the entitlement gate passes |
 | `share_completed` | `ui/share.js` `onShare`, after the artifact is delivered |
 
-Each is proven by a test that installs a recording sink and drives the real
-path, then asserts the event name, the tier, and that the record has exactly
-two keys.
+Three of the four are proven by a test that installs a recording sink and
+drives the real path, then asserts the exact two-key record. `reading_completed`
+is the exception and is pinned by source shape instead: `renderCard` lives
+inside `index.html`'s single inline module, which no test harness executes, and
+extracting it to make it drivable would be a refactor of the §6 single-file
+posture for a call site nobody disputes. Its live cover is the browser pass,
+where the event was observed firing with the render tier. Stated here rather
+than left implied, because claiming behavioural coverage one does not have is
+the same defect as the false-green tests this cycle spent its time removing.
+
+## What the four events would compute, and what they could not
+
+`tier` is the only dimension. There is no timestamp, no id and no counter, so
+every figure below is a ratio of two lifetime totals over one collection
+window — never a funnel, never a per-person rate, never a cohort.
+
+Three rates. Each denominator is a RESTRICTION of `reading_completed`, not the
+raw total:
+
+**1. Offer tap rate** — does the $3 CTA land?
+
+```
+count(paid_t3_cta_clicked) / count(reading_completed where tier in {free, t1, t2})
+```
+
+Restricted to the unentitled rungs: a t3 device tapping the CTA is not a
+prospective buyer, and leaving t3 renders in the base dilutes the only number
+this event exists to produce.
+
+**2. Comparative uptake** — is half of what $3 buys ever opened?
+
+```
+count(comparative_opened) / count(reading_completed where tier = 't3')
+```
+
+The t3 restriction is a correctness requirement, not a refinement.
+`comparative_opened` fires only after `dyadEntitled(tier)` passes, and that
+predicate is true for `t3` alone. Divide by all renders instead and the result
+is a near-zero uptake for a screen the free population cannot reach — which
+would read as an argument for cutting the feature when it is an artefact of
+the arithmetic.
+
+**3. Share rate** — the reach signal.
+
+```
+count(share_completed) / count(reading_completed)
+```
+
+Unrestricted; the share surface is the single sheet at every rung. Worth also
+reading per-tier — `share_completed(tier=X) / reading_completed(tier=X)` —
+because "do paid sheets travel further than free ones" is the reach question
+the standing strategic finding actually turns on.
+
+**What none of these are:**
+
+- **Not a funnel.** With no timestamp and no id, a CTA tap cannot be attributed
+  to the render that preceded it. Numerator and denominator are independent
+  totals that share a window, nothing more.
+- **Not per person.** `reading_completed` counts RENDERS: it fires on arrival,
+  on boot rehydration of a saved profile, and again on every `flip again`. One
+  returning device inflates the base without limit. Every rate above is
+  per-render and must be named that way wherever it is quoted.
+- **Not a cohort, a retention curve, or a time series.** No timestamp means no
+  before/after and no week-over-week. Those need a join key, which is exactly
+  what the payload refuses to carry.
+- **Not attribution.** Channel already comes from the `netlify.toml` routes via
+  first-party server logs, and is not representable here at all.
+
+These definitions are written down now so a future §5 amendment argues about a
+named number instead of inventing one under deadline. Nothing above is computed
+anywhere today: the default sink is `null`, so all four counts are structurally
+zero.
 
 ## What would have to be true to adopt a collector
 

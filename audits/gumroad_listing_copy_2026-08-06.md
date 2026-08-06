@@ -78,9 +78,16 @@ permanently. No subscription, no account, no login.
 
 WHAT STAYS ON YOUR DEVICE
 
-Your name, your date of birth and your reading never leave your browser.
-There is no server and no account. Gumroad handles the payment and your
-email address; they never receive your birth data or your reading.
+Nothing leaves on its own. There is no 8ball account, no login, and no
+backend holding a profile of you — your name and your date of birth
+never leave this browser at all, and your reading is computed and kept
+right here.
+
+Three things travel, and only when you press them. Share exports the
+card image: coordinates and catalog number, never your name or your
+date of birth. The feedback form sends only what you type into it. And
+checkout is Gumroad's — they take your payment and your email address,
+and never your birth data or your reading.
 
 The purchase is remembered by the browser you buy in.
 
@@ -118,6 +125,19 @@ If this button is edited or removed, buyers pay and never unlock.
 
   Leave both unpublished. They are out of scope here, and one of them is now
   actively worth leaving alone — see §7.
+- **The precise wording of the privacy paragraph in §4.** An earlier draft of
+  this artifact read "your name, your date of birth and your reading never
+  leave your browser. There is no server and no account." Two of those were
+  overclaims and a pre-merge lane caught them before anyone pasted it: the
+  **share flow deliberately exports the sheet** when the buyer presses share,
+  and the **feedback form posts** what the user types — §5.B permits exactly
+  those two user-initiated calls, and §5's actual guarantee is that nothing
+  leaves *on its own*. The shipped wording is the product's own sentence.
+  **Do not "simplify" it back into an absolute.** The name/DOB clause is the
+  opposite case — unconditionally true under §5.D and both §5.B calls — and
+  should not be hedged; it is the strongest line in the section. Naming the
+  share export as something the buyer controls reads as confidence, not as a
+  caveat.
 
 ## 7. One thing to decide, separately from the copy
 

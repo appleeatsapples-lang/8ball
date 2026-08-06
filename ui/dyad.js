@@ -376,12 +376,20 @@ function injectEntryButton(controls) {
   btn.textContent = 'compare with a second person';
   btn.hidden = true; // fail closed until a render says otherwise
   btn.addEventListener('click', () => {
-    if (!dyadEntitled(currentTier())) return;
-    // `comparative_opened` (§5 v0.70) — recorded AFTER the entitlement gate,
-    // so it counts screens that actually opened, not taps that were refused.
-    recordMeasurement('comparative_opened', currentTier());
+    // One tier snapshot for the whole handler. currentTier() re-invokes the
+    // host hook on every call, so reading it twice let the record describe a
+    // rung the gate never checked.
+    const tier = currentTier();
+    if (!dyadEntitled(tier)) return;
     if (typeof _hooks.onOpen === 'function') _hooks.onOpen();
-    open();
+    // `comparative_opened` (§5 v0.70) is recorded LAST, once the screen is
+    // actually revealed — not merely once the tap was allowed. open() carries
+    // its own entitlement gate and returns false without touching the DOM,
+    // and a host hook can throw; either way an earlier record would have
+    // counted a screen that never opened. Driven in tests/dyad_surface.test.js,
+    // including both of those refusal paths.
+    if (!open()) return;
+    recordMeasurement('comparative_opened', tier);
   });
   controls.appendChild(btn);
 }

@@ -188,10 +188,15 @@ let _genderSelect = null;
 //
 // NOTE ON RECORD: §5 admitted this field to the storage allow-list on the
 // stated ground that it "feeds only the kua line". That consumer no
-// longer exists, so the field is currently stored with no reader. Its
-// retention is an explicit operator decision, not an oversight — see the
-// §1.D v0.67 amendment, which records the open question rather than
-// leaving the §5 justification silently void.
+// longer exists, so the field is stored with no CALCULATION OR OUTPUT
+// reader — the reads that remain (saveProfile, optsFromPayload,
+// populateRisingFields, the archive round-trip, buildProfile's copy) are
+// all persistence and rehydration, moving the user's own value back to
+// them. None reaches a coordinate, the catalog key, a render decision or
+// the share artifact, which is what makes the form's "does not affect
+// your reading" true. Its retention is an explicit operator decision, not
+// an oversight — see the §1.D v0.67 amendment, which records the open
+// question rather than leaving the §5 justification silently void.
 //
 // The strict two-token vocabulary is unchanged: the empty option IS the
 // no-gender state and it is the default; anything off-vocabulary resolves

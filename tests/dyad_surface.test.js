@@ -46,6 +46,7 @@ import {
 } from '../ui/dyad.js';
 import { buildSheetMarkup, createSheet, ROW_TITLES } from '../ui/sheet.js';
 import { validateBirthInput, todayIsoLocal } from '../ui/profile.js';
+import { setMeasurementSink } from '../core/measurement.js';
 import {
   TIER_ORDER, RETIRED_TIERS, RETIREMENT_COLLISIONS,
   isTier, tierRank, maxTier, normalizeTier, resolveRenderTier, applyPaidReturn,
@@ -213,7 +214,11 @@ function makeNode(tag = 'div') {
 // harness addresses exactly the nodes the real DOM would expose.
 function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   publicRead = () => null, validate = validateBirthInput,
-  buildSecond = () => second } = {}) {
+  buildSecond = () => second,
+  // `onOpen` and `getTier` are injectable so the entry-control tests can drive
+  // a host hook that throws and a tier that moves between reads — the two
+  // paths that let the §5 v0.70 record describe a screen that never opened.
+  onOpen = () => {}, getTier = () => tier } = {}) {
   const byId = new Map();
   const byAttr = new Map();
 
@@ -320,12 +325,12 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   try {
     initDyadUI({ stage: makeNode(), controls }, {
       getProfile: () => profileA,
-      getTier: () => tier,
+      getTier,
       validateEntry: validate,
       buildSecond,
       getNoteSlot: noteSlot,
       getPublicRead: publicRead,
-      onOpen() {}, onExit() {},
+      onOpen, onExit() {},
     });
     // The entry button is created via createElement and assigned .id directly.
     for (const child of controls.children) if (child.id) byId.set(child.id, child);
@@ -378,6 +383,61 @@ describe('dyad surface — F2: the comparative is part of the t3 product (§1.D 
     // to an owned surface, not a second offer (§2 clinical register).
     expect(h3.get('dyad-open-btn').textContent).toBe('compare with a second person');
     expect(h3.get('dyad-open-btn').textContent).not.toMatch(/\$|once|buy|now/i);
+  });
+
+  // ── comparative_opened, driven (§5 v0.70) ────────────────────────
+  //
+  // These fire the REAL click listener through the fake DOM rather than
+  // matching source text. The distinction is the whole point: a source-order
+  // assertion passed while the record was emitted before the screen opened,
+  // which is the defect these replace.
+  describe('the comparative_opened record', () => {
+    afterEach(() => setMeasurementSink(null));
+
+    function drive(tier, opts = {}) {
+      const seen = [];
+      setMeasurementSink(r => seen.push(r));
+      const h = harness(tier, opts);
+      let threw = null;
+      h.withDom(() => {
+        try { h.get('dyad-open-btn').listeners.click(); }
+        catch (e) { threw = e; }
+      });
+      return { seen, h, threw };
+    }
+
+    it('fires exactly once when an entitled tap actually opens the screen', () => {
+      const { seen, h } = drive('t3');
+      expect(seen).toEqual([{ event: 'comparative_opened', tier: 't3' }]);
+      expect(Object.keys(seen[0]).sort()).toEqual(['event', 'tier']);
+      // The record and the screen agree: the root really did lose `hidden`.
+      expect(h.byId.get('dyad-screen') || h.root).toBeTruthy();
+    });
+
+    it('fires NOTHING on a refused tap at every unentitled rung', () => {
+      for (const tier of ['free', 't1', 't2']) {
+        expect(drive(tier).seen, tier).toEqual([]);
+      }
+    });
+
+    it('fires NOTHING when the host hook throws before the screen opens', () => {
+      // The record used to be emitted before onOpen(), so a host that blew up
+      // left a counted screen the user never saw.
+      const { seen, threw } = drive('t3', {
+        onOpen: () => { throw new Error('host onOpen blew up'); },
+      });
+      expect(threw).toBeInstanceOf(Error);
+      expect(seen).toEqual([]);
+    });
+
+    it('fires NOTHING when the tier drops between the gate and the open', () => {
+      // currentTier() re-invokes the host hook on every call. open() re-gates,
+      // so a tier that moves mid-handler must produce no record — and the
+      // record can never name a rung the gate did not check.
+      let calls = 0;
+      const { seen } = drive('t3', { getTier: () => (++calls === 1 ? 't3' : 'free') });
+      expect(seen).toEqual([]);
+    });
   });
 
   it('dyadEntryVisible is entitlement-only — a product URL argument never surfaces a dead entry control (PR #187 R6)', () => {
