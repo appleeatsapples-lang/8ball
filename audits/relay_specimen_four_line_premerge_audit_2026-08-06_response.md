@@ -842,3 +842,80 @@ reach, and it fails closed.
   diff removes nothing but the two demoted labels.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 7 — final-byte audit of `ce320e6`: 2×P2, 1×P3, all real
+
+**Verdict received:** MERGE WITH FIXES. Product, runtime and copy correct; the
+original counter-case battery passes.
+**After verification: all three CONFIRMED and absorbed.**
+
+## ERRATUM to Addendum 6
+
+Addendum 6 says the limits prose named a Unicode-escape bypass "(`profile.gender`)".
+**That is a transcription error.** The bypass, and the fixture that ships for it,
+is `profile.gender` — an escaped `e` inside the property name, which is a
+valid read of the same property while containing no literal `gender` substring.
+Written as `profile.gender` the sentence describes an ordinary read that every
+guard catches, which inverts the point. Addendum 6 stands unedited; this is the
+correction.
+
+## F1 — the hand lexer cannot carry an absolute claim, and this is the proof
+
+The exact repro, at the real `renderCard` anchor:
+
+```js
+const spread = [.../[//]/.exec(cell.name)];
+cardName.textContent = profile.gender ? "f" : cell.name;
+```
+
+Valid JavaScript. Node executes it. A regex may legally begin after a spread
+`...`, but the previous-token heuristic does not list `.`, so the `/` read as
+division and the `//` inside the character class then opened a line comment —
+blanking a live `profile.gender` read. **Both lexical guards reported clean:
+host gender lines stayed exactly the two allowlisted ones, `renderCard` tokens
+were zero, and the card's output changed.** Independent lanes reproduced
+`for await` and division-RHS variants of the same class.
+
+**The conclusion I should have drawn two rounds ago:** enumerating every ES
+position where a regex may begin is not a thing a hand lexer does correctly,
+and each round I closed the newest hole and re-asserted the absolute claim.
+
+**FIXED as prescribed.** The PRIMARY invariant is now a **raw, fail-closed
+allowlist**: every line of the bounded corpus containing the identifier, in any
+casing, is pinned verbatim — `index.html` plus every `core/`/`ui/` module
+outside the three input-path files, 8 lines in total today. It parses nothing,
+so no syntax confusion can hide a read from it. The lexical guards are retained
+as **secondary diagnostics** — they locate a read and say where, which a line
+list cannot — with their claims narrowed accordingly, and a counter-case now
+pins one of their known blind spots so the split cannot quietly re-merge.
+
+The raw scan's cost is that it also matches comments and user-visible copy, so
+those are on the list too. That is a feature here: stale gender COPY is a
+defect this cycle already had to correct twice.
+
+## F2 — the block matcher and a non-discriminating assertion
+
+`inlineModuleBlocks` matched only `type="module"`, missing valid
+`type=module`, `type = "module"` and `TYPE="module"`. Worse, its own test
+asserted on `/gender/i` — which the baseline already contains — so it could
+not tell whether the second block was being read at all.
+
+**FIXED:** the pattern tolerates every spelling the HTML grammar allows, and
+the test drives all four through a **unique sentinel** that is asserted absent
+from the baseline first. The finding's deeper point is honoured too: the
+absolute invariant no longer depends on partial HTML parsing at all, because
+the raw scan reads the file as bytes.
+
+## Verification
+
+- The exact F1 repro re-run against the repaired suite: the raw guard fails on
+  it, and the test that asserts the lexer still misses it passes — so the
+  primary/secondary split is pinned by behaviour, not by prose.
+- vitest **56 files / 2003 tests green** (2001 → 2003)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1474/1500**
+- `ce320e6` history preserved; every change here is additive.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

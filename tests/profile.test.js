@@ -755,6 +755,52 @@ function genderMentionsInSource(src) {
   return code.match(GENDER_RE) || [];
 }
 
+
+// ── the PRIMARY invariant: a RAW, fail-closed allowlist ───────────
+//
+// No lexing. Every line of the bounded corpus that contains the identifier,
+// in any casing, must appear verbatim on this list.
+//
+// It is primary because a hand-written lexer CANNOT carry an absolute
+// "every spelled read fails" claim, and three rounds of audit proved it: a
+// regex may legally begin in more ES positions than any heuristic enumerates.
+// The last one found was a spread — `[.../[//]/.exec(x)]` — where the `/`
+// after `...` was read as division and the `//` inside then opened a comment,
+// blanking a live `profile.gender` read on the same line. Valid JavaScript,
+// executes, changes the card, and both lexical guards reported clean.
+//
+// A raw scan has no such failure mode: it cannot be confused about syntax
+// because it does not model any. The cost is that it also matches comments
+// and user-visible copy, which is why the list below carries those too —
+// and that is a feature here, since stale gender COPY is exactly the defect
+// this cycle already had to correct twice.
+//
+// WHEN THIS FAILS: read the new line. If it is a genuine read, that is the
+// bug. If it is legitimate copy or a comment, add it verbatim to this list —
+// deliberately, as a reviewed act. Never relax the matcher.
+//
+// The three input-path files (core/profile.js, ui/profile.js, ui/readings.js)
+// are excluded: they OWN the field, and what they must not do is covered by
+// the runtime differential above, not by counting mentions.
+const RAW_GENDER_ALLOW = {
+  "index.html": [
+    "<p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>",
+    "<p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the comparative — a second person's complete sheet beside yours with the named relation between them — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>",
+    "<p class=\"modal-disclosure\" id=\"paywall-disclosure\">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>",
+    "import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput } from './ui/profile.js';",
+    "// `form` + `anchor` let the module build the optional gender control it",
+    "const g = getGenderInput(); if (g) opts.gender = g;"
+  ],
+  "core/measurement.js": [
+    "// exactly two keys cannot carry a name, a DOB, a gender, a city, a coordinate"
+  ],
+  "ui/tiers.js": [
+    "// ceiling is the written entry + the public read; the optional gender"
+  ]
+};
+
+const GENDER_INPUT_PATH = new Set(['core/profile.js', 'ui/profile.js', 'ui/readings.js']);
+
 // Every tracked .js under a directory, RECURSING. The scan read only the top
 // level, so a module in a future `core/x/` or `ui/x/` would have been outside
 // it — an audit flagged that the guarantee was written broader than the scan.
@@ -774,8 +820,14 @@ function jsFilesUnder(dir) {
 function inlineModuleBlocks(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
   // ALL of them, not the first. The previous version matched a single block,
   // so a second inline module would have carried a reader the guard never saw.
-  const blocks = [...html.matchAll(/<script\b[^>]*type=(["'])module\1[^>]*>([\s\S]*?)<\/script>/g)]
-    .map(m => m[2]);
+  // Tolerates every spelling the HTML grammar allows: unquoted `type=module`,
+  // spaces around `=`, and any casing of the attribute name — an audit found
+  // all three evaded the previous pattern. This is a DIAGNOSTIC helper; the
+  // absolute invariant is the raw scan, which parses no HTML at all and so
+  // cannot be evaded this way.
+  const blocks = [...html.matchAll(
+    /<script\b[^>]*\btype\s*=\s*(?:"module"|'module'|module\b)[^>]*>([\s\S]*?)<\/script>/gi,
+  )].map(m => m[1]);
   if (!blocks.length) throw new Error('index.html carries no inline module');
   return blocks;
 }
@@ -914,7 +966,49 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // card. `core/` and `ui/` are covered by the scan above; this covers the
   // host. Two lines survive the lexer, and both are the collection path —
   // anything new fails here and has to be justified line by line.
-  it('the inline module touches gender on exactly TWO lines — import and collection', () => {
+  // PRIMARY. Raw, fail-closed, lexer-free — see RAW_GENDER_ALLOW above for
+  // why this and not the lexical guards carries the absolute claim.
+  it('every raw mention of the field in the corpus is on the allowlist', () => {
+    const corpus = ['index.html', ...jsFilesUnder('core'), ...jsFilesUnder('ui')];
+    expect(corpus.length, 'the corpus walk found nothing').toBeGreaterThanOrEqual(20);
+    for (const rel of corpus) {
+      if (GENDER_INPUT_PATH.has(rel)) continue;
+      const found = readFileSync(join(__dirname, '..', rel), 'utf-8')
+        .split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+      expect(
+        found,
+        `${rel}: a gender mention is not on the allowlist. If it is a genuine `
+        + `read, that is the bug. If it is copy or a comment, add it verbatim `
+        + `to RAW_GENDER_ALLOW — never relax the matcher.`
+      ).toEqual(RAW_GENDER_ALLOW[rel] || []);
+    }
+    // The allowlist must not name a file the walk never visits, or an entry
+    // could silently stop being checked.
+    for (const rel of Object.keys(RAW_GENDER_ALLOW)) {
+      expect(corpus, `RAW_GENDER_ALLOW names ${rel}, which the corpus walk missed`).toContain(rel);
+    }
+  });
+
+  it('the raw allowlist catches what every lexical guard missed', () => {
+    // The exact bypass that defeated the lexer: valid JS, executes, changes
+    // the card, and both lexical guards reported clean.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const mutated = html.replace(
+      'cardName.textContent = cell.name;',
+      'const spread = [.../[//]/.exec(cell.name)]; '
+      + 'cardName.textContent = profile.gender ? "f" : cell.name;',
+    );
+    expect(mutated, 'the mutation did not apply — anchor moved').not.toBe(html);
+    const raw = mutated.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+    expect(raw, 'the raw scan missed a spelled read').not.toEqual(RAW_GENDER_ALLOW['index.html']);
+    // …and the lexical guard genuinely does miss it, which is why raw is primary.
+    expect(genderTokensIn(functionBody(mutated, RENDER_CARD_SIG)),
+      'the lexer no longer misses this — the limitation note above needs updating').toEqual([]);
+  });
+
+  // SECONDARY DIAGNOSTIC, not the guarantee. Narrower claim: it locates a
+  // spelled read and says where, which a raw line list cannot.
+  it('diagnostic: the inline module touches gender on exactly TWO code lines', () => {
     // NO word boundary, deliberately. `\bgender\b` let `getGenderInput()`
     // through, and a red-team used exactly that: calling the form's own getter
     // from inside renderCard reads the live control and changes the card while
@@ -1056,8 +1150,10 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // statement three times, and the honest limit is more useful than a
   // confident one.
   //
-  // It is a STATIC, LEXICAL guard over index.html's inline module. It stops
-  // an ACCIDENT, not an adversary. A red-team pass got past it with:
+  // These are STATIC guards. They stop an ACCIDENT, not an adversary — no
+  // static check of any kind closes the class below, because none of these
+  // forms writes the identifier at all, so even the raw allowlist cannot see
+  // them. A red-team pass got past every guard here with:
   //   - a runtime-built key — `profile['gen' + 'der']`
   //   - a Unicode escape inside the property name
   //   - value scanning that never names the key — `Object.values(profile).includes('female')`
@@ -1066,15 +1162,22 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // it cannot be executed from vitest (it lives in the inline module, and §12
   // forbids jsdom).
   //
-  // What it DOES guarantee, exactly: no line of the inline module, and no
-  // line of any core/ or ui/ module outside the three-file input path,
-  // mentions `gender` in any casing — except the two collection-path lines in
-  // the host. So every SPELLED read (property, computed with any quote style,
-  // destructured, aliased, template-interpolated, or through the accessor)
-  // fails the suite wherever it sits, including in a sibling helper. The
-  // runtime differential above covers the pure surfaces properly and is the
-  // real guarantee; this is the fence around what that differential cannot
-  // reach.
+  // WHICH GUARD CARRIES WHICH CLAIM — the distinction three audits forced:
+  //
+  //   RAW allowlist (primary)  every line of the corpus containing the
+  //                            identifier is pinned verbatim. Parses nothing,
+  //                            so no syntax confusion can hide a read. THIS
+  //                            is what carries "every spelled read fails".
+  //   LEXICAL guards (secondary)  locate a read and say where — which a line
+  //                            list cannot — but a hand lexer cannot enumerate
+  //                            every ES position a regex may begin in, and
+  //                            three rounds proved it. They make no absolute
+  //                            claim and a counter-case above pins one of
+  //                            their known blind spots so the split stays
+  //                            honest.
+  //
+  // The runtime differential over the pure surfaces remains the real
+  // guarantee; both of these are the fence around what it cannot reach.
   //
   // It FAILS CLOSED, and that is a deliberate trade. A red-team confirmed
   // prospective false positives: innocent user-visible copy, an aria-label, a
@@ -1089,10 +1192,22 @@ describe('the optional gender field — no downstream surface reads it', () => {
     // because inlineModuleCode concatenates every block instead of matching
     // the first — an audit flagged that a second module would have evaded it.
     expect(inlineModuleBlocks()).toHaveLength(1);
-    const twoBlocks = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')
-      .replace('</script>', `</script>\n<script type="module">const x = p['gender'];</script>`);
-    expect(inlineModuleBlocks(twoBlocks), 'a second inline module is not being read').toHaveLength(2);
-    expect(inlineModuleCode(twoBlocks)).toMatch(/gender/i);
+    // A UNIQUE sentinel, not `gender`: the baseline already contains the word,
+    // so asserting on it proved nothing about whether the second block was
+    // read at all. An audit caught that.
+    const SENTINEL = 'ZZ_SECOND_MODULE_SENTINEL_ZZ';
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    expect(inlineModuleCode(html), 'sentinel must not pre-exist').not.toContain(SENTINEL);
+    for (const spelling of [
+      `<script type="module">const ${SENTINEL} = 1;</script>`,
+      `<script type=module>const ${SENTINEL} = 1;</script>`,
+      `<script type = "module">const ${SENTINEL} = 1;</script>`,
+      `<script TYPE="module">const ${SENTINEL} = 1;</script>`,
+    ]) {
+      const two = html.replace('</script>', `</script>\n${spelling}`);
+      expect(inlineModuleBlocks(two), `not reading: ${spelling.slice(0, 34)}`).toHaveLength(2);
+      expect(inlineModuleCode(two), `not scanning: ${spelling.slice(0, 34)}`).toContain(SENTINEL);
+    }
   });
 
   it('the lexer resolves regex-vs-division without swallowing live code', () => {
@@ -1152,7 +1267,14 @@ describe('the optional gender field — no downstream surface reads it', () => {
     // Pinned so the limitation cannot be quietly dropped from the comment
     // above while the claim elsewhere stays absolute.
     const self = readFileSync(fileURLToPath(import.meta.url), 'utf-8');
-    expect(self).toMatch(/stops\s+\n?\s*\/\/ an ACCIDENT, not an adversary/);
+    // The primary/secondary split must stay written down: an absolute claim
+    // parked on the lexical guards is what three audits kept having to undo.
+    expect(self, 'the raw allowlist must be named as the primary guard')
+      .toMatch(/RAW allowlist \(primary\)/);
+    expect(self, 'the lexical guards must be named as secondary')
+      .toMatch(/LEXICAL guards \(secondary\)/);
+    expect(self, 'the accident-not-adversary limit must stay stated')
+      .toMatch(/stop an ACCIDENT, not an adversary/);
     expect(self).toMatch(/runtime-built key/);
     // And the escape hatches really do escape — asserted, not just described,
     // so this stays true only as long as the statement above is accurate.

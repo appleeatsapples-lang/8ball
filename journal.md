@@ -5,6 +5,64 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The claim was the problem, not the lexer — STAGED
+
+**One repro settled three rounds of argument.** At the real `renderCard`
+anchor:
+
+```js
+const spread = [.../[//]/.exec(cell.name)];
+cardName.textContent = profile.gender ? "f" : cell.name;
+```
+
+Valid JavaScript. Node runs it. The card changes. **Both my lexical guards
+reported clean** — host gender lines stayed exactly the two allowlisted ones,
+`renderCard` tokens were zero. A regex may legally begin after a spread `...`,
+which my previous-token heuristic doesn't list, so the `/` read as division and
+the `//` inside the character class opened a comment over a live read.
+Independent lanes reproduced `for await` and division-RHS variants.
+
+**I had been fixing the wrong thing three rounds running.** Each round I closed
+the newest hole in the lexer and then re-asserted the same absolute claim —
+"every spelled read fails, wherever it sits". The defect was never any
+individual hole; it was that **a hand-written lexer cannot carry an absolute
+claim at all**, because enumerating every ES position where a regex may begin
+is not something it does correctly. I kept treating each bypass as a bug to
+patch instead of as evidence about what the tool can promise.
+
+**The fix is to move the claim, not to patch again.** The primary invariant is
+now a raw, fail-closed allowlist: every line of the bounded corpus containing
+the identifier, in any casing, pinned verbatim — eight lines today across
+`index.html` and every `core/`/`ui/` module outside the three input-path files.
+It parses nothing, so no syntax confusion can hide a read from it. The lexical
+guards stay as **secondary diagnostics** — they say *where* a read is, which a
+line list can't — with narrowed claims, and a counter-case pins one of their
+known blind spots so the split is enforced by behaviour rather than by prose.
+
+The raw scan also matches comments and user-visible copy, so those are pinned
+too. That is a feature: stale gender copy is a defect this cycle already had to
+correct twice, and now a copy edit gets re-read instead of assumed.
+
+Two smaller ones, both mine: the inline-module matcher missed valid
+`type=module`, `type = "module"` and `TYPE="module"` spellings, and its own
+test asserted on `/gender/i` — which the baseline already contains — so it
+could not tell whether the second block was read at all. A unique sentinel,
+asserted absent first, replaces it. And Addendum 6 transcribed the Unicode
+bypass as `profile.gender` instead of the escaped form, which inverts the
+point; erratum appended, the addendum left standing.
+
+**What has not changed and should be said plainly:** no static check of any
+kind closes the indirection class. A runtime-built key, a Unicode escape, or a
+value-scanning sniff writes no identifier and is invisible to raw and lexical
+scanning alike. The runtime differential over the pure surfaces is the real
+guarantee; all of this is a fence around the one surface it cannot reach.
+
+Suite **56 files / 2003 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1474/1500**
+· DOCTRINE at **v0.74**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — The repair needed repairing; `plain / 2` was the tell — STAGED
 
 **Four bounded findings, all four real, and three of them are defects in the
