@@ -425,10 +425,33 @@ describe('dyad surface — F2: the comparative is part of the t3 product (§1.D 
     // "t3 gets no second sheet at all". One price carries it now, so the
     // assertion is flipped ON PURPOSE rather than deleted, and this test is
     // the record of that flip.
+    //
+    // It asserts all THREE things its title promises. The first version
+    // checked person B's head and one of B's values only — which meant
+    // person A's sheet and the entire relation layer could vanish while this
+    // stayed green, and the relation layer is precisely what §1.D v0.68
+    // moved into the $3 rung. A pre-merge lane caught that; this is the
+    // repair.
     const h = harness('t3');
     h.withDom(() => submitSecond());
     expect(h.get('dyad-output').hidden).toBe(false);
+
+    // 1. BOTH sheets, not just B's.
+    expect(h.get('dyad-head-a').textContent).not.toBe('');
     expect(h.get('dyad-head-b').textContent).not.toBe('');
+
+    // 2. The relation layer itself. These nodes are what make the screen a
+    //    COMPARATIVE rather than two sheets standing side by side, so each
+    //    axis is named rather than covered by one aggregate assertion.
+    for (const id of [
+      'dyad-element-ab', 'dyad-element-ba',
+      'dyad-numerology-reduction', 'dyad-numerology-meaning',
+      'dyad-cardpair-body',
+    ]) {
+      expect(h.get(id).textContent, id).not.toBe('');
+    }
+
+    // 3. B's own values really are on screen, not merely a non-empty head.
     expect(allText(h)).toContain(B.sunSign);
   });
 });

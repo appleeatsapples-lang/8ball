@@ -26,7 +26,8 @@
 // index, the bracket, the day master and the life path are all values the
 // single sheet already carries. What the comparative adds is the relation BETWEEN two
 // sheets, which is why §1.J files it as a block and the §1.F census does not
-// move (see ui/tiers.js T5_COORDS).
+// move (see `T3_COORDS` in ui/tiers.js — the comparative rides the $3 rung
+// since §1.D v0.68; the `T5_COORDS` this line used to name no longer exists).
 //
 // REGISTER (§1.J, bounded by the §1.I register law). Every string this module
 // emits comes from a frozen table or is a join of two of them. Nothing is

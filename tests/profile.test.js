@@ -474,6 +474,47 @@ describe('calculation contract — 2G-2 additive fields', () => {
   });
 });
 
+// ── the optional gender field (§1.D v0.63, retained at v0.67) ──────
+//
+// These two tests lived in tests/kua.test.js. §1.D v0.67 deleted the kua
+// block and its three suites — and took these with them, which was wrong:
+// they never tested kua. They test the FIELD, and the field was explicitly
+// RETAINED. A pre-merge lane caught the loss.
+//
+// They are load-bearing again as of this change, because the form now tells
+// the user at the point of entry that the field "does not affect your
+// reading". The second test is the only thing in the repo that makes that
+// sentence true rather than merely written down: it is a differential over
+// two real buildProfile calls, so if gender ever begins to move a
+// coordinate, the claim on the form goes red here.
+describe('buildProfile — the optional gender field', () => {
+  it('carries a strict two-token gender and drops everything else', () => {
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'female' }).gender).toBe('female');
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'male' }).gender).toBe('male');
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'other' }).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15', { gender: '' }).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15', {}).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15').gender).toBeUndefined();
+  });
+
+  it('changes NOTHING else on the profile — the field drives no coordinate', () => {
+    const without = buildProfile('Test Name', '1990-06-15', { time: '08:30' });
+    const withF = buildProfile('Test Name', '1990-06-15', { time: '08:30', gender: 'female' });
+    const withM = buildProfile('Test Name', '1990-06-15', { time: '08:30', gender: 'male' });
+    const strip = ({ gender, ...rest }) => rest;
+    // Two directions, not one: female-vs-absent AND male-vs-female. A single
+    // comparison would still pass if some coordinate keyed off "gender is
+    // present" without caring which value it held.
+    expect(strip(withF)).toEqual(strip(without));
+    expect(strip(withM)).toEqual(strip(withF));
+    // And the field itself did survive both builds — otherwise the two
+    // assertions above would be comparing two identical no-gender profiles
+    // and proving nothing.
+    expect(withF.gender).toBe('female');
+    expect(withM.gender).toBe('male');
+  });
+});
+
 describe('engine — resolveBracket', () => {
   for (const c of fixtures.brackets) {
     it(`LP ${c.lp} → ${c.expected}`, () => {
