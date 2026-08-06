@@ -5,6 +5,66 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — I broke L17 while citing L17 — STAGED
+
+**The finding that matters is a process one, and it is mine.** Commit `60366cf`
+carried three correct precision fixes into DOCTRINE by **editing the already-
+locked v0.69 amendment, the v0.70 four-events clause, and both footer entries
+in place**. L17 (DOCTRINE:693) is explicit: amendments supersede, never edit;
+historical clause text and prior footer entries are preserved verbatim.
+
+It is compounded twice. In that same commit I superseded §1.D v0.67 *correctly*
+rather than editing it — so I applied the rule to the older clause and violated
+it on the two adjacent newer ones. And the commit's own text **cites the PR #190
+precedent**, where an audit blocked an in-place "correction" for violating the
+very rule it was written to serve. I quoted that precedent and then did the
+thing it forbids, in the same change. A verifier had even flagged the ambiguity
+(none of v0.65–v0.71 has shipped — origin/main is still v0.63 — so an in-place
+edit is *technically* defensible) and still recommended supersession because
+that is this repo's method. I took half the advice.
+
+**Absorbed as prescribed.** All five blocks restored **byte-for-byte** from
+`76e84cf` — verified by string comparison, not by eye. The two footer bodies
+keep their text verbatim and change only their labels, which is the demotion
+mechanism the document already uses. The substance moved to a new dated **§5
+v0.71 amendment** with its own footer entry and changelog bullet; v0.70 is now
+prior, v0.69 superseded. The v0.71 entry records the breach itself, because a
+reader diffing `76e84cf` against HEAD would otherwise watch locked text move
+with no explanation. The audit artifact and this journal are **appended to with
+an erratum, not rewritten** — correcting a record about rewriting records by
+rewriting the record is the same error one level up.
+
+**Two smaller findings, both real.** The measurement plan's first metric
+filtered only its denominator, counting t3 taps in the numerator that the
+denominator deliberately excluded — two halves describing different
+populations — while its label ("how often does an unentitled render *end in* a
+hand-off") asserted the per-render attribution the plan's own *Not a funnel*
+bullet denies. Now **checkout-click intensity per unentitled render**, both
+sides filtered, and named an intensity rather than a probability.
+
+And the static guard covering `index.html`'s inline `renderCard` matched only
+`.gender` and `['gender']`. The auditor's counterexample —
+`const { gender } = profile;` feeding a visible `'f-'` prefix onto the card name
+— changed what the card displays and left **all 192 tests green**. I ran it
+before and after: 0 failures before, 2 after. The guard now brace-matches
+`renderCard`'s body, strips comments and strings, and rejects the *identifier*
+in any form, with a discriminating counter-case so it can never be satisfied by
+a matcher that matches nothing.
+
+**The pattern across the last three rounds is worth naming.** Round one: I
+shipped a tautological pin. Round two: my fix for it was itself tautological.
+Round three: I fixed the record by editing the record. Each time the substance
+was right and the *method* was the defect, and each time an outside lane caught
+it rather than my own re-read. The lesson I keep writing down — run the
+assertion against broken code; supersede rather than edit — is one I apply to
+the artifact in front of me and not to the change I am making while applying it.
+
+Suite **56 files / 1985 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 861 files** · `index.html` **1474/1500**
+· DOCTRINE at **v0.71**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — Re-audit: two of my three fixes were wrong the same way — STAGED
 
 **Three residuals, all three real, and two of them were defects in the fixes I

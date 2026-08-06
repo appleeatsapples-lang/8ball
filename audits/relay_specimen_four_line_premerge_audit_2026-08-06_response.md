@@ -559,3 +559,97 @@ rather than 0.
   the same words; no console errors.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 4 — final re-audit of `60366cf`: 3 findings, all real
+
+**Verdict received:** MERGE WITH FIXES. PASS on current runtime and copy, the
+full gender fixture and pure-surface matrix, the dyad hidden-state assertion,
+the exposure/refusal limitation, and "unobserved, not zero".
+**After verification: all 3 CONFIRMED, all 3 absorbed.**
+
+**ERRATUM, and it governs how the rest of this file must be read.** Addendum 3
+above describes §1.D v0.67 being superseded through the v0.69 amendment. It does
+**not** disclose that the same commit, `60366cf`, **rewrote the already-locked
+v0.69 amendment, the v0.70 four-events clause, and both footer entries in
+place.** That is an L17 breach (DOCTRINE.md:693 — amendments supersede, never
+edit; historical clause text and prior footer entries preserved verbatim), and
+it is compounded twice over: the same commit applied supersession correctly to
+the older clause, and its own text cites the PR #190 precedent for not doing
+what it then did. Addendum 3 is therefore **incomplete as written**. It is left
+standing and corrected here rather than edited, because rewriting a record to
+fix a record about rewriting is the same error one level up.
+
+## F1 — the L17 breach [P1]
+
+**CONFIRMED by diff.** `git diff 76e84cf 60366cf -- DOCTRINE.md` shows five
+substantive rewrites of locked text: the v0.69 gender-field amendment, v0.69's
+"open question" paragraph, the §5 v0.70 "four events" clause, the v0.70 footer
+entry and the v0.69 footer entry.
+
+**ABSORBED as prescribed.** All five restored **byte-for-byte** from `76e84cf`
+(verified programmatically, not by eye — each restored block compared string-
+equal to its `76e84cf` original). The two footer entries keep their bodies
+verbatim and change only their labels, which is the mechanism this document
+already uses when a version is demoted. The substance is re-expressed as a new
+dated **§5 v0.71 amendment**, with a new `**doctrine version:** v0.71` footer
+entry and a `- v0.71:` changelog bullet; **v0.70 becomes prior**, v0.69 becomes
+superseded.
+
+The v0.71 amendment records the breach itself rather than quietly carrying the
+corrections, because a reader comparing `76e84cf` to `HEAD` would otherwise see
+locked text move with no explanation.
+
+## F2 — the metric's asymmetric filter [P2]
+
+**CONFIRMED.** The ratio filtered only its denominator
+(`count(paid_t3_cta_clicked) / count(reading_completed where tier in {free,t1,t2})`),
+counting t3 taps in the numerator that the denominator deliberately excluded —
+two halves describing different populations, while the surrounding prose argued
+t3 taps are ineligible. The label "how often does an unentitled render **end
+in** a hand-off" also asserted per-render attribution that the plan's own *Not a
+funnel* bullet denies.
+
+**ABSORBED:** renamed to **checkout-click intensity per unentitled render**,
+both sides filtered to `{free, t1, t2}`, and an explicit paragraph stating it is
+an intensity rather than a per-render probability — the two counts are
+independent totals sharing a window, so their quotient is a ratio, not a
+conversion. The doctrine correction rides the **v0.71** amendment; v0.70 was not
+touched.
+
+## F3 — the static render guard missed destructuring [P2]
+
+**CONFIRMED by counterexample, run twice.** The guard matched only `.gender` and
+`['gender']`. Injecting the auditor's exact case into `renderCard` —
+
+```js
+const { gender } = profile;
+cardName.textContent = gender === 'female' ? 'f-' + cell.name : cell.name;
+```
+
+— changes what the card visibly displays and left **all 192 tests green**. The
+pure-function matrix cannot reach it either, because `renderCard` lives in
+`index.html`'s inline module and no harness executes it.
+
+**ABSORBED:** the guard now brace-matches `renderCard`'s body out of
+`index.html`, strips comments and string literals, and rejects the **identifier**
+`gender` in any form — property, computed, destructured, shorthand or bare.
+`getGenderInput` is excluded by word boundary; the submit handler is out of
+scope because the extraction is scoped to `renderCard` alone. A **discriminating
+counter-case** ships with it: it applies the mutation, asserts the new guard
+fires, and asserts the old property-only pattern would not have — so the guard
+cannot later be satisfied by a matcher that matches nothing. Re-run with the
+mutation injected: **2 failed**, where before it was 0.
+
+## Verification after absorption
+
+- vitest **56 files / 1985 tests green** (1983 → 1985)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+  (`product.git_status` warns only while changes are uncommitted)
+- local PII audit **clean, 861 files** · `index.html` **1474/1500**
+- DOCTRINE now at **v0.71**; v0.70 prior; v0.69 superseded; all three bodies
+  byte-identical to their locked originals.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation. Merge
+remains the controller's word.

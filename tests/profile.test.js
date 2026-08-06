@@ -704,6 +704,35 @@ describe('buildProfile — the optional gender field', () => {
 // It matters because the form tells the user at the point of entry that the
 // field "does not affect your reading". This suite is what makes that
 // sentence true rather than merely written down.
+
+// `renderCard`'s body, brace-matched out of index.html's inline module and
+// stripped of comments and string literals so a `gender` inside prose or a
+// selector cannot register as a read. Scoped to renderCard alone: the submit
+// handler legitimately names the field (`opts.gender = g`) and is not the
+// render path.
+function renderCardBody(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  const start = html.indexOf('function renderCard(profile, opts) {');
+  if (start === -1) throw new Error('renderCard not found in index.html');
+  const open = html.indexOf('{', start);
+  let depth = 0;
+  for (let i = open; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}' && --depth === 0) return html.slice(open + 1, i);
+  }
+  throw new Error('renderCard body is unbalanced');
+}
+
+// Every mention of the IDENTIFIER, not of one property syntax. `.gender`,
+// `['gender']`, `{ gender }`, `gender:` and a bare `gender` all register;
+// `getGenderInput` does not, because the word boundary excludes it.
+function genderTokensIn(source) {
+  const code = source
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*\/\/.*$/gm, ' ')
+    .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
+  return (code.match(/\bgender\b/gi) || []);
+}
+
 describe('the optional gender field — no downstream surface reads it', () => {
   const without = buildProfile(GENDER_NAME, GENDER_DOB, GENDER_OPTS);
   const withF = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'female' });
@@ -806,6 +835,41 @@ describe('the optional gender field — no downstream surface reads it', () => {
       .filter(line => /\.gender\b/.test(line))
       .map(line => line.trim());
     expect(hostReads).toEqual(['const g = getGenderInput(); if (g) opts.gender = g;']);
+  });
+
+  // ── the render path, guarded by IDENTIFIER not by property syntax ──
+  //
+  // The scan above matches `.gender` and `['gender']`. A destructured read
+  // matches neither:
+  //
+  //     const { gender } = profile;
+  //     cardName.textContent = gender === 'female' ? 'f-' + cell.name : cell.name;
+  //
+  // That changes what the card displays, and it passed every test in this
+  // file — verified by counterexample, not assumed. `renderCard` lives in
+  // index.html's inline module and no harness executes it, so the runtime
+  // matrix above cannot reach it either. This closes the hole by rejecting
+  // the IDENTIFIER in any form inside renderCard's body.
+  it('renderCard names gender in NO form — property, computed, or destructured', () => {
+    expect(
+      genderTokensIn(renderCardBody()),
+      'renderCard names `gender` — the written entry must not read the field (§1.D v0.67)'
+    ).toEqual([]);
+  });
+
+  it('…and that guard actually catches a destructured reader', () => {
+    // The discriminating counter-case. Without it, the assertion above could
+    // be satisfied by a matcher that matches nothing at all.
+    const real = renderCardBody();
+    const mutated = real.replace(
+      'cardName.textContent = cell.name;',
+      "const { gender } = profile;\n"
+      + "        cardName.textContent = gender === 'female' ? 'f-' + cell.name : cell.name;"
+    );
+    expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(real);
+    expect(genderTokensIn(mutated)).not.toEqual([]);
+    // And this is precisely what the old property-only pattern missed.
+    expect(mutated).not.toMatch(/\.gender\b|\[['"]gender['"]\]/);
   });
 });
 

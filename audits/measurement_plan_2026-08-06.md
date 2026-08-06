@@ -93,16 +93,26 @@ window — never a funnel, never a per-person rate, never a cohort.
 Three rates. Each denominator is a RESTRICTION of `reading_completed`, not the
 raw total:
 
-**1. Checkout-start rate per unentitled render** — how often does an unentitled
-render end in a hand-off to Gumroad?
+**1. Checkout-click intensity per unentitled render** — how many checkout
+hand-offs occur per unentitled render in the same window?
 
 ```
-count(paid_t3_cta_clicked) / count(reading_completed where tier in {free, t1, t2})
+count(paid_t3_cta_clicked  where tier in {free, t1, t2}) /
+count(reading_completed    where tier in {free, t1, t2})
 ```
 
-Restricted to the unentitled rungs: a t3 device tapping the CTA is not a
-prospective buyer, and leaving t3 renders in the base dilutes the only number
-this event exists to produce.
+**Both sides are filtered, and that symmetry is the correction.** An earlier
+draft filtered only the denominator, which counted t3 taps in the numerator
+that the denominator had deliberately excluded — a rate whose two halves
+described different populations. A t3 device tapping the CTA is not a
+prospective buyer, so it belongs in neither.
+
+**It is an intensity, not a per-render probability, and the name says so.**
+Calling it a rate at which a render "ends in" checkout would assert exactly the
+attribution the payload cannot support — with no timestamp and no id, a tap
+cannot be tied to the render before it (see *Not a funnel* below). The two
+counts are independent totals sharing a window; their quotient is a ratio, not
+a conversion.
 
 **It does not measure whether the offer was seen, and must not be quoted as if
 it did.** Three uncounted steps sit between the two counted ones. `renderCard`
