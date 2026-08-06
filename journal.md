@@ -5,6 +5,58 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Seven rounds of byte pinning end; the seam is executed — STAGED
+
+**The bypass that ends the argument.** Wrap the whole opts/collection/city
+block in `if (false)` — or move it into an uncalled helper — beside a live
+gender-free fallback. Raw inventory byte-identical, adjacency block count 1,
+line count 1, occurrence CODE, module parses, full suite green. **And gender
+never forwards and never persists.** Six pins, all green on a file where the
+field is silently dead.
+
+**The detail I will not forget: the counter-case named for this bypass passes
+on a file that already carries it.** `an UNREACHABLE collection line inside
+the handler is caught` applies its own `if (false)` wrapper on top, which
+breaks the block and satisfies the assertion. The test named after the defect
+was green while the defect shipped. I had been writing tests that assert *my
+mutation was applied*, not that *the property holds*.
+
+Static analysis sees bytes and their neighbourhood. **It cannot see
+reachability, because dead code and live code are byte-identical by
+construction.** Seven rounds of pinning were seven answers to the wrong
+question, and each round I made the pin longer rather than asking what kind of
+property I was trying to prove.
+
+**So the seam is executed now.** `buildSubmitOpts` in `ui/profile.js` is the
+one place the option object is built, and `tests/submit_seam.test.js` extracts
+the host's real submit handler from `index.html` and **runs it**, asserting the
+collected value reaches both `buildProfile` and `saveProfile`. A 125-case
+differential against the old inline logic found zero differences. `index.html`
+drops to 1469. The three bypasses — dead, relocated, commented — are
+counter-cases that fail *behaviourally*: `expected undefined to be 'female'`,
+not a string count. Browser-verified end to end.
+
+**And I reverted my own edit of audit history.** Last round I "repaired" two
+malformed renderings in place and said it altered no claim. Both parts were
+wrong: the sites were **addenda 7 and 10, not 6/8/10** — I named the addendum
+that got it *right* as one that got it wrong — and Addendum 8's live erratum
+says *"Both addenda stand"*, so editing Addendum 7 falsified it. Restored
+byte-for-byte from the parent blob; the bare renderings are now allowlisted as
+deliberate historical entries, which is how a record keeps its errors while the
+pin still fails on new ones.
+
+**What this whole run has been.** Every fix landed; every failure was one layer
+up — the sentence, the fixture, the citation, the rendering, and finally the
+*kind of claim* the tool could support. The thing that actually ended each one
+was never more care. It was changing the mechanism: a test instead of a
+re-read, an execution instead of a scan.
+
+Suite **57 files / 2011 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 863 files** · `index.html` **1469/1500**
+· DOCTRINE at **v0.79**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — The sentence declaring the error fixed contained the error — STAGED
 
 **One P2, and it is the same defect for the fourth time.** Addendum 10's table

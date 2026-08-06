@@ -1072,7 +1072,7 @@ import { recordMeasurement } from './core/measurement.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
-import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput } from './ui/profile.js';
+import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput, buildSubmitOpts } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
@@ -1352,23 +1352,15 @@ profileForm.addEventListener('submit', e => {
   const entry = validateBirthInput({ name: nameInput.value, dob: dobInput.value });
   if (!applyBirthInputValidationState(entry, birthValidationRefs)) return;
   const { name, dob } = entry;
-  const time = timeInput.value || undefined;
-  // v0.2.7.2: rising opts derive from the selected-city state. If the
-  // user typed without selecting from the suggestion list, selectedCity
-  // is null and rising sign isn't computed — bare sun line falls
-  // through naturally per profile.js's gates.
-  const opts = { time };
-  // Named `genderInput`, not `g`: a generic alias carries the value onward
-  // under a name no scan can recognise, so a later use of it would drive the
-  // card while every gender guard stayed green. The name is the guard's hook.
-  const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;
-  if (selectedCity) {
-    opts.city = selectedCity.name;
-    opts.cc = selectedCity.countryCode;
-    opts.tz = selectedCity.tz;
-    opts.lat = selectedCity.lat;
-    opts.lng = selectedCity.lng;
-  }
+  // v0.2.7.2: rising opts derive from the selected-city state. If the user
+  // typed without selecting from the suggestion list, selectedCity is null and
+  // rising sign isn't computed — bare sun line falls through naturally per
+  // profile.js's gates. The object is built by ONE pure seam
+  // (ui/profile.js buildSubmitOpts) that the tests EXECUTE; this line reads
+  // the three live values and passes them in. Nothing is assembled
+  // field-by-field here any more, so no dead-code wrapper can hollow the
+  // collection out while its bytes survive a scan.
+  const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });
 
   const stored = loadSavedProfile();
   const isNew = isNewPair({ name, dob }, stored);

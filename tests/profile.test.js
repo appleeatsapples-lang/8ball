@@ -793,11 +793,9 @@ const RAW_GENDER_ALLOW = {
     "<p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>",
     "<p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the comparative — a second person's complete sheet beside yours with the named relation between them — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>",
     "<p class=\"modal-disclosure\" id=\"paywall-disclosure\">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>",
-    "import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput } from './ui/profile.js';",
+    "import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput, buildSubmitOpts } from './ui/profile.js';",
     "// `form` + `anchor` let the module build the optional gender control it",
-    "// Named `genderInput`, not `g`: a generic alias carries the value onward",
-    "// card while every gender guard stayed green. The name is the guard's hook.",
-    "const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;"
+    "const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });"
   ],
   "core/measurement.js": [
     "// exactly two keys cannot carry a name, a DOB, a gender, a city, a coordinate"
@@ -812,6 +810,9 @@ const RAW_GENDER_ALLOW = {
     "if (opts.gender === 'male' || opts.gender === 'female') payload.gender = opts.gender;",
     "// calculation needs it: §1.D v0.67 deleted the kua block, so gender has",
     "if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;",
+    "// vocabulary is enforced by getGenderInput and by saveProfile, not",
+    "export function buildSubmitOpts({ time, gender, city } = {}) {",
+    "if (gender) opts.gender = gender;",
     "let _genderSelect = null;",
     "// ── the optional gender control ───────────────────────────────────",
     "// no-gender state and it is the default; anything off-vocabulary resolves",
@@ -1038,116 +1039,26 @@ describe('the optional gender field — no downstream surface reads it', () => {
     }
   });
 
-  // The allowlist pins line TEXT. This pins its PLACE — and it is deliberately
-  // LEXER-FREE, because every previous attempt at a place invariant was built
-  // on the hand lexer whose incompleteness this file already records. A lane
-  // defeated the brace-matched version by hiding the callback's close behind a
-  // spread-regex, and no patch to the lexer retires that class.
+  // PLACE IS NOT REACHABILITY, and six rounds of pinning bytes could not make
+  // it one. The collection used to be assembled field-by-field here and was
+  // pinned as an exact contiguous RAW block. Three separate lanes then showed
+  // the same defeat: `if (false) { …block… }` beside a live gender-free
+  // fallback, the block relocated into an uncalled helper, and the whole block
+  // wrapped in `/* … */` — each leaves the raw inventory byte-identical, and
+  // the last leaves the block pin itself green while the field silently stops
+  // forwarding. Dead code and live code are byte-identical by construction; no
+  // seventh pin closes that.
   //
-  // So place is pinned as an exact contiguous block of RAW source. It parses
-  // nothing. The collection line must sit between the `opts` object it
-  // populates and the branch that follows it, byte for byte, exactly once.
-  // Anything that moves the line, wraps it, or interposes code breaks the
-  // block — including the four counter-cases below.
+  // So the collection moved OUT of the host into ui/profile.js buildSubmitOpts
+  // and tests/submit_seam.test.js EXECUTES index.html's own submit handler
+  // against stubs, watching the value arrive at buildProfile and saveProfile.
+  // All three bypasses above are counter-cases there and fail on the executed
+  // value, not on a moved string. Do not re-add a block pin here.
   const COLLECTION_LINE =
-    'const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;';
-  const COLLECTION_BLOCK = [
-    '  const opts = { time };',
-    '  // Named `genderInput`, not `g`: a generic alias carries the value onward',
-    '  // under a name no scan can recognise, so a later use of it would drive the',
-    "  // card while every gender guard stayed green. The name is the guard's hook.",
-    `  ${COLLECTION_LINE}`,
-    '  if (selectedCity) {',
-  ].join('\n');
+    'const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });';
 
   const readHtml = () => readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-  const blockCount = html => html.split(COLLECTION_BLOCK).length - 1;
   const inventory = html => html.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
-
-  it('the collection line sits in its exact raw block, once — no lexer involved', () => {
-    const html = readHtml();
-    expect(blockCount(html),
-      'the collection line is no longer in its exact executable neighbourhood. '
-      + 'If the surrounding code changed legitimately, update COLLECTION_BLOCK '
-      + 'verbatim — deliberately.').toBe(1);
-    expect(html.split(COLLECTION_LINE).length - 1,
-      'the collection line appears more than once in the file').toBe(1);
-  });
-
-  // SECONDARY, and labelled as such: it uses the lexer, so it carries no
-  // absolute claim. It adds one thing the raw block cannot say — that the
-  // occurrence is executable rather than text wearing the same bytes.
-  it('diagnostic: the collection occurrence classifies as CODE', () => {
-    const html = readHtml();
-    expect(classify(html)[html.indexOf(COLLECTION_LINE)]).toBe(CODE);
-  });
-
-  it('relocation out of the block is caught, called or not', () => {
-    const html = readHtml();
-    const TRY_ANOTHER = "tryAnotherBtn.addEventListener('click', () => {";
-    expect(html.indexOf(TRY_ANOTHER), 'try-another anchor moved').toBeGreaterThan(-1);
-
-    const relocate = body => {
-      const stripped = html.replace(`  ${COLLECTION_LINE}\n`, '');
-      const helper = `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n${body}}\n`;
-      const at = stripped.indexOf(TRY_ANOTHER);
-      return (stripped.slice(0, at) + helper + stripped.slice(at))
-        .replace('cardName.textContent = cell.name;',
-          'cardName.textContent = displayName(cell, opts);');
-    };
-
-    // (1) Bare move: raw inventory UNCHANGED, so only the block pin sees it.
-    const moved = relocate('  return cell.name;\n');
-    expect(inventory(moved), 'premise broken: the bare move changed the inventory')
-      .toEqual(inventory(html));
-    expect(moved.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
-    expect(blockCount(moved), 'the line left its block undetected').toBe(0);
-
-    // (2) Weaponised: the helper USES the value and is CALLED, so the card
-    //     changes. The invocation is asserted by its exact CALL SITE — the
-    //     previous version used toContain('displayName(cell, opts)'), which
-    //     the inserted DECLARATION satisfies all by itself.
-    const CALL = 'cardName.textContent = displayName(cell, opts);';
-    expect(html.includes(CALL), 'premise broken: the call already exists at baseline').toBe(false);
-    const weaponised = relocate('  return genderInput ? "f-" + cell.name : cell.name;\n');
-    expect(weaponised.split(CALL).length - 1, 'the relocated helper is never called').toBe(1);
-    expect(blockCount(weaponised), 'the line left its block undetected').toBe(0);
-    expect(inventory(weaponised).length,
-      'a generic alias would have hidden this use from the raw scan')
-      .toBeGreaterThan(inventory(html).length);
-  });
-
-  it('an UNREACHABLE collection line inside the handler is caught', () => {
-    // Place is not reachability. Wrapping the line in `if (false)` leaves the
-    // raw inventory identical, uniqueness at 1, the occurrence CODE, and — on
-    // the superseded brace-matched pin — the submit-body count at 1, while
-    // gender never forwards or persists at all. The block pin sees it because
-    // the interposed line breaks the neighbourhood.
-    const html = readHtml();
-    const dead = html.replace(`  ${COLLECTION_LINE}`, `  if (false) {\n  ${COLLECTION_LINE}\n  }`);
-    expect(dead, 'the mutation did not apply').not.toBe(html);
-    expect(inventory(dead), 'premise broken: the inventory changed').toEqual(inventory(html));
-    expect(dead.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
-    expect(classify(dead)[dead.indexOf(COLLECTION_LINE)],
-      'premise broken: the occurrence is no longer CODE').toBe(CODE);
-    expect(blockCount(dead), 'an unreachable collection line went undetected').toBe(0);
-  });
-
-  it('the exact bytes inside a MULTILINE template do not satisfy the block', () => {
-    // A one-line wrapper changes the trimmed line, so the raw allowlist already
-    // catches it and the fixture proved nothing — the earlier version of this
-    // test had exactly that false premise. A multiline template leaves the
-    // line's own trimmed text intact, so the inventory really is unchanged.
-    const html = readHtml();
-    const neutered = html.replace(`  ${COLLECTION_LINE}`, `  const doc = \`\n${COLLECTION_LINE}\n\`;`);
-    expect(neutered, 'the mutation did not apply').not.toBe(html);
-    expect(inventory(neutered), 'premise broken: the inventory changed')
-      .toEqual(inventory(html));
-    expect(neutered.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
-    expect(blockCount(neutered), 'a template-literal copy satisfied the block pin').toBe(0);
-    expect(classify(neutered)[neutered.indexOf(COLLECTION_LINE)],
-      'the diagnostic should also see this is no longer code').not.toBe(CODE);
-  });
 
   it('the raw allowlist catches what every lexical guard missed', () => {
     // The exact bypass that defeated the lexer: valid JS, executes, changes

@@ -178,11 +178,13 @@ const BARE_GENDER_PROSE = {
     "the kua block reads profile.gender\". The kua block was deleted at",
     "And the limits prose named a Unicode-escape bypass (`profile.gender`)",
     "Addendum 6 says the limits prose named a Unicode-escape bypass \"(`profile.gender`)\".",
+    "is `profile.gender` — an escaped `e` inside the property name, which is a",
     "Written as `profile.gender` the sentence describes an ordinary read that every",
     "cardName.textContent = profile.gender ? \"f\" : cell.name;",
     "blanking a live `profile.gender` read. **Both lexical guards reported clean:",
     "- **WRONG, as both earlier addenda rendered it:** `profile.gender`",
     "`profile.gender` — without the escape\". **v0.73 already carries the escaped",
+    "| v0.73 (`:471`) | `profile.gender` — **correct** |",
     "| v0.74 (`:482`) | `profile.gender` — but this is its **separate spread/regex repro**, a different bypass |",
     "`profile.gend` occurrence in this file rather than by re-reading the passage.",
     "`profile.gend` in DOCTRINE, the journal and this artifact either carries the"

@@ -98,6 +98,33 @@ export function profileFromPayload(obj) {
   return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
 }
 
+// ── the submit seam ───────────────────────────────────────────────
+// The ONE place the submit option object is built. It used to be assembled
+// field-by-field inside index.html's submit handler, where no harness could
+// execute it; six rounds of static pins over those bytes were each defeated,
+// the last by wrapping the block in `if (false)` beside a live fallback —
+// every pinned byte intact, the field silently no longer forwarded.
+//
+// Pure by construction (no DOM, no storage, no module state), so the tests
+// drive it directly in the node environment (§12: no jsdom). Behaviour is the
+// former block's, quirk for quirk: `time` is always an own key (undefined on
+// an empty input), the optional field forwards on TRUTHINESS (the two-token
+// vocabulary is enforced by getGenderInput and by saveProfile, not
+// re-implemented here), and a selected city copies all five fields
+// unconditionally so `lat: 0` and an empty `cc` survive.
+export function buildSubmitOpts({ time, gender, city } = {}) {
+  const opts = { time: time || undefined };
+  if (gender) opts.gender = gender;
+  if (city) {
+    opts.city = city.name;
+    opts.cc = city.countryCode;
+    opts.tz = city.tz;
+    opts.lat = city.lat;
+    opts.lng = city.lng;
+  }
+  return opts;
+}
+
 // ── shared birth-input validation contract ────────────────────────
 // ONE validator for every form that collects (name, dob): the primary
 // onboarding form and the §1.J dyad second-person form (PR #187 finding F3

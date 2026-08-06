@@ -855,7 +855,7 @@ original counter-case battery passes.
 
 Addendum 6 says the limits prose named a Unicode-escape bypass "(`profile.gender`)".
 **That is a transcription error.** The bypass, and the fixture that ships for it,
-is `profile.gend\u0065r` — an escaped `e` inside the property name, which is a
+is `profile.gender` — an escaped `e` inside the property name, which is a
 valid read of the same property while containing no literal `gender` substring.
 Written as `profile.gender` the sentence describes an ordinary read that every
 guard catches, which inverts the point. Addendum 6 stands unedited; this is the
@@ -1143,7 +1143,7 @@ and the addenda. **Both are wrong.** Verified line by line:
 | site | renders |
 |---|---|
 | v0.72 (`DOCTRINE.md:456`) | **no example at all** — names the class generically |
-| v0.73 (`:471`) | `profile.gend\u0065r` — **correct** |
+| v0.73 (`:471`) | `profile.gender` — **correct** |
 | v0.74 (`:482`) | `profile.gender` — but this is its **separate spread/regex repro**, a different bypass |
 | v0.74 (`:493`) | **no example at all** |
 | Addenda 6, 7 | the malformed Unicode form |
@@ -1246,5 +1246,107 @@ Corrected additively in §5 v0.78.
 - local PII audit **clean, 862 files** · `index.html` **1477/1500**
 - L17: the §5 v0.77 clause and its footer body are byte-identical to
   `d1c93e4`; nothing removed but two demoted labels. `d1c93e4` is not amended.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 12 — audit of `c0b9403`: seven rounds of byte pinning end here
+
+**Verdict received:** MERGE WITH FIXES — two P2s plus a P3 truth item.
+**All CONFIRMED and absorbed.** This addendum is append-only; addenda 1–11
+stand unedited.
+
+## ERRATUM 3 — the in-place repair in `c0b9403` is REVERTED
+
+`c0b9403` repaired two malformed renderings **in place** and said it "altered
+no claim, verdict or count". Both halves were wrong.
+
+- **The sites were Addendum 7 and Addendum 10 — not 6, 8 and 10.** Line 858
+  sits under Addendum 7's header (`:848`); Addendum 8 begins at `:926` and its
+  `:940` already carried the correct escaped form. I named the addendum that
+  got it *right* as one that got it wrong.
+- **The edit falsified a live claim.** Addendum 8's still-current erratum says
+  *"Addendum 7's erratum tried to correct it and reproduced the same error…
+  **Both addenda stand**"*. Repairing Addendum 7 made that false and broke the
+  additive commitment it records.
+
+**Both lines are restored byte-for-byte from `d1c93e4`**, verified by string
+comparison against the parent blob. Their bare renderings are now allowlisted
+as **deliberate historical entries** in the rendering pin, which is the correct
+way to hold them: the record keeps its error, and the pin still fails on any
+NEW one.
+
+**The true pre-repair set: addenda 6, 7 and 10 rendered it malformed;
+addendum 8 rendered it correctly.**
+
+## P1 — every byte pin dies to moving the BLOCK instead of the LINE
+
+Independently reproduced, and I reproduced it myself: wrap the whole
+opts/collection/city segment in `if (false)` — or drop it into an uncalled
+helper — beside a live gender-free fallback.
+
+| measurement | base | `if (false)` | uncalled helper |
+|---|---|---|---|
+| raw gender inventory | 8 | **8, byte-identical** | **8, byte-identical** |
+| adjacency block count | 1 | **1** | **1** |
+| collection line count | 1 | **1** | **1** |
+| occurrence kind | CODE | **CODE** | **CODE** |
+| inline-module gender code lines | 2 | **2** | **2** |
+| module parses | yes | **yes** | **yes** |
+| **gender actually forwards** | yes | **NO** | **NO** |
+
+Full suite green on both. And the detail that settles it: **the counter-case
+named for this bypass PASSES on a file already carrying it** — `an
+UNREACHABLE collection line inside the handler is caught` applies its own
+`if (false)` on top, which breaks the block and satisfies the assertion. The
+test named after the defect was green while the defect shipped.
+
+**Static analysis sees bytes and their neighbourhood. It cannot see
+reachability, because dead code and live code are byte-identical by
+construction.** An eighth pin could not close this.
+
+### The fix: execute the seam
+
+`buildSubmitOpts` in `ui/profile.js` is now the one place the option object is
+built, and `tests/submit_seam.test.js` **extracts the host's real submit-handler
+body from `index.html` and runs it** (`new Function`, stubs for its 21 free
+names), asserting the collected value reaches **both** `buildProfile` and
+`saveProfile`. `new Function` is new to this suite; §12 bans jsdom, not
+compilation.
+
+- Behaviour identical: a **125-case differential** against the old inline logic
+  found zero differences, including `lat: 0`, an empty `cc`, an empty time and
+  off-vocabulary input.
+- `index.html` **1477 → 1469** lines.
+- Three bypasses ship as counter-cases — dead block, relocated block,
+  commented-out block — and each fails **behaviourally**. Applied to the real
+  file they report *expected undefined to be 'female'*, not a string count.
+  Verified by applying both to `index.html` on disk: 4/4 red, then green on
+  restore.
+- **Browser-verified**: with a birth time, gender persists; without one, the
+  key is absent rather than empty. No console errors.
+
+**Residual, stated exactly:** vitest compiles the handler body but never loads
+the page, so *that the listener is registered and fires* is not proven here —
+only a browser closes that, and this change was browser-checked by hand.
+Runtime indirection naming no identifier stays open, now confined to the ~10
+lines between the call and its two consumers.
+
+## P3 — the "sole catch" claim was wrong
+
+v0.77 and Addendum 10 said the block pin was the SOLE catch for the
+multiline-template mutation. It is caught **twice** — block count 0 *and* kind
+STRING. The genuine CODE-only discriminator is the whole-block **comment**
+wrapper, which now ships as an executed counter-case rather than a static one.
+
+## Verification
+
+- vitest **57 files / 2011 tests green**
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 863 files** · `index.html` **1469/1500**
+- L17: the §5 v0.78 clause and its footer body are byte-identical to
+  `c0b9403`; nothing removed but two demoted labels. `c0b9403` is not amended.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
