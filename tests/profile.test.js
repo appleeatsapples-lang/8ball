@@ -711,8 +711,8 @@ describe('buildProfile — the optional gender field', () => {
 // `renderCard`'s body, LEXED out of index.html's inline module — braces are
 // counted only where they are code, so a `}` inside a comment or a string
 // cannot truncate the extraction. Scoped to renderCard alone: the submit
-// handler legitimately names the field (`opts.gender = genderInput`) and is
-// not the render path.
+// handler legitimately names the field (it passes `getGenderInput()` into
+// buildSubmitOpts) and is not the render path.
 //
 // Two earlier regex versions of this pair were defeated; the reasons are
 // written out in tests/helpers/js-lex.js and pinned by the counter-cases at
@@ -787,7 +787,7 @@ function genderMentionsInSource(src) {
 // differential drives buildProfile and the pure output surfaces and never
 // touches optsFromPayload, profileFromPayload, saveProfile or
 // populateRisingFields, so a male-only transformation in any of those would
-// have passed everything. All 43 occurrences across all six files are pinned.
+// have passed everything. All 44 occurrences across all six files are pinned.
 const RAW_GENDER_ALLOW = {
   "index.html": [
     "<p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>",

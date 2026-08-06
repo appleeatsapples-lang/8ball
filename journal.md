@@ -5,6 +5,50 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Running the code was not enough; the environment mattered — STAGED
+
+**Last round I stopped scanning bytes and started executing the handler. This
+round: executing it in ONE environment was not enough.** A handler branching on
+`typeof window === "undefined"` forwards the field under the vitest harness and
+drops it in a browser. Raw inventory byte-identical, the gender-bearing host
+line still one, **all four driver tests green** — and the shipped listener would
+omit the value.
+
+It is the same mistake one layer up again. I moved from *"the text is right"* to
+*"the code runs"* without asking **in what environment**. And my manual browser
+pass, which I had been treating as the backstop, proves the current bytes only —
+it cannot see this class at all.
+
+**Fixed by making the drive symmetric:** every run happens under both bare-node
+and browser-like globals, every assertion is made in both, and an explicit test
+requires the two to produce identical option objects. The mutation ships as a
+counter-case shaped to what actually catches it — the environments *disagreeing*
+— because it forwards correctly under node by construction, so the uniform
+"forwards nothing" check does not apply. With it applied to the real file:
+**6 of 7 red**, including the `[browser]` variant that was green before.
+
+**Three record errors, all mine.** v0.79 called v0.78's allowlist a defeated
+submit byte pin and superseded its guarantees — but v0.78 added the
+Unicode-prose *rendering* guard, which is neither a seam guard nor defeated,
+and the defeated seam rounds number six, not seven. v0.79 said "Two findings"
+and listed three; Addendum 12 said "two P2s plus a P3" while its own heading
+said P1. And the rendering guard's own comment still named addenda 6, 8 and 10
+after Erratum 3 had corrected that to 6, 7 and 10 everywhere else — **the same
+misattribution surviving one file over**, which is now the third time a
+correction has landed in the doctrine and missed the code that implements it.
+
+**The pattern, at its clearest.** Every round the fix has been right and the
+frame has been one notch too small: right text → wrong claim; right claim →
+wrong evidence; right evidence → wrong kind of property; right property → wrong
+environment. What ends each round is never more diligence inside the frame. It
+is someone asking what the frame excludes.
+
+Suite **57 files / 2014 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 863 files** · `index.html` **1469/1500**
+· DOCTRINE at **v0.80**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — Seven rounds of byte pinning end; the seam is executed — STAGED
 
 **The bypass that ends the argument.** Wrap the whole opts/collection/city

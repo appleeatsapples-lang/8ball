@@ -1350,3 +1350,78 @@ wrapper, which now ships as an executed counter-case rather than a static one.
   `c0b9403`; nothing removed but two demoted labels. `c0b9403` is not amended.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 13 — audit of `42ceffa`: one P1, four P2s, three P3s
+
+**All CONFIRMED and absorbed.** Append-only; addenda 1–12 stand unedited.
+
+## P1 — the driver executed NODE semantics, not browser-equivalent semantics
+
+v0.79 replaced byte pinning with an executed seam and named exactly one
+residual: listener registration. **That was incomplete.** Replace the host call
+with a branch on `typeof window === "undefined"` — forwarding the field in the
+non-browser arm and dropping it in the browser arm — and:
+
+| signal | result |
+|---|---|
+| mutation applied | true |
+| raw gender inventory | **byte-identical** |
+| gender-bearing host lines | **1** |
+| node harness: build/save receive `female`, rendered | **true** |
+| browser-like run (`window` defined) | **gender undefined** |
+| all four driver tests | **green** |
+
+The shipped listener fires in a browser and omits the value. **The manual
+browser pass proves the current bytes only — it cannot see this class**, which
+is the same mistake in a new layer: I had moved from "the text is right" to
+"the code runs", without asking *in what environment*.
+
+**FIXED:** every drive runs under **both** bare-node and browser-like globals;
+every assertion is made in both; an explicit test requires the two to produce
+identical option objects; and the mutation ships as a fourth counter-case,
+shaped to what actually catches it — **environment DISAGREEMENT**, since it
+forwards correctly under node by construction and the uniform
+"forwards nothing" check therefore does not apply to it. Re-run with the
+mutation applied to the real `index.html`: **6 of 7 red**, including the
+`[browser]` variant that was green before; green again on restore.
+
+**Residual, restated exactly:** the page is still never loaded, so *listener
+registration and firing* is unproven by any test — browser-checked by hand each
+cycle. Runtime indirection naming no identifier remains open.
+
+## P2 — three record errors and one stale guard comment
+
+- **v0.79 mischaracterised v0.78.** It called "v0.78's allowlist" a defeated
+  submit byte pin and superseded its "place/reachability guarantees". v0.78
+  added the **Unicode-prose rendering guard** — not a seam guard, not defeated,
+  still in force. The defeated seam-static rounds number **six**, not seven,
+  as the source and test comments have said throughout.
+- **Two finding counts disagree.** Addendum 12 opens "two P2s plus a P3" while
+  its own seam heading is P1; v0.79 says "Two findings" then enumerates three.
+  Correct tally: **one P1, one P2, one P3.**
+- **The rendering guard's own comment still named 6, 8 and 10.** The verified
+  set is **6, 7 and 10**; Addendum 8 rendered it correctly. Erratum 3 fixed the
+  doctrine and this artifact but left the test's documentation carrying the
+  original misattribution — the same error surviving one file over.
+
+## P3 — two stale figures
+
+A comment quoted the pre-extraction host shape `opts.gender = genderInput`,
+which no longer exists; and the raw allowlist's summary said 43 occurrences
+where the bounded corpus now holds **44**.
+
+## Verification
+
+- The exact P1 mutation re-run against the repaired driver: 6/7 red, green on
+  restore. The three earlier bypasses still fail behaviourally in both
+  environments.
+- vitest **57 files / 2014 tests green** (2011 → 2014)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 863 files** · `index.html` **1469/1500**
+- L17: the §5 v0.79 clause and its footer body are byte-identical to
+  `42ceffa`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

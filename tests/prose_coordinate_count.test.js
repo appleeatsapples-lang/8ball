@@ -142,10 +142,12 @@ describe('prose coordinate-count copy (v0.6.0 free surface)', () => {
 // This document set has now shipped the SAME typographical defect three
 // times: a sentence asserting the Unicode-escape bypass while rendering it
 // WITHOUT its backslash, which turns the example into an ordinary property
-// read that every guard catches — inverting the point being made. Addendum 6
-// printed it bare; Addendum 8's erratum "corrected" it and printed it bare
-// again; Addendum 10 declared the matter closed and printed it bare a third
-// time, in the very table asserting who had got it right.
+// read that every guard catches — inverting the point being made. The verified
+// set is addenda 6, 7 and 10: Addendum 6 printed it bare; Addendum 7's erratum
+// "corrected" it and printed it bare again; Addendum 10 declared the matter
+// closed and printed it bare a third time, in the very table asserting who had
+// got it right. Addendum 8 got it RIGHT — an earlier version of this comment
+// named it as one of the offenders, which was itself the same class of error.
 //
 // The recurring cause is that the backslash does not survive the round trip
 // from intent to bytes, and prose review cannot see a missing backslash.
