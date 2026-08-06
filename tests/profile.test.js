@@ -731,7 +731,9 @@ function renderCardBody(html = readFileSync(join(__dirname, '..', 'index.html'),
 // literal, so stripping literals — which is what the first version did — is
 // exactly how `profile["gender"]` escaped. Comment text is the only thing
 // dropped, because a comment is the one place the word is harmless.
-// `getGenderInput` never matches: the word boundary excludes it.
+// `getGenderInput` DOES match, and must: it reads the live control and
+// changes the card while naming no property. The word boundary that used to
+// exclude it was removed for exactly that reason.
 function genderTokensIn(extracted) {
   return genderTokens(extracted);
 }
@@ -794,12 +796,49 @@ const RAW_GENDER_ALLOW = {
   "core/measurement.js": [
     "// exactly two keys cannot carry a name, a DOB, a gender, a city, a coordinate"
   ],
+  "core/profile.js": [
+    "// ── Gender passthrough (additive). Strict two-token vocabulary;",
+    "const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))",
+    "? opts.gender",
+    "gender"
+  ],
+  "ui/profile.js": [
+    "if (opts.gender === 'male' || opts.gender === 'female') payload.gender = opts.gender;",
+    "// calculation needs it: §1.D v0.67 deleted the kua block, so gender has",
+    "if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;",
+    "let _genderSelect = null;",
+    "// ── the optional gender control ───────────────────────────────────",
+    "// no-gender state and it is the default; anything off-vocabulary resolves",
+    "// POINT-OF-ENTRY TRUTH. The control carries GENDER_NOTE, wired to the",
+    "export const GENDER_NOTE = 'optional · stored on this device · does not affect your reading';",
+    "function resolveGenderSelect(refs) {",
+    "if (refs && refs.genderSelect) return refs.genderSelect;",
+    "const existing = form.querySelector && form.querySelector('#gender-input');",
+    "field.className = 'field gender-field';",
+    "field.innerHTML = '<label for=\"gender-input\">gender (optional)</label>' +",
+    "'<select id=\"gender-input\" aria-describedby=\"gender-note\">' +",
+    "`<p class=\"field-note\" id=\"gender-note\">${GENDER_NOTE}</p>`;",
+    "return field.querySelector ? field.querySelector('#gender-input') : null;",
+    "export function getGenderInput() {",
+    "const v = _genderSelect && _genderSelect.value;",
+    "export function setGenderInput(v) {",
+    "if (!_genderSelect) return;",
+    "_genderSelect.value = v === 'male' || v === 'female' ? v : '';",
+    "_genderSelect = resolveGenderSelect(refs);",
+    "// Rehydrate the gender control (owned by this module since §1.D v0.67).",
+    "setGenderInput(obj.gender);",
+    "// Clear the gender control directly (this module owns it since §1.D",
+    "// v0.67). Routing it through the retired setGender hook silently left a",
+    "setGenderInput(undefined);"
+  ],
+  "ui/readings.js": [
+    "// §5.E: the archive carries gender because it is a user-entered input",
+    "if (input.gender === 'male' || input.gender === 'female') profile.gender = input.gender;"
+  ],
   "ui/tiers.js": [
     "// ceiling is the written entry + the public read; the optional gender"
   ]
 };
-
-const GENDER_INPUT_PATH = new Set(['core/profile.js', 'ui/profile.js', 'ui/readings.js']);
 
 // Every tracked .js under a directory, RECURSING. The scan read only the top
 // level, so a module in a future `core/x/` or `ui/x/` would have been outside
@@ -935,6 +974,13 @@ describe('the optional gender field — no downstream surface reads it', () => {
       const hits = genderMentionsInSource(readFileSync(join(__dirname, '..', rel), 'utf-8')).length;
       if (hits) offenders.push(`${rel} (${hits})`);
     }
+    // The recursion is unexercised by core/ and ui/, which are FLAT — so it is
+    // pinned against a directory that genuinely nests. Without this, the walk
+    // could stop descending and nothing here would notice.
+    const nested = jsFilesUnder('tests');
+    expect(nested, 'jsFilesUnder does not descend into subdirectories')
+      .toContain('tests/helpers/js-lex.js');
+
     // The scan must actually have reached the corpus it claims to cover.
     expect(scanned.length, 'the recursive scan found no modules — it is not scanning what it claims')
       .toBeGreaterThanOrEqual(20);
@@ -960,19 +1006,18 @@ describe('the optional gender field — no downstream surface reads it', () => {
   // index.html's inline module and no harness executes it, so the runtime
   // matrix above cannot reach it either. This closes the hole by rejecting
   // the IDENTIFIER in any form inside renderCard's body.
-  // The PRIMARY guard, deliberately MODULE-WIDE rather than scoped to
-  // renderCard. Scoping to one function leaves a hole: a reader could sit in
-  // any other helper defined in the same inline module and still change the
-  // card. `core/` and `ui/` are covered by the scan above; this covers the
-  // host. Two lines survive the lexer, and both are the collection path —
-  // anything new fails here and has to be justified line by line.
+  // A SECONDARY DIAGNOSTIC — the raw allowlist above is the primary guard and
+  // this label was left stale when the claim moved. Its value is module-WIDE
+  // scope: a reader could sit in any helper of the inline module, not only in
+  // renderCard, and this says which line carries it. `core/` and `ui/` are
+  // covered by the scan above. Two lines survive the lexer, both on the
+  // collection path — but the ABSOLUTE claim rests on the raw scan, not here.
   // PRIMARY. Raw, fail-closed, lexer-free — see RAW_GENDER_ALLOW above for
   // why this and not the lexical guards carries the absolute claim.
   it('every raw mention of the field in the corpus is on the allowlist', () => {
     const corpus = ['index.html', ...jsFilesUnder('core'), ...jsFilesUnder('ui')];
     expect(corpus.length, 'the corpus walk found nothing').toBeGreaterThanOrEqual(20);
     for (const rel of corpus) {
-      if (GENDER_INPUT_PATH.has(rel)) continue;
       const found = readFileSync(join(__dirname, '..', rel), 'utf-8')
         .split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
       expect(
@@ -989,14 +1034,68 @@ describe('the optional gender field — no downstream surface reads it', () => {
     }
   });
 
+  // The allowlist pins line TEXT; this pins the collection line's PLACE.
+  // Without it, deleting the legitimate submit-seam line and putting the
+  // identical text inside a render-path helper leaves the raw inventory
+  // byte-identical while the field starts driving the card — reproduced, and
+  // pinned below as a counter-case.
+  const SUBMIT_REGION = ["profileForm.addEventListener('submit', e => {",
+    "tryAnotherBtn.addEventListener('click', () => {"];
+  const COLLECTION_LINE = 'const g = getGenderInput(); if (g) opts.gender = g;';
+
+  function submitRegionOf(html) {
+    const a = html.indexOf(SUBMIT_REGION[0]);
+    const b = html.indexOf(SUBMIT_REGION[1]);
+    expect(a, 'submit handler anchor moved').toBeGreaterThan(-1);
+    expect(b, 'try-another anchor moved').toBeGreaterThan(a);
+    return html.slice(a, b);
+  }
+
+  it('the collection line lives INSIDE the submit handler, not merely in the file', () => {
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const region = submitRegionOf(html);
+    // Exactly once, inside the region…
+    expect(region.split(COLLECTION_LINE).length - 1,
+      'the collection line is not in the submit handler exactly once').toBe(1);
+    // …and nowhere else in the file.
+    expect(html.split(COLLECTION_LINE).length - 1,
+      'the collection line appears outside the submit handler').toBe(1);
+  });
+
+  it('a relocation of the collection line into a render helper is caught', () => {
+    // The exact repro: same text, different place. The raw inventory does not
+    // move, so only the region pin can see this.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const moved = html
+      .replace(`  ${COLLECTION_LINE}\n`, '')
+      .replace(RENDER_CARD_SIG,
+        `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n`
+        + `  return g ? "f-" + cell.name : cell.name;\n}\n${RENDER_CARD_SIG}`);
+    expect(moved, 'the relocation did not apply — anchors moved').not.toBe(html);
+
+    // The raw inventory really is unchanged — this is why the pin is needed.
+    const inv = src => src.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+    expect(inv(moved), 'premise broken: the raw inventory DID change')
+      .toEqual(inv(html));
+
+    // …and the region pin catches it.
+    expect(submitRegionOf(moved).split(COLLECTION_LINE).length - 1,
+      'the collection line was moved out of the submit handler undetected').toBe(0);
+  });
+
   it('the raw allowlist catches what every lexical guard missed', () => {
     // The exact bypass that defeated the lexer: valid JS, executes, changes
     // the card, and both lexical guards reported clean.
     const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
     const mutated = html.replace(
       'cardName.textContent = cell.name;',
-      'const spread = [.../[//]/.exec(cell.name)]; '
-      + 'cardName.textContent = profile.gender ? "f" : cell.name;',
+      // exec("/") — a GUARANTEED match. The audit's original fixture used
+      // exec(cell.name), but no card name in the 144-cell deck contains a
+      // slash, so the spread of a null result throws before the gender branch
+      // is ever reached. The bypass is real; the evidence for it has to
+      // actually run.
+      'const spread = [.../[//]/.exec("/")]; '
+      + 'cardName.textContent = spread.length && profile.gender ? "f" : cell.name;',
     );
     expect(mutated, 'the mutation did not apply — anchor moved').not.toBe(html);
     const raw = mutated.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));

@@ -919,3 +919,79 @@ the raw scan reads the file as bytes.
 - `ce320e6` history preserved; every change here is additive.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 8 — audit of `93a5953`: 2×P2 and four bounded truth fixes
+
+**Verdict received:** MERGE WITH FIXES. Product bytes unchanged.
+**After verification: all six CONFIRMED and absorbed.**
+
+## ERRATUM 2 — the Unicode form, written correctly this time
+
+Addendum 6 named the Unicode bypass without its backslash. Addendum 7's
+erratum tried to correct it and **reproduced the same error**: it printed the
+"wrong" and "corrected" forms identically, because the escape sequence did not
+survive into the file's bytes. Both addenda stand; this is the correction, and
+its bytes were verified before commit.
+
+- **WRONG, as both earlier addenda rendered it:** `profile.gender`
+- **RIGHT, and what the fixture actually contains:** `profile.gend\u0065r`
+
+The second form is a property access whose `e` is written as a Unicode escape.
+It reads the same property, contains no literal `gender` substring, and is
+therefore invisible to raw and lexical scanning alike — which is the entire
+reason it is on the recorded-limits list.
+
+## P1 — whole-file exemptions were a hole, not a scope choice
+
+`GENDER_INPUT_PATH` skipped `core/profile.js`, `ui/profile.js` and
+`ui/readings.js` outright, on the stated ground that the runtime differential
+covered them. **It does not.** The differential drives `buildProfile` and the
+pure output surfaces; it never drives `optsFromPayload`, `profileFromPayload`,
+`saveProfile` or `populateRisingFields`. A male-only transformation in any of
+those paths would have false-greened. The only reference to `ui/profile.js`
+anywhere in the differential is inside a string fixture.
+
+**FIXED:** the exemption is gone. All 41 raw occurrences across all six files
+are pinned — the owner files included. No file is skipped.
+
+## P2 — the allowlist pinned text, not place
+
+Deleting the legitimate submit-seam line and inserting the **identical text**
+into a render-path helper leaves the raw inventory byte-identical while the
+field starts driving the card. Reproduced exactly: 6 gender-bearing lines
+before, 6 after, same strings.
+
+**FIXED:** the collection occurrence is now pinned to the raw submit-handler
+region — from `profileForm.addEventListener('submit'` through
+`tryAnotherBtn.addEventListener('click'` — and asserted to appear exactly once
+inside it and nowhere else in the file. The relocation ships as a
+discriminating counter-case that first proves the raw inventory does NOT
+change, then shows the region pin catching it.
+
+## P3 — four truth fixes
+
+- **The advertised spread repro could not run.** It used `exec(cell.name)`, but
+  **0 of 144** card names contain a slash, so the spread of a `null` result
+  throws before the gender branch. The bypass is real; the evidence was not.
+  The fixture now uses `exec("/")` — a guaranteed match — and was executed to
+  confirm it changes the output.
+- **The recursion was unpinned** because `core/` and `ui/` are flat. It is now
+  exercised against `tests/`, asserting the walk reaches
+  `tests/helpers/js-lex.js`.
+- **Two stale claims.** A comment still said a word boundary excludes
+  `getGenderInput` — the boundary was removed precisely so it does NOT. And the
+  module-wide lexical guard was still labelled PRIMARY after the claim moved to
+  the raw scan. Both corrected; `js-lex.js`'s header now names REGEX and states
+  its secondary role.
+
+## Verification
+
+- vitest **56 files / 2005 tests green** (2003 → 2005)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean** · `index.html` **1474/1500**
+- Addenda 6 and 7 preserved; every change here is additive.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

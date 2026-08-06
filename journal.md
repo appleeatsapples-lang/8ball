@@ -5,6 +5,62 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — The replacement guard had the same shape of hole — STAGED
+
+**Two P2s and four truth fixes, all real.** Last round I moved the absolute
+claim off a hand lexer and onto a raw allowlist, on the reasoning that a scan
+which parses nothing cannot be confused about syntax. That reasoning was
+sound. **The allowlist I actually built was not the one I described.**
+
+**Three files were exempt wholesale.** `core/profile.js`, `ui/profile.js` and
+`ui/readings.js` were skipped because "the runtime differential covers them".
+It doesn't: the differential drives `buildProfile` and the pure output
+surfaces and never touches `optsFromPayload`, `saveProfile` or
+`populateRisingFields`. A male-only transformation in any of those would have
+passed every check I had. The only mention of `ui/profile.js` anywhere in that
+differential is inside a string fixture — I had read my own coverage claim off
+a grep hit. All 41 occurrences across all six files are now pinned.
+
+**And it pinned text, not place.** Delete the legitimate submit-seam line,
+paste the identical text into a render-path helper, and the raw inventory is
+byte-identical while the field starts driving the card. Six lines before, six
+after, same strings. The collection line is now pinned to the raw
+submit-handler region and asserted unique in the file, with the relocation as a
+counter-case that first proves the inventory does not move.
+
+**The evidence for my own headline bypass could not run.** The spread repro I
+cited three times — in a commit message, an addendum and a doctrine amendment —
+used `exec(cell.name)`, and **no card name in the 144-cell deck contains a
+slash**. Spreading `null` throws before the gender branch is ever reached. The
+bypass class is real and the guard change was right; the demonstration I kept
+publishing was not executable. I have now run it, with a guaranteed match, and
+confirmed the output changes.
+
+Three smaller ones: the recursion was pinned by nothing because `core/` and
+`ui/` are flat (now exercised against `tests/`); a comment still claimed a word
+boundary excludes `getGenderInput` when the boundary was removed precisely so
+it does not; and the module-wide lexical guard was still labelled PRIMARY after
+the claim had moved.
+
+**And the Unicode form, wrong for the third time.** Addendum 6 wrote it without
+its backslash. Addendum 7's erratum "corrected" it by printing the same string
+twice, because the escape never survived into the file's bytes. This time I
+checked the bytes with `grep` and a binary read before committing rather than
+trusting what I thought I had typed.
+
+**The pattern is narrowing but has not stopped.** It is no longer "the fix is
+wrong" — the direction has been right each round. It is that I describe a
+guarantee in the shape I intended and then build something narrower, and only
+an outside read catches the gap. Writing the claim first and the code second
+is not the discipline; **checking the built thing against the written claim,
+before publishing either, is.**
+
+Suite **56 files / 2005 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1474/1500**
+· DOCTRINE at **v0.75**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — The claim was the problem, not the lexer — STAGED
 
 **One repro settled three rounds of argument.** At the real `renderCard`

@@ -1,8 +1,15 @@
 // 8ball / tests / helpers / js-lex.js
 //
 // A single-pass lexical classifier for JavaScript source: every character is
-// CODE, COMMENT or STRING, with a template literal's `${...}` interpolations
-// classified as CODE because they execute.
+// CODE, COMMENT, STRING or REGEX, with a template literal's `${...}`
+// interpolations classified as CODE because they execute, and regex literals
+// given their own kind so their characters can never be counted as structure.
+//
+// SECONDARY, NOT PRIMARY. The absolute "no spelled read exists" invariant is
+// carried by the raw allowlist in tests/profile.test.js, which parses nothing.
+// A hand lexer cannot carry that claim: a regex may legally begin in more ES
+// positions than any heuristic enumerates, and four audit rounds each found a
+// new one. This file's job is to say WHERE a read is, not to promise none.
 //
 // WHY THIS EXISTS. The gender render-path guard in tests/profile.test.js used
 // regexes, and a re-audit broke it twice over — both times because the ORDER
