@@ -5,6 +5,56 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — I rebuilt the guard on the tool I'd already condemned — STAGED
+
+**The finding I should have anticipated.** Two amendments ago I wrote that a
+hand lexer cannot carry an absolute claim, moved the identifier invariant onto
+a raw scan, and demoted the lexer to a diagnostic. Then, one round later, I
+built the *place* invariant on the brace-matched submit callback — **which is
+that same lexer**. A lane defeated it exactly as the recorded blind spot
+predicted: hide the callback's close behind a spread-regex, put a called helper
+outside the real callback, and every guard reports clean.
+
+My own reconstruction differed in bytes — the inventory moved and `functionBody`
+threw `unbalanced` instead of returning a wrong span. That difference does not
+save it: **a place guard that throws on hostile input is not a guard either**,
+and the class was one I had already named in this document. Place is now an
+exact contiguous block of raw source — the `opts` object, the comment, the
+line, the following branch — byte-for-byte, once. It parses nothing.
+
+**And place was never reachability.** `if (false)` around the line, inside the
+real callback, keeps raw inventory identical, uniqueness at 1, the occurrence
+CODE, and the old submit-body count at 1 — while gender never forwards and
+never persists. Every guard green, the field silently dead. I had been
+asserting *where the text is* and calling it *what the code does*.
+
+**Two of my fixtures asserted less than their names.** The invocation check was
+satisfied by the inserted declaration alone, so it would have passed even if
+the call site stopped applying. The template fixture's one-line wrapper changed
+the trimmed line, so the raw allowlist already caught it — the fixture proved
+nothing about the check it was written for. Both now assert their premises
+first.
+
+**And the escape citation was wrong for the third time.** v0.75 said v0.72–v0.74
+dropped it; v0.76 narrowed that to v0.72, v0.74 and the addenda. Both wrong:
+v0.72 and v0.74 render **no example at all**, v0.73 renders it **correctly**,
+and only addenda 6 and 7 printed the malformed form. I have now read the actual
+lines rather than reasoning about what I remembered writing.
+
+**What has actually changed in me this cycle, and what hasn't.** The fixes keep
+landing and the gates keep passing. What keeps failing is the layer above the
+fix: the sentence describing it, the fixture demonstrating it, the citation
+supporting it. This round adds a sharper version — **I re-used a component I had
+myself just documented as unfit, because the documentation lived in a different
+file from the code I was writing.** Recording a limitation is not the same as
+remembering it at the moment it binds.
+
+Suite **56 files / 2008 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1477/1500**
+· DOCTRINE at **v0.77**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — I guarded the gap after the handler, not the handler — STAGED
 
 **Four findings, all confirmed, one rated P1 by a lane.** Last round I added a

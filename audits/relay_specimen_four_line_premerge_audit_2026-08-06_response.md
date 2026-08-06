@@ -1078,3 +1078,95 @@ corrected.
   byte-identical to `c0824b0`; nothing removed but two demoted labels.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 10 — audit of `657d4de`: the place guard was still the lexer
+
+**Verdict received:** MERGE WITH FIXES. The runtime alias rename is good; all
+gates pass; the new evidence still false-greens.
+**After verification: all findings CONFIRMED and absorbed.**
+
+## P1 — I rebuilt the place invariant on the lexer, again
+
+v0.76 replaced a sliced region with the submit callback's **brace-matched**
+body. That is the hand lexer — the component §5 v0.74 already recorded as
+unable to carry an absolute claim. A lane defeated it by hiding the callback's
+close behind a spread-regex and placing a **called** helper outside the real
+callback: parses, inventory unchanged, uniqueness 1, submit-body count 1,
+occurrence CODE, `renderCard` tokens empty, helper invoked.
+
+My own reconstruction of the mutation differed in bytes — the inventory moved
+and `functionBody` threw `unbalanced` rather than returning a wrong span — but
+that difference is immaterial: **a place guard that throws on a hostile input
+is not a guard either**, and the class is one this document had already named.
+
+**FIXED lexer-free.** Place is now an exact contiguous block of RAW source —
+the `opts` object the line populates, its comment, the line, and the branch
+that follows — required byte-for-byte exactly once. It parses nothing, so no
+lexical confusion can move it. The lexer survives only as a labelled diagnostic
+asserting the occurrence is CODE, carrying no absolute claim.
+
+## P1 reachability — place was never reachability, and nothing tested it
+
+Wrapping the line in `if (false)` **inside the real callback**:
+
+| check | result |
+|---|---|
+| raw inventory identical | **true** |
+| whole-file uniqueness | **1** |
+| v0.76 submit-body count | **1** |
+| occurrence kind | **CODE** |
+| gender forwards / persists | **never** |
+
+Every guard green, the field silently dead. The block pin breaks on the
+interposed line, and the case ships as its own counter-case.
+
+## P2 — two fixtures asserted less than their names claimed
+
+- **The invocation check was tautological.** `toContain('displayName(cell, opts)')`
+  is satisfied by the inserted **declaration** `function displayName(cell, opts) {`,
+  so it would have passed even if the call-site replacement silently stopped
+  applying. Now: the exact call line, counted, with its absence at baseline
+  asserted first.
+- **The template fixture had a false premise.** Its one-line wrapper changes the
+  trimmed line, so the raw allowlist already caught it and the fixture proved
+  nothing about the CODE check. Now a **multiline** template leaves the line's
+  own text intact — inventory identical, uniqueness 1 — so the block pin is the
+  sole catch, and the premise is asserted rather than assumed.
+
+## P2-truth — the escape citation, wrong at the third telling
+
+v0.75 said v0.72–v0.74 dropped the escape. v0.76 narrowed it to v0.72, v0.74
+and the addenda. **Both are wrong.** Verified line by line:
+
+| site | renders |
+|---|---|
+| v0.72 (`DOCTRINE.md:456`) | **no example at all** — names the class generically |
+| v0.73 (`:471`) | `profile.gender` — **correct** |
+| v0.74 (`:482`) | `profile.gender` — but this is its **separate spread/regex repro**, a different bypass |
+| v0.74 (`:493`) | **no example at all** |
+| Addenda 6, 7 | the malformed Unicode form |
+
+So only the two addenda ever printed it wrong. Corrected in v0.77; v0.75 and
+v0.76 stand unedited.
+
+## P3-truth — two characterisations
+
+v0.76's footer says the superseded uncalled fixture "demonstrated nothing". It
+demonstrated a real if weaker fact — that the line had left the region — just
+not the output change its name implied. And a comment still referenced the
+pre-rename `opts.gender = g`. Both corrected.
+
+## Verification
+
+- Each counterexample re-run against the repaired suite: the block pin catches
+  relocation (called and uncalled), the unreachable `if (false)` wrapping, and
+  the multiline template copy.
+- vitest **56 files / 2008 tests green** (2006 → 2008)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1477/1500**
+- L17 verified before commit: the §5 v0.76 clause and its footer body are
+  byte-identical to `657d4de`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

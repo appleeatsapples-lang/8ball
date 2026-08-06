@@ -711,8 +711,8 @@ describe('buildProfile — the optional gender field', () => {
 // `renderCard`'s body, LEXED out of index.html's inline module — braces are
 // counted only where they are code, so a `}` inside a comment or a string
 // cannot truncate the extraction. Scoped to renderCard alone: the submit
-// handler legitimately names the field (`opts.gender = g`) and is not the
-// render path.
+// handler legitimately names the field (`opts.gender = genderInput`) and is
+// not the render path.
 //
 // Two earlier regex versions of this pair were defeated; the reasons are
 // written out in tests/helpers/js-lex.js and pinned by the counter-cases at
@@ -1038,95 +1038,115 @@ describe('the optional gender field — no downstream surface reads it', () => {
     }
   });
 
-  // The allowlist pins line TEXT. These pin its PLACE and its KIND — both
-  // were separately defeated:
+  // The allowlist pins line TEXT. This pins its PLACE — and it is deliberately
+  // LEXER-FREE, because every previous attempt at a place invariant was built
+  // on the hand lexer whose incompleteness this file already records. A lane
+  // defeated the brace-matched version by hiding the callback's close behind a
+  // spread-regex, and no patch to the lexer retires that class.
   //
-  //   * A region sliced from the submit listener's opening to the NEXT
-  //     listener's opening includes everything after the callback CLOSES. A
-  //     helper defined in that gap, and called from renderCard, passed the
-  //     raw inventory, the whole-file uniqueness check and the region count
-  //     while driving the card by gender. The region is now the submit
-  //     callback's own brace-matched body.
-  //   * The check was a raw substring, so the exact bytes inside a template
-  //     literal satisfied it while the executable call disappeared. The
-  //     occurrence must now be classified CODE.
-  const SUBMIT_SIG = "profileForm.addEventListener('submit', e => {";
+  // So place is pinned as an exact contiguous block of RAW source. It parses
+  // nothing. The collection line must sit between the `opts` object it
+  // populates and the branch that follows it, byte for byte, exactly once.
+  // Anything that moves the line, wraps it, or interposes code breaks the
+  // block — including the four counter-cases below.
   const COLLECTION_LINE =
     'const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;';
+  const COLLECTION_BLOCK = [
+    '  const opts = { time };',
+    '  // Named `genderInput`, not `g`: a generic alias carries the value onward',
+    '  // under a name no scan can recognise, so a later use of it would drive the',
+    "  // card while every gender guard stayed green. The name is the guard's hook.",
+    `  ${COLLECTION_LINE}`,
+    '  if (selectedCity) {',
+  ].join('\n');
 
-  const submitBodyOf = html => functionBody(html, SUBMIT_SIG).body;
+  const readHtml = () => readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+  const blockCount = html => html.split(COLLECTION_BLOCK).length - 1;
+  const inventory = html => html.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
 
-  it('the collection line lives inside the submit CALLBACK, exactly once, as CODE', () => {
-    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-
-    // Inside the callback's own body — brace-matched, not sliced to the next
-    // listener, so the gap after `});` is not mistaken for the handler.
-    expect(submitBodyOf(html).split(COLLECTION_LINE).length - 1,
-      'the collection line is not inside the submit callback exactly once').toBe(1);
-
-    // And nowhere else in the file.
+  it('the collection line sits in its exact raw block, once — no lexer involved', () => {
+    const html = readHtml();
+    expect(blockCount(html),
+      'the collection line is no longer in its exact executable neighbourhood. '
+      + 'If the surrounding code changed legitimately, update COLLECTION_BLOCK '
+      + 'verbatim — deliberately.').toBe(1);
     expect(html.split(COLLECTION_LINE).length - 1,
-      'the collection line appears outside the submit callback').toBe(1);
-
-    // And it is CODE — not a string, comment or regex wearing the same bytes.
-    const kind = classify(html);
-    expect(kind[html.indexOf(COLLECTION_LINE)],
-      'the collection occurrence is not executable code').toBe(CODE);
+      'the collection line appears more than once in the file').toBe(1);
   });
 
-  it('a relocation out of the submit callback is caught, called or not', () => {
-    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+  // SECONDARY, and labelled as such: it uses the lexer, so it carries no
+  // absolute claim. It adds one thing the raw block cannot say — that the
+  // occurrence is executable rather than text wearing the same bytes.
+  it('diagnostic: the collection occurrence classifies as CODE', () => {
+    const html = readHtml();
+    expect(classify(html)[html.indexOf(COLLECTION_LINE)]).toBe(CODE);
+  });
+
+  it('relocation out of the block is caught, called or not', () => {
+    const html = readHtml();
     const TRY_ANOTHER = "tryAnotherBtn.addEventListener('click', () => {";
     expect(html.indexOf(TRY_ANOTHER), 'try-another anchor moved').toBeGreaterThan(-1);
 
-    const relocate = helperBody => {
+    const relocate = body => {
       const stripped = html.replace(`  ${COLLECTION_LINE}\n`, '');
-      const helper = `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n${helperBody}}\n`;
+      const helper = `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n${body}}\n`;
       const at = stripped.indexOf(TRY_ANOTHER);
       return (stripped.slice(0, at) + helper + stripped.slice(at))
         .replace('cardName.textContent = cell.name;',
           'cardName.textContent = displayName(cell, opts);');
     };
-    const inv = src => src.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
 
-    // (1) The bare move — the line placed after `});`, in the gap the old
-    //     naive region wrongly counted as "the handler". Raw inventory is
-    //     UNCHANGED, so only the callback-body pin can see it. This is the
-    //     case that pin exists for.
-    const movedOnly = relocate('  return cell.name;\n');
-    expect(inv(movedOnly), 'premise broken: the bare move changed the inventory')
-      .toEqual(inv(html));
-    expect(movedOnly.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
-    expect(submitBodyOf(movedOnly).split(COLLECTION_LINE).length - 1,
-      'the collection line left the submit callback undetected').toBe(0);
+    // (1) Bare move: raw inventory UNCHANGED, so only the block pin sees it.
+    const moved = relocate('  return cell.name;\n');
+    expect(inventory(moved), 'premise broken: the bare move changed the inventory')
+      .toEqual(inventory(html));
+    expect(moved.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
+    expect(blockCount(moved), 'the line left its block undetected').toBe(0);
 
-    // (2) The harmful version — the helper USES the value and is CALLED, so
-    //     the card changes. Caught twice over: the callback pin still fires,
-    //     and the rename means the use itself spells the identifier, so the
-    //     raw inventory moves too. That second catch is why the alias is
-    //     named `genderInput` and not `g`.
+    // (2) Weaponised: the helper USES the value and is CALLED, so the card
+    //     changes. The invocation is asserted by its exact CALL SITE — the
+    //     previous version used toContain('displayName(cell, opts)'), which
+    //     the inserted DECLARATION satisfies all by itself.
+    const CALL = 'cardName.textContent = displayName(cell, opts);';
+    expect(html.includes(CALL), 'premise broken: the call already exists at baseline').toBe(false);
     const weaponised = relocate('  return genderInput ? "f-" + cell.name : cell.name;\n');
-    expect(weaponised, 'the relocated helper is never called')
-      .toContain('displayName(cell, opts)');
-    expect(submitBodyOf(weaponised).split(COLLECTION_LINE).length - 1).toBe(0);
-    expect(inv(weaponised).length,
+    expect(weaponised.split(CALL).length - 1, 'the relocated helper is never called').toBe(1);
+    expect(blockCount(weaponised), 'the line left its block undetected').toBe(0);
+    expect(inventory(weaponised).length,
       'a generic alias would have hidden this use from the raw scan')
-      .toBeGreaterThan(inv(html).length);
+      .toBeGreaterThan(inventory(html).length);
   });
 
-  it('the exact bytes inside a template literal do not satisfy the pin', () => {
-    // Raw inventory, uniqueness and region count all still pass; the
-    // executable call is gone. Only the CODE classification sees it.
-    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-    const neutered = html.replace(`  ${COLLECTION_LINE}`, `  const doc = \`${COLLECTION_LINE}\`;`);
-    expect(neutered, 'the mutation did not apply').not.toBe(html);
-    expect(neutered.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
-    expect(submitBodyOf(neutered).split(COLLECTION_LINE).length - 1,
-      'premise broken: the substring left the callback').toBe(1);
+  it('an UNREACHABLE collection line inside the handler is caught', () => {
+    // Place is not reachability. Wrapping the line in `if (false)` leaves the
+    // raw inventory identical, uniqueness at 1, the occurrence CODE, and — on
+    // the superseded brace-matched pin — the submit-body count at 1, while
+    // gender never forwards or persists at all. The block pin sees it because
+    // the interposed line breaks the neighbourhood.
+    const html = readHtml();
+    const dead = html.replace(`  ${COLLECTION_LINE}`, `  if (false) {\n  ${COLLECTION_LINE}\n  }`);
+    expect(dead, 'the mutation did not apply').not.toBe(html);
+    expect(inventory(dead), 'premise broken: the inventory changed').toEqual(inventory(html));
+    expect(dead.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
+    expect(classify(dead)[dead.indexOf(COLLECTION_LINE)],
+      'premise broken: the occurrence is no longer CODE').toBe(CODE);
+    expect(blockCount(dead), 'an unreachable collection line went undetected').toBe(0);
+  });
 
-    const kind = classify(neutered);
-    expect(kind[neutered.indexOf(COLLECTION_LINE)],
-      'a string literal wearing the collection bytes passed as code').not.toBe(CODE);
+  it('the exact bytes inside a MULTILINE template do not satisfy the block', () => {
+    // A one-line wrapper changes the trimmed line, so the raw allowlist already
+    // catches it and the fixture proved nothing — the earlier version of this
+    // test had exactly that false premise. A multiline template leaves the
+    // line's own trimmed text intact, so the inventory really is unchanged.
+    const html = readHtml();
+    const neutered = html.replace(`  ${COLLECTION_LINE}`, `  const doc = \`\n${COLLECTION_LINE}\n\`;`);
+    expect(neutered, 'the mutation did not apply').not.toBe(html);
+    expect(inventory(neutered), 'premise broken: the inventory changed')
+      .toEqual(inventory(html));
+    expect(neutered.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
+    expect(blockCount(neutered), 'a template-literal copy satisfied the block pin').toBe(0);
+    expect(classify(neutered)[neutered.indexOf(COLLECTION_LINE)],
+      'the diagnostic should also see this is no longer code').not.toBe(CODE);
   });
 
   it('the raw allowlist catches what every lexical guard missed', () => {
