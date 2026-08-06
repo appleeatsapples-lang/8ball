@@ -1068,6 +1068,7 @@ import {
   handlePaidReturn, showPaidBanner, PROFILE_SAVE_STORAGE_MESSAGE, clearPendingProfile,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
+import { recordMeasurement } from './core/measurement.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
@@ -1223,7 +1224,10 @@ initShareUI(
     catalog: cardCatalog,
     symbols: [shareTarot, shareAstro, shareNumerology, shareAnimals],
   },
-  {}
+  // §5 v0.70: the host owns both halves the record needs — the contract and
+  // the tier lookup — so ui/share.js keeps its §5.D posture of importing
+  // nothing and knowing no tier constant. Nullary callback, no ref added.
+  { onShareCompleted: () => recordMeasurement('share_completed', getRenderTier()) }
 );
 
 // v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
@@ -1313,6 +1317,9 @@ function renderCard(profile, opts) {
   }
   // Ownership model (§1.D / §4.B v0.55): no reads counter exists — renders
   // are unlimited at every tier; the density strip above is the only meter.
+  // `reading_completed` (§5 v0.70) is recorded here, at the end of a render
+  // that got this far, and carries the render tier and nothing else.
+  recordMeasurement('reading_completed', tier);
 }
 
 // ── result arrival + shake controller ─────────────────────────────

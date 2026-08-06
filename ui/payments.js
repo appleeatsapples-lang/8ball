@@ -36,6 +36,10 @@ import {
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
 import { openModal, closeModal, trapTab } from './modals.js';
+// Measurement contract (§5 v0.70). No collector — recordMeasurement is a
+// no-op returning its record until a sink is installed, and only tests
+// install one.
+import { recordMeasurement } from '../core/measurement.js';
 // Public deck bundle for the fixed paywall specimen cell (§4.B v0.56) —
 // same import edge ui/sheet.js already carries.
 import { CARDS } from '../content/cards.v1.full.js';
@@ -263,6 +267,18 @@ export function initPaywallUI({ modal, closeBtn, banner, specimen }) {
   paywallClose = closeBtn;
   paidBanner = banner;
   paywallClose.addEventListener('click', closePaywall);
+  // `paid_t3_cta_clicked` (§5 v0.70). Resolved from inside the modal rather
+  // than taken as a ref, so index.html gains no line and the CTA stays the
+  // plain bare-href Buy Link §5.B Call 2 requires — this listener adds no
+  // query parameter, no redirect indirection, and nothing that could fail
+  // the navigation. The tier recorded is the tier of a device that is
+  // TAPPING the offer, which is the number the event exists to produce.
+  const cta = paywallModal.querySelector && paywallModal.querySelector('#paywall-cta-t3');
+  if (cta && cta.addEventListener) {
+    cta.addEventListener('click', () => {
+      recordMeasurement('paid_t3_cta_clicked', getRenderTier());
+    });
+  }
   paywallModal.addEventListener('click', e => {
     if (e.target === paywallModal) closePaywall();
   });

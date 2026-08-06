@@ -49,6 +49,8 @@
 // same one-way wiring ui/public.js uses. This module never asks storage.
 
 import { buildDyadReading } from '../core/dyad.js';
+// Measurement contract (§5 v0.70) — no collector, no-op until a sink exists.
+import { recordMeasurement } from '../core/measurement.js';
 import { coordsForTier } from './tiers.js';
 import { buildSheetMarkup, createSheet } from './sheet.js';
 import { initCitySearchUI } from './citysearch.js';
@@ -375,6 +377,9 @@ function injectEntryButton(controls) {
   btn.hidden = true; // fail closed until a render says otherwise
   btn.addEventListener('click', () => {
     if (!dyadEntitled(currentTier())) return;
+    // `comparative_opened` (§5 v0.70) — recorded AFTER the entitlement gate,
+    // so it counts screens that actually opened, not taps that were refused.
+    recordMeasurement('comparative_opened', currentTier());
     if (typeof _hooks.onOpen === 'function') _hooks.onOpen();
     open();
   });
