@@ -995,3 +995,86 @@ change, then shows the region pin catching it.
 - Addenda 6 and 7 preserved; every change here is additive.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 9 — audit of `c0824b0`: the location pin guarded the wrong region
+
+**Verdict received:** MERGE WITH FIXES (the location flaw rated P1 by one of
+three lanes). **After verification: all four CONFIRMED and absorbed.**
+
+## P1 — the region was sliced, not brace-matched
+
+v0.75 pinned the collection line to "the raw submit-handler region",
+implemented as the span from the submit listener's opening to the **next
+listener's opening**. That span includes everything after the submit callback
+`});` closes. Reproduced exactly:
+
+| check | result |
+|---|---|
+| raw inventory identical | **true** |
+| whole-file line count | **1** |
+| claimed "submit region" count | **1** |
+| helper actually called | **true** |
+
+A helper defined in that gap, called from `renderCard`, drove the card by
+gender while every guard reported clean.
+
+**Two further faults in the same area, both confirmed:**
+
+- **The shipped relocation fixture was inert.** It inserted `displayName` and
+  never called it, so it never demonstrated the card changing — it asserted a
+  weaker thing than its name claimed, which is the defect this cycle keeps
+  producing.
+- **The alias was nameless to every guard.** `const g = getGenderInput()`
+  carries the value onward under a name no gender scan recognises; a later use
+  of `g` would drive the card with no token anywhere.
+
+**FIXED:** the region is the submit callback's own brace-matched body via
+`functionBody`; the counter-case now **invokes** the helper; and the host alias
+is renamed `genderInput` so any onward use spells the identifier and trips the
+raw scan. The counter-case is split so both facts are asserted honestly — the
+bare move (inventory unchanged, caught only by the callback pin) and the
+weaponised move (caught twice, because the rename makes the use itself
+visible).
+
+**One product-code change**, and it is the rename: a local identifier inside
+the submit handler, no behaviour change, verified in-browser — gender still
+persists, render clean, no console errors.
+
+## P2 — the pin could not tell code from text
+
+Wrapping the exact bytes in a template literal inside the callback satisfied
+inventory, uniqueness and region count while executable `getGenderInput()`
+calls fell **1 → 0**. **FIXED:** the occurrence must classify as **CODE**
+(not STRING, COMMENT or REGEX), with the neutering as its counter-case.
+
+## P2-truth — v0.75 libelled v0.73
+
+v0.75 says §5 "v0.72–v0.74 and two audit addenda referred to this bypass as
+`profile.gender` — without the escape". **v0.73 already carries the escaped
+form in its own body.** The true statement is that v0.72, v0.74 and the two
+addenda dropped it while v0.73 did not. Corrected additively in v0.76; v0.75
+stands unedited.
+
+This is the **fourth consecutive amendment whose defect was a claim about the
+evidence rather than the fix itself** — the fixture that could not execute, the
+escape that did not survive into the bytes, the coverage read off a grep hit,
+and now a citation that misreads this document's own history.
+
+## P3-truth — two stale test-corpus descriptions
+
+One still said the three owner files were excluded and runtime-covered, which
+v0.75 had already changed. One still described the identifier scan as
+property-only and blind to destructuring, fixed several rounds earlier. Both
+corrected.
+
+## Verification
+
+- vitest **56 files / 2006 tests green** (2005 → 2006)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 862 files** · `index.html` **1477/1500**
+- L17 re-checked before commit: the §5 v0.75 clause and its footer body are
+  byte-identical to `c0824b0`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

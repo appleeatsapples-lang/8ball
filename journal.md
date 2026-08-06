@@ -5,6 +5,52 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — I guarded the gap after the handler, not the handler — STAGED
+
+**Four findings, all confirmed, one rated P1 by a lane.** Last round I added a
+pin to stop the collection line being moved out of the submit handler. I
+implemented "the handler" as the text from the submit listener's opening to the
+**next listener's opening** — a span that includes everything after the callback
+closes. A helper defined in that gap and called from `renderCard` drove the card
+by gender while raw inventory, whole-file uniqueness and my region count all
+reported clean. The region is now the callback's own brace-matched body, which
+is what I should have written the first time given `functionBody` was already
+in the file doing exactly that for `renderCard`.
+
+**The fixture for that pin was inert.** It inserted a `displayName` helper and
+never called it — so it demonstrated a strictly weaker thing than its name
+claimed. Now split: the bare move (inventory unchanged, caught only by the
+callback pin) and the weaponised move (helper actually invoked).
+
+**And the alias was invisible.** `const g = getGenderInput()` carries the value
+onward under a name no gender scan recognises; a later use of `g` would drive
+the card with no token anywhere. Renamed to `genderInput` — the single
+product-code change, a local rename, verified in-browser: gender still
+persists, render clean, no console errors. It pays off immediately, because the
+weaponised counter-case is now caught twice over.
+
+**The pin also could not tell code from text.** The exact bytes inside a
+template literal satisfied inventory, uniqueness and region count while
+executable `getGenderInput()` calls fell 1 → 0. The occurrence must now
+classify as CODE.
+
+**And v0.75 libelled v0.73.** It claimed v0.72–v0.74 all wrote the Unicode form
+without its escape; **v0.73 carries it**. I asserted something about this
+document's own history without reading it.
+
+**That last one completes a run of four.** Every recent amendment's defect has
+been a claim *about the evidence* rather than the fix: a fixture that could not
+execute, an escape that never reached the bytes, a coverage claim read off a
+grep hit, and now a citation that misreads the record it cites. The fixes have
+been right each time. **What I keep getting wrong is the sentence describing
+them** — and a sentence is what everyone downstream actually reads.
+
+Suite **56 files / 2006 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 862 files** · `index.html` **1477/1500**
+· DOCTRINE at **v0.76**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — The replacement guard had the same shape of hole — STAGED
 
 **Two P2s and four truth fixes, all real.** Last round I moved the absolute

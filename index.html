@@ -1358,7 +1358,10 @@ profileForm.addEventListener('submit', e => {
   // is null and rising sign isn't computed — bare sun line falls
   // through naturally per profile.js's gates.
   const opts = { time };
-  const g = getGenderInput(); if (g) opts.gender = g;
+  // Named `genderInput`, not `g`: a generic alias carries the value onward
+  // under a name no scan can recognise, so a later use of it would drive the
+  // card while every gender guard stayed green. The name is the guard's hook.
+  const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;
   if (selectedCity) {
     opts.city = selectedCity.name;
     opts.cc = selectedCity.countryCode;

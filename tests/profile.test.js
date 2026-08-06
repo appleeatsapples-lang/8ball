@@ -55,7 +55,7 @@ import { entryFor, harmonyFor } from '../ui/meanings.js';
 import { compactReadingProfile } from '../ui/readings.js';
 // Lexical classifier for the inline-render guard — see the header of
 // tests/helpers/js-lex.js for the two regex failures that made it necessary.
-import { COMMENT, classify, functionBody, genderTokens, startsRegex } from './helpers/js-lex.js';
+import { CODE, COMMENT, classify, functionBody, genderTokens, startsRegex } from './helpers/js-lex.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -781,9 +781,13 @@ function genderMentionsInSource(src) {
 // bug. If it is legitimate copy or a comment, add it verbatim to this list —
 // deliberately, as a reviewed act. Never relax the matcher.
 //
-// The three input-path files (core/profile.js, ui/profile.js, ui/readings.js)
-// are excluded: they OWN the field, and what they must not do is covered by
-// the runtime differential above, not by counting mentions.
+// NO file is excluded, including the three that own the field. An earlier
+// version exempted core/profile.js, ui/profile.js and ui/readings.js on the
+// ground that the runtime differential covered them — it does not: that
+// differential drives buildProfile and the pure output surfaces and never
+// touches optsFromPayload, profileFromPayload, saveProfile or
+// populateRisingFields, so a male-only transformation in any of those would
+// have passed everything. All 43 occurrences across all six files are pinned.
 const RAW_GENDER_ALLOW = {
   "index.html": [
     "<p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>",
@@ -791,7 +795,9 @@ const RAW_GENDER_ALLOW = {
     "<p class=\"modal-disclosure\" id=\"paywall-disclosure\">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>",
     "import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput } from './ui/profile.js';",
     "// `form` + `anchor` let the module build the optional gender control it",
-    "const g = getGenderInput(); if (g) opts.gender = g;"
+    "// Named `genderInput`, not `g`: a generic alias carries the value onward",
+    "// card while every gender guard stayed green. The name is the guard's hook.",
+    "const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;"
   ],
   "core/measurement.js": [
     "// exactly two keys cannot carry a name, a DOB, a gender, a city, a coordinate"
@@ -995,17 +1001,15 @@ describe('the optional gender field — no downstream surface reads it', () => {
 
   // ── the render path, guarded by IDENTIFIER not by property syntax ──
   //
-  // The scan above matches `.gender` and `['gender']`. A destructured read
-  // matches neither:
+  // The scan above matches the IDENTIFIER in any form — property, computed
+  // with any quote style, destructured, aliased, template-interpolated, or
+  // through the accessor. (It once matched only `.gender` and `['gender']`,
+  // so `const { gender } = profile` slipped past; that is long fixed, and the
+  // description here outlived the fix by several rounds.)
   //
-  //     const { gender } = profile;
-  //     cardName.textContent = gender === 'female' ? 'f-' + cell.name : cell.name;
-  //
-  // That changes what the card displays, and it passed every test in this
-  // file — verified by counterexample, not assumed. `renderCard` lives in
-  // index.html's inline module and no harness executes it, so the runtime
-  // matrix above cannot reach it either. This closes the hole by rejecting
-  // the IDENTIFIER in any form inside renderCard's body.
+  // What follows is the same check narrowed to renderCard, which lives in
+  // index.html's inline module where no harness executes it — so the runtime
+  // matrix above cannot reach it and a static read is the only cover.
   // A SECONDARY DIAGNOSTIC — the raw allowlist above is the primary guard and
   // this label was left stale when the claim moved. Its value is module-WIDE
   // scope: a reader could sit in any helper of the inline module, not only in
@@ -1034,53 +1038,95 @@ describe('the optional gender field — no downstream surface reads it', () => {
     }
   });
 
-  // The allowlist pins line TEXT; this pins the collection line's PLACE.
-  // Without it, deleting the legitimate submit-seam line and putting the
-  // identical text inside a render-path helper leaves the raw inventory
-  // byte-identical while the field starts driving the card — reproduced, and
-  // pinned below as a counter-case.
-  const SUBMIT_REGION = ["profileForm.addEventListener('submit', e => {",
-    "tryAnotherBtn.addEventListener('click', () => {"];
-  const COLLECTION_LINE = 'const g = getGenderInput(); if (g) opts.gender = g;';
+  // The allowlist pins line TEXT. These pin its PLACE and its KIND — both
+  // were separately defeated:
+  //
+  //   * A region sliced from the submit listener's opening to the NEXT
+  //     listener's opening includes everything after the callback CLOSES. A
+  //     helper defined in that gap, and called from renderCard, passed the
+  //     raw inventory, the whole-file uniqueness check and the region count
+  //     while driving the card by gender. The region is now the submit
+  //     callback's own brace-matched body.
+  //   * The check was a raw substring, so the exact bytes inside a template
+  //     literal satisfied it while the executable call disappeared. The
+  //     occurrence must now be classified CODE.
+  const SUBMIT_SIG = "profileForm.addEventListener('submit', e => {";
+  const COLLECTION_LINE =
+    'const genderInput = getGenderInput(); if (genderInput) opts.gender = genderInput;';
 
-  function submitRegionOf(html) {
-    const a = html.indexOf(SUBMIT_REGION[0]);
-    const b = html.indexOf(SUBMIT_REGION[1]);
-    expect(a, 'submit handler anchor moved').toBeGreaterThan(-1);
-    expect(b, 'try-another anchor moved').toBeGreaterThan(a);
-    return html.slice(a, b);
-  }
+  const submitBodyOf = html => functionBody(html, SUBMIT_SIG).body;
 
-  it('the collection line lives INSIDE the submit handler, not merely in the file', () => {
+  it('the collection line lives inside the submit CALLBACK, exactly once, as CODE', () => {
     const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-    const region = submitRegionOf(html);
-    // Exactly once, inside the region…
-    expect(region.split(COLLECTION_LINE).length - 1,
-      'the collection line is not in the submit handler exactly once').toBe(1);
-    // …and nowhere else in the file.
+
+    // Inside the callback's own body — brace-matched, not sliced to the next
+    // listener, so the gap after `});` is not mistaken for the handler.
+    expect(submitBodyOf(html).split(COLLECTION_LINE).length - 1,
+      'the collection line is not inside the submit callback exactly once').toBe(1);
+
+    // And nowhere else in the file.
     expect(html.split(COLLECTION_LINE).length - 1,
-      'the collection line appears outside the submit handler').toBe(1);
+      'the collection line appears outside the submit callback').toBe(1);
+
+    // And it is CODE — not a string, comment or regex wearing the same bytes.
+    const kind = classify(html);
+    expect(kind[html.indexOf(COLLECTION_LINE)],
+      'the collection occurrence is not executable code').toBe(CODE);
   });
 
-  it('a relocation of the collection line into a render helper is caught', () => {
-    // The exact repro: same text, different place. The raw inventory does not
-    // move, so only the region pin can see this.
+  it('a relocation out of the submit callback is caught, called or not', () => {
     const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
-    const moved = html
-      .replace(`  ${COLLECTION_LINE}\n`, '')
-      .replace(RENDER_CARD_SIG,
-        `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n`
-        + `  return g ? "f-" + cell.name : cell.name;\n}\n${RENDER_CARD_SIG}`);
-    expect(moved, 'the relocation did not apply — anchors moved').not.toBe(html);
+    const TRY_ANOTHER = "tryAnotherBtn.addEventListener('click', () => {";
+    expect(html.indexOf(TRY_ANOTHER), 'try-another anchor moved').toBeGreaterThan(-1);
 
-    // The raw inventory really is unchanged — this is why the pin is needed.
+    const relocate = helperBody => {
+      const stripped = html.replace(`  ${COLLECTION_LINE}\n`, '');
+      const helper = `function displayName(cell, opts) {\n  ${COLLECTION_LINE}\n${helperBody}}\n`;
+      const at = stripped.indexOf(TRY_ANOTHER);
+      return (stripped.slice(0, at) + helper + stripped.slice(at))
+        .replace('cardName.textContent = cell.name;',
+          'cardName.textContent = displayName(cell, opts);');
+    };
     const inv = src => src.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
-    expect(inv(moved), 'premise broken: the raw inventory DID change')
-      .toEqual(inv(html));
 
-    // …and the region pin catches it.
-    expect(submitRegionOf(moved).split(COLLECTION_LINE).length - 1,
-      'the collection line was moved out of the submit handler undetected').toBe(0);
+    // (1) The bare move — the line placed after `});`, in the gap the old
+    //     naive region wrongly counted as "the handler". Raw inventory is
+    //     UNCHANGED, so only the callback-body pin can see it. This is the
+    //     case that pin exists for.
+    const movedOnly = relocate('  return cell.name;\n');
+    expect(inv(movedOnly), 'premise broken: the bare move changed the inventory')
+      .toEqual(inv(html));
+    expect(movedOnly.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
+    expect(submitBodyOf(movedOnly).split(COLLECTION_LINE).length - 1,
+      'the collection line left the submit callback undetected').toBe(0);
+
+    // (2) The harmful version — the helper USES the value and is CALLED, so
+    //     the card changes. Caught twice over: the callback pin still fires,
+    //     and the rename means the use itself spells the identifier, so the
+    //     raw inventory moves too. That second catch is why the alias is
+    //     named `genderInput` and not `g`.
+    const weaponised = relocate('  return genderInput ? "f-" + cell.name : cell.name;\n');
+    expect(weaponised, 'the relocated helper is never called')
+      .toContain('displayName(cell, opts)');
+    expect(submitBodyOf(weaponised).split(COLLECTION_LINE).length - 1).toBe(0);
+    expect(inv(weaponised).length,
+      'a generic alias would have hidden this use from the raw scan')
+      .toBeGreaterThan(inv(html).length);
+  });
+
+  it('the exact bytes inside a template literal do not satisfy the pin', () => {
+    // Raw inventory, uniqueness and region count all still pass; the
+    // executable call is gone. Only the CODE classification sees it.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const neutered = html.replace(`  ${COLLECTION_LINE}`, `  const doc = \`${COLLECTION_LINE}\`;`);
+    expect(neutered, 'the mutation did not apply').not.toBe(html);
+    expect(neutered.split(COLLECTION_LINE).length - 1, 'premise broken: uniqueness changed').toBe(1);
+    expect(submitBodyOf(neutered).split(COLLECTION_LINE).length - 1,
+      'premise broken: the substring left the callback').toBe(1);
+
+    const kind = classify(neutered);
+    expect(kind[neutered.indexOf(COLLECTION_LINE)],
+      'a string literal wearing the collection bytes passed as code').not.toBe(CODE);
   });
 
   it('the raw allowlist catches what every lexical guard missed', () => {
@@ -1125,7 +1171,7 @@ describe('the optional gender field — no downstream surface reads it', () => {
     expect(lines[0], 'the accessor must be imported exactly once')
       .toMatch(/^import \{[^}]*\bgetGenderInput\b[^}]*\} from '\.\/ui\/profile\.js';$/);
     expect(lines[1], 'the accessor must be CALLED exactly once, at the submit seam')
-      .toBe('const g = getGenderInput(); if (g) opts.gender = g;');
+      .toBe(COLLECTION_LINE);
   });
 
   it('renderCard itself names gender in NO form — property, computed, or destructured', () => {
