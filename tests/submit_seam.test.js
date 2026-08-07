@@ -29,6 +29,15 @@ const FALLBACK = '  const opts = buildSubmitOpts({ time: timeInput.value, city: 
 const inventory = h => h.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
 // The boot region three of the H-fixtures splice into — unpinned by any region.
 const BOOT_ANCHOR = 'readingsUI = initReadingsUI(';
+// The reviewed module specifiers of index.html — one source of truth, so the
+// H7 fixture asserts the same exact list the secondary check pins.
+const REVIEWED_SPECIFIERS = [
+  './content/cards.v1.full.js',
+  './core/engine.js', './core/measurement.js', './core/payments.js', './core/profile.js',
+  './ui/citysearch.js', './ui/concordance.js', './ui/dyad.js', './ui/labels.js',
+  './ui/meanings.js', './ui/modals.js', './ui/payments.js', './ui/profile.js',
+  './ui/public.js', './ui/readings.js', './ui/result.js', './ui/share.js', './ui/tiers.js',
+];
 
 // The handler is driven under BOTH environments the shipped bytes can meet.
 //
@@ -211,7 +220,7 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
   return seen;
 }
 
-// ── SOURCE PINS — the primary guard, and it enumerates nothing ──────
+// ── SOURCE PINS — the primary guard ────────────────────────────────
 //
 // WHAT THIS REPLACED, AND WHY. Eight rounds tried to guarantee "no bypass can
 // hide on the value path" by ANALYSING the source: byte pins over one line,
@@ -254,7 +263,13 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 // `index.html` IS NOW PINNED WHOLE TOO, and the reason is measured, not
 // argued. With only two REGIONS of it pinned — the handler body and the seam's
 // import specifier line, together 2,270 of 69,373 bytes, 3.3% of the file —
-// six bypasses ran with every pin byte-identical and the full suite green:
+// FIVE bypasses ran with every pin byte-identical and the full suite green,
+// and a sixth — H4 — was recorded as one and was not: as first written it
+// assigned to `profileForm`, which is a `const` at index.html:1085, so it threw
+// `TypeError: Assignment to constant variable.` and could never have run. It is
+// listed below in its CORRECTED, legal form, which decoys the initialiser and
+// was then measured like the rest. Five measured, plus one corrected and
+// measured — not six as originally claimed:
 //
 //   H1  `defineProperty` shim on the live control's `value`, so the UI still
 //       shows the user's choice and only the stored value is lost;
@@ -262,8 +277,10 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 //       `stopImmediatePropagation()` so the pinned handler never runs;
 //   H3  an inline `<script type="importmap">` remapping the pinned specifier,
 //       so `ui/profile.js` stays byte-identical on disk and is NEVER LOADED;
-//   H4  `profileForm` rebound to a detached element, so the pinned bytes run
-//       against a decoy and reach no user;
+//   H4  (CORRECTED) `profileForm`'s INITIALISER decoyed —
+//       `location.protocol === 'file:' ? $('profile-form') : document.createElement('form')`
+//       — so the pinned bytes run against a decoy and reach no user. Verified
+//       in isolation: real node under `file:`, decoy under `https:`, no throw;
 //   H5  a second `initProfileUI({…, genderSelect: {value: ''}})` from the
 //       unpinned boot region, repointing the module's control at a dead stub;
 //   H6  ONE of index.html's eighteen module specifiers swapped to a root shim
@@ -293,7 +310,8 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 // every specifier unchanged, and runs 57 files / 2047 tests GREEN. Import
 // reachability cannot see that — it is code inside an ALLOWED module. Closing
 // it needs a deterministic raw-byte manifest of every runtime file the page
-// reaches; that is named in the residual and is not built here.
+// reaches. That manifest IS built — see `runtimeManifest` above and the H7
+// fixture below; this paragraph records why it exists.
 //
 // Byte pins are half of the guard, because a hash can be edited. The
 // behavioural drives execute the handler body under both environments, and the
@@ -305,34 +323,74 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 // comments contain `§` and `β`. The hashes were already over UTF-8 and did not
 // move; the counts did.
 /**
+ * THE FRAMING, factored out so a counter-case can drive the production helper
+ * directly rather than a copy of it.
+ *
+ * Each entry contributes:
+ *
+ *     pathByteLength \n  pathBytes \n  sourceByteLength \n  sourceBytes \n
+ *
+ * LENGTH-PREFIXED ON BOTH HALVES, and the path length is why. The retired
+ * framing was `path \n length \n bytes \n`, which an audit proved NON-INJECTIVE:
+ * LF is a legal byte in a POSIX and Git path, so a filename can contain the
+ * very delimiters the reader depends on and shift the boundary. The verified
+ * collision, both sides two files / seven source bytes, both names ending
+ * `.js`, both sorting a→z:
+ *
+ *   A = [ 'core/a.js\n7\nq.js' → ''        , 'core/z.js'          → 'q.js\n0\n' ]
+ *   B = [ 'core/a.js'          → 'q.js\n0\n', 'core/z.js\n7\nq.js' → ''         ]
+ *
+ * Both produced the identical 40-byte stream and SHA-256
+ * `d54cffd56e0220483388e6930055d88ede0d25adcf36eeed8abbcf19f8186376`, so the
+ * old claim that "no rename, reorder, split or merge can forge the digest" was
+ * false. Declaring the PATH's byte length before the path removes the reader's
+ * dependence on any delimiter: it consumes exactly that many bytes, whatever
+ * they are. No path is forbidden, no character is banned — a deny-list is the
+ * shape that keeps failing here, and this needs none.
+ */
+function frameManifest(entries) {
+  const frames = [];
+  let sourceBytes = 0;
+  for (const [rel, bytes] of entries) {
+    const pathBytes = Buffer.from(rel, 'utf8');
+    sourceBytes += bytes.length;
+    frames.push(
+      Buffer.from(`${pathBytes.length}\n`, 'utf8'), pathBytes, Buffer.from('\n', 'utf8'),
+      Buffer.from(`${bytes.length}\n`, 'utf8'), bytes, Buffer.from('\n', 'utf8'),
+    );
+  }
+  return {
+    files: entries.length,
+    sourceBytes,
+    sha256: createHash('sha256').update(Buffer.concat(frames)).digest('hex'),
+  };
+}
+
+/**
  * A DETERMINISTIC RAW-BYTE MANIFEST over the complete bounded runtime-source
  * surface: every `.js`/`.mjs` under `core/`, `ui/` and `content/`, by sorted
- * relative path, with each file's raw bytes framed unambiguously.
+ * relative path, framed by `frameManifest` above.
  *
  * WHY IT EXISTS. Two whole-FILE pins closed `index.html` and `ui/profile.js`,
- * and the next bypass simply moved next door. Verified: a `location.protocol`
- * branch inserted into `core/profile.js`'s `buildProfile` left both file pins
+ * and the next bypass moved next door. Verified: a `location.protocol` branch
+ * inserted into `core/profile.js`'s `buildProfile` left both file pins
  * byte-identical, added no root file, changed no specifier and no script tag,
  * satisfied every reachability assertion here — and ran 57 files / 2047 tests
  * GREEN. Reachability says which files the page reaches; it never says what is
  * inside an allowed one.
  *
  * NO PARSER AND NO INFERRED GRAPH. This does not follow imports and does not
- * decide what is reachable. It enumerates a fixed, bounded directory surface by
- * extension and hashes it. Deciding reachability is the thing that failed; this
- * decides nothing.
- *
- * THE FRAMING IS THE POINT. Each entry contributes `path\n` + `byteLength\n` +
- * the raw bytes + `\n`. Declaring the path and the length BEFORE the bytes makes
- * the stream unambiguous: no rename, reorder, split, merge, or byte moved from
- * one file to another can produce the same digest. A bare concatenation could.
+ * decide what is reachable. It ENUMERATES a fixed, bounded directory surface by
+ * extension and hashes it — enumeration of a declared surface, which is a
+ * different thing from enumerating what a page might expose. Deciding
+ * reachability is what failed; this decides nothing.
  *
  * The walk RECURSES, so a new subdirectory is included rather than silently
  * skipped — all three directories are flat today, and that must not become an
  * assumption the manifest depends on.
  *
- * `overrides` exists only so the H7 fixture can hash a hypothetical tree
- * without writing to disk. Production callers pass nothing.
+ * `overrides` exists only so a fixture can hash a hypothetical tree without
+ * writing to disk. Production callers pass nothing.
  */
 function runtimeManifest(overrides = {}) {
   const walk = rel => readdirSync(join(REPO_ROOT, rel), { withFileTypes: true })
@@ -340,17 +398,12 @@ function runtimeManifest(overrides = {}) {
       ? walk(`${rel}/${e.name}`)
       : (/\.(js|mjs)$/.test(e.name) ? [`${rel}/${e.name}`] : [])));
   const rels = ['core', 'ui', 'content'].flatMap(walk).sort();
-  const frames = [];
-  let sourceBytes = 0;
-  for (const rel of rels) {
-    const bytes = Object.prototype.hasOwnProperty.call(overrides, rel)
+  return frameManifest(rels.map(rel => [
+    rel,
+    Object.prototype.hasOwnProperty.call(overrides, rel)
       ? Buffer.from(overrides[rel], 'utf8')
-      : readFileSync(join(REPO_ROOT, rel));
-    sourceBytes += bytes.length;
-    frames.push(Buffer.from(`${rel}\n${bytes.length}\n`, 'utf8'), bytes, Buffer.from('\n', 'utf8'));
-  }
-  const all = Buffer.concat(frames);
-  return { files: rels.length, sourceBytes, sha256: createHash('sha256').update(all).digest('hex') };
+      : readFileSync(join(REPO_ROOT, rel)),
+  ]));
 }
 
 const SOURCE_PINS = [
@@ -381,7 +434,7 @@ const SOURCE_PINS = [
     executed: 'no — this file drives only the submit handler, buildSubmitOpts, getGenderInput and initProfileUI',
     files: 40,
     sourceBytes: 529878,
-    sha256: '5675919d2dcc2c2fa043f07fd071fd3d03a4273ad3f709628bc08b3aa9314c21',
+    sha256: '560a9961e7bcea1b2279e45a67ec4d45e194b00f0914689a78e303c221dea5d5',
     read: () => runtimeManifest(),
   },
   // ── DIAGNOSTIC: regions. Redundant against the whole-file pins by
@@ -601,7 +654,9 @@ describe('the submit seam — EXECUTED, not scanned', () => {
             + 'this region. It exists to name which bytes matter.')
         + `\nExecuted by this file: ${pin.executed}.`
         + '\nNOTE what a pin does NOT say: it says what this FILE contains, not that the page '
-        + 'loads this file, and not that no other runtime module was changed. Both are residual.'
+        + 'loads what is pinned. The manifest pin covers every .js/.mjs under core/, ui/ and\n'
+        + 'content/; runtime surfaces outside that set and outside index.html — assets/, JSON, the\n'
+        + 'hosting platform\'s own delivery — remain residual.'
         + '\nIf the change is intended: re-read the diff, confirm the behavioural cases below '
         + 'still pass under BOTH environments, and update this constant IN THE SAME COMMIT as '
         + 'the code change. Updating it on its own is how a bypass gets laundered.')
@@ -692,7 +747,9 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     // appears and the raw allowlist in tests/profile.test.js stays green — drop
     // the escapes and that test turns red, which is how load-bearing they are.
     //
-    // WHICH ASSERTION GOES RED: the whole-file pin, and only that. It is
+    // WHICH ASSERTIONS GO RED: the `ui/profile.js` whole-file pin AND the
+    // runtime-source manifest, which covers that file too. Not the region
+    // pins, and nothing behavioural. It is
     // asserted here beside the retired declaration pin STAYING EQUAL, so the
     // fixture states the exact reason the guard was moved rather than implying
     // a broader one. Behaviour cannot see it either: this file imports the
@@ -994,8 +1051,11 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     expect((readHtml().match(/<script[^>]*>/g) || []).sort(),
       'premise: the script-tag set must be untouched')
       .toEqual(['<script type="application/ld+json">', '<script type="module">']);
-    expect([...readHtml().matchAll(/from '([^']+)'/g)].map(m => m[1]).sort().length,
-      'premise: the specifier list must be untouched').toBe(18);
+    const h7specs = [...readHtml().matchAll(/from '([^']+)'/g)].map(m => m[1]).sort();
+    expect(h7specs, 'premise: the exact specifier list must be untouched').toEqual(REVIEWED_SPECIFIERS);
+    for (const spec of h7specs) {
+      expect(existsSync(join(REPO_ROOT, spec)), `premise: ${spec} must still resolve`).toBe(true);
+    }
     expect(readdirSync(REPO_ROOT).filter(f => f.endsWith('.js')).sort(),
       'premise: the root .js inventory must be untouched').toEqual(['vitest.config.js']);
     // …and the file it edits is inside no pinned FILE, only inside the manifest.
@@ -1007,6 +1067,64 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     expect(runtimeManifest({ [REL]: bad }),
       'the runtime-source manifest did not move — an allowed module can be edited unseen')
       .not.toEqual(MANIFEST_PIN);
+  });
+
+
+  it('catches: two different trees framed to the same manifest digest', () => {
+    // THE COLLISION THAT RETIRED THE FIRST FRAMING. It framed
+    // `path \n length \n bytes \n`, and LF is a legal byte in a POSIX and Git
+    // path — so a filename can carry the very delimiters the reader depends on
+    // and move the boundary. Both sides below are two files, seven source
+    // bytes, every name ending `.js`, sorted a→z.
+    //
+    // WHICH ASSERTION GOES RED, and why this is not a tautology: the collision
+    // premises are asserted against a LOCAL COPY of the retired framing, so
+    // they document the defect and cannot drift. The separation is asserted
+    // through `frameManifest` ITSELF — the production helper the pins use — so
+    // reverting the framing turns this test red for exactly its intended
+    // reason rather than leaving a fixture that only tests its own copy.
+    const A = [['core/a.js\n7\nq.js', Buffer.from('', 'utf8')],
+               ['core/z.js', Buffer.from('q.js\n0\n', 'utf8')]];
+    const B = [['core/a.js', Buffer.from('q.js\n0\n', 'utf8')],
+               ['core/z.js\n7\nq.js', Buffer.from('', 'utf8')]];
+
+    // PREMISE — the two trees really are different, and really are equal on
+    // every summary the manifest reports besides the digest.
+    expect(A.map(([r]) => r), 'premise: the two trees must differ').not.toEqual(B.map(([r]) => r));
+    for (const t of [A, B]) {
+      expect(t.every(([r]) => r.endsWith('.js')), 'premise: every name must end .js').toBe(true);
+      expect([...t.map(([r]) => r)].sort(), 'premise: the entries must already be in sorted order')
+        .toEqual(t.map(([r]) => r));
+    }
+
+    // PREMISE — the RETIRED framing collides. Local copy, kept only to pin the
+    // defect; it is not used by anything else in this file.
+    const retiredFraming = entries => {
+      const frames = [];
+      let sourceBytes = 0;
+      for (const [rel, bytes] of entries) {
+        sourceBytes += bytes.length;
+        frames.push(Buffer.from(`${rel}\n${bytes.length}\n`, 'utf8'), bytes, Buffer.from('\n', 'utf8'));
+      }
+      const all = Buffer.concat(frames);
+      return { files: entries.length, sourceBytes, streamBytes: all.length,
+               sha256: createHash('sha256').update(all).digest('hex') };
+    };
+    const rA = retiredFraming(A);
+    const rB = retiredFraming(B);
+    expect(rA, 'premise broken: the retired framing no longer collides').toEqual(rB);
+    expect(rA, 'premise broken: the recorded collision changed').toEqual({
+      files: 2, sourceBytes: 7, streamBytes: 40,
+      sha256: 'd54cffd56e0220483388e6930055d88ede0d25adcf36eeed8abbcf19f8186376',
+    });
+
+    // THE ASSERTION — the production framing separates them.
+    expect(frameManifest(A), 'the manifest framing is not injective — two different trees forge one digest')
+      .not.toEqual(frameManifest(B));
+    // …and the summary fields alone would NOT have separated them, so the
+    // digest is doing the work and not the counts beside it.
+    expect(frameManifest(A).files).toBe(frameManifest(B).files);
+    expect(frameManifest(A).sourceBytes).toBe(frameManifest(B).sourceBytes);
   });
 
   // ── secondary defenses: reachability, positive and exact ───────────
@@ -1031,13 +1149,7 @@ describe('the submit seam — EXECUTED, not scanned', () => {
   it('every module specifier in index.html is reviewed and resolves to a real file', () => {
     const html = readHtml();
     const specs = [...html.matchAll(/from '([^']+)'/g)].map(m => m[1]).sort();
-    expect(specs, 'index.html gained, lost or changed a module specifier').toEqual([
-      './content/cards.v1.full.js',
-      './core/engine.js', './core/measurement.js', './core/payments.js', './core/profile.js',
-      './ui/citysearch.js', './ui/concordance.js', './ui/dyad.js', './ui/labels.js',
-      './ui/meanings.js', './ui/modals.js', './ui/payments.js', './ui/profile.js',
-      './ui/public.js', './ui/readings.js', './ui/result.js', './ui/share.js', './ui/tiers.js',
-    ]);
+    expect(specs, 'index.html gained, lost or changed a module specifier').toEqual(REVIEWED_SPECIFIERS);
     // Scanned as `from '…'`, NOT as line-anchored imports: one of these
     // (`./ui/payments.js`) sits on the closing line of a multi-line import, and
     // a line-anchored scan misses it — which is exactly the sort of blind spot

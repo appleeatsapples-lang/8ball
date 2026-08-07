@@ -2222,3 +2222,129 @@ No runtime edit, parser, package, browser harness or lexer expansion; no
 `git checkout`, `reset`, `clean` or `amend`.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 20 — audit of `f5b3bdd`: the manifest framing was forgeable
+
+Re-audit of `f5b3bdd` returned **DO NOT MERGE — P0 0 / P1 1 / P2 1 / P3 3**.
+All five absorbed. Addenda 1–19, the §5 v0.83–v0.87 amendment **blocks** and
+every prior journal entry stand byte-unedited.
+
+## P1 — the collision, reproduced before editing
+
+v0.86 framed each entry `path\n` + `byteLength\n` + bytes + `\n` and claimed no
+rename, reorder, split or merge could forge the digest. **LF is a legal byte in
+a POSIX and Git path.**
+
+```
+A = [ 'core/a.js\n7\nq.js' → ''         , 'core/z.js'          → 'q.js\n0\n' ]
+B = [ 'core/a.js'          → 'q.js\n0\n' , 'core/z.js\n7\nq.js' → ''         ]
+```
+
+Both sides two files, seven source bytes, every name ending `.js`, already
+sorted a→z — and both produce the identical stream and
+
+```
+SHA-256  d54cffd56e0220483388e6930055d88ede0d25adcf36eeed8abbcf19f8186376
+```
+
+Reproduced independently here, digest matching the finding exactly. One
+measurement differs: the stream is **40 bytes**, where the finding said 48. The
+collision, the digest and the falsification are unaffected.
+
+## The fix
+
+```
+pathByteLength \n  pathBytes \n  sourceByteLength \n  sourceBytes \n
+```
+
+Length-prefixing **both** halves removes the reader's dependence on any
+delimiter — it consumes exactly the declared number of bytes, whatever they
+are. **No path deny-list, no banned character**; a deny-list is the shape that
+has failed repeatedly in this cycle and this needs none.
+
+Only the digest moves:
+
+| | before | after |
+|---|---|---|
+| files | 40 | **40** |
+| source bytes | 529,878 | **529,878** |
+| SHA-256 | `5675919d2dcc…` | **`560a9961e7bcea1b2279e45a67ec4d45e194b00f0914689a78e303c221dea5d5`** |
+
+Both whole-file pins and the H7 fixture are unchanged.
+
+## The permanent A/B counter-case, and why its shape matters
+
+The collision premises are asserted against a **local copy of the retired
+framing** — so they pin the defect and cannot drift — while the separation is
+asserted **through `frameManifest`, the production helper the pins themselves
+use**. Reverting the framing therefore turns it red for its intended reason:
+verified, **3 of 43** — the manifest pin, the H7 fixture, and the A/B case.
+
+It also asserts that `files` and `sourceBytes` **alone do not separate the two
+trees**, so the digest is doing the work rather than the counts printed beside
+it.
+
+## P2 — two truth-precision corrections
+
+1. Addendum 19 says "the §5 v0.83–v0.85 amendments … stand unedited" and also
+   records restoring the v0.84/v0.83 labels. Both are true **of different
+   things**, and the sentence did not distinguish them: the §5 amendment
+   **blocks** are byte-unedited; what was restored were the **footer status
+   labels** of the additive block. Recorded here so the two cannot be read as
+   contradicting.
+2. The active guard intro said **"six bypasses ran"**. **Five ran.** H4 as
+   first written assigned to `profileForm`, a `const` at `index.html:1085`, and
+   threw — it could never have run. The intro now states five measured, plus
+   H4 corrected to a legal decoy initialiser and then measured.
+
+## P3 — cleanups
+
+In the editable test: the "enumerates nothing" heading is retired (the manifest
+*does* enumerate a declared directory surface; what it does not do is infer
+reachability); the "not built here" lines are corrected; the primary failure
+text no longer calls the manifest one FILE nor says another runtime-module
+change is residual; and the alternate-export fixture now names **both** things
+that go red — the `ui/profile.js` pin **and** the manifest covering it.
+
+**H7 is tightened rather than narrowed:** it now asserts the **exact reviewed
+specifier list** and runs the **resolution loop**, sharing one source of truth
+with the secondary check, so "all secondary checks stay equal" is a claim it
+actually makes.
+
+**Additively, in protected records:** v0.86 and Addendum 19 say "three footer
+labels" — it was **two labels plus the header**. v0.86's residual says "the
+manifest's four covered files-and-directories" — it is **three manifest
+directories (`core/`, `ui/`, `content/`) plus the separately-pinned
+`index.html`**.
+
+## One structural note
+
+v0.86's footer line reads "THIS IS THE CURRENT VERSION", which was true when
+written and, under the no-rotation rule, can never be edited to say otherwise.
+v0.87's line therefore states the resolution permanently: **read the block by
+position — the topmost `§5 vN` line is current.** Future versions add a line at
+the top and change nothing below.
+
+## Final measurements
+
+| case | result |
+|---|---|
+| clean seam suite | 43 passed |
+| framing reverted | 3 of 43 red (manifest pin · H7 · A/B) |
+| H7 shipped | 2 of 43 red |
+| H1 · H2 · H3 · H4 · H5 · H6 shipped | 23 · 23 · 24 · 23 · 23 · 24 of 43, own fixture red in every case |
+| full suite | 57 files / 2050 tests |
+
+Residual unchanged and open: listener registration and firing; the live DOM
+control; `resolveGenderSelect`, pinned and manifest-covered but never executed;
+second-hop, descriptor-routed, symbol-keyed, `has` and ownKeys-style reads;
+writes and deletes on either proxied ref; runtime surfaces outside `core/`,
+`ui/`, `content/` and `index.html` — `assets/`, JSON, the hosting platform's own
+delivery; and a pin or manifest updated without review.
+
+No runtime edit, parser, package, browser harness or lexer expansion; no
+`git checkout`, `reset`, `clean` or `amend`.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

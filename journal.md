@@ -5,6 +5,59 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-07 (fifth pass) — I wrote "unambiguous" about a format I never tried to forge — STAGED
+
+**The manifest framing was forgeable, and the counter-example is four lines
+long.** I framed each entry `path\n length\n bytes\n` and wrote, in doctrine
+and in an audit artifact, that no rename, reorder, split or merge could produce
+the same digest. LF is a legal byte in a POSIX path. So a filename can carry the
+delimiters my reader depends on, and two genuinely different trees — two files
+each, seven source bytes each, every name ending `.js`, already sorted — hash to
+the same `d54cffd5…`. I reproduced it before touching anything.
+
+**What I actually did wrong.** I designed a framing, reasoned that
+length-before-bytes made it unambiguous, and shipped the adjective. The length
+prefix does disambiguate the *content*; I never asked the same question about
+the *path*, which is the other variable-length field in the same record. One
+minute with pen and paper — or one attempt to forge my own format — would have
+found it. The fix is the standard one: length-prefix both halves, so the reader
+never depends on a delimiter at all. No deny-list, no banned character; banning
+LF in filenames would have been the same reflex that has failed in every round
+of this cycle.
+
+**The counter-case is shaped so it cannot rot.** The collision premises run
+against a local copy of the retired framing, so they pin the defect. The
+separation runs through the production helper, so reverting the framing turns
+the test red for its intended reason — 3 of 43. And it asserts that the file
+count and byte total alone do *not* separate the two trees, because those are
+printed next to the digest and could otherwise be mistaken for evidence.
+
+**Also corrected: I said "six bypasses ran" when five did.** H4 assigned to a
+`const` and threw. I had already caught and fixed that last round, and then left
+the summary sentence above it saying six. Fixing the instance and leaving the
+claim is the exact failure this cycle keeps producing.
+
+**And a structural one I created myself.** I labelled v0.86's footer line "THIS
+IS THE CURRENT VERSION" — a label that dates itself the moment there is a v0.87,
+and which the no-rotation rule now forbids me from editing. Two lines in the
+block claim to be current and both are honest about when they were written.
+v0.87's line states the rule instead: read by position, topmost wins. That is
+what I should have written the first time, because a label that must change is a
+label that will eventually be wrong.
+
+**The through-line, five rounds in.** Every failure has been a claim wider than
+its test: the mechanism, the scope, the baseline, the measurement, and now the
+format. The discipline that would have caught all five is the same one — before
+an adjective goes into a record, try to break the thing it describes. Not
+reason about it. Break it.
+
+Product runtime **byte-unchanged** vs `446a187`. Suite **57 files / 2050 tests
+green** · product audit **PASS 14/0/0/0** on a clean tree · assurance **102
+tests OK** · local PII audit **clean, 863 files** · `index.html` **1469/1500** ·
+DOCTRINE at **v0.87**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-07 (fourth pass) — Disclosure is not exemption — STAGED
 
 **Two things I got wrong that I had already been told about in principle.**
