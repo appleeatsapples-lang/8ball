@@ -1425,3 +1425,92 @@ where the bounded corpus now holds **44**.
   `42ceffa`; nothing removed but two demoted labels.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 14 — audit of `d424253`: the environment class, closed properly
+
+**Verdict received: DO NOT MERGE.** CONFIRMED and absorbed. Append-only;
+addenda 1–13 stand unedited.
+
+## P1 — I closed the example, not the class
+
+v0.80's browser shape was `globalThis.window = {document:{}, navigator:{}}` — a
+**name**, not a page. Swap the probe from `typeof window` to **`typeof
+document`** and:
+
+| signal | result |
+|---|---|
+| HOST_CALL count | **1** |
+| raw gender inventory | **byte-identical** |
+| declared node shape | build/save `female`, rendered |
+| declared "browser" shape | build/save **`female`**, rendered |
+| real browser-shaped globals | **gender undefined** |
+| driver verdict | **6 of 7 green** |
+
+Same-class survivors: `typeof location`, `typeof self`, `globalThis.document`
+presence, `window !== globalThis`, `window.navigator !== navigator`.
+
+This is the fourth consecutive round in which my fix answered the specific
+instance I had been shown. The instance was `typeof window`; the class is
+*environment sensitivity*.
+
+**FIXED two ways.**
+
+1. **The browser shape now has a page's identities**, not just its names:
+   `window === globalThis === self`, bare `document`/`location`/`navigator` as
+   well as their `window.*` forms, and `window.navigator === navigator` —
+   installed through property **descriptors**, because node defines
+   `navigator` as a getter-only accessor that plain assignment cannot replace
+   (it threw until I did). **Eight probes** ship as counter-cases, each
+   verified to forward under node and drop under the browser shape, plus a
+   **guard-the-guard** test asserting the identities hold inside the helper and
+   are absent outside it — otherwise the probes pass vacuously, which is
+   exactly how the previous shape let `typeof document` through.
+2. **A bounded RAW ban:** the 38-line submit handler may name **no**
+   environment-sensitive global (`window`, `document`, `location`, `navigator`,
+   `self`, `globalThis`, `process`, `top`, `parent`, `frames`, `screen`). It
+   names none today. The option object must not depend on where it runs, and
+   the cheapest way to keep that true is to forbid the question in that scope.
+
+`typeof navigator` is **deliberately excluded**: node defines `navigator`
+(verified), so it is not a node-vs-browser discriminator and cannot express
+this bypass — including it would have added a test that fails for the wrong
+reason. Its *identity* still can, and that case is covered.
+
+**Re-verified** with the audit's own mutation and two siblings — `typeof
+document`, `typeof location`, `window !== globalThis`: **14 of 16 red** in each
+case, all green on restore.
+
+## P2 — the residual, stated without narrowing it again
+
+v0.80 and Addendum 13 said "browser-like globals" and narrowed the residual to
+registration/firing plus runtime indirection, when the evidence closed only the
+exact `window` probe. The honest statement now:
+
+- **Closed:** a *spelled* environment probe in the submit handler cannot change
+  what the option object carries without failing the suite.
+- **Open, and closed by nothing here:** the page is never loaded by any test,
+  so **listener registration and firing** is proven only by the manual browser
+  pass each cycle; and **runtime-built indirection** — `globalThis["docu" +
+  "ment"]`, or any probe spelling no identifier — is reachable by neither the
+  raw ban nor the stubbed runtime. A real-browser runner is the only thing that
+  would close either, and this repo has none in CI.
+
+## P3 — the quantifier Addendum 13 claimed but did not record
+
+Addendum 12 names three bypasses and then says "verified by applying **both**".
+Three were applied. Addendum 13 said all three P3 items were absorbed while
+recording only the stale host quote and 43 → 44; **this is the third**, and
+Addendum 12 stays unedited because the artifact is append-only.
+
+## Verification
+
+- vitest **57 files / 2023 tests green** (2014 → 2023)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 863 files** · `index.html` **1469/1500**
+- L17: the §5 v0.80 clause and its footer body are byte-identical to
+  `d424253`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

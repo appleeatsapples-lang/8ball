@@ -26,15 +26,38 @@ const inventory = h => h.split('\n').map(l => l.trim()).filter(l => /gender/i.te
 // and every assertion below is made in both.
 const ENVIRONMENTS = ['node', 'browser'];
 
+// The globals a page actually has, with the IDENTITIES a page actually has.
+//
+// An earlier version set only `globalThis.window = {document:{}, navigator:{}}`
+// and an audit walked straight past it: a handler probing `typeof document`
+// (rather than `typeof window`) forwarded under BOTH declared shapes and
+// dropped the field in a real browser. Closing one probe is not closing the
+// class, so this installs every environment-sensitive global the handler could
+// reach, linked the way a browser links them:
+//   window === globalThis === self, document/location/navigator bare AND on
+//   window, and window.navigator === navigator.
+const BROWSER_GLOBALS = ['window', 'self', 'document', 'location', 'navigator', 'top', 'parent'];
+
 function withEnvironment(env, fn) {
   if (env === 'node') return fn();
-  const hadWindow = 'window' in globalThis;
-  const priorWindow = globalThis.window;
-  // Enough of a browser to satisfy an environment probe. Deliberately NOT a
-  // DOM: the point is that `typeof window` must not change the outcome.
-  globalThis.window = globalThis.window || { document: {}, navigator: {} };
+  // Descriptors, not assignment: node defines `navigator` as a getter-only
+  // accessor, so `globalThis.navigator = …` throws in strict mode.
+  const saved = BROWSER_GLOBALS.map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]);
+  const put = (k, value) =>
+    Object.defineProperty(globalThis, k, { value, writable: true, configurable: true, enumerable: false });
+
+  put('document', { title: '', createElement: () => ({}), getElementById: () => null });
+  put('location', { href: 'https://the-eight-ball.netlify.app/', search: '', pathname: '/' });
+  put('navigator', { userAgent: 'test', language: 'en' });
+  // Identity, not merely presence: a probe comparing window to globalThis, or
+  // window.navigator to navigator, must see exactly what a page sees.
+  for (const alias of ['window', 'self', 'top', 'parent']) put(alias, globalThis);
+
   try { return fn(); } finally {
-    if (hadWindow) globalThis.window = priorWindow; else delete globalThis.window;
+    for (const [k, desc] of saved) {
+      if (desc) Object.defineProperty(globalThis, k, desc);
+      else delete globalThis[k];
+    }
   }
 }
 
@@ -83,37 +106,91 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     });
   }
 
-  it('catches: a seam branching on typeof window, live only outside a browser', () => {
-    // This bypass FORWARDS under the node harness by construction, so the
-    // uniform "forwards nothing" check does not apply to it. What catches it
-    // is the two environments DISAGREEING — which is exactly the property the
-    // single-environment driver could not see, and why it shipped green.
-    const html = readHtml();
-    const bad = html.replace(HOST_CALL, [
-      '  let submitOpts;',
-      '  if (typeof window === "undefined") {',
-      HOST_CALL,
-      '    submitOpts = opts;',
-      '  } else {',
-      `  ${FALLBACK.trim().replace('const opts =', 'submitOpts =')}`,
-      '  }',
-      '  const opts = submitOpts;',
-    ].join('\n'));
-    expect(bad, 'the mutation did not apply').not.toBe(html);
+  // The CLASS, not one example. An audit closed `typeof window` and then
+  // walked past `typeof document`: the probe forwarded under both declared
+  // shapes and dropped the field in a real browser. These are the environment
+  // signals a page exposes that a bare node process does not, each written the
+  // way a maintainer would actually reach for it.
+  const ENV_PROBES = [
+    ['typeof window', 'typeof window === "undefined"'],
+    ['typeof document', 'typeof document === "undefined"'],
+    ['typeof location', 'typeof location === "undefined"'],
+    ['typeof self', 'typeof self === "undefined"'],
+    // NOT `typeof navigator`: node defines it too (verified), so it is not a
+    // node-vs-browser discriminator and cannot express this bypass. Its
+    // IDENTITY still can — see the window.navigator case below.
+    ['globalThis.document presence', '!globalThis.document'],
+    ['globalThis.window presence', '!globalThis.window'],
+    ['window identity vs globalThis', 'globalThis.window !== globalThis'],
+    ['navigator identity via window', '!globalThis.window || globalThis.window.navigator !== globalThis.navigator'],
+  ];
 
-    // PREMISE: every static signal is unchanged — this is why it was invisible.
-    expect(bad.split(HOST_CALL.trim()).length - 1, 'premise broken: the pinned bytes changed').toBe(1);
-    expect(inventory(bad), 'premise broken: the raw inventory changed').toEqual(inventory(html));
+  for (const [label, probe] of ENV_PROBES) {
+    it(`catches: a seam branching on ${label}, live only outside a browser`, () => {
+      // Each of these FORWARDS under the node harness by construction, so the
+      // uniform "forwards nothing" check cannot see them. What catches them is
+      // the two environments DISAGREEING.
+      const html = readHtml();
+      const bad = html.replace(HOST_CALL, [
+        '  let submitOpts;',
+        `  if (${probe}) {`,
+        HOST_CALL,
+        '    submitOpts = opts;',
+        '  } else {',
+        `  ${FALLBACK.trim().replace('const opts =', 'submitOpts =')}`,
+        '  }',
+        '  const opts = submitOpts;',
+      ].join('\n'));
+      expect(bad, 'the mutation did not apply').not.toBe(html);
 
-    const inNode = driveSubmit(bad, { gender: 'female', env: 'node' });
-    const inBrowser = driveSubmit(bad, { gender: 'female', env: 'browser' });
-    expect(inNode.rendered && inBrowser.rendered, 'a run did not complete — this would pass vacuously').toBe(true);
-    // The harness alone is fooled…
-    expect(inNode.build.gender, 'premise broken: the node run should still forward').toBe('female');
-    // …and the browser run is where the field is actually lost.
-    expect(inBrowser.build.gender, 'the browser-environment bypass went undetected').toBeUndefined();
-    expect(inBrowser.build, 'the two environments must disagree for this to be the catch')
-      .not.toEqual(inNode.build);
+      // PREMISE: every static signal is unchanged — this is why it is invisible.
+      expect(bad.split(HOST_CALL.trim()).length - 1, 'premise broken: the pinned bytes changed').toBe(1);
+      expect(inventory(bad), 'premise broken: the raw inventory changed').toEqual(inventory(html));
+
+      const inNode = driveSubmit(bad, { gender: 'female', env: 'node' });
+      const inBrowser = driveSubmit(bad, { gender: 'female', env: 'browser' });
+      expect(inNode.rendered && inBrowser.rendered,
+        'a run did not complete — this would pass vacuously').toBe(true);
+      expect(inNode.build.gender, 'premise broken: the node run should still forward').toBe('female');
+      expect(inBrowser.build.gender, `the ${label} bypass went undetected`).toBeUndefined();
+    });
+  }
+
+  it('the browser shape carries a page\'s identities, not just its names', () => {
+    // Guards the guard. If these links are ever loosened, the probes above
+    // start passing vacuously — which is exactly how the first version of this
+    // environment let `typeof document` through.
+    const seen = {};
+    withEnvironment('browser', () => {
+      seen.windowIsGlobal = globalThis.window === globalThis;
+      seen.selfIsGlobal = globalThis.self === globalThis;
+      seen.documentDefined = typeof document !== 'undefined';
+      seen.locationDefined = typeof location !== 'undefined';
+      seen.navigatorLinked = globalThis.window.navigator === globalThis.navigator;
+      seen.documentViaWindow = globalThis.window.document === globalThis.document;
+    });
+    expect(seen).toEqual({
+      windowIsGlobal: true, selfIsGlobal: true, documentDefined: true,
+      locationDefined: true, navigatorLinked: true, documentViaWindow: true,
+    });
+    // …and the node shape must NOT carry them, or the two environments are
+    // the same environment and every comparison above is vacuous.
+    expect(typeof globalThis.window, 'the browser globals leaked out of the helper').toBe('undefined');
+    expect(typeof globalThis.document, 'the browser globals leaked out of the helper').toBe('undefined');
+  });
+
+  // A bounded RAW guard over the ~38-line handler: it may not name an
+  // environment-sensitive global at all. Runtime-built indirection
+  // (`globalThis["docu"+"ment"]`) stays honestly open — no static check closes
+  // that — but the spelled class cannot reach the handler unnoticed.
+  it('the submit handler names NO environment-sensitive global', () => {
+    const { body } = functionBody(readHtml(), SUBMIT_SIG);
+    const named = ['window', 'document', 'location', 'navigator', 'self',
+      'globalThis', 'process', 'top', 'parent', 'frames', 'screen']
+      .filter(g => new RegExp(`\\b${g}\\b`).test(body));
+    expect(named,
+      'the submit handler reached for an environment global — the option object '
+      + 'must not depend on where it runs').toEqual([]);
   });
 
   it('behaves IDENTICALLY under node and browser globals', () => {

@@ -5,6 +5,52 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — I closed the example again, not the class — STAGED
+
+**DO NOT MERGE verdict, and it was right.** Last round I added a browser
+environment to the driver. What I actually added was
+`globalThis.window = {document:{}, navigator:{}}` — **a name, not a page**.
+Change the probe from `typeof window` to `typeof document` and it forwards
+under both of my declared shapes and drops the field in a real browser. Host
+call count 1, raw inventory byte-identical, 6 of 7 driver tests green.
+
+**Fourth round running, my fix answered the specific instance I had been
+shown.** The instance was `typeof window`. The class is *environment
+sensitivity* — and `typeof location`, `typeof self`, `globalThis.document`,
+`window !== globalThis` and `window.navigator !== navigator` were all still
+open. I keep treating the reproduction as the specification.
+
+**Closed two ways this time.** The browser shape carries a page's
+**identities**, not just its names — `window === globalThis === self`, bare and
+`window.*` forms, `window.navigator === navigator` — installed via property
+descriptors, because node's `navigator` is a getter-only accessor and plain
+assignment throws (it did). Eight probes ship as counter-cases, each verified
+to forward under node and drop under the browser shape, plus a
+**guard-the-guard** test asserting the identities hold inside the helper and
+are gone outside it — without which the probes pass vacuously, which is exactly
+how the last shape let `typeof document` through. And a bounded raw ban: the
+38-line handler may name no environment global at all. Re-run with the
+auditor's mutation and two siblings: 14 of 16 red each.
+
+One probe I deliberately did **not** add: `typeof navigator`. Node defines it,
+so it cannot express this bypass — including it would have been a test that
+fails for the wrong reason, and I have shipped enough of those.
+
+**And I narrowed the residual again when I had no right to.** v0.80 said
+"browser-like globals" and listed only registration/firing and runtime
+indirection as open, when the evidence closed one probe. The honest statement
+now: a *spelled* environment probe in the handler cannot change the option
+object without failing the suite. **Open, and closed by nothing here:** the
+page is never loaded by any test, and runtime-built indirection
+(`globalThis["docu"+"ment"]`) is reachable by neither the ban nor the stub. A
+real browser runner is the only thing that would close either, and CI has none.
+
+Suite **57 files / 2023 tests green** · product audit **PASS 14/0/0/0** on a
+clean tree · local PII audit **clean, 863 files** · `index.html` **1469/1500**
+· DOCTRINE at **v0.81**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — Running the code was not enough; the environment mattered — STAGED
 
 **Last round I stopped scanning bytes and started executing the handler. This
