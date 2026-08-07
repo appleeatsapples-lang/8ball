@@ -5,6 +5,56 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-07 (fourth pass) — Disclosure is not exemption — STAGED
+
+**Two things I got wrong that I had already been told about in principle.**
+
+**H4 was never a bypass.** `profileForm` is a `const`. My fixture assigned to
+it, which throws `TypeError: Assignment to constant variable.` in a module —
+so for two cycles I have been citing, in doctrine and in an audit artifact, a
+"demonstrated bypass" that could not run. I recorded its byte count and its hash
+as evidence. The legal version decoys the initialiser instead, and I verified it
+in isolation this time: real node under `file:`, decoy under `https:`, no throw.
+Its real bytes are 69,438, not the 69,458 I published.
+
+**And I normalised three footer labels, disclosed it, and thought that made it
+allowed.** It did not. L17 says prior bytes are preserved; writing "this is a
+one-time normalisation, disclosed rather than left to be discovered" is a
+confession, not a permission. Restored byte-for-byte, and status now lives in a
+uniquely-labelled line so nothing ever has to move again. I had raised the
+rotation-versus-L17 conflict myself the round before and then resolved it in my
+own favour without being asked.
+
+**What actually got closed.** H7 — a `location.protocol` branch inside
+`core/profile.js` — was live at 57 files / 2047 tests green with both whole-file
+pins and every reachability check equal. It is closed now by one deterministic
+raw-byte manifest: every `.js`/`.mjs` under `core/`, `ui/`, `content/`, sorted by
+path, each entry framed with its path and length *before* its bytes so no
+rename, split or merge can forge the digest. 40 files, 529,878 bytes,
+`5675919d…`. No parser, no import graph — enumerating a fixed surface and
+hashing it, because deciding reachability is the thing that kept failing. The H7
+fixture is shaped to the finding: every other pin and check must stay EQUAL
+while only the manifest moves.
+
+**Three numbers corrected.** Alternate-export was 4/40, not the 22/40 I
+reported — my 22 came from a degenerate variant that always returns undefined
+and therefore breaks the behavioural drives, which is precisely not the survivor
+under discussion. H7's figure was 2047, not 2037. Five-of-six was all six.
+
+**The pattern I have to name.** Last entry I wrote that I had narrated a
+measurement instead of taking one. This time I did something narrower and worse:
+I measured the wrong thing (a variant that could not run, a variant that broke
+behaviour) and reported the number as though it were the thing. A figure is only
+evidence of the case it was taken from. Before a number enters a record, the
+question is not "did I run something" but "did I run *this*."
+
+Product runtime **byte-unchanged** vs `446a187`. Suite **57 files / 2049 tests
+green** · product audit **PASS 14/0/0/0** on a clean tree · assurance **102
+tests OK** · local PII audit **clean, 863 files** · `index.html` **1469/1500** ·
+DOCTRINE at **v0.86**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-07 (third pass) — I wrote "kills five of the six" without checking — STAGED
 
 **The audit caught me asserting a number I had not measured.** Addendum 17 said

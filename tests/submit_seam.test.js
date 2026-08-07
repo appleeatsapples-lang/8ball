@@ -290,7 +290,7 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 //       { try { delete opts['g' + 'ender']; } catch (_) {} }
 //
 // leaves index.html AND ui/profile.js byte-identical, adds no root file, leaves
-// every specifier unchanged, and runs 57 files / 2037 tests GREEN. Import
+// every specifier unchanged, and runs 57 files / 2047 tests GREEN. Import
 // reachability cannot see that — it is code inside an ALLOWED module. Closing
 // it needs a deterministic raw-byte manifest of every runtime file the page
 // reaches; that is named in the residual and is not built here.
@@ -304,6 +304,55 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 // UTF-16 code units — 2006 for a handler body that is 2017 bytes, because §6's
 // comments contain `§` and `β`. The hashes were already over UTF-8 and did not
 // move; the counts did.
+/**
+ * A DETERMINISTIC RAW-BYTE MANIFEST over the complete bounded runtime-source
+ * surface: every `.js`/`.mjs` under `core/`, `ui/` and `content/`, by sorted
+ * relative path, with each file's raw bytes framed unambiguously.
+ *
+ * WHY IT EXISTS. Two whole-FILE pins closed `index.html` and `ui/profile.js`,
+ * and the next bypass simply moved next door. Verified: a `location.protocol`
+ * branch inserted into `core/profile.js`'s `buildProfile` left both file pins
+ * byte-identical, added no root file, changed no specifier and no script tag,
+ * satisfied every reachability assertion here — and ran 57 files / 2047 tests
+ * GREEN. Reachability says which files the page reaches; it never says what is
+ * inside an allowed one.
+ *
+ * NO PARSER AND NO INFERRED GRAPH. This does not follow imports and does not
+ * decide what is reachable. It enumerates a fixed, bounded directory surface by
+ * extension and hashes it. Deciding reachability is the thing that failed; this
+ * decides nothing.
+ *
+ * THE FRAMING IS THE POINT. Each entry contributes `path\n` + `byteLength\n` +
+ * the raw bytes + `\n`. Declaring the path and the length BEFORE the bytes makes
+ * the stream unambiguous: no rename, reorder, split, merge, or byte moved from
+ * one file to another can produce the same digest. A bare concatenation could.
+ *
+ * The walk RECURSES, so a new subdirectory is included rather than silently
+ * skipped — all three directories are flat today, and that must not become an
+ * assumption the manifest depends on.
+ *
+ * `overrides` exists only so the H7 fixture can hash a hypothetical tree
+ * without writing to disk. Production callers pass nothing.
+ */
+function runtimeManifest(overrides = {}) {
+  const walk = rel => readdirSync(join(REPO_ROOT, rel), { withFileTypes: true })
+    .flatMap(e => (e.isDirectory()
+      ? walk(`${rel}/${e.name}`)
+      : (/\.(js|mjs)$/.test(e.name) ? [`${rel}/${e.name}`] : [])));
+  const rels = ['core', 'ui', 'content'].flatMap(walk).sort();
+  const frames = [];
+  let sourceBytes = 0;
+  for (const rel of rels) {
+    const bytes = Object.prototype.hasOwnProperty.call(overrides, rel)
+      ? Buffer.from(overrides[rel], 'utf8')
+      : readFileSync(join(REPO_ROOT, rel));
+    sourceBytes += bytes.length;
+    frames.push(Buffer.from(`${rel}\n${bytes.length}\n`, 'utf8'), bytes, Buffer.from('\n', 'utf8'));
+  }
+  const all = Buffer.concat(frames);
+  return { files: rels.length, sourceBytes, sha256: createHash('sha256').update(all).digest('hex') };
+}
+
 const SOURCE_PINS = [
   // ── PRIMARY: whole files, raw bytes. These are the guard. ──
   {
@@ -322,6 +371,18 @@ const SOURCE_PINS = [
     bytes: 17566,
     sha256: 'd6fba912fcb9edc146c0af3fd93203652b3e1acc533f39cbba11fe007996099e',
     read: () => fingerprintBytes(readProfileBytes()),
+  },
+  {
+    // The surface the two file pins do NOT cover. `ui/profile.js` is inside it
+    // as well — its own pin is retained because a manifest cannot say which
+    // single file a fixture is about.
+    label: 'core/ + ui/ + content/ — the runtime-source manifest, raw bytes',
+    kind: 'primary',
+    executed: 'no — this file drives only the submit handler, buildSubmitOpts, getGenderInput and initProfileUI',
+    files: 40,
+    sourceBytes: 529878,
+    sha256: '5675919d2dcc2c2fa043f07fd071fd3d03a4273ad3f709628bc08b3aa9314c21',
+    read: () => runtimeManifest(),
   },
   // ── DIAGNOSTIC: regions. Redundant against the whole-file pins by
   // construction — any change inside them already moves the file hash. They are
@@ -382,7 +443,13 @@ const fingerprintText = text => fingerprintBytes(Buffer.from(text, 'utf8'));
 function pinFor(label) {
   const hits = SOURCE_PINS.filter(p => p.label.startsWith(label));
   if (hits.length !== 1) throw new Error(`${hits.length} pins match "${label}", expected 1`);
-  return { bytes: hits[0].bytes, sha256: hits[0].sha256 };
+  const pin = hits[0];
+  // Two shapes: a file/region pin carries {bytes, sha256}; the manifest carries
+  // {files, sourceBytes, sha256}. The shape is derived from the pin itself so a
+  // mismatched comparison is impossible to write by accident.
+  return pin.files === undefined
+    ? { bytes: pin.bytes, sha256: pin.sha256 }
+    : { files: pin.files, sourceBytes: pin.sourceBytes, sha256: pin.sha256 };
 }
 const HTML_PIN = pinFor('index.html — the whole host file');
 const HANDLER_PIN = pinFor('index.html — DIAGNOSTIC: the submit handler body');
@@ -414,8 +481,8 @@ const declarationPrint = src => fingerprintText(declaration(src, 'export functio
 const NOT_CLEAN = 'baseline is not the reviewed source — this counter-case would compare a survivor against itself';
 const cleanHtml = () => {
   // The WHOLE reviewed file, not just the handler region: a survivor can sit
-  // anywhere in index.html — five of the six H-fixtures below sit outside the
-  // handler body entirely — and a region baseline would let those fixtures
+  // anywhere in index.html — ALL SIX H-fixtures below sit outside the
+  // handler body — and a region baseline would let those fixtures
   // compare a poisoned tree against itself.
   expect(fingerprintBytes(readHtmlBytes()), NOT_CLEAN).toEqual(HTML_PIN);
   return readHtml();
@@ -538,7 +605,9 @@ describe('the submit seam — EXECUTED, not scanned', () => {
         + '\nIf the change is intended: re-read the diff, confirm the behavioural cases below '
         + 'still pass under BOTH environments, and update this constant IN THE SAME COMMIT as '
         + 'the code change. Updating it on its own is how a bypass gets laundered.')
-        .toEqual({ bytes: pin.bytes, sha256: pin.sha256 });
+        .toEqual(pin.files === undefined
+          ? { bytes: pin.bytes, sha256: pin.sha256 }
+          : { files: pin.files, sourceBytes: pin.sourceBytes, sha256: pin.sha256 });
     });
   }
 
@@ -551,8 +620,14 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     // The whole-file pin is taken over RAW BYTES while the counter-cases mutate
     // a decoded STRING. If those two ever disagreed, a mutant's fingerprint
     // would not be comparable to the pin.
-    expect(fingerprintText(readProfile()), 'decoded text does not re-encode to the file\'s bytes')
+    // BOTH files: the H-fixtures mutate index.html as a decoded STRING and
+    // compare the result to a pin taken over RAW BYTES. If those two ever
+    // disagreed, a mutant's fingerprint would not be comparable to the pin and
+    // every H-fixture would be quietly meaningless.
+    expect(fingerprintText(readProfile()), 'ui/profile.js: decoded text does not re-encode to the file\'s bytes')
       .toEqual(fingerprintBytes(readProfileBytes()));
+    expect(fingerprintText(readHtml()), 'index.html: decoded text does not re-encode to the file\'s bytes')
+      .toEqual(fingerprintBytes(readHtmlBytes()));
   });
 
   // ── what the executed handler actually touched ─────────────────────
@@ -849,9 +924,12 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     ['H3 — an inline importmap, so the pinned module is byte-identical and never loaded',
       h => h.replace('<script type="module">',
         '<script type="importmap">{"imports":{"./ui/profile.js":"./vendor-shim.js"}}</script>\n<script type="module">')],
-    ['H4 — profileForm rebound to a detached element, so the pinned bytes reach no user',
-      h => h.replace(BOOT_ANCHOR,
-        "if (location.protocol !== 'file:') { profileForm = document.createElement('form'); }\n" + BOOT_ANCHOR)],
+    // `profileForm` is a CONST (index.html:1085), so assigning to it throws in a
+    // module and is not a bypass at all. An audit caught that; the legal form
+    // decoys the INITIALISER instead, which is what a real attacker would write.
+    ['H4 — profileForm initialised to a live decoy, so the pinned bytes reach no user',
+      h => h.replace("const profileForm = $('profile-form');",
+        "const profileForm = location.protocol === 'file:' ? $('profile-form') : document.createElement('form');")],
     ['H5 — a second initProfileUI call repointing the control at a dead stub',
       h => h.replace(BOOT_ANCHOR,
         "if (location.protocol !== 'file:') { const _k = 'g' + 'enderSelect'; initProfileUI({ form: profileForm, [_k]: { value: '' } }, {}); }\n"
@@ -885,6 +963,51 @@ describe('the submit seam — EXECUTED, not scanned', () => {
         .not.toEqual(HTML_PIN);
     });
   }
+
+
+  it('catches: H7 — a protocol branch INSIDE an already-allowed module', () => {
+    // The bypass that survived every guard before the manifest, and the reason
+    // the manifest exists. Inserted into `core/profile.js`'s `buildProfile`, it
+    // leaves BOTH whole-file pins byte-identical, adds no root file, changes no
+    // specifier and no script tag — and ran 57 files / 2047 tests GREEN.
+    // Reachability names the files the page reaches; it never says what is
+    // inside an allowed one.
+    //
+    // WHICH ASSERTIONS GO RED, and the shape is the whole point: every pin and
+    // every reachability check below is asserted to stay EQUAL, and only the
+    // manifest is asserted to move. A fixture that merely showed "something
+    // went red" could not tell the manifest apart from the guards it was added
+    // to supplement.
+    const REL = 'core/profile.js';
+    const clean = readFileSync(join(REPO_ROOT, REL), 'utf-8');
+    const SIG = 'export function buildProfile(name, dobIso, opts) {';
+    expect(clean.split(SIG).length - 1, 'the H7 anchor is not present exactly once').toBe(1);
+    const bad = clean.replace(SIG, SIG + '\n'
+      + "  if (typeof location !== 'undefined' && location.protocol !== 'file:' && opts) "
+      + "{ try { delete opts['g' + 'ender']; } catch (_) {} }");
+    expect(bad, 'the mutation did not apply').not.toBe(clean);
+
+    // PREMISE — everything that is NOT the manifest stays equal. This is the
+    // finding: the whole prior guard set is blind to it.
+    expect(fingerprintBytes(readHtmlBytes()), 'premise: index.html must be untouched').toEqual(HTML_PIN);
+    expect(fingerprintBytes(readProfileBytes()), 'premise: ui/profile.js must be untouched').toEqual(PROFILE_PIN);
+    expect((readHtml().match(/<script[^>]*>/g) || []).sort(),
+      'premise: the script-tag set must be untouched')
+      .toEqual(['<script type="application/ld+json">', '<script type="module">']);
+    expect([...readHtml().matchAll(/from '([^']+)'/g)].map(m => m[1]).sort().length,
+      'premise: the specifier list must be untouched').toBe(18);
+    expect(readdirSync(REPO_ROOT).filter(f => f.endsWith('.js')).sort(),
+      'premise: the root .js inventory must be untouched').toEqual(['vitest.config.js']);
+    // …and the file it edits is inside no pinned FILE, only inside the manifest.
+    expect(REL.startsWith('core/'), 'premise: H7 edits a module covered by no file pin').toBe(true);
+
+    // THE ASSERTION — the manifest is the only thing that sees it.
+    const MANIFEST_PIN = pinFor('core/ + ui/ + content/');
+    expect(runtimeManifest(), 'the clean manifest no longer matches its pin').toEqual(MANIFEST_PIN);
+    expect(runtimeManifest({ [REL]: bad }),
+      'the runtime-source manifest did not move — an allowed module can be edited unseen')
+      .not.toEqual(MANIFEST_PIN);
+  });
 
   // ── secondary defenses: reachability, positive and exact ───────────
   //
@@ -924,11 +1047,13 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     }
   });
 
-  it('the repo root carries exactly the JavaScript files it was reviewed with', () => {
-    // H3 and H6 each need a new root file. Inert without their index.html half,
-    // but named here anyway.
+  it('the repo ROOT carries exactly the .js files it was reviewed with', () => {
+    // SCOPE, stated exactly: `.js` files in the repo root directory only. Not
+    // subdirectories, not `.mjs`, not any other extension, not the rest of the
+    // root's contents. H3 and H6 each need a new root file — inert without
+    // their index.html half, but named here anyway.
     const rootJs = readdirSync(REPO_ROOT).filter(f => f.endsWith('.js')).sort();
-    expect(rootJs, 'a JavaScript file appeared at the repo root').toEqual(['vitest.config.js']);
+    expect(rootJs, 'a .js file appeared in the repo root directory').toEqual(['vitest.config.js']);
   });
 
   it('behaves IDENTICALLY under node and browser globals', () => {

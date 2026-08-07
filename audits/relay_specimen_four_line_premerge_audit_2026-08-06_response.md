@@ -2105,3 +2105,120 @@ and the rolling `doctrine version:` / `doctrine version, prior:` lines remain
 byte-identical to `580a1a3`. Disclosed rather than left to be found.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 19 — audit of `d6eb5ac`: the manifest closes H7; the normalisation is reverted
+
+Audit of `d6eb5ac` returned **DO NOT MERGE — P0 0 / P1 2 / P2 2 / P3 4**. All
+eight absorbed. Addenda 1–18, the §5 v0.83–v0.85 amendments and the three
+2026-08-07 journal entries stand unedited.
+
+## P1-1 — H7 closed by a deterministic raw-byte manifest
+
+H7 was independently live: a `location.protocol` branch in `core/profile.js`'s
+`buildProfile` left both whole-file pins byte-identical, added no root file,
+changed no specifier and no script tag, and ran **57 files / 2047 tests GREEN**.
+
+**The manifest.** Every `.js`/`.mjs` under `core/`, `ui/` and `content/`, by
+**sorted relative path**, each entry framed:
+
+```
+path \n  byteLength \n  <raw bytes> \n
+```
+
+**40 files · 529,878 source bytes · SHA-256
+`5675919d2dcc2c2fa043f07fd071fd3d03a4273ad3f709628bc08b3aa9314c21`**
+
+Path and length are declared *before* the bytes, so no rename, reorder, split,
+merge, or byte moved between files can produce the same digest — a bare
+concatenation could. The walk recurses, so a new subdirectory is included rather
+than silently skipped; all three directories are flat today and that must not
+become an assumption. **No parser, no inferred graph:** it enumerates a fixed
+directory surface by extension and decides no reachability, because deciding
+reachability is the thing that failed. Both whole-file pins are kept —
+`ui/profile.js` is covered twice on purpose, since a manifest cannot say which
+single file a fixture is about.
+
+**The permanent H7 fixture is shaped to the finding.** It asserts that **both
+file pins and all secondary reachability checks stay EQUAL** and that **only the
+manifest moves**. Shipped into the real tree: **2 of 2049 red** — the manifest
+pin and its own fixture — and green on restore. It hashes a hypothetical tree
+through an `overrides` map rather than writing to disk.
+
+## P1-2 — the label normalisation is reverted
+
+v0.85 normalised this block's own `current:` / `current, prior:` labels to
+permanent version stamps and disclosed it. **Disclosure is not exemption.** The
+additive-block header and the v0.84 and v0.83 labels are **restored
+byte-for-byte from `7a23cf1`**; status is carried by a uniquely-labelled v0.86
+line above them; the v0.85 line stays exactly as written at `d6eb5ac`. The
+rolling `doctrine version:` / `doctrine version, prior:` lines remain
+byte-identical to `580a1a3`. **No prior byte is rotated again.**
+
+## P2-1 — H4 was never a bypass
+
+`profileForm` is a **`const`** at `index.html:1085`, so H4's
+`profileForm = document.createElement('form')` threw. Verified in isolation:
+
+```
+const reassign throws: TypeError: Assignment to constant variable.
+```
+
+Replaced with a legal decoy on the **initialiser**:
+
+```
+const profileForm = location.protocol === 'file:' ? $('profile-form') : document.createElement('form');
+```
+
+Verified in isolation — real node under `file:`, decoy under `https:`, no throw.
+**H4's bytes/hash correct additively to 69,438 B / `fb2c39579eda0c23…`**;
+v0.85 and Addendum 18 recorded 69,458 / `c4eb6561…`, which was the throwing
+form. Re-measured with all six shipped into the real tree, own fixture red in
+every case:
+
+| case | index.html after | suite |
+|---|---|---|
+| H1 | 69,563 B / `ca5d37db…` | 23 / 42 |
+| H2 | 69,466 B / `83377207…` | 23 / 42 |
+| H3 | 69,458 B / `0488e1c9…` | 24 / 42 |
+| **H4 (corrected)** | **69,438 B / `fb2c3957…`** | 23 / 42 |
+| H5 | 69,507 B / `b710bac0…` | 23 / 42 |
+| H6 | 69,372 B / `50240c8c…` | 24 / 42 |
+
+## P2-2 — the root-inventory claim, narrowed
+
+`.js` files in the repo **root directory** only. Not subdirectories, not
+`.mjs`, not other extensions, not the rest of the root's contents.
+
+## P3 — four corrections
+
+1. **The `index.html` text/raw-byte round-trip is now asserted**, beside
+   `ui/profile.js`'s. The H-fixtures mutate index.html as a decoded string and
+   compare to a raw-byte pin; if those disagreed every H-fixture would be
+   quietly meaningless.
+2. **Alternate-export: 22/40 → 4/40** at `d6eb5ac`'s guard. The 22 came from a
+   degenerate always-`undefined` variant that breaks the behavioural drives —
+   not the real survivor, which is invisible to behaviour by construction.
+   Against this cycle's guard it measures **6 of 42** (the manifest and the H7
+   fixture also fire, `ui/profile.js` being inside the manifest).
+3. **H7's suite figure: 2037 → 2047.**
+4. **"Five of the six sit outside the handler body" → all six.**
+
+Other survivors re-measured against the 42-test guard: event-in-place 30/42 ·
+`import.meta` 6/42 · nested-shadow 24/42 · H7 2/2049 (full suite).
+
+## The residual, open and named
+
+Listener registration and firing. The live DOM control, which no drive touches.
+`resolveGenderSelect` — pinned and manifest-covered, never executed, because
+production boots `{ form, anchor }` while the drives pass `{ genderSelect }` and
+§12 forbids a DOM harness. Second-hop, descriptor-routed, symbol-keyed, `has`
+and ownKeys-style reads; writes and deletes on either proxied ref. **Runtime
+surfaces outside the manifest's covered set** — `assets/`, JSON, the hosting
+platform's delivery. And a pin or manifest updated without review.
+
+No runtime edit, parser, package, browser harness or lexer expansion; no
+`git checkout`, `reset`, `clean` or `amend`.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
