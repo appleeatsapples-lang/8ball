@@ -230,7 +230,10 @@ export function genderTokens({ body, kind }) {
 //
 // A scope-aware parser would fix (3) and neither (1) nor (2), and §7 stage 4
 // caps devDependencies. The absolute claim now rests on exact source bytes
-// (length + SHA-256 of each bounded function on the value path) combined with
+// (UTF-8 length + SHA-256 of the whole of ui/profile.js, plus two named regions
+// of index.html — NOT of "each function on the value path", which was itself an
+// overclaim: pinning slices left the module around them open, and the two
+// index.html regions cover 3.3% of that file) combined with
 // behavioural execution, a runtime member-path policy and a frozen option
 // object — see the SOURCE PINS block in `tests/submit_seam.test.js`. Bytes
 // enumerate nothing and model no scopes, which is why all three survivors land

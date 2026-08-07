@@ -1759,3 +1759,223 @@ bypasses are unchanged and still behavioural.
   "prior" and v0.81's to "superseded", per the established rolling convention.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 17 — audit of `7bb5630`: a slice pins a substring; three P1s, two P2s, one P3
+
+Final cross-model audit of `7bb5630` returned **DO NOT MERGE — P0 0 / P1 3 /
+P2 2 / P3 1**. All six absorbed. Every finding was **reproduced in this repo
+before any edit**, in isolated `/private/tmp` clones; the reproductions are
+recorded below with their real numbers. Addenda 1–16, the §5 v0.83 amendment and
+the 2026-08-07 journal entry are preserved byte-for-byte; the corrections are
+the additive **v0.84** amendment, this addendum, and a new journal entry.
+
+## P1-1 — the `ui/profile.js` pins guarded SUBSTRINGS, not the live export
+
+`export function f(){}` creates a **mutable** binding, and ES module exports are
+**live**. Appending to the module:
+
+```
+function readControl() {
+  if (import.meta.url.startsWith('http')) return undefined;
+  const v = _genderSelect && _genderSelect.value;
+  return v === 'male' || v === 'female' ? v : undefined;
+}
+getGenderInput = readControl;
+```
+
+with both identifiers written using Unicode escapes, so the literal substring
+never appears.
+
+| measurement | clean `7bb5630` | under the swap |
+|---|---|---|
+| `getGenderInput` declaration slice | 143 B / `825a4df3…` | **143 B / `825a4df3…` — IDENTICAL** |
+| `ui/profile.js` whole file | 17,566 B / `d6fba912…` | 17,807 B / `a96b302f…` |
+| `tests/submit_seam.test.js` | 32 passed | **32 passed** |
+| `tests/profile.test.js` + seam | 244 passed | **244 passed** |
+| full suite | 57 files / 2039 tests | **57 files / 2039 tests GREEN** |
+
+The escapes are load-bearing: written plainly, the same attack turns the raw
+allowlist red (**1 failed / 2038 passed**).
+
+**Live divergence, demonstrated not inferred.** Using `node:module`
+`registerHooks` to serve the same bytes under a real `https:` module URL, with
+no network:
+
+```
+imported binding name   : readControl        <- NOT the pinned declaration
+module URL              : https://the-eight-ball.netlify.app/ui/profile.js
+value under https: URL  : undefined
+value under file:  URL  : female
+```
+
+**FIXED:** the four declaration-slice pins are replaced by **ONE raw-Buffer pin
+over the whole of `ui/profile.js` — 17,566 bytes, SHA-256
+`d6fba912fcb9edc146c0af3fd93203652b3e1acc533f39cbba11fe007996099e`**. A
+live-binding swap, a module-level statement, a new export, a comment and a
+stray space are now the same event. `index.html` keeps its two regional pins,
+because it is the product's entire single-file host and pinning all of it would
+red on every unrelated edit; the residual enumerates what that leaves open.
+
+**No parser, no package.** `node_modules` holds 36 packages; the only two that
+parse anything are `es-module-lexer` (import/export statements only) and
+`@oxc-project/types` (TypeScript declarations, `MODULE_NOT_FOUND` at runtime).
+
+## P1-2 — L17: the footer's rolling labels were demoted
+
+v0.83 moved v0.82 from `doctrine version:` to `doctrine version, prior:`, and
+v0.81 from `doctrine version, prior:` to `superseded:`. The bodies were
+preserved and that was checked; the LINES were not, and L17 is about lines.
+**Both restored byte-for-byte to their `580a1a3` form.** Current status is now
+carried by a new additive block above them which states explicitly that the
+rolling labels below are frozen and are not the current version.
+
+## P1-3 — the named counter-cases took their baseline from the LIVE file
+
+Each read `readHtml()` / `readProfile()`, mutated a copy, and asserted the two
+differ. With a survivor already on disk, both sides carry it and every clause
+still holds.
+
+| survivor installed in the real tree | its NAMED counter-case | suite |
+|---|---|---|
+| nested-shadow laundering | **PASSED** | 1 failed / 31 passed |
+| event-object in-place mutation | failed — but at its *control* clause, not a baseline check | 21 failed / 11 passed |
+| `import.meta.url` producer branch | failed, at a hard-coded clean-baseline constant it already had | 2 failed / 30 passed |
+
+The asymmetry is the finding: the nested-shadow survivor is behaviourally
+invisible **by construction** — the fixture asserts that itself — so its only
+evidence was a mutant-vs-live comparison, and live is exactly what was
+compromised. The event-in-place fixture escaped by luck.
+
+**FIXED at every counter-case site, not just the three named ones.**
+`cleanHtml()` / `cleanProfile()` assert the live source matches the **reviewed
+pin constant** before a fixture proceeds; `pinFor` throws at import unless
+exactly one pin matches its label, so a renamed pin fails closed instead of
+degrading to a stale literal.
+
+## P2-1 — the read recording is FIRST-HOP ONLY
+
+Measured, not inferred. `strictAccess` has a single `get` trap and returns
+values un-proxied, so it records a **string-keyed `get` on the root object and
+nothing else**. Silent, each verified: nested reads (`e.target.ownerDocument`
+records `target` alone, and `.title` below it is invisible); symbol-keyed reads;
+`in`; `Object.keys` / `for…in` / `getOwnPropertyNames` / `Reflect.ownKeys`;
+`getOwnPropertyDescriptor`; and — **not in the finding as filed, and the larger
+hole** — **writes and `delete`, which have no trap at all and are neither
+recorded nor blocked**. Spread IS recorded, since `{...e}` performs a `get` per
+key, so it is not an enumeration bypass.
+
+The claim is **narrowed** in the test file and in v0.84 rather than closed: no
+new traps were added, and the limits are named in the residual. What the
+instrument still does is the one thing a byte pin cannot — prove the executed
+handler touched `preventDefault` on its event and nothing else at the root,
+evidence that survives a blind hash update.
+
+## P2-2 — the byte counts were UTF-16 code units
+
+`String.length` counts units, not bytes, and §6's comments carry `§` and `β`.
+The handler body is **2,017 UTF-8 bytes** (recorded as 2,006);
+`resolveGenderSelect` is **1,137** (recorded as 1,135, and no longer pinned
+separately — the whole-file pin covers it). The import-specifier line, 253, is
+pure ASCII and unchanged. **The SHA-256 values were already taken over UTF-8 and
+did not move.** Fingerprints are now computed over raw `Buffer`s, and a test
+asserts the decoded text re-encodes to the file's exact bytes so a mutated
+string stays comparable to a pinned file.
+
+## P3 — correction
+
+v0.83 and the 2026-08-07 journal entry say the field was deleted "between the
+two" / "between the two consumers". Correct: **between production and both
+consumers** — the delete runs immediately after `buildSubmitOpts` returns,
+before either consumer is called.
+
+## Counter-cases, and the exact assertion each turns red
+
+Applied to the **real tree**, `tests/submit_seam.test.js`, now **30 tests**
+(32 − 4 declaration pins + 1 whole-file pin + 1 new fixture, and the two anchor
+tests merged), all green on restore:
+
+| survivor | red | first assertion, and why |
+|---|---|---|
+| **alternate export / inert declaration** (new) | **4 / 30** | the whole-file pin; and the new named fixture, which asserts the RETIRED declaration pin stays EQUAL while the whole-file pin moves — so it states the exact reason the guard was relocated |
+| event-object in-place mutation | **22 / 30** | `cleanHtml` baseline, then `eventReads` gains `target`, then `TypeError: Cannot delete property 'gender'`, then the handler pin |
+| `import.meta.url` producer branch | **4 / 30** | the whole-file pin and `cleanProfile`; behaviour is blind and the fixture asserts why (`import.meta.url` is `file:` here) |
+| nested-shadow laundering | **16 / 30** | `cleanHtml` — it now fails for its intended reason, where before it passed |
+
+## A named path NOT taken this cycle
+
+Node's `module.registerHooks` gives a module a genuine `https:`
+`import.meta.url` in-process, with no network and no new package; it is how the
+P1-1 divergence above was demonstrated. It would convert two pin-only
+counter-cases into behavioural ones. **Not adopted here**: it is a new harness
+capability that needs its own audit, and `package.json` declares
+`engines.node >= 20.19` while `registerHooks` requires newer. Recorded with its
+evidence so the next cycle can rule on it.
+
+## The residual, restated against this cycle's evidence
+
+- **Closed:** every byte of `ui/profile.js`, including replacement of a live
+  export binding; the bytes of the submit handler body and of the seam's import
+  specifier line; any first-hop string-keyed read on the event beyond
+  `preventDefault` or on the control beyond `value`; any mutation of the
+  produced object; any delivered object that is not the produced object; any
+  node-vs-browser disagreement across the eight probes; and, new this cycle,
+  any counter-case comparing a poisoned baseline against itself.
+- **Open, closed by nothing here:** listener registration and firing (no test
+  loads the page) — which also covers a second listener under a different
+  spelling and `profileForm` bound to a different node; **`index.html` outside
+  its two pinned regions**, including the bindings the handler closes over
+  (`selectedCity`, `timeInput`, `profileForm`); **`resolveGenderSelect` pinned
+  but never executed**, since production boots `{ form, anchor }` and the drives
+  pass `{ genderSelect }`, and §12 forbids a DOM harness; everything the
+  first-hop recording does not see (nested reads, symbols, `in`, ownKeys-style
+  enumeration, descriptors, writes, `delete`); and a pin updated without review.
+- **No generalized class is claimed closed on analysis of any kind.**
+
+## NOT SUFFICIENT — six bypasses of the REPAIRED guard
+
+Hunted adversarially after the repair was applied. Every one below ran with
+**all three pins byte-identical** (handler 2,017 / `4043a0b4…`, import line 253 /
+`2090e805…`, `ui/profile.js` 17,566 / `d6fba912…`), `SUBMIT_SIG` occurring
+exactly once, and the **full suite green**. Three were reproduced directly by
+this lane; all six were live-fired in headless Chrome over http by the audit
+lane, each showing `eight_ball_profile_v1` stored **without** the field while a
+pristine build under the identical dispatch stores it.
+
+| # | bypass | why it survives |
+|---|---|---|
+| 1 | **one of `index.html`'s 17 import lines** swapped to a root shim re-exporting `buildProfile`, which deletes the field from the **live, unfrozen** options object one statement before `saveProfile` — a **−1 byte** edit | the freeze fences the object the HARNESS builds and hands to STUB consumers; the real consumer chain is redirected upstream and is out of frame |
+| 2 | inline `<script type="importmap">` remapping the pinned specifier to a root shim | `ui/profile.js` is byte-identical on disk and **the page never loads it** — the pin covers the file, not the resolution |
+| 3 | a second `initProfileUI({…, genderSelect:{value:''}})` from the unpinned boot region | `resolveGenderSelect` returns the stub on its first line, repointing `_genderSelect`; the visible control keeps working |
+| 4 | `profileForm` rebound to `document.createElement('form')` under http | the pinned bytes run, against a decoy, and reach no user |
+| 5 | a second submit listener under a different spelling calling `stopImmediatePropagation()` | the anchor test counts the literal `SUBMIT_SIG`, which still appears once |
+| 6 | `defineProperty` shim on the live control's `value` | the drive injects its OWN control via `initProfileUI` and never touches the DOM one; the UI still shows the user's choice |
+
+Reproduced directly here: #1, #2, #3 — each `57 files / 2037 tests` green with
+every pin unmoved.
+
+**Coverage, measured.** `index.html` is 69,373 bytes / 1,469 lines. The two pins
+cover 2,270 bytes — **3.3%** — and **1 of its 17 import lines**. `ui/profile.js`
+is covered whole.
+
+**So the claims are narrowed, not restated:**
+
+- the freeze closes in-place mutation **by the pinned handler body**, not the class;
+- identity coupling constrains what the handler passes on, **not what the real consumers do**;
+- the whole-file pin closes rebinding expressible in `ui/profile.js`'s own bytes, and **does not establish that `ui/profile.js` is the module the page loads**;
+- v0.83's "(1) fails three independent ways" holds for one spelling only — rewriting the read as `Object.getOwnPropertyDescriptor(e,'target').value.ownerDocument` records nothing and leaves the first-hop assertion **green** (verified: mutation still 21 of 30 red, that assertion among the 9 that passed).
+
+## The named next step, NOT taken here
+
+Pinning `index.html` whole-file as `ui/profile.js` now is would kill five of the
+six; reachability assertions — no importmap, every specifier resolving inside
+`./ui/` or `./core/`, module inventory extended to the repo root — would close
+the resolution class behind #1 and #2. Both are real work with real cost:
+`index.html` is the product's single host under active amendment, and a
+whole-file pin reds on every unrelated edit. That trade belongs to the
+controller and this audit, and shipping new unaudited guards inside a correction
+cycle is the failure mode this addendum exists to prevent. **Recommendation:
+rule on it before merge; the seam is not closed.**
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

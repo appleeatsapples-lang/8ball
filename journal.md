@@ -5,6 +5,74 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-07 (later) — A slice pins a substring; and the guard is still not sufficient — STAGED
+
+**Yesterday's entry ends "generality was the defect."** Then I shipped a guard
+that was exact about the wrong thing. Pinning six function bodies felt like
+exactness. It was exactness about *substrings*, and the module around them was
+open.
+
+**`export function f(){}` is a mutable binding, and module exports are live.**
+Leave my pinned declaration byte-for-byte — 143 bytes, `825a4df3…`, green —
+append a different accessor, write `getGenderInput = readControl`, and every
+importer gets the replacement. With Unicode escapes the raw allowlist stays
+green too; without them it reds, which is a fair measure of what that allowlist
+was really carrying. Full suite 57 files / 2039 tests green. Under a real
+`https:` module URL the same bytes return `undefined`; under `file:`, the value.
+
+The one that stung: **my counter-cases took their baseline from the live file.**
+Read the file, mutate a copy, assert they differ. Ship the survivor and both
+sides carry it — every clause holds and the fixture reports PASS. The
+nested-shadow test, whose whole job is to catch a bypass behaviour cannot see,
+passed while that exact bypass sat in the shipped file. I had written "assert
+the blindness premise" into that very file and then hung the only real evidence
+on a baseline the attacker controls.
+
+Two more things I had just got wrong, factually. My byte counts were
+`String.length` — UTF-16 code units — so a 2,017-byte handler body was recorded
+as 2,006, because §6's comments contain `§` and `β`. And I called the proxy a
+"member-path policy" when it has one `get` trap and records the first hop only:
+nested reads, descriptors, `in`, `Object.keys`, symbols — and writes and
+`delete`, which I never thought to check — are all silent. Measuring it took
+four minutes. I shipped the adjective without doing that.
+
+**The fix is one pin, not four.** `ui/profile.js` is pinned whole, over raw
+bytes. Every counter-case baseline moved onto the reviewed constant. The
+descriptor rewrite of my flagship mutation proved "three independent ways" was
+one spelling, so that is now stated as one spelling.
+
+**And then the part that matters most.** I went looking for what the repair
+still misses, and found six working bypasses with every pin byte-identical and
+the suite green. The sharpest is a **one-byte** edit: swap one of `index.html`'s
+seventeen import lines to a root shim, and the real `buildProfile` deletes the
+field from the **live, unfrozen** object one statement before it is stored. My
+freeze never saw it, because the freeze fences the object my harness builds and
+hands to my own stubs — the real consumer was never in frame. An importmap
+retargets the pinned specifier so the byte-perfect file is simply never loaded.
+A second `initProfileUI` call repoints the control at a dead stub. The two
+`index.html` pins cover 3.3% of that file.
+
+**So I am not claiming the seam is closed, and the record says so in its own
+first paragraph.** I could have pinned `index.html` whole-file tonight and
+killed five of the six. I did not, because that reds on every unrelated edit to
+the product's single host file, and because adding unaudited guards inside a
+correction cycle is precisely the move that produced the last three rounds. It
+is written up as the named next step with its cost, for the audit to rule on.
+
+**What I want to remember.** Three rounds running, the defect has been the
+guard's *scope* or *baseline* — assumed — while its *mechanism* got all my
+attention. A hash is only as good as the region it covers and the reference it
+compares against. The question when a guard looks finished is not "can I defeat
+this mechanism" but "what is this comparing, and who controls the other side."
+
+Product runtime **byte-unchanged** vs `446a187`. Suite **57 files / 2037 tests
+green** · product audit **PASS 14/0/0/0** on a clean tree · assurance **102
+tests OK** · local PII audit **clean, 863 files** · `index.html` **1469/1500** ·
+DOCTRINE at **v0.84**.
+
+**STAGED — DO NOT MERGE.** No push, no PR, no merge, no deploy, no storefront
+mutation.
+
 ## 2026-08-07 — Inverting the question was still analysis; the claim moves onto bytes — STAGED
 
 **Yesterday's entry ends "what finally worked was inverting the question."** It
