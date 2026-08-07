@@ -200,3 +200,59 @@ export function genderTokens({ body, kind }) {
   // the card while naming no property, and `\bgender\b` could not see it.
   return out.match(/gender/gi) || [];
 }
+
+// ── free-identifier extraction (a POSITIVE policy, not a deny-list) ──
+//
+// Every deny-list this repo wrote was defeated by the name that was not on it:
+// a browser-globals shim listed seven and a raw ban eleven, and `history` and
+// `HTMLElement` walked past both. Enumerating what a page exposes is not a
+// finite job, so the guards that matter pin what a scope IS allowed to
+// reference and reject everything else — `history` fails not because it is
+// listed but because it is new.
+//
+// Deliberately conservative: object-literal keys and a few shorthand forms are
+// reported as free. That over-reports, which fails CLOSED — a spurious name
+// makes the pin red and a human resolves it — whereas under-reporting would be
+// a hole. Comments, strings and regex bodies are stripped first, so a name in
+// prose never registers.
+const JS_KEYWORDS = new Set([
+  'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while',
+  'do', 'break', 'continue', 'new', 'typeof', 'instanceof', 'in', 'of',
+  'delete', 'void', 'try', 'catch', 'finally', 'throw', 'switch', 'case',
+  'default', 'this', 'null', 'true', 'false', 'undefined', 'async', 'await',
+  'yield', 'class', 'extends', 'super', 'import', 'export', 'from', 'as',
+  'static', 'get', 'set',
+]);
+
+/** Source with comments, strings and regex literals blanked to spaces. */
+export function codeOnly(src) {
+  const kind = classify(src);
+  let out = '';
+  for (let i = 0; i < src.length; i++) out += kind[i] === CODE ? src[i] : ' ';
+  return out;
+}
+
+/**
+ * Identifiers a body references without declaring — its dependency surface.
+ * Property accesses (`x.foo`) are excluded; local declarations are subtracted.
+ */
+export function freeIdentifiers(body) {
+  const code = codeOnly(body);
+  const locals = new Set();
+  for (const m of code.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) locals.add(m[1]);
+  for (const m of code.matchAll(/\b(?:const|let|var)\s*\{([^}]*)\}/g)) {
+    for (const part of m[1].split(',')) {
+      const name = part.split(':').pop().trim();
+      if (name) locals.add(name);
+    }
+  }
+  for (const m of code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)/g)) locals.add(m[1]);
+  const free = new Set();
+  for (const m of code.matchAll(/(\.?)\b([A-Za-z_$][\w$]*)\b/g)) {
+    if (m[1] === '.') continue;
+    const name = m[2];
+    if (JS_KEYWORDS.has(name) || locals.has(name)) continue;
+    free.add(name);
+  }
+  return [...free].sort();
+}

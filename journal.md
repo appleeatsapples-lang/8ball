@@ -5,6 +5,55 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-06 — Enumeration was never going to work; pin the surface instead — STAGED
+
+**Two P1s, and together they end the approach I had been iterating for five
+rounds.** I kept making the LIST longer — seven browser globals in the shim,
+eleven in the ban — and `history` and `HTMLElement` were in neither. A handler
+probing them selected a gender-free object and routed both consumers through
+it: pinned call intact, inventory byte-identical, all 16 seam tests green, and
+a real browser dropping the field.
+
+The same mutation showed something I had never tested at all: **the pinned
+call's presence was never coupled to what the consumers receive.** I had been
+proving a call exists and quietly assuming its result is what gets used.
+
+**And the driver stubbed the producer it was verifying.** Sabotage the real
+`getGenderInput` and 246 of 246 tests stay green, because the seam injects
+`getGenderInput: () => gender` in its place. A driver that replaces the thing
+under test proves that its own stub works. That one is embarrassing in a
+specific way: I wrote "execute the real bytes" as the whole lesson of two
+rounds ago, then executed real bytes around a fake producer.
+
+**The fix stops enumerating.** A **positive free-identifier policy** pins what
+each scope may reference at all — 28 names for the handler, one for the
+producer — so `history` fails **because it is new**, not because anyone
+predicted it. The deny-list is deleted rather than extended. Coupling is
+asserted by **identity**: both consumers must receive the very object the
+pinned call returned. And the real producer is driven, wired to a stub control.
+
+The producer sabotage is now caught **even though neither environment defines
+`history`** — which is the test that the approach is right. Closure no longer
+depends on my having anticipated the global.
+
+**The residual, and I am stating it no wider than the evidence this time.**
+Closed: any spelled reference outside the pinned surface, and any delivered
+object that is not the produced object. Open: listener registration (manual
+browser pass only), and runtime-built indirection spelling no identifier —
+the policy is lexical, so it sees names, not values. Nothing here reaches that,
+and I added no dependency to chase it.
+
+**The arc of this whole run, in one line:** I kept fixing the instance and
+lengthening the list, and every round the next case walked past. What finally
+worked was inverting the question — not *which names are forbidden* but *which
+names are allowed*.
+
+Product runtime **byte-unchanged**. Suite **57 files / 2029 tests green** ·
+product audit **PASS 14/0/0/0** · local PII audit **clean, 863 files** ·
+`index.html` **1469/1500** · DOCTRINE at **v0.82**.
+
+**STAGED.** No push, no PR, no merge, no deploy, no storefront mutation.
+
 ## 2026-08-06 — I closed the example again, not the class — STAGED
 
 **DO NOT MERGE verdict, and it was right.** Last round I added a browser

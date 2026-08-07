@@ -1514,3 +1514,83 @@ Addendum 12 stays unedited because the artifact is append-only.
   `d424253`; nothing removed but two demoted labels.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+
+---
+
+# ADDENDUM 15 — audit of `446a187`: finite lists retired
+
+**Verdict received: DO NOT MERGE**, two P1s and one P2. All CONFIRMED and
+absorbed. Append-only; addenda 1–14 stand unedited.
+
+## P1-1 — the enumeration was never going to be finite
+
+v0.81 installed a shim of seven browser globals and a raw ban of eleven.
+**`history` and `HTMLElement` are in neither.** A handler probing them selected
+a gender-free object and routed **both** consumers through it:
+
+| signal | result |
+|---|---|
+| HOST_CALL count | **1** |
+| raw gender inventory | **byte-identical** |
+| all 16 seam tests | **green** |
+| real-browser-shaped run | **gender omitted, rendered** |
+
+And it demonstrated a second gap the guards never addressed: **the pinned
+call's presence is not coupled to what the consumers receive.**
+
+## P1-2 — the driver stubbed the producer it was verifying
+
+Sabotaging the real `getGenderInput` — `if (typeof history !== "undefined")
+return undefined;` — left **246 of 246** relevant tests green, because the seam
+injected `getGenderInput: () => gender`. A driver that replaces the thing under
+test proves only that its own stub works.
+
+## The fix — structural, and no new list
+
+- **A POSITIVE free-identifier policy** over the bounded handler **and** the
+  real producer. Every identifier a scope references without declaring is
+  pinned: 28 for the handler, one (`_genderSelect`) for the producer. `history`
+  fails **because it is new to the surface**, not because someone thought to
+  forbid it. The deny-list is **deleted**, not extended. The extractor is
+  conservative on purpose — object keys register as free — because
+  over-reporting fails closed and under-reporting is a hole.
+- **Coupling by IDENTITY.** The object returned by the pinned call is captured
+  and both consumers are asserted to receive *that reference*, not an equal
+  shape, in both environments, with the object built exactly once.
+- **The REAL producer is driven**, wired to a stub control, instead of replaced.
+
+Counter-cases ship for `history`, `HTMLElement` and `queueMicrotask` probes,
+the consumer-decoupling route, and the producer sabotage.
+
+**Re-verified.** The handler bypass now fails the surface policy **and** both
+identity assertions (3 red). The producer sabotage fails the producer surface
+with `['_genderSelect', 'history']` — **caught although neither environment
+defines `history`**, which is the whole point: closure no longer depends on
+having anticipated the global.
+
+## P2 — the record, corrected additively
+
+v0.81, Addendum 14 and the journal said the spelled environment class was
+closed with only registration and runtime-built indirection open. Two spelled
+survivors falsify that. The statement now, no broader than the evidence:
+
+- **Closed:** any spelled reference outside the pinned dependency surface, in
+  the handler or the producer; and any delivered object that is not the
+  produced object.
+- **Open, closed by nothing here:** listener registration and firing (manual
+  browser pass only); runtime-built indirection spelling no identifier
+  (`globalThis["hist" + "ory"]`); and the policy is **lexical**, so it sees
+  names, not values. No persistent dependency was added to chase these.
+
+## Verification
+
+- vitest **57 files / 2029 tests green** (2023 → 2029)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- local PII audit **clean, 863 files** · `index.html` **1469/1500**
+- **Product runtime byte-unchanged** vs `446a187` (`index.html`, `ui/`,
+  `core/`, `content/`, `assets/` — empty diff). Feature freeze holds.
+- L17: the §5 v0.81 clause and its footer body are byte-identical to
+  `446a187`; nothing removed but two demoted labels.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { functionBody } from './helpers/js-lex.js';
-import { buildSubmitOpts } from '../ui/profile.js';
+import { freeIdentifiers, functionBody } from './helpers/js-lex.js';
+// The REAL producer, not a stub of it — see the driver comment below.
+import { buildSubmitOpts, getGenderInput, initProfileUI } from '../ui/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SUBMIT_SIG = "profileForm.addEventListener('submit', e => {";
@@ -62,21 +63,32 @@ function withEnvironment(env, fn) {
 }
 
 function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' } = {}) {
+  // Wire the real producer to a real control carrying the value under test.
+  initProfileUI({ genderSelect: { value: gender === undefined ? '' : gender } }, {});
   const { body } = functionBody(html, SUBMIT_SIG);
-  const seen = { build: null, save: null, rendered: false, threw: null };
+  const seen = { build: null, save: null, rendered: false, threw: null, produced: [], buildRef: null, saveRef: null };
   const deps = {
     e: { preventDefault() {} },
-    buildSubmitOpts,
+    buildSubmitOpts: (...args) => { const o = buildSubmitOpts(...args); seen.produced.push(o); return o; },
     validateBirthInput: ({ name, dob }) => ({ name: name.trim(), dob }),
     applyBirthInputValidationState: () => true,
     birthValidationRefs: {},
     nameInput: { value: 'Profile Specimen' }, dobInput: { value: '1990-06-15' },
     timeInput: { value: time },
-    getGenderInput: () => gender,
+    // The REAL producer, wired to a stub control. An audit sabotaged
+    // `getGenderInput` itself — `if (typeof history !== "undefined") return
+    // undefined;` — and 246 tests stayed green, because the seam injected a
+    // fake in its place. A driver that stubs the thing it is verifying proves
+    // only that its own stub works.
+    getGenderInput,
     selectedCity: city,
     loadSavedProfile: () => null, isNewPair: () => true, nextShakeState: () => ({ action: 'render' }),
-    buildProfile: (n, d, o) => { seen.build = { ...o }; return { lifePath: 7, name: n }; },
-    saveProfile: (n, d, o) => { seen.save = { ...o }; return true; },
+    // Record the REFERENCE as well as the shape: an audit routed both
+    // consumers through a second, gender-free object while the pinned call
+    // survived byte-for-byte beside it. Presence of the call says nothing
+    // about what the consumers actually receive.
+    buildProfile: (n, d, o) => { seen.build = { ...o }; seen.buildRef = o; return { lifePath: 7, name: n }; },
+    saveProfile: (n, d, o) => { seen.save = { ...o }; seen.saveRef = o; return true; },
     showPaidBanner: () => {}, PROFILE_SAVE_STORAGE_MESSAGE: '',
     readingsUI: { setActiveReading: () => {} }, getRenderTier: () => 'complete',
     coordsForTier: () => new Set(['cardEntry']), ensureFacetIndex: () => {},
@@ -179,18 +191,117 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     expect(typeof globalThis.document, 'the browser globals leaked out of the helper').toBe('undefined');
   });
 
-  // A bounded RAW guard over the ~38-line handler: it may not name an
-  // environment-sensitive global at all. Runtime-built indirection
-  // (`globalThis["docu"+"ment"]`) stays honestly open — no static check closes
-  // that — but the spelled class cannot reach the handler unnoticed.
-  it('the submit handler names NO environment-sensitive global', () => {
-    const { body } = functionBody(readHtml(), SUBMIT_SIG);
-    const named = ['window', 'document', 'location', 'navigator', 'self',
-      'globalThis', 'process', 'top', 'parent', 'frames', 'screen']
-      .filter(g => new RegExp(`\\b${g}\\b`).test(body));
-    expect(named,
-      'the submit handler reached for an environment global — the option object '
-      + 'must not depend on where it runs').toEqual([]);
+  // ── the POSITIVE policy: what these scopes may reference at all ──
+  //
+  // Two finite deny-lists died here first: a browser-globals shim listing
+  // seven names and a raw ban listing eleven, both walked past by `history`
+  // and `HTMLElement`. Enumerating what a page exposes is not a finite job.
+  //
+  // So these pin the DEPENDENCY SURFACE instead. Every identifier the scope
+  // references without declaring is listed; anything new fails, whether it is
+  // `history`, `HTMLElement`, `queueMicrotask` or a global invented next year.
+  // `history` fails not because it is forbidden but because it is NEW.
+  const HANDLER_FREE = [
+    'PROFILE_SAVE_STORAGE_MESSAGE', '_', 'applyBirthInputValidationState', 'arrive',
+    'birthValidationRefs', 'buildProfile', 'buildSubmitOpts', 'city', 'coordsForTier',
+    'dobInput', 'e', 'ensureFacetIndex', 'gender', 'getGenderInput', 'getRenderTier',
+    'isNewPair', 'loadSavedProfile', 'nameInput', 'nextShakeState', 'readingsUI',
+    'reset', 'saveProfile', 'selectedCity', 'showPaidBanner', 'showResult', 'time',
+    'timeInput', 'validateBirthInput',
+  ];
+  // The PRODUCER too — sabotaging it was a separate live bypass, and a scope
+  // that may reference only its own module-local binding cannot probe anything.
+  const PRODUCER_FREE = ['_genderSelect'];
+
+  it('the submit handler references nothing outside its declared surface', () => {
+    expect(freeIdentifiers(functionBody(readHtml(), SUBMIT_SIG).body),
+      'the handler gained a dependency. If it is a legitimate module binding, add '
+      + 'it here deliberately; if it is an environment global, that is the bug.')
+      .toEqual(HANDLER_FREE);
+  });
+
+  it('the producer references nothing outside its declared surface', () => {
+    const src = readFileSync(join(__dirname, '..', 'ui', 'profile.js'), 'utf-8');
+    expect(freeIdentifiers(functionBody(src, 'export function getGenderInput() {').body),
+      'getGenderInput gained a dependency — the value must not depend on where it runs')
+      .toEqual(PRODUCER_FREE);
+  });
+
+  // ── coupling: the pinned call's object is what the consumers receive ──
+  //
+  // An audit kept the pinned HOST_CALL byte-for-byte and routed BOTH consumers
+  // through a second, gender-free object built beside it. Every guard was
+  // green. Presence of a call says nothing about what is delivered, so this
+  // asserts IDENTITY, not shape.
+  for (const env of ENVIRONMENTS) {
+    it(`both consumers receive the exact object the pinned call produced [${env}]`, () => {
+      const seen = driveSubmit(readHtml(), { gender: 'female', env });
+      expect(seen.produced.length, 'the option object was built more than once').toBe(1);
+      expect(seen.buildRef, 'buildProfile received a different object').toBe(seen.produced[0]);
+      expect(seen.saveRef, 'saveProfile received a different object').toBe(seen.produced[0]);
+      expect(seen.buildRef, 'the two consumers received different objects').toBe(seen.saveRef);
+      expect(seen.buildRef.gender, 'the delivered object carries no gender').toBe('female');
+    });
+  }
+
+  // ── counter-cases for the two bypasses that got past finite lists ──
+
+  it('catches: an environment probe on a global no deny-list contained', () => {
+    // `history` and `HTMLElement` were outside BOTH the 7-name browser shim
+    // and the 11-name raw ban. The positive policy needs neither: they fail
+    // because they are new to the surface, not because they are listed.
+    for (const global of ['history', 'HTMLElement', 'queueMicrotask']) {
+      const bad = readHtml().replace(HOST_CALL, [
+        '  let submitOpts;',
+        `  if (typeof ${global} === "undefined") {`,
+        HOST_CALL,
+        '    submitOpts = opts;',
+        '  } else {',
+        `  ${FALLBACK.trim().replace('const opts =', 'submitOpts =')}`,
+        '  }',
+        '  const opts = submitOpts;',
+      ].join('\n'));
+      expect(bad, `the ${global} mutation did not apply`).not.toBe(readHtml());
+      expect(inventory(bad), 'premise broken: the raw inventory changed').toEqual(inventory(readHtml()));
+      expect(freeIdentifiers(functionBody(bad, SUBMIT_SIG).body),
+        `a ${global} probe did not register on the dependency surface`)
+        .toContain(global);
+    }
+  });
+
+  it('catches: the consumers routed through a second, gender-free object', () => {
+    // The pinned call survives byte-for-byte; a lean object is built beside it
+    // and BOTH consumers receive that instead. Byte pins see nothing.
+    const html = readHtml();
+    const bad = html
+      .replace(HOST_CALL, `${HOST_CALL}\n${FALLBACK.replace('const opts', 'const leanOpts')}`)
+      .replace('const profile = buildProfile(name, dob, opts);',
+        'const profile = buildProfile(name, dob, leanOpts);')
+      .replace('if (!saveProfile(name, dob, opts)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);',
+        'if (!saveProfile(name, dob, leanOpts)) showPaidBanner(PROFILE_SAVE_STORAGE_MESSAGE);');
+    expect(bad, 'the mutation did not apply').not.toBe(html);
+    expect(bad.split(HOST_CALL.trim()).length - 1, 'premise broken: the pinned call changed').toBe(1);
+    expect(inventory(bad), 'premise broken: the raw inventory changed').toEqual(inventory(html));
+
+    const seen = driveSubmit(bad, { gender: 'female' });
+    expect(seen.rendered, 'the mutant did not run — this would pass vacuously').toBe(true);
+    expect(seen.buildRef, 'the consumers still received the pinned object').not.toBe(seen.produced[0]);
+    expect(seen.build.gender, 'the delivered object still carried the value').toBeUndefined();
+  });
+
+  it('catches: the PRODUCER sabotaged, which a stubbed producer hid entirely', () => {
+    // `if (typeof history !== "undefined") return undefined;` at the top of the
+    // real getGenderInput left 246 tests green, because the driver injected a
+    // fake in its place. Now the real one is driven, and its dependency surface
+    // is pinned — so the probe registers even though neither environment here
+    // defines `history`.
+    const src = readFileSync(join(__dirname, '..', 'ui', 'profile.js'), 'utf-8');
+    const bad = src.replace('export function getGenderInput() {',
+      'export function getGenderInput() {\n  if (typeof history !== "undefined") return undefined;');
+    expect(bad, 'the mutation did not apply').not.toBe(src);
+    expect(freeIdentifiers(functionBody(bad, 'export function getGenderInput() {').body),
+      'a sabotaged producer did not register on its dependency surface')
+      .toEqual(['_genderSelect', 'history']);
   });
 
   it('behaves IDENTICALLY under node and browser globals', () => {
