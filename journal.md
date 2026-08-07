@@ -5,6 +5,70 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-07 — Inverting the question was still analysis; the claim moves onto bytes — STAGED
+
+**Yesterday's entry ends "what finally worked was inverting the question."** It
+did not work. The positive surface was defeated three ways, and I reproduced
+all three myself before touching anything — full suite 57 files / 2029 tests
+green under each.
+
+**A name is not a path.** `e` was on the allowed surface, so
+`e.target.ownerDocument` referenced nothing new; property accesses are excluded
+from a free-identifier scan *by construction*, which made every allowed root a
+doorway. `Object` walked in as `opts.constructor`. The mutation deleted gender
+out of the produced object **in place**, between the two consumers — so the
+host call was still there once, the inventory byte-identical, one object built,
+and both consumers holding that exact object. Every guard I was proud of
+yesterday reported green on a live bypass. It was inert under the harness only
+because the seam's event stub was a bare `{preventDefault}` — too poor to run
+the mutation. My harness passed it by being underbuilt.
+
+**`import.meta` is spelled and invisible.** `import` is a keyword, `.url` and
+`.startsWith` are member paths, so the producer's surface stayed exactly
+`['_genderSelect']`. Vitest loads from `file:`; the shipped module is fetched
+over `http(s):`.
+
+**And the extractor has no scopes.** A dead `if (false) { const Image = null; }`
+subtracts `Image` from a read that happened earlier and outside that block.
+JavaScript does not shadow backwards; my scan believed it did.
+
+**The honest reading of the third one:** `tests/helpers/js-lex.js` says in its
+own header, in the bytes I wrote, that it is SECONDARY, NOT PRIMARY and that a
+hand lexer cannot carry an absolute claim. I read that, agreed with it, and
+then built the primary guard on it anyway. The defect was not a missing rule.
+
+**So the absolute claim comes off analysis entirely.** Every function the value
+passes through is small, so each one's exact source is pinned — length and
+SHA-256, six units, no parsing at all. Bytes enumerate nothing and model no
+scopes, which is why a member path, an `import.meta` branch, a shadowed
+declaration, a runtime-built key and a stray space all land identically. It
+also fails closed on the lexer itself: a mis-extraction now moves a hash where
+it used to silently shrink what got scanned.
+
+A hash can be edited, so it is only half. Beside it: the event and the control
+are proxies whose read sets are pinned to exactly `preventDefault` and `value`
+— a path fails because it was *read*, and nothing can launder a runtime read —
+and the produced object is frozen before the handler gets it, so an in-place
+edit is a `TypeError` instead of a missing field. The event is now
+production-shaped on purpose; a counter-case that cannot execute proves nothing.
+
+**What I am not claiming.** Not that scope-laundered probes are closed by
+analysis — they are closed by byte identity, and I say only that. Not that
+behaviour catches all three: it catches one. The other two are caught by the
+pins alone, and each counter-case now asserts its own blindness premise rather
+than sitting silently beside a stronger neighbour and borrowing its credibility.
+Residual widened back to the literal evidence: registration, `resolveGenderSelect`
+pinned but never executed (production boots `{form, anchor}`, the drives pass
+`{genderSelect}`), import-time reassignment of `_genderSelect`, symbol-keyed
+reads, and a pin updated without review.
+
+**The arc, corrected.** Round after round I moved the guard one level up the
+abstraction ladder — bytes, then names, then a list, then a positive list — and
+each level had a gap the level below had hidden. The bounded thing here is six
+short functions. For six short functions, exactness is available and inference
+is not needed, and I spent five rounds reaching for inference anyway because it
+felt more general. Generality was the defect.
+
 ## 2026-08-06 — Enumeration was never going to work; pin the surface instead — STAGED
 
 **Two P1s, and together they end the approach I had been iterating for five

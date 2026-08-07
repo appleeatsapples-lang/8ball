@@ -1594,3 +1594,168 @@ survivors falsify that. The statement now, no broader than the evidence:
   `446a187`; nothing removed but two demoted labels.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 16 — audit of `580a1a3`: the positive surface fell too; two P1s and a P2
+
+Three-lane Codex re-audit of `580a1a3` returned **DO NOT MERGE — P0 0 / P1 2 /
+P2 1 / P3 0**. All three findings were reproduced in an isolated `/private/tmp`
+clone at `580a1a3` **before any edit**, each with the full suite green. Nothing
+in Addenda 1–15, in prior journal entries, or in the §5 v0.82 amendment is
+edited; this addendum is appended and the doctrine correction is the additive
+**v0.83** amendment.
+
+## P1-A — an allowed root is a free doorway; member paths were never on the surface
+
+Inserted immediately after the real `HOST_CALL` in `index.html`:
+
+```
+if (e.target && e.target.ownerDocument) delete opts[opts.constructor.keys(opts)[1]];
+```
+
+`e` was already on the pinned handler surface, and `freeIdentifiers` excludes
+property accesses **by construction** — so the reported surface did not move.
+`Object` was reached as `opts.constructor`. `buildSubmitOpts` inserts `time`,
+then `gender`, then the city fields, so index `[1]` is `gender` and it is
+deleted out of **the exact produced object**, in place.
+
+| signal Addendum 15 relied on | under the mutation |
+|---|---|
+| `HOST_CALL` occurrences | **1** |
+| raw gender inventory | **byte-identical** |
+| `freeIdentifiers(handler)` | **unchanged, 28 names** |
+| `produced.length` | **1** |
+| `buildRef === saveRef === produced[0]` | **true** |
+| full suite | **57 files / 2029 tests GREEN** |
+| real-event-shaped drive | **rendered, gender omitted** |
+
+It was inert under the harness only because the seam's event stub was a bare
+`{ preventDefault }` with no `target` — the harness passed a live bypass by
+being too poor to execute it.
+
+## P1-B — `import.meta` is spelled and invisible to a free-identifier scan
+
+At the top of the real `getGenderInput`:
+
+```
+if (import.meta.url.startsWith('http')) return undefined;
+```
+
+`import` is a keyword and `.url` / `.startsWith` are member paths, so the
+producer surface stayed **exactly `['_genderSelect']`**; the raw allowlist was
+unchanged; the suite was **57 / 2029 GREEN**. Vitest loads modules from `file:`;
+the deployed module is fetched over `http(s):`.
+
+## P2 — the policy was structurally wrong, and the claim built on it overclaimed
+
+`freeIdentifiers` collects every declaration into one body-wide locals set with
+no notion of scope. Verified survivor in the handler:
+
+```
+if (typeof Image !== 'undefined') delete opts[opts.constructor.keys(opts)[1]];
+if (false) { const Image = null; }
+```
+
+The nested declaration does not shadow the earlier read in JavaScript; the scan
+subtracted `Image` globally. Suite **57 / 2029 GREEN**. `tests/helpers/js-lex.js`
+states in its own header that it is **SECONDARY, NOT PRIMARY** and cannot carry
+an absolute claim; v0.82 made it primary. So v0.82 / Addendum 15 / the journal
+entry were **broader than the evidence** on three points, corrected additively
+in v0.83: all three survivors are **spelled lexical** cases, not "runtime-built
+indirection"; "any spelled reference outside the pinned surface is closed" was
+false; and "a scope that may reference only its own module-local binding cannot
+probe anything" was false.
+
+## The fix — the absolute claim moves off analysis, onto exact bytes
+
+No lexer rule was added, no deny-list, no environment name, no package.
+`codeOnly` and `freeIdentifiers` are **deleted** from `tests/helpers/js-lex.js`
+(nothing else imported them; `tests/public.test.js` has an unrelated local
+`codeOnly`). `classify` / `functionBody` / `genderTokens` stay, still secondary.
+
+**Whether a scope-aware parser was already available was checked, and it is
+not.** `node_modules` holds 36 packages; the only two that parse anything are
+`es-module-lexer` (import/export statements only — no scopes, no expressions)
+and `@oxc-project/types`, which ships TypeScript declarations and no runtime
+(`require('@oxc-project/types')` → `MODULE_NOT_FOUND`). No `acorn`, `espree`,
+`esprima`, `meriyah`, `@babel/parser` or `typescript` is on disk, and the
+repo's only declared dependency is `vitest`. Obtaining a parser therefore means
+adding a persistent dependency, which §7 stage 4 caps and which needs
+controller authority; nothing was installed. Note also that a parser would have
+fixed the P2 and **neither P1** — scope awareness does not put member paths or
+`import.meta` onto a name surface.
+
+- **SOURCE PINS — primary, enumerating nothing.** Length + SHA-256 over the six
+  bounded units on the value path: `index.html`'s submit handler body (2006 B —
+  *the same extraction the driver executes*), the seam's import specifier line
+  (253 B), and `buildSubmitOpts` (309), `getGenderInput` (143), `initProfileUI`
+  (131), `resolveGenderSelect` (1135). A member path, an `import.meta` branch, a
+  shadowed declaration, a runtime-built key and a whitespace change land here
+  identically. It fails closed on the lexer too: a truncated extraction moves
+  the hash instead of silently shrinking the scan. A companion test pins each
+  signature present exactly once and slicing to a line-start close.
+- **A RUNTIME member-path policy.** Event and control are `Proxy` refs
+  recording every string-keyed read; pinned read sets are exactly
+  `['preventDefault']` and `['value']`. The event is **production-shaped**
+  (`type`, `isTrusted`, `target` with `ownerDocument`, `currentTarget`) so the
+  P1-A mutation actually executes rather than silently no-op'ing.
+- **The produced object is FROZEN** before the handler receives it, with its
+  key list compared after both consumers. A harness fence; production is
+  byte-unchanged.
+
+## Counter-cases, and the exact assertion each turns red
+
+Applied to the **real tree** (not a copy), suite `tests/submit_seam.test.js`,
+32 tests, all green on restore:
+
+| survivor | red | the assertions, and why |
+|---|---|---|
+| P1-A event-object in-place mutation | **21 / 32** | `eventReads` becomes `['preventDefault','target']` — the runtime policy sees the path a name scan discards; the frozen object throws `TypeError: Cannot delete property 'gender'` so `seen.rendered` is `false`; and the handler source pin moves. The first two survive a blind hash update. |
+| P1-B `import.meta.url` producer branch | **2 / 32** | the `getGenderInput` source pin, and the counter-case's own pin comparison. Behaviour is blind and the test says so: it asserts `import.meta.url.startsWith('file:')`, so the branch provably cannot fire in this harness. |
+| P2 nested-shadow laundering | **1 / 32** | the handler source pin. Behaviour is blind and the test asserts the premise — `typeof Image` is `'undefined'` in **both** environments, so the delete never executes; both drives still forward `'female'`. |
+
+Three further probes of the new guard, each failing closed: the import
+specifier redirected to a shim (import-line pin red), a whitespace-only edit
+inside the handler (handler pin red), and the `declaration` extractor forced to
+stop early by an injected line-start `}` (producer pin red).
+
+The retired free-identifier assertions were replaced, not merely deleted: the
+`history` / `HTMLElement` / `queueMicrotask` probes and the producer-sabotage
+case now assert the pins move. The eight environment probes, the identity
+coupling, the consumer-decoupling case and the three dead/relocated/commented
+bypasses are unchanged and still behavioural.
+
+## The residual, to the byte
+
+- **Closed:** the bytes of the six pinned units; any handler read on its event
+  beyond `preventDefault` or producer read on its control beyond `value`; any
+  mutation of the produced object; any delivered object that is not the
+  produced object; any node-vs-browser disagreement across the eight probes.
+- **Open, closed by nothing here:** listener registration and firing — no test
+  loads the page, and a second listener under a different spelling
+  (`profileForm.onsubmit = …`) is the same gap; **`resolveGenderSelect` is
+  pinned but not executed**, because production boots with `{ form, anchor }`
+  and builds the control while the drives pass `{ genderSelect }` and take its
+  early return, and §12 forbids a DOM harness; module-level or other-function
+  code in `ui/profile.js` reassigning `_genderSelect` at import time under an
+  environment this harness cannot express; **symbol-keyed reads**, which the
+  access policy does not record and only the byte pins see; and **a pin updated
+  without review**, which the behavioural half bounds but does not eliminate.
+- **No generalized class is claimed closed on analysis of any kind.** The
+  closure above is byte identity, not inference.
+
+## Verification (all run in this session, on this tree)
+
+- vitest **57 files / 2039 tests green** (2029 → 2039; seam file 22 → 32)
+- `audits/project_audit.py` **PASS 14/0/0/0** on a clean tree
+- assurance suite `python3 -m unittest discover -s audits` — **102 tests OK**
+- local PII audit **clean, 863 files** · `index.html` **1469/1500**
+- **Product runtime byte-unchanged** vs `446a187` — `index.html`, `ui/`,
+  `core/`, `content/`, `assets/` empty diff. Feature freeze holds; two test
+  files and three documents changed.
+- L17: the §5 v0.82 clause, Addendum 15 and every prior journal entry are
+  byte-identical to `580a1a3`; the footer's v0.82 label is demoted to
+  "prior" and v0.81's to "superseded", per the established rolling convention.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

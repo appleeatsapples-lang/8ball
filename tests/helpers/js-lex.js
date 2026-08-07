@@ -11,6 +11,14 @@
 // positions than any heuristic enumerates, and four audit rounds each found a
 // new one. This file's job is to say WHERE a read is, not to promise none.
 //
+// That warning was then ignored: a free-identifier policy built on this lexer
+// was promoted to primary and defeated three ways. It has been REMOVED — the
+// note at the bottom of this file records the exact survivors. The seam's
+// absolute claim now rests on exact source bytes, which parse nothing at all.
+// The extraction below stays useful and stays secondary: where a truncated
+// extraction used to silently shrink what was scanned, it now changes a pinned
+// hash, so a mis-lex is loud rather than blind.
+//
 // WHY THIS EXISTS. The gender render-path guard in tests/profile.test.js used
 // regexes, and a re-audit broke it twice over — both times because the ORDER
 // of stripping and matching was wrong:
@@ -201,58 +209,29 @@ export function genderTokens({ body, kind }) {
   return out.match(/gender/gi) || [];
 }
 
-// ── free-identifier extraction (a POSITIVE policy, not a deny-list) ──
+// ── REMOVED: free-identifier extraction (`codeOnly` + `freeIdentifiers`) ──
 //
-// Every deny-list this repo wrote was defeated by the name that was not on it:
-// a browser-globals shim listed seven and a raw ban eleven, and `history` and
-// `HTMLElement` walked past both. Enumerating what a page exposes is not a
-// finite job, so the guards that matter pin what a scope IS allowed to
-// reference and reject everything else — `history` fails not because it is
-// listed but because it is new.
+// A positive dependency-surface policy lived here and was made the PRIMARY
+// guard of the submit seam. It was wrong to build it on a hand lexer, and this
+// file had said so in its own header from the day it was written. Three
+// verified survivors, all with the full suite green:
 //
-// Deliberately conservative: object-literal keys and a few shorthand forms are
-// reported as free. That over-reports, which fails CLOSED — a spurious name
-// makes the pin red and a human resolves it — whereas under-reporting would be
-// a hole. Comments, strings and regex bodies are stripped first, so a name in
-// prose never registers.
-const JS_KEYWORDS = new Set([
-  'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while',
-  'do', 'break', 'continue', 'new', 'typeof', 'instanceof', 'in', 'of',
-  'delete', 'void', 'try', 'catch', 'finally', 'throw', 'switch', 'case',
-  'default', 'this', 'null', 'true', 'false', 'undefined', 'async', 'await',
-  'yield', 'class', 'extends', 'super', 'import', 'export', 'from', 'as',
-  'static', 'get', 'set',
-]);
-
-/** Source with comments, strings and regex literals blanked to spaces. */
-export function codeOnly(src) {
-  const kind = classify(src);
-  let out = '';
-  for (let i = 0; i < src.length; i++) out += kind[i] === CODE ? src[i] : ' ';
-  return out;
-}
-
-/**
- * Identifiers a body references without declaring — its dependency surface.
- * Property accesses (`x.foo`) are excluded; local declarations are subtracted.
- */
-export function freeIdentifiers(body) {
-  const code = codeOnly(body);
-  const locals = new Set();
-  for (const m of code.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) locals.add(m[1]);
-  for (const m of code.matchAll(/\b(?:const|let|var)\s*\{([^}]*)\}/g)) {
-    for (const part of m[1].split(',')) {
-      const name = part.split(':').pop().trim();
-      if (name) locals.add(name);
-    }
-  }
-  for (const m of code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)/g)) locals.add(m[1]);
-  const free = new Set();
-  for (const m of code.matchAll(/(\.?)\b([A-Za-z_$][\w$]*)\b/g)) {
-    if (m[1] === '.') continue;
-    const name = m[2];
-    if (JS_KEYWORDS.has(name) || locals.has(name)) continue;
-    free.add(name);
-  }
-  return [...free].sort();
-}
+//   1. MEMBER PATHS. The extractor discarded property accesses by
+//      construction, so an allowed root was a free doorway:
+//      `e.target.ownerDocument` referenced nothing new, and `Object` was
+//      reached as `opts.constructor`.
+//   2. `import.meta`. `import` is a keyword and every member name was
+//      discarded, so `import.meta.url.startsWith('http')` left the reported
+//      surface exactly unchanged.
+//   3. FLAT SCOPE. Every declaration went into ONE body-wide locals set, so a
+//      dead `if (false) { const Image = null; }` subtracted `Image` from a read
+//      that happened earlier and outside that block. JavaScript does not shadow
+//      backwards.
+//
+// A scope-aware parser would fix (3) and neither (1) nor (2), and §7 stage 4
+// caps devDependencies. The absolute claim now rests on exact source bytes
+// (length + SHA-256 of each bounded function on the value path) combined with
+// behavioural execution, a runtime member-path policy and a frozen option
+// object — see the SOURCE PINS block in `tests/submit_seam.test.js`. Bytes
+// enumerate nothing and model no scopes, which is why all three survivors land
+// on them identically. Do not reinstate a name scan here to chase a bypass.
