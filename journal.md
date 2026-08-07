@@ -5,6 +5,63 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-07 (third pass) — I wrote "kills five of the six" without checking — STAGED
+
+**The audit caught me asserting a number I had not measured.** Addendum 17 said
+pinning `index.html` whole would kill five of the six bypasses. It never named
+which one survived, because I had copied the count out of a subagent's
+recommendation instead of running it. Measured now: **all six move the
+whole-file pin.** Every one of them requires an index.html edit — 69,563 /
+69,466 / 69,458 / 69,458 / 69,507 / 69,372 bytes against a clean 69,373. There
+is no survivor. The "five" was never wrong in a way that mattered to safety; it
+was wrong in the way that matters more here, which is that I said it without
+evidence in a document whose entire purpose is to only say what is evidenced.
+
+Same class, twice more in the same document: I wrote "seventeen import lines"
+when there are **eighteen** — one hides on the closing line of a multi-line
+import, exactly where a line-anchored scan misses it — and I wrote the 32→30
+test arithmetic as "four declaration pins plus two anchor tests merged" when
+there was one anchor test and it never moved. Three numbers, none measured.
+
+**H6's provenance, which I should have recorded the first time.** `index.html`
+line 1058, one occurrence, `'./core/profile.js'` → `'./vendor-core.js'`, minus
+one byte. It is **inside** the host. That matters: it means the whole-index pin
+closes it and no runtime manifest was needed — a question I could not have
+answered before, and had not asked.
+
+**What shipped.** `index.html` pinned whole over raw bytes beside
+`ui/profile.js`. `cleanHtml()` compares the whole file, so no fixture can take
+its baseline from a region while a survivor sits elsewhere in the host. The two
+region pins stay as diagnostics — a file hash cannot say which bytes actually
+execute, and they can. H1–H6 became six permanent fixtures, each asserting the
+pair that makes it discriminating: the regions stay byte-identical, and the
+whole-file pin moves. Ship each survivor and its own fixture goes red.
+
+**And the residual moved one level out, where it is still open.** Put a
+`location.protocol` branch inside `core/profile.js`'s `buildProfile` and
+index.html is byte-identical, ui/profile.js is byte-identical, no root file
+appears, no specifier changes, no script tag changes — 57 files / 2047 tests
+green. Reachability tells you which files the page reaches; it says nothing
+about what is inside an allowed one. Closing that needs a raw-byte manifest of
+every runtime module, which reds on every product edit. The audit made that
+conditional on H6 being outside the host, and it isn't, so I did not build it. I
+am naming it instead of implying it is handled.
+
+**What I want to remember.** Last entry I wrote that the defect had been scope
+and baseline while the mechanism got all the attention. This time the defect was
+that I *narrated* a measurement instead of *taking* one — and I did it inside
+the correction whose whole subject is unevidenced claims. The rule is not "be
+careful with numbers." It is: a number in a record is an assertion, and every
+assertion needs the command that produced it.
+
+Product runtime **byte-unchanged** vs `446a187`. Suite **57 files / 2047 tests
+green** · product audit **PASS 14/0/0/0** on a clean tree · assurance **102
+tests OK** · local PII audit **clean, 863 files** · `index.html` **1469/1500** ·
+DOCTRINE at **v0.85**.
+
+**STAGED — DO NOT MERGE.** No push, no PR, no merge, no deploy, no storefront
+mutation.
+
 ## 2026-08-07 (later) — A slice pins a substring; and the guard is still not sufficient — STAGED
 
 **Yesterday's entry ends "generality was the defect."** Then I shipped a guard

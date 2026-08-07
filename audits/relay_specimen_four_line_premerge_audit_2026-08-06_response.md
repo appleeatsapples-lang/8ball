@@ -1979,3 +1979,129 @@ cycle is the failure mode this addendum exists to prevent. **Recommendation:
 rule on it before merge; the seam is not closed.**
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 18 — audit of `7a23cf1`: H1–H6 made permanent; the residual moves one level out
+
+Re-audit of `7a23cf1` returned **DO NOT MERGE — P0 0 / P1 1 / P2 2 / P3 1**.
+Absorbed. Addenda 1–17, the §5 v0.83/v0.84 amendments and both 2026-08-07
+journal entries stand unedited; corrections are the additive v0.85 amendment,
+this addendum and a new journal entry.
+
+## H6 provenance, established BEFORE editing (as required)
+
+| | |
+|---|---|
+| file | **`index.html`** — inside the host, not outside it |
+| line | **1058**, one occurrence |
+| edit | `import { buildProfile } from './core/profile.js';` → `'./vendor-core.js'` |
+| delta | **−1 byte** (69,373 → 69,372) |
+| companion | `vendor-core.js` at the repo root, whose `buildProfile` deletes the field from the live, **unfrozen** options object one statement before `saveProfile` |
+
+Because H6's index.html half is what makes it live, **neither "pin its exact
+runtime file" nor a runtime manifest was required to close it** — the
+whole-index pin does. The companion root file is inert alone; that was checked,
+and the root-inventory assertion names it anyway.
+
+## Which of H1–H6 survives a whole-index pin: none
+
+Measured, every case, against a clean `index.html` of **69,373 B /
+`71e97b80e68b6bc8c7d39649963ba795a438a384dc0f0e32e56951eeeedb1bd0`**:
+
+| case | index.html after | pin |
+|---|---|---|
+| H1 `defineProperty` shim on the live control | 69,563 B / `ca5d37db…` | MOVES |
+| H2 second listener, different spelling | 69,466 B / `83377207…` | MOVES |
+| H3 inline importmap | 69,458 B / `0488e1c9…` | MOVES |
+| H4 `profileForm` rebound | 69,458 B / `c4eb6561…` | MOVES |
+| H5 repeat `initProfileUI`, dead control | 69,507 B / `b710bac0…` | MOVES |
+| H6 swapped specifier | 69,372 B / `50240c8c…` | MOVES |
+
+**Correction to v0.84 and Addendum 17, which said a whole-index pin "kills five
+of the six" without naming the survivor: that was unsupported. There is no
+survivor among the six** — every one requires an index.html edit.
+
+## What shipped
+
+- **`index.html` pinned WHOLE**, raw bytes, alongside `ui/profile.js`.
+  `cleanHtml()` now compares that whole file, so no fixture can take a poisoned
+  baseline from a region while a survivor sits elsewhere in the host.
+- **The two region pins are retained as DIAGNOSTICS.** They are redundant
+  against the file hash by construction; they are kept because a file hash
+  cannot say *which* bytes the drives execute, and they can.
+- **H1–H6 ship as six permanent fixtures.** Each asserts the pair that makes it
+  discriminating: the diagnostic regions stay **byte-identical** (why regions
+  were never enough) **and** the whole-file pin **moves** (the guard working).
+  Verified by shipping each survivor into the real tree — each turns **its own
+  named fixture** red: H1 22/40 · H2 22/40 · H3 23/40 · H4 22/40 · H5 22/40 ·
+  H6 23/40, all green on restore.
+- **Secondary defenses only**, positive and exact, each verified to fire alone:
+  the `<script>` tag set; the **eighteen** module specifiers, each required to
+  exist on disk; the repo-root `.js` inventory.
+- Earlier survivors re-checked against the 40-test guard: alternate export
+  22/40 · event in-place 29/40 · `import.meta` 4/40 · nested-shadow 23/40.
+
+**Correction: v0.84 and Addendum 17 said "seventeen import lines". It is
+EIGHTEEN.** One (`./ui/payments.js`) sits on the closing line of a multi-line
+import at line 1069, so a line-anchored scan misses it — the assertion scans
+`from '…'` occurrences precisely for that reason.
+
+## P2 — the generic pin message, narrowed
+
+It claimed the pinned bytes are "what the behavioural tests in this file
+execute". That is false for the **import specifier line** (the drives inject
+their dependencies, so index.html's own import runs in no test), false for
+**`resolveGenderSelect`** (production boots `{ form, anchor }`; the drives pass
+`{ genderSelect }` and take its early return), and now false for most of
+`index.html`. Each pin carries its own execution statement, primary and
+diagnostic are labelled, and the message says plainly that a pin reports what a
+**file contains** — not that the page loads it, and not that no other runtime
+module changed.
+
+## P3 — the 32 → 30 arithmetic
+
+Addendum 17 wrote "32 − 4 declaration pins + 1 whole-file pin + 1 new fixture,
+and the two anchor tests merged". There was **one** anchor test and it remained
+one. Correct: **six source-pin tests became three (−3), plus one alternate-export
+fixture (+1) = 30.** This cycle takes it to **40**: pins three → four (+1), six
+H-fixtures (+6), three secondary assertions (+3).
+
+## THE RESIDUAL, MOVED ONE LEVEL OUT AND NOT CLOSED
+
+Reachability does not see code inside an **allowed** module, and this is the
+sentence the record must not soften. Verified — inserted into `core/profile.js`'s
+`buildProfile`:
+
+```
+if (typeof location !== 'undefined' && location.protocol !== 'file:' && opts)
+  { try { delete opts['g' + 'ender']; } catch (_) {} }
+```
+
+`index.html` byte-identical (69,373 / `71e97b80…`). `ui/profile.js`
+byte-identical (17,566 / `d6fba912…`). No new root file. No changed specifier.
+No changed script tag. **57 files / 2047 tests GREEN.** Every assertion added
+this cycle is satisfied by it.
+
+Closing this class needs a **deterministic raw-byte manifest of every runtime
+module the page reaches**. The re-audit made that conditional on H6 being
+outside the host; H6 is at `index.html:1058`, so the condition did not fire and
+the manifest was neither ordered nor built. It would red on every product edit
+— a scope call for the controller and this audit, not one to take inside a
+correction cycle. **Named here as the exact open item; DO NOT MERGE stands.**
+
+Also carried forward, unchanged and still open: listener registration and firing
+at all; the live DOM control, which no drive touches; second-hop,
+descriptor-routed, symbol-keyed, `has` and ownKeys-style reads; writes and
+deletes on either proxied ref; and a pin updated without review.
+
+## One disclosure
+
+The additive footer block's own labels (`current:` / `current, prior:`,
+introduced by this block at `7bb5630` and `7a23cf1`) are normalised once to
+permanent version stamps (`§5 v0.8N (date):`) so status lives in the block
+header and no label ever moves again. **Every entry body is byte-identical**,
+and the rolling `doctrine version:` / `doctrine version, prior:` lines remain
+byte-identical to `580a1a3`. Disclosed rather than left to be found.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

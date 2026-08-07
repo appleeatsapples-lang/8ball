@@ -1,6 +1,6 @@
 // 8ball / tests / submit_seam.test.js
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -18,13 +18,17 @@ const SUBMIT_SIG = "profileForm.addEventListener('submit', e => {";
 const HTML_PATH = join(__dirname, '..', 'index.html');
 const PROFILE_PATH = join(__dirname, '..', 'ui', 'profile.js');
 const readHtml = () => readFileSync(HTML_PATH, 'utf-8');
+const readHtmlBytes = () => readFileSync(HTML_PATH);
 const readProfile = () => readFileSync(PROFILE_PATH, 'utf-8');
 const readProfileBytes = () => readFileSync(PROFILE_PATH);
+const REPO_ROOT = join(__dirname, '..');
 const CITY = { name: 'Manama', countryCode: 'BH', tz: 'Asia/Bahrain', lat: 26.2286, lng: 50.586 };
 const HOST_CALL =
   '  const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });';
 const FALLBACK = '  const opts = buildSubmitOpts({ time: timeInput.value, city: selectedCity });';
 const inventory = h => h.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+// The boot region three of the H-fixtures splice into — unpinned by any region.
+const BOOT_ANCHOR = 'readingsUI = initReadingsUI(';
 
 // The handler is driven under BOTH environments the shipped bytes can meet.
 //
@@ -247,72 +251,96 @@ function driveSubmit(html, { gender, city = CITY, time = '14:30', env = 'node' }
 // a module-level statement, a new export, a changed comment and a stray space
 // are the same event — a byte that is not the reviewed byte.
 //
-// `index.html` keeps two pins rather than one, because it is the product's
-// entire single-file host and pinning all of it would red on every unrelated
-// edit: the submit handler body (the same extraction the driver EXECUTES) and
-// the seam's import specifier line. What that leaves open on the index.html
-// side is in the residual, not glossed.
+// `index.html` IS NOW PINNED WHOLE TOO, and the reason is measured, not
+// argued. With only two REGIONS of it pinned — the handler body and the seam's
+// import specifier line, together 2,270 of 69,373 bytes, 3.3% of the file —
+// six bypasses ran with every pin byte-identical and the full suite green:
+//
+//   H1  `defineProperty` shim on the live control's `value`, so the UI still
+//       shows the user's choice and only the stored value is lost;
+//   H2  a second submit listener under a different spelling, calling
+//       `stopImmediatePropagation()` so the pinned handler never runs;
+//   H3  an inline `<script type="importmap">` remapping the pinned specifier,
+//       so `ui/profile.js` stays byte-identical on disk and is NEVER LOADED;
+//   H4  `profileForm` rebound to a detached element, so the pinned bytes run
+//       against a decoy and reach no user;
+//   H5  a second `initProfileUI({…, genderSelect: {value: ''}})` from the
+//       unpinned boot region, repointing the module's control at a dead stub;
+//   H6  ONE of index.html's eighteen module specifiers swapped to a root shim
+//       that re-exports `buildProfile` and deletes the field from the live,
+//       UNFROZEN options object one statement before `saveProfile` — a MINUS
+//       ONE BYTE edit at index.html line 1058.
+//
+// Every one of the six requires an index.html edit, so the whole-file pin moves
+// for all six; that was measured rather than assumed, and an earlier record
+// saying it "kills five of the six" without naming the survivor was wrong.
+// H3 and H6 additionally need a companion file at the repo root; those are
+// inert without their index.html half, and the root inventory below names them
+// anyway.
+//
+// H6 is why the freeze claim is narrow: the freeze fences the object THIS
+// harness builds and hands to ITS OWN STUBS. H6 mutates the production object,
+// unfrozen, in the real consumer chain, which is out of frame here entirely.
+//
+// WHAT THESE PINS STILL DO NOT ESTABLISH — read this before quoting them.
+// They pin two FILES. They do not pin the other runtime modules the page
+// loads. Verified: inserting into `core/profile.js`'s `buildProfile`
+//
+//     if (typeof location !== 'undefined' && location.protocol !== 'file:' && opts)
+//       { try { delete opts['g' + 'ender']; } catch (_) {} }
+//
+// leaves index.html AND ui/profile.js byte-identical, adds no root file, leaves
+// every specifier unchanged, and runs 57 files / 2037 tests GREEN. Import
+// reachability cannot see that — it is code inside an ALLOWED module. Closing
+// it needs a deterministic raw-byte manifest of every runtime file the page
+// reaches; that is named in the residual and is not built here.
 //
 // Byte pins are half of the guard, because a hash can be edited. The
-// behavioural drives execute these same bytes under both environments, and the
+// behavioural drives execute the handler body under both environments, and the
 // read recording and the frozen option object catch classes a blind hash update
 // would carry through.
-//
-// WHAT THESE PINS DO NOT ESTABLISH — read this before quoting them anywhere.
-// They constrain what the pinned regions CONTAIN. They do not establish that
-// those regions are the only code the value passes through, and they do not
-// establish which FILE the page actually loads. All of the following were
-// demonstrated with every pin byte-identical and the full suite green:
-//
-//   · one of index.html's SEVENTEEN import lines swapped to a root shim that
-//     re-exports `buildProfile` and deletes the field from the live, UNFROZEN
-//     options object one statement before `saveProfile` — so the freeze closes
-//     in-place mutation BY THE PINNED HANDLER BODY, and nothing more;
-//   · an inline `<script type="importmap">` remapping the pinned specifier, so
-//     `ui/profile.js` stays byte-identical on disk and the page never runs it;
-//   · a second `initProfileUI({…, genderSelect: {value: ''}})` call from the
-//     unpinned boot region, repointing the module's control at a dead stub;
-//   · `profileForm` rebound, a second listener under a different spelling, and
-//     a `defineProperty` shim on the live control's `value`.
-//
-// The two index.html pins cover 2,270 of 69,373 bytes — 3.3% of the file, and
-// 1 of its 17 import lines. `ui/profile.js` is covered whole. Everything else
-// is residual, and it is enumerated rather than implied.
 //
 // BYTES ARE UTF-8 BYTES. An earlier revision recorded `String.length`, which is
 // UTF-16 code units — 2006 for a handler body that is 2017 bytes, because §6's
 // comments contain `§` and `β`. The hashes were already over UTF-8 and did not
 // move; the counts did.
 const SOURCE_PINS = [
+  // ── PRIMARY: whole files, raw bytes. These are the guard. ──
   {
-    label: 'index.html — the submit handler body (the bytes this file EXECUTES)',
+    label: 'index.html — the whole host file, raw bytes',
+    kind: 'primary',
+    executed: 'partly — only the submit handler body is executed by this file',
+    bytes: 69373,
+    sha256: '71e97b80e68b6bc8c7d39649963ba795a438a384dc0f0e32e56951eeeedb1bd0',
+    read: () => fingerprintBytes(readHtmlBytes()),
+  },
+  {
+    label: 'ui/profile.js — the whole module, raw bytes',
+    kind: 'primary',
+    executed: 'partly — buildSubmitOpts, getGenderInput and initProfileUI are driven; '
+      + 'resolveGenderSelect is NOT, because production boots {form, anchor} and the drives pass {genderSelect}',
+    bytes: 17566,
+    sha256: 'd6fba912fcb9edc146c0af3fd93203652b3e1acc533f39cbba11fe007996099e',
+    read: () => fingerprintBytes(readProfileBytes()),
+  },
+  // ── DIAGNOSTIC: regions. Redundant against the whole-file pins by
+  // construction — any change inside them already moves the file hash. They are
+  // retained because a file hash cannot say WHICH bytes matter, and these can.
+  {
+    label: 'index.html — DIAGNOSTIC: the submit handler body',
+    kind: 'diagnostic',
+    executed: true,
     bytes: 2017,
     sha256: '4043a0b48ff55ab73df7ca7fd05eaee1510469d96314fcf1f89e6aafac79715f',
     read: () => fingerprintText(functionBody(readHtml(), SUBMIT_SIG).body),
   },
   {
-    // The binding, not just the bodies. The drives INJECT `buildSubmitOpts` and
-    // `getGenderInput` as dependencies, so index.html's own import statement is
-    // executed by nothing here — and a specifier pointing at a different module
-    // would leave every other pin intact while the page ran other code.
-    label: "index.html — the seam's import specifier",
+    label: "index.html — DIAGNOSTIC: the seam's import specifier line",
+    kind: 'diagnostic',
+    executed: false,
     bytes: 253,
     sha256: '2090e8053951fc5c309d2867a104dac3877ca8d257b6dd8dafb5f860add29335',
     read: () => fingerprintText(uniqueLine(readHtml(), "from './ui/profile.js';")),
-  },
-  {
-    // WHOLE FILE, raw bytes. Everything the value passes through on the module
-    // side lives here — `buildSubmitOpts`, `getGenderInput`, `initProfileUI`,
-    // `resolveGenderSelect` — and so does every line that could replace any of
-    // them. `resolveGenderSelect` is on the PRODUCTION path but is not executed
-    // by any drive: index.html boots with `{ form, anchor }` and it builds the
-    // control, while the drives pass `{ genderSelect }` and take its first-line
-    // early return. §12 forbids a DOM harness, so these bytes and the manual
-    // browser pass are its whole cover, and the residual says so.
-    label: 'ui/profile.js — the whole module, raw bytes',
-    bytes: 17566,
-    sha256: 'd6fba912fcb9edc146c0af3fd93203652b3e1acc533f39cbba11fe007996099e',
-    read: () => fingerprintBytes(readProfileBytes()),
   },
 ];
 
@@ -356,8 +384,10 @@ function pinFor(label) {
   if (hits.length !== 1) throw new Error(`${hits.length} pins match "${label}", expected 1`);
   return { bytes: hits[0].bytes, sha256: hits[0].sha256 };
 }
-const HANDLER_PIN = pinFor('index.html — the submit handler body');
+const HTML_PIN = pinFor('index.html — the whole host file');
+const HANDLER_PIN = pinFor('index.html — DIAGNOSTIC: the submit handler body');
 const PROFILE_PIN = pinFor('ui/profile.js — the whole module');
+const htmlPrint = text => fingerprintText(text);
 
 const handlerPrint = html => fingerprintText(functionBody(html, SUBMIT_SIG).body);
 const profilePrint = src => fingerprintText(src);
@@ -383,9 +413,12 @@ const declarationPrint = src => fingerprintText(declaration(src, 'export functio
 // name describes the demonstration, not a guarantee.
 const NOT_CLEAN = 'baseline is not the reviewed source — this counter-case would compare a survivor against itself';
 const cleanHtml = () => {
-  const html = readHtml();
-  expect(handlerPrint(html), NOT_CLEAN).toEqual(HANDLER_PIN);
-  return html;
+  // The WHOLE reviewed file, not just the handler region: a survivor can sit
+  // anywhere in index.html — five of the six H-fixtures below sit outside the
+  // handler body entirely — and a region baseline would let those fixtures
+  // compare a poisoned tree against itself.
+  expect(fingerprintBytes(readHtmlBytes()), NOT_CLEAN).toEqual(HTML_PIN);
+  return readHtml();
 };
 const cleanProfile = () => {
   const src = readProfile();
@@ -491,15 +524,20 @@ describe('the submit seam — EXECUTED, not scanned', () => {
   // ── the source pins ────────────────────────────────────────────────
   for (const pin of SOURCE_PINS) {
     it(`the reviewed bytes are the shipped bytes: ${pin.label}`, () => {
+      const primary = pin.kind === 'primary';
       expect(pin.read(),
-        'These exact bytes are what the behavioural tests in this file execute and what a '
-        + 'cross-model audit read. Any difference — a statement, a member path, an import.meta '
-        + 'branch, a shadowed declaration, a live-binding swap, a comment, whitespace — lands here.\n'
-        + 'If the change is intended: re-read the diff, confirm the behavioural cases below '
+        (primary
+          ? 'PRIMARY GUARD. These are the whole reviewed file. Any difference lands here — a '
+            + 'statement, a member path, an import.meta branch, a shadowed declaration, a '
+            + 'live-binding swap, a swapped specifier, an added script tag, a comment, whitespace.'
+          : 'DIAGNOSTIC, not the guard — the whole-file pin above already moves for anything in '
+            + 'this region. It exists to name which bytes matter.')
+        + `\nExecuted by this file: ${pin.executed}.`
+        + '\nNOTE what a pin does NOT say: it says what this FILE contains, not that the page '
+        + 'loads this file, and not that no other runtime module was changed. Both are residual.'
+        + '\nIf the change is intended: re-read the diff, confirm the behavioural cases below '
         + 'still pass under BOTH environments, and update this constant IN THE SAME COMMIT as '
-        + 'the code change. Updating it on its own is how a bypass gets laundered — the read '
-        + 'recording, the frozen option object and the identity coupling below exist because '
-        + 'a hash can be edited and behaviour cannot.')
+        + 'the code change. Updating it on its own is how a bypass gets laundered.')
         .toEqual({ bytes: pin.bytes, sha256: pin.sha256 });
     });
   }
@@ -783,6 +821,114 @@ describe('the submit seam — EXECUTED, not scanned', () => {
     expect(bad, 'the mutation did not apply').not.toBe(src);
     expect(profilePrint(bad), 'a sabotaged producer did not move the whole-file pin')
       .not.toEqual(PROFILE_PIN);
+  });
+
+
+  // ── H1–H6: the six bypasses that defeated REGION pins ──────────────
+  //
+  // Each was demonstrated live: full suite green, both region pins
+  // byte-identical, `SUBMIT_SIG` occurring exactly once. Each is here
+  // permanently, and each asserts the SAME two things — that the diagnostic
+  // regions stay blind (which is why regions were not enough) and that the
+  // whole-file pin moves (which is the guard doing its job). That pairing is
+  // the intended reason; a fixture that only checked "something went red"
+  // would not distinguish the new guard from the old one.
+  //
+  // H3 and H6 also need a companion file at the repo root. Those are inert
+  // without their index.html half — both were verified to require it — and the
+  // root inventory below names them regardless.
+  const H_FIXTURES = [
+    ['H1 — a defineProperty shim on the live control, so the UI still shows the choice',
+      h => h.replace(BOOT_ANCHOR,
+        "const _gc = profileForm.querySelector('#g\\u0065nder-input');\n"
+        + "if (_gc && location.protocol !== 'file:') { Object.defineProperty(_gc, 'value', { get() { return ''; }, configurable: true }); }\n"
+        + BOOT_ANCHOR)],
+    ['H2 — a second submit listener under a different spelling, stopping propagation',
+      h => h.replace(SUBMIT_SIG,
+        'profileForm["addEventListener"]("submit", function (ev) { ev.stopImmediatePropagation(); });\n' + SUBMIT_SIG)],
+    ['H3 — an inline importmap, so the pinned module is byte-identical and never loaded',
+      h => h.replace('<script type="module">',
+        '<script type="importmap">{"imports":{"./ui/profile.js":"./vendor-shim.js"}}</script>\n<script type="module">')],
+    ['H4 — profileForm rebound to a detached element, so the pinned bytes reach no user',
+      h => h.replace(BOOT_ANCHOR,
+        "if (location.protocol !== 'file:') { profileForm = document.createElement('form'); }\n" + BOOT_ANCHOR)],
+    ['H5 — a second initProfileUI call repointing the control at a dead stub',
+      h => h.replace(BOOT_ANCHOR,
+        "if (location.protocol !== 'file:') { const _k = 'g' + 'enderSelect'; initProfileUI({ form: profileForm, [_k]: { value: '' } }, {}); }\n"
+        + BOOT_ANCHOR)],
+    // The −1 byte one. index.html line 1058, one occurrence; the shim deletes
+    // the field from the live, UNFROZEN object one statement before saveProfile.
+    // This is why the freeze claim is narrow: the freeze fences the object THIS
+    // harness builds and hands to ITS OWN STUBS, and the real consumer chain is
+    // not in frame at all.
+    ['H6 — one module specifier swapped to a root shim that mutates the live object',
+      h => h.replace("import { buildProfile } from './core/profile.js';",
+        "import { buildProfile } from './vendor-core.js';")],
+  ];
+
+  for (const [name, mutate] of H_FIXTURES) {
+    it(`catches: ${name}`, () => {
+      const html = cleanHtml();
+      const bad = mutate(html);
+      expect(bad, 'the mutation did not apply — its anchor moved').not.toBe(html);
+
+      // PREMISE — the region pins are BLIND to this. That is the finding.
+      expect(handlerPrint(bad), `premise broken: ${name} moved the handler-body region`)
+        .toEqual(HANDLER_PIN);
+      expect(fingerprintText(uniqueLine(bad, "from './ui/profile.js';")),
+        `premise broken: ${name} moved the pinned import specifier`)
+        .toEqual(pinFor("index.html — DIAGNOSTIC: the seam's import specifier"));
+      expect(bad.split(SUBMIT_SIG).length - 1, 'premise broken: the submit signature count changed').toBe(1);
+
+      // THE ASSERTION — the whole-file pin is what sees it.
+      expect(htmlPrint(bad), `${name} did not move the whole-file index.html pin`)
+        .not.toEqual(HTML_PIN);
+    });
+  }
+
+  // ── secondary defenses: reachability, positive and exact ───────────
+  //
+  // Secondary on purpose. Every H-fixture above already moves the whole-file
+  // pin, so none of these is what catches it. They exist for the companion
+  // half of H3 and H6 — a file at the repo root that no pin names — and
+  // because a specifier is cheap to check and expensive to miss.
+  //
+  // NOT a defense against H7-class changes: a mutation INSIDE an already-
+  // allowed module (verified in `core/profile.js`) satisfies every assertion
+  // here. Reachability says which files the page reaches, never what is in
+  // them. That is stated in the residual, not implied away.
+
+  it('index.html loads exactly the script tags it was reviewed with', () => {
+    // Positive and exact — an importmap, or any new script tag, fails because
+    // the set changed, not because "importmap" is on a list.
+    const tags = (readHtml().match(/<script[^>]*>/g) || []).sort();
+    expect(tags).toEqual(['<script type="application/ld+json">', '<script type="module">']);
+  });
+
+  it('every module specifier in index.html is reviewed and resolves to a real file', () => {
+    const html = readHtml();
+    const specs = [...html.matchAll(/from '([^']+)'/g)].map(m => m[1]).sort();
+    expect(specs, 'index.html gained, lost or changed a module specifier').toEqual([
+      './content/cards.v1.full.js',
+      './core/engine.js', './core/measurement.js', './core/payments.js', './core/profile.js',
+      './ui/citysearch.js', './ui/concordance.js', './ui/dyad.js', './ui/labels.js',
+      './ui/meanings.js', './ui/modals.js', './ui/payments.js', './ui/profile.js',
+      './ui/public.js', './ui/readings.js', './ui/result.js', './ui/share.js', './ui/tiers.js',
+    ]);
+    // Scanned as `from '…'`, NOT as line-anchored imports: one of these
+    // (`./ui/payments.js`) sits on the closing line of a multi-line import, and
+    // a line-anchored scan misses it — which is exactly the sort of blind spot
+    // a swapped specifier would hide in.
+    for (const spec of specs) {
+      expect(existsSync(join(REPO_ROOT, spec)), `${spec} does not exist on disk`).toBe(true);
+    }
+  });
+
+  it('the repo root carries exactly the JavaScript files it was reviewed with', () => {
+    // H3 and H6 each need a new root file. Inert without their index.html half,
+    // but named here anyway.
+    const rootJs = readdirSync(REPO_ROOT).filter(f => f.endsWith('.js')).sort();
+    expect(rootJs, 'a JavaScript file appeared at the repo root').toEqual(['vitest.config.js']);
   });
 
   it('behaves IDENTICALLY under node and browser globals', () => {
