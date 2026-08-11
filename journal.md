@@ -5,6 +5,111 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-08 — calc v5: canonical name fold — controller word — STAGED
+
+**Status: STAGED on `claude/specimen-four-line-symbolic`. Not committed, not
+pushed, no PR, no merge, no deploy.** This is the decision record the
+`DOCTRINE.md` calc-version line cites. It records a ruling and a documentation
+bump ONLY — the algorithm it versions already shipped, uncommitted, inside the
+v0.88 unit, and `tests/fixtures.json` is deliberately untouched here.
+
+**The controller decision.** Ruled **v5** — a calc-version bump — over the
+alternative of a v4 erratum. Both were drafted to paste-ready text and argued
+against each other in `sessions/packet_calc_version_note_nfc_fold_2026-08-08.md`;
+the erratum is CLOSED, not deleted, and stands in that file as the alternative
+that was weighed.
+
+**What forced the ruling.** The three name reducers read raw code points, so a
+name carrying a diacritic scored differently depending on its Unicode
+composition — a difference decided by the keyboard, IME or operating system,
+never by the person or the calculation. Measured by EXECUTING the shipped
+exports, not by reading them: `getNameNumberSum('José')` returned 8 under NFC
+and 13 under NFD; reduced, `nameNumber` 8 against 4; `soulUrge` 6 against 11;
+and `getPersonalitySum('İrem')` 22 against 13, because U+0130 lowercases to TWO
+code points and a raw vowel lookup files a dotted I as a consonant.
+
+**Why a bump and not an erratum.** §3 defines a breaking change as one that
+modifies existing outputs, and names `nameNumber` and `soulUrge` in that list.
+Both moved. The counter-argument is real and is recorded rather than buried:
+this is input canonicalization and not a numerology change, and `core/cities.js`
+has applied the identical fold to city names all along with no calc version
+covering it. Whether the calc version versions the ALGORITHM or the ANSWER has
+never been ruled here; v5 rules it, for this change, as the ANSWER — because a
+reading already shared under an accented name now disagrees with the live site,
+and dating that is what the version is for.
+
+**Why `tests/fixtures.json` is NOT in this entry.** L48. This seat verified the
+v0.88 fold — it ran that unit's new tests against the PRE-FIX `core/profile.js`
+and watched 4 of them go red, then 218 green against the fix — so writing the
+fixture cases here would collapse implementer and verifier into one session on
+one change. **§3 step 1 is therefore OUTSTANDING.** Eight accented-name cases
+are computed from the fixed code and drafted at §11 of the packet named above,
+with a recorded warning against the obvious wrong shape: do NOT pin NFC/NFD
+equivalence as a byte-twin pair in JSON, because a formatter that re-normalizes
+on write would silently collapse the twin and leave a green assertion proving
+nothing. Fixtures pin the ANSWER; the EQUIVALENCE stays in `profile.test.js`,
+computed at runtime.
+
+**Not cleared to ship, and the record must not read otherwise.** v0.88's gate is
+two conditions joined by "and" — the §3 calc note and the privacy class. This
+entry settles the first only. **The privacy class is OPEN**: the capability-realm
+guard is execution-based and left a controller-authored exfiltration 30/30 green
+in an uncalled export, reddening 6 of 30 only when executed at module load.
+Storage coherence is 3 of 4. The unit remains uncommitted with no PR.
+
+## 2026-08-07 (sixth pass) — Full throttle, and the agent that said FIXED was wrong — STAGED
+
+**Nine P1s came back from a 360° audit of `main`, two models agreeing. On
+direct word I broke the feature freeze and fixed six clusters.** Product runtime
+is no longer byte-unchanged for the first time this cycle, and that is the
+correct call: these are wrong answers, leaked data and entitlement holes in
+shipped code, not features.
+
+**The thing worth writing down.** I sent six agents out, each ordered to
+reproduce before fixing and to prove its test goes red. Five reported honestly.
+The privacy agent reported FIXED — and it was not. I took my own exfiltration,
+the one I had written before ever seeing its patch, and injected it into
+`core/profile.js`: **30 of 30 green.** Its guard never saw it. Only when I moved
+the identical code from an uncalled export to a module-load statement did it
+turn 6 of 30 red.
+
+Its guard is execution-based. Its counter-cases are module-load-executed. So it
+tested itself against exactly the mutations it could see — which is the same
+defect I have now hit six times in six rounds, in six different costumes:
+mechanism, scope, baseline, measurement, format, and now *the sample the guard
+was tested on*. I only caught it because I had built my own reproduction first
+and refused to grade the patch against the agent's fixture.
+
+That is the whole argument for reproducing independently before you delegate.
+Not to duplicate the work — to own a yardstick the worker did not make.
+
+**What I fixed and am willing to say is fixed:** DST folds and gaps stop
+inventing a rising sign (a fold now returns nothing rather than one of two
+equally valid answers; a wall time that never existed returns nothing rather
+than `sagittarius`), and the mobile Begin control stops overlapping and
+trapping the keyboard.
+
+**What I fixed and flagged rather than celebrated:** NFC and NFD spellings of a
+name now agree — but that MOVES the numbers for every accented name. Someone
+who was shown a reading for "José" last week gets a different one now. That is
+a product decision wearing a bug fix's clothes, and it owes a §3 calc note.
+
+**What I did not close, and said so in the doctrine, the addendum and the commit
+message:** the privacy class. A realistic exfiltration runs on submit, not on
+import.
+
+**What was never real:** `?paid=t5`. The audited surface was already gone —
+v0.68 retired it. The right output there was "not reproducible" plus the pins
+the site was missing, and the agent delivered exactly that, proving them by
+rebuilding the old surface. A clean negative is a result.
+
+Suite **59 files / 2104 tests green** (from 57 / 2050) · product audit **PASS** ·
+PII **clean, 866 files** · `index.html` **1469/1500** · DOCTRINE at **v0.88**.
+
+**STAGED — DO NOT SHIP.** No push, no PR, no merge, no deploy, no storefront
+mutation. The commit itself was blocked by the classifier, correctly: this is a
+large product-runtime change and that gate is exactly where it belongs.
+
 ## 2026-08-07 (fifth pass) — I wrote "unambiguous" about a format I never tried to forge — STAGED
 
 **The manifest framing was forgeable, and the counter-example is four lines

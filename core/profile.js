@@ -191,14 +191,43 @@ export function getLifePath(year, month, day) {
   return reduce(getLifePathSum(year, month, day));
 }
 
+// ── The name-normalization contract (ONE, shared by all three reducers).
+// The Pythagorean table is defined over the 26 Latin letters, so every name
+// reducer must read the SAME canonical letter sequence — otherwise two
+// spellings of one name reduce to different paid coordinates. "José" typed
+// as NFC (é = U+00E9) and as NFD (e + U+0301) is the same name to Unicode,
+// to the keyboard that produced it and to the person who owns it.
+//
+// NFD-decompose, drop the combining marks, lowercase, keep a–z — the same
+// fold core/cities.js applies to city names, for the same reason. Folding
+// is deliberate rather than skipping: a dropped diacritic would silently
+// reduce "José" as "Jos", which is a different name. Classification
+// (vowel vs consonant) happens on the folded letter, so U+0130's two-code-
+// point lowercase can no longer file a dotted I as a consonant.
+//
+// NAMED LIMIT: only CANONICAL decompositions fold. Letters carrying their
+// mark inside the glyph (Đ, Ł, Ø, ß) have none and stay unsupported, as
+// does every non-Latin script.
+//
+// A name yielding NO supported letter is UNRESOLVED, not zero: the *Sum
+// trails stay 0 and `reduce` resolves every name-derived coordinate —
+// including maturity — to `null` (`—` on the entitled sheet), the §1.B
+// v0.62 absent-letter-class guard applied to the whole alphabet rather
+// than to one letter class. No coordinate is invented from code points the
+// table cannot read.
+export function nameLetters(name) {
+  if (!name) return '';
+  return name.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z]/g, '');
+}
+
 // Pythagorean letter values: a=1..i=9, j=1..r=9, s=1..z=8
 export function getNameNumberSum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const code = c.toLowerCase().charCodeAt(0);
-    if (code < 97 || code > 122) continue;
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -215,14 +244,10 @@ const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 // Standard numerology consonants: all letters minus a, e, i, o, u.
 // Mirror of getSoulUrge with the vowel-set logic inverted.
 export function getPersonalitySum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const lower = c.toLowerCase();
-    const code = lower.charCodeAt(0);
-    if (code < 97 || code > 122) continue;
-    if (VOWELS.has(lower)) continue;
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    if (VOWELS.has(c)) continue;
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -233,13 +258,10 @@ export function getPersonality(name) {
 
 // Soul urge (heart's desire): sum of vowels only, Pythagorean values.
 export function getSoulUrgeSum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const lower = c.toLowerCase();
-    if (!VOWELS.has(lower)) continue;
-    const code = lower.charCodeAt(0);
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    if (!VOWELS.has(c)) continue;
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -288,7 +310,10 @@ export function buildProfile(name, dobIso, opts) {
   if (d > daysInMonth[m - 1]) {
     throw new Error('DOB out of range');
   }
-  const cleanName = (name || '').trim();
+  // NFC is the same contract seen from the display side: the retained name
+  // is stored in one canonical form, so two spellings of one name produce
+  // one profile end to end — not merely one set of numbers.
+  const cleanName = (name || '').normalize('NFC').trim();
   // ── Rising + moon sign resolution (IANA-tz path for fresh + legacy profiles)
   //
   // Result legend (both coordinates):

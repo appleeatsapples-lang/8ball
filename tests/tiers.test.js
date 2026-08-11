@@ -4,7 +4,9 @@
 // UNCHANGED by v0.55; these suites are the proof the density ladder
 // survived the ownership cutover — tier rank/monotonic-upgrade math,
 // the generalized ?paid=t1|t2|t3 handler (tier write only, no grant),
-// unknown-param replay safety, the R2 legacy grandfather,
+// unknown-param replay safety, the retired-token seam (§1.D v0.68 — the
+// set a return may NAME is the ladder, never the entitlement inventory
+// and never the retirement table), the R2 legacy grandfather,
 // plus the v0.7.0 compartment render: constant skeleton (rows never
 // hidden), DOM purity (sealed cells carry EMPTY value nodes — no paid
 // value string in the DOM below its tier), seal-iff-above-tier, the F4
@@ -44,6 +46,10 @@ import {
   handlePaidReturn,
   initPaywallUI,
 } from '../ui/payments.js';
+// The one predicate every dyad gate consults (§1.D v0.68 / PR #187 F2).
+// Imported rather than restated, so the return-seam pins below cannot pass
+// while the predicate they claim to bound drifts.
+import { dyadEntitled } from '../ui/dyad.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -607,6 +613,130 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, 
     expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
     expect(globalThis.window.history.replaceState).not.toHaveBeenCalled();
     expect(banner.hidden).toBe(true);
+  });
+
+  // ── the dyad token at the return seam (§1.D v0.68) ────────────────────
+  //
+  // `t5` is the second retired token, and the direction that matters is the
+  // opposite of the t4 P0 above. There the danger was a STORED token being
+  // dropped (a downgrade); here it is a token in the URL being HONOURED.
+  // §1.D v0.68 folded the §1.J comparative into t3, so anything that maps a
+  // `?paid=` return onto t3 now hands out the second complete sheet plus the
+  // relation layer — an entitlement whose own listing shipped unpublished
+  // and whose product URL has been empty for the rung's entire life.
+  //
+  // The gate that stops it is one call apart from the gate that must NOT:
+  // getTier admits a raw retired value — `isTier(normalizeTier(t))`, four
+  // functions up in ui/payments.js — precisely so the migration reaches the
+  // table, while handlePaidReturn uses plain `isTier(purchased)`. Harmonizing
+  // those two reads as a tidy-up and is the whole defect. Named literally
+  // rather than derived from RETIRED_TIERS, so the case survives an edit to
+  // the table it is guarding.
+  it('?paid=t5 is not a tier — the retired dyad token cannot be bought from a URL (§1.D v0.68)', () => {
+    const banner = installPaywallUI();
+    const storage = makeStorage({ [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    installWindow('?paid=t5');
+
+    expect(handlePaidReturn()).toBe(false);
+    expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+    expect(globalThis.window.history.replaceState).not.toHaveBeenCalled();
+    expect(banner.hidden).toBe(true);
+    // "No tier was written" and "the comparative was not granted" are two
+    // claims once the block rides a live rung, so both are made — and the
+    // second goes through dyadEntitled itself, the single predicate every
+    // dyad gate consults, rather than a restatement of it.
+    expect(dyadEntitled(getRenderTier())).toBe(false);
+  });
+
+  it.each(Object.keys(RETIRED_TIERS))(
+    'a retired token points both ways at once: ?paid=%s refused, the same value STORED migrates',
+    retired => {
+      // The general rule the two named cases are instances of, so a third
+      // retirement is covered without a third copy. Both directions belong
+      // in one test because they are easy to satisfy separately and wrong
+      // separately: refusing the URL while dropping the stored value is the
+      // t4 P0, and honouring the stored value while accepting the URL is
+      // this one.
+      const banner = installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${retired}`);
+
+      expect(handlePaidReturn()).toBe(false);
+      expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+      expect(banner.hidden).toBe(true);
+      expect(resolveRenderTier({ tier: retired, credits: 0 }))
+        .toBe(RETIRED_TIERS[retired]);
+    }
+  );
+
+  it('the accepted set is exactly the three live rungs — not the inventory, not the retirement table', () => {
+    // Three sets get read as one another here, and only the first is
+    // purchasable:
+    //   TIER_ORDER         — what a `?paid=` return may name
+    //   TIER_COORDS keys   — the entitlement inventory (carries `free`)
+    //   RETIRED_TIERS keys — tokens that still RESOLVE but cannot be bought
+    // The corpus unions all three so a rung appended to any of them is
+    // driven here without a second edit; `t5` is named outright as well,
+    // because a corpus that can lose the case it exists for is not a guard.
+    const candidates = [...new Set([
+      ...TIER_ORDER, ...Object.keys(TIER_COORDS), ...Object.keys(RETIRED_TIERS),
+      't4', 't5', 't9', 'T3', '', 'dyadRelation',
+    ])];
+    expect(candidates).toContain('t5');
+    // Acceptance is measured by every observable the handler produces, not
+    // by the tier write alone: a value waved past the gate that then fails
+    // at setTier still shows a banner, and is therefore no longer being
+    // IGNORED — which is exactly what the replay-safe branch promises an
+    // unknown rung.
+    const engaged = candidates.filter(value => {
+      const banner = installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${value}`);
+      handlePaidReturn();
+      return Object.prototype.hasOwnProperty.call(storage.snapshot(), TIER_KEY)
+        || globalThis.window.history.replaceState.mock.calls.length > 0
+        || banner.hidden === false;
+    });
+    // The literal is the reviewed baseline — the $3 ladder §1.D v0.68 put
+    // back — and is deliberately NOT read off TIER_ORDER, which is half of
+    // what is under test: a token appended there would otherwise widen the
+    // expectation in step with the defect. The second assertion is the other
+    // half, that the seam has not fallen BEHIND the ladder.
+    expect(engaged).toEqual(['t1', 't2', 't3']);
+    expect(engaged).toEqual([...TIER_ORDER]);
+    // The inventory is the other half of the separation. A key may sit in
+    // TIER_COORDS without being purchasable — `free` does — but a key that
+    // is NEITHER free NOR a live rung is an entitlement no return can reach
+    // and no ladder assertion bounds: exactly the shape
+    // `t5: [...T3_COORDS, 'dyadRelation']` had before §1.D v0.68 folded it
+    // down onto the $3 rung. Stated as the relation first, then against the
+    // reviewed literal, so neither side can drift the other into agreement.
+    expect(Object.keys(TIER_COORDS)).toEqual(['free', ...engaged]);
+    expect(Object.keys(TIER_COORDS)).toEqual(['free', 't1', 't2', 't3']);
+  });
+
+  it('no accepted return reaches past the $3 ceiling — the comparative rides t3 and nothing above it', () => {
+    // Drives the real seam rather than the pure ladder: what a device ends
+    // up ENTITLED to after a return is the product claim, and it is bounded
+    // by the top rung's own inventory. `dyadRelation` is the sharp key —
+    // §1.D v0.68 moved it down onto the $3 rung, and the rung it came from
+    // was never live at any price.
+    for (const purchased of TIER_ORDER) {
+      installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${purchased}`);
+      handlePaidReturn();
+
+      const granted = getRenderTier();
+      for (const key of coordsForTier(granted)) {
+        expect(TIER_COORDS.t3, `?paid=${purchased} granted ${key}`).toContain(key);
+      }
+      expect(dyadEntitled(granted), `?paid=${purchased}`).toBe(purchased === 't3');
+    }
   });
 
   it('getTier reads only valid tiers; garbage in storage reads as free (null)', () => {

@@ -239,22 +239,22 @@
       }
     }
   ],
-  "_rising_tz_cases_comment": "Additive 2026-07-25 mutation-coverage fixtures for core/rising.js (Stryker survivor follow-up). Unlike rising_cases (fixed utcOffsetMinutes, legacy getRisingSign API), these carry an IANA tz string and are consumed via computeRising/offsetMinutesForWallTime so they exercise the two-pass DST-resolution path (core/rising.js L135-144), not just ascendantDeg. expected.risingSign values are sourced from an independent Swiss Ephemeris computation (pyswisseph, the same ephemeris engine astro.com's charts are built on; astro.com itself was unreachable from the build environment) cross-validated to <0.01deg against the three existing astro.com-anchored reference cases before use, then to <1deg agreement across 2000 random valid inputs against an independently-written from-formula implementation. expected.offsetMinutes values are sourced separately, by tracing the documented two-pass algorithm against directly-probed real Intl.DateTimeFormat output (not by executing core/rising.js).",
+  "_rising_tz_cases_comment": "Additive 2026-07-25 mutation-coverage fixtures for core/rising.js (Stryker survivor follow-up). Unlike rising_cases (fixed utcOffsetMinutes, legacy getRisingSign API), these carry an IANA tz string and are consumed via computeRising/offsetMinutesForWallTime so they exercise the tz DST-resolution path (offsetCandidatesForWallTime / getOffsetAtInstant in core/rising.js), not just ascendantDeg. Row 1 was CORRECTED in the DST fold/gap fix: it names a wall time the spring-forward skips, and its former sagittarius/-240 expectation was the old two-pass resolver's own output, transcribed when the resolver could neither reject a nonexistent wall time nor see a fold. A Swiss Ephemeris run at an instant that never occurred confirms nothing, so the row now pins the rejection; the live fold/gap behaviour is asserted directly in tests/rising.test.js's 'DST folds and gaps' block, which derives its candidate offsets from its own Intl probe rather than from core/rising.js. expected.risingSign values on the remaining rows are sourced from an independent Swiss Ephemeris computation (pyswisseph, the same ephemeris engine astro.com's charts are built on; astro.com itself was unreachable from the build environment) cross-validated to <0.01deg against the three existing astro.com-anchored reference cases before use, then to <1deg agreement across 2000 random valid inputs against an independently-written from-formula implementation. expected.offsetMinutes values are sourced separately, by tracing the documented resolution algorithm against directly-probed real Intl.DateTimeFormat output (not by executing core/rising.js).",
   "rising_tz_cases": [
     {
-      "label": "America/New_York spring-forward 2023-03-12 02:30 (skipped hour) resolves via the o2 (EDT) pass, not the o1 (EST) guess",
+      "label": "America/New_York spring-forward 2023-03-12 02:30 (skipped hour) never happened — no offset puts it on the clock, so no sign resolves",
       "dob": "2023-03-12",
       "time": "02:30",
       "tz": "America/New_York",
       "lat": 40.7128,
       "lng": -74.006,
       "expected": {
-        "risingSign": "sagittarius",
-        "offsetMinutes": -240
+        "risingSign": null,
+        "offsetMinutes": null
       }
     },
     {
-      "label": "Asia/Kolkata pre-1906 MMT (1905-12-31 21:00): o2 falls on the seconds-precision Madras Mean Time string (GMT+05:21:10) and fails to parse, offset falls back to o1 (IST)",
+      "label": "Asia/Kolkata pre-1906 MMT (1905-12-31 21:00): the round-trip probe lands on the seconds-precision Madras Mean Time string (GMT+05:21:10) and fails to parse, so it disproves nothing and the IST candidate stands",
       "dob": "1905-12-31",
       "time": "21:00",
       "tz": "Asia/Kolkata",

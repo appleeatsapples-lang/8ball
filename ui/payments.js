@@ -140,8 +140,20 @@ export function setTier(tier) {
   try {
     // Re-resolve at the write boundary so every caller gets monotonic
     // behavior, not only handlePaidReturn's pure-state preflight.
-    const next = maxTier(normalizeTier(getTier()), tier);
-    localStorage.setItem(TIER_KEY, next);
+    const raw = getTier();
+    const next = maxTier(normalizeTier(raw), tier);
+    // A tab that has nothing to add does not touch the key. localStorage is
+    // one store shared by every open tab, and this read/modify/write has no
+    // atomicity across the two calls: a second tab's purchase can land in
+    // between, and the write that follows would put this tab's stale value
+    // on top of it — the paid rung gone, with the tier key the only record
+    // that it was ever bought (§1.D v0.55: a purchase is permanent). The
+    // condition is on the stored BYTES rather than on rank, because a
+    // retired rung ranks the same as the rung that absorbed it and its
+    // rewrite (§1.D v0.60) is exactly a same-rank write that must happen.
+    // What remains is the window inside a write that DOES raise the rung;
+    // nothing localStorage offers can close that one.
+    if (raw !== next) localStorage.setItem(TIER_KEY, next);
     const stored = normalizeTier(localStorage.getItem(TIER_KEY));
     // A concurrent higher-rung write is also success; a missing/lower value
     // means the grant was not durably verified and must remain retryable.
@@ -227,6 +239,30 @@ export function consumeFacetShake(lifePath) {
   const verified = setFacetIndex(state.facetIndex);
   return verified === null ? null : { ...state, facetIndex: verified };
 }
+// ── the pending slot holds ONE checkout (§5.B) ────────────────────
+// Two tabs share this key, so two people can be staged against it, and the
+// return carries nothing that says which one came back: the `?paid=` redirect
+// is unsigned (§5.C) and §5 has no per-tab store to carry a purchase id in.
+// Handing back the last writer's profile is therefore a guess, and it is wrong
+// for whichever tab returns first — the buyer would have someone else's name
+// and date of birth saved as this device's profile and rendered at the rung
+// they just paid for.
+//
+// So a second staging of a DIFFERENT pair replaces the record with this
+// marker: the slot says "two checkouts are open, neither is identifiable"
+// rather than naming the wrong one. It carries no profile data at all, which
+// also leaves LESS at rest than the payload it replaces. Re-staging the same
+// pair (a second tap, the same person with an updated birthplace) is one
+// checkout, not a collision, and still round-trips.
+//
+// A single staging writes the bare payload exactly as before, so a device
+// already mid-round-trip when this ships still returns to its own sheet — and
+// the marker fails closed under the OLD reader too, which wants `name`+`dob`.
+const PENDING_COLLIDED = '{"collided":true}';
+
+const samePendingPair = (a, b) =>
+  Boolean(a) && Boolean(b) && a.name === b.name && a.dob === b.dob;
+
 export function getPendingProfile() {
   try {
     const raw = localStorage.getItem(PENDING_KEY);
@@ -239,8 +275,18 @@ export function getPendingProfile() {
 export function setPendingProfile(payload) {
   if (!payload || !payload.name || !payload.dob) return false;
   try {
-    const raw = JSON.stringify(payload);
+    // Read the slot at the write boundary rather than trusting this tab's
+    // own history: the staging that collides with ours came from a tab we
+    // cannot see. An unreadable/absent slot is no collision — it is a first
+    // staging, and getPendingProfile has always failed closed on garbage.
+    const held = getPendingProfile();
+    const raw = held && !samePendingPair(held, payload)
+      ? PENDING_COLLIDED
+      : JSON.stringify(payload);
     localStorage.setItem(PENDING_KEY, raw);
+    // Still read-verified: checkout must not open on a slot that did not
+    // take the write (see stagePurchase). A collided slot verifies the same
+    // way — the record is written, it just no longer names one buyer.
     return localStorage.getItem(PENDING_KEY) === raw;
   } catch (_) { return false; }
 }

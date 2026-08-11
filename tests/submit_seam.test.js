@@ -433,8 +433,8 @@ const SOURCE_PINS = [
     kind: 'primary',
     executed: 'no — this file drives only the submit handler, buildSubmitOpts, getGenderInput and initProfileUI',
     files: 40,
-    sourceBytes: 529878,
-    sha256: '560a9961e7bcea1b2279e45a67ec4d45e194b00f0914689a78e303c221dea5d5',
+    sourceBytes: 538118,
+    sha256: 'd0cd72d1bb299620ca73273dd10861304bf9f1c420dbee92a565c8ecf2b4d745',
     read: () => runtimeManifest(),
   },
   // ── DIAGNOSTIC: regions. Redundant against the whole-file pins by

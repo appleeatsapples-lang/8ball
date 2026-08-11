@@ -17,7 +17,14 @@
 // controller does not use is not silently "supported" here either.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { addSavedReading, initReadingsUI, READINGS_KEY } from '../ui/readings.js';
+import {
+  addSavedReading, clearAllSavedReadings, deleteSavedReading, initReadingsUI,
+  renameSavedReading, READINGS_KEY,
+} from '../ui/readings.js';
+// The host's openReading hook writes an opened reading back through these —
+// the stale-row suite at the bottom of this file drives that real seam rather
+// than a stand-in for it.
+import { clearProfile, loadSavedProfile, saveProfile } from '../ui/profile.js';
 
 const originalDocument = globalThis.document;
 const originalLocalStorage = globalThis.localStorage;
@@ -738,6 +745,78 @@ describe('open a saved reading (§5.E rehydrate)', () => {
       .not.toThrow();
     expect(h.status.textContent).toBe('this reading could not be opened.');
     expect(h.page.classList.contains('hidden')).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The rendered list is a SNAPSHOT of a store every other open tab shares.
+// Opening a row re-persists its profile as the device's current one (the host's
+// openReading hook calls saveProfile — index.html), so a row that another tab
+// has since deleted, or erased outright through "forget this device", puts that
+// person's name and date of birth back on a device whose owner was told the
+// erase succeeded. Nothing here is hypothetical about the staleness: the list is
+// drawn when the page opens and `currentReadings` is not re-read on click.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a stale row across two tabs (§5.E / the forget-device erase)', () => {
+  function bootStale(openReading) {
+    const storage = makeStorage();
+    seed(storage, [entry('reading-a', 'ada', '2026-07-01T10:00:00.000Z', '1988-03-04')]);
+    const h = boot({ storage, hooks: { openReading } });
+    h.api.openPage(); // this tab draws the archive…
+    expect(rowsOf(h)).toHaveLength(1);
+    return h;
+  }
+
+  const clickOpen = h =>
+    h.list._fire('click', { target: h.list.querySelector('button[data-action="open"]') });
+
+  it('does not re-persist a profile the other tab erased', () => {
+    const rehydrated = [];
+    // The host hook, as index.html wires it: an opened reading is written back
+    // through saveProfile so the rest of the app rehydrates from it. The real
+    // seam runs here — this is the write that resurrects the erased person.
+    const h = bootStale(reading => {
+      rehydrated.push(reading.profile);
+      return saveProfile(reading.profile.name, reading.profile.dob, reading.profile);
+    });
+
+    // …the other tab runs "forget this device". clearProfile and
+    // clearAllSavedReadings are two of the four verified deletions the forget
+    // modal fires, and both reported success.
+    expect(clearProfile()).toBe(true);
+    expect(clearAllSavedReadings(h.storage).ok).toBe(true);
+
+    clickOpen(h);
+
+    expect(loadSavedProfile()).toBeNull();
+    expect(h.storage.snapshot()).toEqual({});
+    expect(rehydrated).toEqual([]);
+    expect(h.status.textContent).toBe('that reading is no longer saved on this device.');
+    expect(h.page.classList.contains('hidden')).toBe(false);
+  });
+
+  it('does not re-persist a row the other tab deleted', () => {
+    const rehydrated = [];
+    const h = bootStale(reading => { rehydrated.push(reading.id); return true; });
+
+    expect(deleteSavedReading('reading-a', { storage: h.storage }).ok).toBe(true);
+
+    clickOpen(h);
+
+    expect(rehydrated).toEqual([]);
+    expect(rowsOf(h)).toHaveLength(0);
+  });
+
+  it('opens the row as it now stands, not as it was drawn', () => {
+    const rehydrated = [];
+    const h = bootStale(reading => { rehydrated.push(reading.title); return true; });
+
+    expect(renameSavedReading('reading-a', 'ada l', { storage: h.storage }).ok).toBe(true);
+
+    clickOpen(h);
+
+    expect(rehydrated).toEqual(['ada l']);
+    expect(h.refs.saveBtn.disabled).toBe(true);
   });
 });
 

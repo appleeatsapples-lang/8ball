@@ -2348,3 +2348,86 @@ No runtime edit, parser, package, browser harness or lexer expansion; no
 `git checkout`, `reset`, `clean` or `amend`.
 
 STAGED. No push, no PR, no merge, no deploy, no storefront mutation.
+
+---
+
+# ADDENDUM 21 — the 360 repository audit, absorbed on controller word
+
+A repository-wide 360° audit against GitHub `main` `69235eeb` returned
+**HOTFIX REQUIRED / DO NOT SHIP — P0 0 / P1 9 / P2 19 / P3 12**. Codex and Grok
+Heavy converged on that ledger independently, Heavy having started at an
+internally inconsistent `0/4/7/5 CONDITIONAL` and elevating all four disputed
+findings after two severity challenges. On direct controller word
+(*"touch everything yourself, full throttle fix"*) six P1 clusters were
+reproduced and fixed. **The feature freeze is deliberately broken and product
+runtime is no longer byte-unchanged** — these are defects in shipped code.
+
+## Method, and why it caught an overclaim
+
+Six isolated clones, each under orders to reproduce before fixing, prove its
+test goes red with the fix reverted, and emit a patch rather than commit. The
+controller then **verified every patch by breaking it**. That is what caught
+§8 below — the agent's own report said FIXED.
+
+## Controller's independent reproductions, before any fix
+
+| finding | measured |
+|---|---|
+| **#6** | NFC `José` → `nameNumber` 8 · `soulUrge` 6 · `maturity` 3. NFD `José` → 4 · 11 · 7. Arabic/CJK → all null. |
+| **#7** | control `2024-06-15 12:00` → `virgo` (harness valid). Fold `2024-11-03 01:30` → `leo`, while the two real instants give **leo** (EDT) and **virgo** (EST). Gap `2024-03-10 02:30` → `sagittarius`, for a wall time that never existed. |
+| **#8** | computed-member exfiltration to an unapproved key + `fetch` + `XMLHttpRequest` + `sendBeacon`, all runtime-assembled, injected into the scanned `core/profile.js`: **`privacy_scan.test.js` 10/10 GREEN**. |
+| **#9** | does NOT transfer — `isTier('t5')` is `false` on this branch and `TIER_ORDER` is three rungs. But `ui/payments.js:135` reads `isTier(normalizeTier(t)) ? t : null` — validates the NORMALIZED value, returns the RAW one. |
+
+A note on method: my first `#7` attempt returned `null` for all three cases
+**including the control**, which meant the harness was wrong, not the product —
+`computeRising` takes an options object. The control is what said so.
+
+## Dispositions
+
+**FIXED** — #7 DST (probe-then-round-trip; fold and gap both fall into the
+*existing* bare-sun path rather than a new error surface) and #1 mobile Begin
+(the floating-disc override deleted, browser-measured at 320/390/desktop).
+
+**PARTIAL, CALC-AFFECTING** — #6. One shared `nameLetters()` fold, byte-for-byte
+the one `core/cities.js` already applies. NFC and NFD now agree at 4 · 11 · 8.
+**This moves the numbers for accented names**, so a §3 calc-version note is owed
+and any reading already shown for such a name has changed. Four of six new
+tests discriminate; the agent said so unprompted.
+
+**PARTIAL** — #2/#3/#4/#5 storage coherence, three of four. The singleton
+pending-purchase slot is not fixed.
+
+**NOT CLOSED — #8, and this addendum exists partly to say so.** The
+capability-realm guard closes what a token list never could. But it is
+**execution-based**: the controller's own exfiltration left it **30 of 30
+GREEN** while sitting in an uncalled export, and turned **6 of 30** red only
+when executed at module load. Its counter-cases are module-load-executed, so it
+was tested against mutations it could see — the assumed-scope defect this cycle
+has now hit six times. A realistic exfiltration runs on submit, not on import.
+Kept and rescoped; closing it needs the realm to DRIVE the real code paths the
+way the submit seam drives its handler.
+
+**NOT REPRODUCIBLE** — #9. No product change. Pins added where the site had
+none, proved by rebuilding the pre-v0.68 surface and watching them go red.
+
+## The manifest
+
+Fired on intended product change exactly as designed, and its constant is
+updated in the same commit as the code, as its own failure message requires:
+**40 files · 529,878 → 538,118 source bytes ·
+`560a9961…` → `d0cd72d1bb299620ca73273dd10861304bf9f1c420dbee92a565c8ecf2b4d745`.**
+It is a tripwire on unreviewed change, not a privacy guard — which is precisely
+why it does not rescue #8.
+
+## Gates
+
+Suite **59 files / 2104 tests** (from 57 / 2050) · product audit **PASS** ·
+local PII **clean, 866 files** · `index.html` **1469/1500**.
+
+## Open
+
+#8's execution-only scope · the singleton pending slot · nineteen P2 and twelve
+P3 units untouched · the §3 calc-version note owed for #6 · and the standing
+v0.87 residual. **DO NOT SHIP** until #8 and the calc note are settled.
+
+STAGED. No push, no PR, no merge, no deploy, no storefront mutation.

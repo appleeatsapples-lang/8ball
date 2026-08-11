@@ -611,10 +611,28 @@ export function initReadingsUI(refs, hooks = {}) {
     const reading = currentReadings.find(item => item.id === button.dataset.readingId);
     if (!reading) return;
     if (button.dataset.action === 'open') {
+      // The rendered list is a snapshot, and this store is shared with every
+      // other open tab of the origin. Opening WRITES: the host hook saves the
+      // row's profile back as the device's current one, so a row another tab
+      // has since deleted — or erased outright through "forget this device" —
+      // would put that person's name and date of birth back on a device whose
+      // owner was told the erase succeeded. Delete and rename already re-read
+      // the archive before they change it; this is the same rule for the one
+      // action that trusted the drawn row. Redraw so the list agrees with the
+      // storage it just read.
+      const loaded = loadSavedReadings();
+      const current = loaded.readings.find(item => item.id === reading.id);
+      if (!current) {
+        // Gone from a READABLE archive means deleted or erased. Gone from an
+        // unreadable one means a storage fault, which is a different thing to
+        // tell someone — renderList already has the words for each status.
+        renderList(loaded.status === 'ok' ? 'that reading is no longer saved on this device.' : '');
+        return;
+      }
       try {
-        const opened = typeof hooks.openReading === 'function' ? hooks.openReading(reading) : false;
+        const opened = typeof hooks.openReading === 'function' ? hooks.openReading(current) : false;
         if (opened === false) { setStatus('this reading could not be opened.'); return; }
-        activeId = reading.id;
+        activeId = current.id;
         updateSaveButton();
         setSaveStatus('reading loaded from this device.');
         page.classList.add('hidden');
