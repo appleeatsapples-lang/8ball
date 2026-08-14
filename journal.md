@@ -5,6 +5,246 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-12 (later) — The dev line opens as PR #205; #203 goes stale behind it — STAGED, awaiting operator merge word
+
+**Backfilled 2026-08-14 from git, GitHub and the PR bodies.** `main`'s
+journal had been silent since 2026-08-04 while eight days of decisions
+landed elsewhere — in PR comments, in a merged audit artifact, and on a
+dev branch. This entry and the four below close that gap. Where a fact
+came from a PR body rather than a run in this seat, it says so.
+
+**What happened.** `claude/specimen-four-line-symbolic` — the line every
+2026-08-06 through 2026-08-08 entry on that branch was staged on — is now
+open as **PR #205**, head `59990c1`, base `2ba6264`. 46 commits, 62
+files, +12589 / −1773. All three reported checks green (`test`,
+`product-audit`, `l48-gate`) plus the Netlify header/redirect checks;
+`mergeable_state` clean. It carries the moon coordinate (§1.K v0.64),
+four system lines (§1.L v0.66), the numerology hexagon (§1.M v0.66), the
+kua deletion (§1.D v0.67), the comparative fold into $3 (§1.D v0.68) and
+calc v5.
+
+**That branch's own 2026-08-08 status line is superseded.** It reads
+"Not committed, not pushed, no PR, no merge, no deploy" and "The unit
+remains uncommitted with no PR." True when written; not true now. The
+unit is committed, pushed and PR'd. It is still **not merged** — merge
+is the operator's word, and the PR body says so itself.
+
+**What this seat did NOT do.** The verification figures in the PR body —
+vitest 59 files / 2104 tests green, `project_audit.py` PASS 14/0/0/0,
+local PII audit clean across 867 files, `index.html` 1469/1500,
+live-fire at 320 / 390 / desktop — are **as reported by the implementing
+seat and were not re-run here**. This entry records that they were
+claimed and where. It is not a second sighting of them.
+
+**The audit standing is one lane, not two.** grok returned MERGE WITH
+FIXES, all six findings absorbed; **the codex lane failed twice** — 1.4MB
+and 1.48MB outputs, both mostly echoed diff, neither containing a
+verdict, and the reconciliation came back 0 bytes. Artifact:
+`audits/relay_specimen_four_line_premerge_audit_2026-08-06_response.md`,
+which states this in its own Lane outcome section. Whoever gives the
+merge word is giving it against a single independent read.
+
+**Three open items the PR names as operator-only**, carried here so they
+are not only in a PR body:
+
+1. **§3 step 1 is OUTSTANDING by design for calc v5.** `tests/fixtures.json`
+   is deliberately untouched — the seat that verified the fold would
+   otherwise write its own fixtures (L48). Eight accented-name cases are
+   drafted at §11 of `sessions/packet_calc_version_note_nfc_fold_2026-08-08.md`,
+   which is operator-local and not in this repo.
+2. **The `gender` field is stored with no reader.** §5 admitted it
+   because it "feeds only the kua line"; that consumer is gone as of
+   §1.D v0.67, which records the justification as vacant and leaves it
+   open. It needs a named purpose or removal from the allow-list.
+3. **The Gumroad listing is stale.** The shipped surface now includes the
+   comparative at $3; the store description does not say so. Store
+   mutation is operator-hand.
+
+**Filed alongside:** issue **#206** — three buttons under the 44px
+tap-target floor (about icon, paywall-close, about-modal close), opened
+by the product audit at PR-open time.
+
+**#203 is now stale behind this.** `remediation/multi-tab-storage-and-csp`
+(versioned multi-tab storage helper + `Content-Security-Policy-Report-Only`,
+from the Grok Heavy red-team of `69235ee`, CONDITIONAL verdict, F1/F2/F4)
+is still open on base `69235ee` — two merges behind — and GitHub reports
+`mergeable_state: unstable`. #205 rewrites the storage paths it touches
+and carries its own storage-coherence suite. It needs a rebase and a
+redundancy check against #205 before it can be judged. Neither done here.
+
+**Both operating reads are overdue and the front matter above is left
+alone deliberately.** `next_strategic_read: 2026-08-13` is past;
+`next_analytics_read: 2026-08-06` is over a week past. Bumping either
+would assert a read that this seat has no file-backed evidence was
+filed, so they stand unchanged as a live flag.
+
+## 2026-08-12 — REACH-CAPTION-UPGRADE-01: cross-model audit filed (PR #204) — MERGED, artifact only
+
+**What happened.** PR #204 squash-merged to `main` as `2ba6264`, adding
+exactly one file: `audits/relay_pr204_premerge_audit_2026-08-12_response.md`
+(216 lines). Doc-only — no product code. The audited change lives in
+`~/8ball/reach/`, **which is not under Git**: no branch, no PR, no CI,
+and not present in this checkout.
+
+**What the artifact is, and the one thing it cannot claim.** To produce a
+reviewable diff the implementing seat built a scratch repo with a
+reconstructed before-state and the current after-state. The
+reconstruction was verified rather than assumed — the complete
+pre-change suite passes on the baseline, including `test_caption_rail`'s
+*original* union assertion, which fails outright if the new caption
+files are present; the diff is exactly the 16 touched files, +2556 / −74.
+What it cannot claim is that the reviewers saw the live vault tree. They
+saw a faithful copy, and one codex finding is an artifact of that copy.
+
+**Both lanes found real defects the other missed — that divergence is the
+argument for running both.** grok: APPROVE WITH FIXES (1 HIGH, 1 MEDIUM,
+2 LOW). codex: BLOCK (4 HIGH, 5 MEDIUM, 1 LOW). They overlapped on
+almost nothing.
+
+- **grok's HIGH, invisible to codex — all twelve animal cards published
+  private-only on X.** The budget fill takes rows in priority order and
+  skips what will not fit; the public-animal clause is the longer of the
+  pair, so on X's tighter budget it was dropped and the private clause
+  behind it kept — filing every year animal as a month animal, on one
+  surface only. Verified on disk before fixing: 12/12 X rows wrong,
+  12/12 wider rows correct.
+- **codex's HIGHs, invisible to grok** — master numbers 11/22/33 called
+  "a reduced digit" immediately before printing their own ", master"
+  label, already queued for all four surfaces; the extended-specimen
+  guard ignoring dates that are recoverable from disk (85 specimens have
+  a real date, and pinning them now **rejects the previous-year animal on
+  71** where it was formerly accepted); and that guard never inspecting
+  sun, rising or private at all, so a reversed arrow pair would have
+  published reversed claims and passed — now caught on **71 of 84** dated
+  specimens with distinct sun and rising.
+- **Four codex findings were tests that could not fail** — a
+  dragon⇄dragon "reversal" fixture where swapping is a no-op; a newline
+  assertion run on output that is split by line and can never contain
+  one (and the generator had no newline guard at all); a fallback test
+  the new source satisfies for every code; and `unittest.main()` sitting
+  above the newly appended classes, so direct execution ran 56 tests
+  where `-m unittest` ran 65.
+
+**Eleven findings confirmed and fixed, each pinned by a test verified
+against deliberately broken code** — 27 mutations across two rounds. One
+codex HIGH (C1, a "missing" module) was an artifact of the review corpus
+rather than the tree and is recorded as such, with the real observation
+kept: the generator depends on a path *outside* `reach/`, so its suite is
+not self-contained. Recorded, not fixed — fixing it means moving or
+vendoring product data, outside that packet's scope.
+
+**Two mutation results were initially wrong, and the artifact records
+them because they change what the rest is worth.** A size-identical
+mutation read as caught-then-restored while a stale `.pyc` was still
+loading — bytecode validation is (mtime, size) and the restore landed in
+the same second; every result was re-taken with `__pycache__` cleared
+between runs. And `test_an_exact_recorded_date_pins_the_year_animal_exactly`
+initially **passed for the wrong reason** — its fixture's sun sign
+disagreed with the recorded date, so the new sun check fired before the
+animal check ran. Only the mutation exposed it.
+
+**Standing, unchanged by the merge: this is not a merge authorisation for
+the `reach/` change**, and arming — moving the new captions and selection
+into the live queues — remains a separate operator tap. The suite
+figures and the read-only end-to-end walk in §3 of the artifact were run
+by the implementing seat on the live vault tree; `reach/` is not in this
+checkout and **this seat verified none of them**.
+
+## 2026-08-08 — #201 and #202 closed unmerged; both retired into the dev line — CLOSED, NOT MERGED, reopen conditions live
+
+**What happened.** Both PRs were closed on operator word, neither
+merged, neither for any defect. Both were fully green at close —
+`l48-gate`, `product-audit`, `test` and all Netlify checks passing,
+mergeable/CLEAN. The closure reasoning lives in a comment on each PR;
+this entry brings it into the repo record, because a closed PR comment is
+not where the next seat will look.
+
+**#201 — moon sign (§1.K v0.64, ASTRO-MOON-ADD-01), +985 −90 / 25 files.**
+Closed as **already absorbed**: head `e04981b` is an ancestor of
+`claude/specimen-four-line-symbolic`, verified with `git merge-base
+--is-ancestor`, as is `a800178`, the commit adding `core/moon.js`. The
+dev line carries the work commit-for-commit; merging separately would
+add nothing and create a second path to the same content.
+
+**#202 — no-gender kua fallback cut (§1.D v0.65), +348 −62 / 11 files.**
+Closed as **superseded by §1.D v0.67** (`ce5815a` on the dev line), which
+deletes the kua block in full — including every product file #202 touches
+(`core/kua.js`, `ui/kua.js`, `tests/kua_surface.test.js`). The chain for
+a no-gender profile: v0.63 both classical values (shipped on `main`) →
+v0.65 block absent (#202) → v0.67 block deleted (dev line). Merging #202
+would move production to an intermediate state the v0.67 line then
+deletes outright — two user-visible changes to reach one outcome already
+ruled past.
+
+**Both reopen conditions are live and both hang on #205 landing.**
+`core/moon.js` is absent on `origin/main` and present only on the dev
+branch; if that branch stops being on track, `main` never receives the
+moon coordinate and #201 becomes the only path to it. Likewise, if the
+v0.67 line does not land, `main` keeps the v0.63 both-values render that
+the 2026-08-06 word ruled against, and #202 becomes the only thing
+honouring it. **Neither PR should be forgotten while #205 sits open.**
+
+**One reconciliation left open by the #201 closure note.** §1.K v0.64 and
+the PR title both describe the moon coordinate as being **"at t1"**. Under
+the pricing ruling recorded in the entry below, a per-rung qualifier no
+longer carries meaning. The coordinate itself is unaffected; only the
+`t1` framing is stale, and the note asks that it be reconciled in the
+doctrine text when the dev line lands rather than in that PR.
+
+## 2026-08-07 — "$3 buys everything": the tier ladder goes vestigial — RULED, primary record is operator-local
+
+**A pointer entry, not a transcription.** This ruling was made on
+2026-08-07 and filed at `REACH_CONTROL.md` line 5824, which is
+operator-local and not in this repo. It is recorded here because until
+now it appeared in the git record **nowhere at all** — the only trace
+inside this project's reachable surface was a passing citation in the
+#201 closure comment, and a decision that changes what a doctrine clause
+means should not live only in a comment on a closed PR.
+
+**What it rules, as cited:** *$3 buys everything*. The consequence named
+in that citation is that **the tier ladder is vestigial and a per-rung
+qualifier no longer carries meaning** — which is why "the moon sign at
+t1" is stale framing, and it is the same direction §1.D v0.68 travels in
+on the dev line when it folds the comparative into $3 and retires `t5`.
+
+**What this entry does not do.** It does not reproduce the ruling's full
+text, which this seat has not seen, and it is **not** a doctrine
+amendment. Clauses still carrying tier language — §1.D and §1.K among
+them — have not been swept against it. That sweep is unclaimed work, and
+the natural moment for it is whenever #205 lands and §1.K's `t1` framing
+has to be touched anyway.
+
+## 2026-08-04 — #199 and #200 MERGED; the two status lines below are superseded
+
+**Both entries below shipped inside their own merge commits, still
+reading STAGED.** That is an artifact of how they were written — each
+was authored in its PR and carried to `main` by the merge it describes,
+so neither could name its own merge commit. Recorded here per the
+`#187 MERGED` precedent of 2026-07-30, which supersedes a status line by
+a later entry rather than editing the entry in place.
+
+- **PR #199** — kua trigram block + optional gender input (§1.D v0.63) —
+  squash-merged as **`520242a`**. Its entry's "STAGED, MERGE WITH FIXES"
+  status is superseded; the three fixes it describes were landed before
+  the merge, not after.
+- **PR #200** — UI refinement: state-truth timers, search recovery, a11y
+  forms, specimen registry redesign — squash-merged as **`69235ee`**. Its
+  entry's "STAGED, SAFE TO MERGE pending operator merge word" status is
+  superseded; the word was given and the merge happened the same day.
+
+**Both are live on the product.** Netlify auto-deploys on push to `main`,
+so `69235ee` has been the deployed surface since 2026-08-04 — including
+the restored purchase-permanence disclosure that the #200 entry records
+as an operator decision. **Not verified from here**: egress policy blocks
+the product domain from this container, so this entry pins what `main`
+contains, not what the live site serves.
+
+**Three items the #200 entry left open as non-blocking remain open**, and
+none has been closed since: `ensureFacetIndex`'s null-on-failed-write
+return discarded at 3 call sites; the `:has()`-based mobile `#enter-btn`
+tab-order concern that wants a real manual device pass; and the dyad
+second-birthplace-field status-wiring gap.
+
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
