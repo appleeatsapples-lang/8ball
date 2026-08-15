@@ -17,9 +17,13 @@
 // coordinates. This supersedes calc v3's strict nine-number reduction and
 // keeps its null/unresolved guard. Lunar, solar-term, rising, pillar,
 // birth-card and catalog-index algorithms are untouched.
+// moonSign (additive, DOCTRINE §1.K) is computed via core/moon.js's
+// computeMoonSign — same input gate as risingSign (see below); no lat/lng
+// needed by the math itself but gated identically for product-UX parity.
 
 import { getCountryTimeZoneByCode } from './countries.js';
 import { computeRising } from './rising.js';
+import { computeMoonSign } from './moon.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 import { getBirthCard } from './birthcard.js';
 import { mod, sumDigits } from './math.js';
@@ -187,14 +191,43 @@ export function getLifePath(year, month, day) {
   return reduce(getLifePathSum(year, month, day));
 }
 
+// ── The name-normalization contract (ONE, shared by all three reducers).
+// The Pythagorean table is defined over the 26 Latin letters, so every name
+// reducer must read the SAME canonical letter sequence — otherwise two
+// spellings of one name reduce to different paid coordinates. "José" typed
+// as NFC (é = U+00E9) and as NFD (e + U+0301) is the same name to Unicode,
+// to the keyboard that produced it and to the person who owns it.
+//
+// NFD-decompose, drop the combining marks, lowercase, keep a–z — the same
+// fold core/cities.js applies to city names, for the same reason. Folding
+// is deliberate rather than skipping: a dropped diacritic would silently
+// reduce "José" as "Jos", which is a different name. Classification
+// (vowel vs consonant) happens on the folded letter, so U+0130's two-code-
+// point lowercase can no longer file a dotted I as a consonant.
+//
+// NAMED LIMIT: only CANONICAL decompositions fold. Letters carrying their
+// mark inside the glyph (Đ, Ł, Ø, ß) have none and stay unsupported, as
+// does every non-Latin script.
+//
+// A name yielding NO supported letter is UNRESOLVED, not zero: the *Sum
+// trails stay 0 and `reduce` resolves every name-derived coordinate —
+// including maturity — to `null` (`—` on the entitled sheet), the §1.B
+// v0.62 absent-letter-class guard applied to the whole alphabet rather
+// than to one letter class. No coordinate is invented from code points the
+// table cannot read.
+export function nameLetters(name) {
+  if (!name) return '';
+  return name.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z]/g, '');
+}
+
 // Pythagorean letter values: a=1..i=9, j=1..r=9, s=1..z=8
 export function getNameNumberSum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const code = c.toLowerCase().charCodeAt(0);
-    if (code < 97 || code > 122) continue;
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -211,14 +244,10 @@ const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 // Standard numerology consonants: all letters minus a, e, i, o, u.
 // Mirror of getSoulUrge with the vowel-set logic inverted.
 export function getPersonalitySum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const lower = c.toLowerCase();
-    const code = lower.charCodeAt(0);
-    if (code < 97 || code > 122) continue;
-    if (VOWELS.has(lower)) continue;
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    if (VOWELS.has(c)) continue;
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -229,13 +258,10 @@ export function getPersonality(name) {
 
 // Soul urge (heart's desire): sum of vowels only, Pythagorean values.
 export function getSoulUrgeSum(name) {
-  if (!name) return 0;
   let total = 0;
-  for (const c of name) {
-    const lower = c.toLowerCase();
-    if (!VOWELS.has(lower)) continue;
-    const code = lower.charCodeAt(0);
-    total += ((code - 97) % 9) + 1;
+  for (const c of nameLetters(name)) {
+    if (!VOWELS.has(c)) continue;
+    total += ((c.charCodeAt(0) - 97) % 9) + 1;
   }
   return total;
 }
@@ -284,20 +310,34 @@ export function buildProfile(name, dobIso, opts) {
   if (d > daysInMonth[m - 1]) {
     throw new Error('DOB out of range');
   }
-  const cleanName = (name || '').trim();
-  // ── Rising sign resolution (IANA-tz path for fresh + legacy profiles)
+  // NFC is the same contract seen from the display side: the retained name
+  // is stored in one canonical form, so two spellings of one name produce
+  // one profile end to end — not merely one set of numbers.
+  const cleanName = (name || '').normalize('NFC').trim();
+  // ── Rising + moon sign resolution (IANA-tz path for fresh + legacy profiles)
   //
-  // Result legend:
+  // Result legend (both coordinates):
   //   undefined  → required inputs missing or invalid; line-2 falls back to bare sun
   //   string     → astrologically resolved sign
-  //   null       → polar latitude (|lat| > 66.5°); UI surfaces "rising unavailable"
+  //   null       → risingSign: polar latitude (|lat| > 66.5°); UI surfaces
+  //                "rising unavailable". moonSign: unresolvable tz — in
+  //                practice unreachable here, since `tz` was already proven
+  //                resolvable by the `if (tz)` guard below; kept for parity
+  //                with computeMoonSign's own null-on-bad-tz contract.
   //
   // v0.2.7.2+ profiles supply `opts.tz` directly. Older profiles supply
   // `opts.country`; for those we resolve a representative IANA timezone
   // from the legacy country/zone code, then use the same computeRising
   // path. UI still surfaces a non-blocking "update your birthplace for
   // accuracy" hint when rising <details> opens (brief §2.4).
+  //
+  // moonSign (DOCTRINE §1.K) piggybacks on this same validated tz — its
+  // own math needs no lat/lng, but gating it identically to risingSign
+  // keeps the two time-and-place astrology coordinates available or
+  // absent together (product-UX pair coherence per §1.K; moon renders
+  // in its own MOON row, not the sun row).
   let risingSign;
+  let moonSign;
   if (opts && opts.time
       && typeof opts.lat === 'number' && typeof opts.lng === 'number') {
     const tm = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
@@ -315,6 +355,9 @@ export function buildProfile(name, dobIso, opts) {
           risingSign = computeRising({
             year: y, month: m, day: d, hour, minute,
             tz, lat: opts.lat, lng: opts.lng
+          });
+          moonSign = computeMoonSign({
+            year: y, month: m, day: d, hour, minute, tz
           });
         }
       }
@@ -335,10 +378,13 @@ export function buildProfile(name, dobIso, opts) {
       }
     }
   }
-  // ── Gender passthrough (additive, §1.D kua amendment). Strict two-token
-  // vocabulary; anything else resolves undefined (same absent-shape as
-  // risingSign). Consumed only by the kua read (ui/kua.js → core/kua.js) —
-  // no free coordinate derives from it, preserving free = DOB-only (§1.D).
+  // ── Gender passthrough (additive). Strict two-token vocabulary;
+  // anything else resolves undefined (same absent-shape as risingSign).
+  // NO CALCULATION OR OUTPUT READER since §1.D v0.67 deleted the kua read
+  // — this copy onto the profile object is itself one of the persistence
+  // reads. The field is retained by operator word and is stored and
+  // round-tripped only. No
+  // coordinate derives from it, so free = DOB-only (§1.D) is unaffected.
   const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))
     ? opts.gender
     : undefined;
@@ -362,6 +408,7 @@ export function buildProfile(name, dobIso, opts) {
     maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
     risingSign,
+    moonSign,
     birthCard: getBirthCard(y, m, d),
     dayPillar: getDayPillar(y, m, d),
     hourPillar,

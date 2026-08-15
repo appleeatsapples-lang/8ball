@@ -166,8 +166,8 @@ describe('rising sign — computeRising (tz-aware, v0.2.7.2)', () => {
 // 39 undetected mutants; see journal for the full record). fixtures.rising_cases
 // cannot express these cases -- it has no tz field and is consumed only via
 // the legacy fixed-offset getRisingSign API, which never reaches the
-// two-pass DST-resolution code (offsetMinutesForWallTime / getOffsetAtInstant,
-// core/rising.js L112-144) at all. rising_tz_cases (new, same fixtures.json
+// tz DST-resolution code (offsetMinutesForWallTime / offsetCandidatesForWallTime
+// / getOffsetAtInstant) at all. rising_tz_cases (new, same fixtures.json
 // file) carries a tz string instead and is consumed here via computeRising +
 // offsetMinutesForWallTime so it actually exercises that path. See each
 // fixture's label + tests/fixtures.json's _rising_tz_cases_comment for the
@@ -177,7 +177,10 @@ describe('rising sign — computeRising mutation-coverage fixtures (2026-07-25)'
     it(c.label, () => {
       const [y, m, d] = parseDob(c.dob);
       const [hour, minute] = parseTime(c.time);
-      if (typeof c.expected.offsetMinutes === 'number') {
+      // `!== undefined`, not `typeof === 'number'`: a row whose wall time
+      // never happened expects null, and a typeof-number guard would skip
+      // that assertion instead of making it.
+      if (c.expected.offsetMinutes !== undefined) {
         expect(offsetMinutesForWallTime(y, m, d, hour, minute, c.tz)).toBe(c.expected.offsetMinutes);
       }
       expect(computeRising({
@@ -219,6 +222,122 @@ describe('rising sign — offsetMinutesForWallTime tz-guard edge cases (2026-07-
     // equivalent case already exists in the "buildProfile integration"
     // block below via tz: 'Not/AZone').
     expect(computeRising({ ...base, tz: 'Mars/Phobos_Base' })).toBe(null);
+  });
+});
+
+// ── DST folds and gaps ────────────────────────────────────────────────
+// A wall clock is not a bijection onto instants. On a spring-forward the
+// named wall time never happens (gap); on a fall-back it happens twice
+// (fold), an hour apart, and the ascendant moves ~15°/hour — enough to
+// straddle a sign boundary. computeRising must not manufacture a
+// definitive sign out of either case.
+//
+// Candidate offsets and their signs are derived HERE, from a local
+// Intl probe plus the legacy fixed-offset getRisingSign, so the
+// expectations do not come from the code under test. The probe is a
+// deliberate second implementation of the parse in getOffsetAtInstant;
+// if the two ever disagree the assertions below go red rather than
+// silently agreeing with a broken resolver.
+describe('rising sign — DST folds and gaps (transition wall times)', () => {
+  const NYC = { tz: 'America/New_York', lat: 40.7128, lng: -74.006 };
+
+  const probeOffset = (date, tz) => {
+    const part = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, timeZoneName: 'longOffset', hour12: false
+    }).formatToParts(date).find(p => p.type === 'timeZoneName').value;
+    if (part === 'GMT') return 0;
+    const m = /^GMT([+-])(\d{1,2})(?::?(\d{2}))?$/.exec(part);
+    return (m[1] === '+' ? 1 : -1) * (parseInt(m[2], 10) * 60 + (m[3] ? parseInt(m[3], 10) : 0));
+  };
+
+  // Offsets that actually place this wall time on the clock in `tz`:
+  // probe a day either side of the transition, then keep the candidates
+  // whose own instant reports that same offset back.
+  const validOffsets = (y, mo, d, h, mi, tz) => {
+    const wall = Date.UTC(y, mo - 1, d, h, mi);
+    const DAY = 86400000;
+    const before = probeOffset(new Date(wall - DAY), tz);
+    const after = probeOffset(new Date(wall + DAY), tz);
+    const distinct = before === after ? [before] : [before, after];
+    return distinct.filter(o => probeOffset(new Date(wall - o * 60000), tz) === o);
+  };
+
+  it('spring-forward gap: the wall time exists under no offset, so no sign is resolvable', () => {
+    // 2024-03-10, US spring forward: 02:00 EST jumps to 03:00 EDT, so
+    // 02:30 local never occurs in New York.
+    const offsets = validOffsets(2024, 3, 10, 2, 30, NYC.tz);
+    expect(offsets).toEqual([]);
+    expect(computeRising({
+      year: 2024, month: 3, day: 10, hour: 2, minute: 30,
+      tz: NYC.tz, lat: NYC.lat, lng: NYC.lng
+    })).toBe(null);
+  });
+
+  it('fall-back fold with differing candidate signs: no sign is invented', () => {
+    // 2024-11-03, US fall back: 02:00 EDT returns to 01:00 EST, so 01:30
+    // local happens twice — once at -240 (leo) and once at -300 (virgo).
+    const offsets = validOffsets(2024, 11, 3, 1, 30, NYC.tz);
+    expect(offsets).toEqual([-240, -300]);
+    const signs = offsets.map(o => getRisingSign(2024, 11, 3, 1, 30, o, NYC.lat, NYC.lng));
+    expect(signs).toEqual(['leo', 'virgo']);
+    expect(computeRising({
+      year: 2024, month: 11, day: 3, hour: 1, minute: 30,
+      tz: NYC.tz, lat: NYC.lat, lng: NYC.lng
+    })).toBe(null);
+  });
+
+  it('fall-back fold whose two candidates agree still resolves that sign', () => {
+    // Same fold, fifteen minutes later: both instants land in virgo, so
+    // the ambiguity does not reach the answer and withholding would be a
+    // needless loss.
+    const offsets = validOffsets(2024, 11, 3, 1, 45, NYC.tz);
+    expect(offsets).toEqual([-240, -300]);
+    const signs = offsets.map(o => getRisingSign(2024, 11, 3, 1, 45, o, NYC.lat, NYC.lng));
+    expect(signs).toEqual(['virgo', 'virgo']);
+    expect(computeRising({
+      year: 2024, month: 11, day: 3, hour: 1, minute: 45,
+      tz: NYC.tz, lat: NYC.lat, lng: NYC.lng
+    })).toBe('virgo');
+  });
+
+  it('offsetMinutesForWallTime reports no offset for a wall time that never happened', () => {
+    expect(offsetMinutesForWallTime(2024, 3, 10, 2, 30, NYC.tz)).toBe(null);
+    // An hour later the clock exists again and resolves normally.
+    expect(offsetMinutesForWallTime(2024, 3, 10, 3, 30, NYC.tz)).toBe(-240);
+  });
+
+  it('a wall time an hour either side of the same transition still resolves', () => {
+    // The rejection must be surgical: neighbouring wall times on the very
+    // same day keep their signs.
+    for (const [hour, minute, offset] of [[1, 30, -300], [3, 30, -240]]) {
+      expect(offsetMinutesForWallTime(2024, 3, 10, hour, minute, NYC.tz)).toBe(offset);
+      expect(computeRising({
+        year: 2024, month: 3, day: 10, hour, minute,
+        tz: NYC.tz, lat: NYC.lat, lng: NYC.lng
+      })).toBe(getRisingSign(2024, 3, 10, hour, minute, offset, NYC.lat, NYC.lng));
+    }
+  });
+
+  it('southern-hemisphere transitions go through the same rule, not a US-shaped special case', () => {
+    // Sydney runs the transitions the other way round: 2024-10-06 02:00
+    // AEST jumps to 03:00 AEDT (gap), 2024-04-07 03:00 AEDT returns to
+    // 02:00 AEST (fold). Both wall times read 02:30.
+    const SYD = { tz: 'Australia/Sydney', lat: -33.8688, lng: 151.2093 };
+
+    expect(validOffsets(2024, 10, 6, 2, 30, SYD.tz)).toEqual([]);
+    expect(computeRising({
+      year: 2024, month: 10, day: 6, hour: 2, minute: 30,
+      tz: SYD.tz, lat: SYD.lat, lng: SYD.lng
+    })).toBe(null);
+
+    const foldOffsets = validOffsets(2024, 4, 7, 2, 30, SYD.tz);
+    expect(foldOffsets).toEqual([660, 600]);
+    expect(foldOffsets.map(o => getRisingSign(2024, 4, 7, 2, 30, o, SYD.lat, SYD.lng)))
+      .toEqual(['aquarius', 'aquarius']);
+    expect(computeRising({
+      year: 2024, month: 4, day: 7, hour: 2, minute: 30,
+      tz: SYD.tz, lat: SYD.lat, lng: SYD.lng
+    })).toBe('aquarius');
   });
 });
 

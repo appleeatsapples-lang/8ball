@@ -115,7 +115,7 @@ describe('render + share wiring (index.html)', () => {
     // share refs are per-row snapshot refs from ui/tiers.js carrying per-cell
     // {state, value} (§5.D v0.39); the arcana row is index 0, its id survives.
     expect(html).toContain('id="coord-arcana-symbol"');
-    expect(html).toMatch(/symbols:\s*\[\s*shareArcana/);
+    expect(html).toMatch(/symbols:\s*\[\s*shareTarot/);
   });
 
   it('render populates the arcana cell from profile.birthCard.label (ui/tiers.js)', () => {

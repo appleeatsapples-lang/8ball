@@ -1,6 +1,7 @@
 // 8ball / ui / sheet.js — a complete standalone specimen sheet, instanced
 //
-// WHY THIS EXISTS. The dyad (§1.J, t5) sells "A's standalone reading + B's
+// WHY THIS EXISTS. The dyad (§1.J, entitled at t3 since §1.D v0.68) sells
+// "A's standalone reading + B's
 // standalone reading + a relation layer". The first implementation rendered a
 // bespoke two-column coordinate table instead, and a Codex pre-merge audit
 // (PR #187, finding F5) correctly refused it: a narrowed table is not the
@@ -52,6 +53,7 @@ import {
   CELL_KEYS,
   CELL_COORD,
   SHEET_ROWS,
+  ROW_TITLES,
   cellRenderState,
   coordsForTier,
   PROV_NOTE,
@@ -64,22 +66,17 @@ import { getCard, MissingCardError } from '../core/engine.js';
 
 // ── markup ────────────────────────────────────────────────────────
 //
-// Row titles are markup, so they live here rather than in ui/tiers.js. The
-// sun and animal titles are rewritten per render (the paired-row grammar:
-// the dot form names structure, the relation glyph marks a resolved entitled
-// pair), exactly as renderTierSections does for the host sheet.
-// `tests/dyad_surface.test.js` pins this list against index.html's own
-// coord-section titles so the two structures cannot drift apart.
-export const ROW_TITLES = Object.freeze({
-  arcana: 'ARCANA',
-  element: 'FIVE-ELEMENT',
-  sun: 'SUN ↑ RISING',
-  animal: 'PUBLIC ⇌ PRIVATE',
-  lifePath: 'LIFE · NAME · SOUL',
-  personality: 'PERSONALITY · BIRTHDAY · MATURITY',
-  dayPillar: 'DAY PILLAR',
-  hourPillar: 'HOUR PILLAR',
-});
+// Row titles come from ui/tiers.js ROW_TITLES (§1.L v0.66) — one constant
+// for the host sheet and every instanced sheet. They are STATIC: the
+// v0.37 paired-row grammar that rewrote a title per render is retired
+// with the nine-row structure. `tests/dyad_surface.test.js` still pins the
+// rendered titles against index.html's own coord-section titles.
+// Re-exported, not restated: §1.L v0.66 moved the four line titles into
+// ui/tiers.js so the host sheet and these instanced sheets read ONE
+// constant. The old nine-entry copy here was the drift risk
+// tests/dyad_surface.test.js had to pin across two files; the pin now has
+// nothing to catch because there is nothing to diverge.
+export { ROW_TITLES };
 
 const cellHtml = (prefix, key) =>
   '<span class="coord-cell">' +
@@ -106,7 +103,11 @@ export function buildSheetMarkup(prefix) {
     return '<div class="coord-section">' +
       `<div class="coord-title" data-sheet-title="${prefix}:${lead}">${ROW_TITLES[lead]}</div>` +
       (atlas ? `<div class="coord-atlas">${atlas}</div>` : '') +
-      `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
+      // The numerology line carries the §1.M hexagon class so an instanced
+      // sheet has the same geometry as the host (the dyad differential test
+      // pins structure, and a flat row beside a hexagon would be a real
+      // divergence, not a cosmetic one).
+      `<div class="coord-cells${keys.length === 6 ? ' coord-cells-hex' : ''}">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
       `<div class="coord-prov">${provText(keys)}</div>` +
       '</div>';
   }).join('');
@@ -129,13 +130,6 @@ export function buildSheetMarkup(prefix) {
     `<div class="card-note" data-sheet-roleline="${prefix}"></div>` +
     `<div class="card-note public-bridge" data-sheet-public-bridge="${prefix}"></div>` +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +
-    '<div class="kua-read" data-sheet-kua="' + prefix + '">' +
-    '<div class="card-prose-rule"></div>' +
-    '<div class="kua-title">KUA</div>' +
-    `<div class="card-habit" data-sheet-kua-primary="${prefix}"></div>` +
-    `<div class="card-note" data-sheet-kua-secondary="${prefix}"></div>` +
-    `<div class="card-note kua-note" data-sheet-kua-note="${prefix}"></div>` +
-    '<span class="coord-seal" aria-hidden="true"></span></div>' +
     '</article>';
 }
 
@@ -151,7 +145,6 @@ export function buildSheetMarkup(prefix) {
 export function createSheet(host, { prefix } = {}) {
   const q = sel => (host && host.querySelector ? host.querySelector(sel) : null);
   const cellNode = key => q(`[data-sheet-cell="${prefix}:${key}"]`);
-  const titleNode = key => q(`[data-sheet-title="${prefix}:${key}"]`);
 
   // Every node this instance can write, so clear() is derived from the same
   // list render() fills rather than hand-maintained beside it. The PR #187 F1
@@ -167,9 +160,6 @@ export function createSheet(host, { prefix } = {}) {
     q(`[data-sheet-antifit="${prefix}"]`),
     q(`[data-sheet-roleline="${prefix}"]`),
     q(`[data-sheet-public-bridge="${prefix}"]`),
-    q(`[data-sheet-kua-primary="${prefix}"]`),
-    q(`[data-sheet-kua-secondary="${prefix}"]`),
-    q(`[data-sheet-kua-note="${prefix}"]`),
   ];
 
   function setCell(key, state, text) {
@@ -205,18 +195,9 @@ export function createSheet(host, { prefix } = {}) {
      *        caller is the wrong direction. The host injects the read through
      *        ui/dyad.js, which is the §6 DI shape anyway.
      */
-    render(profile, tier, { noteSlot = 'mid', publicRead = null, kua = null } = {}) {
+    render(profile, tier, { noteSlot = 'mid', publicRead = null } = {}) {
       if (!profile) return null;
       const coords = coordsForTier(tier);
-
-      // Paired-row titles, same grammar as the host sheet.
-      const risingOpen = coords.has('rising') && !!profile.risingSign;
-      const sunTitle = titleNode('sun');
-      if (sunTitle) sunTitle.textContent = risingOpen ? 'SUN ↑ RISING' : 'SUN · RISING';
-      const animalTitle = titleNode('animal');
-      if (animalTitle) {
-        animalTitle.textContent = coords.has('innerAnimal') ? 'PUBLIC ⇌ PRIVATE' : 'PUBLIC · PRIVATE';
-      }
 
       // THE shared mapping. Identical call renderTierSections makes.
       for (const key of CELL_KEYS) {
@@ -264,19 +245,7 @@ export function createSheet(host, { prefix } = {}) {
       // other value node.
       setText(`[data-sheet-public-bridge="${prefix}"]`, read ? (read.bridge || '') : '');
 
-      // Kua trigram — the third t3 ceiling block (§1.D kua amendment).
-      // Handed in like publicRead, and for the same reason: core/kua.js
-      // carries a single-consumer pin (tests/kua_surface.test.js) and this
-      // module must not become its second importer.
-      const kuaOpen = coords.has('kuaRead');
-      const kuaRoot = q(`[data-sheet-kua="${prefix}"]`);
-      const kuaRead = kuaOpen ? kua : null;
-      if (kuaRoot && kuaRoot.classList) kuaRoot.classList.toggle('sealed', !kuaRead);
-      setText(`[data-sheet-kua-primary="${prefix}"]`, kuaRead ? kuaRead.primary : '');
-      setText(`[data-sheet-kua-secondary="${prefix}"]`, kuaRead ? kuaRead.secondary : '');
-      setText(`[data-sheet-kua-note="${prefix}"]`, kuaRead ? (kuaRead.note || '') : '');
-
-      return { cardEntry: entryOpen, publicRead: !!read, kua: !!kuaRead };
+      return { cardEntry: entryOpen, publicRead: !!read };
     },
 
     /**
@@ -299,17 +268,15 @@ export function createSheet(host, { prefix } = {}) {
         }
       }
       for (const sel of [`[data-sheet-face="${prefix}"]`, `[data-sheet-entry="${prefix}"]`,
-        `[data-sheet-public="${prefix}"]`, `[data-sheet-kua="${prefix}"]`]) {
+        `[data-sheet-public="${prefix}"]`]) {
         const node = q(sel);
         if (node && node.classList) {
           node.classList.remove('unlocked');
           node.classList.remove('sealed');
         }
       }
-      const sunTitle = titleNode('sun');
-      if (sunTitle) sunTitle.textContent = ROW_TITLES.sun;
-      const animalTitle = titleNode('animal');
-      if (animalTitle) animalTitle.textContent = ROW_TITLES.animal;
+      // Titles are static since §1.L v0.66 — a cleared sheet keeps them,
+      // so there is nothing to restore here.
     },
 
     /** Read-only view of what is currently rendered — for tests and for the

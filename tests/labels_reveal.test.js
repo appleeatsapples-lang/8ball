@@ -25,66 +25,64 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(html).toMatch(/id="labels-toggle"[^>]*aria-pressed="false"/);
   });
 
-  // v0.6.0: eight coordinate rows — arcana (lead) + element + sun + animal
-  // + numerology + numbers2 + day pillar + hour pillar. Visibility per
-  // tier is JS-gated by ui/tiers.js (tests/tiers.test.js); the markup
-  // ships all eight rows.
-  it('eight coord-section elements present', () => {
+  // §1.L v0.66 — the sheet is FOUR system lines (tarot · astro ·
+  // numerology · animals), one per divination system, no interleaving.
+  // Visibility per tier is still JS-gated per CELL by ui/tiers.js
+  // (tests/tiers.test.js); the markup ships all four lines and all
+  // fifteen compartments at every tier.
+  it('the compartment row WRAPS — the fix for silent card overflow (§1.L)', () => {
+    // With flex-wrap:nowrap the six-cell numerology line's min-content
+    // width pushed #card-face wider than its .flip-stage, and
+    // body{overflow-x:hidden} CLIPPED it rather than scrolling — so a
+    // scrollWidth probe read clean while the last compartment and the
+    // catalog numeral were lost off-screen. Found by looking at the
+    // rendered card, not by the suite; pinned here so it cannot regress.
+    const rule = html.match(/\.coord-cells \{[^}]*\}/);
+    expect(rule, '.coord-cells rule not found').not.toBeNull();
+    expect(rule[0]).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('four coord-section elements present', () => {
     const matches = html.match(/class="coord-section"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(4);
   });
 
-  it('eight coord-title elements present', () => {
+  it('four coord-title elements present', () => {
     const matches = html.match(/class="coord-title"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(4);
   });
 
-  it('fourteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
-    // 1+1+2+2+3+3+1+1 cells per the §1.D v0.37 row table; every cell
-    // carries one .coord-val value node.
+  it('fifteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
+    // 1+1+2+1+2+3+3+1+1 cells per the §1.D v0.37 row table (+moon, §1.K);
+    // every cell carries one .coord-val value node.
     const matches = html.match(/class="coord-val"/g) || [];
-    expect(matches.length).toBe(14);
+    expect(matches.length).toBe(15);
   });
 
-  it('locked title copy: FIVE-ELEMENT', () => {
-    expect(html).toMatch(/>FIVE-ELEMENT</);
+  it('locked title copy: the four system lines, in order (§1.L v0.66)', () => {
+    for (const title of ['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']) {
+      expect(html, `${title} line missing`).toMatch(new RegExp(`>${title}<`));
+    }
+    const order = [...html.matchAll(/<div class="coord-title">([^<]+)<\/div>/g)].map(m => m[1]);
+    expect(order).toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
   });
 
-  it('locked title copy: SUN ↑ RISING', () => {
-    expect(html).toMatch(/>SUN ↑ RISING</);
+  it('the retired per-coordinate row titles are gone from the markup', () => {
+    // Superseded by the four system lines; DOCTRINE §1.L quotes them as
+    // lineage, the shipped surface must not.
+    for (const retired of ['FIVE-ELEMENT', 'SUN ↑ RISING', 'SUN · RISING',
+      'PUBLIC ⇌ PRIVATE', 'PUBLIC · PRIVATE', 'LIFE · NAME · SOUL',
+      'PERSONALITY · BIRTHDAY · MATURITY', 'DAY PILLAR', 'HOUR PILLAR']) {
+      expect(html, `retired title "${retired}" still shipped`).not.toContain(`>${retired}<`);
+    }
   });
 
-  it('coord-sun-title element has id for runtime conditional (v0.2.7.1.1)', () => {
-    expect(html).toMatch(/<div class="coord-title" id="coord-sun-title">/);
-  });
-
-  it('coord-animal-title element has id for runtime conditional (v0.6.0)', () => {
-    expect(html).toMatch(/<div class="coord-title" id="coord-animal-title">/);
-  });
-
-  it('tier render keeps the paired-row title grammar — SUN ↑ RISING vs SUN · RISING (v0.7.0)', () => {
-    expect(tiersJs).toMatch(/sunTitle\.textContent\s*=\s*withRising\s*\?\s*['"`]SUN ↑ RISING['"`]\s*:\s*['"`]SUN · RISING['"`]/);
-  });
-
-  it('tier render keeps the paired-row title grammar — PUBLIC ⇌ PRIVATE vs PUBLIC · PRIVATE (v0.7.0)', () => {
-    expect(tiersJs).toMatch(/animalTitle\.textContent\s*=\s*withInner\s*\?\s*['"`]PUBLIC ⇌ PRIVATE['"`]\s*:\s*['"`]PUBLIC · PRIVATE['"`]/);
-  });
-
-  it('locked title copy: PUBLIC ⇌ PRIVATE', () => {
-    expect(html).toMatch(/>PUBLIC ⇌ PRIVATE</);
-  });
-
-  it('locked title copy: LIFE · NAME · SOUL', () => {
-    expect(html).toMatch(/>LIFE · NAME · SOUL</);
-  });
-
-  it('locked title copy: PERSONALITY · BIRTHDAY · MATURITY (v0.6.0 t2 row)', () => {
-    expect(html).toMatch(/>PERSONALITY · BIRTHDAY · MATURITY</);
-  });
-
-  it('locked title copy: DAY PILLAR + HOUR PILLAR — clinical register (v0.6.0 §2 voice)', () => {
-    expect(html).toMatch(/>DAY PILLAR</);
-    expect(html).toMatch(/>HOUR PILLAR</);
+  it('the retired dynamic-title ids are gone with the grammar they served', () => {
+    // coord-sun-title / coord-animal-title existed only so the render path
+    // could rewrite those two titles per tier; titles are static now.
+    expect(html).not.toMatch(/id="coord-sun-title"/);
+    expect(html).not.toMatch(/id="coord-animal-title"/);
+    expect(tiersJs).not.toMatch(/(sunTitle|animalTitle)\s*\.textContent\s*=/);
   });
 
   it('localStorage key lives in ui/labels.js (canonical labels key, §6 split)', () => {

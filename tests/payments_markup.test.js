@@ -168,6 +168,12 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
     expect(t3).toContain('$3');
     expect(t3).toMatch(/every coordinate/);
     expect(t3).toMatch(/written card/); // t3 carries the content unlock
+    // §1.D v0.68 folded the comparative into this rung, so the CTA has to
+    // say so. It shipped for a cycle naming only the sheet and the written
+    // card while the buyer was in fact getting a second person's sheet too:
+    // an offer that undersells itself is still an offer that misdescribes
+    // what the money buys.
+    expect(t3).toMatch(/compare two people/);
     // Exactly one dollar figure on the CTA (guards a partial re-label).
     const priceOf = text => (text.match(/\$(\d+)/g) || []).join(',');
     expect(priceOf(t3)).toBe('$3');
@@ -177,8 +183,13 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
 
   it('paywall title and body carry the single-offer ownership framing (v0.56, permanence restored v0.63)', () => {
     const subtree = modalSubtree('paywall-modal');
-    expect(subtree).toMatch(/complete your sheet · \$3 once/);
-    expect(subtree).toMatch(/adds 10 coordinates, their meanings, the written card, domain fit, and the kua line/);
+    expect(subtree).toMatch(/complete sheet \+ compare two people · \$3 once/);
+    // The body names BOTH halves of what one price buys. The previous copy
+    // listed the comparative last in a run-on of six items, where the one
+    // thing a reader could not have guessed from the title read as an
+    // afterthought.
+    expect(subtree).toMatch(/the 11 sealed coordinates, meanings on all but the moon cell, the written card, domain fit/);
+    expect(subtree).toMatch(/a second person's complete sheet beside yours, with the named relation between the two/);
     expect(subtree).toMatch(/permanently, for every reading in this browser/);
     expect(subtree).toMatch(/\$3 once · no subscription · no 8ball account/);
     expect(subtree).toMatch(/aria-describedby="paywall-value paywall-facts paywall-disclosure"/);
@@ -254,10 +265,10 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   });
 
   it('compartment cells and seal layers are present (v0.7.0)', () => {
-    expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
-    // 14 cell seals + 1 written-entry block seal.
-    // 14 cells + the t3 entry block + the t4 public block (§1.D v0.58).
-    expect((html.match(/class="coord-seal"/g) || []).length).toBe(16);
+    expect((html.match(/class="coord-cell"/g) || []).length).toBe(15);
+    // 15 cells (§1.K moon joined the sheet) + the t3 entry block + the t4
+    // public block (§1.D v0.58) — one seal layer each.
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(17);
     expect(html).toMatch(/id="card-entry"/);
   });
 
@@ -552,7 +563,7 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('about-modal: discloses what the offer buys, permanently (v0.55 ownership, restored v0.63)', () => {
-    expect(aboutSubtree).toMatch(/opens the ten sealed coordinates, their meanings, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the kua line — permanently, for every reading in this browser/);
+    expect(aboutSubtree).toMatch(/opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry \(name, type, habit, and one of three rotating note positions, first anchored by your life path\), domain fit, and the comparative/);
     expect(aboutSubtree).toMatch(/what you bought stays bought/);
     expect(aboutSubtree).not.toMatch(/three more reads/);
     expect(aboutSubtree).not.toMatch(/adds three more reads/);
@@ -566,10 +577,18 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('about-modal: conditional coordinates carry their input qualifiers (v0.6.0 absorb)', () => {
-    // Rising needs birth time + place; the hour pillar needs birth time.
-    // Both are paid-rung coordinates sold on the ladder, so the load-
-    // bearing disclosure surface must carry the conditionality.
-    expect(aboutSubtree).toMatch(/rising sign \(with birth time \+ place\)/);
+    // Rising AND moon need birth time + place; the hour pillar needs birth
+    // time. All are paid-rung coordinates sold on the ladder, so the
+    // load-bearing disclosure surface must carry the conditionality.
+    //
+    // The assertion is on the REQUIREMENT, not on one phrasing: the copy
+    // may qualify rising and moon separately or jointly, but each must
+    // appear inside a clause that states the birth time + place input.
+    // (§1.K put moon on the same gate as rising; a pin that only knew the
+    // separate wording would have blocked stating that fact once.)
+    const timeAndPlace = aboutSubtree.match(/[^.]*\(with birth time \+ place\)/g) || [];
+    expect(timeAndPlace.join(' '), 'rising must be qualified').toMatch(/rising sign/);
+    expect(timeAndPlace.join(' '), 'moon must be qualified').toMatch(/moon sign/);
     expect(aboutSubtree).toMatch(/hour pillar \(with birth time\)/);
   });
 

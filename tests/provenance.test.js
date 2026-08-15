@@ -26,9 +26,9 @@ const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 const NOTES = Object.values(PROV_NOTE);
 
 describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
-  it('covers every one of the 14 coordinate cells in DOM order', () => {
+  it('covers every one of the 15 coordinate cells in DOM order', () => {
     expect(Object.keys(PROV_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge',
       'personality', 'birthday', 'maturity',
       'dayPillar', 'hourPillar',
@@ -130,16 +130,18 @@ function makeCell(section) {
 }
 
 const SECTION_OF = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
-  animal: 'animal', innerAnimal: 'animal',
+  arcana: 'tarot',
+  sun: 'astro', rising: 'astro', moon: 'astro',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
-  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
-  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
+  personality: 'numerology', birthday: 'numerology', maturity: 'numerology',
+  element: 'animals', animal: 'animals', innerAnimal: 'animals',
+  dayPillar: 'animals', hourPillar: 'animals',
 };
 const ROW_KEYS = {
-  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'],
-  animal: ['animal', 'innerAnimal'], numerology: ['lifePath', 'nameNumber', 'soulUrge'],
-  numbers2: ['personality', 'birthday', 'maturity'], dayPillar: ['dayPillar'], hourPillar: ['hourPillar'],
+  tarot: ['arcana'],
+  astro: ['sun', 'rising', 'moon'],
+  numerology: ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'],
+  animals: ['element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar'],
 };
 const CELL_KEYS = Object.keys(PROV_NOTE);
 const PROFILE = {
@@ -157,7 +159,6 @@ function buildDom() {
   const cells = {};
   for (const key of CELL_KEYS) cells[key] = makeCell(sections[SECTION_OF[key]]);
   initTiersUI({
-    sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
     entry: { classList: makeClassSet(), style: makeStyle() },
     cells: Object.fromEntries(CELL_KEYS.map(k => [k, cells[k].val])),
   }, {});
@@ -177,13 +178,19 @@ describe('provenance placards — DOM write (§1.E wiring)', () => {
   it('a SEALED compartment still shows its derivation placard (F1-WATCH fix)', () => {
     const { sections, cells } = buildDom();
     renderTierSections(PROFILE, 'free'); // seals every t1+ cell
-    // five-element is sealed at free — its placard must still be present.
+    // five-element and the private (month) animal are both sealed at free
+    // and both live on the ANIMALS line — its placard must still carry the
+    // derivation of every cell it spans, sealed ones included (F1-WATCH: a
+    // hatched cell must read as a real sourced coordinate withheld, not as
+    // a broken render).
     expect(cells.element.root.classList.contains('sealed')).toBe(true);
-    expect(sections.element.querySelector('.coord-prov').textContent).toBe('year stem');
-    // private (inner) animal sealed at free — the animal row placard survives.
     expect(cells.innerAnimal.root.classList.contains('sealed')).toBe(true);
-    expect(sections.animal.querySelector('.coord-prov').textContent)
-      .toBe('lunar new year · solar term');
+    expect(sections.animals.querySelector('.coord-prov').textContent)
+      .toBe('year stem · lunar new year · solar term · sexagenary cycle · five-rats hour');
+    // ...and the astro line keeps rising's + moon's derivations while sealed.
+    expect(cells.rising.root.classList.contains('sealed')).toBe(true);
+    expect(sections.astro.querySelector('.coord-prov').textContent)
+      .toBe('tropical zodiac · ascendant · lunar longitude');
   });
 
   it('is idempotent — re-init over the same sections does not duplicate placards', () => {
@@ -191,8 +198,7 @@ describe('provenance placards — DOM write (§1.E wiring)', () => {
     const cells2 = Object.fromEntries(
       CELL_KEYS.map(k => [k, makeCell(sections[SECTION_OF[k]]).val]));
     initTiersUI({
-      sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
-      entry: { classList: makeClassSet(), style: makeStyle() }, cells: cells2,
+        entry: { classList: makeClassSet(), style: makeStyle() }, cells: cells2,
     }, {});
     for (const s of Object.keys(ROW_KEYS)) {
       const provs = sections[s].kids.filter(k => k.className === 'coord-prov');

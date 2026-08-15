@@ -94,7 +94,9 @@ export function nextFacetState({ facetIndex }) {
 // it is computed from the two constants rather than restated, so the
 // invariant cannot be pinned in a test while the source drifts.
 
-export const TIER_ORDER = ['t1', 't2', 't3', 't5'];
+// §1.D v0.68 — the comparative folds into t3. `t5` is RETIRED (below), so
+// the ladder is three rungs again and the $3 rung carries the dyad.
+export const TIER_ORDER = ['t1', 't2', 't3'];
 
 // ── retired rungs (§1.D v0.60) ────────────────────────────────────
 // `t4` existed on `main` for part of 2026-07-29 (§1.D v0.58) and was folded
@@ -111,7 +113,14 @@ export const TIER_ORDER = ['t1', 't2', 't3', 't5'];
 // So a retired rung resolves to the rung that absorbed it, and the caller
 // persists the rewrite on first detection — the same shape as the R2
 // legacy-credit grandfather below, and pinned by tests/public_surface.test.js.
-export const RETIRED_TIERS = Object.freeze({ t4: 't3' });
+//
+// `t5` joins it at §1.D v0.68. The dyad rung was never buyable either —
+// `T5_PRODUCT_URL` shipped empty for its whole life, so no device can hold
+// a purchased 't5' — and unlike t4 its `?paid=t5` return granted a rung
+// that now maps onto a tier which INCLUDES the comparative. So this
+// retirement cannot downgrade anyone even in principle: t3 is a superset
+// of what t5 conferred, not a reduction of it.
+export const RETIRED_TIERS = Object.freeze({ t4: 't3', t5: 't3' });
 
 /**
  * Every way the retirement table could contradict the ladder, derived from
@@ -159,10 +168,15 @@ export function isTier(value) {
 }
 
 /**
- * Ladder position of a tier: t1 → 1, t2 → 2, t3 → 3, t5 → 4. The rank is
- * the POSITION, never the digit in the token — `t5` ranks 4 because the
- * ladder skips t4 (see the gap note above). Anything that is not a known
- * tier (null / undefined / garbage) ranks 0 — the free tier.
+ * Ladder POSITION of a tier: t1 → 1, t2 → 2, t3 → 3.
+ *
+ * Anything not in TIER_ORDER ranks 0 (the free tier) — and that
+ * deliberately includes the RETIRED tokens `t4` and `t5`. Run a stored
+ * tier through normalizeTier BEFORE ranking it: `maxTier('t5','t1')`
+ * returns `'t1'`, because an un-normalized 't5' ranks below every rung.
+ * `applyPaidReturn` normalizes first, which is why the runtime is
+ * correct; a caller that ranks a stored tier directly would downgrade a
+ * device holding the unsigned `?paid=t5` return.
  */
 export function tierRank(tier) {
   return TIER_ORDER.indexOf(tier) + 1;
@@ -203,7 +217,7 @@ export function maxTier(a, b) {
  * (§1.D / §4.B v0.55). Density is the only thing money buys.
  *
  * @param {{tier?: string | null, credits?: number}} state
- * @returns {string} 'free' | 't1' | 't2' | 't3' | 't5'
+ * @returns {string} 'free' | 't1' | 't2' | 't3'
  */
 export function resolveRenderTier({ tier, credits }) {
   const cleanCredits = normalizeCounter(credits);

@@ -36,6 +36,10 @@ import {
 // Shared modal open/close (class + aria-hidden + focus save/restore)
 // and Tab trap. One-way dependency: modals.js never imports payments.js.
 import { openModal, closeModal, trapTab } from './modals.js';
+// Measurement contract (§5 v0.70). No collector — recordMeasurement is a
+// no-op returning its record until a sink is installed, and only tests
+// install one.
+import { recordMeasurement } from '../core/measurement.js';
 // Public deck bundle for the fixed paywall specimen cell (§4.B v0.56) —
 // same import edge ui/sheet.js already carries.
 import { CARDS } from '../content/cards.v1.full.js';
@@ -136,8 +140,20 @@ export function setTier(tier) {
   try {
     // Re-resolve at the write boundary so every caller gets monotonic
     // behavior, not only handlePaidReturn's pure-state preflight.
-    const next = maxTier(normalizeTier(getTier()), tier);
-    localStorage.setItem(TIER_KEY, next);
+    const raw = getTier();
+    const next = maxTier(normalizeTier(raw), tier);
+    // A tab that has nothing to add does not touch the key. localStorage is
+    // one store shared by every open tab, and this read/modify/write has no
+    // atomicity across the two calls: a second tab's purchase can land in
+    // between, and the write that follows would put this tab's stale value
+    // on top of it — the paid rung gone, with the tier key the only record
+    // that it was ever bought (§1.D v0.55: a purchase is permanent). The
+    // condition is on the stored BYTES rather than on rank, because a
+    // retired rung ranks the same as the rung that absorbed it and its
+    // rewrite (§1.D v0.60) is exactly a same-rank write that must happen.
+    // What remains is the window inside a write that DOES raise the rung;
+    // nothing localStorage offers can close that one.
+    if (raw !== next) localStorage.setItem(TIER_KEY, next);
     const stored = normalizeTier(localStorage.getItem(TIER_KEY));
     // A concurrent higher-rung write is also success; a missing/lower value
     // means the grant was not durably verified and must remain retryable.
@@ -204,7 +220,7 @@ export function getFacetSlot(lifePath) {
   return FACET_SLOTS[stored === null ? anchorFacetIndex(lifePath) : stored];
 }
 // The note slot a FRESH standalone profile would show — never reads the
-// stored position. §1.J's second person (dyad `t5`) is never anchored,
+// stored position. §1.J's second person (the comparative) is never anchored,
 // rotated or persisted (§5.F), so resolving their note through getFacetSlot
 // would apply THIS DEVICE's stored position (anchored or since rotated by A)
 // to a life path it was never computed for (PR #187 R2). A fresh profile's
@@ -223,6 +239,30 @@ export function consumeFacetShake(lifePath) {
   const verified = setFacetIndex(state.facetIndex);
   return verified === null ? null : { ...state, facetIndex: verified };
 }
+// ── the pending slot holds ONE checkout (§5.B) ────────────────────
+// Two tabs share this key, so two people can be staged against it, and the
+// return carries nothing that says which one came back: the `?paid=` redirect
+// is unsigned (§5.C) and §5 has no per-tab store to carry a purchase id in.
+// Handing back the last writer's profile is therefore a guess, and it is wrong
+// for whichever tab returns first — the buyer would have someone else's name
+// and date of birth saved as this device's profile and rendered at the rung
+// they just paid for.
+//
+// So a second staging of a DIFFERENT pair replaces the record with this
+// marker: the slot says "two checkouts are open, neither is identifiable"
+// rather than naming the wrong one. It carries no profile data at all, which
+// also leaves LESS at rest than the payload it replaces. Re-staging the same
+// pair (a second tap, the same person with an updated birthplace) is one
+// checkout, not a collision, and still round-trips.
+//
+// A single staging writes the bare payload exactly as before, so a device
+// already mid-round-trip when this ships still returns to its own sheet — and
+// the marker fails closed under the OLD reader too, which wants `name`+`dob`.
+const PENDING_COLLIDED = '{"collided":true}';
+
+const samePendingPair = (a, b) =>
+  Boolean(a) && Boolean(b) && a.name === b.name && a.dob === b.dob;
+
 export function getPendingProfile() {
   try {
     const raw = localStorage.getItem(PENDING_KEY);
@@ -235,8 +275,18 @@ export function getPendingProfile() {
 export function setPendingProfile(payload) {
   if (!payload || !payload.name || !payload.dob) return false;
   try {
-    const raw = JSON.stringify(payload);
+    // Read the slot at the write boundary rather than trusting this tab's
+    // own history: the staging that collides with ours came from a tab we
+    // cannot see. An unreadable/absent slot is no collision — it is a first
+    // staging, and getPendingProfile has always failed closed on garbage.
+    const held = getPendingProfile();
+    const raw = held && !samePendingPair(held, payload)
+      ? PENDING_COLLIDED
+      : JSON.stringify(payload);
     localStorage.setItem(PENDING_KEY, raw);
+    // Still read-verified: checkout must not open on a slot that did not
+    // take the write (see stagePurchase). A collided slot verifies the same
+    // way — the record is written, it just no longer names one buyer.
     return localStorage.getItem(PENDING_KEY) === raw;
   } catch (_) { return false; }
 }
@@ -263,6 +313,18 @@ export function initPaywallUI({ modal, closeBtn, banner, specimen }) {
   paywallClose = closeBtn;
   paidBanner = banner;
   paywallClose.addEventListener('click', closePaywall);
+  // `paid_t3_cta_clicked` (§5 v0.70). Resolved from inside the modal rather
+  // than taken as a ref, so index.html gains no line and the CTA stays the
+  // plain bare-href Buy Link §5.B Call 2 requires — this listener adds no
+  // query parameter, no redirect indirection, and nothing that could fail
+  // the navigation. The tier recorded is the tier of a device that is
+  // TAPPING the offer, which is the number the event exists to produce.
+  const cta = paywallModal.querySelector && paywallModal.querySelector('#paywall-cta-t3');
+  if (cta && cta.addEventListener) {
+    cta.addEventListener('click', () => {
+      recordMeasurement('paid_t3_cta_clicked', getRenderTier());
+    });
+  }
   paywallModal.addEventListener('click', e => {
     if (e.target === paywallModal) closePaywall();
   });

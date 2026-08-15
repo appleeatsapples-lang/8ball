@@ -7,13 +7,16 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  GENDER_NOTE,
   clearProfile,
+  getGenderInput,
   initProfileUI,
   loadSavedProfile,
   optsFromPayload,
   populateRisingFields,
   resetFormDisplay,
   saveProfile,
+  setGenderInput,
 } from '../ui/profile.js';
 import { makeEl } from './helpers/dom.js';
 
@@ -45,6 +48,8 @@ function makeRefs() {
     polarMessage: makeEl('polarMessage'),
     legacyHint: makeEl('legacyHint'),
     risingFields: makeEl('risingFields'),
+    // handed in directly so the module skips DOM creation (§6 DI shape)
+    genderSelect: { value: '' },
   };
   refs.onboarding.classList.add('hidden');
   for (const key of ['nameInput', 'dobInput', 'timeInput', 'cityInput']) {
@@ -185,9 +190,10 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
-      // gender IS a calculation input (the kua block reads profile.gender)
-      // — dropping it here would make cold-boot recompute a different
-      // reading than the fresh submit (§5 recompute-on-load).
+      // gender is still forwarded as a stored input even though no surface
+      // reads it since §1.D v0.67 deleted the kua block — the field was
+      // retained on operator word, and dropping it here would silently
+      // discard a value the user supplied and the archive round-trips.
       gender: 'female',
       city: 'Dhahran',
       cc: 'SA',
@@ -205,14 +211,122 @@ describe('ui/profile.js persistence boundary', () => {
     expect(optsFromPayload({ lat: '26.2886', lng: null, tz: null, gender: 'x' })).toEqual({});
   });
 
-  it('rehydrates and clears the gender control through the setGender hook', () => {
+  it('rehydrates and clears the gender control directly (the module owns it since §1.D v0.67)', () => {
+    // The control used to live in ui/kua.js and was driven through a
+    // setGender hook; ui/profile.js owns the node now that the kua block
+    // is deleted, so the round-trip is asserted on the real select.
     const refs = makeRefs();
-    const calls = [];
-    initProfileUI(refs, { setGender: v => calls.push(v) });
+    initProfileUI(refs, {});
     populateRisingFields({ gender: 'female' });
-    expect(calls).toEqual(['female']);
+    expect(getGenderInput()).toBe('female');
     resetFormDisplay();
-    expect(calls).toEqual(['female', '']);
+    expect(getGenderInput()).toBeUndefined();
+    expect(refs.genderSelect.value).toBe('');
+  });
+
+  it('holds the strict two-token vocabulary in both directions', () => {
+    const refs = makeRefs();
+    initProfileUI(refs, {});
+    setGenderInput('male');
+    expect(getGenderInput()).toBe('male');
+    setGenderInput('anything-else');
+    expect(getGenderInput()).toBeUndefined();
+    expect(refs.genderSelect.value).toBe('');
+    refs.genderSelect.value = 'female';
+    expect(getGenderInput()).toBe('female');
+  });
+
+  // ── the branch every other test in this file skips ──────────────
+  //
+  // makeRefs() hands `genderSelect` in directly, so resolveGenderSelect
+  // returns it on the first line and the DOM-CREATION path — the one that
+  // actually runs in the browser, because index.html passes `form` +
+  // `anchor` and no `genderSelect` — was exercised by nothing. The control
+  // could have been deleted outright and this suite would have stayed
+  // green. A pre-merge lane caught that; these two tests close it.
+  it('builds the control itself when the host passes a form instead of a node', () => {
+    const created = [];
+    const form = {
+      children: [],
+      querySelector: () => null,
+      appendChild(node) { this.children.push(node); return node; },
+      insertBefore(node) { this.children.push(node); return node; },
+    };
+    // Minimal document: enough to build a field wrapper and read it back.
+    globalThis.document = {
+      activeElement: null,
+      createElement(tag) {
+        const el = {
+          tag, className: '', innerHTML: '',
+          querySelector(sel) {
+            // The module asks the wrapper for its own select by id.
+            return sel === '#gender-input' && this.innerHTML.includes('id="gender-input"')
+              ? { value: '', _ownerHtml: this.innerHTML }
+              : null;
+          },
+        };
+        created.push(el);
+        return el;
+      },
+    };
+
+    initProfileUI({ form }, {});
+
+    // A field wrapper was created and attached to the form.
+    expect(created).toHaveLength(1);
+    expect(form.children).toHaveLength(1);
+    expect(created[0].className).toContain('gender-field');
+
+    const html = created[0].innerHTML;
+    // The control itself, with the strict vocabulary and empty as default.
+    expect(html).toContain('<label for="gender-input">gender (optional)</label>');
+    expect(html).toContain('<option value="">—</option>');
+    expect(html).toContain('<option value="male">male</option>');
+    expect(html).toContain('<option value="female">female</option>');
+    // And it really is wired — the module resolved a usable select.
+    setGenderInput('female');
+    expect(getGenderInput()).toBe('female');
+  });
+
+  it('states the truth about the field at the point of entry, wired for assistive tech', () => {
+    // §1.D v0.67 deleted the field's only consumer and kept the field. A
+    // form that asks for a demographic and says nothing makes the person
+    // guess what it is for. All three facts are asserted separately so a
+    // partial rewrite cannot quietly drop one — and the third is the one
+    // the deletion made necessary.
+    const created = [];
+    const form = {
+      children: [],
+      querySelector: () => null,
+      appendChild(n) { this.children.push(n); return n; },
+      insertBefore(n) { this.children.push(n); return n; },
+    };
+    globalThis.document = {
+      activeElement: null,
+      createElement(tag) {
+        const el = { tag, className: '', innerHTML: '', querySelector: () => ({ value: '' }) };
+        created.push(el);
+        return el;
+      },
+    };
+    initProfileUI({ form }, {});
+    const html = created[0].innerHTML;
+
+    expect(html).toContain(GENDER_NOTE);
+    expect(GENDER_NOTE).toMatch(/optional/);              // it need not be answered
+    expect(GENDER_NOTE).toMatch(/stored on this device/); // it does not leave
+    expect(GENDER_NOTE).toMatch(/does not affect your reading/); // it drives nothing
+
+    // The note is bound to the control, not merely adjacent to it, so it is
+    // announced with the field rather than skipped.
+    expect(html).toContain('aria-describedby="gender-note"');
+    expect(html).toContain('id="gender-note"');
+
+    // No claim beyond the current fact: the copy must not promise anything
+    // about future use, and must not assert a guarantee the code does not
+    // enforce (§5 — the field has no purpose on record, which §1.D v0.67
+    // deliberately leaves open rather than inventing one).
+    expect(GENDER_NOTE).not.toMatch(/never|always|anonym|encrypt|private|secure|guarantee/i);
   });
 });
 

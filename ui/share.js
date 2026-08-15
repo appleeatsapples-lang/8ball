@@ -47,8 +47,9 @@ const DEFAULT_PNG_NAME = '8ball-specimen.png';
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
 // Row positions are computed from the row count (the stack distributes
-// evenly between STACK_TOP and STACK_BOTTOM). v0.39: all 8 rows render at
-// every tier (the full sheet); the geometry still holds 1..8 rows by count.
+// evenly between STACK_TOP and STACK_BOTTOM). v0.39: every row renders at
+// every tier (the full sheet); the geometry is driven by SHARE_ROWS.length
+// (four system lines since §1.L), not a fixed count.
 const CARD_W = 320;
 const CARD_H = 480;
 const SCALE = 3;
@@ -69,7 +70,7 @@ const RULE = '#737373';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status, catalog, symbols: [...] } — the eight row snapshot
+// refs:  { btn, status, catalog, symbols: [...] } — the per-row snapshot
 //        refs from ui/tiers.js shareRowRefs(), in DOM order. Each exposes
 //        { title, cells: [{state, value}] } read from live cell state;
 //        sealed cells carry no value (§5.D v0.39). The full sheet renders.
@@ -327,6 +328,19 @@ function flashStatus(msg) {
   }, 3000);
 }
 
+// `share_completed` (§5 v0.70), routed through a HOOK rather than an import.
+// This module deliberately imports nothing and knows no tier constant — the
+// §5.D invariant that keeps the share surface from acquiring a dependency
+// that could read state — and `tests/share_surface.test.js` pins both. So
+// the host owns both halves the record needs (the contract and the tier
+// lookup) and hands down a nullary callback. An unwired host records
+// nothing; `tests/measurement.test.js` pins that index.html wires it, so
+// "the host forgot" is a red test rather than silence.
+function shareCompleted() {
+  const fn = _hooks && _hooks.onShareCompleted;
+  if (typeof fn === 'function') fn();
+}
+
 async function onShare() {
   let blob;
   try {
@@ -348,6 +362,10 @@ async function onShare() {
   ) {
     try {
       await navigator.share({ files: [file], text: caption });
+      // `share_completed` (§5 v0.70) — INSIDE the try, after the await
+      // resolves. A dismissed share sheet rejects and lands in the catch,
+      // so a share the user backed out of is not counted as one they made.
+      shareCompleted();
     } catch (_) {
       // user dismissed the sheet or share rejected — no fallback noise
     }
@@ -356,6 +374,9 @@ async function onShare() {
   // Desktop / unsupported fallback: download + clipboard copy of the
   // caption (which carries the bare URL), not the bare URL alone.
   downloadBlob(blob, filename);
+  // The artifact is delivered at this point; the clipboard copy below is a
+  // convenience that may fail without making the share incomplete.
+  shareCompleted();
   let copied = false;
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     try {

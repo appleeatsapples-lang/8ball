@@ -4,7 +4,9 @@
 // UNCHANGED by v0.55; these suites are the proof the density ladder
 // survived the ownership cutover — tier rank/monotonic-upgrade math,
 // the generalized ?paid=t1|t2|t3 handler (tier write only, no grant),
-// unknown-param replay safety, the R2 legacy grandfather,
+// unknown-param replay safety, the retired-token seam (§1.D v0.68 — the
+// set a return may NAME is the ladder, never the entitlement inventory
+// and never the retirement table), the R2 legacy grandfather,
 // plus the v0.7.0 compartment render: constant skeleton (rows never
 // hidden), DOM purity (sealed cells carry EMPTY value nodes — no paid
 // value string in the DOM below its tier), seal-iff-above-tier, the F4
@@ -25,6 +27,7 @@ import {
 } from '../core/payments.js';
 import {
   TIER_COORDS,
+  ROW_TITLES,
   coordsForTier,
   formatPillar,
   initTiersUI,
@@ -43,6 +46,10 @@ import {
   handlePaidReturn,
   initPaywallUI,
 } from '../ui/payments.js';
+// The one predicate every dyad gate consults (§1.D v0.68 / PR #187 F2).
+// Imported rather than restated, so the return-seam pins below cannot pass
+// while the predicate they claim to bound drifts.
+import { dyadEntitled } from '../ui/dyad.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -130,9 +137,9 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     expect(TIER_COORDS.free).not.toContain('numerology');
   });
 
-  it('t1 adds rising (conditional) + element + private animal + numerology (expression/soul-urge pair)', () => {
+  it('t1 adds rising (conditional) + moon (§1.K) + element + private animal + numerology (expression/soul-urge pair)', () => {
     expect(TIER_COORDS.t1).toEqual(
-      [...TIER_COORDS.free, 'rising', 'element', 'innerAnimal', 'numerology']
+      [...TIER_COORDS.free, 'rising', 'moon', 'element', 'innerAnimal', 'numerology']
     );
   });
 
@@ -140,11 +147,11 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
     expect(TIER_COORDS.t2).toEqual([...TIER_COORDS.t1, 'numbers2', 'dayPillar']);
   });
 
-  it('t3 adds hour pillar (four pillars complete) + the written entry + the public read', () => {
+  it('t3 adds hour pillar (four pillars complete) + the written entry + the public read + the comparative (§1.D v0.68)', () => {
     // §1.D v0.60 folded the public read into t3 rather than selling it as a
     // fourth rung. Both ceiling additions are BLOCKS, not compartments, so
     // the cell grid and the §1.F census are unmoved by either.
-    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
+    expect(TIER_COORDS.t3).toEqual([...TIER_COORDS.t2, 'hourPillar', 'cardEntry', 'publicRead', 'dyadRelation']);
   });
 
   it('the ladder is strictly cumulative — every tier is a superset of the one below', () => {
@@ -178,7 +185,7 @@ describe('tiers — TIER_COORDS composition (DOCTRINE §1.D locked table)', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
-  it('TIER_ORDER is the locked t1 < t2 < t3 < t5 ladder, with t4 skipped', () => {
+  it('TIER_ORDER is the locked t1 < t2 < t3 ladder — t4 AND t5 are retired (§1.D v0.68)', () => {
     // Four rungs for part of 2026-07-29 (§1.D v0.58); t4 was folded into t3
     // rather than sold (§1.D v0.60), so the ladder went back to three. §1.D
     // v0.61 appends the DYAD rung — and appends it as `t5`, not `t4`, because
@@ -186,7 +193,7 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     // RETIRED_TIERS. Reusing the token would put the same key in both tables
     // and collapse paying dyad devices to t3; the gap is the fix, and
     // RETIREMENT_COLLISIONS below is the derived proof it holds.
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
   });
 
   it('tierRank is ladder POSITION, not the digit in the token', () => {
@@ -197,20 +204,20 @@ describe('tiers — rank and monotonic upgrade (DOCTRINE §1.D)', () => {
     expect(tierRank('t1')).toBe(1);
     expect(tierRank('t2')).toBe(2);
     expect(tierRank('t3')).toBe(3);
-    // The one that would break a digit-parsing implementation: t5 is the
-    // FOURTH rung. Nothing may read rank off the numeral.
-    expect(tierRank('t5')).toBe(4);
+    // Both retired tokens rank 0 — they are not rungs. The digit-parsing
+    // trap this test was written for still applies to any FUTURE rung:
+    // nothing may read rank off the numeral.
     expect(tierRank('t4')).toBe(0);
+    expect(tierRank('t5')).toBe(0);
   });
 
-  it('isTier accepts exactly the four current rungs', () => {
+  it('isTier accepts exactly the three current rungs', () => {
     expect(isTier('t1')).toBe(true);
     expect(isTier('t2')).toBe(true);
     expect(isTier('t3')).toBe(true);
-    expect(isTier('t5')).toBe(true);
-    // 't4' is retired, NOT current — it must not pass isTier, and the
-    // retirement table is what keeps its holders whole.
-    for (const bad of ['t0', 't4', 't6', 'free', '', null, undefined, 'T2', 1]) {
+    // 't4' and 't5' are retired, NOT current — neither may pass isTier, and
+    // the retirement table is what keeps any holder whole.
+    for (const bad of ['t0', 't4', 't5', 't6', 'free', '', null, undefined, 'T2', 1]) {
       expect(isTier(bad), `${String(bad)} must not be a tier`).toBe(false);
     }
   });
@@ -608,6 +615,130 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, 
     expect(banner.hidden).toBe(true);
   });
 
+  // ── the dyad token at the return seam (§1.D v0.68) ────────────────────
+  //
+  // `t5` is the second retired token, and the direction that matters is the
+  // opposite of the t4 P0 above. There the danger was a STORED token being
+  // dropped (a downgrade); here it is a token in the URL being HONOURED.
+  // §1.D v0.68 folded the §1.J comparative into t3, so anything that maps a
+  // `?paid=` return onto t3 now hands out the second complete sheet plus the
+  // relation layer — an entitlement whose own listing shipped unpublished
+  // and whose product URL has been empty for the rung's entire life.
+  //
+  // The gate that stops it is one call apart from the gate that must NOT:
+  // getTier admits a raw retired value — `isTier(normalizeTier(t))`, four
+  // functions up in ui/payments.js — precisely so the migration reaches the
+  // table, while handlePaidReturn uses plain `isTier(purchased)`. Harmonizing
+  // those two reads as a tidy-up and is the whole defect. Named literally
+  // rather than derived from RETIRED_TIERS, so the case survives an edit to
+  // the table it is guarding.
+  it('?paid=t5 is not a tier — the retired dyad token cannot be bought from a URL (§1.D v0.68)', () => {
+    const banner = installPaywallUI();
+    const storage = makeStorage({ [CREDITS_KEY]: '0' });
+    globalThis.localStorage = storage;
+    installWindow('?paid=t5');
+
+    expect(handlePaidReturn()).toBe(false);
+    expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+    expect(globalThis.window.history.replaceState).not.toHaveBeenCalled();
+    expect(banner.hidden).toBe(true);
+    // "No tier was written" and "the comparative was not granted" are two
+    // claims once the block rides a live rung, so both are made — and the
+    // second goes through dyadEntitled itself, the single predicate every
+    // dyad gate consults, rather than a restatement of it.
+    expect(dyadEntitled(getRenderTier())).toBe(false);
+  });
+
+  it.each(Object.keys(RETIRED_TIERS))(
+    'a retired token points both ways at once: ?paid=%s refused, the same value STORED migrates',
+    retired => {
+      // The general rule the two named cases are instances of, so a third
+      // retirement is covered without a third copy. Both directions belong
+      // in one test because they are easy to satisfy separately and wrong
+      // separately: refusing the URL while dropping the stored value is the
+      // t4 P0, and honouring the stored value while accepting the URL is
+      // this one.
+      const banner = installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${retired}`);
+
+      expect(handlePaidReturn()).toBe(false);
+      expect(storage.snapshot()).not.toHaveProperty(TIER_KEY);
+      expect(banner.hidden).toBe(true);
+      expect(resolveRenderTier({ tier: retired, credits: 0 }))
+        .toBe(RETIRED_TIERS[retired]);
+    }
+  );
+
+  it('the accepted set is exactly the three live rungs — not the inventory, not the retirement table', () => {
+    // Three sets get read as one another here, and only the first is
+    // purchasable:
+    //   TIER_ORDER         — what a `?paid=` return may name
+    //   TIER_COORDS keys   — the entitlement inventory (carries `free`)
+    //   RETIRED_TIERS keys — tokens that still RESOLVE but cannot be bought
+    // The corpus unions all three so a rung appended to any of them is
+    // driven here without a second edit; `t5` is named outright as well,
+    // because a corpus that can lose the case it exists for is not a guard.
+    const candidates = [...new Set([
+      ...TIER_ORDER, ...Object.keys(TIER_COORDS), ...Object.keys(RETIRED_TIERS),
+      't4', 't5', 't9', 'T3', '', 'dyadRelation',
+    ])];
+    expect(candidates).toContain('t5');
+    // Acceptance is measured by every observable the handler produces, not
+    // by the tier write alone: a value waved past the gate that then fails
+    // at setTier still shows a banner, and is therefore no longer being
+    // IGNORED — which is exactly what the replay-safe branch promises an
+    // unknown rung.
+    const engaged = candidates.filter(value => {
+      const banner = installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${value}`);
+      handlePaidReturn();
+      return Object.prototype.hasOwnProperty.call(storage.snapshot(), TIER_KEY)
+        || globalThis.window.history.replaceState.mock.calls.length > 0
+        || banner.hidden === false;
+    });
+    // The literal is the reviewed baseline — the $3 ladder §1.D v0.68 put
+    // back — and is deliberately NOT read off TIER_ORDER, which is half of
+    // what is under test: a token appended there would otherwise widen the
+    // expectation in step with the defect. The second assertion is the other
+    // half, that the seam has not fallen BEHIND the ladder.
+    expect(engaged).toEqual(['t1', 't2', 't3']);
+    expect(engaged).toEqual([...TIER_ORDER]);
+    // The inventory is the other half of the separation. A key may sit in
+    // TIER_COORDS without being purchasable — `free` does — but a key that
+    // is NEITHER free NOR a live rung is an entitlement no return can reach
+    // and no ladder assertion bounds: exactly the shape
+    // `t5: [...T3_COORDS, 'dyadRelation']` had before §1.D v0.68 folded it
+    // down onto the $3 rung. Stated as the relation first, then against the
+    // reviewed literal, so neither side can drift the other into agreement.
+    expect(Object.keys(TIER_COORDS)).toEqual(['free', ...engaged]);
+    expect(Object.keys(TIER_COORDS)).toEqual(['free', 't1', 't2', 't3']);
+  });
+
+  it('no accepted return reaches past the $3 ceiling — the comparative rides t3 and nothing above it', () => {
+    // Drives the real seam rather than the pure ladder: what a device ends
+    // up ENTITLED to after a return is the product claim, and it is bounded
+    // by the top rung's own inventory. `dyadRelation` is the sharp key —
+    // §1.D v0.68 moved it down onto the $3 rung, and the rung it came from
+    // was never live at any price.
+    for (const purchased of TIER_ORDER) {
+      installPaywallUI();
+      const storage = makeStorage({ [CREDITS_KEY]: '0' });
+      globalThis.localStorage = storage;
+      installWindow(`?paid=${purchased}`);
+      handlePaidReturn();
+
+      const granted = getRenderTier();
+      for (const key of coordsForTier(granted)) {
+        expect(TIER_COORDS.t3, `?paid=${purchased} granted ${key}`).toContain(key);
+      }
+      expect(dyadEntitled(granted), `?paid=${purchased}`).toBe(purchased === 't3');
+    }
+  });
+
   it('getTier reads only valid tiers; garbage in storage reads as free (null)', () => {
     globalThis.localStorage = makeStorage({ [TIER_KEY]: 'banana' });
     expect(getTier()).toBe(null);
@@ -635,10 +766,10 @@ describe('tiers — ?paid= handler generalization (DOCTRINE §5.B Call 2 v0.36, 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity',
-  'dayPillar', 'hourPillar',
+  'arcana',
+  'sun', 'rising', 'moon',
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+  'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
 ];
 
 function makeClassSet() {
@@ -682,42 +813,34 @@ function makeCompartmentCell(section) {
   return { root, val };
 }
 
+// §1.L v0.66 — four system sections; every cell maps to its system's line.
 const CELL_SECTION = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
-  animal: 'animal', innerAnimal: 'animal',
+  arcana: 'tarot',
+  sun: 'astro', rising: 'astro', moon: 'astro',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
-  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
-  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
+  personality: 'numerology', birthday: 'numerology', maturity: 'numerology',
+  element: 'animals', animal: 'animals', innerAnimal: 'animals',
+  dayPillar: 'animals', hourPillar: 'animals',
 };
 
 function installCompartments() {
   const sections = {
-    arcana: makeSection('ARCANA'),
-    element: makeSection('FIVE-ELEMENT'),
-    sun: makeSection('SUN ↑ RISING'),
-    animal: makeSection('PUBLIC ⇌ PRIVATE'),
-    numerology: makeSection('LIFE · NAME · SOUL'),
-    numbers2: makeSection('PERSONALITY · BIRTHDAY · MATURITY'),
-    dayPillar: makeSection('DAY PILLAR'),
-    hourPillar: makeSection('HOUR PILLAR'),
+    tarot: makeSection('TAROT'),
+    astro: makeSection('ASTRO'),
+    numerology: makeSection('NUMEROLOGY'),
+    animals: makeSection('ANIMALS'),
   };
   const cells = {};
   for (const key of CELL_KEYS) {
     cells[key] = makeCompartmentCell(sections[CELL_SECTION[key]]);
   }
   const entry = { classList: makeClassSet(), style: makeStyle() };
-  // The dynamic titles ARE the section title nodes, as in index.html.
+  // Titles are static markup since §1.L v0.66 — no title refs are handed in.
   initTiersUI({
-    sunTitle: sections.sun.titleNode,
-    animalTitle: sections.animal.titleNode,
     entry,
     cells: Object.fromEntries(CELL_KEYS.map(key => [key, cells[key].val])),
   }, {});
-  return {
-    cells, entry, sections,
-    sunTitle: sections.sun.titleNode,
-    animalTitle: sections.animal.titleNode,
-  };
+  return { cells, entry, sections };
 }
 
 const sealed = cell => cell.root.classList.contains('sealed');
@@ -729,6 +852,7 @@ const unsealing = cell => cell.root.classList.contains('unsealing');
 const PROFILE = {
   sunSign: 'gemini',
   risingSign: 'virgo',
+  moonSign: 'pisces',
   chineseElement: 'metal',
   animal: 'horse',
   innerAnimal: 'rabbit',
@@ -747,8 +871,9 @@ const PROFILE = {
 // §1.D v0.38: life path is free (DOB-derived) — sealed at NO tier;
 // expression/name number + soul urge stay sealed at free.
 const SEALED_AT = {
-  free: ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge',
-    'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
+  free: ['rising', 'moon', 'nameNumber', 'soulUrge',
+    'personality', 'birthday', 'maturity', 'element', 'innerAnimal',
+    'dayPillar', 'hourPillar'],
   t1: ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar'],
   t2: ['hourPillar'],
   t3: [],
@@ -759,9 +884,9 @@ const SEALED_AT = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', () => {
-  it('all eight .coord-section rows ship without hidden attributes', () => {
+  it('all four .coord-section rows ship without hidden attributes', () => {
     const sections = html.match(/<div class="coord-section"[^>]*>/g) || [];
-    expect(sections).toHaveLength(8);
+    expect(sections).toHaveLength(4);
     for (const tag of sections) {
       expect(tag, 'coord-section must never carry hidden').not.toMatch(/\bhidden\b/);
     }
@@ -772,11 +897,12 @@ describe('tiers — constant skeleton (§1.D v0.37: full sheet at every tier)', 
     expect(tiersJs).not.toMatch(/setRow\(/);
   });
 
-  it('14 compartment cells + the entry and public blocks each carry a seal layer', () => {
-    // The sheet is still 14 cells: t4 adds a BLOCK, not a compartment, so
-    // the cell count must not move — only the seal count, by one.
-    expect((html.match(/class="coord-cell"/g) || []).length).toBe(14);
-    expect((html.match(/class="coord-seal"/g) || []).length).toBe(16);
+  it('15 compartment cells + the entry and public blocks each carry a seal layer', () => {
+    // 15 cells: the §1.K moon compartment joined the v0.37 14-cell sheet.
+    // t4's fold-in remains a BLOCK, not a compartment (blocks move only the
+    // seal count, never the cell count).
+    expect((html.match(/class="coord-cell"/g) || []).length).toBe(15);
+    expect((html.match(/class="coord-seal"/g) || []).length).toBe(17);
     expect(html).toMatch(/id="public-read"/);
   });
 
@@ -968,7 +1094,7 @@ describe('tiers — seal iff above tier (§2 locked table)', () => {
 // F4 sealed ≠ unresolvable + paired-row title grammar
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LOCKED)', () => {
+describe('tiers — F4 sealed ≠ unresolvable + the four static line titles (§1.L v0.66)', () => {
   it('t3 without birth time: hour pillar renders the — empty field, never a seal', () => {
     const { cells } = installCompartments();
     renderTierSections({ ...PROFILE, hourPillar: null }, 't3');
@@ -977,13 +1103,15 @@ describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LO
     expect(unres(cells.hourPillar)).toBe(true);
   });
 
-  it('t1 without computable rising: — empty field, no seal, title SUN · RISING', () => {
-    const { cells, sunTitle } = installCompartments();
+  it('t1 without computable rising: — empty field, no seal (the ASTRO title is unaffected)', () => {
+    const { cells, sections } = installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined }, 't1');
     expect(cells.rising.val.textContent).toBe('—');
     expect(sealed(cells.rising)).toBe(false);
     expect(unres(cells.rising)).toBe(true);
-    expect(sunTitle.textContent).toBe('SUN · RISING');
+    // §1.L v0.66: the title names the SYSTEM, not the pair's resolution
+    // state — the `—` in the compartment is the whole disclosure now.
+    expect(sections.astro.titleNode.textContent).toBe('ASTRO');
   });
 
   it('free render: rising is paywalled → seal (not —) even when uncomputable', () => {
@@ -1002,43 +1130,42 @@ describe('tiers — F4 sealed ≠ unresolvable + title grammar (brief §2/§3 LO
     }
   });
 
-  it('SUN ↑ RISING only when rising is entitled AND computed', () => {
-    const { sunTitle } = installCompartments();
-    renderTierSections(PROFILE, 't1');
-    expect(sunTitle.textContent).toBe('SUN ↑ RISING');
-  });
-
-  it('SUN · RISING while the rising cell is sealed (free)', () => {
-    const { sunTitle } = installCompartments();
-    renderTierSections(PROFILE, 'free');
-    expect(sunTitle.textContent).toBe('SUN · RISING');
-  });
-
-  it('a bare SUN title never renders — every state names the rising compartment', () => {
-    const { sunTitle } = installCompartments();
+  it('every line title is STATIC — no render at any tier rewrites one (§1.L v0.66)', () => {
+    // Supersedes the v0.37 paired-row grammar (SUN ↑ RISING / PUBLIC ⇌
+    // PRIVATE), whose job was to mark a resolved entitled pair in the
+    // title. A line now spans a whole system, and the resolved/sealed/
+    // unresolved fact is carried per compartment, so the title must not
+    // move — including across the exact tier + resolution combinations
+    // that used to flip it.
+    const { sections } = installCompartments();
+    const expected = { tarot: 'TAROT', astro: 'ASTRO', numerology: 'NUMEROLOGY', animals: 'ANIMALS' };
     for (const [profile, tier] of [
-      [PROFILE, 'free'], [PROFILE, 't1'], [PROFILE, 't3'],
+      [PROFILE, 'free'], [PROFILE, 't1'], [PROFILE, 't2'], [PROFILE, 't3'],
       [{ ...PROFILE, risingSign: undefined }, 'free'],
       [{ ...PROFILE, risingSign: undefined }, 't1'],
-      [{ ...PROFILE, risingSign: undefined }, 't3'],
+      [{ ...PROFILE, risingSign: undefined, moonSign: undefined }, 't3'],
+      [{ ...PROFILE, hourPillar: null }, 't3'],
     ]) {
       renderTierSections(profile, tier);
-      expect(sunTitle.textContent).not.toBe('SUN');
-      expect(sunTitle.textContent).toMatch(/^SUN [·↑] RISING$/);
+      for (const [key, title] of Object.entries(expected)) {
+        expect(sections[key].titleNode.textContent, `${key} title moved at ${tier}`).toBe(title);
+      }
     }
-    // Source pin: no bare 'SUN' string assignment survives in the module.
-    expect(tiersJs).not.toMatch(/['"`]SUN['"`]/);
+    // Source pins: the retired grammar's strings are gone from the module,
+    // so no refactor can quietly reintroduce a title that renders state.
+    expect(tiersJs).not.toMatch(/SUN [·↑] RISING/);
+    expect(tiersJs).not.toMatch(/PUBLIC [·⇌] PRIVATE/);
+    expect(tiersJs).not.toMatch(/(sunTitle|animalTitle)\s*\.textContent\s*=/);
   });
 
-  it('animal title: PUBLIC · PRIVATE while private is sealed; PUBLIC ⇌ PRIVATE at t1+', () => {
-    const { animalTitle } = installCompartments();
-    renderTierSections(PROFILE, 'free');
-    expect(animalTitle.textContent).toBe('PUBLIC · PRIVATE');
-    renderTierSections(PROFILE, 't1');
-    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
-    renderTierSections(PROFILE, 't3');
-    expect(animalTitle.textContent).toBe('PUBLIC ⇌ PRIVATE');
-    expect(tiersJs).not.toMatch(/['"`]PUBLIC['"`]/);
+  it('ROW_TITLES is the single source both sheets read (no second copy to drift)', () => {
+    expect(ROW_TITLES).toEqual({
+      arcana: 'TAROT', sun: 'ASTRO', lifePath: 'NUMEROLOGY', element: 'ANIMALS',
+    });
+    // ui/sheet.js must re-export rather than restate it.
+    const sheetJs = readFileSync(join(__dirname, '..', 'ui', 'sheet.js'), 'utf-8');
+    expect(sheetJs).toMatch(/export \{ ROW_TITLES \}/);
+    expect(sheetJs).not.toMatch(/ROW_TITLES = Object\.freeze/);
   });
 
   it('formatPillar renders the clinical animal · stem-element register', () => {
@@ -1056,13 +1183,13 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     // §1.D v0.38: life path is already open at free, so it is NOT in the
     // free → t1 unseal delta; the numerology pair (expression/soul urge) is.
     expect(newlyEntitledCells('free', 't1')).toEqual(
-      ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']
+      ['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal']
     );
   });
 
-  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus all three ceiling blocks', () => {
+  it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus both ceiling blocks', () => {
     expect(newlyEntitledCells('t1', 't3')).toEqual(
-      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead']
+      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead']
     );
   });
 
@@ -1078,7 +1205,7 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     const { cells } = installCompartments();
     primeUnsealBaseline('free');
     renderTierSections(PROFILE, 't1');
-    const flagged = ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge'];
+    const flagged = ['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal'];
     flagged.forEach((key, i) => {
       expect(unsealing(cells[key]), `${key} must unseal on the upgrade render`).toBe(true);
       expect(cells[key].root.style.props['--unseal-delay']).toBe(`${i * 100}ms`);
@@ -1145,30 +1272,32 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
 describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', () => {
   const flatCells = rows => rows.flatMap(r => r.cells);
 
-  it('returns 8 row refs, each with a title string and a cells array (14 cells total)', () => {
+  it('returns 4 row refs, each with a title string and a cells array (15 cells total)', () => {
     installCompartments();
     const rows = shareRowRefs();
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(4);
     for (const row of rows) {
       expect(typeof row.title).toBe('string');
       expect(Array.isArray(row.cells)).toBe(true);
     }
-    expect(flatCells(rows)).toHaveLength(14);
+    expect(flatCells(rows)).toHaveLength(15);
   });
 
-  it('free render: 4 open cells, 10 sealed; sealed carry no value, none leak', () => {
+  it('free render: 4 open cells, 11 sealed across the four system lines; sealed carry no value, none leak', () => {
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const cells = flatCells(shareRowRefs());
     expect(cells.filter(c => c.state === 'open')).toHaveLength(4);
-    expect(cells.filter(c => c.state === 'sealed')).toHaveLength(10);
+    expect(cells.filter(c => c.state === 'sealed')).toHaveLength(11);
     for (const c of cells.filter(c => c.state === 'sealed')) {
       expect(c.value).toBe('');
     }
+    // DOM order is now tarot · astro · numerology · animals, so the open
+    // free values read arcana → sun → lifePath → animal.
     expect(cells.filter(c => c.state === 'open').map(c => c.value))
-      .toEqual(['XXI · the world', 'gemini', 'horse', '3']);
+      .toEqual(['XXI · the world', 'gemini', '3', 'horse']);
     const all = cells.map(c => c.value).join('|');
-    for (const leaked of ['virgo', 'rabbit', 'metal', 'dragon', 'rat', '8']) {
+    for (const leaked of ['virgo', 'pisces', 'rabbit', 'metal', 'dragon', 'rat', '8']) {
       expect(all, `sealed value "${leaked}" leaked into the share snapshot`).not.toContain(leaked);
     }
   });
@@ -1177,46 +1306,62 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     installCompartments();
     renderTierSections(PROFILE, 'free');
     const rows = shareRowRefs();
-    expect(rows[2].cells).toEqual([
+    // astro line: sun open, rising + moon sealed at free.
+    expect(rows[1].cells).toEqual([
       { state: 'open', value: 'gemini' },
       { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
     ]);
-    expect(rows[4].cells).toEqual([
+    // numerology line: life path open (free, DOB-derived §1.D v0.38), the
+    // other five sealed — the widest mixed-entitlement line on the sheet.
+    expect(rows[2].cells).toEqual([
       { state: 'open', value: '3' },
       { state: 'sealed', value: '' },
       { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
+      { state: 'sealed', value: '' },
     ]);
+    // animals line: public animal open, the rest sealed.
+    expect(rows[3].cells.map(c => c.state)).toEqual(
+      ['sealed', 'open', 'sealed', 'sealed', 'sealed']
+    );
   });
 
   it('t1 render: pair + triplet cells all open', () => {
     installCompartments();
     renderTierSections(PROFILE, 't1');
     const rows = shareRowRefs();
-    expect(rows[2].cells.map(c => c.value)).toEqual(['gemini', 'virgo']);
-    expect(rows[3].cells.map(c => c.value)).toEqual(['horse', 'rabbit']);
-    expect(rows[4].cells.map(c => c.value)).toEqual(['3', '8', '3']);
-    expect(rows[1].cells.map(c => c.value)).toEqual(['metal']);
-    expect(rows[2].cells.every(c => c.state === 'open')).toBe(true);
+    expect(rows[1].cells.map(c => c.value)).toEqual(['gemini', 'virgo', 'pisces']);
+    expect(rows[2].cells.map(c => c.value)).toEqual(['3', '8', '3', '', '', '']);
+    expect(rows[3].cells.map(c => c.value)).toEqual(['metal', 'horse', 'rabbit', '', '']);
+    expect(rows[1].cells.every(c => c.state === 'open')).toBe(true);
   });
 
   it('unresolved cells carry state unres + the — field, never a seal (F4)', () => {
     installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined, hourPillar: null }, 't3');
     const rows = shareRowRefs();
-    expect(rows[2].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising
-    expect(rows[7].cells[0]).toEqual({ state: 'unres', value: '—' }); // hour pillar
+    expect(rows[1].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising, astro line
+    expect(rows[3].cells[4]).toEqual({ state: 'unres', value: '—' }); // hour pillar, animals line
   });
 
-  it('row titles resolve through the live section (dynamic pair titles reach the PNG)', () => {
+  it('row titles resolve through the live section — the four system titles reach the PNG unchanged by tier', () => {
+    // The v0.37 version of this test proved a DYNAMIC pair title reached
+    // the artifact. Titles are static now (§1.L v0.66), so what must be
+    // proven is the other half of the same contract: the PNG reads the
+    // LIVE section node (not a constant), and that node says the same
+    // thing at every tier.
     installCompartments();
-    renderTierSections(PROFILE, 't1');
-    expect(shareRowRefs()[2].title).toBe('SUN ↑ RISING');
-    renderTierSections(PROFILE, 'free');
-    expect(shareRowRefs()[2].title).toBe('SUN · RISING');
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      renderTierSections(PROFILE, tier);
+      expect(shareRowRefs().map(r => r.title))
+        .toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
+    }
   });
 
   it('index.html wires the share surface through shareRowRefs', () => {
     expect(html).toMatch(/\] = shareRowRefs\(\)/);
-    expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareAnimal/);
+    expect(html).toMatch(/symbols:\s*\[shareTarot, shareAstro, shareNumerology, shareAnimals\]/);
   });
 });

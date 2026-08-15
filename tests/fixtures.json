@@ -2,6 +2,7 @@
   "_comment": "Calculation contract fixtures. Every value here was hand-verified against core/profile.js on the date this file was written. CHANGES TO THIS FILE GATE THE RELEASE — if a fixture changes, that's an algorithm change, which means a doctrine review (see DOCTRINE.md §3).",
   "_pii_rule": "Fixture DOBs MUST be synthetic — chosen for the calc path they exercise, not anchored to any real person. See DOCTRINE.md §11.",
   "_rising_pii_rule": "Rising-sign fixture coordinates are major-city centroids and synthetic times — chosen for the algorithm path they exercise, not anchored to any real person's birthplace.",
+  "_moon_pii_rule": "Moon-sign fixture dates/times are synthetic — chosen for the algorithm path they exercise, not anchored to any real person's birth data. See DOCTRINE.md §11.",
   "cases": [
     {
       "label": "Aries Rat LP3",
@@ -238,22 +239,22 @@
       }
     }
   ],
-  "_rising_tz_cases_comment": "Additive 2026-07-25 mutation-coverage fixtures for core/rising.js (Stryker survivor follow-up). Unlike rising_cases (fixed utcOffsetMinutes, legacy getRisingSign API), these carry an IANA tz string and are consumed via computeRising/offsetMinutesForWallTime so they exercise the two-pass DST-resolution path (core/rising.js L135-144), not just ascendantDeg. expected.risingSign values are sourced from an independent Swiss Ephemeris computation (pyswisseph, the same ephemeris engine astro.com's charts are built on; astro.com itself was unreachable from the build environment) cross-validated to <0.01deg against the three existing astro.com-anchored reference cases before use, then to <1deg agreement across 2000 random valid inputs against an independently-written from-formula implementation. expected.offsetMinutes values are sourced separately, by tracing the documented two-pass algorithm against directly-probed real Intl.DateTimeFormat output (not by executing core/rising.js).",
+  "_rising_tz_cases_comment": "Additive 2026-07-25 mutation-coverage fixtures for core/rising.js (Stryker survivor follow-up). Unlike rising_cases (fixed utcOffsetMinutes, legacy getRisingSign API), these carry an IANA tz string and are consumed via computeRising/offsetMinutesForWallTime so they exercise the tz DST-resolution path (offsetCandidatesForWallTime / getOffsetAtInstant in core/rising.js), not just ascendantDeg. Row 1 was CORRECTED in the DST fold/gap fix: it names a wall time the spring-forward skips, and its former sagittarius/-240 expectation was the old two-pass resolver's own output, transcribed when the resolver could neither reject a nonexistent wall time nor see a fold. A Swiss Ephemeris run at an instant that never occurred confirms nothing, so the row now pins the rejection; the live fold/gap behaviour is asserted directly in tests/rising.test.js's 'DST folds and gaps' block, which derives its candidate offsets from its own Intl probe rather than from core/rising.js. expected.risingSign values on the remaining rows are sourced from an independent Swiss Ephemeris computation (pyswisseph, the same ephemeris engine astro.com's charts are built on; astro.com itself was unreachable from the build environment) cross-validated to <0.01deg against the three existing astro.com-anchored reference cases before use, then to <1deg agreement across 2000 random valid inputs against an independently-written from-formula implementation. expected.offsetMinutes values are sourced separately, by tracing the documented resolution algorithm against directly-probed real Intl.DateTimeFormat output (not by executing core/rising.js).",
   "rising_tz_cases": [
     {
-      "label": "America/New_York spring-forward 2023-03-12 02:30 (skipped hour) resolves via the o2 (EDT) pass, not the o1 (EST) guess",
+      "label": "America/New_York spring-forward 2023-03-12 02:30 (skipped hour) never happened — no offset puts it on the clock, so no sign resolves",
       "dob": "2023-03-12",
       "time": "02:30",
       "tz": "America/New_York",
       "lat": 40.7128,
       "lng": -74.006,
       "expected": {
-        "risingSign": "sagittarius",
-        "offsetMinutes": -240
+        "risingSign": null,
+        "offsetMinutes": null
       }
     },
     {
-      "label": "Asia/Kolkata pre-1906 MMT (1905-12-31 21:00): o2 falls on the seconds-precision Madras Mean Time string (GMT+05:21:10) and fails to parse, offset falls back to o1 (IST)",
+      "label": "Asia/Kolkata pre-1906 MMT (1905-12-31 21:00): the round-trip probe lands on the seconds-precision Madras Mean Time string (GMT+05:21:10) and fails to parse, so it disproves nothing and the IST candidate stands",
       "dob": "1905-12-31",
       "time": "21:00",
       "tz": "Asia/Kolkata",
@@ -274,6 +275,86 @@
       "expected": {
         "risingSign": "leo",
         "offsetMinutes": 345
+      }
+    }
+  ],
+  "_moon_cases_comment": "core/moon.js fixtures (DOCTRINE §1.K, ASTRO-MOON-ADD-01). Rows 1-2 are anchored to Meeus's own worked Example 47.a (JDE 2448724.5, published geocentric longitude 133.162655°, floor(./30)=4 -> leo) — this file's core/moon.js reproduces that value to ~0.001 arcsec (see tests/moon.test.js's inline reference-case block for the direct longitude check). Row 2 expresses the identical UTC instant through a different IANA zone, proving the tz-resolution wiring (not just the longitude formula) is correct — both rows MUST agree. Rows 3-7 are a one-per-quarter-ish spread across 2010, generated from this same verified implementation for sign-diversity regression coverage; unlike rows 1-2 they are self-consistency pins (this file's algorithm output, not independently re-derived against a second ephemeris), same honesty distinction rising_tz_cases draws between astro.com-anchored and Swiss-Ephemeris-anchored rows.",
+  "moon_cases": [
+    {
+      "label": "Meeus Example 47.a instant via UTC — leo",
+      "dob": "1992-04-12",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "leo"
+      }
+    },
+    {
+      "label": "Meeus Example 47.a instant via America/New_York (tz parity, same UTC instant as row 1; 20:00 EDT — US DST began 1992-04-05, so the offset is -4, not EST's -5) — leo",
+      "dob": "1992-04-11",
+      "time": "20:00",
+      "tz": "America/New_York",
+      "lat": 40.7128,
+      "lng": -74.006,
+      "expected": {
+        "moonSign": "leo"
+      }
+    },
+    {
+      "label": "2010-01-10 00:00 UTC — scorpio",
+      "dob": "2010-01-10",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "scorpio"
+      }
+    },
+    {
+      "label": "2010-03-21 00:00 UTC — taurus",
+      "dob": "2010-03-21",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "taurus"
+      }
+    },
+    {
+      "label": "2010-06-21 00:00 UTC — libra",
+      "dob": "2010-06-21",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "libra"
+      }
+    },
+    {
+      "label": "2010-09-23 00:00 UTC — pisces",
+      "dob": "2010-09-23",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "pisces"
+      }
+    },
+    {
+      "label": "2010-12-25 00:00 UTC — leo",
+      "dob": "2010-12-25",
+      "time": "00:00",
+      "tz": "Etc/UTC",
+      "lat": 0,
+      "lng": 0,
+      "expected": {
+        "moonSign": "leo"
       }
     }
   ],

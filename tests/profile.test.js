@@ -13,7 +13,7 @@
 //     so doctrine, deck shape, and policy enforcement stay co-located.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -34,6 +34,28 @@ import {
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { getCard, resolveBracket, MissingCardError } from '../core/engine.js';
+import { CELL_KEYS, cellRenderState, ROW_TITLES, SHEET_ROWS } from '../ui/tiers.js';
+// Every OTHER output surface a profile feeds, reached through its pure export
+// so the gender differential below runs in plain node (§12 — no jsdom):
+//   ui/payments.js   the written entry's note slot (facet anchor)
+//   ui/public.js     the DOMAIN FIT block
+//   ui/dyad.js       the comparative relation layer
+//   ui/concordance.js the archive compare axes
+//   ui/share.js      the §5.D PNG/caption artifact
+//   ui/meanings.js   the per-coordinate meanings drawer
+//   ui/readings.js   the local archive record (the ONE deliberate carrier)
+import { getFreshFacetSlot } from '../ui/payments.js';
+import { publicReadFor } from '../ui/public.js';
+import { dyadRelationFor } from '../ui/dyad.js';
+import { buildConcordance } from '../ui/concordance.js';
+import {
+  buildCaptionFromSnapshot, buildCardSVGFromSnapshot, rowSections,
+} from '../ui/share.js';
+import { entryFor, harmonyFor } from '../ui/meanings.js';
+import { compactReadingProfile } from '../ui/readings.js';
+// Lexical classifier for the inline-render guard — see the header of
+// tests/helpers/js-lex.js for the two regex failures that made it necessary.
+import { CODE, COMMENT, classify, functionBody, genderTokens, startsRegex } from './helpers/js-lex.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from '../core/calendar.js';
 import { CARDS } from '../content/cards.v1.full.js';
 // Canonical §2/§4 voice-policy tables + the canonical substring matcher and
@@ -156,6 +178,101 @@ describe('calc v4 — the terminal numerology domain', () => {
     expect(digits.nameNumber).toBeNull();
     expect(digits.personality).toBeNull();
     expect(digits.maturity).toBeNull();
+  });
+});
+
+// ── the name-normalization contract ────────────────────────────────
+//
+// The name reducers are the only calculation that reads typed text rather
+// than a date, so they are the only place canonical equivalence can reach a
+// paid coordinate. NFC "José" (é = U+00E9) and NFD "José"
+// (e + U+0301) are the same name to Unicode, to the keyboard that produced
+// them and to the person who owns it; the calculator must agree.
+//
+// Two failures are separated deliberately below, because the cheap fix for
+// the first quietly commits the second: making both spellings agree by
+// ignoring the accented letter in both reduces "José" exactly as "Jos".
+describe('name normalization contract (canonical equivalence)', () => {
+  // Every entry is precomposed, so its NFC and NFD forms are genuinely
+  // different code-point sequences. The in-loop guard keeps the property
+  // from going vacuous if an entry is ever edited to a plain-ASCII name.
+  const PRECOMPOSED_NAMES = [
+    'José', 'Zoë', 'Renée Dubois', 'Ana Sofía',
+    'Ångström', 'Đặng Thị', 'İrem'
+  ];
+  // Every name-derived output on the profile: the four coordinates and the
+  // four calculation trails behind them.
+  const NAME_OUTPUTS = [
+    'nameNumber', 'nameNumberSum', 'soulUrge', 'soulUrgeSum',
+    'personality', 'personalitySum', 'maturity', 'maturitySum'
+  ];
+
+  it('NFC and NFD spellings of one name produce one set of coordinates', () => {
+    for (const name of PRECOMPOSED_NAMES) {
+      const nfc = name.normalize('NFC');
+      const nfd = name.normalize('NFD');
+      expect(nfd, `${name}: not precomposed, so this pair proves nothing`).not.toBe(nfc);
+      const a = buildProfile(nfc, '1988-08-15');
+      const b = buildProfile(nfd, '1988-08-15');
+      for (const key of NAME_OUTPUTS) {
+        expect(b[key], `${name}: ${key}`).toBe(a[key]);
+      }
+      // The retained name is one string too, not two spellings of one.
+      expect(b.name, `${name}: name`).toBe(a.name);
+      expect(a.name.normalize('NFC'), `${name}: name is canonical`).toBe(a.name);
+    }
+  });
+
+  it('a diacritic contributes its base letter — it is not silently dropped', () => {
+    // Agreement is not enough: dropping é in both spellings would also make
+    // them agree, at the price of reducing a different name.
+    expect(getNameNumberSum('José')).toBe(getNameNumberSum('Jose'));
+    expect(getSoulUrgeSum('José')).toBe(getSoulUrgeSum('Jose'));
+    expect(getPersonalitySum('José')).toBe(getPersonalitySum('Jose'));
+    expect(getNameNumberSum('José')).not.toBe(getNameNumberSum('Jos'));
+  });
+
+  it('a letter is classified as vowel or consonant AFTER it is folded', () => {
+    // U+0130 (İ) lowercases to a TWO code-point string, "i" + U+0307, so a
+    // raw vowel lookup misses it and the letter files as a consonant.
+    expect(getSoulUrgeSum('İrem')).toBe(getSoulUrgeSum('Irem'));
+    expect(getPersonalitySum('İrem')).toBe(getPersonalitySum('Irem'));
+  });
+
+  it('the vowel and consonant sums partition the letters the name number reads', () => {
+    for (const name of [...PRECOMPOSED_NAMES, 'Alex Thomas', 'Rhythm', 'Aei', '123']) {
+      for (const form of [name.normalize('NFC'), name.normalize('NFD')]) {
+        expect(getSoulUrgeSum(form) + getPersonalitySum(form), form)
+          .toBe(getNameNumberSum(form));
+      }
+    }
+  });
+
+  it('a name whose letters only appear after folding is RESOLVED', () => {
+    // The boundary case. "Đỗ" reads as no letters at all before folding and
+    // as an o after it, so treating it as unsupported would refuse a real
+    // name a coordinate it has. (Đ carries its bar inside the glyph and has
+    // no canonical decomposition — the named limit in core/profile.js.)
+    const p = buildProfile('Đỗ'.normalize('NFC'), '1988-08-15');
+    expect(p.nameNumber).toBe(getNameNumber('o'));
+    expect(p.nameNumber).not.toBeNull();
+  });
+
+  it('a name with NO supported letter is unresolved, never an invented number', () => {
+    // Distinct from Rhythm's absent vowel class above: here there is no
+    // letter to reduce at all, so nothing is fabricated from the code
+    // points — and the date side is untouched, since an unreadable name
+    // costs the name coordinates and nothing else.
+    for (const name of ['محمد', '山田', '123', '   ']) {
+      const p = buildProfile(name, '1988-08-15');
+      expect(p.nameNumber, name).toBeNull();
+      expect(p.soulUrge, name).toBeNull();
+      expect(p.personality, name).toBeNull();
+      expect(p.maturity, name).toBeNull();
+      expect(p.lifePath, name).toBe(4);
+      expect(p.birthday, name).toBe(6);
+      expect(p.sunSign, name).toBe('leo');
+    }
   });
 });
 
@@ -471,6 +588,877 @@ describe('calculation contract — 2G-2 additive fields', () => {
     expect(p.birthday).toBe(1);
     expect(p.maturity).toBe(4);
     expect(p.maturitySum).toBe(4);
+  });
+});
+
+// ── the optional gender field (§1.D v0.63, retained at v0.67) ──────
+//
+// These two tests lived in tests/kua.test.js. §1.D v0.67 deleted the kua
+// block and its three suites — and took these with them, which was wrong:
+// they never tested kua. They test the FIELD, and the field was explicitly
+// RETAINED. A pre-merge lane caught the loss.
+//
+// They are load-bearing again as of this change, because the form now tells
+// the user at the point of entry that the field "does not affect your
+// reading". Two real buildProfile calls make the first half of that claim
+// true — if gender ever begins to move a coordinate, the sentence on the
+// form goes red here. The SECOND half (no reader further down) is the
+// downstream suite below, which runs the same differential over every
+// output surface a profile feeds.
+
+// ── the fixture both differentials run on ─────────────────────────
+//
+// FULL optional input — time AND tz AND lat AND lng. All four are required:
+// buildProfile's rising/moon gate is
+//   opts.time && typeof opts.lat === 'number' && typeof opts.lng === 'number'
+//   && a resolvable tz
+// so a `{ time: '08:30' }` fixture leaves risingSign and moonSign UNDEFINED
+// and their two compartments compare `—` to `—` in every variant. A gender
+// reader placed on the rising or moon path would then be invisible to this
+// suite, which is exactly the hole a re-audit found in the first version of
+// these tests. `resolves every coordinate` below is the pin that keeps the
+// fixture full; do not thin it.
+const GENDER_NAME = 'Test Name';
+const GENDER_DOB = '1990-06-15';
+const GENDER_OPTS = Object.freeze({
+  time: '08:30', tz: 'America/New_York', lat: 40.7128, lng: -74.0060,
+});
+// A second, DIFFERENT person for the two pair surfaces (dyad + concordance):
+// same-profile pairs collapse every relation to its identity case and would
+// hide a reader that only fires on a mismatch.
+const GENDER_PARTNER = buildProfile('Other Person', '1984-11-02', {
+  time: '21:15', tz: 'Europe/Berlin', lat: 52.5200, lng: 13.4050,
+});
+
+// The written 144-card entry, resolved the way index.html's renderCard
+// resolves it: CARDS[sunSign][animal] for name/type/habit, and note[slot]
+// for the rotating position. ALL THREE note slots, not only the anchored
+// one — the stored facet index is a rotation position, so a reader could
+// sit in any of them.
+function genderCardEntry(profile) {
+  const row = CARDS[profile.sunSign];
+  const cell = row ? row[profile.animal] : null;
+  if (!cell) return null;
+  return {
+    name: cell.name,
+    type: cell.type,
+    habit: cell.habit,
+    notes: Object.keys(cell.note).sort().map(slot => [slot, cell.note[slot]]),
+    anchoredNote: cell.note[getFreshFacetSlot(profile.lifePath)],
+  };
+}
+
+// The §5.D share snapshot, rebuilt from the SAME pure cell mapping the DOM
+// path reads: ui/tiers.js cellRenderState decides each cell, setCell paints
+// it, shareRowRefs reads it back as { state, value } with 'value' → 'open'.
+// Reconstructing it here keeps the artifact in the differential without a
+// DOM (§12).
+function genderShareSnapshot(profile) {
+  return {
+    catalog: `no. ${getCard(profile).catalog}`,
+    sections: SHEET_ROWS.map(keys => ({
+      title: ROW_TITLES[keys[0]],
+      cells: keys.map(key => {
+        const { state, text } = cellRenderState(profile, key, true);
+        if (state === 'value') return { state: 'open', value: text };
+        if (state === 'unres') return { state: 'unres', value: '—' };
+        return { state: 'sealed', value: '' };
+      }),
+    })),
+  };
+}
+
+function genderShareArtifact(profile) {
+  const snap = genderShareSnapshot(profile);
+  const sections = rowSections(snap.sections);
+  return {
+    sections,
+    svg: buildCardSVGFromSnapshot({ catalog: snap.catalog, sections }),
+    caption: buildCaptionFromSnapshot({ catalog: snap.catalog, sections }),
+  };
+}
+
+// The meanings drawer reads the RENDERED cell strings, so it is driven from
+// cellRenderState rather than the profile — same input the live panel gets.
+function genderMeanings(profile) {
+  const values = {};
+  for (const key of CELL_KEYS) values[key] = cellRenderState(profile, key, true).text;
+  return CELL_KEYS.map(key => {
+    const entry = entryFor(key, values[key]);
+    return { key, entry, harmony: entry ? harmonyFor(key, entry, values) : null };
+  });
+}
+
+// Every output surface a profile feeds that is reachable from a pure
+// function. `probe` is the per-surface vacuity guard: it asserts the surface
+// actually produced its real content, so no row can pass by comparing two
+// empty, null, or unresolved things.
+const GENDER_SURFACES = [
+  {
+    name: 'sheet — every compartment at full entitlement',
+    of: p => CELL_KEYS.map(k => cellRenderState(p, k, true)),
+    probe: (v, p) => v.length === CELL_KEYS.length
+      && v.every(c => c.state === 'value')
+      && v.some(c => c.text === p.risingSign)   // rising RESOLVED and rendered
+      && v.some(c => c.text === p.moonSign),    // moon RESOLVED and rendered
+  },
+  {
+    name: 'catalog cell — core/engine getCard',
+    of: p => getCard(p),
+    probe: v => /^[ivxlcdm]+$/.test(v.catalog),
+  },
+  {
+    name: 'written card entry — the 144-cell copy and all three note slots',
+    of: p => genderCardEntry(p),
+    probe: v => !!v && !!v.name && !!v.type && !!v.habit
+      && v.notes.length === 3 && v.notes.every(([, note]) => !!note)
+      && !!v.anchoredNote,
+  },
+  {
+    name: 'note-slot anchor — bracket and facet position',
+    of: p => ({ bracket: resolveBracket(p.lifePath), slot: getFreshFacetSlot(p.lifePath) }),
+    probe: v => ['low', 'mid', 'high'].includes(v.slot) && v.slot === v.bracket,
+  },
+  {
+    name: 'public read — the DOMAIN FIT block',
+    of: p => publicReadFor(p),
+    probe: v => !!v && !!v.roleLine && !!v.families && !!v.antiFit,
+  },
+  {
+    name: 'dyad relation — this profile in the A position',
+    of: p => dyadRelationFor(p, GENDER_PARTNER),
+    probe: v => !!v && !!v.elementHead && !!v.cardPairHead && !!v.numerologyMeaning,
+  },
+  {
+    name: 'dyad relation — this profile in the B position',
+    of: p => dyadRelationFor(GENDER_PARTNER, p),
+    probe: v => !!v && !!v.elementHead && !!v.cardPairHead && !!v.numerologyMeaning,
+  },
+  {
+    name: 'concordance axes — the archive compare surface',
+    of: p => buildConcordance(p, GENDER_PARTNER, { tier: 't3' }),
+    probe: v => v.axes.length >= 5 && v.axes.every(a => !!a.label),
+  },
+  {
+    name: 'share artifact — snapshot rows, SVG and caption',
+    of: p => genderShareArtifact(p),
+    probe: (v, p) => v.svg.includes(p.risingSign) && v.svg.includes(p.moonSign)
+      && v.caption.includes(p.risingSign) && v.caption.includes(p.moonSign),
+  },
+  {
+    name: 'meanings drawer — entry and harmony per coordinate',
+    of: p => genderMeanings(p),
+    // 14 of the 15 cells have a meanings entry (moon has none by design);
+    // the floor is set below that so the row cannot pass on a null sweep.
+    probe: v => v.filter(e => e.entry).length >= 12
+      && v.filter(e => e.harmony).length >= 12,
+  },
+];
+
+describe('buildProfile — the optional gender field', () => {
+  it('carries a strict two-token gender and drops everything else', () => {
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'female' }).gender).toBe('female');
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'male' }).gender).toBe('male');
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'other' }).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15', { gender: '' }).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15', {}).gender).toBeUndefined();
+    expect(buildProfile('Test Name', '1990-06-15').gender).toBeUndefined();
+  });
+
+  it('changes NOTHING else on the profile — the field drives no coordinate', () => {
+    const without = buildProfile(GENDER_NAME, GENDER_DOB, GENDER_OPTS);
+    const withF = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'female' });
+    const withM = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'male' });
+    const strip = ({ gender, ...rest }) => rest;
+    // Two directions, not one: female-vs-absent AND male-vs-female. A single
+    // comparison would still pass if some coordinate keyed off "gender is
+    // present" without caring which value it held.
+    expect(strip(withF)).toEqual(strip(without));
+    expect(strip(withM)).toEqual(strip(withF));
+    // And the field itself did survive both builds — otherwise the two
+    // assertions above would be comparing two identical no-gender profiles
+    // and proving nothing.
+    expect(withF.gender).toBe('female');
+    expect(withM.gender).toBe('male');
+    // …and the profile being compared is the FULL one. On a time-only
+    // fixture risingSign and moonSign are undefined in every variant and
+    // this differential says nothing about the two coordinates that consume
+    // the most input.
+    expect(typeof withF.risingSign).toBe('string');
+    expect(typeof withF.moonSign).toBe('string');
+  });
+});
+
+// ── the downstream differential (every output surface) ─────────────
+//
+// The two tests above compare buildProfile's own output, which stays green
+// if a READER is added further down. This suite runs the same two-direction
+// differential over every surface a profile feeds that a pure function can
+// reach: the catalog cell, the written 144-card entry and its three note
+// slots, the note-slot anchor, the sheet's compartments, the DOMAIN FIT
+// public read, the dyad relation in BOTH positions, the concordance axes,
+// the §5.D share artifact (rows + SVG + caption), and the meanings drawer.
+//
+// It matters because the form tells the user at the point of entry that the
+// field "does not affect your reading". This suite is what makes that
+// sentence true rather than merely written down.
+
+// `renderCard`'s body, LEXED out of index.html's inline module — braces are
+// counted only where they are code, so a `}` inside a comment or a string
+// cannot truncate the extraction. Scoped to renderCard alone: the submit
+// handler legitimately names the field (it passes `getGenderInput()` into
+// buildSubmitOpts) and is not the render path.
+//
+// Two earlier regex versions of this pair were defeated; the reasons are
+// written out in tests/helpers/js-lex.js and pinned by the counter-cases at
+// the bottom of this file.
+const RENDER_CARD_SIG = 'function renderCard(profile, opts) {';
+function renderCardBody(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  return functionBody(html, RENDER_CARD_SIG);
+}
+
+// Every mention of the IDENTIFIER, in any form the language offers:
+// `profile.gender`, `profile['gender']`, `profile["gender"]`,
+// ``profile[`gender`]``, `const { gender } = …`, `{ gender: alias }`, a bare
+// `gender`, and any of those inside a template interpolation.
+//
+// STRING TEXT IS SCANNED ON PURPOSE. A computed property key lives in a string
+// literal, so stripping literals — which is what the first version did — is
+// exactly how `profile["gender"]` escaped. Comment text is the only thing
+// dropped, because a comment is the one place the word is harmless.
+// `getGenderInput` DOES match, and must: it reads the live control and
+// changes the card while naming no property. The word boundary that used to
+// exclude it was removed for exactly that reason.
+function genderTokensIn(extracted) {
+  return genderTokens(extracted);
+}
+
+// Every mention of the identifier in a JS source, comments excluded.
+//
+// The core/+ui/ scan and the inline-module guard share the CLASSIFIER and the
+// matcher constant below, not one whole function — they answer different
+// questions (a count per file, versus which lines carry it). "They cannot
+// drift" would be too strong and an audit said so; what is true is that the
+// two things that were separately wrong before — how source is stripped, and
+// what pattern is matched — now have exactly one definition each.
+// NO word boundary: `getGenderInput()` reads the live control and changes the
+// card while naming no property, and `\bgender\b` could not see it.
+const GENDER_RE = /gender/gi;
+
+function genderMentionsInSource(src) {
+  const kind = classify(src);
+  let code = '';
+  for (let i = 0; i < src.length; i++) code += kind[i] === COMMENT ? ' ' : src[i];
+  return code.match(GENDER_RE) || [];
+}
+
+
+// ── the PRIMARY invariant: a RAW, fail-closed allowlist ───────────
+//
+// No lexing. Every line of the bounded corpus that contains the identifier,
+// in any casing, must appear verbatim on this list.
+//
+// It is primary because a hand-written lexer CANNOT carry an absolute
+// "every spelled read fails" claim, and three rounds of audit proved it: a
+// regex may legally begin in more ES positions than any heuristic enumerates.
+// The last one found was a spread — `[.../[//]/.exec(x)]` — where the `/`
+// after `...` was read as division and the `//` inside then opened a comment,
+// blanking a live `profile.gender` read on the same line. Valid JavaScript,
+// executes, changes the card, and both lexical guards reported clean.
+//
+// A raw scan has no such failure mode: it cannot be confused about syntax
+// because it does not model any. The cost is that it also matches comments
+// and user-visible copy, which is why the list below carries those too —
+// and that is a feature here, since stale gender COPY is exactly the defect
+// this cycle already had to correct twice.
+//
+// WHEN THIS FAILS: read the new line. If it is a genuine read, that is the
+// bug. If it is legitimate copy or a comment, add it verbatim to this list —
+// deliberately, as a reviewed act. Never relax the matcher.
+//
+// NO file is excluded, including the three that own the field. An earlier
+// version exempted core/profile.js, ui/profile.js and ui/readings.js on the
+// ground that the runtime differential covered them — it does not: that
+// differential drives buildProfile and the pure output surfaces and never
+// touches optsFromPayload, profileFromPayload, saveProfile or
+// populateRisingFields, so a male-only transformation in any of those would
+// have passed everything. All 44 occurrences across all six files are pinned.
+const RAW_GENDER_ALLOW = {
+  "index.html": [
+    "<p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>",
+    "<p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the comparative — a second person's complete sheet beside yours with the named relation between them — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>",
+    "<p class=\"modal-disclosure\" id=\"paywall-disclosure\">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>",
+    "import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput, buildSubmitOpts } from './ui/profile.js';",
+    "// `form` + `anchor` let the module build the optional gender control it",
+    "const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });"
+  ],
+  "core/measurement.js": [
+    "// exactly two keys cannot carry a name, a DOB, a gender, a city, a coordinate"
+  ],
+  "core/profile.js": [
+    "// ── Gender passthrough (additive). Strict two-token vocabulary;",
+    "const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))",
+    "? opts.gender",
+    "gender"
+  ],
+  "ui/profile.js": [
+    "if (opts.gender === 'male' || opts.gender === 'female') payload.gender = opts.gender;",
+    "// calculation needs it: §1.D v0.67 deleted the kua block, so gender has",
+    "if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;",
+    "// vocabulary is enforced by getGenderInput and by saveProfile, not",
+    "export function buildSubmitOpts({ time, gender, city } = {}) {",
+    "if (gender) opts.gender = gender;",
+    "let _genderSelect = null;",
+    "// ── the optional gender control ───────────────────────────────────",
+    "// no-gender state and it is the default; anything off-vocabulary resolves",
+    "// POINT-OF-ENTRY TRUTH. The control carries GENDER_NOTE, wired to the",
+    "export const GENDER_NOTE = 'optional · stored on this device · does not affect your reading';",
+    "function resolveGenderSelect(refs) {",
+    "if (refs && refs.genderSelect) return refs.genderSelect;",
+    "const existing = form.querySelector && form.querySelector('#gender-input');",
+    "field.className = 'field gender-field';",
+    "field.innerHTML = '<label for=\"gender-input\">gender (optional)</label>' +",
+    "'<select id=\"gender-input\" aria-describedby=\"gender-note\">' +",
+    "`<p class=\"field-note\" id=\"gender-note\">${GENDER_NOTE}</p>`;",
+    "return field.querySelector ? field.querySelector('#gender-input') : null;",
+    "export function getGenderInput() {",
+    "const v = _genderSelect && _genderSelect.value;",
+    "export function setGenderInput(v) {",
+    "if (!_genderSelect) return;",
+    "_genderSelect.value = v === 'male' || v === 'female' ? v : '';",
+    "_genderSelect = resolveGenderSelect(refs);",
+    "// Rehydrate the gender control (owned by this module since §1.D v0.67).",
+    "setGenderInput(obj.gender);",
+    "// Clear the gender control directly (this module owns it since §1.D",
+    "// v0.67). Routing it through the retired setGender hook silently left a",
+    "setGenderInput(undefined);"
+  ],
+  "ui/readings.js": [
+    "// §5.E: the archive carries gender because it is a user-entered input",
+    "if (input.gender === 'male' || input.gender === 'female') profile.gender = input.gender;"
+  ],
+  "ui/tiers.js": [
+    "// ceiling is the written entry + the public read; the optional gender"
+  ]
+};
+
+// Every tracked .js under a directory, RECURSING. The scan read only the top
+// level, so a module in a future `core/x/` or `ui/x/` would have been outside
+// it — an audit flagged that the guarantee was written broader than the scan.
+function jsFilesUnder(dir) {
+  const out = [];
+  for (const entry of readdirSync(join(__dirname, '..', dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...jsFilesUnder(rel));
+    else if (entry.name.endsWith('.js')) out.push(rel);
+  }
+  return out;
+}
+
+// index.html's inline module(s), lexed, with COMMENT characters blanked
+// and everything executable or literal preserved. The module-wide guard runs
+// on this so a reader hidden in any helper — not just renderCard — is caught.
+function inlineModuleBlocks(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  // ALL of them, not the first. The previous version matched a single block,
+  // so a second inline module would have carried a reader the guard never saw.
+  // Tolerates every spelling the HTML grammar allows: unquoted `type=module`,
+  // spaces around `=`, and any casing of the attribute name — an audit found
+  // all three evaded the previous pattern. This is a DIAGNOSTIC helper; the
+  // absolute invariant is the raw scan, which parses no HTML at all and so
+  // cannot be evaded this way.
+  const blocks = [...html.matchAll(
+    /<script\b[^>]*\btype\s*=\s*(?:"module"|'module'|module\b)[^>]*>([\s\S]*?)<\/script>/gi,
+  )].map(m => m[1]);
+  if (!blocks.length) throw new Error('index.html carries no inline module');
+  return blocks;
+}
+
+function inlineModuleCode(html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8')) {
+  return inlineModuleBlocks(html).map(src => {
+    const kind = classify(src);
+    let out = '';
+    for (let i = 0; i < src.length; i++) out += kind[i] === COMMENT ? ' ' : src[i];
+    return out;
+  }).join('\n');
+}
+
+describe('the optional gender field — no downstream surface reads it', () => {
+  const without = buildProfile(GENDER_NAME, GENDER_DOB, GENDER_OPTS);
+  const withF = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'female' });
+  const withM = buildProfile(GENDER_NAME, GENDER_DOB, { ...GENDER_OPTS, gender: 'male' });
+
+  it('resolves every coordinate — no cell compares one empty field to another', () => {
+    // The anti-vacuity pin for the whole suite. If the fixture is ever
+    // thinned back to `{ time }`, rising and moon go unresolved and their
+    // compartments compare `—` to `—`; this fails first and says why.
+    for (const p of [without, withF, withM]) {
+      expect(typeof p.risingSign, 'rising must RESOLVE — fixture needs tz+lat+lng').toBe('string');
+      expect(typeof p.moonSign, 'moon must RESOLVE — fixture needs tz+lat+lng').toBe('string');
+      expect(p.hourPillar, 'hour pillar must resolve — fixture needs a birth time').toBeTruthy();
+      expect(
+        CELL_KEYS.map(k => cellRenderState(p, k, true).state),
+        'every compartment must carry a value, so none can compare — to —'
+      ).toEqual(CELL_KEYS.map(() => 'value'));
+    }
+    // And the three profiles really do differ in the one field under test.
+    expect([without.gender, withF.gender, withM.gender])
+      .toEqual([undefined, 'female', 'male']);
+  });
+
+  it('covers every coordinate the sheet can show', () => {
+    // A coordinate added to the sheet but not to CELL_KEYS (or the reverse)
+    // would slip past the differential. The two lists are the same set.
+    expect([...SHEET_ROWS.flat()].sort()).toEqual([...CELL_KEYS].sort());
+  });
+
+  for (const surface of GENDER_SURFACES) {
+    it(`${surface.name} — identical across absent / female / male`, () => {
+      const absent = surface.of(without);
+      const female = surface.of(withF);
+      const male = surface.of(withM);
+      // Vacuity guards, before the comparison: the surface produced real
+      // content, not null / '' / [] / an all-unresolved sweep.
+      expect(absent, 'surface produced nothing').not.toBeNull();
+      expect(JSON.stringify(absent).length, 'surface serialized to a trivial value')
+        .toBeGreaterThan(20);
+      expect(surface.probe(absent, without), 'surface did not produce its real content').toBe(true);
+      expect(surface.probe(female, withF), 'surface did not produce its real content').toBe(true);
+      expect(surface.probe(male, withM), 'surface did not produce its real content').toBe(true);
+      // Both directions: a single comparison would still pass if a reader
+      // keyed off "gender is present" without caring which value it held.
+      expect(female, 'female differs from absent').toEqual(absent);
+      expect(male, 'male differs from female').toEqual(female);
+    });
+  }
+
+  it('the local archive is the ONE deliberate carrier — the input, never a derivation', () => {
+    // §5.E: ui/readings.js stores gender so a reopened reading reproduces
+    // the user's own input. That is a round-trip of the INPUT, and it is the
+    // only place the token is allowed to survive. Everything else in the
+    // record must be identical across the three variants.
+    const record = p => compactReadingProfile({
+      name: p.name, dob: GENDER_DOB, ...GENDER_OPTS, gender: p.gender,
+    });
+    const absent = record(without);
+    const female = record(withF);
+    const male = record(withM);
+    expect(absent.gender).toBeUndefined();
+    expect(female.gender).toBe('female');
+    expect(male.gender).toBe('male');
+    const strip = ({ gender, ...rest }) => rest;
+    expect(Object.keys(strip(absent)).length, 'archive record is empty').toBeGreaterThan(4);
+    expect(strip(female)).toEqual(strip(absent));
+    expect(strip(male)).toEqual(strip(female));
+  });
+
+  it('no module outside the input path even names the field', () => {
+    // The runtime differential above can only reach PURE exports. The
+    // written entry is resolved inline in index.html's renderCard, so a
+    // reader added there would be out of its reach. This closes that hole
+    // statically: the property read `.gender` (and its computed form) may
+    // appear ONLY where the field is collected, passed through, or archived.
+    // LEXED, not regexed. This scan used `/\.gender\b|\[['"]gender['"]\]/`,
+    // which sees a property access and nothing else — a red-team put
+    // `const { gender } = …` into ui/result.js and the suite stayed green.
+    // That is the same defect the renderCard guard below was just repaired
+    // for, one directory over, so it gets the same repair: comments blanked,
+    // everything executable or literal scanned, identifier matched in any
+    // form and any casing (so the accessor's own name counts too).
+    const ALLOWED = new Set([
+      'core/profile.js',   // the passthrough — carried, never consumed
+      'ui/profile.js',     // the form control and the write seam
+      'ui/readings.js',    // the §5.E archive round-trip
+    ]);
+    const scanned = [...jsFilesUnder('core'), ...jsFilesUnder('ui')];
+    const offenders = [];
+    for (const rel of scanned) {
+      if (ALLOWED.has(rel)) continue;
+      const hits = genderMentionsInSource(readFileSync(join(__dirname, '..', rel), 'utf-8')).length;
+      if (hits) offenders.push(`${rel} (${hits})`);
+    }
+    // The recursion is unexercised by core/ and ui/, which are FLAT — so it is
+    // pinned against a directory that genuinely nests. Without this, the walk
+    // could stop descending and nothing here would notice.
+    const nested = jsFilesUnder('tests');
+    expect(nested, 'jsFilesUnder does not descend into subdirectories')
+      .toContain('tests/helpers/js-lex.js');
+
+    // The scan must actually have reached the corpus it claims to cover.
+    expect(scanned.length, 'the recursive scan found no modules — it is not scanning what it claims')
+      .toBeGreaterThanOrEqual(20);
+    for (const allowed of ALLOWED) {
+      expect(scanned, `the allow-list names ${allowed}, which the scan did not reach`).toContain(allowed);
+    }
+    expect(
+      offenders,
+      'a module outside the input path names gender — §1.D v0.67 leaves the field with no calculation or output reader'
+    ).toEqual([]);
+  });
+
+  // ── the render path, guarded by IDENTIFIER not by property syntax ──
+  //
+  // The scan above matches the IDENTIFIER in any form — property, computed
+  // with any quote style, destructured, aliased, template-interpolated, or
+  // through the accessor. (It once matched only `.gender` and `['gender']`,
+  // so `const { gender } = profile` slipped past; that is long fixed, and the
+  // description here outlived the fix by several rounds.)
+  //
+  // What follows is the same check narrowed to renderCard, which lives in
+  // index.html's inline module where no harness executes it — so the runtime
+  // matrix above cannot reach it and a static read is the only cover.
+  // A SECONDARY DIAGNOSTIC — the raw allowlist above is the primary guard and
+  // this label was left stale when the claim moved. Its value is module-WIDE
+  // scope: a reader could sit in any helper of the inline module, not only in
+  // renderCard, and this says which line carries it. `core/` and `ui/` are
+  // covered by the scan above. Two lines survive the lexer, both on the
+  // collection path — but the ABSOLUTE claim rests on the raw scan, not here.
+  // PRIMARY. Raw, fail-closed, lexer-free — see RAW_GENDER_ALLOW above for
+  // why this and not the lexical guards carries the absolute claim.
+  it('every raw mention of the field in the corpus is on the allowlist', () => {
+    const corpus = ['index.html', ...jsFilesUnder('core'), ...jsFilesUnder('ui')];
+    expect(corpus.length, 'the corpus walk found nothing').toBeGreaterThanOrEqual(20);
+    for (const rel of corpus) {
+      const found = readFileSync(join(__dirname, '..', rel), 'utf-8')
+        .split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+      expect(
+        found,
+        `${rel}: a gender mention is not on the allowlist. If it is a genuine `
+        + `read, that is the bug. If it is copy or a comment, add it verbatim `
+        + `to RAW_GENDER_ALLOW — never relax the matcher.`
+      ).toEqual(RAW_GENDER_ALLOW[rel] || []);
+    }
+    // The allowlist must not name a file the walk never visits, or an entry
+    // could silently stop being checked.
+    for (const rel of Object.keys(RAW_GENDER_ALLOW)) {
+      expect(corpus, `RAW_GENDER_ALLOW names ${rel}, which the corpus walk missed`).toContain(rel);
+    }
+  });
+
+  // PLACE IS NOT REACHABILITY, and six rounds of pinning bytes could not make
+  // it one. The collection used to be assembled field-by-field here and was
+  // pinned as an exact contiguous RAW block. Three separate lanes then showed
+  // the same defeat: `if (false) { …block… }` beside a live gender-free
+  // fallback, the block relocated into an uncalled helper, and the whole block
+  // wrapped in `/* … */` — each leaves the raw inventory byte-identical, and
+  // the last leaves the block pin itself green while the field silently stops
+  // forwarding. Dead code and live code are byte-identical by construction; no
+  // seventh pin closes that.
+  //
+  // So the collection moved OUT of the host into ui/profile.js buildSubmitOpts
+  // and tests/submit_seam.test.js EXECUTES index.html's own submit handler
+  // against stubs, watching the value arrive at buildProfile and saveProfile.
+  // All three bypasses above are counter-cases there and fail on the executed
+  // value, not on a moved string. Do not re-add a block pin here.
+  const COLLECTION_LINE =
+    'const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });';
+
+  const readHtml = () => readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+  const inventory = html => html.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+
+  it('the raw allowlist catches what every lexical guard missed', () => {
+    // The exact bypass that defeated the lexer: valid JS, executes, changes
+    // the card, and both lexical guards reported clean.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const mutated = html.replace(
+      'cardName.textContent = cell.name;',
+      // exec("/") — a GUARANTEED match. The audit's original fixture used
+      // exec(cell.name), but no card name in the 144-cell deck contains a
+      // slash, so the spread of a null result throws before the gender branch
+      // is ever reached. The bypass is real; the evidence for it has to
+      // actually run.
+      'const spread = [.../[//]/.exec("/")]; '
+      + 'cardName.textContent = spread.length && profile.gender ? "f" : cell.name;',
+    );
+    expect(mutated, 'the mutation did not apply — anchor moved').not.toBe(html);
+    const raw = mutated.split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+    expect(raw, 'the raw scan missed a spelled read').not.toEqual(RAW_GENDER_ALLOW['index.html']);
+    // …and the lexical guard genuinely does miss it, which is why raw is primary.
+    expect(genderTokensIn(functionBody(mutated, RENDER_CARD_SIG)),
+      'the lexer no longer misses this — the limitation note above needs updating').toEqual([]);
+  });
+
+  // SECONDARY DIAGNOSTIC, not the guarantee. Narrower claim: it locates a
+  // spelled read and says where, which a raw line list cannot.
+  it('diagnostic: the inline module touches gender on exactly TWO code lines', () => {
+    // NO word boundary, deliberately. `\bgender\b` let `getGenderInput()`
+    // through, and a red-team used exactly that: calling the form's own getter
+    // from inside renderCard reads the live control and changes the card while
+    // naming no property at all. That is ordinary code a maintainer could
+    // write by accident, not obfuscation, so the matcher has to be loose
+    // enough to see the accessor's own name.
+    const lines = inlineModuleCode()
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => new RegExp(GENDER_RE.source, 'i').test(l));
+    expect(
+      lines.length,
+      `index.html gained a gender touchpoint — the field is collected and forwarded, never read:\n${lines.join('\n')}`
+    ).toBe(2);
+    expect(lines[0], 'the accessor must be imported exactly once')
+      .toMatch(/^import \{[^}]*\bgetGenderInput\b[^}]*\} from '\.\/ui\/profile\.js';$/);
+    expect(lines[1], 'the accessor must be CALLED exactly once, at the submit seam')
+      .toBe(COLLECTION_LINE);
+  });
+
+  it('renderCard itself names gender in NO form — property, computed, or destructured', () => {
+    expect(
+      genderTokensIn(renderCardBody()),
+      'renderCard names `gender` — the written entry must not read the field (§1.D v0.67)'
+    ).toEqual([]);
+  });
+
+  // ── the counter-cases: proof the guard has teeth ──────────────────
+  //
+  // Each mutation is applied to the REAL index.html and re-extracted through
+  // the real lexer, so these exercise the shipped guard rather than a copy of
+  // it. Every one changes what the card visibly displays.
+  //
+  // The first three defeated earlier versions of this guard, and the last two
+  // defeated its extraction step rather than its matcher — a `}` in a comment
+  // or a string truncated the brace match, and anything after it stopped being
+  // scanned at all.
+  const ANCHOR = 'cardName.textContent = cell.name;';
+  const READER_FORMS = [
+    ['dot access', `cardName.textContent = profile.gender ? 'f-' + cell.name : cell.name;`],
+    ['computed key, double quotes', `cardName.textContent = profile["gender"] ? cell.name : "x";`],
+    ['computed key, single quotes', `cardName.textContent = profile['gender'] ? cell.name : 'x';`],
+    ['computed key, template', 'cardName.textContent = profile[`gender`] ? cell.name : `x`;'],
+    ['template interpolation', 'cardName.textContent = `${profile["gender"]} ${cell.name}`;'],
+    ['destructured', `const { gender } = profile; cardName.textContent = gender ? 'f' : cell.name;`],
+    ['destructured with alias', `const { gender: g2 } = profile; cardName.textContent = g2 ? 'f' : cell.name;`],
+    ['after a brace-bearing string', `const pad = "}}}}"; cardName.textContent = pad && profile["gender"] ? 'f' : cell.name;`],
+  ];
+
+  for (const [name, reader] of READER_FORMS) {
+    it(`the guard catches a reader written as: ${name}`, () => {
+      const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+      const mutated = html.replace(ANCHOR, reader);
+      expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(html);
+      expect(
+        genderTokensIn(renderCardBody(mutated)),
+        `a ${name} reader slipped past the guard`,
+      ).not.toEqual([]);
+    });
+  }
+
+  // The bypass a red-team found against the word-boundary version, and the
+  // most important one here because it is not obfuscation: renderCard calls
+  // the form's own getter, reads the live control, and changes the card
+  // without naming a property. Both new touchpoints (the call, and any import
+  // it would need) trip the module-wide count.
+  it('the guard catches renderCard calling getGenderInput() directly', () => {
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const mutated = html.replace(
+      'cardType.textContent = cell.type;',
+      `cardType.textContent = (getGenderInput() === 'female' ? 'she of ' : '') + cell.type;`,
+    );
+    expect(mutated, 'the mutation did not apply — anchor line moved').not.toBe(html);
+    const lines = inlineModuleCode(mutated)
+      .split('\n').map(l => l.trim()).filter(l => /gender/i.test(l));
+    expect(lines.length, 'a getGenderInput() call inside renderCard went unnoticed').toBeGreaterThan(2);
+  });
+
+  it('a comment quoting the signature cannot hijack the extraction', () => {
+    // Locating the signature by plain indexOf let a comment that QUOTED it
+    // redirect the brace match to an earlier, unrelated block — the extracted
+    // "body" collapsed to a 66-character argument list. The signature is now
+    // located in CODE only.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const real = renderCardBody(html).body.length;
+    const decoyed = html.replace(
+      'const cityInput',
+      `// Render entry point: \`${RENDER_CARD_SIG}\` — see below.\n  const cityInput`,
+    );
+    expect(decoyed, 'the decoy did not apply — anchor moved').not.toBe(html);
+    expect(renderCardBody(decoyed).body.length).toBe(real);
+  });
+
+  it('a `}` inside a comment cannot truncate the extraction', () => {
+    // The regex version brace-matched before stripping comments, so this
+    // collapsed renderCard's body from 3348 characters to 4 and every reader
+    // below it fell outside the guard entirely.
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const real = renderCardBody(html).body.length;
+    const withBraces = renderCardBody(html.replace(RENDER_CARD_SIG, `${RENDER_CARD_SIG} // }}}}`));
+    expect(withBraces.body.length).toBeGreaterThanOrEqual(real);
+    // …and a reader hidden after that comment is still caught.
+    const mutated = html
+      .replace(RENDER_CARD_SIG, `${RENDER_CARD_SIG} // }}}}`)
+      .replace(ANCHOR, `cardName.textContent = profile["gender"] ? 'f' : cell.name;`);
+    expect(genderTokensIn(renderCardBody(mutated))).not.toEqual([]);
+  });
+
+  it('the superseded matcher returned clean on these same forms', () => {
+    // Names the regression precisely rather than implying the guard was
+    // always this strong. This is the PREVIOUS implementation, verbatim, and
+    // its defect is the ORDER: it stripped string literals before matching,
+    // so a computed key's `"gender"` was blanked to `""` and a whole template
+    // literal disappeared with its interpolation inside it.
+    const supersededGuard = source => (source
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ')
+      .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""')
+      .match(/\bgender\b/gi) || []);
+
+    const defeatedIt = [
+      `cardName.textContent = profile["gender"] ? cell.name : "x";`,
+      'cardName.textContent = `${profile["gender"]} ${cell.name}`;',
+      'cardName.textContent = profile[`gender`] ? cell.name : `x`;',
+    ];
+    for (const form of defeatedIt) {
+      expect(supersededGuard(form), `superseded guard should have missed: ${form}`).toEqual([]);
+      expect(genderTokens({ body: form, kind: classify(form) }), `current guard misses: ${form}`)
+        .not.toEqual([]);
+    }
+    // The destructured form is the one it DID catch — included so this test
+    // documents the boundary of the old defect rather than overstating it.
+    expect(supersededGuard('const { gender } = profile;')).not.toEqual([]);
+  });
+
+  // ── what this guard does NOT guarantee ────────────────────────────
+  //
+  // Written down because this repo has now shipped an overclaimed coverage
+  // statement three times, and the honest limit is more useful than a
+  // confident one.
+  //
+  // These are STATIC guards. They stop an ACCIDENT, not an adversary — no
+  // static check of any kind closes the class below, because none of these
+  // forms writes the identifier at all, so even the raw allowlist cannot see
+  // them. A red-team pass got past every guard here with:
+  //   - a runtime-built key — `profile['gen' + 'der']`
+  //   - a Unicode escape inside the property name
+  //   - value scanning that never names the key — `Object.values(profile).includes('female')`
+  // Each executes and changes the card, and none writes the identifier. No
+  // lexical check can close that class; only executing renderCard could, and
+  // it cannot be executed from vitest (it lives in the inline module, and §12
+  // forbids jsdom).
+  //
+  // WHICH GUARD CARRIES WHICH CLAIM — the distinction three audits forced:
+  //
+  //   RAW allowlist (primary)  every line of the corpus containing the
+  //                            identifier is pinned verbatim. Parses nothing,
+  //                            so no syntax confusion can hide a read. THIS
+  //                            is what carries "every spelled read fails".
+  //   LEXICAL guards (secondary)  locate a read and say where — which a line
+  //                            list cannot — but a hand lexer cannot enumerate
+  //                            every ES position a regex may begin in, and
+  //                            three rounds proved it. They make no absolute
+  //                            claim and a counter-case above pins one of
+  //                            their known blind spots so the split stays
+  //                            honest.
+  //
+  // The runtime differential over the pure surfaces remains the real
+  // guarantee; both of these are the fence around what it cannot reach.
+  //
+  // It FAILS CLOSED, and that is a deliberate trade. A red-team confirmed
+  // prospective false positives: innocent user-visible copy, an aria-label, a
+  // CSS class or a data attribute containing the word would all trip it. None
+  // exists today. When one is genuinely wanted, the fix is to add it to the
+  // pinned lines above — a deliberate, reviewed act — not to loosen the
+  // matcher. A guard that occasionally asks a human to look is worth far more
+  // than one that quietly misses a reader.
+  it('index.html carries exactly ONE inline module — and the guard reads them all anyway', () => {
+    // Both halves matter. The count is a §6 single-file invariant worth
+    // knowing about if it ever moves; the guard no longer DEPENDS on it,
+    // because inlineModuleCode concatenates every block instead of matching
+    // the first — an audit flagged that a second module would have evaded it.
+    expect(inlineModuleBlocks()).toHaveLength(1);
+    // A UNIQUE sentinel, not `gender`: the baseline already contains the word,
+    // so asserting on it proved nothing about whether the second block was
+    // read at all. An audit caught that.
+    const SENTINEL = 'ZZ_SECOND_MODULE_SENTINEL_ZZ';
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    expect(inlineModuleCode(html), 'sentinel must not pre-exist').not.toContain(SENTINEL);
+    for (const spelling of [
+      `<script type="module">const ${SENTINEL} = 1;</script>`,
+      `<script type=module>const ${SENTINEL} = 1;</script>`,
+      `<script type = "module">const ${SENTINEL} = 1;</script>`,
+      `<script TYPE="module">const ${SENTINEL} = 1;</script>`,
+    ]) {
+      const two = html.replace('</script>', `</script>\n${spelling}`);
+      expect(inlineModuleBlocks(two), `not reading: ${spelling.slice(0, 34)}`).toHaveLength(2);
+      expect(inlineModuleCode(two), `not scanning: ${spelling.slice(0, 34)}`).toContain(SENTINEL);
+    }
+  });
+
+  it('the lexer resolves regex-vs-division without swallowing live code', () => {
+    // Every case here defeated an earlier version of the lexer, and every one
+    // is ordinary JavaScript rather than an attack.
+    const cases = [
+      ['regex containing a brace', 'function f(p) {\n  s.replace(/\\}/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex character class brace', 'function f(p) {\n  s.replace(/[}]/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex opening brace', 'function f(p) {\n  s.replace(/{/g, "");\n  const { gender } = p; return gender;\n}'],
+      ['regex after if() with //', 'function f(p) {\n  if (p.x) /[//]/.test(p.x);\n  const { gender } = p; return gender;\n}'],
+      ['regex after if() with /*', 'function f(p) {\n  if (p.x) /[/*]/.test(p.x);\n  const { gender } = p; if (gender) { p.y = 1; }\n  q.replace(/[*\\/]+$/, "");\n}'],
+      ['escaped slash after if()', 'function f(p) {\n  if (p.x) /\\//.test(p.x);\n  const g2 = p.gender ? "f" : "";\n  return g2;\n}'],
+      ['identifier containing a keyword', 'function f(p) {\n  const plain = 4; const r = plain / 2 /* } */;\n  const { gender } = p; return gender ? r : 0;\n}'],
+    ];
+    for (const [name, src] of cases) {
+      const extracted = functionBody(src, src.slice(0, src.indexOf('{') + 1));
+      expect(genderTokensIn(extracted), `${name}: the reader was swallowed`).not.toEqual([]);
+    }
+
+    // …and plain division must NOT be read as a regex, or the lexer swallows
+    // real code in the other direction.
+    const division = 'function f(a) {\n  const inx = 10; const r = inx / 2; const z = a / 3;\n  return r + z;\n}';
+    expect(functionBody(division, 'function f(a) {').body, 'division was lexed as a regex')
+      .toContain('return r + z;');
+    expect(genderTokensIn(functionBody(division, 'function f(a) {'))).toEqual([]);
+
+    // The regex-start decision itself, at the boundary that caused the bug.
+    for (const [tok, expected] of [['plain', false], ['in', true], ['of', true],
+      ['do', true], ['return', true], ['instanceof', true], ['x', false], [')', false]]) {
+      expect(startsRegex(tok), `startsRegex(${JSON.stringify(tok)})`).toBe(expected);
+    }
+  });
+
+  it('the module scan catches every spelled form, comments excepted', () => {
+    // The scan that covers core/ and ui/, exercised directly. Its previous
+    // property-only regex missed the first of these in ui/result.js while the
+    // whole suite stayed green.
+    const caught = [
+      'export function f(p) { const { gender } = p; return gender ? 1 : 0; }',
+      `export function f(p) { return p['gender']; }`,
+      'export function f(p) { return p["gender"]; }',
+      'export function f(p) { return p.gender; }',
+      'export function f(p) { const { gender: g } = p; return g; }',
+      'export function f() { return getGenderInput(); }',
+      'export function f(p) { return `${p["gender"]}`; }',
+    ];
+    for (const src of caught) {
+      expect(genderMentionsInSource(src), `missed: ${src}`).not.toEqual([]);
+    }
+    // A comment is the one place the word is harmless, and near-misses must
+    // not trip it — otherwise the scan is noise and gets disabled.
+    expect(genderMentionsInSource('// gender is never read here\nexport const x = 1;')).toEqual([]);
+    expect(genderMentionsInSource('/* the gender field */ export const x = 1;')).toEqual([]);
+  });
+
+  it('states its own limits — the escape hatches are known and recorded', () => {
+    // Pinned so the limitation cannot be quietly dropped from the comment
+    // above while the claim elsewhere stays absolute.
+    const self = readFileSync(fileURLToPath(import.meta.url), 'utf-8');
+    // The primary/secondary split must stay written down: an absolute claim
+    // parked on the lexical guards is what three audits kept having to undo.
+    expect(self, 'the raw allowlist must be named as the primary guard')
+      .toMatch(/RAW allowlist \(primary\)/);
+    expect(self, 'the lexical guards must be named as secondary')
+      .toMatch(/LEXICAL guards \(secondary\)/);
+    expect(self, 'the accident-not-adversary limit must stay stated')
+      .toMatch(/stop an ACCIDENT, not an adversary/);
+    expect(self).toMatch(/runtime-built key/);
+    // And the escape hatches really do escape — asserted, not just described,
+    // so this stays true only as long as the statement above is accurate.
+    const evade = [
+      `profile['gen' + 'der']`,
+      `Object.values(profile).includes('female')`,
+      // Named in the prose above and previously unasserted, which an audit
+      // caught: `profile.gend\u0065r` is a valid read of the same property.
+      'profile.gend\\u0065r',
+    ];
+    for (const form of evade) {
+      expect(genderTokens({ body: form, kind: classify(form) }), form).toEqual([]);
+    }
   });
 });
 

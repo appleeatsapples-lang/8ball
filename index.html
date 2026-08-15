@@ -185,12 +185,45 @@
      Full cell structure at every tier; sealed cell = EMPTY value node +
      seal layer. F1 hatch = ONE root token (.card.seal-hatch), gradient
      defined once — bars/stamp later is a single-token swap. Mono only. */
-  .coord-cells { display: flex; gap: 6px; justify-content: center; }
+  /* §1.L v0.66: a system line can carry six compartments (numerology), so
+     the row MUST be allowed to wrap — with nowrap the flex row's min-content
+     width pushed #card-face wider than its .flip-stage and the card ran off
+     a 375px viewport, clipped silently by body{overflow-x:hidden} rather
+     than scrolling. Wrapping keeps one SECTION per system while the
+     compartments reflow inside the card at narrow widths; a system line
+     taking two visual rows on a phone is accepted (operator ruling,
+     2026-08-06) — cell size stays at the 52px touch target rather than
+     shrinking to force one row. */
+  .coord-cells { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  /* §1.M v0.66 — the numerology line's six coordinates sit at the six
+     vertices of a hexagon, restoring the v0.2.2 surface (shipped 2026-05-09
+     as an inline SVG, reverted next day in v0.2.3 because three of the six
+     vertices were then data-only). All six are surfaced now, so the shape
+     has no empty vertex.
+     Built as a grid, NOT an SVG polygon: every vertex stays a real
+     .coord-cell with its own .coord-seal, so the §1.D v0.37 per-compartment
+     seal contract and the sealed-DOM purity rule are untouched. DOM order
+     is 1..6 and reads top-to-bottom / left-to-right across the vertices,
+     which keeps the §1.F legend positionally aligned with its cells and
+     keeps the tab/screen-reader order coherent.
+        [1][2]
+     [3]      [4]
+        [5][6]                                                          */
+  .coord-cells-hex {
+    display: grid; grid-template-columns: repeat(4, auto);
+    justify-content: center; align-items: center; gap: 6px;
+  }
+  .coord-cells-hex > :nth-child(1) { grid-area: 1 / 2; }
+  .coord-cells-hex > :nth-child(2) { grid-area: 1 / 3; }
+  .coord-cells-hex > :nth-child(3) { grid-area: 2 / 1; }
+  .coord-cells-hex > :nth-child(4) { grid-area: 2 / 4; }
+  .coord-cells-hex > :nth-child(5) { grid-area: 3 / 2; }
+  .coord-cells-hex > :nth-child(6) { grid-area: 3 / 3; }
   .coord-cell {
     position: relative; display: inline-flex;
     align-items: center; justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.42);
-    min-width: 52px; min-height: 27px; padding: 1px 8px;
+    min-width: 52px; min-height: 44px; padding: 1px 8px;
   }
   .coord-cell .coord-val {
     font-size: clamp(13px, 3.6vw, 16px); line-height: 1.5;
@@ -409,6 +442,7 @@
   /* city-list CSS injected by ui/citysearch.js (headroom reclaim) */
   .polar-message,
   .legacy-hint,
+  .field-note,
   .field-error {
     font-size: 10px;
     line-height: 1.45;
@@ -505,6 +539,9 @@
     transition: color 0.15s;
   }
   .text-link:hover, .text-link:focus { color: var(--text); outline: none; }
+  /* the :focus rule above strips the outline; restore a real indicator for
+     keyboard users (muted-on-text is 1.98:1, under SC 2.4.11's 3:1). */
+  .text-link:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
   /* ── result screen ───────────────────────────────────────────── */
   .result-controls {
@@ -835,7 +872,7 @@
         <p class="field-error" id="dob-error" role="alert" aria-live="assertive" hidden>enter a valid date of birth.</p>
       </div>
       <details class="field-group" id="rising-fields" open>
-        <summary>birth time &amp; place — adds your rising sign (optional)</summary>
+        <summary>birth time &amp; place — adds your rising sign and moon sign (optional)</summary>
         <div class="field">
           <label for="time-input">birth time</label>
           <input id="time-input" type="time" placeholder="">
@@ -889,36 +926,20 @@
             <div class="card-name" id="card-name"></div>
             <div class="card-type" id="card-type"></div>
             <div class="coord-section">
-              <div class="coord-title">ARCANA</div>
+              <div class="coord-title">TAROT</div>
               <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-arcana-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title">FIVE-ELEMENT</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-element-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">ASTRO</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-moon-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">NUMEROLOGY</div>
+              <div class="coord-cells coord-cells-hex"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="coord-section">
-              <div class="coord-title" id="coord-animal-title">PUBLIC ⇌ PRIVATE</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-animal-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-inner-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">LIFE · NAME · SOUL</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-lifepath-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-namenumber-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-soulurge-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">PERSONALITY · BIRTHDAY · MATURITY</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-personality-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-birthday-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-maturity-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">DAY PILLAR</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-daypillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
-            </div>
-            <div class="coord-section">
-              <div class="coord-title">HOUR PILLAR</div>
-              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-hourpillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              <div class="coord-title">ANIMALS</div>
+              <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-element-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-animal-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-inner-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-daypillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-hourpillar-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
             </div>
             <div class="card-entry" id="card-entry">
               <div class="card-prose-rule"></div>
@@ -946,7 +967,7 @@
     <p class="density-strip" id="density-strip" role="status"></p>
 
     <div class="result-controls">
-      <button class="btn btn-block" id="offer-btn" type="button" hidden>open the complete sheet · $3 once</button>
+      <button class="btn btn-block" id="offer-btn" type="button" hidden>complete sheet + compare two people · $3 once</button>
       <button class="btn btn-block" id="shake-again-btn">flip again</button>
       <button class="btn btn-block btn-secondary" id="save-reading-btn" type="button">save reading</button>
       <button class="btn btn-block" id="share-btn" type="button">share</button>
@@ -984,9 +1005,9 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs — including the optional gender, which feeds only the kua line and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the ten sealed coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the kua line — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
+    <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest: rising sign and moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). your name enters the math for four of them — name number, soul urge, personality, maturity; the rest come from the date alone. real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the sixteen coordinates are open and how many stay sealed at paid tiers.</p>
+    <p>nothing leaves your device on its own. inputs — including the optional gender, which can stay blank and does not affect your reading — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the eleven sealed coordinates, a meanings panel on each but the moon cell, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the comparative — a second person's complete sheet beside yours with the named relation between them — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -998,7 +1019,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title" aria-describedby="forget-copy forget-status">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
-    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
+    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. neither is ever sent to a server, so there is no remote copy to erase.</p>
     <p class="modal-status" id="forget-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
     <div class="modal-actions">
       <button class="btn" id="forget-cancel" type="button">leave it</button>
@@ -1010,9 +1031,9 @@
 <!-- ── paywall modal (single complete offer — DOCTRINE §2 / §4.B v0.56 sprint presentation / §5.B Call 2 / §5.C; ownership v0.55: t1/t2 products, ?paid= returns, and stored tiers stay live — only the buyer-facing choice narrows) ───── -->
 <div class="modal-bg" id="paywall-modal" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paywall-title" aria-describedby="paywall-value paywall-facts paywall-disclosure">
-    <h2 id="paywall-title">complete your sheet · $3 once</h2>
+    <h2 id="paywall-title">complete sheet + compare two people · $3 once</h2>
     <div class="modal-rule"></div>
-    <p id="paywall-value">adds 10 coordinates, their meanings, the written card, domain fit, and the kua line — permanently, for every reading in this browser. a one-time purchase, yours for good; the highest rung bought holds.</p>
+    <p id="paywall-value">two things, one price. <b>your complete sheet:</b> the 11 sealed coordinates, meanings on all but the moon cell, the written card, domain fit. <b>and the comparative:</b> a second person's complete sheet beside yours, with the named relation between the two. permanently, for every reading in this browser — a one-time purchase, yours for good; the highest rung bought holds.</p>
     <p class="paywall-facts" id="paywall-facts">$3 once · no subscription · no 8ball account</p>
     <details class="paywall-specimen" id="paywall-specimen">
       <summary>see a complete specimen — an example, not your sheet</summary>
@@ -1022,7 +1043,7 @@
       <p class="specimen-entry-note" id="specimen-entry-note"></p>
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
-    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
+    <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate, the written card, and compare two people — $3</a>
     <p class="modal-disclosure" id="paywall-disclosure">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
@@ -1047,16 +1068,11 @@ import {
   handlePaidReturn, showPaidBanner, PROFILE_SAVE_STORAGE_MESSAGE, clearPendingProfile,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
+import { recordMeasurement } from './core/measurement.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
-import { initKuaUI, renderKuaRead, kuaReadFor, getGenderInput, setGenderInput } from './ui/kua.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
-import {
-  initProfileUI,
-  loadSavedProfile, saveProfile, clearProfile,
-  profileFromPayload, validateBirthInput, todayIsoLocal,
-  applyBirthInputValidationState, populateRisingFields, resetFormDisplay,
-} from './ui/profile.js';
+import { initProfileUI, loadSavedProfile, saveProfile, clearProfile, profileFromPayload, validateBirthInput, todayIsoLocal, applyBirthInputValidationState, populateRisingFields, resetFormDisplay, getGenderInput, buildSubmitOpts } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
@@ -1108,8 +1124,12 @@ const modalsUI = initModalsUI(
 let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
-  { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; }, setGender: setGenderInput },
+  // `form` + `anchor` let the module build the optional gender control it
+  // owns since §1.D v0.67 (the node used to be injected by the deleted
+  // ui/kua.js). Without them the field silently never renders.
+  { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput,
+    form: profileForm, anchor: risingFields },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
@@ -1166,23 +1186,22 @@ const labelsUI = initLabelsUI({ cardFace, labelsToggle: $('labels-toggle'), flip
 // v0.7.0 compartment card (DOCTRINE §1.D v0.37). Per-cell fill/seal lives
 // in ui/tiers.js; refs are the .coord-val nodes (cell roots resolved there).
 initTiersUI({
-  sunTitle: $('coord-sun-title'),
-  animalTitle: $('coord-animal-title'),
   entry: $('card-entry'),
   publicRead: $('public-read'),
   cells: {
-    arcana: $('coord-arcana-symbol'), element: $('coord-element-symbol'),
+    arcana: $('coord-arcana-symbol'),
     sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'),
-    animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
+    moon: $('coord-moon-symbol'),
     lifePath: $('coord-lifepath-symbol'), nameNumber: $('coord-namenumber-symbol'),
     soulUrge: $('coord-soulurge-symbol'), personality: $('coord-personality-symbol'),
     birthday: $('coord-birthday-symbol'), maturity: $('coord-maturity-symbol'),
+    element: $('coord-element-symbol'),
+    animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
     dayPillar: $('coord-daypillar-symbol'), hourPillar: $('coord-hourpillar-symbol'),
   },
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
-initKuaUI({ cardFace, form: profileForm, anchor: risingFields });
 initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
@@ -1192,22 +1211,23 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySe
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
     buildSecond: profileFromPayload,
     getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
-    getPublicRead: publicReadFor, getKua: kuaReadFor,
+    getPublicRead: publicReadFor,
     onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
-const [shareArcana, shareElement, shareSun, shareAnimal,
-  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
+const [shareTarot, shareAstro, shareNumerology, shareAnimals] = shareRowRefs();
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [shareArcana, shareElement, shareSun, shareAnimal,
-      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar],
+    symbols: [shareTarot, shareAstro, shareNumerology, shareAnimals],
   },
-  {}
+  // §5 v0.70: the host owns both halves the record needs — the contract and
+  // the tier lookup — so ui/share.js keeps its §5.D posture of importing
+  // nothing and knowing no tier constant. Nullary callback, no ref added.
+  { onShareCompleted: () => recordMeasurement('share_completed', getRenderTier()) }
 );
 
 // v0.6.0 remediation R1 (PR #36 Codex inv. 5+11): no per-render tier
@@ -1238,7 +1258,7 @@ function renderCard(profile, opts) {
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
   const density = tierDensitySummary(tier);
-  const blockTail = (coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed') + (coordsForTier(tier).has('kuaRead') ? '' : ' · kua sealed');
+  const blockTail = (coordsForTier(tier).has('publicRead') ? '' : ' · domain fit sealed');
   densityStrip.textContent = (density.sealed > 0
     ? `${density.open} of ${density.total} coordinates open · ${density.sealed} sealed at paid tiers`
     : `${density.total} of ${density.total} coordinates open · full sheet`) + blockTail;
@@ -1261,7 +1281,6 @@ function renderCard(profile, opts) {
   // from the same `tier` the seals use, never inside ui/public.js.
   const publicOpen = coordsForTier(tier).has('publicRead');
   renderPublicRead(profile, { entitled: publicOpen });
-  renderKuaRead(profile, { entitled: coordsForTier(tier).has('kuaRead') });
   // Sprint offer control (§4.B v0.56): visible below t3, gone once the
   // device owns the complete sheet — same visibility rule as the lock icon.
   offerBtn.hidden = cardEntry;
@@ -1298,6 +1317,9 @@ function renderCard(profile, opts) {
   }
   // Ownership model (§1.D / §4.B v0.55): no reads counter exists — renders
   // are unlimited at every tier; the density strip above is the only meter.
+  // `reading_completed` (§5 v0.70) is recorded here, at the end of a render
+  // that got this far, and carries the render tier and nothing else.
+  recordMeasurement('reading_completed', tier);
 }
 
 // ── result arrival + shake controller ─────────────────────────────
@@ -1330,20 +1352,15 @@ profileForm.addEventListener('submit', e => {
   const entry = validateBirthInput({ name: nameInput.value, dob: dobInput.value });
   if (!applyBirthInputValidationState(entry, birthValidationRefs)) return;
   const { name, dob } = entry;
-  const time = timeInput.value || undefined;
-  // v0.2.7.2: rising opts derive from the selected-city state. If the
-  // user typed without selecting from the suggestion list, selectedCity
-  // is null and rising sign isn't computed — bare sun line falls
-  // through naturally per profile.js's gates.
-  const opts = { time };
-  const g = getGenderInput(); if (g) opts.gender = g;
-  if (selectedCity) {
-    opts.city = selectedCity.name;
-    opts.cc = selectedCity.countryCode;
-    opts.tz = selectedCity.tz;
-    opts.lat = selectedCity.lat;
-    opts.lng = selectedCity.lng;
-  }
+  // v0.2.7.2: rising opts derive from the selected-city state. If the user
+  // typed without selecting from the suggestion list, selectedCity is null and
+  // rising sign isn't computed — bare sun line falls through naturally per
+  // profile.js's gates. The object is built by ONE pure seam
+  // (ui/profile.js buildSubmitOpts) that the tests EXECUTE; this line reads
+  // the three live values and passes them in. Nothing is assembled
+  // field-by-field here any more, so no dead-code wrapper can hollow the
+  // collection out while its bytes survive a scan.
+  const opts = buildSubmitOpts({ time: timeInput.value, gender: getGenderInput(), city: selectedCity });
 
   const stored = loadSavedProfile();
   const isNew = isNewPair({ name, dob }, stored);

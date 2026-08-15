@@ -83,16 +83,46 @@ export function optsFromPayload(obj) {
   if (obj.country) opts.country = obj.country;
   if (typeof obj.lat === 'number') opts.lat = obj.lat;
   if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  // Calc-driving (the kua block reads profile.gender), so it MUST forward
-  // here — unlike display-only city/cc. A field present in saveProfile but
-  // absent here would make cold-boot recompute a different reading than
-  // the fresh submit (§5 recompute-on-load).
+  // Forwarded because it is USER-ENTERED and persisted, not because a
+  // calculation needs it: §1.D v0.67 deleted the kua block, so gender has
+  // no calculation or output reader and is retained by operator word
+  // alone. This forward is itself one of the persistence reads. Dropping
+  // it here would silently discard a value the user supplied and the
+  // archive round-trips. It drives no coordinate (§5 recompute-on-load is
+  // unaffected either way).
   if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;
   return opts;
 }
 
 export function profileFromPayload(obj) {
   return buildProfile(obj.name, obj.dob, optsFromPayload(obj));
+}
+
+// ── the submit seam ───────────────────────────────────────────────
+// The ONE place the submit option object is built. It used to be assembled
+// field-by-field inside index.html's submit handler, where no harness could
+// execute it; six rounds of static pins over those bytes were each defeated,
+// the last by wrapping the block in `if (false)` beside a live fallback —
+// every pinned byte intact, the field silently no longer forwarded.
+//
+// Pure by construction (no DOM, no storage, no module state), so the tests
+// drive it directly in the node environment (§12: no jsdom). Behaviour is the
+// former block's, quirk for quirk: `time` is always an own key (undefined on
+// an empty input), the optional field forwards on TRUTHINESS (the two-token
+// vocabulary is enforced by getGenderInput and by saveProfile, not
+// re-implemented here), and a selected city copies all five fields
+// unconditionally so `lat: 0` and an empty `cc` survive.
+export function buildSubmitOpts({ time, gender, city } = {}) {
+  const opts = { time: time || undefined };
+  if (gender) opts.gender = gender;
+  if (city) {
+    opts.city = city.name;
+    opts.cc = city.countryCode;
+    opts.tz = city.tz;
+    opts.lat = city.lat;
+    opts.lng = city.lng;
+  }
+  return opts;
 }
 
 // ── shared birth-input validation contract ────────────────────────
@@ -177,18 +207,96 @@ export function applyBirthInputValidationState(entry, refs) {
 
 let _refs = null;
 let _hooks = null;
+let _genderSelect = null;
+
+// ── the optional gender control ───────────────────────────────────
+// Rehomed here from ui/kua.js when the kua block was deleted (§1.D
+// v0.67). The field is RETAINED on operator word; the module that used
+// to own it is gone, and the form controller is its natural home.
+//
+// NOTE ON RECORD: §5 admitted this field to the storage allow-list on the
+// stated ground that it "feeds only the kua line". That consumer no
+// longer exists, so the field is stored with no CALCULATION OR OUTPUT
+// reader — the reads that remain (saveProfile, optsFromPayload,
+// populateRisingFields, the archive round-trip, buildProfile's copy) are
+// all persistence and rehydration, moving the user's own value back to
+// them. None reaches a coordinate, the catalog key, a render decision or
+// the share artifact, which is what makes the form's "does not affect
+// your reading" true. Its retention is an explicit operator decision, not
+// an oversight — see the §1.D v0.67 amendment, which records the open
+// question rather than leaving the §5 justification silently void.
+//
+// The strict two-token vocabulary is unchanged: the empty option IS the
+// no-gender state and it is the default; anything off-vocabulary resolves
+// undefined at the read seam.
+//
+// POINT-OF-ENTRY TRUTH. The control carries GENDER_NOTE, wired to the
+// select through `aria-describedby` so it reaches assistive tech as part of
+// the field rather than as loose text beside it. Three facts, in the order
+// a person deciding whether to answer needs them: it is optional, it stays
+// on this device, and it changes nothing about the reading.
+//
+// The third is the one that had to be said. Until §1.D v0.67 the field fed
+// the kua block; that block is deleted and no calculation or rendered
+// output reads the field now (the reads that remain — saveProfile,
+// optsFromPayload, this control's rehydration, the archive round-trip,
+// buildProfile's copy — are all persistence), so
+// a form that asks for a demographic and explains nothing is asking a
+// person to guess what it is for. The sentence states the CURRENT fact and
+// claims nothing beyond it — no promise about what the field will never be
+// used for, and no privacy guarantee the code does not already enforce.
+// It is kept true by tests/profile.test.js's differential over two real
+// buildProfile calls, not by this comment.
+export const GENDER_NOTE = 'optional · stored on this device · does not affect your reading';
+
+function resolveGenderSelect(refs) {
+  if (refs && refs.genderSelect) return refs.genderSelect;
+  const form = refs && refs.form;
+  if (!form || typeof form.appendChild !== 'function') return null;
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
+  const existing = form.querySelector && form.querySelector('#gender-input');
+  if (existing) return existing;
+  const field = document.createElement('div');
+  field.className = 'field gender-field';
+  field.innerHTML = '<label for="gender-input">gender (optional)</label>' +
+    '<select id="gender-input" aria-describedby="gender-note">' +
+    '<option value="">—</option>' +
+    '<option value="male">male</option>' +
+    '<option value="female">female</option>' +
+    '</select>' +
+    `<p class="field-note" id="gender-note">${GENDER_NOTE}</p>`;
+  const anchor = refs && refs.anchor;
+  if (anchor && typeof form.insertBefore === 'function' && anchor.parentNode === form) {
+    form.insertBefore(field, anchor);
+  } else {
+    form.appendChild(field);
+  }
+  return field.querySelector ? field.querySelector('#gender-input') : null;
+}
+
+/** The form control's current value under the strict vocabulary. */
+export function getGenderInput() {
+  const v = _genderSelect && _genderSelect.value;
+  return v === 'male' || v === 'female' ? v : undefined;
+}
+
+/** Rehydrate/clear the control. Invalid or absent resolves ''. */
+export function setGenderInput(v) {
+  if (!_genderSelect) return;
+  _genderSelect.value = v === 'male' || v === 'female' ? v : '';
+}
 
 export function initProfileUI(refs, hooks) {
   _refs = refs;
   _hooks = hooks || {};
+  _genderSelect = resolveGenderSelect(refs);
 }
 
 export function populateRisingFields(obj) {
   const r = _refs;
   r.timeInput.value = obj.time || '';
-  // Rehydrate the injected gender control (ui/kua.js owns the node; the
-  // host wires its setter through this hook). Invalid/absent resolves ''.
-  if (_hooks.setGender) _hooks.setGender(obj.gender);
+  // Rehydrate the gender control (owned by this module since §1.D v0.67).
+  setGenderInput(obj.gender);
   r.legacyHint.hidden = true;
   r.polarMessage.hidden = true;
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
@@ -235,7 +343,10 @@ export function resetFormDisplay() {
   r.timeInput.value = '';
   r.cityInput.value = '';
   r.citySuggestions.innerHTML = '';
-  if (_hooks.setGender) _hooks.setGender('');
+  // Clear the gender control directly (this module owns it since §1.D
+  // v0.67). Routing it through the retired setGender hook silently left a
+  // stale demographic on the form across a reset — the F1 residue class.
+  setGenderInput(undefined);
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   r.polarMessage.hidden = true;
   r.legacyHint.hidden = true;

@@ -39,13 +39,16 @@
 //
 // refs contract (v0.7.0 — widened to per-cell nodes):
 //   refs: {
-//     sunTitle, animalTitle,   // dynamic .coord-title nodes
 //     entry,                   // #card-entry block root (seal target)
-//     cells: { arcana, element, sun, rising, animal, innerAnimal,
+//     cells: { arcana,
+//              sun, rising, moon,
 //              lifePath, nameNumber, soulUrge,
 //              personality, birthday, maturity,
+//              element, animal, innerAnimal,
 //              dayPillar, hourPillar },   // .coord-val nodes, one per cell
 //   }
+// (`sunTitle` / `animalTitle` are retired with the v0.37 paired-row title
+// grammar at §1.L v0.66 — titles are static markup now, see ROW_TITLES.)
 // Each cell's bordered .coord-cell root is resolved from its value node
 // at init via closest('.coord-cell'). hooks: reserved for parity with the
 // other ui/*.js modules; unused today.
@@ -68,37 +71,36 @@ import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 // invariant) joins free; `numerology` narrows to the name-derived inner
 // pair (expression/name number, soul urge) and stays t1. Free carries
 // five coordinate VALUES; the t1 numerology line is a pair, not a triplet.
+// §1.K (ASTRO-MOON-ADD-01) — `moon` joins t1 alongside `rising`: same
+// input gate (birth time + place), own coordinate key (not pooled into
+// `rising`) because it is DOCTRINE's own clause, not a name-derived pair.
 const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
-const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
+const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
-// 14-cell sheet and is excluded from the density census, so t3's
+// 15-cell sheet and is excluded from the density census, so t3's
 // open/sealed/total census is unchanged by carrying it. It briefly had its
 // own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
 // so the ladder is three rungs again and the block is the t3 ceiling
 // alongside the written entry.
-// §1.D kua amendment — `kuaRead` joins the t3 ceiling as a third BLOCK in
-// the `cardEntry` / `publicRead` sense: no compartment, no census weight.
-// It is the product's first gender-keyed surface; the input is optional
-// and a no-gender render shows both classical values (ui/kua.js).
-const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead'];
-// §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
-// completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus
-// the relation layer between the two. `dyadRelation` is therefore a BLOCK in
-// the `cardEntry` / `publicRead` sense — no compartment, no census weight —
-// and it is the only key here that renders outside #card-face entirely (the
-// dyad screen, ui/dyad.js). Extending t3's list rather than replacing it is
-// what makes the append monotonic: a t5 device holds full single density, so
-// each of the two sheets renders exactly what a t3 buyer sees.
-const T5_COORDS = [...T3_COORDS, 'dyadRelation'];
+// §1.D v0.67 — `kuaRead` is DELETED with the kua block it gated. The t3
+// ceiling is the written entry + the public read; the optional gender
+// input survives the deletion (operator word) but no longer feeds any
+// calculation or rendered output. No census change: kua was a BLOCK, never a compartment.
+// §1.D v0.68 — `dyadRelation` joins the t3 ceiling: one $3 price now
+// carries the comparative. Like `cardEntry` and `publicRead` it is a BLOCK,
+// not a compartment, so the §1.F census is unmoved at 16; and it is still
+// the only key that renders outside #card-face entirely (the dyad screen,
+// ui/dyad.js).
+const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead', 'dyadRelation'];
+
 
 export const TIER_COORDS = {
   free: FREE_COORDS,
   t1: T1_COORDS,
   t2: T2_COORDS,
   t3: T3_COORDS,
-  t5: T5_COORDS,
 };
 
 // Cell keys in DOM order, each mapped to the §1.D coordinate key that
@@ -106,19 +108,46 @@ export const TIER_COORDS = {
 // expression/name number and soul urge share the name-derived `numerology`
 // coordinate at t1. The §1.B space-separated guarantee survives in the
 // compartment gaps and in the per-cell share snapshot.
+// §1.L (v0.66) — the sheet is FOUR system lines, one per divination system,
+// no interleaving: tarot · astro · numerology · animals. DOM order below IS
+// that grouping. Entitlement is unchanged and still strictly per CELL_COORD,
+// so a line now MIXES tiers (animals carries `element` at t1 beside
+// `hourPillar` at t3) — the §1.D v0.37 per-compartment seal contract already
+// governs that case; what is new is only how many cells sit in one row.
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity',
-  'dayPillar', 'hourPillar',
+  'arcana',
+  'sun', 'rising', 'moon',
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+  'element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar',
 ];
 const CELL_COORD = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising',
-  animal: 'animal', innerAnimal: 'innerAnimal',
+  arcana: 'arcana',
+  sun: 'sun', rising: 'rising', moon: 'moon',
   lifePath: 'lifePath', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
+  element: 'element', animal: 'animal', innerAnimal: 'innerAnimal',
   dayPillar: 'dayPillar', hourPillar: 'hourPillar',
 };
+
+// The four line titles, keyed by each line's LEAD cell so ui/sheet.js and
+// index.html read one source instead of restating it (the ROW_TITLES
+// duplication tests/dyad_surface.test.js used to pin across two files).
+// §1.L v0.66: these are STATIC. The v0.37 paired-row grammar — which
+// rewrote the sun and animal titles per render, swapping a dot for a
+// relation glyph to mark a resolved entitled pair — is superseded (the
+// retired literals stay quoted in DOCTRINE §1.L per L17, deliberately not
+// here: tests/tiers.test.js source-pins this module against them, so a
+// refactor cannot reintroduce a title that renders state). A line now
+// spans a whole system rather than a pair, and the resolved/sealed/
+// unresolved fact the grammar echoed is already carried per compartment
+// (value · `—` · seal). No information is lost, only a redundant second
+// rendering of it.
+export const ROW_TITLES = Object.freeze({
+  arcana: 'TAROT',
+  sun: 'ASTRO',
+  lifePath: 'NUMEROLOGY',
+  element: 'ANIMALS',
+});
 
 /** Coordinate keys for a tier, as a Set. Unknown tiers resolve to free. */
 export function coordsForTier(tier) {
@@ -129,13 +158,14 @@ export function coordsForTier(tier) {
  * Aggregate coordinate census for a tier (CLP cut 3 — density strip).
  * Derived PURELY from the tier constants (CELL_KEYS + CELL_COORD via
  * coordsForTier) — NEVER from a profile, so it carries no coordinate VALUE
- * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
+ * and no PII. Counts the 15 sheet cells PLUS the catalog numeral, which is
  * a free coordinate per §1.D (always open, never a sealable cell) — so the
- * base (15) matches the product-wide "five coordinates" free framing
- * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). Blocks are
- * excluded — cardEntry, publicRead and dyadRelation are not coordinates, so
- * t3 and t5 return the identical census.
- * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
+ * base (16) matches the product-wide "five coordinates" free framing
+ * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5, unchanged —
+ * `moon` joins t1, not free). Blocks are excluded — cardEntry, publicRead
+ * and dyadRelation are not coordinates, so carrying them leaves t3's
+ * census unmoved.
+ * open = open cells + catalog · sealed = sealable cells still hidden · total = 16.
  * Returns { open, sealed, total }.
  */
 export function tierDensitySummary(tier) {
@@ -159,9 +189,9 @@ export function formatPillar(pillar) {
 // can only fire on a genuine upgrade render.
 //
 // `dyadRelation` is deliberately absent: this decides the unseal beat for
-// #card-face, and the dyad block does not live there. A t3 → t5 upgrade
-// therefore adds NO sheet cell and correctly returns [] — the single sheet
-// is already complete, which is the whole shape of the append.
+// #card-face, and the dyad block does not live there. It is entitled at t3
+// since §1.D v0.68, so excluding it here is what keeps the beat about
+// compartments only.
 export function newlyEntitledCells(prevTier, tier) {
   const prev = coordsForTier(prevTier);
   const next = coordsForTier(tier);
@@ -170,7 +200,6 @@ export function newlyEntitledCells(prevTier, tier) {
   );
   if (next.has('cardEntry') && !prev.has('cardEntry')) fresh.push('cardEntry');
   if (next.has('publicRead') && !prev.has('publicRead')) fresh.push('publicRead');
-  if (next.has('kuaRead') && !prev.has('kuaRead')) fresh.push('kuaRead');
   return fresh;
 }
 
@@ -180,11 +209,6 @@ let _hooks = null;
 let _cells = null;
 let _entry = null;
 let _publicRoot = null;
-// The kua block's root is CREATED by ui/kua.js (index.html carries no kua
-// markup), so it registers here by export rather than riding initTiersUI
-// refs — and initTiersUI deliberately does not reset it, because boot
-// order runs initTiersUI before initKuaUI.
-let _kuaRoot = null;
 let _lastRenderedTier = null;
 
 export function initTiersUI(refs, hooks) {
@@ -216,15 +240,6 @@ export function primeUnsealBaseline(tier) {
   _lastRenderedTier = tier || 'free';
 }
 
-/**
- * Register the kua block's root for the unseal beat. Called by
- * ui/kua.js after it creates/finds its node — the beat resolution below
- * needs a root, and a beat that cannot resolve one is dead code (the
- * exact defect tests/public_surface.test.js pinned for the public block).
- */
-export function registerKuaRoot(node) {
-  _kuaRoot = node || null;
-}
 
 // setCell(key, state, text) with state ∈ value | sealed | unres.
 // Sealed → value node textContent = '' (DOM purity: no paid value string
@@ -281,6 +296,7 @@ const PLAIN_VALUE = {
   element: p => p.chineseElement,
   sun: p => p.sunSign,
   rising: p => p.risingSign,
+  moon: p => p.moonSign,
   animal: p => p.animal,
   innerAnimal: p => p.innerAnimal,
 };
@@ -317,17 +333,9 @@ export { CELL_KEYS, CELL_COORD };
 export function renderTierSections(profile, tier) {
   const coords = coordsForTier(tier);
 
-  // Sun row (paired-row title grammar): `SUN ↑ RISING` only when rising
-  // is entitled AND computed; `SUN · RISING` while sealed (free) or
-  // unresolved (`—` at t1+ without birth time/place).
-  const risingEntitled = coords.has('rising');
-  const withRising = risingEntitled && !!profile.risingSign;
-  if (_refs.sunTitle) _refs.sunTitle.textContent = withRising ? 'SUN ↑ RISING' : 'SUN · RISING';
-
-  // Animal row: `PUBLIC · PRIVATE` while the private (month) animal is
-  // sealed at free; `PUBLIC ⇌ PRIVATE` at t1+ (always computable).
-  const withInner = coords.has('innerAnimal');
-  if (_refs.animalTitle) _refs.animalTitle.textContent = withInner ? 'PUBLIC ⇌ PRIVATE' : 'PUBLIC · PRIVATE';
+  // Line titles are static since §1.L v0.66 (see ROW_TITLES) — the render
+  // path no longer touches them, so nothing here depends on which cells
+  // happen to be entitled or resolved.
 
   // Every cell resolves through the one pure mapping above, so the sheet and
   // the dyad surface cannot disagree about what a coordinate shows. Life path
@@ -348,6 +356,17 @@ export function renderTierSections(profile, tier) {
     _entry.classList.remove('unsealing');
     if (_entry.style && _entry.style.removeProperty) _entry.style.removeProperty('--unseal-delay');
   }
+  // Same cleanup for the public block. Without it `unsealing` (and its
+  // --unseal-delay) survives every later render: sealOut is fill-mode
+  // both and ends at opacity 0, so the seal would be pinned invisible
+  // for the page's life and a later lower-tier render would paint DOMAIN
+  // FIT sealed-but-unhatched — the F4 conflation in the paint layer.
+  // Unreachable while the stored tier is monotone; one tier-clearing
+  // change from live.
+  if (_publicRoot && _publicRoot.classList) {
+    _publicRoot.classList.remove('unsealing');
+    if (_publicRoot.style && _publicRoot.style.removeProperty) _publicRoot.style.removeProperty('--unseal-delay');
+  }
 
   // Unseal beat: fires only when this render's tier exceeds the last
   // rendered (or primed) tier — paid-return boot / upgrade. ~100ms DOM-
@@ -357,7 +376,6 @@ export function renderTierSections(profile, tier) {
   for (const key of newly) {
     const root = key === 'cardEntry' ? _entry
       : key === 'publicRead' ? _publicRoot
-      : key === 'kuaRead' ? _kuaRoot
       : _cells[key] && _cells[key].root;
     if (!root || !root.classList) continue;
     root.classList.add('unsealing');
@@ -377,18 +395,14 @@ export function renderTierSections(profile, tier) {
 // live cell state so ui/share.js renders the FULL compartment sheet:
 // open cells → value, sealed cells → hatch (the value is never read),
 // unres cells → the `—` empty field. Per-cell (not per-row): a mixed row
-// like SUN · RISING surfaces the open sun value AND the sealed rising
-// compartment. The sealed VALUE never leaves the DOM (sealed cells hold
+// such as the astro line surfaces the open sun value AND the sealed
+// rising/moon compartments. The sealed VALUE never leaves the DOM (sealed cells hold
 // textContent === '') and is forced to '' here as a second guarantee.
 const SHARE_ROWS = [
   ['arcana'],
-  ['element'],
-  ['sun', 'rising'],
-  ['animal', 'innerAnimal'],
-  ['lifePath', 'nameNumber', 'soulUrge'],
-  ['personality', 'birthday', 'maturity'],
-  ['dayPillar'],
-  ['hourPillar'],
+  ['sun', 'rising', 'moon'],
+  ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity'],
+  ['element', 'animal', 'innerAnimal', 'dayPillar', 'hourPillar'],
 ];
 
 // Exported additively so ui/sheet.js can build a second standalone sheet from
@@ -447,6 +461,7 @@ const PROV_NOTE = {
   element: 'year stem',
   sun: 'tropical zodiac',
   rising: 'ascendant',
+  moon: 'lunar longitude',
   animal: 'lunar new year',
   innerAnimal: 'solar term',
   lifePath: 'digit-sum reduction',
@@ -490,7 +505,8 @@ function attachProvenance() {
 // ── ATLAS legend (Coordinate Legibility Pack cut 2, under §1.D/§5.D) ──
 // One system NAME per coordinate, surfaced per row in cell order — the
 // gloss that decodes a compressed .coord-title (LIFE·NAME·SOUL → life-path
-// · expression · soul-urge; PUBLIC ⇌ PRIVATE → year animal · month animal).
+// · expression · soul-urge; the animals line → year animal · month animal
+// · the two pillars).
 // Same rails as the §1.E provenance placard: surface-only · TIER-INVARIANT
 // (a coordinate's system never changes with seal state → written ONCE at
 // init, never on render) · catalog-isolated (keyed off CELL_KEYS via
@@ -499,20 +515,34 @@ function attachProvenance() {
 // PII (names the system, never a name/DOB/value). Rendered in .coord-atlas,
 // OUTSIDE .coord-title, so ui/share.js rowTitleOf never reads it — atlas
 // stays out of the §5.D PNG. Gated by the existing .card.labels-revealed
-// toggle (no new key). Only the rows whose title is abbreviated or omits
-// the tradition carry a note: the personality/birthday/maturity row and the
-// day/hour pillar rows already self-name in their .coord-title, so they are
-// deliberately omitted (an atlas line there would only echo the title).
+// toggle (no new key).
+//
+// EVERY cell carries a note as of §1.L v0.66, and that is a correctness
+// requirement, not a completeness preference. The legend is read
+// POSITIONALLY against the compartments beside it, so a partial map
+// silently misaligns: before this change the personality/birthday/maturity
+// and day/hour-pillar cells were deliberately omitted because their own row
+// titles self-named them — but the four-line regrouping put them on lines
+// beside noted cells, so the ANIMALS legend rendered three notes against
+// five compartments and a reader could not tell the year five-element
+// (`water`) from the hour pillar's stem element (`rat · water`). Keyed in
+// DOM order so the join is the cell order by construction.
 const ATLAS_NOTE = {
   arcana: 'tarot arcana',
-  element: 'chinese five-element',
   sun: 'sun sign',
   rising: 'rising sign',
-  animal: 'year animal',
-  innerAnimal: 'month animal',
+  moon: 'moon sign',
   lifePath: 'life-path',
   nameNumber: 'expression',
   soulUrge: 'soul-urge',
+  personality: 'personality',
+  birthday: 'birthday',
+  maturity: 'maturity',
+  element: 'chinese five-element',
+  animal: 'year animal',
+  innerAnimal: 'month animal',
+  dayPillar: 'day pillar',
+  hourPillar: 'hour pillar',
 };
 
 export { ATLAS_NOTE };

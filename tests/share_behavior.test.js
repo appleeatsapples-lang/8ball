@@ -18,6 +18,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initShareUI } from '../ui/share.js';
+import { recordMeasurement, setMeasurementSink } from '../core/measurement.js';
 
 const RealBlob = globalThis.Blob;
 const originals = {
@@ -127,7 +128,7 @@ function installEnv({
   return log;
 }
 
-function boot({ catalog = 'no. 042', symbols } = {}) {
+function boot({ catalog = 'no. 042', symbols, hooks = {} } = {}) {
   const refs = {
     btn: makeEl('button'),
     status: makeEl('p'),
@@ -139,7 +140,10 @@ function boot({ catalog = 'no. 042', symbols } = {}) {
       row('LIFE · NAME · SOUL', [open('3'), unres(), sealed('7')]),
     ],
   };
-  initShareUI(refs, {});
+  // `hooks` defaults to {} — the unwired-host case every pre-existing test in
+  // this file exercises, and the §5 v0.70 case where a record must simply not
+  // be emitted rather than throw.
+  initShareUI(refs, hooks);
   return refs;
 }
 
@@ -378,6 +382,74 @@ describe('download + clipboard fallback', () => {
     const log = installEnv({ clipboard: () => {} });
     await clickShare(boot({ catalog: 'ada 1988-03-04' }));
     expect(log.anchors[0].download).toBe('8ball-specimen.png');
+  });
+});
+
+// ── share_completed, driven (§5 v0.70) ──────────────────────────────
+//
+// ui/share.js takes the measurement contract through a HOOK, not an import:
+// the module's §5.D posture is to import nothing and know no tier constant,
+// and that posture wins. So what has to be proven here is that the hook fires
+// on the paths where the artifact was actually delivered and stays silent on
+// the ones where it was not — the same distinction the module already draws
+// between a completed share and a dismissed sheet.
+describe('the share_completed record', () => {
+  afterEach(() => setMeasurementSink(null));
+
+  // The host's real shape, mirrored exactly. index.html wires
+  //   onShareCompleted: () => recordMeasurement('share_completed', getRenderTier())
+  // so the callback is nullary and the host owns both the contract and the
+  // tier lookup. `getRenderTier` is stubbed by a fixed rung here; the wiring
+  // itself is pinned against index.html in tests/measurement.test.js.
+  function withHook(tier = 'free') {
+    const seen = [];
+    setMeasurementSink(r => seen.push(r));
+    return {
+      seen,
+      hooks: { onShareCompleted: () => recordMeasurement('share_completed', tier) },
+    };
+  }
+
+  it('fires exactly once when the native share sheet resolves', async () => {
+    installEnv({ canShare: () => true, share: () => {}, clipboard: () => {} });
+    const { seen, hooks } = withHook('t3');
+    await clickShare(boot({ hooks }));
+    expect(seen).toEqual([{ event: 'share_completed', tier: 't3' }]);
+    expect(Object.keys(seen[0]).sort()).toEqual(['event', 'tier']);
+  });
+
+  it('fires NOTHING when the user dismisses the share sheet', async () => {
+    installEnv({
+      canShare: () => true,
+      share: () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; },
+      clipboard: () => {},
+    });
+    const { seen, hooks } = withHook('t3');
+    await clickShare(boot({ hooks }));
+    expect(seen).toEqual([]);
+  });
+
+  it('fires once on the desktop download fallback', async () => {
+    installEnv({ clipboard: () => {} });
+    const { seen, hooks } = withHook('free');
+    await clickShare(boot({ hooks }));
+    expect(seen).toEqual([{ event: 'share_completed', tier: 'free' }]);
+  });
+
+  it('still fires when the clipboard copy fails — the artifact was delivered', async () => {
+    installEnv({ clipboard: () => { throw new Error('clipboard denied'); } });
+    const { seen, hooks } = withHook('t1');
+    await clickShare(boot({ hooks }));
+    expect(seen).toEqual([{ event: 'share_completed', tier: 't1' }]);
+  });
+
+  it('fires NOTHING, and does not throw, when the host wires no hook', async () => {
+    installEnv({ clipboard: () => {} });
+    const seen = [];
+    setMeasurementSink(r => seen.push(r));
+    const refs = boot();                       // hooks defaults to {}
+    await expect(clickShare(refs)).resolves.toBeUndefined();
+    expect(seen).toEqual([]);
   });
 });
 

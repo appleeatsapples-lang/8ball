@@ -1,4 +1,5 @@
-// 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J, tier t5)
+// 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J; entitled at t3
+// since §1.D v0.68 folded the comparative into the $3 rung and retired t5)
 //
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initDyadUI({refs}, {hooks}) injection point below, no module-level DOM
@@ -10,13 +11,13 @@
 // NOT MERGE. Four of its eight findings landed here; each is named at the code
 // that answers it.
 //
-// ── F2 · WHAT t5 BUYS, AND WHEN THE SCREEN EXISTS AT ALL ──────────
+// ── F2 · WHAT THE ENTITLED RUNG BUYS, AND WHEN THE SCREEN EXISTS ──
 // The first version injected the entry control on every rendered result and
 // gated only the relation passages, so a free device could open the form,
 // submit a second person, and receive their sheet at free density; a t3 device
-// received person B's COMPLETE sheet for nothing. DOCTRINE §1.D v0.61 says t5
+// received person B's COMPLETE sheet for nothing. DOCTRINE §1.D v0.68 says t3
 // buys a second complete sheet PLUS the relation layer. The code now says the
-// same thing: `dyadEntitled(tier)` is a single predicate, and below t5 the
+// same thing: `dyadEntitled(tier)` is a single predicate, and below it the
 // entry control is absent, `open()` refuses, `submitSecond()` refuses, and
 // `render()` produces nothing. There is no partial dyad.
 //
@@ -48,6 +49,8 @@
 // same one-way wiring ui/public.js uses. This module never asks storage.
 
 import { buildDyadReading } from '../core/dyad.js';
+// Measurement contract (§5 v0.70) — no collector, no-op until a sink exists.
+import { recordMeasurement } from '../core/measurement.js';
 import { coordsForTier } from './tiers.js';
 import { buildSheetMarkup, createSheet } from './sheet.js';
 import { initCitySearchUI } from './citysearch.js';
@@ -61,7 +64,7 @@ import { todayIsoLocal } from './profile.js';
 // retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
 // deliberately NOT sufficient on its own to make the rung buyable: entry
 // visibility (`dyadEntryVisible`, below) is entitlement-only and does not
-// react to it (PR #187 R6 — a prior draft made the entry visible below t5
+// react to it (PR #187 R6 — a prior draft made the entry visible below the rung
 // once this was non-empty, with no click path behind it, a visible dead
 // button). Turning the rung commercially live needs a real offer path shipped
 // as its own change; this constant alone stays inert until that exists.
@@ -72,7 +75,7 @@ export const T5_PRODUCT_URL = '';
 /**
  * Does this device own the dyad? ONE predicate, consulted by every gate, so
  * the entry control, the submit path and the render cannot disagree about
- * what t5 sells (PR #187 F2 — they did).
+ * what the rung sells (PR #187 F2 — they did).
  */
 export function dyadEntitled(tier) {
   return coordsForTier(tier).has('dyadRelation');
@@ -82,14 +85,14 @@ export function dyadEntitled(tier) {
  * Should the entry control exist on the result rail?
  *
  * Only for a device that owns the rung (DOCTRINE §1.J "entitlement is
- * all-or-nothing... below t5 the entry control is absent"). This does NOT
- * react to `T5_PRODUCT_URL`: a prior draft showed the control below t5 once
+ * all-or-nothing... below the entitled rung the entry control is absent"). This does NOT
+ * react to `T5_PRODUCT_URL`: a prior draft showed the control below the rung once
  * that constant was non-empty, but the click handler still only knew how to
  * `open()` the screen an unentitled device cannot use — a visible button with
- * no reachable checkout behind it (PR #187 R6). A real below-t5 offer needs
+ * no reachable checkout behind it (PR #187 R6). A real below-rung offer needs
  * its own coherent click path (e.g. a checkout redirect) designed and shipped
  * together with the control that triggers it, not a second condition bolted
- * onto this predicate. Until that ships, the entry stays absent below t5,
+ * onto this predicate. Until that ships, the entry stays absent below t3,
  * full stop.
  */
 export function dyadEntryVisible(tier) {
@@ -262,8 +265,6 @@ const SCREEN_HTML =
   '<p class="field-error" id="dyad-dob-error" hidden>enter a valid past date.</p></div>' +
   '<div class="field dyad-field"><label for="dyad-time-input">second birth time (optional)</label>' +
   '<input id="dyad-time-input" type="time"></div>' +
-  '<div class="field dyad-field"><label for="dyad-gender-input">second gender (optional · kua line only)</label>' +
-  '<select id="dyad-gender-input"><option value="">—</option><option value="male">male</option><option value="female">female</option></select></div>' +
   '<div class="field city-field dyad-field"><label for="dyad-city-input">second birthplace (optional)</label>' +
   '<input id="dyad-city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false">' +
   '<ul class="city-suggestions" id="dyad-city-suggestions" role="listbox" aria-label="city suggestions"></ul>' +
@@ -369,12 +370,26 @@ function injectEntryButton(controls) {
   btn.type = 'button';
   btn.className = 'btn btn-block btn-secondary';
   btn.id = 'dyad-open-btn';
-  btn.textContent = 'read beside another sheet';
+  // Names the two-person comparison in the same words the $3 offer uses.
+  // "read beside another sheet" described the layout; a buyer arriving from
+  // "compare two people" had to infer that this was the thing they bought.
+  btn.textContent = 'compare with a second person';
   btn.hidden = true; // fail closed until a render says otherwise
   btn.addEventListener('click', () => {
-    if (!dyadEntitled(currentTier())) return;
+    // One tier snapshot for the whole handler. currentTier() re-invokes the
+    // host hook on every call, so reading it twice let the record describe a
+    // rung the gate never checked.
+    const tier = currentTier();
+    if (!dyadEntitled(tier)) return;
     if (typeof _hooks.onOpen === 'function') _hooks.onOpen();
-    open();
+    // `comparative_opened` (§5 v0.70) is recorded LAST, once the screen is
+    // actually revealed — not merely once the tap was allowed. open() carries
+    // its own entitlement gate and returns false without touching the DOM,
+    // and a host hook can throw; either way an earlier record would have
+    // counted a screen that never opened. Driven in tests/dyad_surface.test.js,
+    // including both of those refusal paths.
+    if (!open()) return;
+    recordMeasurement('comparative_opened', tier);
   });
   controls.appendChild(btn);
 }
@@ -459,7 +474,7 @@ export function initDyadUI(refs, hooks) {
   return _root;
 }
 
-/** Open the dyad screen. Refuses below t5 — the screen is the product. */
+/** Open the dyad screen. Refuses below t3 — the screen is the product. */
 export function open() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
@@ -539,7 +554,7 @@ export function clearOutput() {
  *  blank the stale result without discarding what the user is mid-way through
  *  correcting. */
 function clearEntryFields() {
-  for (const id of ['dyad-name-input', 'dyad-dob-input', 'dyad-time-input', 'dyad-gender-input']) {
+  for (const id of ['dyad-name-input', 'dyad-dob-input', 'dyad-time-input']) {
     const el = $(id);
     if (el) el.value = '';
   }
@@ -578,7 +593,6 @@ export function submitSecond() {
   const name = String(($('dyad-name-input') || {}).value || '');
   const dob = String(($('dyad-dob-input') || {}).value || '');
   const time = String(($('dyad-time-input') || {}).value || '');
-  const gender = String(($('dyad-gender-input') || {}).value || '');
 
   const validate = _hooks.validateEntry;
   if (typeof validate === 'function') {
@@ -598,10 +612,6 @@ export function submitSecond() {
     // which is why the wrong field name was invisible to rising specifically.
     profile = build({
       name: name.trim(), dob, time,
-      // One entry contract (§1.J): person B's optional gender rides the same
-      // payload shape as the primary form's, transient like everything else
-      // about B — never persisted (§5.F).
-      ...(gender === 'male' || gender === 'female' ? { gender } : {}),
       ...(_city ? { city: _city.name, cc: _city.countryCode, tz: _city.tz, lat: _city.lat, lng: _city.lng } : {}),
     });
   } catch (_) {
@@ -616,7 +626,7 @@ export function submitSecond() {
 /**
  * Render both standalone sheets and the relation layer.
  *
- * Below t5 this produces nothing at all — not a sealed preview, nothing. The
+ * Below t3 this produces nothing at all — not a sealed preview, nothing. The
  * screen is unreachable there by three independent gates, and this is the
  * last of them.
  */
@@ -638,13 +648,9 @@ export function render() {
   // facet-index key itself; the host decides what each role means.
   const noteSlot = (p, role) => (typeof _hooks.getNoteSlot === 'function' ? _hooks.getNoteSlot(p, role) : 'mid');
   const publicRead = p => (typeof _hooks.getPublicRead === 'function' ? _hooks.getPublicRead(p) : null);
-  // Kua is handed in like the public read (same single-consumer rationale,
-  // ui/sheet.js render doc): each side carries its own, so a no-gender
-  // person B shows both classical values beside a gendered person A.
-  const kua = p => (typeof _hooks.getKua === 'function' ? _hooks.getKua(p) : null);
 
-  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA), kua: kua(profileA) });
-  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second, 'b'), publicRead: publicRead(_second), kua: kua(_second) });
+  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA) });
+  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second, 'b'), publicRead: publicRead(_second) });
 
   setText('dyad-head-a', profileA.firstName || 'a');
   setText('dyad-head-b', _second.firstName || 'b');

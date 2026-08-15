@@ -4,7 +4,7 @@
 // behaviour is pinned in tests/dyad.test.js and voice policy in
 // tests/dyad_content.test.js. This file covers the seams the wiring adds:
 //
-//   1. SEALED-DOM PURITY. Below t5 the relation layer renders its seal with
+//   1. SEALED-DOM PURITY. Below t3 the relation layer renders its seal with
 //      the value nodes EMPTY — absent, not hidden (§1.D v0.37). An
 //      unentitled render must carry no entitled passage anywhere in the DOM.
 //   2. FAIL-CLOSED OFFER. T5_PRODUCT_URL ships empty, so the CTA has no href
@@ -12,9 +12,9 @@
 //      may make it buyable by accident.
 //   3. NO STORAGE. The tier introduces no localStorage key, and the second
 //      person is never persisted — the §5 allow-list is unchanged by it.
-//   4. THE LADDER APPEND is safe: t5 outranks t3, monotonicity holds, the
+//   4. THE LADDER is safe: t5 is RETIRED into t3 (§1.D v0.68), monotonicity holds, the
 //      §1.F census does not move, and t4 stays retired.
-//   5. THE SINGLE SHEET IS UNCHANGED. A t5 device renders the same coordinate
+//   5. THE SINGLE SHEET IS UNCHANGED. The fold adds no compartment — t3 renders the same coordinate
 //      set a t3 device does, so the append cannot have disturbed the rungs
 //      beneath it.
 //
@@ -46,6 +46,7 @@ import {
 } from '../ui/dyad.js';
 import { buildSheetMarkup, createSheet, ROW_TITLES } from '../ui/sheet.js';
 import { validateBirthInput, todayIsoLocal } from '../ui/profile.js';
+import { setMeasurementSink } from '../core/measurement.js';
 import {
   TIER_ORDER, RETIRED_TIERS, RETIREMENT_COLLISIONS,
   isTier, tierRank, maxTier, normalizeTier, resolveRenderTier, applyPaidReturn,
@@ -84,80 +85,103 @@ const dyadCode = stripComments(dyadJs);
 const A = buildProfile('specimen a', '2000-01-01');
 const B = buildProfile('specimen b', '1988-06-15');
 
-describe('dyad surface — the ladder append (§1.D v0.61)', () => {
-  it('t5 is the fourth rung and outranks t3', () => {
-    expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
-    expect(isTier('t5')).toBe(true);
-    expect(tierRank('t5')).toBe(4);
-    expect(tierRank('t5')).toBeGreaterThan(tierRank('t3'));
+describe('dyad surface — the comparative folds into t3 (§1.D v0.68)', () => {
+  it('the ladder is three rungs again — t5 is retired, not outranking t3', () => {
+    expect(TIER_ORDER).toEqual(['t1', 't2', 't3']);
+    expect(isTier('t5')).toBe(false);
+    expect(tierRank('t3')).toBe(3);
   });
 
   it('the retirement table cannot collide with the ladder', () => {
-    // The brief's explicit build-time re-verification: t4 is burned, so the
-    // dyad had to take a clean token. If a future rung ever reuses a retired
-    // one, normalizeTier rewrites its buyers away and this is the only thing
-    // standing in the way.
+    // Unchanged in force, wider in scope: BOTH retired tokens (t4, t5) must
+    // stay out of TIER_ORDER, or normalizeTier rewrites their holders away
+    // before isTier ever sees them.
     expect(RETIREMENT_COLLISIONS).toEqual([]);
     for (const retired of Object.keys(RETIRED_TIERS)) {
       expect(TIER_ORDER).not.toContain(retired);
       expect(isTier(retired)).toBe(false);
     }
-    expect(normalizeTier('t5')).toBe('t5');
-    expect(resolveRenderTier({ tier: 't5', credits: 0 })).toBe('t5');
   });
 
-  it('monotonic: buying a lower rung never downgrades a t5 device', () => {
-    for (const purchased of ['t1', 't2', 't3', 't5']) {
-      expect(applyPaidReturn({ pendingProfile: null, tier: 't5', purchasedTier: purchased }).tier)
-        .toBe('t5');
+  it('a stored t5 migrates to t3 — and t3 now INCLUDES the comparative, so it is not a downgrade', () => {
+    // t5 was never buyable (T5_PRODUCT_URL shipped empty for its whole
+    // life), so no device should hold one; the migration exists because the
+    // unsigned `?paid=t5` return was reachable. The point this pins is that
+    // the successor is a SUPERSET of what t5 conferred, not a reduction:
+    // whatever a t5 device could see, t3 can see too.
+    expect(normalizeTier('t5')).toBe('t3');
+    expect(resolveRenderTier({ tier: 't5', credits: 0 })).toBe('t3');
+    expect(coordsForTier('t3').has('dyadRelation')).toBe(true);
+  });
+
+  it('monotonic: buying a lower rung never downgrades a t3 device', () => {
+    for (const purchased of ['t1', 't2', 't3']) {
+      expect(applyPaidReturn({ pendingProfile: null, tier: 't3', purchasedTier: purchased }).tier)
+        .toBe('t3');
     }
-    expect(maxTier('t3', 't5')).toBe('t5');
-    expect(maxTier('t5', 't3')).toBe('t5');
+    expect(maxTier('t2', 't3')).toBe('t3');
+    expect(maxTier('t3', 't2')).toBe('t3');
   });
 
-  it('the R2 legacy grandfather does NOT follow the top of the ladder', () => {
-    // A pre-v0.6.0 buyer paid for the written entry. They did not pay for a
-    // second person's sheet, and appending a rung above t3 must not hand
-    // them one.
+  it('the R2 legacy grandfather resolves to t3 — which now carries the comparative', () => {
+    // A pre-v0.6.0 buyer paid for the written entry. The grandfather has
+    // always resolved them to t3; t3's contents growing is the operator's
+    // pricing decision (§1.D v0.68), not a widening of this rule.
     expect(resolveRenderTier({ tier: null, credits: 3 })).toBe('t3');
     expect(resolveRenderTier({ tier: null, credits: 99 })).toBe('t3');
   });
 
-  it('a stored t4 still migrates to t3, not to the new top rung', () => {
+  it('a stored t4 still migrates to t3', () => {
     expect(normalizeTier('t4')).toBe('t3');
     expect(resolveRenderTier({ tier: 't4', credits: 0 })).toBe('t3');
   });
 });
 
 describe('dyad surface — the single sheet is untouched by the append', () => {
-  it('t5 carries every t3 coordinate and adds only the relation block', () => {
-    for (const coord of TIER_COORDS.t3) expect(TIER_COORDS.t5).toContain(coord);
-    expect(TIER_COORDS.t5.filter(c => !TIER_COORDS.t3.includes(c))).toEqual(['dyadRelation']);
+  it('t3 carries the relation block, and there is no rung above it', () => {
+    expect(TIER_COORDS.t3).toContain('dyadRelation');
+    expect(TIER_COORDS.t5).toBeUndefined();
   });
 
   it('the §1.F census does not move — dyadRelation is a block, not a cell', () => {
-    expect(tierDensitySummary('t5')).toEqual(tierDensitySummary('t3'));
-    expect(tierDensitySummary('t5')).toEqual({ open: 15, sealed: 0, total: 15 });
+    // The fold adds the comparative to t3 without adding a compartment, so
+    // the census is byte-identical to what it was before §1.D v0.68.
+    expect(tierDensitySummary('t3')).toEqual({ open: 16, sealed: 0, total: 16 });
     expect(Object.values(CELL_COORD)).not.toContain('dyadRelation');
   });
 
-  it('every sheet cell renders identically at t3 and t5', () => {
+  it('the fold changes no sheet cell — t3 entitles every compartment, and none maps to the block', () => {
+    // This assertion previously compared cellRenderState(...) WITH ITSELF —
+    // a tautology that could never fail, the same false-green class PR #187
+    // F7.1 caught on newlyEntitledCells. Caught here by the grok pre-merge
+    // audit. It now pins the actual property: at t3 every compartment is
+    // ENTITLED (so none is sealed), and no compartment is keyed to the
+    // dyadRelation block, which is what makes the fold census-neutral.
+    const coords = coordsForTier('t3');
     for (const key of CELL_KEYS) {
-      expect(cellRenderState(A, key, coordsForTier('t3').has(CELL_COORD[key])), key)
-        .toEqual(cellRenderState(A, key, coordsForTier('t5').has(CELL_COORD[key])));
+      expect(coords.has(CELL_COORD[key]), `${key} must be entitled at t3`).toBe(true);
+      expect(CELL_COORD[key], `${key} must not be keyed to the block`).not.toBe('dyadRelation');
+      // entitled ⇒ never sealed; a complete profile resolves to a value
+      const state = cellRenderState(A, key, true).state;
+      expect(state, `${key} must not be sealed at t3`).not.toBe('sealed');
+      expect(['value', 'unres']).toContain(state);
     }
+    // ...and an UNENTITLED render of the same cell IS sealed — proving the
+    // assertion above discriminates rather than passing on any input.
+    expect(cellRenderState(A, 'hourPillar', false).state).toBe('sealed');
+    expect(cellRenderState(A, 'hourPillar', false).text).toBe('');
   });
 
-  it('a t3 → t5 upgrade unseals no sheet cell (the sheet is already complete)', () => {
-    expect(newlyEntitledCells('t3', 't5')).toEqual([]);
+  it('the sheet is complete at t3, and the comparative adds no compartment to unseal', () => {
+    expect(newlyEntitledCells('t3', 't3')).toEqual([]);
     // ...and the rungs beneath are unchanged by the append. PR #187 F7.1: this
     // line used to compare newlyEntitledCells('free','t1') WITH ITSELF, which
     // can never fail. It carries the literal expected set now.
     expect(newlyEntitledCells('free', 't1'))
-      .toEqual(['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']);
+      .toEqual(['rising', 'moon', 'nameNumber', 'soulUrge', 'element', 'innerAnimal']);
     expect(newlyEntitledCells('t1', 't2'))
       .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
-    expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead', 'kuaRead']);
+    expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead']);
   });
 });
 
@@ -190,7 +214,11 @@ function makeNode(tag = 'div') {
 // harness addresses exactly the nodes the real DOM would expose.
 function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   publicRead = () => null, validate = validateBirthInput,
-  buildSecond = () => second } = {}) {
+  buildSecond = () => second,
+  // `onOpen` and `getTier` are injectable so the entry-control tests can drive
+  // a host hook that throws and a tier that moves between reads — the two
+  // paths that let the §5 v0.70 record describe a screen that never opened.
+  onOpen = () => {}, getTier = () => tier } = {}) {
   const byId = new Map();
   const byAttr = new Map();
 
@@ -269,7 +297,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     }
     for (const attr of ['title', 'catalog', 'name', 'type', 'habit', 'note',
       'families', 'antifit', 'roleline', 'public-bridge', 'face', 'entry', 'public',
-      'kua', 'kua-primary', 'kua-secondary', 'kua-note']) {
+    ]) {
       if (attr === 'title') {
         for (const lead of Object.keys(ROW_TITLES)) {
           byAttr.set(`[data-sheet-title="${prefix}:${lead}"]`, makeNode());
@@ -297,12 +325,12 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   try {
     initDyadUI({ stage: makeNode(), controls }, {
       getProfile: () => profileA,
-      getTier: () => tier,
+      getTier,
       validateEntry: validate,
       buildSecond,
       getNoteSlot: noteSlot,
       getPublicRead: publicRead,
-      onOpen() {}, onExit() {},
+      onOpen, onExit() {},
     });
     // The entry button is created via createElement and assigned .id directly.
     for (const child of controls.children) if (child.id) byId.set(child.id, child);
@@ -329,64 +357,132 @@ const allText = h => [
   ...[...h.byId.values()], ...[...h.byAttr.values()],
 ].map(n => String(n.textContent || '')).join('\n');
 
-describe('dyad surface — F2: the whole dyad is the t5 product', () => {
-  it('dyadEntitled is true at t5 and false at every rung beneath', () => {
-    expect(dyadEntitled('t5')).toBe(true);
-    for (const tier of ['free', 't1', 't2', 't3', undefined, null, 'garbage']) {
+describe('dyad surface — F2: the comparative is part of the t3 product (§1.D v0.68)', () => {
+  it('dyadEntitled is true at t3 and false at every rung beneath', () => {
+    expect(dyadEntitled('t3')).toBe(true);
+    for (const tier of ['free', 't1', 't2', undefined, null, 'garbage']) {
       expect(dyadEntitled(tier), String(tier)).toBe(false);
     }
+    // the retired token resolves through normalizeTier, never as a rung
+    expect(dyadEntitled('t5')).toBe(false);
   });
 
-  it('the entry control is ABSENT below t5 and present at t5', () => {
-    for (const tier of ['free', 't1', 't2', 't3']) {
+  it('the entry control is ABSENT below t3 and present at t3', () => {
+    for (const tier of ['free', 't1', 't2']) {
       const h = harness(tier);
       h.withDom(() => syncDyadEntry(tier));
       expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
     }
-    const h5 = harness('t5');
-    h5.withDom(() => syncDyadEntry('t5'));
-    expect(h5.get('dyad-open-btn').hidden).toBe(false);
+    const h3 = harness('t3');
+    h3.withDom(() => syncDyadEntry('t3'));
+    expect(h3.get('dyad-open-btn').hidden).toBe(false);
+    // And it names the thing the $3 offer sells, in the offer's own words.
+    // A buyer who paid for "compare two people" has to be able to find it
+    // on the result rail without inferring that "read beside another sheet"
+    // was that purchase. Carries no price and no urgency — it is an entry
+    // to an owned surface, not a second offer (§2 clinical register).
+    expect(h3.get('dyad-open-btn').textContent).toBe('compare with a second person');
+    expect(h3.get('dyad-open-btn').textContent).not.toMatch(/\$|once|buy|now/i);
   });
 
-  it('dyadEntryVisible is entitlement-only — a non-empty product URL never surfaces a dead entry control (PR #187 R6)', () => {
-    // A prior draft made a below-t5 device's entry control visible the
-    // moment T5_PRODUCT_URL went non-empty, with no click path behind it —
-    // a visible dead button the instant the controller filled the constant
-    // in. The predicate takes no second argument now: entitlement is the
-    // only input, and a caller passing one is silently ignored.
-    for (const tier of ['free', 't1', 't2', 't3']) {
+  // ── comparative_opened, driven (§5 v0.70) ────────────────────────
+  //
+  // These fire the REAL click listener through the fake DOM rather than
+  // matching source text. The distinction is the whole point: a source-order
+  // assertion passed while the record was emitted before the screen opened,
+  // which is the defect these replace.
+  describe('the comparative_opened record', () => {
+    afterEach(() => setMeasurementSink(null));
+
+    function drive(tier, opts = {}) {
+      const seen = [];
+      setMeasurementSink(r => seen.push(r));
+      const h = harness(tier, opts);
+      let threw = null;
+      h.withDom(() => {
+        try { h.get('dyad-open-btn').listeners.click(); }
+        catch (e) { threw = e; }
+      });
+      return { seen, h, threw };
+    }
+
+    it('fires exactly once when an entitled tap actually opens the screen', () => {
+      const { seen, h } = drive('t3');
+      expect(seen).toEqual([{ event: 'comparative_opened', tier: 't3' }]);
+      expect(Object.keys(seen[0]).sort()).toEqual(['event', 'tier']);
+      // The record and the screen agree: the root really did lose `hidden`.
+      // injectScreen short-circuits on the existing `dyad-screen`, so the
+      // module's `_root` IS this node; it carries `screen hidden` from the
+      // harness until open() removes the class. The old form here was
+      // `h.byId.get('dyad-screen') || h.root`, a truthiness check on a
+      // pre-created harness node that can never fail.
+      expect(h.byId.get('dyad-screen')).toBe(h.root);
+      expect(
+        h.root.classList.contains('hidden'),
+        'comparative_opened was recorded but the screen root still carries `hidden`',
+      ).toBe(false);
+    });
+
+    it('fires NOTHING on a refused tap at every unentitled rung', () => {
+      for (const tier of ['free', 't1', 't2']) {
+        expect(drive(tier).seen, tier).toEqual([]);
+      }
+    });
+
+    it('fires NOTHING when the host hook throws before the screen opens', () => {
+      // The record used to be emitted before onOpen(), so a host that blew up
+      // left a counted screen the user never saw.
+      const { seen, threw } = drive('t3', {
+        onOpen: () => { throw new Error('host onOpen blew up'); },
+      });
+      expect(threw).toBeInstanceOf(Error);
+      expect(seen).toEqual([]);
+    });
+
+    it('fires NOTHING when the tier drops between the gate and the open', () => {
+      // currentTier() re-invokes the host hook on every call. open() re-gates,
+      // so a tier that moves mid-handler must produce no record — and the
+      // record can never name a rung the gate did not check.
+      let calls = 0;
+      const { seen } = drive('t3', { getTier: () => (++calls === 1 ? 't3' : 'free') });
+      expect(seen).toEqual([]);
+    });
+  });
+
+  it('dyadEntryVisible is entitlement-only — a product URL argument never surfaces a dead entry control (PR #187 R6)', () => {
+    // The R6 guarantee survives the fold: the predicate takes entitlement
+    // and nothing else, so no constant can conjure a control that has no
+    // click path behind it.
+    for (const tier of ['free', 't1', 't2']) {
       expect(dyadEntryVisible(tier), tier).toBe(false);
       expect(dyadEntryVisible(tier, 'https://example.test/x'), tier).toBe(false);
     }
-    expect(dyadEntryVisible('t5')).toBe(true);
-    expect(dyadEntryVisible('t5', 'https://example.test/x')).toBe(true);
+    expect(dyadEntryVisible('t3')).toBe(true);
+    expect(dyadEntryVisible('t3', 'https://example.test/x')).toBe(true);
   });
 
-  it('the real entry control stays hidden below t5 even once the product URL is non-empty', () => {
-    // Same claim, driven through the actual DOM path (syncDyadEntry), not
-    // just the pure predicate — a passing predicate with a stale caller
-    // elsewhere would not be caught by the test above alone.
-    for (const tier of ['free', 't1', 't2', 't3']) {
+  it('the real entry control stays hidden below t3, driven through the DOM path', () => {
+    for (const tier of ['free', 't1', 't2']) {
       const h = harness(tier);
       h.withDom(() => syncDyadEntry(tier));
       expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
     }
   });
 
-  it('open() refuses below t5', () => {
-    for (const tier of ['free', 't1', 't2', 't3']) {
+  it('open() refuses below t3', () => {
+    for (const tier of ['free', 't1', 't2']) {
       const h = harness(tier);
       expect(h.withDom(() => openDyad()), tier).toBe(false);
       expect(h.root.classList.contains('hidden'), tier).toBe(true);
     }
-    const h5 = harness('t5');
-    expect(h5.withDom(() => openDyad())).toBe(true);
+    const h3 = harness('t3');
+    expect(h3.withDom(() => openDyad())).toBe(true);
   });
 
-  it('submitSecond refuses below t5 and renders NOTHING (the F2 defect)', () => {
-    // Before the fix a free device could submit person B and receive their
-    // sheet at free density; a t3 device received B's COMPLETE sheet free.
-    for (const tier of ['free', 't1', 't2', 't3']) {
+  it('submitSecond refuses below t3 and renders NOTHING (the F2 defect)', () => {
+    // The F2 guarantee is unchanged in kind, only its threshold moved: an
+    // unentitled device must never receive person B, at any density.
+    for (const tier of ['free', 't1', 't2']) {
       const h = harness(tier);
       expect(h.withDom(() => submitSecond()), tier).toBe(false);
       expect(h.get('dyad-output').hidden, tier).toBe(true);
@@ -400,26 +496,39 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     }
   });
 
-  it('t3 — which buys the complete SINGLE sheet — gets no second sheet at all', () => {
-    // The exact contradiction the previous suite blessed: it asserted t3
-    // received both complete sheets and described only the relation as the t5
-    // product. DOCTRINE §1.D v0.61 says t5 buys the second sheet AND the
-    // relation, and this is that sentence as a test.
+  it('t3 renders both sheets and the relation — the comparative is what $3 now includes', () => {
+    // The inversion §1.D v0.68 makes deliberate: the previous contract said
+    // "t3 gets no second sheet at all". One price carries it now, so the
+    // assertion is flipped ON PURPOSE rather than deleted, and this test is
+    // the record of that flip.
+    //
+    // It asserts all THREE things its title promises. The first version
+    // checked person B's head and one of B's values only — which meant
+    // person A's sheet and the entire relation layer could vanish while this
+    // stayed green, and the relation layer is precisely what §1.D v0.68
+    // moved into the $3 rung. A pre-merge lane caught that; this is the
+    // repair.
     const h = harness('t3');
     h.withDom(() => submitSecond());
-    expect(h.get('dyad-output').hidden).toBe(true);
-    expect(h.cell('b', 'arcana').textContent).toBe('');
-    expect(h.cell('a', 'arcana').textContent).toBe('');
-  });
-
-  it('t5 renders both sheets and the relation', () => {
-    const h = harness('t5', { publicRead: () => null });
-    expect(h.withDom(() => submitSecond())).toBe(true);
     expect(h.get('dyad-output').hidden).toBe(false);
-    expect(h.cell('a', 'arcana').textContent).toBe(A.birthCard.label);
-    expect(h.cell('b', 'arcana').textContent).toBe(B.birthCard.label);
-    expect(h.get('dyad-head-a').textContent).toBe('specimen');
-    expect(h.get('dyad-element-ab').textContent).toBeTruthy();
+
+    // 1. BOTH sheets, not just B's.
+    expect(h.get('dyad-head-a').textContent).not.toBe('');
+    expect(h.get('dyad-head-b').textContent).not.toBe('');
+
+    // 2. The relation layer itself. These nodes are what make the screen a
+    //    COMPARATIVE rather than two sheets standing side by side, so each
+    //    axis is named rather than covered by one aggregate assertion.
+    for (const id of [
+      'dyad-element-ab', 'dyad-element-ba',
+      'dyad-numerology-reduction', 'dyad-numerology-meaning',
+      'dyad-cardpair-body',
+    ]) {
+      expect(h.get(id).textContent, id).not.toBe('');
+    }
+
+    // 3. B's own values really are on screen, not merely a non-empty head.
+    expect(allText(h)).toContain(B.sunSign);
   });
 });
 
@@ -428,7 +537,7 @@ describe('dyad surface — presentation: spine heads + reveal beat', () => {
     expect(dyadJs).toMatch(
       /id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden/,
     );
-    const h = harness('t5');
+    const h = harness('t3');
     h.withDom(() => submitSecond());
     expect(h.get('dyad-output').scrollCalls).toEqual([{ block: 'start' }]);
     expect(h.get('dyad-output').focusCalls).toEqual([{ preventScroll: true }]);
@@ -452,7 +561,7 @@ describe('dyad surface — presentation: spine heads + reveal beat', () => {
   });
 
   it('render() fires the draw-in beat on the spine; a fresh clear/close always resets it first', () => {
-    const h = harness('t5');
+    const h = harness('t3');
     expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(false);
 
     h.withDom(() => submitSecond());
@@ -475,7 +584,7 @@ describe('dyad surface — presentation: spine heads + reveal beat', () => {
   });
 
   it('a failed second-profile build bails before render(), so the beat never fires', () => {
-    const h = harness('t5', { buildSecond: () => null });
+    const h = harness('t3', { buildSecond: () => null });
     h.withDom(() => submitSecond());
     expect(h.get('dyad-output').hidden).toBe(true);
     expect(h.get('dyad-spine').classList.contains('dyad-spine-revealing')).toBe(false);
@@ -490,7 +599,7 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
   it('clearOutput() closes every DYAD_AXIS_IDS <details> and re-lists all three', () => {
     expect(DYAD_AXIS_IDS).toEqual(['dyad-axis-element', 'dyad-axis-numerology', 'dyad-axis-cardpair']);
 
-    const h = harness('t5');
+    const h = harness('t3');
     h.withDom(() => submitSecond());
     // Simulate a reader who expanded every axis on this pair.
     for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
@@ -507,7 +616,7 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
     // comment). Here #dyad-output is still visible at the moment
     // clearOutput() runs (submitSecond() rendered it, closeDyad() hasn't
     // hidden it yet), so the write has a real layout box and lands.
-    const h = harness('t5');
+    const h = harness('t3');
     h.withDom(() => submitSecond());
     // Simulate a reader who panned to sheet B.
     h.get('dyad-sheets').scrollLeft = 240;
@@ -520,7 +629,7 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
     // Mirrors the existing "invalidate first" F1 case: this drives the same
     // clearOutput() call an invalid re-submission takes, and checks the two
     // pieces of state that call adds beyond the render fill.
-    const h = harness('t5');
+    const h = harness('t3');
     h.withDom(() => submitSecond());
     for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
     h.get('dyad-sheets').scrollLeft = 180;
@@ -536,7 +645,7 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
   });
 
   it('opening again starts every axis collapsed and the strip at its leading edge', () => {
-    const h = harness('t5');
+    const h = harness('t3');
     h.withDom(() => submitSecond());
     for (const id of DYAD_AXIS_IDS) h.get(id).open = true;
     h.get('dyad-sheets').scrollLeft = 300;
@@ -565,7 +674,7 @@ describe('dyad surface — presentation: axis collapse + pan-position reset (lif
     // since #dyad-output is hidden throughout that window either way; this
     // carries the sequence through a second full submitSecond() → render()
     // to the exact point the real bug resurfaced.
-    const h = harness('t5');
+    const h = harness('t3');
 
     // Pair 1: submit, expand every axis, pan to sheet B.
     h.withDom(() => submitSecond());
@@ -614,7 +723,7 @@ describe('dyad surface — presentation: axis interaction CSS (44px target + foc
 
 describe('dyad surface — F5: both sides are real standalone sheets', () => {
   const h = () => {
-    const inst = harness('t5', { noteSlot: () => 'mid' });
+    const inst = harness('t3', { noteSlot: () => 'mid' });
     inst.withDom(() => submitSecond());
     return inst;
   };
@@ -648,7 +757,27 @@ describe('dyad surface — F5: both sides are real standalone sheets', () => {
     const builtTitles = [...buildSheetMarkup('x')
       .matchAll(/<div class="coord-title"[^>]*>([^<]+)<\/div>/g)].map(m => m[1].trim());
     expect(builtTitles).toEqual(hostTitles);
-    expect(builtTitles).toHaveLength(8);
+    expect(builtTitles).toHaveLength(4);
+    expect(builtTitles).toEqual(['TAROT', 'ASTRO', 'NUMEROLOGY', 'ANIMALS']);
+  });
+
+  it('the hexagon geometry is pinned by VERTEX, not just by class name (§1.M)', () => {
+    // A class-name assertion cannot catch a transposed grid-area, which
+    // would silently reorder the six numerology coordinates on screen
+    // while every other test stayed green. Pin the vertex SET.
+    const vertices = [...html.matchAll(/\.coord-cells-hex > :nth-child\((\d)\) \{ grid-area: (\d) \/ (\d); \}/g)]
+      .map(m => ({ child: +m[1], row: +m[2], col: +m[3] }));
+    expect(vertices, 'six hexagon vertices must be declared').toHaveLength(6);
+    expect(vertices.map(v => v.child)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(vertices.map(v => `${v.row}/${v.col}`))
+      .toEqual(['1/2', '1/3', '2/1', '2/4', '3/2', '3/3']);
+    // ...and only the six-cell numerology line carries the class, on BOTH
+    // the host markup and an instanced sheet (a flat row beside a hexagon
+    // would be a real §1.J divergence, not a cosmetic one).
+    // Count the MARKUP occurrence only — the class also appears in its own
+    // CSS selectors, which would make a naive count read 8.
+    expect((html.match(/class="coord-cells coord-cells-hex"/g) || [])).toHaveLength(1);
+    expect((buildSheetMarkup('x').match(/class="coord-cells coord-cells-hex"/g) || [])).toHaveLength(1);
   });
 
   it('the built sheet emits NO id, so it cannot collide with the host sheet (G2)', () => {
@@ -673,7 +802,7 @@ describe('dyad surface — F5: both sides are real standalone sheets', () => {
 
 describe('dyad surface — F1: nothing of person B survives closing', () => {
   it('close() blanks every node the render filled, not a subset', () => {
-    const inst = harness('t5');
+    const inst = harness('t3');
     inst.withDom(() => submitSecond());
     expect(inst.cell('b', 'arcana').textContent).toBeTruthy(); // not vacuous
     expect(inst.get('dyad-head-b').textContent).toBeTruthy();
@@ -703,7 +832,7 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
   });
 
   it('the seal / aria state describing a tier is dropped too', () => {
-    const inst = harness('t5');
+    const inst = harness('t3');
     inst.withDom(() => submitSecond());
     inst.withDom(() => closeDyad());
     expect(inst.get('dyad-relation').classList.contains('sealed')).toBe(false);
@@ -716,7 +845,7 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
     // Before the fix the screen kept showing person B-1's name and coordinates
     // under a form describing B-2, and held B-1's whole profile object alive
     // past an explicit attempt to replace them.
-    const inst = harness('t5');
+    const inst = harness('t3');
     inst.withDom(() => submitSecond());
     expect(inst.cell('b', 'arcana').textContent).toBeTruthy();
 
@@ -733,7 +862,7 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
   });
 
   it('opening again starts from a blank screen, never a resumed pair', () => {
-    const inst = harness('t5');
+    const inst = harness('t3');
     inst.withDom(() => submitSecond());
     inst.withDom(() => closeDyad());
     inst.withDom(() => openDyad());
@@ -743,29 +872,9 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
     expect(inst.get('dyad-dob-input').value).toBe('');
   });
 
-  it("person B's gender does not survive close()/open() — every other typed field already didn't", () => {
-    // Regression: clearEntryFields() originally cleared name/dob/time but not
-    // gender, so an unconsented next person B would silently inherit the
-    // prior person's gender through the hidden re-open path — the same class
-    // of stale-hidden-DOM leak the rest of this F1 suite exists to close.
-    const inst = harness('t5');
-    inst.withDom(() => {
-      inst.get('dyad-gender-input').value = 'female';
-      return submitSecond();
-    });
-    inst.withDom(() => closeDyad());
-    expect(inst.get('dyad-gender-input').value).toBe('');
-
-    inst.withDom(() => {
-      inst.get('dyad-gender-input').value = 'male';
-      return submitSecond();
-    });
-    inst.withDom(() => openDyad());
-    expect(inst.get('dyad-gender-input').value).toBe('');
-  });
 
   it('render() with no second person shows nothing', () => {
-    const inst = harness('t5');
+    const inst = harness('t3');
     expect(inst.withDom(() => renderDyad())).toBeNull();
     expect(inst.get('dyad-output').hidden).toBe(true);
   });
@@ -778,7 +887,7 @@ describe('dyad surface — F3: one validation contract, both forms', () => {
     // or greps dyad.js's source could pass even if init never wired the
     // real DOM node up — this drives initDyadUI itself and reads the actual
     // node it wrote to.
-    const inst = harness('t5');
+    const inst = harness('t3');
     expect(inst.get('dyad-dob-input').max).toBe(todayIsoLocal());
   });
 
@@ -801,7 +910,7 @@ describe('dyad surface — F3: one validation contract, both forms', () => {
   });
 
   it('a rejected second entry surfaces the matching error node', () => {
-    const inst = harness('t5');
+    const inst = harness('t3');
     inst.withDom(() => {
       inst.get('dyad-name-input').value = '  ';
       inst.get('dyad-dob-input').value = '1990-01-01';
@@ -917,7 +1026,7 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     // never seen on either side of the comparison.
     ['high (master 22)', buildProfile('diff master', '1970-01-04', { ...LONDON, time: '11:40' })],
   ];
-  const TIERS = ['free', 't1', 't2', 't3', 't5'];
+  const TIERS = ['free', 't1', 't2', 't3'];
   const CASES = ANCHOR_PROFILES.flatMap(([label, profile]) =>
     TIERS.map(tier => [label, tier, profile]));
 
@@ -1005,7 +1114,7 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     const publicRead = publicReadFor(profile);
     expect(publicRead.bridge).toContain(master);
 
-    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    sheet.render(profile, 't3', { noteSlot: 'mid', publicRead });
     expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent)
       .toBe(publicRead.bridge);
 
@@ -1017,7 +1126,7 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     // And `clear()` scrubs it: the node is in valueNodes(), so a list that
     // fell behind the fill path — the F1 defect this module already carries a
     // fix for — would leave person B's disclosure in live hidden DOM.
-    sheet.render(profile, 't5', { noteSlot: 'mid', publicRead });
+    sheet.render(profile, 't3', { noteSlot: 'mid', publicRead });
     expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent.length)
       .toBeGreaterThan(0);
     sheet.clear();
@@ -1032,7 +1141,7 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
 
     const profileA = buildProfile('wire a', '1980-06-11');
     const profileB = buildProfile('wire b', '1995-09-22');
-    const inst = harness('t5', {
+    const inst = harness('t3', {
       profileA,
       second: profileB,
       publicRead: publicReadFor,
@@ -1081,7 +1190,7 @@ describe('dyad surface — role-aware note resolution (PR #187 R2)', () => {
       return role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath);
     };
 
-    const inst = harness('t5', { noteSlot });
+    const inst = harness('t3', { noteSlot });
     inst.withDom(() => submitSecond());
 
     expect(calls).toEqual([
@@ -1114,7 +1223,7 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
     searchCities.mockResolvedValue([city]);
 
     let captured = null;
-    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const inst = harness('t3', { buildSecond: payload => { captured = payload; return B; } });
 
     const outer = globalThis.document;
     globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
@@ -1142,27 +1251,7 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
     expect(captured.city).toBe(city.name);
   });
 
-  it("person B's optional gender rides the buildSecond payload under the strict vocabulary (§1.J one entry contract)", () => {
-    let captured = null;
-    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
-    const outer = globalThis.document;
-    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
-    try {
-      inst.get('dyad-name-input').value = 'specimen b';
-      inst.get('dyad-dob-input').value = '1988-06-15';
-      inst.get('dyad-gender-input').value = 'female';
-      expect(submitSecond()).toBe(true);
-      expect(captured.gender).toBe('female');
-      // Off-vocabulary never reaches the build — dropped at the seam like
-      // every other write path the §5 amendment touches.
-      inst.get('dyad-gender-input').value = 'junk';
-      expect(submitSecond()).toBe(true);
-      expect(captured).not.toHaveProperty('gender');
-    } finally {
-      globalThis.document = outer;
-    }
   });
-});
 
 describe('dyad surface — doctrine wording pins (PR #187 corrections, source-contract)', () => {
   const doctrine = readFileSync(join(REPO_ROOT, 'DOCTRINE.md'), 'utf-8');

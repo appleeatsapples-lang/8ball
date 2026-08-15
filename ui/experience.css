@@ -192,8 +192,14 @@ body {
   overflow: hidden;
 }
 
-.card:not(.labels-revealed) .public-title,
-.card:not(.labels-revealed) .kua-title {
+/* The kua sibling of this selector was deleted at §1.D v0.67 and its
+   trailing comma was left behind, so this rule had no opening brace. CSS
+   error recovery consumes a malformed prelude up to the NEXT `{`, so the
+   damage was not local: the declarations below leaked into the selector
+   list and the whole thing swallowed the following rule as well. Two
+   surfaces were dead, not one. `tests/css_structure.test.js` now pins the
+   class rather than this instance. */
+.card:not(.labels-revealed) .public-title {
   height: 0;
   margin: 0;
   overflow: hidden;
@@ -428,52 +434,19 @@ body {
     margin-top: 0;
   }
 
-  #profile-form {
-    padding-bottom: 72px;
-  }
-
-  #enter-btn {
-    position: fixed;
-    z-index: 9;
-    right: 16px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    left: auto;
-    width: 72px;
-    min-height: 72px;
-    padding: 8px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.96);
-    box-shadow: 0 0 0 12px rgba(0, 0, 0, 0.96);
-    letter-spacing: 0.16em;
-  }
-
-  /* Progressive enhancement: browsers without :has() keep a visible fixed
-     submit. Supporting browsers reveal it once the two required fields are
-     valid, and move it away while an optional rising field has focus. */
-  @supports selector(form:has(input:valid)) {
-    #enter-btn {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transform: translateY(12px);
-      transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
-    }
-
-    #profile-form:has(#name-input:valid):has(#dob-input:valid) #enter-btn {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-      transform: translateY(0);
-      transition: opacity 180ms ease, transform 180ms ease;
-    }
-
-    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(#rising-fields :focus) #enter-btn,
-    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(.kua-gender-field :focus) #enter-btn {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-  }
+  /* The submit keeps the shared .btn-block box here — full width, in flow,
+     last thing in the form. Through 2026-08 this block made it a fixed 72px
+     disc pinned bottom-right, reserved 72px of form padding for it, and
+     revealed it with a :has() chain once name + dob validated. Headless
+     Chrome measured both halves failing: out of flow the opaque disc painted
+     over #city-input at 320px (elementFromPoint inside the birthplace field
+     returned the button) and over .disclaimer at 390px; and the reveal's
+     `visibility: hidden` while any #rising-fields descendant held focus took
+     the button out of the tab order at exactly the moment a keyboard user
+     tabbed toward it — Tab ran name → dob → gender → summary → time → city →
+     <body>, never reaching begin. In flow there is nothing to overlap and no
+     state in which it is not a tab stop; it sits below the fold on a short
+     viewport, which is what the page scroll is for. */
 
   .modal-bg {
     align-items: flex-end;
