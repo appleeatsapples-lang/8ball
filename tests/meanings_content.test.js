@@ -22,7 +22,9 @@ import {
   ELEMENT_MEANINGS,
   NUMEROLOGY_MEANINGS,
   COORDINATE_CONTEXT,
-} from '../content/meanings.v3.js';
+  NUMEROLOGY_SLOT_LINES,
+  THEME_TENSIONS,
+} from '../content/meanings.v4.js';
 import { NUMEROLOGY_MEANINGS as V2_NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
@@ -61,6 +63,14 @@ function* currentMeaningStrings() {
   }
   for (const [key, context] of Object.entries(COORDINATE_CONTEXT)) {
     yield { path: `context.${key}.role`, text: context.role };
+  }
+  for (const [slot, lines] of Object.entries(NUMEROLOGY_SLOT_LINES)) {
+    for (const [value, line] of Object.entries(lines)) {
+      yield { path: `slotLine.${slot}.${value}`, text: line };
+    }
+  }
+  for (const [pair, sentence] of Object.entries(THEME_TENSIONS)) {
+    yield { path: `tension.${pair}`, text: sentence };
   }
 }
 
@@ -160,15 +170,15 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
     // PR #101 MED-2 + PR #104 codex absorb: a future meanings.v3.js (§4 —
     // new release = new file) must not ship unscanned while this file greens
     // on v1. This file intentionally retains a historical v1 scan while the
-    // currentMeaningStrings walker below scans the active v3 additions.
-    // Runtime imports must therefore resolve exclusively to meanings.v3.js.
+    // currentMeaningStrings walker below scans the active v4 additions.
+    // Runtime imports must therefore resolve exclusively to meanings.v4.js.
     const family = /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g;
     const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
       .map(match => match[1]);
     const runtime = [...meaningsUiJs.matchAll(family)].map(match => match[1]);
-    expect(own).toContain('meanings.v3.js');
+    expect(own).toContain('meanings.v4.js');
     expect(runtime.length).toBeGreaterThan(0);
-    expect(new Set(runtime)).toEqual(new Set(['meanings.v3.js']));
+    expect(new Set(runtime)).toEqual(new Set(['meanings.v4.js']));
   });
 });
 
@@ -417,6 +427,162 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
       if (DIAGNOSTIC_FRAMING_RE.test(text)) hits.push(`${path}: diagnostic framing`);
     }
     expect(hits, hits.join('\n')).toEqual([]);
+  });
+
+  it('v4 slot lines: six exact families, every terminal value, appended never edited', () => {
+    expect(Object.keys(NUMEROLOGY_SLOT_LINES).sort()).toEqual(
+      ['birthday', 'lifePath', 'maturity', 'nameNumber', 'personality', 'soulUrge'],
+    );
+    for (const [slot, lines] of Object.entries(NUMEROLOGY_SLOT_LINES)) {
+      expect(Object.keys(lines).map(Number).sort((a, b) => a - b), slot)
+        .toEqual([...TERMINAL_NUMBERS].sort((a, b) => a - b));
+      for (const line of Object.values(lines)) {
+        expect(typeof line).toBe('string');
+        expect(line.length).toBeGreaterThan(30);
+      }
+    }
+    // Assembly contract, byte-exact over EVERY family and value: base body
+    // + one space + that slot's own line. The pr212 audit proved the
+    // looser startsWith/endsWith form let both a dropped join space and a
+    // wholesale swap of two slot-line families ride green.
+    for (const value of Object.keys(NUMEROLOGY_MEANINGS)) {
+      for (const slot of Object.keys(NUMEROLOGY_SLOT_LINES)) {
+        expect(entryFor(slot, value).body, `${slot}=${value}`)
+          .toBe(`${NUMEROLOGY_MEANINGS[value].body} ${NUMEROLOGY_SLOT_LINES[slot][value]}`);
+      }
+    }
+  });
+
+  it('v4 slot lines: each family speaks its OWN derivation — an independent oracle a family swap cannot satisfy', () => {
+    // The pr212 audit swapped two whole families inside the content file
+    // and every table-as-its-own-oracle pin stayed green. Each slot's
+    // lines must name that slot's actual derivation, which a swapped
+    // family cannot fake.
+    const FAMILY_VOCAB = {
+      lifePath: /life path/,
+      nameNumber: /full-name/,
+      soulUrge: /vowel line/,
+      personality: /consonant line/,
+      birthday: /day-of-birth/,
+      maturity: /maturity sum/,
+    };
+    for (const [slot, re] of Object.entries(FAMILY_VOCAB)) {
+      for (const [value, line] of Object.entries(NUMEROLOGY_SLOT_LINES[slot])) {
+        expect(re.test(line), `${slot}[${value}] must name its derivation (${re})`).toBe(true);
+      }
+      // and no OTHER family may use this family's derivation vocabulary
+      for (const [other, lines] of Object.entries(NUMEROLOGY_SLOT_LINES)) {
+        if (other === slot) continue;
+        for (const [value, line] of Object.entries(lines)) {
+          expect(re.test(line), `${other}[${value}] wrongly names ${slot}'s derivation`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('v4 slot lines: a value repeated across slots no longer renders the same sentence', () => {
+    // The measured defect this table exists to close: 76% of sampled
+    // sheets carried an identical body on two numerology compartments.
+    const pairs = [['soulUrge', 'maturity'], ['personality', 'birthday'], ['lifePath', 'nameNumber']];
+    for (const value of ['1', '4', '6', '11', '22', '33']) {
+      for (const [a, b] of pairs) {
+        expect(entryFor(a, value).body, `${a}/${b}=${value}`).not.toBe(entryFor(b, value).body);
+      }
+    }
+  });
+
+  it('v4 tensions: keys are sorted theme pairs drawn from the live theme vocabulary', () => {
+    const themes = new Set();
+    for (const table of [ELEMENT_MEANINGS, NUMEROLOGY_MEANINGS]) {
+      for (const entry of Object.values(table)) themes.add(entry.theme || entry.register.split('\u00b7')[0].trim());
+    }
+    // sun/animal/arcana themes reach harmonyFor through themeFor the same
+    // way — collect them off the canonical value lists rather than
+    // hand-picking, so a renamed theme reds this pin instead of hiding.
+    for (const sign of SUN_SIGNS) {
+      const e = entryFor('sun', sign.name); if (e) themes.add(e.theme || e.register.split('\u00b7')[0].trim());
+    }
+    for (const key of ANIMALS) {
+      const e = entryFor('animal', key); if (e) themes.add(e.theme || e.register.split('\u00b7')[0].trim());
+    }
+    for (const name of MAJOR_ARCANA) {
+      const e = entryFor('arcana', name); if (e) themes.add(e.theme || e.register.split('\u00b7')[0].trim());
+    }
+    for (const [pair, sentence] of Object.entries(THEME_TENSIONS)) {
+      const parts = pair.split('|');
+      expect(parts, pair).toHaveLength(2);
+      expect(parts[0] < parts[1], `${pair} sorted`).toBe(true);
+      for (const theme of parts) expect(themes.has(theme), `${pair}: unknown theme '${theme}'`).toBe(true);
+      expect(sentence).toContain(parts[0]);
+      expect(sentence).toContain(parts[1]);
+    }
+  });
+
+  it('v4 tensions: a filed pair fires from every candidate position; unfiled triples keep the clause byte-for-byte', () => {
+    // Position primary-vs-partner: taurus sun (persistence) with the
+    // seeker (change) among partners — 'change|persistence' filed.
+    const tensionSheet = { ...resolvedSheet, sun: 'taurus', animal: 'horse', lifePath: '5' };
+    const tense = harmonyFor('sun', entryFor('sun', 'taurus'), tensionSheet);
+    expect(tense).toContain(THEME_TENSIONS['change|persistence']);
+    expect(tense).not.toMatch(/the combination is /);
+
+    // Position partner-vs-partner — the pr212 audit's self-contradiction:
+    // cancer sun (protection) with rabbit (caution) and life path 1
+    // (initiative) as partners; 'caution|initiative' is filed between the
+    // PARTNERS, and the old primary-only lookup asserted they "work
+    // through" each other one panel after the registry said they pull
+    // against each other.
+    const partnerSheet = { ...resolvedSheet, sun: 'cancer', animal: 'rabbit', lifePath: '1' };
+    const partnerTense = harmonyFor('sun', entryFor('sun', 'cancer'), partnerSheet);
+    expect(partnerTense).toContain(THEME_TENSIONS['caution|initiative']);
+    expect(partnerTense).not.toMatch(/the combination is /);
+
+    // Lookup-order determinism: when primary-vs-first-partner is filed it
+    // wins over a filed partner pair (first candidate in order).
+    // taurus (persistence) + seeker lifePath (change) as first partner —
+    // 'change|persistence' outranks anything later.
+    const ordered = harmonyFor('sun', entryFor('sun', 'taurus'),
+      { ...resolvedSheet, sun: 'taurus', animal: 'horse', lifePath: '5', arcana: 'XI · justice' });
+    expect(ordered).toContain(THEME_TENSIONS['change|persistence']);
+
+    // An unfiled triple keeps the original clause exactly.
+    const plain = harmonyFor('element', entryFor('element', 'earth'), resolvedSheet);
+    expect(plain).toMatch(/\. the combination is .+ working through .+ and .+\.$/);
+  });
+
+  it('v4 tensions: every filed pair is REACHABLE on some real sheet (no dead registry entries)', () => {
+    // The pr212 opus lane proved three pairs could never fire under the
+    // primary-only lookup; the triple-position lookup must keep all of
+    // them live. Reachability = the two themes can meet as primary+partner
+    // or as the two partners, per coordinate wiring — enumerated over the
+    // real tables, not asserted from memory.
+    const themeOf = e => e.theme || e.register.split('\u00b7')[0].trim();
+    const themesByKey = {};
+    const add = (k, v) => { const e = entryFor(k, String(v)); if (e) (themesByKey[k] ||= new Set()).add(themeOf(e)); };
+    for (const sign of SUN_SIGNS) { add('sun', sign.name); add('rising', sign.name); }
+    for (const a of ANIMALS) { add('animal', a); add('innerAnimal', a); }
+    for (const el of Object.keys(ELEMENT_MEANINGS)) add('element', el);
+    for (const n of TERMINAL_NUMBERS) for (const k of ['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity']) add(k, n);
+    for (const name of MAJOR_ARCANA) add('arcana', name);
+    for (const a of ANIMALS) for (const el of Object.keys(ELEMENT_MEANINGS)) {
+      const e = entryFor('dayPillar', `${a} \u00b7 ${el}`);
+      if (e) { (themesByKey.dayPillar ||= new Set()).add(themeOf(e)); (themesByKey.hourPillar ||= new Set()).add(themeOf(e)); }
+    }
+    const NUM = new Set(['lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity']);
+    const pk = (a, b) => [a, b].sort().join('|');
+    const reachable = new Set();
+    for (const key of Object.keys(COORDINATE_CONTEXT)) {
+      const fall = NUM.has(key) ? [...NUM] : ['sun', 'animal', 'lifePath', 'arcana', 'element', 'innerAnimal'];
+      const cands = [...(COORDINATE_CONTEXT[key].partners || []), ...fall]
+        .filter((k, i, arr) => k !== key && arr.indexOf(k) === i && themesByKey[k]);
+      const prim = themesByKey[key] || new Set();
+      for (const c of cands) for (const a of prim) for (const b of themesByKey[c]) reachable.add(pk(a, b));
+      for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++)
+        for (const a of themesByKey[cands[i]]) for (const b of themesByKey[cands[j]]) reachable.add(pk(a, b));
+    }
+    for (const pair of Object.keys(THEME_TENSIONS)) {
+      expect(reachable.has(pair), `filed but unreachable: ${pair}`).toBe(true);
+    }
   });
 
   it('numerology coordinates assemble numerology-only partners even on a full sheet', () => {

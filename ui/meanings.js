@@ -24,7 +24,9 @@ import {
   NUMEROLOGY_MEANINGS,
   ELEMENT_MEANINGS,
   COORDINATE_CONTEXT,
-} from '../content/meanings.v3.js';
+  NUMEROLOGY_SLOT_LINES,
+  THEME_TENSIONS,
+} from '../content/meanings.v4.js';
 
 const TABLES = {
   arcana: ARCANA_MEANINGS,
@@ -81,7 +83,7 @@ const STYLE = `
 .meaning-panel { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
   border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
-.meaning-panel.open { max-height: 420px; opacity: 1; margin-top: 4px; padding-top: 16px; }
+.meaning-panel.open { max-height: 640px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
@@ -163,7 +165,16 @@ export function entryFor(key, rawValue) {
   if (!rawValue || rawValue === '\u2014') return null;
   if (key === 'dayPillar' || key === 'hourPillar') return pillarEntry(rawValue);
   const table = TABLES[key];
-  return table ? table[lookupKeyFor(key, rawValue)] || null : null;
+  const entry = table ? table[lookupKeyFor(key, rawValue)] || null : null;
+  if (!entry) return null;
+  // v4 slot lines: six numerology coordinates draw one shared 12-entry
+  // table, so a value repeated across slots used to render the identical
+  // sentence twice on one card (76% of sampled sheets — journal
+  // 2026-08-30). The shared base body stays byte-identical (the master
+  // entries' v1-reused bodies included); the slot's own authored line is
+  // APPENDED, reading the value in this slot specifically.
+  const slotLine = NUMEROLOGY_SLOT_LINES[key] && NUMEROLOGY_SLOT_LINES[key][lookupKeyFor(key, rawValue)];
+  return slotLine ? { ...entry, body: `${entry.body} ${slotLine}` } : entry;
 }
 
 function readValues() {
@@ -198,7 +209,29 @@ export function harmonyFor(key, entry, values) {
     if (partners.length === 2) break;
   }
   if (partners.length < 2) return `read together, ${themeFor(entry)} serves as ${context.role}.`;
-  return `read together, ${themeFor(entry)} serves as ${context.role}; ${partners[0].theme} enters as ${partners[0].role}, and ${partners[1].theme} as ${partners[1].role}. the combination is ${themeFor(entry)} working through ${partners[0].theme} and ${partners[1].theme}.`;
+  // v4 tension registry: where the primary theme and a partner theme form
+  // a filed opposing pair, the closing clause is the authored sentence
+  // naming that tension instead of the generic "working through" algebra.
+  // Deterministic — first filed pair in partner order wins; unfiled pairs
+  // keep the harmony clause byte-for-byte.
+  const theme = themeFor(entry);
+  // Filed-pair lookup order: primary-vs-first partner, primary-vs-second,
+  // then the two partners against each other — the pr212 audit showed a
+  // sheet closing with "working through" harmony on a pair the registry
+  // itself files as opposed (partner-vs-partner was never consulted, so
+  // one panel contradicted its neighbor). First filed pair wins;
+  // deterministic; unfiled triples keep the harmony clause byte-for-byte.
+  const pairKey = (a, b) => [a, b].sort().join('|');
+  const filedCandidates = [
+    pairKey(theme, partners[0].theme),
+    pairKey(theme, partners[1].theme),
+    pairKey(partners[0].theme, partners[1].theme),
+  ];
+  const filed = filedCandidates.find(k => THEME_TENSIONS[k]);
+  const closing = filed
+    ? THEME_TENSIONS[filed]
+    : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`;
+  return `read together, ${theme} serves as ${context.role}; ${partners[0].theme} enters as ${partners[0].role}, and ${partners[1].theme} as ${partners[1].role}. ${closing}`;
 }
 
 function detailFor(key, cell, rawValue) {
@@ -244,6 +277,7 @@ export function initMeaningsUI(refs) {
   const contextHead = panel.querySelector('#meaning-context-head');
   const contextBody = panel.querySelector('#meaning-context');
   let activeCell = null;
+let scrollTimer = null;
 
   // The collapsed panel is max-height:0/overflow:hidden \u2014 pixels gone, but
   // its close button stayed in the tab order. `inert` (mirrored by
@@ -292,6 +326,27 @@ export function initMeaningsUI(refs) {
     contextBody.textContent = detail.context;
     panel.classList.add('open');
     setPanelHidden(false);
+    // The panel lives BELOW the card, so a tap on a top-row cell of the tall
+    // t3 sheet opened it ~200px under the fold — the tap looked like a no-op
+    // (live-fire, 2026-08-30). Scroll it into view AFTER the 280ms max-height
+    // transition so 'nearest' sees the expanded box; body is the scroller
+    // (html is height:100%), which scrollIntoView handles either way. Guarded
+    // for the injected-DOM test surface, and instant under reduced motion
+    // (the global 0.01ms transition override collapses the wait, not the
+    // scroll behavior, so ask the media query directly).
+    if (typeof panel.scrollIntoView === 'function') {
+      const instant = typeof matchMedia === 'function'
+        && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // One pending scroll at a time: a reopen inside the window otherwise
+      // double-fires (pr212 audit, sonnet LOW). 300ms > the 280ms
+      // max-height transition, so 'nearest' measures the expanded box.
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollTimer = null;
+        if (activeCell !== cell) return; // closed or retargeted meanwhile
+        panel.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' });
+      }, 300);
+    }
   }
 
   // Mark every coordinate compartment interactive. Delegated click/keydown on cardFace

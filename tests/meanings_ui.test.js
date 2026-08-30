@@ -39,10 +39,18 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     }
   });
 
-  it('imports the expanded meaning/context registry from meanings.v3.js', () => {
+  it('imports the expanded meaning/context registry from meanings.v4.js', () => {
     expect(meaningsJs).toMatch(
-      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v3\.js'/
+      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v4\.js'/
     );
+  });
+
+  it('the open panel fits the v4 prose: 640px cap with overflow-y auto, never a silent clip', () => {
+    // pr212 audit (opus headline): the old 420px cap + overflow:hidden cut
+    // the grown bodies mid-sentence with no scrollbar. The cap must be
+    // >= 640 and overflow must scroll, so growth degrades to a scroll,
+    // never to silent loss.
+    expect(meaningsJs).toMatch(/\.meaning-panel\.open \{ max-height: 640px; overflow-y: auto;/);
   });
 
   it('uses meaning context rather than derivation/provenance copy', () => {

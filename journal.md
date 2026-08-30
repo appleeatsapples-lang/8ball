@@ -5,6 +5,105 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — STAGED on branch, PR pending
+
+**What happened.** The controller ordered items 6, 1 and 2 from this
+session's measured optimization pass (25 of 33 sampled sheets carried
+the SAME meaning sentence on two or more compartments; 100% of context
+sentences came from one template; a tap on a top-row t3 cell opened the
+meaning panel ~200px below the fold and read as a no-op).
+
+**#6 — the dead tap (`ui/meanings.js`).** `openFor` now scrolls the
+panel into view 300ms after opening (after the max-height transition so
+'nearest' sees the expanded box), instant under reduced motion, no-op
+when closed again before the delay. Behavior-pinned with fake timers;
+live-fire verified on the tall t3 card.
+
+**#1 — per-slot numerology lines (`content/meanings.v4.js`, ACTIVE).**
+Six numerology coordinates drew one shared 12-entry table, so a repeated
+value rendered as copy-paste. v4 carries v3's tables UNEDITED (v1/v2/v3
+all immutable on disk per §4) and adds `NUMEROLOGY_SLOT_LINES` — 72
+authored lines, one per (slot, terminal value), each slot family with
+its own syntactic frame (life path through-line · full-name capacity ·
+vowel-line want · consonant-line surface · day-of-birth knack · maturity
+consolidation). The engine APPENDS the slot line after the shared base
+body — the base stays byte-identical, the three master entries' v1-reused
+bodies included (§1.B v0.62).
+
+**#2 — the tension registry (`THEME_TENSIONS`, same file).** 17 authored
+sentences for genuinely opposing theme pairs (persistence|change,
+discretion|expression, caution|boldness, …). Where a filed pair meets in
+the harmony clause, the closing "working through" algebra is replaced by
+the authored sentence naming the tension; unfiled pairs keep the
+existing clause byte-for-byte.
+
+**Measured effect (same 33-profile sample as the diagnosis).**
+Duplicate-body sheets **25/33 → 3/33**; numerology-on-numerology
+repeats **24 → 0** (the residual 3 are sun/rising and animal/inner
+same-value collisions — proposal #5, not taken up here). Interpretive
+vocabulary 66 → **93** distinct sentences. Tensions fire on 12 of 33
+sheets (23 sentences) — present without saturating.
+
+**Verification.** Suite 57 files / **1959** tests green (1954 + the
+scroll pin + 4 v4 pins: slot completeness/assembly contract,
+repeated-value divergence, tension-key well-formedness against the live
+theme vocabulary, filed-pair replacement + unfiled byte-preservation).
+All new prose runs through the voice-register scans (assembled output
+included) — no second person, no oracle register, no diagnostic
+framing. Mutation-verified: dropping the slot append reds 2 pins,
+deadening tensions reds 1, dropping the scroll reds 1. Scan-target
+parity did its job mid-build: the v3→v4 switch was forced into the scan
+file by the existing anti-drift pin. Live-fire: top-row tap scrolls the
+panel into view; personality-6 vs birthday-6 and soulUrge-4 vs
+maturity-4 read differently on the 1990-05-15 card; the
+persistence|change tension renders on a taurus/life-path-5 sheet; zero
+console errors.
+
+**Scope (files):** `content/meanings.v4.js` (new), `ui/meanings.js`,
+`tests/meanings_content.test.js`, `tests/meanings_behavior.test.js`,
+`tests/meanings_ui.test.js`, `CLAUDE.md` (content line),
+`DOCTRINE.md` (content-version footer: meanings-v3 → meanings-v4,
+additive parenthetical — mechanical version-truth update), this entry;
+the L48 artifact follows once the PR number exists.
+
+**Update, same session — PR #212 opened, two-lane review complete.**
+sonnet MERGE WITH FIXES / opus MERGE WITH FIXES, reconciled MERGE WITH
+FIXES; everything fix-class landed in the artifact commit:
+- **Panel clipping (opus headline):** the grown prose overran the old
+  420px `max-height` with `overflow: hidden` — clipped mid-sentence, no
+  scrollbar, invisible to the suite. Cap raised to 640px with
+  `overflow-y: auto` (growth degrades to a scroll, never silent loss);
+  worst-case live-fire at 320×568 measures 413px, fits with headroom;
+  style-pinned.
+- **Cross-panel contradiction (sonnet MAJOR = opus):** the tension
+  lookup was primary-vs-partner only, so a sheet could close with
+  "working through" harmony on a pair the registry files as opposed.
+  `harmonyFor` now checks all three positions (primary/p0, primary/p1,
+  p0/p1), deterministic order, regression-pinned with the audit's own
+  cancer/rabbit/life-path-1 example — and the triple-check makes ALL 17
+  filed pairs reachable (opus had proven three dead under the old rule;
+  re-enumerated, now pinned by an in-suite reachability enumeration).
+- **Six green mutations closed:** exact-join assembly over every
+  family×value; a derivation-vocabulary oracle pin a family swap cannot
+  satisfy (the table was its own oracle before); the scroll delay pinned
+  to outlast the 280ms transition (not at 280, fired by 320); the
+  reduced-motion query string pinned; single-fire scroll timer (reopen
+  inside the window retargets instead of double-firing); the tension
+  position coverage above.
+- **Version-truth completed:** `core/dyad.js` and its provenance string
+  track v4; §1.G gains the meanings-v4 routing note (v0.62-era "active
+  registry is v3" clauses resolve through v4's unedited re-export); the
+  content-interaction footer updated. The §1.G body/context boundary
+  question the opus lane raised — whether slot lines sit inside the
+  "registered meaning" or form a third layer — is NAMED OPEN in the
+  routing note and the artifact, a controller call, not decided here.
+Suite 57 files / **1962** tests green (1959 + the reachability
+enumeration, the oracle pin, the panel-style pin; the scroll and tension
+pins reworked in place). All six lane mutations re-run: each red.
+Record: `audits/claude_relay_pr212_premerge_audit_2026-08-30_response.md`.
+Merge word stays with the controller — the 89 authored sentences remain
+flagged for the controller's own read.
+
 ## 2026-08-30 — DOCTRINE mechanical edit: the §1.D v0.64 "open product call" clause marked resolved — STAGED on branch, PR pending
 
 **What happened.** PR #210 (merged `d4de8aa`) answered the F4
