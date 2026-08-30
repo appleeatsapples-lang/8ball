@@ -83,7 +83,7 @@ const STYLE = `
 .meaning-panel { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
   border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
-.meaning-panel.open { max-height: 420px; opacity: 1; margin-top: 4px; padding-top: 16px; }
+.meaning-panel.open { max-height: 640px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
@@ -215,10 +215,21 @@ export function harmonyFor(key, entry, values) {
   // Deterministic — first filed pair in partner order wins; unfiled pairs
   // keep the harmony clause byte-for-byte.
   const theme = themeFor(entry);
-  const tensionKey = t => [theme, t].sort().join('|');
-  const tensionPartner = partners.find(part => THEME_TENSIONS[tensionKey(part.theme)]);
-  const closing = tensionPartner
-    ? THEME_TENSIONS[tensionKey(tensionPartner.theme)]
+  // Filed-pair lookup order: primary-vs-first partner, primary-vs-second,
+  // then the two partners against each other — the pr212 audit showed a
+  // sheet closing with "working through" harmony on a pair the registry
+  // itself files as opposed (partner-vs-partner was never consulted, so
+  // one panel contradicted its neighbor). First filed pair wins;
+  // deterministic; unfiled triples keep the harmony clause byte-for-byte.
+  const pairKey = (a, b) => [a, b].sort().join('|');
+  const filedCandidates = [
+    pairKey(theme, partners[0].theme),
+    pairKey(theme, partners[1].theme),
+    pairKey(partners[0].theme, partners[1].theme),
+  ];
+  const filed = filedCandidates.find(k => THEME_TENSIONS[k]);
+  const closing = filed
+    ? THEME_TENSIONS[filed]
     : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`;
   return `read together, ${theme} serves as ${context.role}; ${partners[0].theme} enters as ${partners[0].role}, and ${partners[1].theme} as ${partners[1].role}. ${closing}`;
 }
@@ -266,6 +277,7 @@ export function initMeaningsUI(refs) {
   const contextHead = panel.querySelector('#meaning-context-head');
   const contextBody = panel.querySelector('#meaning-context');
   let activeCell = null;
+let scrollTimer = null;
 
   // The collapsed panel is max-height:0/overflow:hidden \u2014 pixels gone, but
   // its close button stayed in the tab order. `inert` (mirrored by
@@ -325,7 +337,12 @@ export function initMeaningsUI(refs) {
     if (typeof panel.scrollIntoView === 'function') {
       const instant = typeof matchMedia === 'function'
         && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      setTimeout(() => {
+      // One pending scroll at a time: a reopen inside the window otherwise
+      // double-fires (pr212 audit, sonnet LOW). 300ms > the 280ms
+      // max-height transition, so 'nearest' measures the expanded box.
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollTimer = null;
         if (activeCell !== cell) return; // closed or retargeted meanwhile
         panel.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' });
       }, 300);

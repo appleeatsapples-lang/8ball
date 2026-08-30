@@ -138,13 +138,19 @@ describe('ui/meanings.js behavior', () => {
     vi.useFakeTimers();
     try {
       const scrolls = [];
+      const queries = [];
       panel().scrollIntoView = opts => scrolls.push(opts);
-      globalThis.matchMedia = () => ({ matches: false });
+      globalThis.matchMedia = q => { queries.push(q); return { matches: false }; };
       cardFace._fire('click', { target: vals.sun });
-      expect(scrolls).toHaveLength(0); // not before the transition
-      vi.advanceTimersByTime(320);
+      // The delay must OUTLAST the 280ms max-height transition — a shorter
+      // timer scrolls a collapsed box (pr212 audit: 50ms passed the old
+      // pin). Not fired at 280, fired by 320.
+      vi.advanceTimersByTime(280);
+      expect(scrolls).toHaveLength(0);
+      vi.advanceTimersByTime(40);
       expect(scrolls).toHaveLength(1);
       expect(scrolls[0]).toEqual({ block: 'nearest', behavior: 'smooth' });
+      expect(queries[0]).toBe('(prefers-reduced-motion: reduce)');
 
       // close before the delay -> no stray scroll
       cardFace._fire('click', { target: vals.sun }); // toggles closed... reopen first
@@ -153,12 +159,20 @@ describe('ui/meanings.js behavior', () => {
       vi.advanceTimersByTime(400);
       expect(scrolls).toHaveLength(1);
 
+      // rapid retarget within the window fires ONCE, for the final cell
+      // (pr212 audit: the old handler double-fired)
+      cardFace._fire('click', { target: vals.sun });
+      vi.advanceTimersByTime(100);
+      cardFace._fire('click', { target: vals.animal }); // retarget mid-window
+      vi.advanceTimersByTime(400);
+      expect(scrolls).toHaveLength(2);
+
       // reduced motion asks for an instant scroll
-      globalThis.matchMedia = () => ({ matches: true });
+      globalThis.matchMedia = q => { queries.push(q); return { matches: true }; };
       cardFace._fire('click', { target: vals.sun });
       vi.advanceTimersByTime(320);
-      expect(scrolls).toHaveLength(2);
-      expect(scrolls[1].behavior).toBe('auto');
+      expect(scrolls).toHaveLength(3);
+      expect(scrolls[2].behavior).toBe('auto');
     } finally {
       delete globalThis.matchMedia;
       vi.useRealTimers();

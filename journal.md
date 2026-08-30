@@ -66,6 +66,44 @@ console errors.
 additive parenthetical — mechanical version-truth update), this entry;
 the L48 artifact follows once the PR number exists.
 
+**Update, same session — PR #212 opened, two-lane review complete.**
+sonnet MERGE WITH FIXES / opus MERGE WITH FIXES, reconciled MERGE WITH
+FIXES; everything fix-class landed in the artifact commit:
+- **Panel clipping (opus headline):** the grown prose overran the old
+  420px `max-height` with `overflow: hidden` — clipped mid-sentence, no
+  scrollbar, invisible to the suite. Cap raised to 640px with
+  `overflow-y: auto` (growth degrades to a scroll, never silent loss);
+  worst-case live-fire at 320×568 measures 413px, fits with headroom;
+  style-pinned.
+- **Cross-panel contradiction (sonnet MAJOR = opus):** the tension
+  lookup was primary-vs-partner only, so a sheet could close with
+  "working through" harmony on a pair the registry files as opposed.
+  `harmonyFor` now checks all three positions (primary/p0, primary/p1,
+  p0/p1), deterministic order, regression-pinned with the audit's own
+  cancer/rabbit/life-path-1 example — and the triple-check makes ALL 17
+  filed pairs reachable (opus had proven three dead under the old rule;
+  re-enumerated, now pinned by an in-suite reachability enumeration).
+- **Six green mutations closed:** exact-join assembly over every
+  family×value; a derivation-vocabulary oracle pin a family swap cannot
+  satisfy (the table was its own oracle before); the scroll delay pinned
+  to outlast the 280ms transition (not at 280, fired by 320); the
+  reduced-motion query string pinned; single-fire scroll timer (reopen
+  inside the window retargets instead of double-firing); the tension
+  position coverage above.
+- **Version-truth completed:** `core/dyad.js` and its provenance string
+  track v4; §1.G gains the meanings-v4 routing note (v0.62-era "active
+  registry is v3" clauses resolve through v4's unedited re-export); the
+  content-interaction footer updated. The §1.G body/context boundary
+  question the opus lane raised — whether slot lines sit inside the
+  "registered meaning" or form a third layer — is NAMED OPEN in the
+  routing note and the artifact, a controller call, not decided here.
+Suite 57 files / **1962** tests green (1959 + the reachability
+enumeration, the oracle pin, the panel-style pin; the scroll and tension
+pins reworked in place). All six lane mutations re-run: each red.
+Record: `audits/claude_relay_pr212_premerge_audit_2026-08-30_response.md`.
+Merge word stays with the controller — the 89 authored sentences remain
+flagged for the controller's own read.
+
 ## 2026-08-30 — DOCTRINE mechanical edit: the §1.D v0.64 "open product call" clause marked resolved — STAGED on branch, PR pending
 
 **What happened.** PR #210 (merged `d4de8aa`) answered the F4
