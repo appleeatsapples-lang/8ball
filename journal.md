@@ -5,6 +5,49 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — DOCTRINE v0.64: the gender-ask retirement is written into the constitution — STAGED on branch, PR pending
+
+**What happened.** PR #208 merged (`4c99ab4`) with DOCTRINE still
+describing the gender input — the divergence its pre-merge audit flagged
+as F5 and this journal flagged twice. The controller gave the word to
+amend; this entry ships the amendment.
+
+**The amendment (v0.64, §1.D + §5).** §1.D gains the v0.64 paragraph:
+gender rules (1)–(3) superseded (no control, no write seam, both-values
+render is the contract, not the fallback), rules (4)–(5) stand,
+`core/kua.js` stays the method registry via `getKuaBoth`, the boot
+scrubs and the open F4 citation-body call are named. §5 loses the
+`gender` bullet from the `eight_ball_profile_v1` field list and gains
+the v0.64 removal paragraph: the §5.E reconstruction-fields
+parenthetical returns to its original list, the v0.63 re-key rationale
+is retired as obsolete, and the three boot scrubs are specified with
+their surgical, read-verified, mutation-pinned contract. Version log:
+v0.64 becomes the doctrine version (v0.63 → prior, v0.62 → superseded)
+and states openly that **doctrine follows code here** — the product
+change merged first; the sequencing is named, not smoothed over.
+
+**Gates.** DOCTRINE-touching PR ⇒ journal touch (this entry) + a file
+under `audits/` + its own L48 artifact once the PR number exists; the
+§10 cross-model read for this amendment runs as a fresh two-lane
+in-container review of the doctrine diff itself (the pr208 relay audited
+the underlying product change; this pass checks the amendment text
+against shipped code). Merge stays with the controller.
+
+**Scope (files):** `DOCTRINE.md`, this entry; the L48 artifact follows
+once the PR number exists.
+
+**Update, same session — PR #209 opened, two-lane review complete.**
+opus MERGE WITH FIXES / sonnet MERGE WITH FIXES, reconciled MERGE WITH
+FIXES; all four items landed (the unsuperseded v0.63 computation clause
+— the sixth gender mention, caught by both lanes; the §10-provenance
+separation; the inline relay-composition caveat; the explained §5
+bullet-deletion-vs-RETIRED divergence). Record:
+`audits/claude_relay_pr209_premerge_audit_2026-08-30_response.md` —
+whose commit also greens the doctrine-gate and l48-gate. Accuracy
+otherwise reproduced exactly by both lanes, including a re-proof of the
+scrubs' surgical contract by fresh mutations. Merge word stays with the
+controller.
+
 ## 2026-08-30 — PR #208 cross-model audit run in-container: MERGE WITH FIXES, all six fixed — L48 artifact filed
 
 **What happened.** The controller directed the PR #208 pre-merge audit
