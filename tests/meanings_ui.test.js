@@ -45,12 +45,13 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     );
   });
 
-  it('the open panel fits the v4 prose: 640px cap with overflow-y auto, never a silent clip', () => {
-    // pr212 audit (opus headline): the old 420px cap + overflow:hidden cut
-    // the grown bodies mid-sentence with no scrollbar. The cap must be
-    // >= 640 and overflow must scroll, so growth degrades to a scroll,
-    // never to silent loss.
-    expect(meaningsJs).toMatch(/\.meaning-panel\.open \{ max-height: 640px; overflow-y: auto;/);
+  it('the open panel fits the grown prose: 720px cap with overflow-y auto, never a silent clip', () => {
+    // pr212 audit (opus headline): a cap + overflow:hidden cut the grown
+    // bodies mid-sentence with no scrollbar. pr213's full §1.I emission
+    // set grew the relation line, so the cap is 720px now — and overflow
+    // must scroll, so any future growth degrades to a scroll, never to
+    // silent loss.
+    expect(meaningsJs).toMatch(/\.meaning-panel\.open \{ max-height: 720px; overflow-y: auto;/);
   });
 
   it('uses meaning context rather than derivation/provenance copy', () => {

@@ -622,15 +622,30 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
     const entry = entryFor('sun', 'taurus');
     // Determinism: byte-identical on repeat.
     expect(harmonyFor('sun', entry, resolvedSheet)).toBe(harmonyFor('sun', entry, resolvedSheet));
-    // All four frames occur across the real value space (key x value),
-    // so no frame is dead weight and the pattern genuinely varies.
-    const seen = new Set();
-    for (const key of Object.keys(COORDINATE_CONTEXT)) {
-      for (const value of ['1', '2', '3', '4', '5', 'taurus', 'virgo', 'horse', 'earth', '11']) {
-        seen.add(uiMeanings.frameIndexFor(key, value));
-      }
+    // All four frames occur over each key's REAL value domain — not an
+    // artificial cross-product (pr213 audit, opus MED: the old pin missed
+    // that `sun` never reaches frame 3 over its actual twelve signs).
+    // Global: all four frames live. Per key: at least two, so no
+    // coordinate is stuck on one skeleton.
+    const numDomain = [...TERMINAL_NUMBERS].map(String);
+    const signDomain = SUN_SIGNS.map(sign => sign.name);
+    const pillarDomain = ANIMALS.flatMap(a => Object.keys(ELEMENT_MEANINGS).map(e => `${a} \u00b7 ${e}`));
+    const domains = {
+      sun: signDomain, rising: signDomain,
+      animal: [...ANIMALS], innerAnimal: [...ANIMALS],
+      element: Object.keys(ELEMENT_MEANINGS),
+      lifePath: numDomain, nameNumber: numDomain, soulUrge: numDomain,
+      personality: numDomain, birthday: numDomain, maturity: numDomain,
+      dayPillar: pillarDomain, hourPillar: pillarDomain,
+      arcana: MAJOR_ARCANA.map(name => `x \u00b7 ${name}`),
+    };
+    const global = new Set();
+    for (const [key, domain] of Object.entries(domains)) {
+      const seen = new Set(domain.map(value => uiMeanings.frameIndexFor(key, value)));
+      expect(seen.size, `${key} reaches only ${[...seen]}`).toBeGreaterThanOrEqual(2);
+      for (const f of seen) global.add(f);
     }
-    expect([...seen].sort()).toEqual([0, 1, 2, 3]);
+    expect([...global].sort()).toEqual([0, 1, 2, 3]);
     // The closing clause survives every frame byte-for-byte — harmony
     // algebra and tension sentence alike — so the tension pins hold
     // regardless of which frame renders.
@@ -644,6 +659,70 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
       expect(uiMeanings.composeHarmony(i, 'persistence', 'the outward agenda', parts, THEME_TENSIONS['change|persistence'])
         .endsWith(THEME_TENSIONS['change|persistence'])).toBe(true);
     }
+  });
+
+  it('frames pair each theme with ITS role — sentinel tokens a misattribution cannot satisfy', () => {
+    // pr213 audit (sonnet, demonstrated): a theme/role misattribution in
+    // the engine passed the whole suite after the frame-agnostic loosening.
+    // Sentinels make pairing checkable per frame: a theme and its role
+    // must share a clause; cross-pairings must not.
+    const partners = [{ theme: 'CCC', role: 'DDD' }, { theme: 'EEE', role: 'FFF' }];
+    // The full sentinel ORDER per frame is the oracle: any theme/role
+    // misattribution — swapped partner roles, swapped primary pair,
+    // reordered partners — perturbs the sequence. Frame 2 leads with the
+    // role by design; the other three lead with the theme.
+    const EXPECTED_ORDER = {
+      0: ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'ZZZ'],
+      1: ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'ZZZ'],
+      2: ['BBB', 'AAA', 'DDD', 'CCC', 'FFF', 'EEE', 'ZZZ'],
+      3: ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'ZZZ'],
+    };
+    for (let i = 0; i < uiMeanings.HARMONY_FRAME_COUNT; i++) {
+      const out = uiMeanings.composeHarmony(i, 'AAA', 'BBB', partners, 'ZZZ.');
+      const sequence = out.match(/AAA|BBB|CCC|DDD|EEE|FFF|ZZZ/g);
+      expect(sequence, `frame ${i}`).toEqual(EXPECTED_ORDER[i]);
+      expect(out.endsWith('ZZZ.')).toBe(true);
+    }
+  });
+
+  const themeOfEntry = e => e.theme || e.register.split('\u00b7')[0].trim();
+
+  it('harmonyFor equals the hand-assembled expectation — an engine-internal oracle', () => {
+    // Built from the registry parts and composeHarmony directly, so a
+    // misattribution INSIDE harmonyFor (wrong partner order, wrong role,
+    // wrong theme) cannot reproduce it.
+    // A deliberately tension-free triple (virgo/dog/6 files no theme
+    // tension), so the algebra closing is the expected one; sun's partner
+    // order is its COORDINATE_CONTEXT.partners: [animal, lifePath].
+    const sheet = { ...resolvedSheet, sun: 'virgo', animal: 'dog', lifePath: '6' };
+    const entry = entryFor('sun', 'virgo');
+    const partners = [
+      { theme: themeOfEntry(entryFor('animal', 'dog')), role: COORDINATE_CONTEXT.animal.role },
+      { theme: themeOfEntry(entryFor('lifePath', '6')), role: COORDINATE_CONTEXT.lifePath.role },
+    ];
+    const theme = themeOfEntry(entry);
+    const closing = `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`;
+    const expected = uiMeanings.composeHarmony(
+      uiMeanings.frameIndexFor('sun', 'virgo'), theme, COORDINATE_CONTEXT.sun.role, partners, closing,
+    );
+    expect(harmonyFor('sun', entry, sheet)).toBe(expected);
+  });
+
+  it('an ADVERSE filed relation suppresses the harmony algebra; a filed theme tension survives it', () => {
+    // pr213 audit (opus MED): "working through" rendered one line above a
+    // filed chong/square/ke record in 96 of 96 adverse animal pairs — the
+    // pr212 contradiction shape across registries.
+    const entry = entryFor('animal', 'horse');
+    const plain = harmonyFor('animal', entry, resolvedSheet);
+    const suppressed = harmonyFor('animal', entry, resolvedSheet, { adverse: true });
+    expect(plain).toMatch(/the combination is .+ working through /);
+    expect(suppressed).not.toMatch(/working through/);
+    expect(suppressed.endsWith('.')).toBe(true);
+    // A filed THEME tension still renders under adverse — friction above
+    // friction is consistent.
+    const tensionSheet = { ...resolvedSheet, sun: 'taurus', animal: 'horse', lifePath: '5' };
+    const tense = harmonyFor('sun', entryFor('sun', 'taurus'), tensionSheet, { adverse: true });
+    expect(tense).toContain(THEME_TENSIONS['change|persistence']);
   });
 
   it('filed relations: registered pairs render, unfiled and sealed pairs render nothing', () => {
@@ -667,6 +746,34 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
     expect(uiMeanings.relationLineFor('element', { element: 'metal', dayPillar: '' })).toBe('');
     // Unresolved markers likewise.
     expect(uiMeanings.relationLineFor('sun', { sun: 'taurus', rising: '\u2014' })).toBe('');
+    // Sealed-partner cases for EVERY pair kind (pr213 audit, opus MAJOR:
+    // only the sun kind was pinned — a mutant defaulting the partner
+    // value rendered a sealed compartment's number on a free panel with
+    // the whole suite green).
+    expect(uiMeanings.relationLineFor('lifePath', { lifePath: '11', nameNumber: '', soulUrge: '', personality: '', birthday: '', maturity: '' })).toBe('');
+    expect(uiMeanings.relationLineFor('birthday', { birthday: '2', lifePath: '', nameNumber: '', soulUrge: '', personality: '', maturity: '' })).toBe('');
+    expect(uiMeanings.relationLineFor('animal', { animal: 'horse', innerAnimal: '' })).toBe('');
+    expect(uiMeanings.relationLineFor('innerAnimal', { animal: '', innerAnimal: 'rat' })).toBe('');
+    expect(uiMeanings.relationLineFor('dayPillar', { element: '', dayPillar: 'rat \u00b7 water' })).toBe('');
+  });
+
+  it('filed relations carry the FULL §1.I emission set — registry and qualifier included', () => {
+    // pr213 audit, opus MAJOR: the panel line dropped three of the
+    // Register law's six emissions, the "recorded, not certified."
+    // qualifier among them — the one both other registry surfaces carry
+    // and tests/dyad.test.js pins by name.
+    const cases = [
+      ['sun', { sun: 'taurus', rising: 'virgo' }, 'western zodiac \u00b7 sign-distance relations'],
+      ['animal', { animal: 'horse', innerAnimal: 'dog' }, 'earthly branches \u00b7 classical branch relations'],
+      ['element', { element: 'metal', dayPillar: 'rat \u00b7 water' }, 'wuxing \u00b7 the five phases'],
+      ['lifePath', { lifePath: '11', birthday: '2' }, 'pythagorean numerology \u00b7 master reduction'],
+    ];
+    for (const [key, sheet, registry] of cases) {
+      const line = uiMeanings.relationLineFor(key, sheet);
+      expect(line, key).toContain('. registered — ');
+      expect(line, key).toContain(`registry: ${registry}`);
+      expect(line.endsWith('recorded, not certified.'), key).toBe(true);
+    }
   });
 
   it('numerology coordinates assemble numerology-only partners even on a full sheet', () => {

@@ -98,7 +98,17 @@ describe('ui/meanings.js behavior', () => {
     return { cell, val };
   }
 
+  let observers;
+  const OriginalMO = globalThis.MutationObserver;
   beforeEach(() => {
+    // Capture the card observer the module wires at init (the stale-panel
+    // close path); a mock class stands in for the node-env-absent real one.
+    observers = [];
+    globalThis.MutationObserver = class {
+      constructor(cb) { this.cb = cb; observers.push(this); }
+      observe() {}
+      disconnect() {}
+    };
     byId = new Map();
     cardFace = makeNode('div');
     cells = {}; vals = {};
@@ -125,6 +135,7 @@ describe('ui/meanings.js behavior', () => {
   });
   afterEach(() => {
     if (originalDocument === undefined) delete globalThis.document; else globalThis.document = originalDocument;
+    if (OriginalMO === undefined) delete globalThis.MutationObserver; else globalThis.MutationObserver = OriginalMO;
   });
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
@@ -259,6 +270,21 @@ describe('ui/meanings.js behavior', () => {
     expect(p._byId['meaning-relation-head'].hidden).toBe(true);
     expect(p._byId['meaning-relation'].textContent).toBe('');
     cells.nameNumber.classList.remove('sealed');
+  });
+
+  it('a card re-render under an open panel closes it — stale relation citations cannot linger', () => {
+    // pr213 audit (opus MED): after a resubmission re-rendered the card
+    // under an open panel, the stale FILED RELATION could cite a registry
+    // record the new values do not support (a registered sign-distance
+    // line for a same-value pair §1.I says must be unfiled). The module
+    // observes the card and closes the panel on any value change.
+    expect(observers.length).toBeGreaterThan(0);
+    vals.sun.textContent = 'taurus';
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    observers[0].cb(); // the card re-rendered
+    expect(p.classList.contains('open')).toBe(false);
   });
 
   it('opens the filed master entry for every master value, on every numerology cell', () => {

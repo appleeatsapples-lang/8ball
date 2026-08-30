@@ -197,6 +197,27 @@ const SHEET_NUMEROLOGY_LABELS = Object.freeze({
   personality: 'personality', birthday: 'birthday', maturity: 'maturity',
 });
 
+// Adverse records, by registry vocabulary: the harmony algebra must not
+// render above a filed opposition/harm/punishment/square/quincunx or a
+// ke-cycle overcoming (pr213 audit, opus MED — the pr212 contradiction
+// shape recurring across registries). Membership is derived from the
+// relation strings the registries themselves emit, so a renamed family
+// changes both sides together.
+const ADVERSE_RELATION_RE = /chong|\bhai\b|xing|square|opposition|quincunx|\bke cycle\b/;
+
+function sheetRecord(label, axis, left, right) {
+  return {
+    label,
+    left: String(left),
+    right: String(right),
+    relation: axis.relation,
+    registry: axis.registry,
+    citation: axis.citation,
+    qualifier: axis.qualifier,
+    adverse: ADVERSE_RELATION_RE.test(axis.relation),
+  };
+}
+
 function pillarElementOf(raw) {
   if (typeof raw !== 'string' || !raw.includes('\u00b7')) return null;
   const element = raw.split('\u00b7')[1].trim();
@@ -211,14 +232,14 @@ export function sheetRelationFor(key, values = {}) {
       if (!a || !b || a === '\u2014' || b === '\u2014') return null;
       const axis = compareSun(a, b);
       if (axis.status !== 'registered') return null;
-      return { label: 'sun and rising', left: a, right: b, relation: axis.relation, citation: axis.citation };
+      return sheetRecord('sun and rising', axis, a, b);
     }
     if (key === 'animal' || key === 'innerAnimal') {
       const a = v('animal'); const b = v('innerAnimal');
       if (!a || !b || a === '\u2014' || b === '\u2014') return null;
       const axis = compareAnimal(a, b);
       if (axis.status !== 'registered') return null;
-      return { label: 'public and private animal', left: a, right: b, relation: axis.relation, citation: axis.citation };
+      return sheetRecord('public and private animal', axis, a, b);
     }
     if (key === 'element' || key === 'dayPillar') {
       const year = v('element');
@@ -226,7 +247,7 @@ export function sheetRelationFor(key, values = {}) {
       if (!year || !day || !ELEMENTS.includes(year)) return null;
       const axis = compareElement(year, day);
       if (axis.status !== 'registered') return null;
-      return { label: 'year and day-pillar element', left: year, right: day, relation: axis.relation, citation: axis.citation };
+      return sheetRecord('year and day-pillar element', axis, year, day);
     }
     if (SHEET_NUMEROLOGY_KEYS.includes(key)) {
       const own = Number(v(key));
@@ -237,11 +258,10 @@ export function sheetRelationFor(key, values = {}) {
         if (!LIFE_PATH_VALUES.includes(other)) continue;
         const axis = compareLifePath(own, other);
         if (axis.status !== 'registered') continue;
-        return {
-          label: `${SHEET_NUMEROLOGY_LABELS[key]} and ${SHEET_NUMEROLOGY_LABELS[otherKey]}`,
-          left: String(own), right: String(other),
-          relation: axis.relation, citation: axis.citation,
-        };
+        return sheetRecord(
+          `${SHEET_NUMEROLOGY_LABELS[key]} and ${SHEET_NUMEROLOGY_LABELS[otherKey]}`,
+          axis, own, other,
+        );
       }
       return null;
     }

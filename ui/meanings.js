@@ -84,7 +84,7 @@ const STYLE = `
 .meaning-panel { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
   border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
-.meaning-panel.open { max-height: 640px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
+.meaning-panel.open { max-height: 720px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
@@ -200,15 +200,16 @@ function readValues() {
 export const HARMONY_FRAME_COUNT = 4;
 export function composeHarmony(frameIndex, theme, role, partners, closing) {
   const [p0, p1] = partners;
+  const tail = closing ? ` ${closing}` : '';
   switch (((frameIndex % HARMONY_FRAME_COUNT) + HARMONY_FRAME_COUNT) % HARMONY_FRAME_COUNT) {
     case 1:
-      return `${theme} carries ${role} here, beside ${p0.theme} as ${p0.role} and ${p1.theme} as ${p1.role}. ${closing}`;
+      return `${theme} carries ${role} here, beside ${p0.theme} as ${p0.role} and ${p1.theme} as ${p1.role}.${tail}`;
     case 2:
-      return `in this reading, ${role} falls to ${theme}; ${p0.role} to ${p0.theme}, and ${p1.role} to ${p1.theme}. ${closing}`;
+      return `in this reading, ${role} falls to ${theme}; ${p0.role} to ${p0.theme}, and ${p1.role} to ${p1.theme}.${tail}`;
     case 3:
-      return `${theme} takes ${role}. ${p0.theme} holds ${p0.role}; ${p1.theme} holds ${p1.role}. ${closing}`;
+      return `${theme} takes ${role}. ${p0.theme} holds ${p0.role}; ${p1.theme} holds ${p1.role}.${tail}`;
     default:
-      return `read together, ${theme} serves as ${role}; ${p0.theme} enters as ${p0.role}, and ${p1.theme} as ${p1.role}. ${closing}`;
+      return `read together, ${theme} serves as ${role}; ${p0.theme} enters as ${p0.role}, and ${p1.theme} as ${p1.role}.${tail}`;
   }
 }
 export function frameIndexFor(key, rawValue) {
@@ -228,10 +229,14 @@ export function frameIndexFor(key, rawValue) {
 export function relationLineFor(key, values) {
   const rel = sheetRelationFor(key, values);
   if (!rel) return '';
-  return `${rel.label}: ${rel.left} and ${rel.right} — ${rel.relation}. ${rel.citation}.`;
+  // The full §1.I Register-law emission set, matching the two-reading
+  // compare surface: values, relation, citation, registry, and the
+  // qualifier verbatim (pr213 audit, opus MAJOR — the panel had dropped
+  // three of the six, the qualifier included).
+  return `${rel.label}: ${rel.left} and ${rel.right} — ${rel.relation}. registered — ${rel.citation}; registry: ${rel.registry}. ${rel.qualifier}`;
 }
 
-export function harmonyFor(key, entry, values) {
+export function harmonyFor(key, entry, values, opts = {}) {
   const context = COORDINATE_CONTEXT[key];
   if (!context) return '';
   const fallbacks = NUMEROLOGY_KEYS.has(key)
@@ -273,9 +278,14 @@ export function harmonyFor(key, entry, values) {
     pairKey(partners[0].theme, partners[1].theme),
   ];
   const filed = filedCandidates.find(k => THEME_TENSIONS[k]);
+  // An ADVERSE filed relation rendering on this same panel suppresses the
+  // harmony algebra (pr213 audit, opus MED — "working through" one line
+  // above a filed chong/square/ke record is the pr212 contradiction shape
+  // across registries). A filed THEME tension still renders: friction
+  // above friction is consistent.
   const closing = filed
     ? THEME_TENSIONS[filed]
-    : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`;
+    : (opts.adverse ? '' : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`);
   return composeHarmony(frameIndexFor(key, values[key]), theme, context.role, partners, closing);
 }
 
@@ -297,12 +307,15 @@ function detailFor(key, cell, rawValue) {
   const entry = entryFor(key, rawValue);
   if (entry) {
     const values = readValues();
+    const rel = sheetRelationFor(key, values);
     return {
       title: entry.register,
       body: entry.body,
-      context: harmonyFor(key, entry, values),
+      context: harmonyFor(key, entry, values, { adverse: !!(rel && rel.adverse) }),
       contextLabel: NUMEROLOGY_KEYS.has(key) ? 'with the other numbers' : 'in this sheet',
-      relation: relationLineFor(key, values),
+      relation: rel
+        ? `${rel.label}: ${rel.left} and ${rel.right} — ${rel.relation}. registered — ${rel.citation}; registry: ${rel.registry}. ${rel.qualifier}`
+        : '',
     };
   }
   return {
@@ -400,6 +413,17 @@ let scrollTimer = null;
         panel.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' });
       }, 300);
     }
+  }
+
+  // A resubmission re-renders the card under an open panel, leaving stale
+  // meaning text — and since pr213, a stale FILED RELATION could cite a
+  // registry record the new values do not support (opus MED: a registered
+  // sign-distance line rendered for a same-value pair §1.I says must be
+  // unfiled). Close the panel whenever the card's values change under it;
+  // guarded for the injected-DOM test surface.
+  if (typeof MutationObserver === 'function' && cardFace) {
+    const observer = new MutationObserver(() => { if (activeCell) close(); });
+    observer.observe(cardFace, { subtree: true, childList: true, characterData: true });
   }
 
   // Mark every coordinate compartment interactive. Delegated click/keydown on cardFace

@@ -58,6 +58,44 @@ pairs and the free tier stay silent, zero console errors.
 follows once the PR number exists. **UNTOUCHED:** all content files,
 `core/`, `index.html`, DOCTRINE.
 
+**Update, same session — PR #213 opened, two-lane review complete,
+DOCTRINE v0.65 rides the fix commit.** sonnet MERGE WITH FIXES / opus
+MERGE WITH FIXES, reconciled MERGE WITH FIXES; everything fix-class
+landed:
+- **Register-law emissions (opus MAJOR):** the panel line had dropped
+  three of §1.I's six — it now carries values, relation, the textual
+  status `registered`, citation, named registry, and the
+  `recorded, not certified.` qualifier verbatim; emission-pinned per
+  pair kind. Panel cap 640 → 720 for the grown line.
+- **Tier boundary pinned per pair kind (opus MAJOR):** sealed-partner
+  pins for numerology, animal, and both element directions — opus's
+  `|| 2` mutant (a sealed compartment's number on a free panel, suite
+  green) now reds.
+- **§1.I scope recorded (sonnet):** DOCTRINE gains the v0.65
+  intra-sheet amendment (controller order 2026-08-30): the fixed pair
+  list, registered-only with absence-claims-nothing, the emission set,
+  the adverse rule, the stale-panel rule, the sealed-DOM tier
+  boundary, and the sole-importer preservation. Version log rotated.
+- **Coverage loss closed (sonnet, demonstrated):** a token-order oracle
+  over sentinel parts pins theme↔role pairing per frame, plus a
+  hand-assembled `harmonyFor` equality oracle; the injected
+  misattribution now reds 2 pins.
+- **Adverse suppression (opus MED):** a filed chong/hai/xing /
+  square/quincunx/opposition / ke-cycle record suppresses the harmony
+  algebra in the same panel (a filed THEME tension still renders —
+  friction above friction is consistent); pinned.
+- **Real-domain frame pin (opus MED):** reachability now enumerates
+  each key's actual value domain (global all-four; every key ≥2 —
+  `sun` genuinely reaches only three, which the old artificial
+  cross-product hid); the modulus mutant now reds.
+- **Stale-panel close (opus MED):** the panel closes on any card
+  re-render via a guarded MutationObserver, so a stale citation can
+  never attest a record the current values do not support; pinned and
+  live-fire verified.
+Suite 57 files / **1970** tests green (1965 + 5). Six lane mutants
+re-run: each red. Record:
+`audits/claude_relay_pr213_premerge_audit_2026-08-30_response.md`.
+Merge word stays with the controller.
 ## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — STAGED on branch, PR pending
 
 **What happened.** The controller ordered items 6, 1 and 2 from this
