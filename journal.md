@@ -5,6 +5,77 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Mobile submit dead end closed (the PR #200 open `:has()` item) — FIXED, tests green, live-fire verified
+
+**What happened.** A "does the live app work?" pass turned up the defect
+the PR #200 audit had logged as unresolved: the ":has()-based mobile
+`#enter-btn` tab-order concern that this session's own live verification
+attempt was inconclusive on (recommend a real manual device pass)". It is
+real, and it is worse than a tab-order nit — it was a dead end.
+
+**The bug.** Below 480px the only submit control is the fixed 72px circular
+`#enter-btn`. `ui/experience.css` revealed it once name + DOB were valid,
+then withdrew it again while anything inside `#rising-fields` or
+`.kua-gender-field` held `:focus`. That second rule had no exit.
+`ui/citysearch.js` `preventDefault()`s the suggestion `mousedown`
+deliberately, so the choice survives the focus shift — which means focus
+stays in `#city-input` after a birthplace is picked, and the sole submit
+stayed `visibility: hidden` for the rest of the session. A user who filled
+the optional birth-time/place block last (the natural order — it is the
+last block on the form) had no way to submit but to tap dead space and
+blur. The time and gender controls trapped it the same way. Nothing in the
+UI hinted that tapping nowhere was the way out.
+
+**Why it survived.** Nothing tested it: before this entry there was no
+test in the repo referencing `experience.css` or `#enter-btn` at all, and
+`:has()` / `@supports` / `@media` are exactly what the jsdom suite cannot
+evaluate. The #200 live-fire could not confirm it either. It took a real
+engine (Chromium via the §8 gate-9 recipe) driven through the *pointer*
+path — fill the optional block last, then try to submit without blurring.
+
+**The fix** (`ui/experience.css`). The withdraw rule is now keyed to the
+birthplace listbox's own `aria-expanded`, not to focus:
+`#profile-form:has(#name-input:valid):has(#dob-input:valid):has(#city-input[aria-expanded="true"]) #enter-btn`.
+`ui/citysearch.js` sets that attribute on render and clears it on
+selection, Escape, blur, empty results and reset, so the state always
+resolves. The guard it preserves is real and worth keeping — the
+suggestion list can run down to the button's corner and a mis-tap there
+would submit mid-search — but it now lasts exactly as long as the listbox
+does. Time and gender are native OS pickers that float above the page;
+they never needed it. No JS changed.
+
+**Verification.** Suite 57 files / **1935** tests green (1927 + 8 new).
+Product audit PASS 12/0/1/1, 0 blocking. New `tests/mobile_submit_reveal.test.js`
+pins both halves of the contract — the CSS keys on `aria-expanded` and
+never on `:focus` (static scan, CSS comments stripped so a comment body is
+not read as a selector), and the controller really does clear
+`aria-expanded` on selection / Escape / blur / empty results (real
+controller, injected DOM mocks, mirroring `tests/citysearch.test.js`).
+**Mutation-verified:** reverting `ui/experience.css` to the #200 rule reds
+exactly the two structural assertions and nothing else; restored, green.
+Live-fire at 390x844: begin hidden empty → visible at name+dob → stays
+visible with focus in time and gender → hidden while the listbox is open →
+**visible again the instant a suggestion is picked, with focus still in
+`#city-input`** → submitted without ever blurring, sheet rendered. Escape
+restores it too. Zero console errors. `index.html` untouched at 1452/1500.
+
+**Found but NOT fixed — pre-existing, operator's call.** At 320x568 the
+button's 12px halo overlaps the birthplace label and input
+(`#enter-btn` top 480, `#city-input` 493–537). Measured against `HEAD`'s
+own CSS with nothing focused: button visible, overlap true — so this
+predates this change and is not introduced by it. The old focus rule
+masked it only while a field was focused, never in the resting state. The
+page does not scroll at that height (`docH == vh`), so the row cannot be
+moved out from under the button; fixing it is a mobile layout decision
+(reposition or shrink the control on short viewports, likely in the
+existing `max-width:480px and max-height:680px` block), not a one-line
+patch, so it is logged here rather than absorbed silently.
+
+**Scope (files):** `ui/experience.css`, `tests/mobile_submit_reveal.test.js`
+(new), `CLAUDE.md` (tests/ count 56 → 57, pinned by `repo_shape.test.js`),
+this entry. **UNTOUCHED:** all of `core/`, all of `content/`, `index.html`,
+`tests/fixtures.json`, DOCTRINE, every other `ui/` module.
+
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer
