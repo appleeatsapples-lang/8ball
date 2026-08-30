@@ -152,6 +152,22 @@ describe('kua render — contract', () => {
     expect(both.note).toMatch(/kun \(2\)/);
   });
 
+  it('the injected markup and the production selectors both carry the body slots', () => {
+    // The DI-refs tests above exercise the handed-in-nodes path; the
+    // production path builds its own markup and queries it. The pr210
+    // opus lane proved both could be silently deleted with the suite
+    // green — the whole deliverable removable under clean CI. Source
+    // pins on the exact strings the two mutants altered.
+    expect(kuaJs).toMatch(/card-note kua-body kua-body-primary/);
+    expect(kuaJs).toMatch(/card-note kua-body kua-body-secondary/);
+    expect(kuaJs).toMatch(/qq\('\.kua-body-primary'\)/);
+    expect(kuaJs).toMatch(/qq\('\.kua-body-secondary'\)/);
+    // and the pre-existing slots the same mutant class could take
+    expect(kuaJs).toMatch(/qq\('\.kua-primary'\)/);
+    expect(kuaJs).toMatch(/qq\('\.kua-secondary'\)/);
+    expect(kuaJs).toMatch(/qq\('\.kua-note'\)/);
+  });
+
   it('the module exposes no gender surface at all', () => {
     // The control, its accessors and the single-gender formatter left
     // together; any one returning is the ask coming back.

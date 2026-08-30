@@ -181,7 +181,7 @@ export function renderKuaRead(profile, { entitled } = {}) {
   }
   if (_nodes) {
     if (_nodes.primary) _nodes.primary.textContent = read ? read.primary : '';
-    if (_nodes.primaryBody) _nodes.primaryBody.textContent = read ? read.primaryBody : '';
+    if (_nodes.primaryBody) _nodes.primaryBody.textContent = read ? (read.primaryBody || '') : '';
     if (_nodes.secondary) _nodes.secondary.textContent = read ? read.secondary : '';
     if (_nodes.secondaryBody) _nodes.secondaryBody.textContent = read ? (read.secondaryBody || '') : '';
     if (_nodes.note) _nodes.note.textContent = read ? read.note : '';
