@@ -5,6 +5,31 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — DOCTRINE mechanical edit: the §1.D v0.64 "open product call" clause marked resolved — STAGED on branch, PR pending
+
+**What happened.** PR #210 (merged `d4de8aa`) answered the F4
+render-or-record call with RENDER; the pr210 artifact queued this
+one-clause DOCTRINE update rather than dragging a doctrine gate cycle
+into a ui change. The controller gave the word; this entry ships it.
+
+**The edit.** Two resolution markers in the corrected-on-sighting
+footer style (the v0.48–v0.61 precedent), original text kept as the
+record of the interval: the §1.D v0.64 residue clause and the
+version-log v0.64 entry each gain a bold "resolved, controller word
+RENDER, shipped by PR #210" marker. No version bump — a mechanical
+correction of stale open-language, not an amendment; v0.64 remains the
+doctrine version. No other file's behavior changes.
+
+**Gates.** DOCTRINE-touching PR ⇒ journal (this entry) + audits/ file +
+L48 artifact once the PR number exists; a one-lane in-container
+verification of the mechanical edit reconciles into that artifact
+(proportionate to a two-marker text correction implementing what two
+prior audited artifacts already prescribe — composition stated plainly
+in the artifact). Merge stays with the controller.
+
+**Scope (files):** `DOCTRINE.md` (two markers), this entry; the L48
+artifact follows once the PR number exists.
+
 ## 2026-08-30 — Kua citation bodies rendered: the F4 call resolved as RENDER — STAGED on branch, PR pending
 
 **What happened.** §1.D v0.64 left one product call open: the §1.G
