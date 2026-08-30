@@ -9,7 +9,7 @@
 // aria-pressed round-trip all run against hand-injected DOM mocks
 // (node env, no jsdom — same convention as tests/modals.test.js).
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initMeaningsUI } from '../ui/meanings.js';
 import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
 import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
@@ -128,6 +128,42 @@ describe('ui/meanings.js behavior', () => {
   });
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
+
+  it('opening scrolls the panel into view after the expand transition (top-row dead-tap fix)', () => {
+    // The panel sits below the card; on the tall t3 sheet a tap on a
+    // top-row cell opened it ~200px under the fold and the tap read as a
+    // no-op (live-fire 2026-08-30). The scroll fires AFTER the 280ms
+    // max-height transition so 'nearest' sees the expanded box — and NOT
+    // when the panel was closed again before the delay elapsed.
+    vi.useFakeTimers();
+    try {
+      const scrolls = [];
+      panel().scrollIntoView = opts => scrolls.push(opts);
+      globalThis.matchMedia = () => ({ matches: false });
+      cardFace._fire('click', { target: vals.sun });
+      expect(scrolls).toHaveLength(0); // not before the transition
+      vi.advanceTimersByTime(320);
+      expect(scrolls).toHaveLength(1);
+      expect(scrolls[0]).toEqual({ block: 'nearest', behavior: 'smooth' });
+
+      // close before the delay -> no stray scroll
+      cardFace._fire('click', { target: vals.sun }); // toggles closed... reopen first
+      cardFace._fire('click', { target: vals.sun }); // open again
+      cardFace._fire('click', { target: vals.sun }); // and close before 300ms
+      vi.advanceTimersByTime(400);
+      expect(scrolls).toHaveLength(1);
+
+      // reduced motion asks for an instant scroll
+      globalThis.matchMedia = () => ({ matches: true });
+      cardFace._fire('click', { target: vals.sun });
+      vi.advanceTimersByTime(320);
+      expect(scrolls).toHaveLength(2);
+      expect(scrolls[1].behavior).toBe('auto');
+    } finally {
+      delete globalThis.matchMedia;
+      vi.useRealTimers();
+    }
+  });
 
   it('init marks all 14 coordinate cells interactive and keyboard-reachable', () => {
     for (const [key] of coordinates) {
