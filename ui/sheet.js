@@ -170,7 +170,9 @@ export function createSheet(host, { prefix } = {}) {
     q(`[data-sheet-roleline="${prefix}"]`),
     q(`[data-sheet-public-bridge="${prefix}"]`),
     q(`[data-sheet-kua-primary="${prefix}"]`),
+    q(`[data-sheet-kua-body-primary="${prefix}"]`),
     q(`[data-sheet-kua-secondary="${prefix}"]`),
+    q(`[data-sheet-kua-body-secondary="${prefix}"]`),
     q(`[data-sheet-kua-note="${prefix}"]`),
   ];
 

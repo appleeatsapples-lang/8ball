@@ -267,4 +267,21 @@ describe('dyad-sheet parity', () => {
     expect(byAttr.get('[data-sheet-kua-body-secondary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe('');
   });
+
+  it("clear() scrubs the citation bodies — a valueNodes() list behind the fill path is the F1 leak (PR #210 audit, sonnet BLOCKER)", () => {
+    // ui/dyad.js clearOutput()/submitSecond() rely on sheet.clear() to erase
+    // person B after an invalidated resubmission. The first body render
+    // wrote two new nodes without extending valueNodes(), so a stale
+    // citation sentence survived in live hidden DOM — exactly the PR #187
+    // F1 defect class, reproduced by the pr210 sonnet lane. This pins the
+    // fill path and the clear inventory to move together.
+    const { host, byAttr } = makeSheetHost('b');
+    const sheet = createSheet(host, { prefix: 'b' });
+    const read = kuaReadFor(P);
+    sheet.render(P, 't3', { kua: read });
+    expect(byAttr.get('[data-sheet-kua-body-primary="b"]').textContent.length).toBeGreaterThan(0);
+    sheet.clear();
+    expect(byAttr.get('[data-sheet-kua-body-primary="b"]').textContent).toBe('');
+    expect(byAttr.get('[data-sheet-kua-body-secondary="b"]').textContent).toBe('');
+  });
 });
