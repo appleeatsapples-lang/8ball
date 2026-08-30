@@ -26,7 +26,8 @@ import {
   COORDINATE_CONTEXT,
   NUMEROLOGY_SLOT_LINES,
   THEME_TENSIONS,
-} from '../content/meanings.v4.js';
+  PLACEMENT_LINES,
+} from '../content/meanings.v5.js';
 import { sheetRelationFor } from './concordance.js';
 
 const TABLES = {
@@ -177,7 +178,14 @@ export function entryFor(key, rawValue) {
   // entries' v1-reused bodies included); the slot's own authored line is
   // APPENDED, reading the value in this slot specifically.
   const slotLine = NUMEROLOGY_SLOT_LINES[key] && NUMEROLOGY_SLOT_LINES[key][lookupKeyFor(key, rawValue)];
-  return slotLine ? { ...entry, body: `${entry.body} ${slotLine}` } : entry;
+  // v5 placement lines: the same contract for the two remaining
+  // table-sharing surfaces — rising reuses SUN_MEANINGS and the private
+  // animal reuses ANIMAL_MEANINGS, so a shared sign/branch rendered the
+  // identical body twice on one card. Base body stays byte-identical;
+  // the placement's authored line is appended.
+  const placementLine = PLACEMENT_LINES[key] && PLACEMENT_LINES[key][lookupKeyFor(key, rawValue)];
+  const appended = slotLine || placementLine;
+  return appended ? { ...entry, body: `${entry.body} ${appended}` } : entry;
 }
 
 function readValues() {

@@ -13,10 +13,11 @@ import { fileURLToPath } from 'node:url';
 
 vi.mock('../core/cities.js', () => ({
   searchCities: vi.fn(),
+  warmCities: vi.fn(),
   isCityLoadExhausted: error => error?.code === 'CITY_LOAD_EXHAUSTED',
 }));
 
-import { searchCities } from '../core/cities.js';
+import { searchCities, warmCities } from '../core/cities.js';
 import {
   initCitySearchUI,
   formatCityLabel,
@@ -36,6 +37,14 @@ describe('ui/citysearch.js DI shape (DOCTRINE §6 v0.23)', () => {
     expect(cityJs.match(/'eight_ball_[a-z0-9_]+'/g)).toBeNull();
     expect(cityJs).not.toMatch(/\bfetch\s*\(/);
     expect(cityJs).not.toMatch(/XMLHttpRequest/);
+  });
+
+  it('prefetches the city dataset on first field focus via the core warm entry', () => {
+    // The warm must come from core/cities.js (sharing loadCities' cache and
+    // bounded importer sequence) and be bound { once: true } — idempotent
+    // in the module, single-shot at the listener.
+    expect(cityJs).toMatch(/import\s*\{[^}]*warmCities[^}]*\}\s*from\s*['"]\.\.\/core\/cities\.js['"]/);
+    expect(cityJs).toMatch(/addEventListener\(\s*'focus',\s*\(\)\s*=>\s*warmCities\(\),\s*\{\s*once:\s*true\s*\}\s*\)/);
   });
 
   it('index.html boots the surface via initCitySearchUI and keeps selectedCity host-owned', () => {
@@ -91,7 +100,14 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
       setAttribute(k, v) { this.attrs[k] = v; },
       removeAttribute(k) { delete this.attrs[k]; },
       appendChild(c) { this.children.push(c); },
-      addEventListener(ev, fn) { handlers[ev] = fn; },
+      addEventListener(ev, fn, opts) {
+        // Honor { once: true } like the DOM does — the focus-time prefetch
+        // relies on it, and a mock that ignored it would let a double-fire
+        // regression ride green.
+        handlers[ev] = opts && opts.once
+          ? (...args) => { delete handlers[ev]; return fn(...args); }
+          : fn;
+      },
       _fire(ev, arg) { return handlers[ev] && handlers[ev](arg); },
     };
   }
@@ -122,6 +138,7 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
   beforeEach(() => {
     vi.useFakeTimers();
     searchCities.mockReset();
+    warmCities.mockReset();
     globalThis.document = { createElement: makeNode };
     refs = makeRefs();
     selected = undefined;
@@ -131,6 +148,21 @@ describe('ui/citysearch.js behavior (debounce / race guard / selection)', () => 
     vi.useRealTimers();
     if (originalDocument === undefined) delete globalThis.document;
     else globalThis.document = originalDocument;
+  });
+
+  it('entering the field prefetches the dataset once — never a search, never twice', async () => {
+    // The 2.4MB dataset import used to start on the first debounced
+    // keystroke; the focus-time warm moves it into typing dead time. It
+    // must be the warm path only (no searchCities call, no busy/status
+    // side effects) and must not re-fire on a second focus.
+    expect(warmCities).not.toHaveBeenCalled();
+    refs.cityInput._fire('focus');
+    expect(warmCities).toHaveBeenCalledTimes(1);
+    refs.cityInput._fire('focus');
+    expect(warmCities).toHaveBeenCalledTimes(1);
+    expect(searchCities).not.toHaveBeenCalled();
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+    expect(refs.cityStatus.hidden).toBe(true);
   });
 
   it('typing below MIN_QUERY_LEN clears the selection and never dispatches a search', async () => {

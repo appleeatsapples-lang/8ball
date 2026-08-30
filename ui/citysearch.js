@@ -19,7 +19,7 @@
 // here — core/rising.js isPolarLatitude is the single authority for the
 // polar-circle boundary; this module and ui/profile.js both import it.
 
-import { searchCities, isCityLoadExhausted } from '../core/cities.js';
+import { searchCities, warmCities, isCityLoadExhausted } from '../core/cities.js';
 import { isPolarLatitude } from '../core/rising.js';
 
 // ── pure exports ─────────────────────────────────────────────────
@@ -305,6 +305,12 @@ export function initCitySearchUI(refs, hooks) {
   }
   refs.cityInput.addEventListener('input', onInput);
   refs.cityInput.addEventListener('keydown', onKeydown);
+  // Prefetch the ~2.4MB city dataset the moment the field is entered, so
+  // the import runs during the dead time while the person types instead of
+  // starting on the first debounced keystroke. { once: true } because
+  // warmCities is idempotent per session (loadCities' cache) — one listener
+  // firing is all the warm can ever contribute, even across two instances.
+  refs.cityInput.addEventListener('focus', () => warmCities(), { once: true });
   refs.cityInput.addEventListener('blur', () => {
     // A search still in flight must NOT reopen the listbox after focus is
     // gone: renderSuggestions sets aria-expanded="true", and under the

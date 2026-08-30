@@ -38,7 +38,7 @@
 import { getCard, resolveBracket } from './engine.js';
 import { STEMS, STEM_ELEMENTS } from './pillars.js';
 import { sumDigits } from './math.js';
-import { NUMEROLOGY_MEANINGS } from '../content/meanings.v4.js';
+import { NUMEROLOGY_MEANINGS } from '../content/meanings.v5.js';
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import {
   ELEMENT_SHENG,
@@ -232,7 +232,7 @@ export function combinedPath(lifePathA, lifePathB) {
     // The registry's own body, carried unmodified. If this is ever replaced by
     // a locally authored string, F6 has recurred.
     meaning: entry.body,
-    meaningSource: 'content/meanings.v4.js NUMEROLOGY_MEANINGS',
+    meaningSource: 'content/meanings.v5.js NUMEROLOGY_MEANINGS',
   };
 }
 

@@ -48,4 +48,23 @@ describe('core/cities.js — bounded failure recovery', () => {
     expect(isCityLoadExhausted(fourth)).toBe(true);
     expect(attempts).toEqual({ base: 1, retry1: 1, retry2: 1 });
   });
+
+  it('warmCities swallows a failed prefetch and consumes exactly one bounded attempt', async () => {
+    // The focus-time warm (ui/citysearch.js) must never surface a rejection
+    // of its own — the real search path owns the status line — and must
+    // share loadCities' bounded importer sequence rather than adding
+    // traffic beside it: after a failed warm, the next real search proceeds
+    // to the FIRST recovery specifier, not a duplicate base fetch.
+    vi.resetModules();
+    const fresh = await import('../core/cities.js');
+    const before = { ...attempts };
+    expect(() => fresh.warmCities()).not.toThrow();
+    expect(fresh.warmCities()).toBeUndefined(); // fire-and-forget, no leaked promise
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(attempts.base).toBe(before.base + 1);
+    let next;
+    try { await fresh.loadCities(); } catch (error) { next = error; }
+    expect(fresh.isCityLoadExhausted(next)).toBe(false);
+    expect(attempts.retry1).toBe(before.retry1 + 1);
+  });
 });
