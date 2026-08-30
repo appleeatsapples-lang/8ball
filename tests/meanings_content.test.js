@@ -72,6 +72,39 @@ function* currentMeaningStrings() {
   for (const [pair, sentence] of Object.entries(THEME_TENSIONS)) {
     yield { path: `tension.${pair}`, text: sentence };
   }
+  // Every harmony frame, rendered with real registry parts — not only the
+  // frames a fixture happens to hit (the pr212 frame-coverage lesson).
+  const frameParts = {
+    theme: 'persistence',
+    role: 'the outward agenda',
+    partners: [
+      { theme: 'independence', role: 'the public instinct' },
+      { theme: 'expression', role: 'the long route' },
+    ],
+  };
+  for (let i = 0; i < uiMeanings.HARMONY_FRAME_COUNT; i++) {
+    yield {
+      path: `harmonyFrame.${i}`,
+      text: uiMeanings.composeHarmony(i, frameParts.theme, frameParts.role, frameParts.partners,
+        'the combination is persistence working through independence and expression.'),
+    };
+    yield {
+      path: `harmonyFrame.${i}.tension`,
+      text: uiMeanings.composeHarmony(i, frameParts.theme, frameParts.role, frameParts.partners,
+        THEME_TENSIONS['change|persistence']),
+    };
+  }
+  // The filed-relation lines the panel can render, one per pair kind.
+  const relationSheets = [
+    ['sun', { sun: 'taurus', rising: 'virgo' }],
+    ['animal', { animal: 'horse', innerAnimal: 'dog' }],
+    ['element', { element: 'metal', dayPillar: 'rat \u00b7 water' }],
+    ['lifePath', { lifePath: '11', birthday: '2' }],
+  ];
+  for (const [key, sheet] of relationSheets) {
+    const line = uiMeanings.relationLineFor(key, sheet);
+    if (line) yield { path: `relation.${key}`, text: line };
+  }
 }
 
 describe('content/meanings.v1.js — completeness against canonical value lists', () => {
@@ -583,6 +616,57 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
     for (const pair of Object.keys(THEME_TENSIONS)) {
       expect(reachable.has(pair), `filed but unreachable: ${pair}`).toBe(true);
     }
+  });
+
+  it('harmony frames: deterministic, all four reachable, closing clause identical across frames', () => {
+    const entry = entryFor('sun', 'taurus');
+    // Determinism: byte-identical on repeat.
+    expect(harmonyFor('sun', entry, resolvedSheet)).toBe(harmonyFor('sun', entry, resolvedSheet));
+    // All four frames occur across the real value space (key x value),
+    // so no frame is dead weight and the pattern genuinely varies.
+    const seen = new Set();
+    for (const key of Object.keys(COORDINATE_CONTEXT)) {
+      for (const value of ['1', '2', '3', '4', '5', 'taurus', 'virgo', 'horse', 'earth', '11']) {
+        seen.add(uiMeanings.frameIndexFor(key, value));
+      }
+    }
+    expect([...seen].sort()).toEqual([0, 1, 2, 3]);
+    // The closing clause survives every frame byte-for-byte — harmony
+    // algebra and tension sentence alike — so the tension pins hold
+    // regardless of which frame renders.
+    const parts = [
+      { theme: 'independence', role: 'the public instinct' },
+      { theme: 'expression', role: 'the long route' },
+    ];
+    for (let i = 0; i < uiMeanings.HARMONY_FRAME_COUNT; i++) {
+      const closing = 'the combination is persistence working through independence and expression.';
+      expect(uiMeanings.composeHarmony(i, 'persistence', 'the outward agenda', parts, closing).endsWith(closing)).toBe(true);
+      expect(uiMeanings.composeHarmony(i, 'persistence', 'the outward agenda', parts, THEME_TENSIONS['change|persistence'])
+        .endsWith(THEME_TENSIONS['change|persistence'])).toBe(true);
+    }
+  });
+
+  it('filed relations: registered pairs render, unfiled and sealed pairs render nothing', () => {
+    // One registered case per pair kind — the registry line verbatim.
+    expect(uiMeanings.relationLineFor('sun', { sun: 'taurus', rising: 'virgo' }))
+      .toContain('four signs apart \u00b7 trine');
+    expect(uiMeanings.relationLineFor('rising', { sun: 'taurus', rising: 'virgo' }))
+      .toContain('sun and rising');
+    expect(uiMeanings.relationLineFor('animal', { animal: 'horse', innerAnimal: 'dog' }))
+      .toContain('sanhe');
+    expect(uiMeanings.relationLineFor('element', { element: 'metal', dayPillar: 'rat \u00b7 water' }))
+      .toContain('metal generates water');
+    expect(uiMeanings.relationLineFor('birthday', { lifePath: '11', birthday: '2' }))
+      .toContain('11 reduces to 2');
+    // Unfiled pairs and same values: nothing, never a manufactured claim.
+    expect(uiMeanings.relationLineFor('sun', { sun: 'taurus', rising: 'taurus' })).toBe('');
+    expect(uiMeanings.relationLineFor('lifePath', { lifePath: '3', birthday: '7' })).toBe('');
+    // A sealed member renders '' on the card, so the pair never resolves —
+    // the tier boundary holds through this path by construction.
+    expect(uiMeanings.relationLineFor('sun', { sun: 'taurus', rising: '' })).toBe('');
+    expect(uiMeanings.relationLineFor('element', { element: 'metal', dayPillar: '' })).toBe('');
+    // Unresolved markers likewise.
+    expect(uiMeanings.relationLineFor('sun', { sun: 'taurus', rising: '\u2014' })).toBe('');
   });
 
   it('numerology coordinates assemble numerology-only partners even on a full sheet', () => {

@@ -5,6 +5,59 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Interpretation optimization II: filed relations in panels + four harmony frames — STAGED on branch, PR pending
+
+**What happened.** The controller ordered items 3 and 4 of the measured
+optimization pass (every context sentence shared one skeleton — 396/396
+in the diagnosis sample; the §1.I registries were never consulted within
+a single sheet).
+
+**#3 — filed relations in the meaning panels.** `ui/concordance.js`
+gains `sheetRelationFor(key, values)` — the §1.I registries applied
+WITHIN one sheet, pure and total: sun ↔ rising (sign-distance), public ↔
+private animal (relation families), year ↔ day-pillar element (sheng/ke
+with direction), and any two numerology values (the three
+master-reduction links only). REGISTERED relations only — the panel is
+not the compare screen, so an absent section claims nothing and the
+§1.I no-manufactured-claim law holds by omission. The panel gains a
+`filed relation` section rendering the registry line + citation
+verbatim. Tier safety is by construction: the values come from the card
+DOM, sealed compartments render `''`, so a pair with a sealed member
+never resolves — live-fire confirmed no leak at free tier.
+`content/concordance.v3.js` keeps its single importer
+(`ui/meanings.js` imports the helper from `ui/concordance.js`), so the
+scan-target parity chain is untouched.
+
+**#4 — four harmony frames.** `composeHarmony` (exported pure) renders
+the context line through one of four sentence frames, chosen
+deterministically from the tapped key + value (`frameIndexFor`); the
+closing clause — harmony algebra or filed tension sentence — is
+byte-identical across frames, so the pr212 tension machinery and pins
+ride unchanged. Frames measured 103/113/108/72 across the 33-profile
+sample's panels — no dead frame, no dominant one.
+
+**Measured effect (same 33-profile sample).** Context prose: one
+skeleton → four, deterministic per panel. Filed relations render on 106
+panels; **31 of 33 sheets carry at least one** — the registries §1.I
+built now do intra-sheet work on nearly every card.
+
+**Verification.** Suite 57 files / **1965** tests green (1962 + frame
+determinism/reachability/closing-preservation, filed-relation
+registered/unfiled/sealed contract, and the panel DOM behavior pin; the
+walker now scans every frame — harmony and tension closings both — and
+one relation line per pair kind). Mutation-verified: deadening
+relations reds 2 pins, forcing a single frame reds the reachability
+pin, dropping the closing from a frame reds 2. Live-fire at t3 with
+birth time/place: the sun panel renders "four signs apart · trine" with
+its citation, three distinct frame openings across five taps, unfiled
+pairs and the free tier stay silent, zero console errors.
+
+**Scope (files):** `ui/concordance.js`, `ui/meanings.js`,
+`tests/meanings_content.test.js`, `tests/meanings_behavior.test.js`,
+`CLAUDE.md` (concordance description), this entry; the L48 artifact
+follows once the PR number exists. **UNTOUCHED:** all content files,
+`core/`, `index.html`, DOCTRINE.
+
 ## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — STAGED on branch, PR pending
 
 **What happened.** The controller ordered items 6, 1 and 2 from this

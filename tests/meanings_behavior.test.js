@@ -228,10 +228,37 @@ describe('ui/meanings.js behavior', () => {
     expect(p._byId['meaning-title'].textContent).toBe('the caretaker');
     expect(p._byId['meaning-body'].textContent).toContain('responsibility toward others');
     expect(p._byId['meaning-context-head'].textContent).toBe('with the other numbers');
-    expect(p._byId['meaning-context'].textContent).toContain('care serves as the full-name pattern');
-    expect(p._byId['meaning-context'].textContent).toContain('expression enters as the long route');
-    expect(p._byId['meaning-context'].textContent).toContain('structure as the inward motive');
+    // Frame-agnostic since the v4 harmony frames (optimization item 4):
+    // the deterministic frame varies the connectives, so pin the semantic
+    // content — each theme beside its role — not one frame's phrasing.
+    const context = p._byId['meaning-context'].textContent;
+    for (const token of ['care', 'the full-name pattern', 'expression', 'the long route', 'structure', 'the inward motive']) {
+      expect(context).toContain(token);
+    }
     expect(p._byId['meaning-body'].textContent).not.toContain('derived by');
+  });
+
+  it('the filed-relation section fills for a registered pair and hides otherwise (incl. sealed)', () => {
+    vals.sun.textContent = 'taurus';
+    vals.rising.textContent = 'virgo';
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p._byId['meaning-relation-head'].hidden).toBe(false);
+    expect(p._byId['meaning-relation'].textContent).toContain('four signs apart');
+    expect(p._byId['meaning-relation-head'].textContent).toBe('filed relation');
+    // close, then a coordinate with no filed pair -> section hidden, emptied
+    cardFace._fire('click', { target: vals.sun });
+    vals.element.textContent = 'earth';
+    cardFace._fire('click', { target: vals.element });
+    expect(p._byId['meaning-relation-head'].hidden).toBe(true);
+    expect(p._byId['meaning-relation'].textContent).toBe('');
+    // sealed compartment path carries no relation either
+    cardFace._fire('click', { target: vals.element });
+    cells.nameNumber.classList.add('sealed');
+    cardFace._fire('click', { target: vals.nameNumber });
+    expect(p._byId['meaning-relation-head'].hidden).toBe(true);
+    expect(p._byId['meaning-relation'].textContent).toBe('');
+    cells.nameNumber.classList.remove('sealed');
   });
 
   it('opens the filed master entry for every master value, on every numerology cell', () => {
