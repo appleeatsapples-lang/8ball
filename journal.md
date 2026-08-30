@@ -5,6 +5,41 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Kua citation bodies rendered: the F4 call resolved as RENDER — STAGED on branch, PR pending
+
+**What happened.** §1.D v0.64 left one product call open: the §1.G
+citation body (`KUA_TRIGRAMS[n].body`) lost its only renderer when the
+single-gender read was removed (PR #208 audit, F4 — render or record).
+The controller chose render.
+
+**The change.** The both-values read now carries each value's citation
+body under its line: `formatKuaBoth` returns `primaryBody` /
+`secondaryBody`, the host block (`ui/kua.js`) and the dyad sheets
+(`ui/sheet.js`) gain matching body nodes so the two surfaces cannot
+disagree, and `.kua-body:empty` collapses like the note. **Equal-values
+rule:** when both variants land on the same number (solar-year digit
+sum 8 — e.g. 1979 → both kua 3) the identical citation renders ONCE,
+under the first line, never duplicated. Sealed-DOM purity unchanged: at
+free tier the block's text content is the title alone, live-fire
+verified. `content/kua.v1.js` untouched — the bodies render byte-equal
+from the immutable registry; `register` remains the one unrendered
+field, by design. This closes the "open product call" clause in
+DOCTRINE §1.D v0.64; per CLAUDE.md the journal is current-state
+authority, so the doctrine clause now reads as the historical record of
+a call since made — no doctrine edit rides this PR.
+
+**Verification.** Suite 57 files / **1952** tests green (1950 + 2:
+bodies verbatim from the registry, equal-values-once). Sealed and
+sheet-parity pins extended to the body slots; mutation-verified —
+stashing the two ui edits reds six pins, restored green. Product audit
+PASS, 0 blocking. Live-fire on a seeded t3 device: 1990-05-15 shows
+both bodies, 1979-06-01 shows one, free tier shows none, zero console
+errors.
+
+**Scope (files):** `ui/kua.js`, `ui/sheet.js`,
+`tests/kua_surface.test.js`, this entry; the L48 artifact follows once
+the PR number exists.
+
 ## 2026-08-30 — DOCTRINE v0.64: the gender-ask retirement is written into the constitution — STAGED on branch, PR pending
 
 **What happened.** PR #208 merged (`4c99ab4`) with DOCTRINE still

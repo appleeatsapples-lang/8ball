@@ -32,6 +32,7 @@ import {
   initKuaUI,
   renderKuaRead,
 } from '../ui/kua.js';
+import { KUA_TRIGRAMS } from '../content/kua.v1.js';
 import { coordsForTier, tierDensitySummary, newlyEntitledCells } from '../ui/tiers.js';
 import { createSheet } from '../ui/sheet.js';
 import { buildProfile } from '../core/profile.js';
@@ -45,12 +46,17 @@ const makeNode = () => ({ textContent: 'STALE', classList: makeClassList() });
 const makeRefs = () => ({
   root: { classList: makeClassList(), setAttribute() {} },
   primary: makeNode(),
+  primaryBody: makeNode(),
   secondary: makeNode(),
+  secondaryBody: makeNode(),
   note: makeNode(),
 });
 
 // 1990: male → kua 1 (kan); female → raw 5 remapped to 8 (gen).
 const P = buildProfile('specimen', '1990-06-01');
+// 1979: solar-year digit sum 8 → male 11−8=3, female 4+8=12→3 — the
+// equal-values case, where the identical citation must render ONCE.
+const P_EQUAL = buildProfile('specimen', '1979-06-01');
 // The gendered-kua cycle stored gender on profiles; a stale payload's
 // token must be inert, so it rides this fixture to prove it changes
 // nothing about the read.
@@ -73,6 +79,27 @@ describe('kua render — contract', () => {
     expect(refs.note.textContent).toMatch(/assigns by gender; both classical values shown/);
     expect(refs.note.textContent).toMatch(/a raw 5 has no trigram/); // the female remap
     expect(refs.root.classList.contains('sealed')).toBe(false);
+  });
+
+  it('each value line carries its §1.G citation body verbatim (F4 resolution: render)', () => {
+    const refs = makeRefs();
+    initKuaUI(refs);
+    renderKuaRead(P, { entitled: true });
+    // The registry sentence itself, not a paraphrase — byte-equal to the
+    // immutable content field the gendered read used to render.
+    expect(refs.primaryBody.textContent).toBe(KUA_TRIGRAMS[1].body);
+    expect(refs.secondaryBody.textContent).toBe(KUA_TRIGRAMS[8].body);
+    expect(refs.primaryBody.textContent).toMatch(/^the eight mansions tradition files kua/);
+  });
+
+  it('equal values render the citation once, never duplicated', () => {
+    const refs = makeRefs();
+    initKuaUI(refs);
+    const read = renderKuaRead(P_EQUAL, { entitled: true });
+    expect(read.primary).toMatch(/^male · kua 3 /);
+    expect(read.secondary).toMatch(/^female · kua 3 /);
+    expect(refs.primaryBody.textContent).toBe(KUA_TRIGRAMS[3].body);
+    expect(refs.secondaryBody.textContent).toBe('');
   });
 
   it('a stale stored gender token changes nothing — the read is identical', () => {
@@ -100,7 +127,9 @@ describe('kua render — contract', () => {
     expect(read).toBeNull();
     expect(refs.root.classList.contains('sealed')).toBe(true);
     expect(refs.primary.textContent).toBe('');
+    expect(refs.primaryBody.textContent).toBe('');
     expect(refs.secondary.textContent).toBe('');
+    expect(refs.secondaryBody.textContent).toBe('');
     expect(refs.note.textContent).toBe('');
     expect(aria).toBe('kua trigram · sealed at this device tier');
   });
@@ -117,7 +146,9 @@ describe('kua render — contract', () => {
   it('format helper is pure and total over the registry', () => {
     const both = formatKuaBoth({ male: { number: 2, remapped: true }, female: { number: 1, remapped: false } });
     expect(both.primary).toBe('male · kua 2 · kun ☷ · southwest · west group');
+    expect(both.primaryBody).toBe(KUA_TRIGRAMS[2].body);
     expect(both.secondary).toBe('female · kua 1 · kan ☵ · north · east group');
+    expect(both.secondaryBody).toBe(KUA_TRIGRAMS[1].body);
     expect(both.note).toMatch(/kun \(2\)/);
   });
 
@@ -145,6 +176,9 @@ describe('kua injection — the host is untouched', () => {
   it('the module owns its style: id-guarded tag, :empty note, label reveal, unseal + reduced-motion', () => {
     expect(kuaJs).toMatch(/kua-style/);
     expect(kuaJs).toMatch(/\.kua-note:empty \{ display: none; \}/);
+    // The body slots collapse when empty (the equal-values case and the
+    // sealed path), same F1-class posture as the note.
+    expect(kuaJs).toMatch(/\.kua-body:empty \{ display: none; \}/);
     expect(kuaJs).toMatch(/\.card\.labels-revealed \.kua-title \{ visibility: visible/);
     expect(kuaJs).toMatch(/\.kua-read\.unsealing \.card-habit/);
     expect(kuaJs).toMatch(/prefers-reduced-motion/);
@@ -204,7 +238,7 @@ describe('single-importer twin (the tests/public.test.js pattern, scoped)', () =
 describe('dyad-sheet parity', () => {
   const makeSheetHost = prefix => {
     const byAttr = new Map();
-    for (const attr of ['kua', 'kua-primary', 'kua-secondary', 'kua-note']) {
+    for (const attr of ['kua', 'kua-primary', 'kua-body-primary', 'kua-secondary', 'kua-body-secondary', 'kua-note']) {
       byAttr.set(`[data-sheet-${attr}="${prefix}"]`, makeNode());
     }
     return { host: { querySelector: sel => byAttr.get(sel) || null }, byAttr };
@@ -218,7 +252,9 @@ describe('dyad-sheet parity', () => {
     const flags = sheet.render(P, 't3', { kua: read });
     expect(flags.kua).toBe(true);
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe(read.primary);
+    expect(byAttr.get('[data-sheet-kua-body-primary="b"]').textContent).toBe(read.primaryBody);
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe(read.secondary);
+    expect(byAttr.get('[data-sheet-kua-body-secondary="b"]').textContent).toBe(read.secondaryBody);
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe(read.note);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(false);
 
@@ -226,7 +262,9 @@ describe('dyad-sheet parity', () => {
     expect(sealed.kua).toBe(false);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(true);
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe('');
+    expect(byAttr.get('[data-sheet-kua-body-primary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe('');
+    expect(byAttr.get('[data-sheet-kua-body-secondary="b"]').textContent).toBe('');
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe('');
   });
 });
