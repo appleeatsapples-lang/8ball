@@ -240,6 +240,26 @@ export function setPendingProfile(payload) {
     return localStorage.getItem(PENDING_KEY) === raw;
   } catch (_) { return false; }
 }
+/**
+ * One-time boot scrub (gender removal, journal 2026-08-30): a pending
+ * payload staged in the gendered-kua cycle may carry a `gender` key.
+ * Consumption already launders it (the paid-return handler re-saves
+ * through saveProfile, which no longer copies the field), so this only
+ * takes the token off a device whose stage was never consumed.
+ */
+export function scrubPendingGender() {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object' || !('gender' in obj)) return false;
+    delete obj.gender;
+    const next = JSON.stringify(obj);
+    localStorage.setItem(PENDING_KEY, next);
+    return localStorage.getItem(PENDING_KEY) === next;
+  } catch (_) { return false; }
+}
+
 export function clearPendingProfile() {
   try {
     localStorage.removeItem(PENDING_KEY);

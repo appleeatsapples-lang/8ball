@@ -48,6 +48,27 @@ export function loadSavedProfile() {
   return null;
 }
 
+/**
+ * One-time boot scrub (gender removal, journal 2026-08-30): a payload
+ * written in the gendered-kua cycle may still carry a `gender` key. No
+ * read consumes it any more, so this exists purely to take the token
+ * off the device. Absent the key it is a pure read; the rewrite is
+ * read-verified like every other mutation here, and a malformed payload
+ * is left for the boot corrupt-profile path to handle.
+ */
+export function scrubStoredGender() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object' || !('gender' in obj)) return false;
+    delete obj.gender;
+    const next = JSON.stringify(obj);
+    localStorage.setItem(STORAGE_KEY, next);
+    return localStorage.getItem(STORAGE_KEY) === next;
+  } catch (_) { return false; }
+}
+
 export function saveProfile(name, dob, opts) {
   const payload = { name, dob };
   if (opts) {

@@ -39,6 +39,7 @@ import {
   getCredits,
   handlePaidReturn,
   initPaywallUI,
+  scrubPendingGender,
   setTier,
   showPaidBanner,
   stagePurchase,
@@ -697,5 +698,27 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
 
   it('profile.publicAnimal is not referenced anywhere in index.html', () => {
     expect(html).not.toMatch(/profile\.publicAnimal/);
+  });
+});
+
+describe('boot scrub — a stale staged gender token leaves the device', () => {
+  it('rewrites a gendered pending payload without the key, everything else verbatim', () => {
+    const storage = makeStorage({
+      [PENDING_KEY]: JSON.stringify({ name: 'Staged', dob: '1990-01-01', time: '03:31', gender: 'male' }),
+    });
+    globalThis.localStorage = storage;
+    expect(scrubPendingGender()).toBe(true);
+    expect(JSON.parse(storage.snapshot()[PENDING_KEY]))
+      .toEqual({ name: 'Staged', dob: '1990-01-01', time: '03:31' });
+  });
+
+  it('is a pure read when nothing is staged or the stage is clean', () => {
+    const clean = makeStorage({ [PENDING_KEY]: JSON.stringify({ name: 'Staged', dob: '1990-01-01' }) });
+    globalThis.localStorage = clean;
+    expect(scrubPendingGender()).toBe(false);
+    expect(clean.setItem).not.toHaveBeenCalled();
+
+    globalThis.localStorage = makeStorage();
+    expect(scrubPendingGender()).toBe(false);
   });
 });

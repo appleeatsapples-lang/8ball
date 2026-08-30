@@ -73,6 +73,39 @@ export function loadSavedReadings(storage = defaultStorage()) {
   };
 }
 
+/**
+ * One-time boot scrub (gender removal, journal 2026-08-30): archive
+ * entries saved in the gendered-kua cycle may carry `profile.gender`.
+ * loadSavedReadings already strips it on read (compactReadingProfile),
+ * so this exists purely to take the token off the device. Surgical on
+ * purpose: only the gender keys are touched — no re-sort, no
+ * re-normalisation, no dropping of entries a load would reject — so a
+ * scrub can never change what the registry shows.
+ */
+export function scrubSavedReadingsGender(storage = defaultStorage()) {
+  if (!storage) return false;
+  let raw;
+  try { raw = storage.getItem(READINGS_KEY); }
+  catch (_) { return false; }
+  if (!raw) return false;
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (_) { return false; }
+  if (!Array.isArray(parsed)) return false;
+  let changed = false;
+  for (const entry of parsed) {
+    if (entry && entry.profile && typeof entry.profile === 'object' && 'gender' in entry.profile) {
+      delete entry.profile.gender;
+      changed = true;
+    }
+  }
+  if (!changed) return false;
+  try {
+    storage.setItem(READINGS_KEY, JSON.stringify(parsed));
+    return true;
+  } catch (_) { return false; }
+}
+
 function writeSavedReadings(readings, storage) {
   if (!storage) return { ok: false, status: 'unavailable' };
   try {

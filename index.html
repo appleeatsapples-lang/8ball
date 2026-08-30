@@ -1045,6 +1045,7 @@ import {
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
   initPaywallUI, stagePurchase, closePaywall, isPaywallOpen,
   handlePaidReturn, showPaidBanner, PROFILE_SAVE_STORAGE_MESSAGE, clearPendingProfile,
+  scrubPendingGender,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
@@ -1053,14 +1054,14 @@ import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
 import {
   initProfileUI,
-  loadSavedProfile, saveProfile, clearProfile,
+  loadSavedProfile, saveProfile, clearProfile, scrubStoredGender,
   profileFromPayload, validateBirthInput, todayIsoLocal,
   applyBirthInputValidationState, populateRisingFields, resetFormDisplay,
 } from './ui/profile.js';
 import { initShareUI } from './ui/share.js';
 import { initLabelsUI, isLabelsRevealed } from './ui/labels.js';
 import { initModalsUI } from './ui/modals.js';
-import { initReadingsUI, clearAllSavedReadings } from './ui/readings.js';
+import { initReadingsUI, clearAllSavedReadings, scrubSavedReadingsGender } from './ui/readings.js';
 import { buildConcordance } from './ui/concordance.js';
 
 const $ = id => document.getElementById(id);
@@ -1409,6 +1410,9 @@ if (new URLSearchParams(window.location.search).get('sent') === '1') {
 
 // ── boot ──────────────────────────────────────────────────────────
 function boot() {
+  // Gender removal (journal 2026-08-30): one boot pass takes any stale
+  // stored gender token off the device — profile, pending stage, archive.
+  scrubStoredGender(); scrubPendingGender(); scrubSavedReadingsGender();
   labelsUI.applyLabelsState(isLabelsRevealed());
   // v0.7.0 unseal baseline: capture the tier BEFORE the paid return so a
   // paid-return boot unseals exactly the delta; rehydrate unseals nothing.

@@ -5,6 +5,41 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Boot scrub: the stale stored gender token now leaves existing devices — SHIPPED TO BRANCH, tests green, live-fire verified
+
+**Operator decision.** The entry below left gendered-cycle payloads on
+existing devices as inert residue; the operator called the scrub.
+
+**What ships.** One boot pass, three single-key scrubs, each owned by
+the module that owns its key: `scrubStoredGender()` (`ui/profile.js`,
+`eight_ball_profile_v1`), `scrubPendingGender()` (`ui/payments.js`,
+`eight_ball_pending_profile_v1`), `scrubSavedReadingsGender()`
+(`ui/readings.js`, `eight_ball_saved_readings_v1`). `boot()` runs them
+first — before `handlePaidReturn` and `loadSavedProfile` — so no read
+in the same boot ever sees the token. Each is a pure read when there is
+nothing to scrub (no write issued), read-verified when there is, and
+leaves malformed JSON alone for the existing corrupt-payload paths. The
+archive scrub is deliberately surgical: only `profile.gender` keys are
+touched — no re-sort, no re-normalisation, no dropping of entries a
+load would reject — so a scrub can never change what the registry
+shows. No new localStorage key (§5/§12: three existing keys rewritten
+in place, nothing added).
+
+**Verification.** Suite 57 files / **1946** tests green (1937 + 9: four
+in profile_ui — verbatim rewrite, pure-read paths, malformed-payload
+restraint, and a boot-order pin that the scrub line precedes
+`handlePaidReturn`/`loadSavedProfile` in index.html; three in readings —
+strip-and-preserve-order, pure-read on clean/empty/corrupt, and the
+only-the-gender-key surgical contract; two in payments_markup — staged
+rewrite and pure-read). Product audit PASS 12/0/1/0, 0 blocking.
+Live-fire: seeded all three keys gendered-cycle style plus `t3`,
+rebooted — every token gone, every other byte preserved, sheet
+rendered, kua both-values intact, zero console errors. `index.html`
+1455/1500.
+
+**Scope (files):** `ui/profile.js`, `ui/payments.js`, `ui/readings.js`,
+`index.html` (imports + 3-call boot line), 3 test files, this entry.
+
 ## 2026-08-30 — Gender ask removed: the product asks no gender question — SHIPPED TO BRANCH, tests green, live-fire verified
 
 **Operator decision.** "I don't want the gender part." Scope taken as: the
