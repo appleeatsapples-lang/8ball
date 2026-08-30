@@ -36,6 +36,18 @@ against shipped code). Merge stays with the controller.
 **Scope (files):** `DOCTRINE.md`, this entry; the L48 artifact follows
 once the PR number exists.
 
+**Update, same session — PR #209 opened, two-lane review complete.**
+opus MERGE WITH FIXES / sonnet MERGE WITH FIXES, reconciled MERGE WITH
+FIXES; all four items landed (the unsuperseded v0.63 computation clause
+— the sixth gender mention, caught by both lanes; the §10-provenance
+separation; the inline relay-composition caveat; the explained §5
+bullet-deletion-vs-RETIRED divergence). Record:
+`audits/claude_relay_pr209_premerge_audit_2026-08-30_response.md` —
+whose commit also greens the doctrine-gate and l48-gate. Accuracy
+otherwise reproduced exactly by both lanes, including a re-proof of the
+scrubs' surgical contract by fresh mutations. Merge word stays with the
+controller.
+
 ## 2026-08-30 — PR #208 cross-model audit run in-container: MERGE WITH FIXES, all six fixed — L48 artifact filed
 
 **What happened.** The controller directed the PR #208 pre-merge audit
