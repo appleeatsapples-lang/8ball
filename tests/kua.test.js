@@ -8,8 +8,9 @@
 //     rule to the classical (100−yy)%9 / (yy−4)%9 statements.
 //  3. Li Chun solar-year boundary — derived from core/calendar.js's
 //     authority-pinned term table, stricter than a fixed Feb-4 cutoff.
-//  4. buildProfile gender passthrough — §3 additive: the new field changes
-//     nothing else on the profile object.
+//  4. buildProfile carries NO gender — the ask was removed 2026-08-30;
+//     core/kua.js keeps the method's gendered arithmetic (consumed only
+//     through getKuaBoth), but a profile never files one.
 
 import { describe, it, expect } from 'vitest';
 
@@ -129,20 +130,16 @@ describe('Li Chun solar-year boundary', () => {
   });
 });
 
-describe('buildProfile gender passthrough (§3 additive)', () => {
-  it('carries a strict two-token gender and drops everything else', () => {
-    expect(buildProfile('Test Name', '1990-06-15', { gender: 'female' }).gender).toBe('female');
-    expect(buildProfile('Test Name', '1990-06-15', { gender: 'male' }).gender).toBe('male');
-    expect(buildProfile('Test Name', '1990-06-15', { gender: 'other' }).gender).toBeUndefined();
-    expect(buildProfile('Test Name', '1990-06-15', { gender: '' }).gender).toBeUndefined();
-    expect(buildProfile('Test Name', '1990-06-15', {}).gender).toBeUndefined();
-    expect(buildProfile('Test Name', '1990-06-15').gender).toBeUndefined();
+describe('buildProfile carries no gender (removed 2026-08-30)', () => {
+  it('never files one, even when a caller still passes the old option', () => {
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'female' })).not.toHaveProperty('gender');
+    expect(buildProfile('Test Name', '1990-06-15', { gender: 'male' })).not.toHaveProperty('gender');
+    expect(buildProfile('Test Name', '1990-06-15')).not.toHaveProperty('gender');
   });
 
-  it('changes nothing else on the profile object', () => {
+  it('a stale gender option changes nothing else on the profile object', () => {
     const without = buildProfile('Test Name', '1990-06-15', { time: '08:30' });
     const with_ = buildProfile('Test Name', '1990-06-15', { time: '08:30', gender: 'female' });
-    const strip = ({ gender, ...rest }) => rest;
-    expect(strip(with_)).toEqual(strip(without));
+    expect(with_).toEqual(without);
   });
 });

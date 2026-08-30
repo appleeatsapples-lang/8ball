@@ -6,6 +6,9 @@
 // helpers instead of source-matching their implementation.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   clearProfile,
   initProfileUI,
@@ -14,6 +17,7 @@ import {
   populateRisingFields,
   resetFormDisplay,
   saveProfile,
+  scrubStoredGender,
 } from '../ui/profile.js';
 import { makeEl } from './helpers/dom.js';
 
@@ -87,6 +91,8 @@ describe('ui/profile.js persistence boundary', () => {
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
+      // The ask left 2026-08-30: a caller-supplied gender is now just
+      // another unknown field and must not persist.
       gender: 'female',
       unexpected: 'must not persist',
     })).toBe(true);
@@ -102,7 +108,6 @@ describe('ui/profile.js persistence boundary', () => {
       tz: 'Asia/Riyadh',
       lat: 26.2361,
       lng: 50.114,
-      gender: 'female',
     });
     expect(loadSavedProfile()).toEqual(payload);
   });
@@ -114,9 +119,6 @@ describe('ui/profile.js persistence boundary', () => {
       city: 'Dhahran',
       lat: Number.NaN,
       lng: 'not-a-number',
-      // §5 amendment: off-vocabulary gender is dropped at the write seam,
-      // never stored — same posture as the invalid coordinates above.
-      gender: 'other',
     });
 
     const payload = JSON.parse(storage.snapshot()[PROFILE_KEY]);
@@ -185,9 +187,9 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
-      // gender IS a calculation input (the kua block reads profile.gender)
-      // — dropping it here would make cold-boot recompute a different
-      // reading than the fresh submit (§5 recompute-on-load).
+      // A stored payload from the gendered-kua cycle may still carry a
+      // gender key; it must be inert here — not forwarded into the
+      // recompute (the ask left 2026-08-30).
       gender: 'female',
       city: 'Dhahran',
       cc: 'SA',
@@ -199,20 +201,66 @@ describe('ui/profile.js persistence boundary', () => {
       country: 'SA',
       lat: 26.2886,
       lng: 50.114,
-      gender: 'female',
     });
 
     expect(optsFromPayload({ lat: '26.2886', lng: null, tz: null, gender: 'x' })).toEqual({});
   });
+});
 
-  it('rehydrates and clears the gender control through the setGender hook', () => {
-    const refs = makeRefs();
-    const calls = [];
-    initProfileUI(refs, { setGender: v => calls.push(v) });
-    populateRisingFields({ gender: 'female' });
-    expect(calls).toEqual(['female']);
-    resetFormDisplay();
-    expect(calls).toEqual(['female', '']);
+describe('ui/profile.js boot scrub — the stale gender token leaves the device', () => {
+  it('rewrites a gendered payload without the key, everything else verbatim', () => {
+    // The fixture carries EVERY field the key can legitimately hold
+    // (the saveProfile copy list: time/city/cc/country/tz/lat/lng), and
+    // the assertion is byte-equality of the remainder — so a scrub that
+    // ever deletes anything beyond gender goes red here. The #208 audit
+    // (opus F1) proved the previous thin fixture let an over-deleting
+    // scrub pass the whole suite.
+    const before = {
+      name: 'Old Payload', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', country: 'SA',
+      tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
+    const storage = installStorage({
+      [PROFILE_KEY]: JSON.stringify({ ...before, gender: 'female' }),
+    });
+    expect(scrubStoredGender()).toBe(true);
+    expect(JSON.parse(storage.snapshot()[PROFILE_KEY])).toEqual(before);
+  });
+
+  it('returns false and loses nothing when the rewrite itself throws (quota)', () => {
+    const payload = JSON.stringify({ name: 'Old Payload', dob: '1990-01-01', gender: 'female' });
+    const storage = installStorage({ [PROFILE_KEY]: payload });
+    storage.setItem.mockImplementation(() => { throw new Error('quota'); });
+    expect(scrubStoredGender()).toBe(false);
+    expect(storage.snapshot()[PROFILE_KEY]).toBe(payload);
+  });
+
+  it('is a pure read when no gender is stored — no write issued', () => {
+    const storage = installStorage({
+      [PROFILE_KEY]: JSON.stringify({ name: 'Clean', dob: '1990-01-01' }),
+    });
+    expect(scrubStoredGender()).toBe(false);
+    expect(storage.setItem).not.toHaveBeenCalled();
+
+    const empty = installStorage();
+    expect(scrubStoredGender()).toBe(false);
+    expect(empty.setItem).not.toHaveBeenCalled();
+  });
+
+  it('leaves a malformed payload for the boot corrupt-profile path', () => {
+    const storage = installStorage({ [PROFILE_KEY]: '{not-json' });
+    expect(scrubStoredGender()).toBe(false);
+    expect(storage.snapshot()[PROFILE_KEY]).toBe('{not-json');
+  });
+
+  it('boot() runs all three scrubs before rehydration (index.html wiring)', () => {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+    const bootBody = html.slice(html.indexOf('function boot()'));
+    const scrubAt = bootBody.indexOf('scrubStoredGender(); scrubPendingGender(); scrubSavedReadingsGender();');
+    expect(scrubAt).toBeGreaterThan(-1);
+    expect(scrubAt).toBeLessThan(bootBody.indexOf('loadSavedProfile()'));
+    expect(scrubAt).toBeLessThan(bootBody.indexOf('handlePaidReturn('));
   });
 });
 

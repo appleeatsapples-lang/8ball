@@ -9,21 +9,19 @@
 // This module is the ONLY consumer of core/kua.js (pinned in
 // tests/kua_surface.test.js, the single-importer twin of the
 // tests/public.test.js pin), and it injects everything it owns: its
-// style tag, the block node on #card-face, and the optional gender
-// control on the host form. index.html carries no kua markup, no kua
-// CSS, and no new ids beyond what the module creates for itself — the
-// dyad.js injection posture applied at block scale, which is what keeps
-// the §6 single-file budget flat.
+// style tag and the block node on #card-face. index.html carries no kua
+// markup, no kua CSS, and no new ids beyond what the module creates for
+// itself — the dyad.js injection posture applied at block scale, which
+// is what keeps the §6 single-file budget flat.
 //
-// The read has two modes, both honest:
-//   gender on file  → that gender's kua, trigram registry line, and the
-//                     5→2/5→8 remap note whenever core disclosed one.
-//   no gender       → BOTH classical values, labeled, plus a register
-//                     note saying why there are two — never a silent
-//                     default to one gender (the sibling-engine defect
-//                     class this product refuses to import).
+// The read has ONE mode: the product asks no gender question (operator
+// decision, journal 2026-08-30), so every profile takes the both-values
+// read — BOTH classical values, labeled, plus a register note saying why
+// there are two. Never a silent default to one gender (the sibling-engine
+// defect class this product refuses to import); the method's gender
+// dependence is disclosed, not consumed.
 
-import { getKua, getKuaBoth } from '../core/kua.js';
+import { getKuaBoth } from '../core/kua.js';
 import { KUA_TRIGRAMS } from '../content/kua.v1.js';
 import { registerKuaRoot } from './tiers.js';
 
@@ -36,29 +34,15 @@ const remapNote = number =>
   `a raw 5 has no trigram — the tradition files it to ${KUA_TRIGRAMS[number].trigram} (${number}).`;
 
 /**
- * The rendered strings of the block, derived purely from core results.
- * Single-gender: primary = the registry line, secondary = the §1.G
- * citation body verbatim, note = the remap disclosure or ''.
- */
-export function formatKuaRead(kua, gender) {
-  const t = KUA_TRIGRAMS[kua.number];
-  return {
-    primary: `${gender} · ${trigramLine(kua.number, t)}`,
-    secondary: t.body,
-    note: kua.remapped ? remapNote(kua.number) : '',
-  };
-}
-
-/**
- * Both-genders read for a profile with no gender on file. One value per
- * line, labeled; the note names the method's gender dependence rather
- * than hiding it. At most one of the two values can be a remap for any
+ * The both-values read — the block's only read. One value per line,
+ * labeled; the note names the method's gender dependence rather than
+ * hiding it. At most one of the two values can be a remap for any
  * year, so the disclosures compose without colliding.
  */
 export function formatKuaBoth(both) {
   const tm = KUA_TRIGRAMS[both.male.number];
   const tf = KUA_TRIGRAMS[both.female.number];
-  let note = 'no gender on file — the eight mansions method assigns by gender; both classical values shown.';
+  let note = 'the eight mansions method assigns by gender; both classical values shown.';
   if (both.male.remapped) note += ` ${remapNote(both.male.number)}`;
   if (both.female.remapped) note += ` ${remapNote(both.female.number)}`;
   return {
@@ -76,14 +60,11 @@ export function formatKuaBoth(both) {
  */
 export function kuaReadFor(profile) {
   if (!profile) return null;
-  const { yyyy, mm, dd, gender } = profile;
+  const { yyyy, mm, dd } = profile;
   if (!Number.isInteger(yyyy) || !Number.isInteger(mm) || !Number.isInteger(dd)) {
     return null;
   }
   try {
-    if (gender === 'male' || gender === 'female') {
-      return formatKuaRead(getKua(yyyy, mm, dd, gender), gender);
-    }
     return formatKuaBoth(getKuaBoth(yyyy, mm, dd));
   } catch (_) {
     return null;
@@ -94,7 +75,6 @@ export function kuaReadFor(profile) {
 
 let _root = null;
 let _nodes = null;
-let _genderSelect = null;
 
 // Scoped CSS for the injected block, in the ui/public.js BRIDGE_STYLE
 // shape. Everything the host <style> gives .public-read is restated here
@@ -150,41 +130,11 @@ function resolveKuaRoot(refs) {
   return node;
 }
 
-/**
- * Create (or find) the optional gender control on the host form, before
- * `refs.anchor` (the rising fields) so it reads as part of the birth
- * entry. Strict two-token vocabulary end-to-end: the empty option IS the
- * no-gender state, and it is the default.
- */
-function resolveGenderSelect(refs) {
-  if (refs && refs.genderSelect) return refs.genderSelect;
-  const form = refs && refs.form;
-  if (!form || typeof form.appendChild !== 'function') return null;
-  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
-  const existing = form.querySelector && form.querySelector('#gender-input');
-  if (existing) return existing;
-  const field = document.createElement('div');
-  field.className = 'field kua-gender-field';
-  field.innerHTML = '<label for="gender-input">gender (optional · kua line only)</label>' +
-    '<select id="gender-input">' +
-    '<option value="">—</option>' +
-    '<option value="male">male</option>' +
-    '<option value="female">female</option>' +
-    '</select>';
-  const anchor = refs && refs.anchor;
-  if (anchor && typeof form.insertBefore === 'function' && anchor.parentNode === form) {
-    form.insertBefore(field, anchor);
-  } else {
-    form.appendChild(field);
-  }
-  return field.querySelector ? field.querySelector('#gender-input') : null;
-}
-
 export function initKuaUI(refs) {
   injectKuaStyle();
   // Test surface may hand every node directly (the public_surface makeRefs
-  // shape); production hands { cardFace, form, anchor } and the module
-  // builds its own nodes.
+  // shape); production hands { cardFace } and the module builds its own
+  // nodes.
   if (refs && refs.root && refs.primary) {
     _root = refs.root;
     _nodes = { primary: refs.primary, secondary: refs.secondary, note: refs.note };
@@ -193,22 +143,9 @@ export function initKuaUI(refs) {
     const qq = c => (_root && _root.querySelector ? _root.querySelector(c) : null);
     _nodes = _root ? { primary: qq('.kua-primary'), secondary: qq('.kua-secondary'), note: qq('.kua-note') } : null;
   }
-  _genderSelect = resolveGenderSelect(refs);
   // Hand the block root to ui/tiers.js so the unseal beat can reach it —
   // the dead-beat defect public_surface pinned for the public block.
   registerKuaRoot(_root);
-}
-
-/** The form control's current value under the strict vocabulary. */
-export function getGenderInput() {
-  const v = _genderSelect && _genderSelect.value;
-  return v === 'male' || v === 'female' ? v : undefined;
-}
-
-/** Rehydrate/clear the control (ui/profile.js populate/reset hooks). */
-export function setGenderInput(v) {
-  if (!_genderSelect) return;
-  _genderSelect.value = v === 'male' || v === 'female' ? v : '';
 }
 
 /**

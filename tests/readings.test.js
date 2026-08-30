@@ -15,6 +15,7 @@ import {
   deleteSavedReading,
   loadSavedReadings,
   renameSavedReading,
+  scrubSavedReadingsGender,
 } from '../ui/readings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,7 +39,10 @@ describe('Saved Readings persistence', () => {
     const storage = makeStorage();
     addSavedReading(mkProfile('First specimen', '1990-01-01', {
       time: '03:31', city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh',
-      lat: 26.2886, lng: 50.114, gender: 'female',
+      lat: 26.2886, lng: 50.114,
+      // The ask left 2026-08-30: gender is just another dropped unknown
+      // now, same posture as `unexpected` below.
+      gender: 'female',
       unexpected: 'drop', sunSign: 'drop',
     }), { storage, now: '2026-07-18T08:00:00.000Z' });
     addSavedReading(mkProfile('Second specimen', '1991-02-02'), {
@@ -53,17 +57,15 @@ describe('Saved Readings persistence', () => {
     expect(loaded.readings[1].profile).toEqual({
       name: 'First specimen', dob: '1990-01-01', time: '03:31',
       city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
-      gender: 'female',
     });
     expect(loaded.readings[1].profile).not.toHaveProperty('sunSign');
     expect(loaded.readings[1].profile).not.toHaveProperty('unexpected');
     const persisted = JSON.parse(storage.snapshot()[READINGS_KEY]);
     expect(Object.keys(persisted[0]).sort()).toEqual(['id', 'profile', 'savedAt', 'title']);
     expect(Object.keys(persisted[1].profile).sort()).toEqual([
-      'cc', 'city', 'dob', 'gender', 'lat', 'lng', 'name', 'time', 'tz',
+      'cc', 'city', 'dob', 'lat', 'lng', 'name', 'time', 'tz',
     ]);
-    // §5.E strict vocabulary: an off-vocabulary gender never reaches the
-    // archive (same drop posture as `unexpected` above).
+    // Any gender token — on-vocabulary or off — never reaches the archive.
     expect(compactReadingProfile({ name: 'X', dob: '1990-01-01', gender: 'other' }))
       .toEqual({ name: 'X', dob: '1990-01-01' });
   });
@@ -275,5 +277,82 @@ describe('Saved Readings host and privacy wiring', () => {
     expect(readingsJs).toMatch(/min-height: 44px/);
     expect(readingsJs).toMatch(/\.saved-readings-screen button, #readings-confirm-modal \.btn/);
     expect(readingsJs).toMatch(/\.saved-readings-screen \[hidden\][^}]*display: none/);
+  });
+});
+
+describe('boot scrub — stale archived gender tokens leave the device', () => {
+  const entry = (id, title, savedAt, profile) => ({ id, title, savedAt, profile });
+
+  it('strips gender from every archived profile and rewrites once, order preserved, remainder byte-equal', () => {
+    // Full-field fixtures on purpose: every field compactReadingProfile
+    // can archive (time/city/cc/tz/lat/lng) rides along, and the
+    // assertion is byte-equality of the remainder. The #208 audit (opus
+    // F1) showed a scrub extended to delete time/city/tz/lat/lng passed
+    // the whole suite against the previous {name, dob, gender} fixtures —
+    // exactly the every-boot silent-data-destroyer this pin must catch.
+    const fullA = {
+      name: 'A', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
+    const fullC = {
+      name: 'C', dob: '1992-03-03', time: '14:30',
+      city: 'Hong Kong', cc: 'HK', tz: 'Asia/Hong_Kong', lat: 22.3193, lng: 114.1694,
+    };
+    const stale = [
+      entry('reading-1', 'A', '2026-07-18T08:00:00.000Z', { ...fullA, gender: 'female' }),
+      entry('reading-2', 'B', '2026-07-18T09:00:00.000Z', { name: 'B', dob: '1991-02-02' }),
+      entry('reading-3', 'C', '2026-07-18T10:00:00.000Z', { ...fullC, gender: 'male' }),
+    ];
+    const storage = makeStorage({ [READINGS_KEY]: JSON.stringify(stale) });
+    expect(scrubSavedReadingsGender(storage)).toBe(true);
+    const persisted = JSON.parse(storage.snapshot()[READINGS_KEY]);
+    expect(persisted.map(r => r.id)).toEqual(['reading-1', 'reading-2', 'reading-3']);
+    expect(persisted[0].profile).toEqual(fullA);
+    expect(persisted[1].profile).toEqual({ name: 'B', dob: '1991-02-02' });
+    expect(persisted[2].profile).toEqual(fullC);
+    // The registry still loads identically after the scrub.
+    expect(loadSavedReadings(storage).status).toBe('ok');
+  });
+
+  it('returns false and loses nothing when the rewrite itself throws (quota)', () => {
+    const raw = JSON.stringify([
+      entry('reading-1', 'A', '2026-07-18T08:00:00.000Z', { name: 'A', dob: '1990-01-01', gender: 'male' }),
+    ]);
+    const storage = makeStorage({ [READINGS_KEY]: raw });
+    storage.setItem = () => { throw new Error('quota'); };
+    expect(scrubSavedReadingsGender(storage)).toBe(false);
+    expect(storage.snapshot()[READINGS_KEY]).toBe(raw);
+  });
+
+  it('is a pure read on a clean archive, an empty store, and corrupt JSON', () => {
+    const clean = makeStorage({
+      [READINGS_KEY]: JSON.stringify([
+        entry('reading-1', 'A', '2026-07-18T08:00:00.000Z', { name: 'A', dob: '1990-01-01' }),
+      ]),
+    });
+    const before = clean.snapshot()[READINGS_KEY];
+    expect(scrubSavedReadingsGender(clean)).toBe(false);
+    expect(clean.snapshot()[READINGS_KEY]).toBe(before);
+
+    expect(scrubSavedReadingsGender(makeStorage())).toBe(false);
+
+    const corrupt = makeStorage({ [READINGS_KEY]: '{not-json' });
+    expect(scrubSavedReadingsGender(corrupt)).toBe(false);
+    expect(corrupt.snapshot()[READINGS_KEY]).toBe('{not-json');
+  });
+
+  it('touches ONLY the gender key — entries a load would reject survive the scrub untouched', () => {
+    // Surgical contract: scrubbing must never act as a stealth
+    // normaliser. A malformed entry (bad id) that loadSavedReadings
+    // filters out still keeps its place in storage.
+    const mixed = [
+      { id: 'bad id!', title: 'X', savedAt: 'not-a-date', profile: { name: 'X', dob: '1990-01-01', gender: 'male' }, extra: 'kept' },
+    ];
+    const storage = makeStorage({ [READINGS_KEY]: JSON.stringify(mixed) });
+    expect(scrubSavedReadingsGender(storage)).toBe(true);
+    const persisted = JSON.parse(storage.snapshot()[READINGS_KEY]);
+    expect(persisted[0].id).toBe('bad id!');
+    expect(persisted[0].extra).toBe('kept');
+    expect(persisted[0].profile).toEqual({ name: 'X', dob: '1990-01-01' });
   });
 });

@@ -80,8 +80,8 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // alongside the written entry.
 // §1.D kua amendment — `kuaRead` joins the t3 ceiling as a third BLOCK in
 // the `cardEntry` / `publicRead` sense: no compartment, no census weight.
-// It is the product's first gender-keyed surface; the input is optional
-// and a no-gender render shows both classical values (ui/kua.js).
+// The product asks no gender question; every render shows both classical
+// values with the method's gender dependence disclosed (ui/kua.js).
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead'];
 // §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
 // completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus

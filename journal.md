@@ -5,6 +5,288 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — PR #208 cross-model audit run in-container: MERGE WITH FIXES, all six fixed — L48 artifact filed
+
+**What happened.** The controller directed the PR #208 pre-merge audit
+to run from this session. The codex/grok relay lanes are not reachable
+from the remote container, so the relay ran as three independent
+Claude-family lanes (opus + sonnet + haiku), fresh context each,
+reconciled by the authoring session — the artifact states this
+composition plainly and does not claim the codex/grok fan-out's
+diversity. Full record:
+`audits/claude_relay_pr208_premerge_audit_2026-08-30_response.md`
+(the L48 in-PR artifact; the l48-gate goes green on this commit).
+
+**Verdicts.** haiku SAFE TO MERGE / sonnet MERGE WITH FIXES / opus
+MERGE WITH FIXES → reconciled **MERGE WITH FIXES**, all six fix-class
+findings landed in this commit:
+
+1. **MAJOR (sonnet)** — blur race: a city search resolving after blur
+   re-opened `aria-expanded` with focus gone, re-hiding the sole mobile
+   submit under this PR's own CSS contract (first search of a session
+   really does fetch cities.json — an ordinary mobile timeline). Fixed
+   in `ui/citysearch.js`: blur now bumps the search generation, cancels
+   the debounce, clears busy/status. Regression test added;
+   mutation-red on the unfixed handler; live-fire verified with a
+   1.5s-throttled cities.json.
+2. **MED (opus)** — the scrubs' "surgical" contract was pinned against
+   fixtures too thin to catch over-deletion (a scrub extended to delete
+   time/city/cc/tz/lat/lng passed the whole suite). All three scrub
+   tests now seed the full legitimate field set and assert
+   byte-equality of the remainder; the lane's three over-deletion
+   mutations each red exactly one pin now.
+3. **MED (opus)** — the `:focus` dead-end pin only scanned the
+   `@supports` slice; the PR #200 regression re-added outside it stayed
+   green. The pin now scans every `#enter-btn` selector file-wide.
+4. **MED (opus)** — `display:none` on the short-viewport submit passed
+   the suite. New hiding-inventory pin: no `#enter-btn` rule may set
+   `display:none`, and only the two `@supports` reveal rules may hide
+   it at all.
+5. **LOW (sonnet)** — `scrubSavedReadingsGender` now read-verifies its
+   rewrite like its two siblings (the journal below claimed it already
+   did — that claim was wrong until this commit).
+6. **MED (haiku)** — quota/throw path tests added for the scrubs.
+
+**Flagged for the controller, not fixed** (detail in the artifact): the
+§1.G kua citation body (`KUA_TRIGRAMS[n].body`) is rendered nowhere now
+that the single-gender read is gone — an undisclosed paid-content
+reduction until this entry; render-or-record is a product call. DOCTRINE
+§1.D/§5/§5.E still specify the deleted control and field — the
+amendment is mechanical (the §5.E rationale is obsolete: both values
+render for every profile) but constitution text stays with the
+controller. Plus three LOWs: below-fold submit at 320×568 (recoverable,
+verified), two type styles on the two kua values, the entitled-path-dead
+`:empty` rule.
+
+**Correction to the two gender entries below (opus):** their product
+audit line reads "PASS 12/0/1/0"; actual output was 12/0/1/1 — 14
+checks, warn `product.git_status` (dirty tree during in-flight runs;
+clean-tree re-runs report 13/0/0/1), skip `product.local_pii`.
+
+**Verification.** Suite 57 files / **1950** tests green (1946 + 4).
+Product audit PASS, 0 blocking. Five lane mutations re-run post-fix:
+each red on exactly its new pin; restored, green. `index.html` untouched
+(1455/1500). Zero console errors on every live-fire.
+
+**Scope (files):** `ui/citysearch.js`, `ui/readings.js`, 4 test files,
+the L48 artifact, this entry.
+
+## 2026-08-30 — Boot scrub: the stale stored gender token now leaves existing devices — SHIPPED TO BRANCH, tests green, live-fire verified
+
+**Operator decision.** The entry below left gendered-cycle payloads on
+existing devices as inert residue; the operator called the scrub.
+
+**What ships.** One boot pass, three single-key scrubs, each owned by
+the module that owns its key: `scrubStoredGender()` (`ui/profile.js`,
+`eight_ball_profile_v1`), `scrubPendingGender()` (`ui/payments.js`,
+`eight_ball_pending_profile_v1`), `scrubSavedReadingsGender()`
+(`ui/readings.js`, `eight_ball_saved_readings_v1`). `boot()` runs them
+first — before `handlePaidReturn` and `loadSavedProfile` — so no read
+in the same boot ever sees the token. Each is a pure read when there is
+nothing to scrub (no write issued), read-verified when there is, and
+leaves malformed JSON alone for the existing corrupt-payload paths. The
+archive scrub is deliberately surgical: only `profile.gender` keys are
+touched — no re-sort, no re-normalisation, no dropping of entries a
+load would reject — so a scrub can never change what the registry
+shows. No new localStorage key (§5/§12: three existing keys rewritten
+in place, nothing added).
+
+**Verification.** Suite 57 files / **1946** tests green (1937 + 9: four
+in profile_ui — verbatim rewrite, pure-read paths, malformed-payload
+restraint, and a boot-order pin that the scrub line precedes
+`handlePaidReturn`/`loadSavedProfile` in index.html; three in readings —
+strip-and-preserve-order, pure-read on clean/empty/corrupt, and the
+only-the-gender-key surgical contract; two in payments_markup — staged
+rewrite and pure-read). Product audit PASS 12/0/1/0, 0 blocking.
+Live-fire: seeded all three keys gendered-cycle style plus `t3`,
+rebooted — every token gone, every other byte preserved, sheet
+rendered, kua both-values intact, zero console errors. `index.html`
+1455/1500.
+
+**Scope (files):** `ui/profile.js`, `ui/payments.js`, `ui/readings.js`,
+`index.html` (imports + 3-call boot line), 3 test files, this entry.
+
+## 2026-08-30 — Gender ask removed: the product asks no gender question — SHIPPED TO BRANCH, tests green, live-fire verified
+
+**Operator decision.** "I don't want the gender part." Scope taken as: the
+gender question leaves every surface — the primary form's optional
+select, the dyad's second-person select, storage, and the recompute
+paths. NOT taken as removing the kua feature: the kua block stays, and
+every profile now takes the both-values read that PR #199 built as the
+no-gender mode — BOTH classical values, labeled, with the method's
+gender dependence disclosed in the register note. The paid promise ("the
+kua line") stays deliverable. If the operator meant the whole kua block,
+that is a further (larger) cut, not this one.
+
+**What changed.**
+- `ui/kua.js` — no longer injects the gender control; `formatKuaRead`,
+  `getGenderInput`, `setGenderInput` and `resolveGenderSelect` removed;
+  `kuaReadFor` always takes `getKuaBoth`; the note drops "no gender on
+  file —" (nothing can be filed any more); boot ref narrowed to
+  `{ cardFace }`.
+- `core/profile.js` — the §1.D gender passthrough removed; a profile
+  never carries `gender`.
+- `ui/profile.js` / `ui/readings.js` — gender leaves the storage payload,
+  the recompute forward, and the rehydrate/reset hooks. A payload or
+  saved reading written in the gendered cycle may still carry a `gender`
+  key on existing devices: it is now inert data, ignored on read and gone
+  on the next natural overwrite. No migration scrub — reads never touch
+  it, and an unprompted rewrite of every visitor's stored payload is a
+  bigger §5 action than the removal itself. Logged as the one residue.
+- `ui/dyad.js` — the second-person gender field, its clear-list entry and
+  its payload spread removed. The PR #199 F1 leak class (a prior person
+  B's gender surviving close/open) is now impossible by construction.
+- `index.html` — import/wiring/submit sites and all three copy mentions
+  (about modal ×2, paywall disclosure) updated; 1451/1500.
+- **UNTOUCHED:** `core/kua.js` (the method registry — its gendered
+  arithmetic is the method; consumed only through `getKuaBoth` now) and
+  `content/kua.v1.js` (immutable per §4).
+
+**DOCTRINE divergence, flagged not fixed.** DOCTRINE.md §1.D kua
+amendment and §5.E still describe the optional gender input (6 mentions).
+Amending DOCTRINE needs the cross-model audit lane per §10 and stays with
+the operator; until then the constitution describes one input the product
+no longer asks. The journal (this entry) is current-state authority.
+
+**Verification.** Suite 57 files / **1937** tests green (16 gendered
+pins reworked across kua / kua_surface / pillars / profile_ui / readings /
+payments_markup / dyad_surface to pin the new contract — including new
+pins that a stale stored token is inert, that the module exposes no
+gender surface, and that the copy no longer promises the field). Product
+audit PASS 12/0/1/0, 0 blocking. Live-fire: no `#gender-input` and no
+`#dyad-gender-input` in the DOM, form/about/paywall copy gender-free,
+free submit renders, and a seeded t3 device with a stale
+`gender:"female"` in its stored payload renders the kua block with BOTH
+classical values (male kua 1 kan / female kua 8 gen for 1990-05-15, the
+5→8 remap disclosed) — the stale token changed nothing. Zero console
+errors.
+
+**Scope (files):** `core/profile.js`, `ui/kua.js`, `ui/profile.js`,
+`ui/readings.js`, `ui/dyad.js`, `ui/tiers.js` (comment), `index.html`,
+`CLAUDE.md` (ui/ shape description), 7 test files, this entry.
+
+## 2026-08-30 — Short-viewport #enter-btn overlap fixed: the fixed circle retires below 680px height — FIXED, tests green, live-fire verified
+
+**What happened.** The entry below logged the 320x568 overlap as
+pre-existing and left it as an operator call; the operator called it.
+Fixed in the same session, same branch.
+
+**Why no size or corner could fix it.** The birthplace row spans the full
+form width (its right edge IS the form's right edge), so a bottom-right
+fixed control of any size overlaps it whenever the viewport is shorter
+than the form leaves room for. Measured: at 360px wide the collision
+begins below ~623px of height; at 320px wide, below ~649px. Shrinking the
+72px circle to 56px still lands inside the city input's band. The only
+honest fix is positional.
+
+**The fix** (`ui/experience.css`). The existing
+`@media (max-width: 480px) and (max-height: 680px)` short-viewport block —
+whose 680px line already marks "short" for stage/header/field spacing —
+now returns `#enter-btn` to the in-flow, full-width shape it has above
+480px (`position: static` defuses right/bottom/z-index in one move) and
+drops `#profile-form`'s 72px FAB-clearance padding. The @supports
+reveal/withdraw rules are position-independent and keep applying
+unchanged: hidden until name+DOB valid, withdrawn while the birthplace
+listbox is open. The FAB survives untouched on tall mobile viewports
+(390x844 verified still fixed/72px). No JS changed, `index.html`
+untouched.
+
+**A measurement trap, resolved.** `document.documentElement.scrollHeight`
+reports 568 at 320x568 even with the button flowed below the fold —
+`html, body { height: 100% }` makes **body** the scroll container, so
+`window.scrollTo` no-ops and `scrollY` stays 0 while `body.scrollTop`
+carries the scroll. This is pre-existing (the result sheet at 320px has
+always scrolled this way) and user-facing scrolling is unaffected: a
+wheel/touch at page center scrolls the form and brings the button fully
+into view (verified: `body.scrollTop` 180, button in viewport). Logged so
+the next geometry probe doesn't re-derive it.
+
+**Verification.** Suite 57 files / **1938** tests green (1935 + 3 new
+pins added to `tests/mobile_submit_reveal.test.js` — short block
+non-vacuous, in-flow override present, clearance padding dropped).
+**Mutation-verified:** stashing the CSS reds exactly the two new
+structural pins; restored, green. Product audit PASS 12/0/1/1, 0
+blocking. Live-fire: 320x568 / 360x640 / 390x667 all `position: static`,
+zero overlap; 390x844 keeps the FAB; full 320x568 flow — reveal at
+name+DOB, withdrawn while listbox open, restored on pick with focus still
+in `#city-input`, submitted, sheet rendered, zero console errors.
+
+**Scope (files):** `ui/experience.css`,
+`tests/mobile_submit_reveal.test.js` (3 pins added, file count unchanged),
+this entry. **UNTOUCHED:** all of `core/`, all of `content/`,
+`index.html`, `tests/fixtures.json`, DOCTRINE, every other `ui/` module.
+
+## 2026-08-30 — Mobile submit dead end closed (the PR #200 open `:has()` item) — FIXED, tests green, live-fire verified
+
+**What happened.** A "does the live app work?" pass turned up the defect
+the PR #200 audit had logged as unresolved: the ":has()-based mobile
+`#enter-btn` tab-order concern that this session's own live verification
+attempt was inconclusive on (recommend a real manual device pass)". It is
+real, and it is worse than a tab-order nit — it was a dead end.
+
+**The bug.** Below 480px the only submit control is the fixed 72px circular
+`#enter-btn`. `ui/experience.css` revealed it once name + DOB were valid,
+then withdrew it again while anything inside `#rising-fields` or
+`.kua-gender-field` held `:focus`. That second rule had no exit.
+`ui/citysearch.js` `preventDefault()`s the suggestion `mousedown`
+deliberately, so the choice survives the focus shift — which means focus
+stays in `#city-input` after a birthplace is picked, and the sole submit
+stayed `visibility: hidden` for the rest of the session. A user who filled
+the optional birth-time/place block last (the natural order — it is the
+last block on the form) had no way to submit but to tap dead space and
+blur. The time and gender controls trapped it the same way. Nothing in the
+UI hinted that tapping nowhere was the way out.
+
+**Why it survived.** Nothing tested it: before this entry there was no
+test in the repo referencing `experience.css` or `#enter-btn` at all, and
+`:has()` / `@supports` / `@media` are exactly what the jsdom suite cannot
+evaluate. The #200 live-fire could not confirm it either. It took a real
+engine (Chromium via the §8 gate-9 recipe) driven through the *pointer*
+path — fill the optional block last, then try to submit without blurring.
+
+**The fix** (`ui/experience.css`). The withdraw rule is now keyed to the
+birthplace listbox's own `aria-expanded`, not to focus:
+`#profile-form:has(#name-input:valid):has(#dob-input:valid):has(#city-input[aria-expanded="true"]) #enter-btn`.
+`ui/citysearch.js` sets that attribute on render and clears it on
+selection, Escape, blur, empty results and reset, so the state always
+resolves. The guard it preserves is real and worth keeping — the
+suggestion list can run down to the button's corner and a mis-tap there
+would submit mid-search — but it now lasts exactly as long as the listbox
+does. Time and gender are native OS pickers that float above the page;
+they never needed it. No JS changed.
+
+**Verification.** Suite 57 files / **1935** tests green (1927 + 8 new).
+Product audit PASS 12/0/1/1, 0 blocking. New `tests/mobile_submit_reveal.test.js`
+pins both halves of the contract — the CSS keys on `aria-expanded` and
+never on `:focus` (static scan, CSS comments stripped so a comment body is
+not read as a selector), and the controller really does clear
+`aria-expanded` on selection / Escape / blur / empty results (real
+controller, injected DOM mocks, mirroring `tests/citysearch.test.js`).
+**Mutation-verified:** reverting `ui/experience.css` to the #200 rule reds
+exactly the two structural assertions and nothing else; restored, green.
+Live-fire at 390x844: begin hidden empty → visible at name+dob → stays
+visible with focus in time and gender → hidden while the listbox is open →
+**visible again the instant a suggestion is picked, with focus still in
+`#city-input`** → submitted without ever blurring, sheet rendered. Escape
+restores it too. Zero console errors. `index.html` untouched at 1452/1500.
+
+**Found but NOT fixed — pre-existing, operator's call.** At 320x568 the
+button's 12px halo overlaps the birthplace label and input
+(`#enter-btn` top 480, `#city-input` 493–537). Measured against `HEAD`'s
+own CSS with nothing focused: button visible, overlap true — so this
+predates this change and is not introduced by it. The old focus rule
+masked it only while a field was focused, never in the resting state. The
+page does not scroll at that height (`docH == vh`), so the row cannot be
+moved out from under the button; fixing it is a mobile layout decision
+(reposition or shrink the control on short viewports, likely in the
+existing `max-width:480px and max-height:680px` block), not a one-line
+patch, so it is logged here rather than absorbed silently.
+
+**Scope (files):** `ui/experience.css`, `tests/mobile_submit_reveal.test.js`
+(new), `CLAUDE.md` (tests/ count 56 → 57, pinned by `repo_shape.test.js`),
+this entry. **UNTOUCHED:** all of `core/`, all of `content/`, `index.html`,
+`tests/fixtures.json`, DOCTRINE, every other `ui/` module.
+
 ## 2026-08-04 — UI refinement (PR #200): cross-model audit found real regressions, all fixed — STAGED, SAFE TO MERGE pending operator merge word
 
 **What happened.** PR #200 transplants a UI refinement pass (result/timer

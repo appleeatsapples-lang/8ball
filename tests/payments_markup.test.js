@@ -39,6 +39,7 @@ import {
   getCredits,
   handlePaidReturn,
   initPaywallUI,
+  scrubPendingGender,
   setTier,
   showPaidBanner,
   stagePurchase,
@@ -539,8 +540,11 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
 
   it('about-modal: discloses on-device data boundary', () => {
     expect(aboutSubtree).toMatch(
-      /your name, DOB, optional gender, and reading stay in this browser/
+      /your name, DOB, and reading stay in this browser/
     );
+    // The gender ask left 2026-08-30; the disclosure must not still
+    // promise a field the form no longer collects.
+    expect(aboutSubtree).not.toMatch(/gender/);
   });
 
   it('about-modal: discloses source visibility ("the deck is visible in source")', () => {
@@ -603,7 +607,8 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('paywall modal disclosure keeps reading on-device', () => {
-    expect(paywallSubtree).toMatch(/your name, birth data, optional gender, and reading stay in this browser/);
+    expect(paywallSubtree).toMatch(/your name, birth data, and reading stay in this browser/);
+    expect(paywallSubtree).not.toMatch(/gender/);
   });
 });
 
@@ -693,5 +698,35 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
 
   it('profile.publicAnimal is not referenced anywhere in index.html', () => {
     expect(html).not.toMatch(/profile\.publicAnimal/);
+  });
+});
+
+describe('boot scrub — a stale staged gender token leaves the device', () => {
+  it('rewrites a gendered pending payload without the key, everything else verbatim', () => {
+    // The staged payload is stagePurchase(loadSavedProfile()) — the FULL
+    // stored shape — so the fixture carries every field it can hold and
+    // the assertion is byte-equality of the remainder (#208 audit, opus
+    // F1: the previous thin fixture let an over-deleting scrub pass).
+    const before = {
+      name: 'Staged', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', country: 'SA',
+      tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
+    const storage = makeStorage({
+      [PENDING_KEY]: JSON.stringify({ ...before, gender: 'male' }),
+    });
+    globalThis.localStorage = storage;
+    expect(scrubPendingGender()).toBe(true);
+    expect(JSON.parse(storage.snapshot()[PENDING_KEY])).toEqual(before);
+  });
+
+  it('is a pure read when nothing is staged or the stage is clean', () => {
+    const clean = makeStorage({ [PENDING_KEY]: JSON.stringify({ name: 'Staged', dob: '1990-01-01' }) });
+    globalThis.localStorage = clean;
+    expect(scrubPendingGender()).toBe(false);
+    expect(clean.setItem).not.toHaveBeenCalled();
+
+    globalThis.localStorage = makeStorage();
+    expect(scrubPendingGender()).toBe(false);
   });
 });

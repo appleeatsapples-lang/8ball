@@ -260,9 +260,9 @@ describe('buildProfile integration — additive only', () => {
     'maturitySum', 'yyyy', 'mm', 'dd', 'risingSign', 'birthCard',
   ];
 
-  it('adds exactly dayPillar + hourPillar (+ the §1.D kua-amendment gender passthrough), in order, removing/reordering none', () => {
+  it('adds exactly dayPillar + hourPillar, in order, removing/reordering none (gender left with the ask, 2026-08-30)', () => {
     const p = buildProfile('Test Specimen', '2000-01-01');
-    expect(Object.keys(p)).toEqual([...PREEXISTING_KEYS, 'dayPillar', 'hourPillar', 'gender']);
+    expect(Object.keys(p)).toEqual([...PREEXISTING_KEYS, 'dayPillar', 'hourPillar']);
   });
 
   it('every pre-existing field is byte-identical to its independent getter (no-opts path)', () => {

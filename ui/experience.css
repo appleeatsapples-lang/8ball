@@ -449,7 +449,7 @@ body {
 
   /* Progressive enhancement: browsers without :has() keep a visible fixed
      submit. Supporting browsers reveal it once the two required fields are
-     valid, and move it away while an optional rising field has focus. */
+     valid, and take it away while the birthplace listbox is open. */
   @supports selector(form:has(input:valid)) {
     #enter-btn {
       opacity: 0;
@@ -467,8 +467,22 @@ body {
       transition: opacity 180ms ease, transform 180ms ease;
     }
 
-    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(#rising-fields :focus) #enter-btn,
-    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(.kua-gender-field :focus) #enter-btn {
+    /* Withdrawn only while the birthplace listbox is actually open. The
+       suggestion list can run down to this button's corner, and a mis-tap
+       there would submit the form mid-search; hiding also keeps the button
+       out of the tab order while the listbox owns the arrow keys.
+
+       Keyed to aria-expanded, which ui/citysearch.js sets on render and
+       clears on selection, Escape, blur, empty results and reset — so the
+       state always resolves. It must NOT be keyed to :focus within
+       #rising-fields / .kua-gender-field: selecting a suggestion keeps
+       focus in the input on purpose (citysearch.js preventDefault on
+       mousedown, so the choice survives the focus shift), so a focus rule
+       left the only submit control permanently invisible once a birthplace
+       was picked — the mobile dead end raised against PR #200 and confirmed
+       by live-fire on 2026-08-30. Time and gender are native pickers that
+       float above the page; they never needed this. */
+    #profile-form:has(#name-input:valid):has(#dob-input:valid):has(#city-input[aria-expanded="true"]) #enter-btn {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -519,6 +533,29 @@ body {
 
   .field-group {
     margin-bottom: 14px;
+  }
+
+  /* On short viewports the fixed circle cannot work: the birthplace row
+     spans the full form width, so a bottom-right fixed control overlaps it
+     whenever the viewport is shorter than the form leaves room for (~623px
+     at 360px wide, worse at 320px — measured 2026-08-30, and pre-existing
+     before the aria-expanded reveal fix). No size or corner fixes that, so
+     below the short-viewport line the submit returns to the in-flow,
+     full-width shape it has above 480px. The @supports reveal/withdraw
+     rules above are position-independent and keep applying unchanged. */
+  #profile-form {
+    padding-bottom: 0;
+  }
+
+  #enter-btn {
+    position: static;
+    width: 100%;
+    min-height: var(--control-height);
+    padding: 12px 18px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    letter-spacing: 0.28em;
   }
 }
 

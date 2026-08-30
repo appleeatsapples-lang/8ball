@@ -30,12 +30,10 @@ export function compactReadingProfile(input) {
   for (const key of NUMBER_PROFILE_FIELDS) {
     if (typeof input[key] === 'number' && Number.isFinite(input[key])) profile[key] = input[key];
   }
-  // §5.E kua amendment: gender is calc-driving (the kua block), so the
-  // archive must carry it or a reopened reading recomputes differently
-  // than the fresh submit did. Strict two-token vocabulary — deliberately
-  // NOT the generic string copier, so an off-vocabulary value is dropped
-  // at this write seam like every other.
-  if (input.gender === 'male' || input.gender === 'female') profile.gender = input.gender;
+  // A saved reading from the gendered-kua cycle may still carry a
+  // `gender` key; it is deliberately dropped here — the kua block reads
+  // both classical values for every profile now, so reopen and fresh
+  // submit stay identical without it (§5 recompute-on-load).
   return profile;
 }
 
@@ -73,6 +71,40 @@ export function loadSavedReadings(storage = defaultStorage()) {
     status: readings.length === parsed.length ? 'ok' : 'partial',
     readings: sortNewestFirst(readings),
   };
+}
+
+/**
+ * One-time boot scrub (gender removal, journal 2026-08-30): archive
+ * entries saved in the gendered-kua cycle may carry `profile.gender`.
+ * loadSavedReadings already strips it on read (compactReadingProfile),
+ * so this exists purely to take the token off the device. Surgical on
+ * purpose: only the gender keys are touched — no re-sort, no
+ * re-normalisation, no dropping of entries a load would reject — so a
+ * scrub can never change what the registry shows.
+ */
+export function scrubSavedReadingsGender(storage = defaultStorage()) {
+  if (!storage) return false;
+  let raw;
+  try { raw = storage.getItem(READINGS_KEY); }
+  catch (_) { return false; }
+  if (!raw) return false;
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (_) { return false; }
+  if (!Array.isArray(parsed)) return false;
+  let changed = false;
+  for (const entry of parsed) {
+    if (entry && entry.profile && typeof entry.profile === 'object' && 'gender' in entry.profile) {
+      delete entry.profile.gender;
+      changed = true;
+    }
+  }
+  if (!changed) return false;
+  try {
+    const next = JSON.stringify(parsed);
+    storage.setItem(READINGS_KEY, next);
+    return storage.getItem(READINGS_KEY) === next;
+  } catch (_) { return false; }
 }
 
 function writeSavedReadings(readings, storage) {

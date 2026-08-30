@@ -203,7 +203,6 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   const ids = [
     'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
     'dyad-cta', 'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
-    'dyad-gender-input',
     'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
@@ -743,25 +742,13 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
     expect(inst.get('dyad-dob-input').value).toBe('');
   });
 
-  it("person B's gender does not survive close()/open() — every other typed field already didn't", () => {
-    // Regression: clearEntryFields() originally cleared name/dob/time but not
-    // gender, so an unconsented next person B would silently inherit the
-    // prior person's gender through the hidden re-open path — the same class
-    // of stale-hidden-DOM leak the rest of this F1 suite exists to close.
-    const inst = harness('t5');
-    inst.withDom(() => {
-      inst.get('dyad-gender-input').value = 'female';
-      return submitSecond();
-    });
-    inst.withDom(() => closeDyad());
-    expect(inst.get('dyad-gender-input').value).toBe('');
-
-    inst.withDom(() => {
-      inst.get('dyad-gender-input').value = 'male';
-      return submitSecond();
-    });
-    inst.withDom(() => openDyad());
-    expect(inst.get('dyad-gender-input').value).toBe('');
+  it('the entry form asks no gender — the field left with the ask (2026-08-30)', () => {
+    // The F1 leak this replaced (a prior person's gender surviving
+    // close()/open()) is now impossible by construction: there is no
+    // control to leak. This pin keeps the field from returning.
+    const markup = readFileSync(join(REPO_ROOT, 'ui', 'dyad.js'), 'utf-8');
+    expect(markup).not.toMatch(/dyad-gender-input/);
+    expect(markup).not.toMatch(/second gender/);
   });
 
   it('render() with no second person shows nothing', () => {
@@ -1142,7 +1129,7 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
     expect(captured.city).toBe(city.name);
   });
 
-  it("person B's optional gender rides the buildSecond payload under the strict vocabulary (§1.J one entry contract)", () => {
+  it('the buildSecond payload carries no gender (§1.J one entry contract, ask removed 2026-08-30)', () => {
     let captured = null;
     const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
     const outer = globalThis.document;
@@ -1150,12 +1137,6 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
     try {
       inst.get('dyad-name-input').value = 'specimen b';
       inst.get('dyad-dob-input').value = '1988-06-15';
-      inst.get('dyad-gender-input').value = 'female';
-      expect(submitSecond()).toBe(true);
-      expect(captured.gender).toBe('female');
-      // Off-vocabulary never reaches the build — dropped at the seam like
-      // every other write path the §5 amendment touches.
-      inst.get('dyad-gender-input').value = 'junk';
       expect(submitSecond()).toBe(true);
       expect(captured).not.toHaveProperty('gender');
     } finally {
