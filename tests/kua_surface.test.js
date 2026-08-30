@@ -5,11 +5,12 @@
 // seams, twinned from tests/public_surface.test.js:
 //
 //   1. ui/kua.js render — sealed below t3, filled at t3, DOM-pure either
-//      way (§1.D v0.37); single-gender and both-values modes; the 5-remap
+//      way (§1.D v0.37); the both-values read is the only read (the
+//      product asks no gender question — journal 2026-08-30); the 5-remap
 //      disclosure visible, never silent.
 //   2. Injection — index.html carries no kua markup, no gender control,
-//      no kua CSS; the module builds all three and the boot call names
-//      only host-owned refs.
+//      no kua CSS; the module builds its style and block node and the
+//      boot call names only the host-owned card face.
 //   3. The ladder — kuaRead rides t3 (and t5 by the append), is a BLOCK
 //      (census unmoved), and the unseal beat can actually reach it.
 //   4. The single-importer twin — ui/kua.js is the only consumer of
@@ -26,13 +27,10 @@ import { fileURLToPath } from 'node:url';
 
 import { makeClassList } from './helpers/dom.js';
 import {
-  formatKuaRead,
   formatKuaBoth,
   kuaReadFor,
   initKuaUI,
   renderKuaRead,
-  getGenderInput,
-  setGenderInput,
 } from '../ui/kua.js';
 import { coordsForTier, tierDensitySummary, newlyEntitledCells } from '../ui/tiers.js';
 import { createSheet } from '../ui/sheet.js';
@@ -49,48 +47,47 @@ const makeRefs = () => ({
   primary: makeNode(),
   secondary: makeNode(),
   note: makeNode(),
-  genderSelect: { value: '' },
 });
 
 // 1990: male → kua 1 (kan); female → raw 5 remapped to 8 (gen).
-const P_FEMALE = buildProfile('specimen', '1990-06-01', { gender: 'female' });
-const P_MALE = buildProfile('specimen', '1990-06-01', { gender: 'male' });
-const P_NONE = buildProfile('specimen', '1990-06-01');
+const P = buildProfile('specimen', '1990-06-01');
+// The gendered-kua cycle stored gender on profiles; a stale payload's
+// token must be inert, so it rides this fixture to prove it changes
+// nothing about the read.
+const P_STALE_GENDER = { ...P, gender: 'female' };
 
 describe('kua render — boot order', () => {
   it('is inert before init: render returns null and touches nothing', () => {
-    expect(renderKuaRead(P_FEMALE, { entitled: true })).toBeNull();
+    expect(renderKuaRead(P, { entitled: true })).toBeNull();
   });
 });
 
 describe('kua render — contract', () => {
-  it('fills the single-gender read at entitled:true, remap disclosed', () => {
+  it('fills BOTH classical values at entitled:true, labeled, remap disclosed', () => {
     const refs = makeRefs();
     initKuaUI(refs);
-    const read = renderKuaRead(P_FEMALE, { entitled: true });
+    const read = renderKuaRead(P, { entitled: true });
     expect(read).not.toBeNull();
-    expect(refs.primary.textContent).toBe('female · kua 8 · gen ☶ · northeast · west group');
-    expect(refs.secondary.textContent).toMatch(/^the eight mansions tradition files kua eight/);
-    expect(refs.note.textContent).toMatch(/a raw 5 has no trigram/);
+    expect(refs.primary.textContent).toBe('male · kua 1 · kan ☵ · north · east group');
+    expect(refs.secondary.textContent).toBe('female · kua 8 · gen ☶ · northeast · west group');
+    expect(refs.note.textContent).toMatch(/assigns by gender; both classical values shown/);
+    expect(refs.note.textContent).toMatch(/a raw 5 has no trigram/); // the female remap
     expect(refs.root.classList.contains('sealed')).toBe(false);
   });
 
-  it('an unremapped read carries an empty note (collapsed by :empty, never hidden)', () => {
-    const refs = makeRefs();
-    initKuaUI(refs);
-    renderKuaRead(P_MALE, { entitled: true });
-    expect(refs.primary.textContent).toBe('male · kua 1 · kan ☵ · north · east group');
-    expect(refs.note.textContent).toBe('');
+  it('a stale stored gender token changes nothing — the read is identical', () => {
+    // The product asks no gender question; payloads written before the
+    // 2026-08-30 removal may still carry one. It must be inert, not a
+    // hidden third mode.
+    expect(kuaReadFor(P_STALE_GENDER)).toEqual(kuaReadFor(P));
   });
 
-  it('no gender on file → BOTH classical values, labeled, with the register note', () => {
-    const refs = makeRefs();
-    initKuaUI(refs);
-    const read = renderKuaRead(P_NONE, { entitled: true });
-    expect(read.primary).toMatch(/^male · kua 1 /);
-    expect(read.secondary).toMatch(/^female · kua 8 /);
-    expect(refs.note.textContent).toMatch(/no gender on file/);
-    expect(refs.note.textContent).toMatch(/a raw 5 has no trigram/); // the female remap
+  it('the note always discloses the method dependence, never claims a file state', () => {
+    const read = kuaReadFor(P);
+    expect(read.note).toMatch(/^the eight mansions method assigns by gender/);
+    // The gendered-cycle phrasing implied a gender COULD be filed; it
+    // cannot, so the phrase must be gone.
+    expect(read.note).not.toMatch(/no gender on file/);
   });
 
   it('sealed below entitlement: every value node emptied, aria says sealed (§1.D v0.37)', () => {
@@ -98,8 +95,8 @@ describe('kua render — contract', () => {
     let aria = null;
     refs.root.setAttribute = (k, v) => { if (k === 'aria-label') aria = v; };
     initKuaUI(refs);
-    renderKuaRead(P_FEMALE, { entitled: true });
-    const read = renderKuaRead(P_FEMALE, { entitled: false });
+    renderKuaRead(P, { entitled: true });
+    const read = renderKuaRead(P, { entitled: false });
     expect(read).toBeNull();
     expect(refs.root.classList.contains('sealed')).toBe(true);
     expect(refs.primary.textContent).toBe('');
@@ -117,27 +114,18 @@ describe('kua render — contract', () => {
     }
   });
 
-  it('the gender control speaks the strict vocabulary in both directions', () => {
-    const refs = makeRefs();
-    initKuaUI(refs);
-    expect(getGenderInput()).toBeUndefined();
-    refs.genderSelect.value = 'female';
-    expect(getGenderInput()).toBe('female');
-    refs.genderSelect.value = 'anything-else';
-    expect(getGenderInput()).toBeUndefined();
-    setGenderInput('male');
-    expect(refs.genderSelect.value).toBe('male');
-    setGenderInput('junk');
-    expect(refs.genderSelect.value).toBe('');
-    setGenderInput(undefined);
-    expect(refs.genderSelect.value).toBe('');
+  it('format helper is pure and total over the registry', () => {
+    const both = formatKuaBoth({ male: { number: 2, remapped: true }, female: { number: 1, remapped: false } });
+    expect(both.primary).toBe('male · kua 2 · kun ☷ · southwest · west group');
+    expect(both.secondary).toBe('female · kua 1 · kan ☵ · north · east group');
+    expect(both.note).toMatch(/kun \(2\)/);
   });
 
-  it('format helpers are pure and total over the registry', () => {
-    expect(formatKuaRead({ number: 6, remapped: false }, 'male').primary)
-      .toBe('male · kua 6 · qian ☰ · northwest · west group');
-    const both = formatKuaBoth({ male: { number: 2, remapped: true }, female: { number: 1, remapped: false } });
-    expect(both.note).toMatch(/kun \(2\)/);
+  it('the module exposes no gender surface at all', () => {
+    // The control, its accessors and the single-gender formatter left
+    // together; any one returning is the ask coming back.
+    expect(kuaJs).not.toMatch(/getGenderInput|setGenderInput|resolveGenderSelect|formatKuaRead\b/);
+    expect(kuaJs).not.toMatch(/gender-input|kua-gender-field/);
   });
 });
 
@@ -150,8 +138,8 @@ describe('kua injection — the host is untouched', () => {
     expect(css).not.toMatch(/\.kua-read/);
   });
 
-  it('the boot call hands host-owned refs only (cardFace, form, anchor)', () => {
-    expect(html).toMatch(/initKuaUI\(\{ cardFace, form: profileForm, anchor: risingFields \}\)/);
+  it('the boot call hands the host-owned card face only', () => {
+    expect(html).toMatch(/initKuaUI\(\{ cardFace \}\)/);
   });
 
   it('the module owns its style: id-guarded tag, :empty note, label reveal, unseal + reduced-motion', () => {
@@ -225,16 +213,16 @@ describe('dyad-sheet parity', () => {
   it('a sheet renders the same handed-in read the host block shows, and seals below t3', () => {
     const { host, byAttr } = makeSheetHost('b');
     const sheet = createSheet(host, { prefix: 'b' });
-    const read = kuaReadFor(P_NONE);
+    const read = kuaReadFor(P);
 
-    const flags = sheet.render(P_NONE, 't3', { kua: read });
+    const flags = sheet.render(P, 't3', { kua: read });
     expect(flags.kua).toBe(true);
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe(read.primary);
     expect(byAttr.get('[data-sheet-kua-secondary="b"]').textContent).toBe(read.secondary);
     expect(byAttr.get('[data-sheet-kua-note="b"]').textContent).toBe(read.note);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(false);
 
-    const sealed = sheet.render(P_NONE, 't2', { kua: read });
+    const sealed = sheet.render(P, 't2', { kua: read });
     expect(sealed.kua).toBe(false);
     expect(byAttr.get('[data-sheet-kua="b"]').classList.contains('sealed')).toBe(true);
     expect(byAttr.get('[data-sheet-kua-primary="b"]').textContent).toBe('');

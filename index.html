@@ -985,8 +985,8 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the free card files five coordinates from your date of birth: tarot birth card, sun sign, public animal, life path, catalog numeral. the complete sheet opens the rest — your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from; the result screen also states how many of the fifteen coordinates are open and how many stay sealed at paid tiers.</p>
-    <p>nothing leaves your device on its own. inputs — including the optional gender, which feeds only the kua line and can stay blank — the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the ten sealed coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the kua line — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, optional gender, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
+    <p>nothing leaves your device on its own. inputs, the paid rung, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>readings are free and unlimited, on the free sheet. the current offer is the complete sheet for three dollars, once — it opens the ten sealed coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), domain fit, and the kua line — permanently, for every reading in this browser. devices that already own a lower rung keep it; a higher rung bought later upgrades the sheet — what you bought stays bought. no subscription and no 8ball account. checkout is hosted by gumroad — your payment details and email go to them; your name, DOB, and reading stay in this browser. the deck is visible in source; the lock is a convention, not a vault. the coins fund more of the toy. we trust adults.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -1023,7 +1023,7 @@
       <p class="specimen-caption">the written card entry for specimen no. v, one of its three note positions. a fixed example from the catalog — your sheet files your own coordinates.</p>
     </details>
     <a class="modal-cta" id="paywall-cta-t3" href="https://theeightball.gumroad.com/l/xjpvp" target="_self">buy complete — every coordinate + the written card — $3</a>
-    <p class="modal-disclosure" id="paywall-disclosure">gumroad handles payment and email. your name, birth data, optional gender, and reading stay in this browser.</p>
+    <p class="modal-disclosure" id="paywall-disclosure">gumroad handles payment and email. your name, birth data, and reading stay in this browser.</p>
     <div class="modal-actions">
       <button class="btn" id="paywall-close" type="button">maybe later</button>
     </div>
@@ -1048,7 +1048,7 @@ import {
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
-import { initKuaUI, renderKuaRead, kuaReadFor, getGenderInput, setGenderInput } from './ui/kua.js';
+import { initKuaUI, renderKuaRead, kuaReadFor } from './ui/kua.js';
 import { initMeaningsUI } from './ui/meanings.js';
 import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
 import {
@@ -1109,7 +1109,7 @@ let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
   { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; }, setGender: setGenderInput },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
@@ -1182,7 +1182,7 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
-initKuaUI({ cardFace, form: profileForm, anchor: risingFields });
+initKuaUI({ cardFace });
 initMeaningsUI({ cardFace });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
@@ -1336,7 +1336,6 @@ profileForm.addEventListener('submit', e => {
   // is null and rising sign isn't computed — bare sun line falls
   // through naturally per profile.js's gates.
   const opts = { time };
-  const g = getGenderInput(); if (g) opts.gender = g;
   if (selectedCity) {
     opts.city = selectedCity.name;
     opts.cc = selectedCity.countryCode;

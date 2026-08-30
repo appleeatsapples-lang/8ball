@@ -539,8 +539,11 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
 
   it('about-modal: discloses on-device data boundary', () => {
     expect(aboutSubtree).toMatch(
-      /your name, DOB, optional gender, and reading stay in this browser/
+      /your name, DOB, and reading stay in this browser/
     );
+    // The gender ask left 2026-08-30; the disclosure must not still
+    // promise a field the form no longer collects.
+    expect(aboutSubtree).not.toMatch(/gender/);
   });
 
   it('about-modal: discloses source visibility ("the deck is visible in source")', () => {
@@ -603,7 +606,8 @@ describe('disclosure copy (DOCTRINE §4 v0.22 / brief §10.3)', () => {
   });
 
   it('paywall modal disclosure keeps reading on-device', () => {
-    expect(paywallSubtree).toMatch(/your name, birth data, optional gender, and reading stay in this browser/);
+    expect(paywallSubtree).toMatch(/your name, birth data, and reading stay in this browser/);
+    expect(paywallSubtree).not.toMatch(/gender/);
   });
 });
 

@@ -58,9 +58,6 @@ export function saveProfile(name, dob, opts) {
     if (opts.country) payload.country = opts.country;
     if (typeof opts.lat === 'number' && !isNaN(opts.lat)) payload.lat = opts.lat;
     if (typeof opts.lng === 'number' && !isNaN(opts.lng)) payload.lng = opts.lng;
-    // §1.D kua amendment / §5 amendment: strict two-token vocabulary at
-    // every write seam — anything else is dropped, not stored.
-    if (opts.gender === 'male' || opts.gender === 'female') payload.gender = opts.gender;
   }
   try {
     const raw = JSON.stringify(payload);
@@ -83,11 +80,10 @@ export function optsFromPayload(obj) {
   if (obj.country) opts.country = obj.country;
   if (typeof obj.lat === 'number') opts.lat = obj.lat;
   if (typeof obj.lng === 'number') opts.lng = obj.lng;
-  // Calc-driving (the kua block reads profile.gender), so it MUST forward
-  // here — unlike display-only city/cc. A field present in saveProfile but
-  // absent here would make cold-boot recompute a different reading than
-  // the fresh submit (§5 recompute-on-load).
-  if (obj.gender === 'male' || obj.gender === 'female') opts.gender = obj.gender;
+  // A stored payload from the gendered-kua cycle may still carry a
+  // `gender` key; it is deliberately NOT forwarded — the kua block reads
+  // both classical values for every profile now, so the stored token is
+  // inert data awaiting the next natural overwrite.
   return opts;
 }
 
@@ -186,9 +182,6 @@ export function initProfileUI(refs, hooks) {
 export function populateRisingFields(obj) {
   const r = _refs;
   r.timeInput.value = obj.time || '';
-  // Rehydrate the injected gender control (ui/kua.js owns the node; the
-  // host wires its setter through this hook). Invalid/absent resolves ''.
-  if (_hooks.setGender) _hooks.setGender(obj.gender);
   r.legacyHint.hidden = true;
   r.polarMessage.hidden = true;
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
@@ -235,7 +228,6 @@ export function resetFormDisplay() {
   r.timeInput.value = '';
   r.cityInput.value = '';
   r.citySuggestions.innerHTML = '';
-  if (_hooks.setGender) _hooks.setGender('');
   if (_hooks.setSelectedCity) _hooks.setSelectedCity(null);
   r.polarMessage.hidden = true;
   r.legacyHint.hidden = true;

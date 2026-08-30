@@ -335,13 +335,6 @@ export function buildProfile(name, dobIso, opts) {
       }
     }
   }
-  // ── Gender passthrough (additive, §1.D kua amendment). Strict two-token
-  // vocabulary; anything else resolves undefined (same absent-shape as
-  // risingSign). Consumed only by the kua read (ui/kua.js → core/kua.js) —
-  // no free coordinate derives from it, preserving free = DOB-only (§1.D).
-  const gender = (opts && (opts.gender === 'male' || opts.gender === 'female'))
-    ? opts.gender
-    : undefined;
   return {
     name: cleanName,
     firstName: cleanName.split(/\s+/)[0] || '',
@@ -364,7 +357,6 @@ export function buildProfile(name, dobIso, opts) {
     risingSign,
     birthCard: getBirthCard(y, m, d),
     dayPillar: getDayPillar(y, m, d),
-    hourPillar,
-    gender
+    hourPillar
   };
 }

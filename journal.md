@@ -5,6 +5,65 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Gender ask removed: the product asks no gender question — SHIPPED TO BRANCH, tests green, live-fire verified
+
+**Operator decision.** "I don't want the gender part." Scope taken as: the
+gender question leaves every surface — the primary form's optional
+select, the dyad's second-person select, storage, and the recompute
+paths. NOT taken as removing the kua feature: the kua block stays, and
+every profile now takes the both-values read that PR #199 built as the
+no-gender mode — BOTH classical values, labeled, with the method's
+gender dependence disclosed in the register note. The paid promise ("the
+kua line") stays deliverable. If the operator meant the whole kua block,
+that is a further (larger) cut, not this one.
+
+**What changed.**
+- `ui/kua.js` — no longer injects the gender control; `formatKuaRead`,
+  `getGenderInput`, `setGenderInput` and `resolveGenderSelect` removed;
+  `kuaReadFor` always takes `getKuaBoth`; the note drops "no gender on
+  file —" (nothing can be filed any more); boot ref narrowed to
+  `{ cardFace }`.
+- `core/profile.js` — the §1.D gender passthrough removed; a profile
+  never carries `gender`.
+- `ui/profile.js` / `ui/readings.js` — gender leaves the storage payload,
+  the recompute forward, and the rehydrate/reset hooks. A payload or
+  saved reading written in the gendered cycle may still carry a `gender`
+  key on existing devices: it is now inert data, ignored on read and gone
+  on the next natural overwrite. No migration scrub — reads never touch
+  it, and an unprompted rewrite of every visitor's stored payload is a
+  bigger §5 action than the removal itself. Logged as the one residue.
+- `ui/dyad.js` — the second-person gender field, its clear-list entry and
+  its payload spread removed. The PR #199 F1 leak class (a prior person
+  B's gender surviving close/open) is now impossible by construction.
+- `index.html` — import/wiring/submit sites and all three copy mentions
+  (about modal ×2, paywall disclosure) updated; 1451/1500.
+- **UNTOUCHED:** `core/kua.js` (the method registry — its gendered
+  arithmetic is the method; consumed only through `getKuaBoth` now) and
+  `content/kua.v1.js` (immutable per §4).
+
+**DOCTRINE divergence, flagged not fixed.** DOCTRINE.md §1.D kua
+amendment and §5.E still describe the optional gender input (6 mentions).
+Amending DOCTRINE needs the cross-model audit lane per §10 and stays with
+the operator; until then the constitution describes one input the product
+no longer asks. The journal (this entry) is current-state authority.
+
+**Verification.** Suite 57 files / **1937** tests green (16 gendered
+pins reworked across kua / kua_surface / pillars / profile_ui / readings /
+payments_markup / dyad_surface to pin the new contract — including new
+pins that a stale stored token is inert, that the module exposes no
+gender surface, and that the copy no longer promises the field). Product
+audit PASS 12/0/1/0, 0 blocking. Live-fire: no `#gender-input` and no
+`#dyad-gender-input` in the DOM, form/about/paywall copy gender-free,
+free submit renders, and a seeded t3 device with a stale
+`gender:"female"` in its stored payload renders the kua block with BOTH
+classical values (male kua 1 kan / female kua 8 gen for 1990-05-15, the
+5→8 remap disclosed) — the stale token changed nothing. Zero console
+errors.
+
+**Scope (files):** `core/profile.js`, `ui/kua.js`, `ui/profile.js`,
+`ui/readings.js`, `ui/dyad.js`, `ui/tiers.js` (comment), `index.html`,
+`CLAUDE.md` (ui/ shape description), 7 test files, this entry.
+
 ## 2026-08-30 — Short-viewport #enter-btn overlap fixed: the fixed circle retires below 680px height — FIXED, tests green, live-fire verified
 
 **What happened.** The entry below logged the 320x568 overlap as
