@@ -534,6 +534,29 @@ body {
   .field-group {
     margin-bottom: 14px;
   }
+
+  /* On short viewports the fixed circle cannot work: the birthplace row
+     spans the full form width, so a bottom-right fixed control overlaps it
+     whenever the viewport is shorter than the form leaves room for (~623px
+     at 360px wide, worse at 320px — measured 2026-08-30, and pre-existing
+     before the aria-expanded reveal fix). No size or corner fixes that, so
+     below the short-viewport line the submit returns to the in-flow,
+     full-width shape it has above 480px. The @supports reveal/withdraw
+     rules above are position-independent and keep applying unchanged. */
+  #profile-form {
+    padding-bottom: 0;
+  }
+
+  #enter-btn {
+    position: static;
+    width: 100%;
+    min-height: var(--control-height);
+    padding: 12px 18px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    letter-spacing: 0.28em;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

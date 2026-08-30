@@ -5,6 +5,57 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Short-viewport #enter-btn overlap fixed: the fixed circle retires below 680px height — FIXED, tests green, live-fire verified
+
+**What happened.** The entry below logged the 320x568 overlap as
+pre-existing and left it as an operator call; the operator called it.
+Fixed in the same session, same branch.
+
+**Why no size or corner could fix it.** The birthplace row spans the full
+form width (its right edge IS the form's right edge), so a bottom-right
+fixed control of any size overlaps it whenever the viewport is shorter
+than the form leaves room for. Measured: at 360px wide the collision
+begins below ~623px of height; at 320px wide, below ~649px. Shrinking the
+72px circle to 56px still lands inside the city input's band. The only
+honest fix is positional.
+
+**The fix** (`ui/experience.css`). The existing
+`@media (max-width: 480px) and (max-height: 680px)` short-viewport block —
+whose 680px line already marks "short" for stage/header/field spacing —
+now returns `#enter-btn` to the in-flow, full-width shape it has above
+480px (`position: static` defuses right/bottom/z-index in one move) and
+drops `#profile-form`'s 72px FAB-clearance padding. The @supports
+reveal/withdraw rules are position-independent and keep applying
+unchanged: hidden until name+DOB valid, withdrawn while the birthplace
+listbox is open. The FAB survives untouched on tall mobile viewports
+(390x844 verified still fixed/72px). No JS changed, `index.html`
+untouched.
+
+**A measurement trap, resolved.** `document.documentElement.scrollHeight`
+reports 568 at 320x568 even with the button flowed below the fold —
+`html, body { height: 100% }` makes **body** the scroll container, so
+`window.scrollTo` no-ops and `scrollY` stays 0 while `body.scrollTop`
+carries the scroll. This is pre-existing (the result sheet at 320px has
+always scrolled this way) and user-facing scrolling is unaffected: a
+wheel/touch at page center scrolls the form and brings the button fully
+into view (verified: `body.scrollTop` 180, button in viewport). Logged so
+the next geometry probe doesn't re-derive it.
+
+**Verification.** Suite 57 files / **1938** tests green (1935 + 3 new
+pins added to `tests/mobile_submit_reveal.test.js` — short block
+non-vacuous, in-flow override present, clearance padding dropped).
+**Mutation-verified:** stashing the CSS reds exactly the two new
+structural pins; restored, green. Product audit PASS 12/0/1/1, 0
+blocking. Live-fire: 320x568 / 360x640 / 390x667 all `position: static`,
+zero overlap; 390x844 keeps the FAB; full 320x568 flow — reveal at
+name+DOB, withdrawn while listbox open, restored on pick with focus still
+in `#city-input`, submitted, sheet rendered, zero console errors.
+
+**Scope (files):** `ui/experience.css`,
+`tests/mobile_submit_reveal.test.js` (3 pins added, file count unchanged),
+this entry. **UNTOUCHED:** all of `core/`, all of `content/`,
+`index.html`, `tests/fixtures.json`, DOCTRINE, every other `ui/` module.
+
 ## 2026-08-30 — Mobile submit dead end closed (the PR #200 open `:has()` item) — FIXED, tests green, live-fire verified
 
 **What happened.** A "does the live app work?" pass turned up the defect

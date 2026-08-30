@@ -19,6 +19,14 @@
 // both are pinned here: the CSS keys on that attribute and never on :focus,
 // and the controller really does clear it on selection.
 //
+// A second geometry contract rides along: on short viewports
+// (max-height: 680px) the fixed circle is retired entirely. The birthplace
+// row spans the full form width, so a bottom-right fixed control overlaps it
+// whenever the viewport is shorter than the form leaves room for (~623px at
+// 360px wide, worse at 320px — measured 2026-08-30); no size or corner fixes
+// that, so the short-viewport block returns the submit to the in-flow,
+// full-width shape it has above 480px.
+//
 // Static-scan style for the CSS half (mirrors tests/monochrome_surface.test.js);
 // the behavior half drives the real controller with the injected DOM mocks
 // used by tests/citysearch.test.js.
@@ -113,6 +121,31 @@ describe('mobile #enter-btn reveal — the CSS contract', () => {
     expect(html).toMatch(/id="name-input"[^>]*required/);
     expect(html).toMatch(/id="dob-input"[^>]*required/);
     expect(html.match(/id="enter-btn"/g)).toHaveLength(1);
+  });
+});
+
+describe('mobile #enter-btn geometry — short viewports retire the fixed circle', () => {
+  const shortBlock = blockAfter(
+    cssNoComments,
+    '@media (max-width: 480px) and (max-height: 680px)',
+  );
+
+  it('the short-viewport block exists and is non-vacuous', () => {
+    expect(shortBlock.length).toBeGreaterThan(100);
+  });
+
+  it('returns #enter-btn to in-flow full width below 680px height', () => {
+    // position: static defuses the fixed circle's right/bottom/z-index in one
+    // move; width restores the block shape. Without this, the button overlaps
+    // the birthplace label + input at 320x568 (btn top 480 vs city row
+    // 493-537) with nothing focused and nothing to scroll.
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*static/s);
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*width:\s*100%/s);
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*border-radius:\s*0/s);
+  });
+
+  it('drops the FAB-clearance padding the in-flow button no longer needs', () => {
+    expect(shortBlock).toMatch(/#profile-form\s*\{[^}]*padding-bottom:\s*0/s);
   });
 });
 
