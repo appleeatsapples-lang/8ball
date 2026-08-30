@@ -49,12 +49,17 @@ describe('core/cities.js — bounded failure recovery', () => {
     expect(attempts).toEqual({ base: 1, retry1: 1, retry2: 1 });
   });
 
-  it('warmCities swallows a failed prefetch and consumes exactly one bounded attempt', async () => {
+  it('warmCities swallows a failed prefetch and consumes at most one bounded attempt, across sequential warms', async () => {
     // The focus-time warm (ui/citysearch.js) must never surface a rejection
     // of its own — the real search path owns the status line — and must
     // share loadCities' bounded importer sequence rather than adding
-    // traffic beside it: after a failed warm, the next real search proceeds
-    // to the FIRST recovery specifier, not a duplicate base fetch.
+    // traffic beside it. TWO city fields exist (host + dyad), each with its
+    // own { once: true } focus listener, so SEQUENTIAL warms are reachable:
+    // without warmCities' module latch, focus one field, let the warm fail,
+    // focus the other, and two of the three bounded attempts are gone
+    // before the user's first typed search — which then terminates in
+    // CITY_LOAD_EXHAUSTED having shown no prior error (pr214 audit F1).
+    // The latch pins the whole class: any number of warms spend one attempt.
     vi.resetModules();
     const fresh = await import('../core/cities.js');
     const before = { ...attempts };
@@ -62,6 +67,10 @@ describe('core/cities.js — bounded failure recovery', () => {
     expect(fresh.warmCities()).toBeUndefined(); // fire-and-forget, no leaked promise
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(attempts.base).toBe(before.base + 1);
+    fresh.warmCities(); // a later warm, after the first has already failed
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(attempts.base).toBe(before.base + 1);
+    expect(attempts.retry1).toBe(before.retry1); // no recovery specifier spent by warming
     let next;
     try { await fresh.loadCities(); } catch (error) { next = error; }
     expect(fresh.isCityLoadExhausted(next)).toBe(false);

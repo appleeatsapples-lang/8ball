@@ -210,14 +210,26 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
     // new release = new file) must not ship unscanned while this file greens
     // on v1. This file intentionally retains a historical v1 scan while the
     // currentMeaningStrings walker below scans the active v5 additions.
-    // Runtime imports must therefore resolve exclusively to meanings.v5.js.
+    // Runtime imports must therefore resolve exclusively to meanings.v5.js —
+    // in BOTH runtime importers: ui/meanings.js and core/dyad.js (the pr214
+    // audit F3 proved a dyad reverted to v3 rode green when only the UI
+    // module was scanned). The dyad's meaningSource provenance literal must
+    // also name the file it actually imports — emitting one and importing
+    // another is the F6 defect class its own comment warns about.
     const family = /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g;
     const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
       .map(match => match[1]);
-    const runtime = [...meaningsUiJs.matchAll(family)].map(match => match[1]);
+    const dyadJs = readFileSync(join(__dirname, '..', 'core', 'dyad.js'), 'utf-8');
+    const runtime = [
+      ...meaningsUiJs.matchAll(family),
+      ...dyadJs.matchAll(family),
+    ].map(match => match[1]);
     expect(own).toContain('meanings.v5.js');
-    expect(runtime.length).toBeGreaterThan(0);
+    expect(runtime.length).toBeGreaterThanOrEqual(2);
     expect(new Set(runtime)).toEqual(new Set(['meanings.v5.js']));
+    const provenance = dyadJs.match(/meaningSource:\s*'content\/(meanings\.[\w.]+\.js) NUMEROLOGY_MEANINGS'/);
+    expect(provenance).not.toBeNull();
+    expect(provenance[1]).toBe('meanings.v5.js');
   });
 });
 
@@ -479,6 +491,11 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
         expect(typeof line).toBe('string');
         expect(line.length).toBeGreaterThan(30);
       }
+      // Same whole-line uniqueness guard the placement families carry
+      // (pr214 audit F6) — a duplicated value line within a family rode
+      // green here too.
+      expect(new Set(Object.values(lines)).size, `${slot} lines must be unique`)
+        .toBe(Object.keys(lines).length);
     }
     // Assembly contract, byte-exact over EVERY family and value: base body
     // + one space + that slot's own line. The pr212 audit proved the
@@ -536,11 +553,17 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
       .toEqual(SUN_SIGNS.map(s => s.name).sort());
     expect(Object.keys(PLACEMENT_LINES.innerAnimal).sort())
       .toEqual([...ANIMALS].sort());
-    for (const lines of Object.values(PLACEMENT_LINES)) {
+    for (const [placement, lines] of Object.entries(PLACEMENT_LINES)) {
       for (const line of Object.values(lines)) {
         expect(typeof line).toBe('string');
         expect(line.length).toBeGreaterThan(30);
       }
+      // Within a family every line shares an authored prefix, so a
+      // copy-pasted value line is easy to make and invisible to the
+      // vocabulary oracle (pr214 audit F6 mutation-proved it riding
+      // green). Whole-line uniqueness per family closes it.
+      expect(new Set(Object.values(lines)).size, `${placement} lines must be unique`)
+        .toBe(Object.keys(lines).length);
     }
     // Assembly contract, byte-exact over EVERY value (the pr212 lesson —
     // startsWith/endsWith lets a dropped join space or a family swap ride

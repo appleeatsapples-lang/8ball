@@ -22,7 +22,7 @@ npm test         # vitest — file count: CLAUDE.md (canonical); case count: new
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
-1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over immutable `content/meanings.v1.js` and the active `content/meanings.v3.js` registry.
+1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over immutable `content/meanings.v1.js` and the active `content/meanings.v5.js` registry (v3/v4 carried unedited via re-export).
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and §5.B user-initiated feedback POST / Gumroad Buy Link redirect); no third-party fonts or scripts; system fonts only. Saved Readings adds one doctrine-allow-listed local key; `tests/readings.test.js` locks its minimal schema and lifecycle. Concordance adds no key or schema field; `tests/concordance.test.js` locks its transient recomputation boundary and finite relation inventory.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
@@ -65,7 +65,9 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
 │   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53)
-│   ├── meanings.v3.js       ACTIVE registry — all twelve terminal values, masters reused from v1 (§1.G v0.62)
+│   ├── meanings.v3.js       twelve terminal values, masters reused from v1 (§1.G v0.62; superseded)
+│   ├── meanings.v4.js       + per-slot numerology lines, theme tensions (§1.G; superseded)
+│   ├── meanings.v5.js       ACTIVE registry — v4 unedited + rising/private-animal placement lines (§1.G)
 │   ├── concordance.v1.js    immutable historical relation registry (§1.I v0.51)
 │   ├── concordance.v2.js    superseded registry for the strict 1–9 numerology cut (§1.I v0.54)
 │   ├── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)

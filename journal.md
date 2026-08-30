@@ -38,23 +38,50 @@ line); `ui/citysearch.js` fires it once on first birthplace-field focus
 (`{ once: true }`), moving the fetch into typing dead time. No new
 network surface — same asset, same three bounded specifiers, one request
 earlier. Live-fire: focus alone started the fetch (0→1 requests before
-any typing), the subsequent search reused it (total stayed 1).
+any typing), the subsequent search reused it (total stayed 1). Named
+cost, accepted (pr214 audit F7, recorded in the §5 trigger supersession):
+a visitor who focuses the optional field and never types now fetches the
+asset where before they would not have.
 
 **Measured effect (same 33-profile sample).** Sheets with a duplicated
-body sentence: 3/33 → **0/33** — the duplication class the optimization
-pass opened with (25/33 on 2026-08-30 morning) is now closed entirely.
-Distinct meaning bodies 93 → 96.
+body sentence: 3/33 → **0/33** — the duplicated-body class the
+optimization pass opened with (25/33 on 2026-08-30 morning) is closed.
+Scope of the claim (pr214 audit F5): the metric is body-string equality;
+where sun = rising (or the two animals match) the pair still shares its
+first sentence and register title by §4 design — the placement line
+differentiates what follows, it cannot rewrite the shared base. Distinct
+meaning bodies 93 → 96.
 
 **Verification.** Suite 57 files / **1976** tests green (1970 + the
 placement completeness/byte-join/vocabulary-oracle pins, the
 sun-and-animal-stay-base pins, the warm-swallows-and-consumes-one-attempt
 pin, the focus-prefetch-once behavior pin and shape pins). Five mutants
 killed: dropped join space, wholesale family swap, dropped placement
-append, dead warm, lost `{ once: true }`. Product audit PASS 12/0/1/1
+append, dead warm, lost `{ once: true }`. Product audit PASS 13/0/0/1 on
+the committed tree (a pre-commit run read 12/0/1/1 — the warn was
+`product.git_status` on the then-untracked v5 file; pr214 audit F10)
 (the auditor self-test `test_guard_can_fail` still fails only in the
 container, pre-existing). Live-fire in Chromium: v5 module graph
 resolves, rising/inner bodies = base + line, sun/animal base-only,
 sealed rising tap leaks nothing, zero console errors.
+
+**Cross-model audit (pr214), reconciled.** Two lanes: one SAFE TO MERGE
+(0 findings), one MERGE WITH FIXES (12). Landed: F1 the real bug — two
+city fields exist (host + dyad), so two sequential failed warms could
+silently spend two of the three bounded importer attempts before the
+first typed search; `warmCities` now carries a module-level once-latch,
+pinned by a sequential-warm test. F3 the scan-target parity pin now also
+covers `core/dyad.js` and its `meaningSource` literal (a dyad reverted to
+v3 rode green before). F6 whole-line uniqueness pins per family, on the
+placement lines AND the v4 slot lines (a copy-pasted line rode green).
+F4 ten placement lines reworded so the appended trait is not a word the
+entry's own register/body already carries. F2 §5's lazy-load clause got
+the trigger supersession above; F5/F7/F10 claim-scoping and number
+corrections in this entry; F11 README/8BALL active-registry lines
+updated. Declined as out of scope: F8 (the exact source-regex pin is the
+repo's deliberate style; the behavior pin is the load-bearing one) and F9
+(prototype-chain lookup — pre-existing shape shared with every table
+lookup in the module, unreachable from engine-fed values; filed as is).
 
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.

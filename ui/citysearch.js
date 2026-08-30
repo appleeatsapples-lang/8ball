@@ -307,9 +307,9 @@ export function initCitySearchUI(refs, hooks) {
   refs.cityInput.addEventListener('keydown', onKeydown);
   // Prefetch the ~2.4MB city dataset the moment the field is entered, so
   // the import runs during the dead time while the person types instead of
-  // starting on the first debounced keystroke. { once: true } because
-  // warmCities is idempotent per session (loadCities' cache) — one listener
-  // firing is all the warm can ever contribute, even across two instances.
+  // starting on the first debounced keystroke. Cross-instance idempotence
+  // (host + dyad fields) is owned by warmCities' own module latch;
+  // { once: true } is belt-and-braces on this listener.
   refs.cityInput.addEventListener('focus', () => warmCities(), { once: true });
   refs.cityInput.addEventListener('blur', () => {
     // A search still in flight must NOT reopen the listbox after focus is
