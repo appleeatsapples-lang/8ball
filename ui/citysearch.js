@@ -306,6 +306,18 @@ export function initCitySearchUI(refs, hooks) {
   refs.cityInput.addEventListener('input', onInput);
   refs.cityInput.addEventListener('keydown', onKeydown);
   refs.cityInput.addEventListener('blur', () => {
+    // A search still in flight must NOT reopen the listbox after focus is
+    // gone: renderSuggestions sets aria-expanded="true", and under the
+    // mobile reveal contract (ui/experience.css) a stale-open listbox
+    // hides the sole submit with nobody in the field — the PR #208 audit's
+    // blur-race finding. Bumping the generation makes any pending
+    // fulfillment self-discard (same mechanism reset() uses); busy/status
+    // are cleared here because the discarded fulfillment no longer will.
+    _searchGeneration++;
+    if (_debounce) clearTimeout(_debounce);
+    _debounce = null;
+    setBusy(false);
+    setStatus();
     // Brief delay so the mousedown handler can fire and capture the pick.
     setTimeout(clearSuggestions, 120);
   });

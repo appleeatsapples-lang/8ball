@@ -101,8 +101,9 @@ export function scrubSavedReadingsGender(storage = defaultStorage()) {
   }
   if (!changed) return false;
   try {
-    storage.setItem(READINGS_KEY, JSON.stringify(parsed));
-    return true;
+    const next = JSON.stringify(parsed);
+    storage.setItem(READINGS_KEY, next);
+    return storage.getItem(READINGS_KEY) === next;
   } catch (_) { return false; }
 }
 

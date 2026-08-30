@@ -5,6 +5,72 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — PR #208 cross-model audit run in-container: MERGE WITH FIXES, all six fixed — L48 artifact filed
+
+**What happened.** The controller directed the PR #208 pre-merge audit
+to run from this session. The codex/grok relay lanes are not reachable
+from the remote container, so the relay ran as three independent
+Claude-family lanes (opus + sonnet + haiku), fresh context each,
+reconciled by the authoring session — the artifact states this
+composition plainly and does not claim the codex/grok fan-out's
+diversity. Full record:
+`audits/claude_relay_pr208_premerge_audit_2026-08-30_response.md`
+(the L48 in-PR artifact; the l48-gate goes green on this commit).
+
+**Verdicts.** haiku SAFE TO MERGE / sonnet MERGE WITH FIXES / opus
+MERGE WITH FIXES → reconciled **MERGE WITH FIXES**, all six fix-class
+findings landed in this commit:
+
+1. **MAJOR (sonnet)** — blur race: a city search resolving after blur
+   re-opened `aria-expanded` with focus gone, re-hiding the sole mobile
+   submit under this PR's own CSS contract (first search of a session
+   really does fetch cities.json — an ordinary mobile timeline). Fixed
+   in `ui/citysearch.js`: blur now bumps the search generation, cancels
+   the debounce, clears busy/status. Regression test added;
+   mutation-red on the unfixed handler; live-fire verified with a
+   1.5s-throttled cities.json.
+2. **MED (opus)** — the scrubs' "surgical" contract was pinned against
+   fixtures too thin to catch over-deletion (a scrub extended to delete
+   time/city/cc/tz/lat/lng passed the whole suite). All three scrub
+   tests now seed the full legitimate field set and assert
+   byte-equality of the remainder; the lane's three over-deletion
+   mutations each red exactly one pin now.
+3. **MED (opus)** — the `:focus` dead-end pin only scanned the
+   `@supports` slice; the PR #200 regression re-added outside it stayed
+   green. The pin now scans every `#enter-btn` selector file-wide.
+4. **MED (opus)** — `display:none` on the short-viewport submit passed
+   the suite. New hiding-inventory pin: no `#enter-btn` rule may set
+   `display:none`, and only the two `@supports` reveal rules may hide
+   it at all.
+5. **LOW (sonnet)** — `scrubSavedReadingsGender` now read-verifies its
+   rewrite like its two siblings (the journal below claimed it already
+   did — that claim was wrong until this commit).
+6. **MED (haiku)** — quota/throw path tests added for the scrubs.
+
+**Flagged for the controller, not fixed** (detail in the artifact): the
+§1.G kua citation body (`KUA_TRIGRAMS[n].body`) is rendered nowhere now
+that the single-gender read is gone — an undisclosed paid-content
+reduction until this entry; render-or-record is a product call. DOCTRINE
+§1.D/§5/§5.E still specify the deleted control and field — the
+amendment is mechanical (the §5.E rationale is obsolete: both values
+render for every profile) but constitution text stays with the
+controller. Plus three LOWs: below-fold submit at 320×568 (recoverable,
+verified), two type styles on the two kua values, the entitled-path-dead
+`:empty` rule.
+
+**Correction to the two gender entries below (opus):** their product
+audit line reads "PASS 12/0/1/0"; actual output was 12/0/1/1 — 14
+checks, warn `product.git_status` (dirty tree during in-flight runs;
+clean-tree re-runs report 13/0/0/1), skip `product.local_pii`.
+
+**Verification.** Suite 57 files / **1950** tests green (1946 + 4).
+Product audit PASS, 0 blocking. Five lane mutations re-run post-fix:
+each red on exactly its new pin; restored, green. `index.html` untouched
+(1455/1500). Zero console errors on every live-fire.
+
+**Scope (files):** `ui/citysearch.js`, `ui/readings.js`, 4 test files,
+the L48 artifact, this entry.
+
 ## 2026-08-30 — Boot scrub: the stale stored gender token now leaves existing devices — SHIPPED TO BRANCH, tests green, live-fire verified
 
 **Operator decision.** The entry below left gendered-cycle payloads on

@@ -283,23 +283,45 @@ describe('Saved Readings host and privacy wiring', () => {
 describe('boot scrub — stale archived gender tokens leave the device', () => {
   const entry = (id, title, savedAt, profile) => ({ id, title, savedAt, profile });
 
-  it('strips gender from every archived profile and rewrites once, order preserved', () => {
+  it('strips gender from every archived profile and rewrites once, order preserved, remainder byte-equal', () => {
+    // Full-field fixtures on purpose: every field compactReadingProfile
+    // can archive (time/city/cc/tz/lat/lng) rides along, and the
+    // assertion is byte-equality of the remainder. The #208 audit (opus
+    // F1) showed a scrub extended to delete time/city/tz/lat/lng passed
+    // the whole suite against the previous {name, dob, gender} fixtures —
+    // exactly the every-boot silent-data-destroyer this pin must catch.
+    const fullA = {
+      name: 'A', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
+    const fullC = {
+      name: 'C', dob: '1992-03-03', time: '14:30',
+      city: 'Hong Kong', cc: 'HK', tz: 'Asia/Hong_Kong', lat: 22.3193, lng: 114.1694,
+    };
     const stale = [
-      entry('reading-1', 'A', '2026-07-18T08:00:00.000Z',
-        { name: 'A', dob: '1990-01-01', gender: 'female' }),
-      entry('reading-2', 'B', '2026-07-18T09:00:00.000Z',
-        { name: 'B', dob: '1991-02-02' }),
-      entry('reading-3', 'C', '2026-07-18T10:00:00.000Z',
-        { name: 'C', dob: '1992-03-03', gender: 'male' }),
+      entry('reading-1', 'A', '2026-07-18T08:00:00.000Z', { ...fullA, gender: 'female' }),
+      entry('reading-2', 'B', '2026-07-18T09:00:00.000Z', { name: 'B', dob: '1991-02-02' }),
+      entry('reading-3', 'C', '2026-07-18T10:00:00.000Z', { ...fullC, gender: 'male' }),
     ];
     const storage = makeStorage({ [READINGS_KEY]: JSON.stringify(stale) });
     expect(scrubSavedReadingsGender(storage)).toBe(true);
     const persisted = JSON.parse(storage.snapshot()[READINGS_KEY]);
     expect(persisted.map(r => r.id)).toEqual(['reading-1', 'reading-2', 'reading-3']);
-    for (const r of persisted) expect(r.profile).not.toHaveProperty('gender');
-    expect(persisted[0].profile).toEqual({ name: 'A', dob: '1990-01-01' });
+    expect(persisted[0].profile).toEqual(fullA);
+    expect(persisted[1].profile).toEqual({ name: 'B', dob: '1991-02-02' });
+    expect(persisted[2].profile).toEqual(fullC);
     // The registry still loads identically after the scrub.
     expect(loadSavedReadings(storage).status).toBe('ok');
+  });
+
+  it('returns false and loses nothing when the rewrite itself throws (quota)', () => {
+    const raw = JSON.stringify([
+      entry('reading-1', 'A', '2026-07-18T08:00:00.000Z', { name: 'A', dob: '1990-01-01', gender: 'male' }),
+    ]);
+    const storage = makeStorage({ [READINGS_KEY]: raw });
+    storage.setItem = () => { throw new Error('quota'); };
+    expect(scrubSavedReadingsGender(storage)).toBe(false);
+    expect(storage.snapshot()[READINGS_KEY]).toBe(raw);
   });
 
   it('is a pure read on a clean archive, an empty store, and corrupt JSON', () => {

@@ -703,13 +703,21 @@ describe('paid-surface JS wiring (brief §11.2, deferred from step 7)', () => {
 
 describe('boot scrub — a stale staged gender token leaves the device', () => {
   it('rewrites a gendered pending payload without the key, everything else verbatim', () => {
+    // The staged payload is stagePurchase(loadSavedProfile()) — the FULL
+    // stored shape — so the fixture carries every field it can hold and
+    // the assertion is byte-equality of the remainder (#208 audit, opus
+    // F1: the previous thin fixture let an over-deleting scrub pass).
+    const before = {
+      name: 'Staged', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', country: 'SA',
+      tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
     const storage = makeStorage({
-      [PENDING_KEY]: JSON.stringify({ name: 'Staged', dob: '1990-01-01', time: '03:31', gender: 'male' }),
+      [PENDING_KEY]: JSON.stringify({ ...before, gender: 'male' }),
     });
     globalThis.localStorage = storage;
     expect(scrubPendingGender()).toBe(true);
-    expect(JSON.parse(storage.snapshot()[PENDING_KEY]))
-      .toEqual({ name: 'Staged', dob: '1990-01-01', time: '03:31' });
+    expect(JSON.parse(storage.snapshot()[PENDING_KEY])).toEqual(before);
   });
 
   it('is a pure read when nothing is staged or the stage is clean', () => {

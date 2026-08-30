@@ -68,14 +68,29 @@ function blockAfter(source, marker) {
 const cssNoComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
 const supportsBlock = blockAfter(cssNoComments, '@supports selector(form:has(input:valid))');
 
-// Every selector in the block that targets #enter-btn, one per entry.
-const enterBtnSelectors = supportsBlock
-  .split('}')
-  .map(chunk => chunk.slice(0, chunk.indexOf('{')))
-  .filter(sel => sel.includes('#enter-btn'))
-  .flatMap(sel => sel.split(','))
-  .map(sel => sel.trim())
-  .filter(Boolean);
+// EVERY rule in the whole stylesheet that targets #enter-btn — selector +
+// declaration body — not just the @supports slice. The PR #208 audit
+// (opus F2/F3) proved the sliced scan was dodgeable: the :focus dead end
+// re-added 20 lines higher, or display:none in the short-viewport block,
+// both left the previous pins green. A flat brace scan is enough here
+// because we only need (selector, body) pairs, not nesting.
+function rulesTargeting(css, needle) {
+  const rules = [];
+  const re = /([^{}]+)\{([^{}]*)\}/g;
+  let m;
+  while ((m = re.exec(css)) !== null) {
+    const sels = m[1].split(',').map(x => x.trim()).filter(Boolean);
+    for (const sel of sels) {
+      if (sel.includes(needle)) rules.push({ sel, body: m[2] });
+    }
+  }
+  return rules;
+}
+const enterBtnRules = rulesTargeting(cssNoComments, '#enter-btn');
+const enterBtnSelectors = enterBtnRules.map(r => r.sel);
+
+const hides = body =>
+  /display:\s*none|visibility:\s*hidden|opacity:\s*0[^.]/.test(body);
 
 describe('mobile #enter-btn reveal — the CSS contract', () => {
   it('the @supports reveal block is present and non-vacuous', () => {
@@ -104,15 +119,40 @@ describe('mobile #enter-btn reveal — the CSS contract', () => {
     expect(withdraw[0]).toContain('#dob-input:valid');
   });
 
-  it('never keys the hidden state off :focus — the state a user cannot exit', () => {
-    // The PR #200 dead end. Selecting a suggestion deliberately keeps focus in
-    // #city-input, and a native time/gender picker leaves focus on its control,
-    // so any :focus-gated hide of the sole submit is unreachable-by-design.
+  it('never keys the hidden state off :focus — anywhere in the stylesheet', () => {
+    // The PR #200 dead end. Selecting a suggestion deliberately keeps focus
+    // in #city-input, so any :focus-gated hide of the sole submit is
+    // unreachable-by-design. File-wide on purpose: the #208 audit (opus F2)
+    // reintroduced the regression OUTSIDE the @supports slice with the old,
+    // slice-scoped version of this pin still green.
+    expect(enterBtnSelectors.length).toBeGreaterThanOrEqual(3); // non-vacuous
     for (const sel of enterBtnSelectors) {
       expect(sel).not.toMatch(/:focus/);
     }
-    expect(supportsBlock).not.toMatch(/#rising-fields\s+:focus/);
-    expect(supportsBlock).not.toMatch(/\.kua-gender-field\s+:focus/);
+    expect(cssNoComments).not.toMatch(/#rising-fields\s+:focus/);
+    expect(cssNoComments).not.toMatch(/\.kua-gender-field\s+:focus/);
+  });
+
+  it('every rule that can hide the button lives inside the reveal contract — and none uses display:none', () => {
+    // #208 audit, opus F3: display:none on the short-viewport rule removed
+    // the sole submit on every small screen with the whole suite green.
+    // Pin the full inventory: the ONLY #enter-btn rules allowed to hide it
+    // are the two @supports reveal rules (base hidden state + the
+    // aria-expanded withdraw), and display:none is never a legal way to
+    // hide it — the reveal contract works in visibility/opacity so the
+    // control keeps its layout box.
+    for (const r of enterBtnRules) {
+      expect(r.body).not.toMatch(/display:\s*none/);
+    }
+    const hiding = enterBtnRules.filter(r => hides(r.body));
+    expect(hiding).toHaveLength(2);
+    for (const r of hiding) {
+      expect(supportsBlock).toContain(r.body); // both live inside @supports
+    }
+    const withdraw = hiding.filter(r => r.sel.includes('aria-expanded'));
+    expect(withdraw).toHaveLength(1);
+    const base = hiding.filter(r => r.sel.trim() === '#enter-btn');
+    expect(base).toHaveLength(1);
   });
 
   it('the markup still supplies the ids and the single submit the rules bind to', () => {
@@ -229,6 +269,32 @@ describe('mobile #enter-btn reveal — the aria-expanded the CSS depends on', ()
     refs.cityInput._fire('blur');
     await vi.advanceTimersByTimeAsync(300);
     expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+  });
+
+  it('a search resolving AFTER blur cannot reopen the listbox (PR #208 audit, blur race)', async () => {
+    // The first search of a session really does import cities.json, so a
+    // fulfillment landing after "type then tap away" is an ordinary mobile
+    // timeline, not a contrived one. If it re-rendered, aria-expanded
+    // would stick "true" with focus gone and the sole mobile submit would
+    // hide again — the dead-end class this file exists to keep closed.
+    let resolveSearch;
+    searchCities.mockReturnValue(new Promise(r => { resolveSearch = r; }));
+    refs.cityInput.value = 'os';
+    refs.cityInput._fire('input');
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS); // dispatch; promise pending
+    expect(refs.cityInput.attrs['aria-busy']).toBe('true');
+
+    refs.cityInput._fire('blur');
+    await vi.advanceTimersByTimeAsync(200); // past blur's 120ms clear
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.cityInput.attrs['aria-busy']).toBe('false');
+
+    resolveSearch([OSLO]); // the late fulfillment
+    await vi.advanceTimersByTimeAsync(10);
+    expect(refs.cityInput.attrs['aria-expanded']).toBe('false');
+    expect(refs.citySuggestions.children).toHaveLength(0);
+    // and the stale "searching…" line must not linger either
+    expect(refs.cityStatus.hidden).toBe(true);
   });
 
   it('clears aria-expanded when a search returns nothing', async () => {

@@ -209,17 +209,30 @@ describe('ui/profile.js persistence boundary', () => {
 
 describe('ui/profile.js boot scrub — the stale gender token leaves the device', () => {
   it('rewrites a gendered payload without the key, everything else verbatim', () => {
+    // The fixture carries EVERY field the key can legitimately hold
+    // (the saveProfile copy list: time/city/cc/country/tz/lat/lng), and
+    // the assertion is byte-equality of the remainder — so a scrub that
+    // ever deletes anything beyond gender goes red here. The #208 audit
+    // (opus F1) proved the previous thin fixture let an over-deleting
+    // scrub pass the whole suite.
+    const before = {
+      name: 'Old Payload', dob: '1990-01-01', time: '03:31',
+      city: 'Dhahran', cc: 'SA', country: 'SA',
+      tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
+    };
     const storage = installStorage({
-      [PROFILE_KEY]: JSON.stringify({
-        name: 'Old Payload', dob: '1990-01-01', time: '03:31',
-        tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114, gender: 'female',
-      }),
+      [PROFILE_KEY]: JSON.stringify({ ...before, gender: 'female' }),
     });
     expect(scrubStoredGender()).toBe(true);
-    expect(JSON.parse(storage.snapshot()[PROFILE_KEY])).toEqual({
-      name: 'Old Payload', dob: '1990-01-01', time: '03:31',
-      tz: 'Asia/Riyadh', lat: 26.2886, lng: 50.114,
-    });
+    expect(JSON.parse(storage.snapshot()[PROFILE_KEY])).toEqual(before);
+  });
+
+  it('returns false and loses nothing when the rewrite itself throws (quota)', () => {
+    const payload = JSON.stringify({ name: 'Old Payload', dob: '1990-01-01', gender: 'female' });
+    const storage = installStorage({ [PROFILE_KEY]: payload });
+    storage.setItem.mockImplementation(() => { throw new Error('quota'); });
+    expect(scrubStoredGender()).toBe(false);
+    expect(storage.snapshot()[PROFILE_KEY]).toBe(payload);
   });
 
   it('is a pure read when no gender is stored — no write issued', () => {
