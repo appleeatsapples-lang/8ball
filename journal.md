@@ -5,6 +5,97 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-30 — Interpretation optimization II: filed relations in panels + four harmony frames — STAGED on branch, PR pending
+
+**What happened.** The controller ordered items 3 and 4 of the measured
+optimization pass (every context sentence shared one skeleton — 396/396
+in the diagnosis sample; the §1.I registries were never consulted within
+a single sheet).
+
+**#3 — filed relations in the meaning panels.** `ui/concordance.js`
+gains `sheetRelationFor(key, values)` — the §1.I registries applied
+WITHIN one sheet, pure and total: sun ↔ rising (sign-distance), public ↔
+private animal (relation families), year ↔ day-pillar element (sheng/ke
+with direction), and any two numerology values (the three
+master-reduction links only). REGISTERED relations only — the panel is
+not the compare screen, so an absent section claims nothing and the
+§1.I no-manufactured-claim law holds by omission. The panel gains a
+`filed relation` section rendering the registry line + citation
+verbatim. Tier safety is by construction: the values come from the card
+DOM, sealed compartments render `''`, so a pair with a sealed member
+never resolves — live-fire confirmed no leak at free tier.
+`content/concordance.v3.js` keeps its single importer
+(`ui/meanings.js` imports the helper from `ui/concordance.js`), so the
+scan-target parity chain is untouched.
+
+**#4 — four harmony frames.** `composeHarmony` (exported pure) renders
+the context line through one of four sentence frames, chosen
+deterministically from the tapped key + value (`frameIndexFor`); the
+closing clause — harmony algebra or filed tension sentence — is
+byte-identical across frames, so the pr212 tension machinery and pins
+ride unchanged. Frames measured 103/113/108/72 across the 33-profile
+sample's panels — no dead frame, no dominant one.
+
+**Measured effect (same 33-profile sample).** Context prose: one
+skeleton → four, deterministic per panel. Filed relations render on 106
+panels; **31 of 33 sheets carry at least one** — the registries §1.I
+built now do intra-sheet work on nearly every card.
+
+**Verification.** Suite 57 files / **1965** tests green (1962 + frame
+determinism/reachability/closing-preservation, filed-relation
+registered/unfiled/sealed contract, and the panel DOM behavior pin; the
+walker now scans every frame — harmony and tension closings both — and
+one relation line per pair kind). Mutation-verified: deadening
+relations reds 2 pins, forcing a single frame reds the reachability
+pin, dropping the closing from a frame reds 2. Live-fire at t3 with
+birth time/place: the sun panel renders "four signs apart · trine" with
+its citation, three distinct frame openings across five taps, unfiled
+pairs and the free tier stay silent, zero console errors.
+
+**Scope (files):** `ui/concordance.js`, `ui/meanings.js`,
+`tests/meanings_content.test.js`, `tests/meanings_behavior.test.js`,
+`CLAUDE.md` (concordance description), this entry; the L48 artifact
+follows once the PR number exists. **UNTOUCHED:** all content files,
+`core/`, `index.html`, DOCTRINE.
+
+**Update, same session — PR #213 opened, two-lane review complete,
+DOCTRINE v0.65 rides the fix commit.** sonnet MERGE WITH FIXES / opus
+MERGE WITH FIXES, reconciled MERGE WITH FIXES; everything fix-class
+landed:
+- **Register-law emissions (opus MAJOR):** the panel line had dropped
+  three of §1.I's six — it now carries values, relation, the textual
+  status `registered`, citation, named registry, and the
+  `recorded, not certified.` qualifier verbatim; emission-pinned per
+  pair kind. Panel cap 640 → 720 for the grown line.
+- **Tier boundary pinned per pair kind (opus MAJOR):** sealed-partner
+  pins for numerology, animal, and both element directions — opus's
+  `|| 2` mutant (a sealed compartment's number on a free panel, suite
+  green) now reds.
+- **§1.I scope recorded (sonnet):** DOCTRINE gains the v0.65
+  intra-sheet amendment (controller order 2026-08-30): the fixed pair
+  list, registered-only with absence-claims-nothing, the emission set,
+  the adverse rule, the stale-panel rule, the sealed-DOM tier
+  boundary, and the sole-importer preservation. Version log rotated.
+- **Coverage loss closed (sonnet, demonstrated):** a token-order oracle
+  over sentinel parts pins theme↔role pairing per frame, plus a
+  hand-assembled `harmonyFor` equality oracle; the injected
+  misattribution now reds 2 pins.
+- **Adverse suppression (opus MED):** a filed chong/hai/xing /
+  square/quincunx/opposition / ke-cycle record suppresses the harmony
+  algebra in the same panel (a filed THEME tension still renders —
+  friction above friction is consistent); pinned.
+- **Real-domain frame pin (opus MED):** reachability now enumerates
+  each key's actual value domain (global all-four; every key ≥2 —
+  `sun` genuinely reaches only three, which the old artificial
+  cross-product hid); the modulus mutant now reds.
+- **Stale-panel close (opus MED):** the panel closes on any card
+  re-render via a guarded MutationObserver, so a stale citation can
+  never attest a record the current values do not support; pinned and
+  live-fire verified.
+Suite 57 files / **1970** tests green (1965 + 5). Six lane mutants
+re-run: each red. Record:
+`audits/claude_relay_pr213_premerge_audit_2026-08-30_response.md`.
+Merge word stays with the controller.
 ## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — STAGED on branch, PR pending
 
 **What happened.** The controller ordered items 6, 1 and 2 from this

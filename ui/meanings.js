@@ -27,6 +27,7 @@ import {
   NUMEROLOGY_SLOT_LINES,
   THEME_TENSIONS,
 } from '../content/meanings.v4.js';
+import { sheetRelationFor } from './concordance.js';
 
 const TABLES = {
   arcana: ARCANA_MEANINGS,
@@ -83,7 +84,7 @@ const STYLE = `
 .meaning-panel { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
   border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
-.meaning-panel.open { max-height: 640px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
+.meaning-panel.open { max-height: 720px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
@@ -127,6 +128,8 @@ function buildPanel() {
     '<div class="meaning-body" id="meaning-body"></div>' +
     '<div class="meaning-context-head" id="meaning-context-head">in this sheet</div>' +
     '<div class="meaning-context" id="meaning-context"></div>' +
+    '<div class="meaning-context-head" id="meaning-relation-head">filed relation</div>' +
+    '<div class="meaning-context" id="meaning-relation"></div>' +
     '<button type="button" class="meaning-close" id="meaning-close">close</button>';
   return panel;
 }
@@ -186,7 +189,54 @@ function readValues() {
   return values;
 }
 
-export function harmonyFor(key, entry, values) {
+// Four sentence frames for the harmony line (optimization item 4 —
+// every context sentence used to share one skeleton, and the pattern was
+// visible by the second tap). Chosen deterministically from the tapped
+// key and value so the same sheet always reads the same; the closing
+// clause (harmony algebra or a filed tension sentence) is identical
+// across frames, so the tension registry and its pins ride unchanged.
+// Exported pure so the assembled-output voice scan can iterate ALL
+// frames rather than only the ones a fixture happens to hit.
+export const HARMONY_FRAME_COUNT = 4;
+export function composeHarmony(frameIndex, theme, role, partners, closing) {
+  const [p0, p1] = partners;
+  const tail = closing ? ` ${closing}` : '';
+  switch (((frameIndex % HARMONY_FRAME_COUNT) + HARMONY_FRAME_COUNT) % HARMONY_FRAME_COUNT) {
+    case 1:
+      return `${theme} carries ${role} here, beside ${p0.theme} as ${p0.role} and ${p1.theme} as ${p1.role}.${tail}`;
+    case 2:
+      return `in this reading, ${role} falls to ${theme}; ${p0.role} to ${p0.theme}, and ${p1.role} to ${p1.theme}.${tail}`;
+    case 3:
+      return `${theme} takes ${role}. ${p0.theme} holds ${p0.role}; ${p1.theme} holds ${p1.role}.${tail}`;
+    default:
+      return `read together, ${theme} serves as ${role}; ${p0.theme} enters as ${p0.role}, and ${p1.theme} as ${p1.role}.${tail}`;
+  }
+}
+export function frameIndexFor(key, rawValue) {
+  let sum = 0;
+  const s = `${key}|${rawValue}`;
+  for (let i = 0; i < s.length; i++) sum = (sum + s.charCodeAt(i)) % 997;
+  return sum % HARMONY_FRAME_COUNT;
+}
+
+/**
+ * The filed-relation line for the panel (optimization item 3): the §1.I
+ * registries applied within one sheet, via ui/concordance.js's
+ * sheetRelationFor. Registered relations only; '' when none — the panel
+ * claims nothing by omission. Exported pure for the assembled-output
+ * voice scan.
+ */
+export function relationLineFor(key, values) {
+  const rel = sheetRelationFor(key, values);
+  if (!rel) return '';
+  // The full §1.I Register-law emission set, matching the two-reading
+  // compare surface: values, relation, citation, registry, and the
+  // qualifier verbatim (pr213 audit, opus MAJOR — the panel had dropped
+  // three of the six, the qualifier included).
+  return `${rel.label}: ${rel.left} and ${rel.right} — ${rel.relation}. registered — ${rel.citation}; registry: ${rel.registry}. ${rel.qualifier}`;
+}
+
+export function harmonyFor(key, entry, values, opts = {}) {
   const context = COORDINATE_CONTEXT[key];
   if (!context) return '';
   const fallbacks = NUMEROLOGY_KEYS.has(key)
@@ -228,10 +278,15 @@ export function harmonyFor(key, entry, values) {
     pairKey(partners[0].theme, partners[1].theme),
   ];
   const filed = filedCandidates.find(k => THEME_TENSIONS[k]);
+  // An ADVERSE filed relation rendering on this same panel suppresses the
+  // harmony algebra (pr213 audit, opus MED — "working through" one line
+  // above a filed chong/square/ke record is the pr212 contradiction shape
+  // across registries). A filed THEME tension still renders: friction
+  // above friction is consistent.
   const closing = filed
     ? THEME_TENSIONS[filed]
-    : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`;
-  return `read together, ${theme} serves as ${context.role}; ${partners[0].theme} enters as ${partners[0].role}, and ${partners[1].theme} as ${partners[1].role}. ${closing}`;
+    : (opts.adverse ? '' : `the combination is ${theme} working through ${partners[0].theme} and ${partners[1].theme}.`);
+  return composeHarmony(frameIndexFor(key, values[key]), theme, context.role, partners, closing);
 }
 
 function detailFor(key, cell, rawValue) {
@@ -251,11 +306,16 @@ function detailFor(key, cell, rawValue) {
   }
   const entry = entryFor(key, rawValue);
   if (entry) {
+    const values = readValues();
+    const rel = sheetRelationFor(key, values);
     return {
       title: entry.register,
       body: entry.body,
-      context: harmonyFor(key, entry, readValues()),
+      context: harmonyFor(key, entry, values, { adverse: !!(rel && rel.adverse) }),
       contextLabel: NUMEROLOGY_KEYS.has(key) ? 'with the other numbers' : 'in this sheet',
+      relation: rel
+        ? `${rel.label}: ${rel.left} and ${rel.right} — ${rel.relation}. registered — ${rel.citation}; registry: ${rel.registry}. ${rel.qualifier}`
+        : '',
     };
   }
   return {
@@ -276,6 +336,8 @@ export function initMeaningsUI(refs) {
   const body = panel.querySelector('#meaning-body');
   const contextHead = panel.querySelector('#meaning-context-head');
   const contextBody = panel.querySelector('#meaning-context');
+  const relationHead = panel.querySelector('#meaning-relation-head');
+  const relationBody = panel.querySelector('#meaning-relation');
   let activeCell = null;
 let scrollTimer = null;
 
@@ -324,6 +386,10 @@ let scrollTimer = null;
     contextBody.hidden = !detail.context;
     contextHead.textContent = detail.contextLabel || 'in this sheet';
     contextBody.textContent = detail.context;
+    relationHead.hidden = !detail.relation;
+    relationBody.hidden = !detail.relation;
+    relationHead.textContent = detail.relation ? 'filed relation' : '';
+    relationBody.textContent = detail.relation || '';
     panel.classList.add('open');
     setPanelHidden(false);
     // The panel lives BELOW the card, so a tap on a top-row cell of the tall
@@ -347,6 +413,17 @@ let scrollTimer = null;
         panel.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' });
       }, 300);
     }
+  }
+
+  // A resubmission re-renders the card under an open panel, leaving stale
+  // meaning text — and since pr213, a stale FILED RELATION could cite a
+  // registry record the new values do not support (opus MED: a registered
+  // sign-distance line rendered for a same-value pair §1.I says must be
+  // unfiled). Close the panel whenever the card's values change under it;
+  // guarded for the injected-DOM test surface.
+  if (typeof MutationObserver === 'function' && cardFace) {
+    const observer = new MutationObserver(() => { if (activeCell) close(); });
+    observer.observe(cardFace, { subtree: true, childList: true, characterData: true });
   }
 
   // Mark every coordinate compartment interactive. Delegated click/keydown on cardFace

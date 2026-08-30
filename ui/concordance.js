@@ -167,6 +167,110 @@ function compareBirthCard(left, right) {
   );
 }
 
+/**
+ * Intra-sheet filed relation for ONE coordinate against the rest of its own
+ * sheet (§1.I registries applied within a single reading — PR #212 audit
+ * follow-up, optimization item 3). Pure and total: takes the tapped
+ * coordinate key plus the sheet's raw display values (the same dict
+ * ui/meanings.js assembles from the card DOM), returns a
+ * { label, left, right, relation, citation } record when a REGISTERED
+ * relation exists for a defined pair, and null otherwise. Only registered
+ * relations surface — the panel is not the compare screen, so an absent
+ * section claims nothing and the §1.I no-manufactured-claim law holds by
+ * omission. Sealed compartments render '' on the card, so a pair with a
+ * sealed member never resolves and no paid value can leak through this
+ * path. Values are display strings; anything unparseable resolves null,
+ * never a throw into the render path.
+ *
+ * Defined pairs, fixed and few by design:
+ *   sun ↔ rising            (western sign-distance registry)
+ *   animal ↔ innerAnimal    (animal relation families)
+ *   element ↔ dayPillar's element (wuxing sheng/ke, direction preserved)
+ *   any numerology value ↔ another numerology value on the sheet
+ *                           (the three master-reduction links only)
+ */
+const SHEET_NUMEROLOGY_KEYS = Object.freeze([
+  'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
+]);
+const SHEET_NUMEROLOGY_LABELS = Object.freeze({
+  lifePath: 'life path', nameNumber: 'name number', soulUrge: 'soul urge',
+  personality: 'personality', birthday: 'birthday', maturity: 'maturity',
+});
+
+// Adverse records, by registry vocabulary: the harmony algebra must not
+// render above a filed opposition/harm/punishment/square/quincunx or a
+// ke-cycle overcoming (pr213 audit, opus MED — the pr212 contradiction
+// shape recurring across registries). Membership is derived from the
+// relation strings the registries themselves emit, so a renamed family
+// changes both sides together.
+const ADVERSE_RELATION_RE = /chong|\bhai\b|xing|square|opposition|quincunx|\bke cycle\b/;
+
+function sheetRecord(label, axis, left, right) {
+  return {
+    label,
+    left: String(left),
+    right: String(right),
+    relation: axis.relation,
+    registry: axis.registry,
+    citation: axis.citation,
+    qualifier: axis.qualifier,
+    adverse: ADVERSE_RELATION_RE.test(axis.relation),
+  };
+}
+
+function pillarElementOf(raw) {
+  if (typeof raw !== 'string' || !raw.includes('\u00b7')) return null;
+  const element = raw.split('\u00b7')[1].trim();
+  return ELEMENTS.includes(element) ? element : null;
+}
+
+export function sheetRelationFor(key, values = {}) {
+  const v = k => (typeof values[k] === 'string' ? values[k].trim() : '');
+  try {
+    if (key === 'sun' || key === 'rising') {
+      const a = v('sun'); const b = v('rising');
+      if (!a || !b || a === '\u2014' || b === '\u2014') return null;
+      const axis = compareSun(a, b);
+      if (axis.status !== 'registered') return null;
+      return sheetRecord('sun and rising', axis, a, b);
+    }
+    if (key === 'animal' || key === 'innerAnimal') {
+      const a = v('animal'); const b = v('innerAnimal');
+      if (!a || !b || a === '\u2014' || b === '\u2014') return null;
+      const axis = compareAnimal(a, b);
+      if (axis.status !== 'registered') return null;
+      return sheetRecord('public and private animal', axis, a, b);
+    }
+    if (key === 'element' || key === 'dayPillar') {
+      const year = v('element');
+      const day = pillarElementOf(v('dayPillar'));
+      if (!year || !day || !ELEMENTS.includes(year)) return null;
+      const axis = compareElement(year, day);
+      if (axis.status !== 'registered') return null;
+      return sheetRecord('year and day-pillar element', axis, year, day);
+    }
+    if (SHEET_NUMEROLOGY_KEYS.includes(key)) {
+      const own = Number(v(key));
+      if (!LIFE_PATH_VALUES.includes(own)) return null;
+      for (const otherKey of SHEET_NUMEROLOGY_KEYS) {
+        if (otherKey === key) continue;
+        const other = Number(v(otherKey));
+        if (!LIFE_PATH_VALUES.includes(other)) continue;
+        const axis = compareLifePath(own, other);
+        if (axis.status !== 'registered') continue;
+        return sheetRecord(
+          `${SHEET_NUMEROLOGY_LABELS[key]} and ${SHEET_NUMEROLOGY_LABELS[otherKey]}`,
+          axis, own, other,
+        );
+      }
+      return null;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export function buildConcordance(left, right, options = {}) {
   if (!left || typeof left !== 'object' || !right || typeof right !== 'object') {
     throw new TypeError('two calculated profiles are required');

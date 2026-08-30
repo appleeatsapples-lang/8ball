@@ -98,7 +98,17 @@ describe('ui/meanings.js behavior', () => {
     return { cell, val };
   }
 
+  let observers;
+  const OriginalMO = globalThis.MutationObserver;
   beforeEach(() => {
+    // Capture the card observer the module wires at init (the stale-panel
+    // close path); a mock class stands in for the node-env-absent real one.
+    observers = [];
+    globalThis.MutationObserver = class {
+      constructor(cb) { this.cb = cb; observers.push(this); }
+      observe() {}
+      disconnect() {}
+    };
     byId = new Map();
     cardFace = makeNode('div');
     cells = {}; vals = {};
@@ -125,6 +135,7 @@ describe('ui/meanings.js behavior', () => {
   });
   afterEach(() => {
     if (originalDocument === undefined) delete globalThis.document; else globalThis.document = originalDocument;
+    if (OriginalMO === undefined) delete globalThis.MutationObserver; else globalThis.MutationObserver = OriginalMO;
   });
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
@@ -228,10 +239,52 @@ describe('ui/meanings.js behavior', () => {
     expect(p._byId['meaning-title'].textContent).toBe('the caretaker');
     expect(p._byId['meaning-body'].textContent).toContain('responsibility toward others');
     expect(p._byId['meaning-context-head'].textContent).toBe('with the other numbers');
-    expect(p._byId['meaning-context'].textContent).toContain('care serves as the full-name pattern');
-    expect(p._byId['meaning-context'].textContent).toContain('expression enters as the long route');
-    expect(p._byId['meaning-context'].textContent).toContain('structure as the inward motive');
+    // Frame-agnostic since the v4 harmony frames (optimization item 4):
+    // the deterministic frame varies the connectives, so pin the semantic
+    // content — each theme beside its role — not one frame's phrasing.
+    const context = p._byId['meaning-context'].textContent;
+    for (const token of ['care', 'the full-name pattern', 'expression', 'the long route', 'structure', 'the inward motive']) {
+      expect(context).toContain(token);
+    }
     expect(p._byId['meaning-body'].textContent).not.toContain('derived by');
+  });
+
+  it('the filed-relation section fills for a registered pair and hides otherwise (incl. sealed)', () => {
+    vals.sun.textContent = 'taurus';
+    vals.rising.textContent = 'virgo';
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p._byId['meaning-relation-head'].hidden).toBe(false);
+    expect(p._byId['meaning-relation'].textContent).toContain('four signs apart');
+    expect(p._byId['meaning-relation-head'].textContent).toBe('filed relation');
+    // close, then a coordinate with no filed pair -> section hidden, emptied
+    cardFace._fire('click', { target: vals.sun });
+    vals.element.textContent = 'earth';
+    cardFace._fire('click', { target: vals.element });
+    expect(p._byId['meaning-relation-head'].hidden).toBe(true);
+    expect(p._byId['meaning-relation'].textContent).toBe('');
+    // sealed compartment path carries no relation either
+    cardFace._fire('click', { target: vals.element });
+    cells.nameNumber.classList.add('sealed');
+    cardFace._fire('click', { target: vals.nameNumber });
+    expect(p._byId['meaning-relation-head'].hidden).toBe(true);
+    expect(p._byId['meaning-relation'].textContent).toBe('');
+    cells.nameNumber.classList.remove('sealed');
+  });
+
+  it('a card re-render under an open panel closes it — stale relation citations cannot linger', () => {
+    // pr213 audit (opus MED): after a resubmission re-rendered the card
+    // under an open panel, the stale FILED RELATION could cite a registry
+    // record the new values do not support (a registered sign-distance
+    // line for a same-value pair §1.I says must be unfiled). The module
+    // observes the card and closes the panel on any value change.
+    expect(observers.length).toBeGreaterThan(0);
+    vals.sun.textContent = 'taurus';
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    observers[0].cb(); // the card re-rendered
+    expect(p.classList.contains('open')).toBe(false);
   });
 
   it('opens the filed master entry for every master value, on every numerology cell', () => {
