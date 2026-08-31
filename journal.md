@@ -5,6 +5,79 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — STAGED on branch, PR pending
+
+**What happened.** The one failure every container run of
+`python3 -m unittest audits.test_project_audit` has carried —
+`test_guard_can_fail`, explained away as "container-only,
+pre-existing" since at least 2026-08-02, across ~29 days and every
+container verification in that window — is repaired at its root. The
+process failure is recorded beside the code fix (pr219 audit F1): a
+§10 lane DIAGNOSED this exact defect on 2026-08-02 —
+`audits/relay_pr194_premerge_audit_2026-08-02_response.md` records the
+grok lane's "`test_guard_can_fail` is environment-fragile if
+`REPO_ROOT` isn't under `$HOME`" — and it was filed as "Noise, not
+actioned" on a CI-is-green argument. The dismissal cost a month of
+vacuous no-leak assertions in containers; the lesson is not
+"containers are weird" but that a cross-model finding contradicting a
+green CI deserves a reproduction attempt in the environment it names,
+not a dismissal from the environment it doesn't. The guard was RIGHT to fail: the leak predicate carried
+home-directory needles only, and in a container the repo lives outside
+`$HOME` (`/home/user/8ball` vs `/root`), so the predicate could never
+fire on a leaky report — which made the real-run
+no-absolute-path-in-artifacts assertions vacuous in exactly the
+environments most of this project's verification now runs in. The
+guard-the-guard test was correctly reporting that the oracle proved
+nothing; the oracle was the defect.
+
+**The fix.** The predicate (`_abs_path_leak_hits`, née
+`_home_leak_hits`) now carries the PRODUCT ROOT needles beside the home
+ones — the auditor redacts both to placeholders, and the product root
+exists in every environment. The guard's leaky payload was already
+built from `REPO_ROOT`, so it now fires everywhere; the real-run
+end-to-end assertion is strictly stronger (it now also catches a
+product-root leak in the shipped artifacts, which the old home-only
+needles ignored on machines where the repo is not under `$HOME`).
+
+**Verification.** Assurance suite **102/102 OK in this container** for
+the first time; two mutants killed in both directions — reverting the
+predicate to home-only fails the guard here (the old state,
+reproduced), and dropping the auditor's product-root redaction pair
+fails the real-run artifact assertion (proving the widened oracle
+bites end to end). Full vitest suite 57 files / 1995 tests green;
+product audit PASS. `audits/test_project_audit.py` is the only CODE
+file changed (this journal rides along); the auditor itself is
+byte-untouched. A second, unclaimed benefit the audit named (its F5):
+the tracked PR #194 fast-follow — a non-`str` leaf (`Path`, exception,
+`datetime`) stringified past the redaction boundary by `default=str` —
+was UNDETECTABLE in containers under the old home-only oracle and now
+dies as a real-run test failure; the `redact_paths` fallback itself
+stays queued.
+
+**Cross-model audit (pr219), reconciled.** Lanes: SAFE TO MERGE (1
+NIT) and MERGE WITH FIXES (1 MED, 4 LOW, 2 NIT, 1 INFO). Both
+independently reproduced the base failure, the head 102/102, and both
+mutants; one lane additionally swept degenerate root shapes (`/`,
+empty, root==home, prefix collisions, trailing/double slashes) with
+zero false-fails, and restored real runner/operator paths into a
+real-shaped report to prove zero hits non-vacuously. Landed: the MED
+history correction above (the span and the dismissed 2026-08-02
+diagnosis — this entry's first draft dated the silence to "six PR
+verifications across two days" and a docstring tied it to a split that
+happened today); the real-run test method renamed to
+`..._no_absolute_machine_path` (its name said the opposite of what it
+now catches); two "home path survived" messages corrected; a
+`PRODUCT_ROOT_PLACEHOLDER` presence pin beside the length guard (on an
+all-pass run `latest.md` carries no captured output, so the length
+check alone cannot tell a redacted artifact from one the redactor
+never saw); "meaningful everywhere" softened to non-degenerate
+environments (a repo at `/` would degrade the guard again —
+pathological, named rather than claimed away); the F5 note above; and
+the docstring-wrap NIT from the first lane, landed mid-audit.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the last flagged queue item:
