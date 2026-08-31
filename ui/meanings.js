@@ -94,6 +94,9 @@ const STYLE = `
 .meaning-context-head { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); text-align: left; margin-top: 12px; margin-bottom: 4px; }
 .meaning-context { font-size: 12px; line-height: 1.55; color: var(--text); text-align: left; }
+.meaning-hint { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-muted); text-align: center; margin-top: 12px; }
+.meaning-hint[hidden] { display: none; }
 .meaning-close { display: block; margin: 10px auto 0; background: none; border: none;
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--text-muted); cursor: pointer; min-height: 44px;
@@ -337,6 +340,18 @@ export function initMeaningsUI(refs) {
   const cardFace = refs && refs.cardFace;
   if (!cardFace || cardFace.querySelector('#meaning-panel')) return;
   injectStyle();
+  // Comprehension hint (journal 2026-08-31): fourteen compartments are
+  // tappable, but the only affordance was a desktop hover — on touch, and
+  // for the bare labels-off glyphs, nothing said the sheet opens. One
+  // clinical line under the sheet carries both affordances (the panel a
+  // tap opens leads with the compartment's label). It hides after the
+  // first open — the affordance has done its job — and holds NO stored
+  // state (§5: no new key), so it deliberately returns on the next load.
+  const hint = document.createElement('div');
+  hint.className = 'meaning-hint';
+  hint.id = 'meaning-hint';
+  hint.textContent = 'each compartment opens its filed meaning — tap any value';
+  cardFace.appendChild(hint);
   const panel = buildPanel();
   cardFace.appendChild(panel);
   const head = panel.querySelector('#meaning-head');
@@ -376,6 +391,7 @@ let scrollTimer = null;
   function openFor(key, cell) {
     const coordinate = COORDINATES[key];
     if (!coordinate) return;
+    hint.hidden = true; // first use retires the affordance for this load
     const valEl = document.getElementById(coordinate.valueId);
     const rawValue = valEl ? valEl.textContent.trim() : '';
     if (activeCell === cell) { close(); return; }
@@ -430,7 +446,25 @@ let scrollTimer = null;
   // unfiled). Close the panel whenever the card's values change under it;
   // guarded for the injected-DOM test surface.
   if (typeof MutationObserver === 'function' && cardFace) {
-    const observer = new MutationObserver(() => { if (activeCell) close(); });
+    // Close on card re-renders ONLY. openFor's own writes (head/title/body/
+    // context/relation textContent) land inside this same observed subtree,
+    // and without the panel-filter below the delivery microtask closed
+    // every panel the instant it opened — panels wrote their prose into a
+    // max-height:0, inert box. Shipped that way in #213 (its live-fire read
+    // textContent, never the .open class); caught by the 2026-08-31
+    // comprehension-hint live-fire. Direction of the filter is fail-safe:
+    // a record OUTSIDE the module's own chrome closes, and an UNQUALIFIED
+    // fire (no records — the unit harness's bare cb()) also closes — only
+    // a delivery in which every record targets the panel's own subtree (or
+    // the hint) is ignored as self-noise.
+    const observer = new MutationObserver(records => {
+      if (!activeCell) return;
+      if (Array.isArray(records) && records.length &&
+          records.every(r => r && r.target && (panel.contains(r.target) || r.target === hint))) {
+        return;
+      }
+      close();
+    });
     observer.observe(cardFace, { subtree: true, childList: true, characterData: true });
   }
 

@@ -5,6 +5,53 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Comprehension hint + the #213 panel self-close regression, found and fixed — STAGED on branch, PR pending
+
+**What happened.** The controller ordered the comprehension hints — the
+flagged gap from the 2026-08-30 comprehension read: fourteen tappable
+compartments whose only affordance was a desktop hover (nothing on
+touch), and bare labels-off glyphs with nothing saying the sheet opens.
+`ui/meanings.js` now injects one clinical line under the sheet —
+`each compartment opens its filed meaning — tap any value` — visible on
+a fresh result, retired on the first open (the affordance has done its
+job), holding NO stored state (§5: no new key; it deliberately returns
+on the next load). The panel a tap opens leads with the compartment's
+label, so the one line carries both the tap and the labels affordance.
+
+**The live-fire caught a shipped P1: since #213, every meaning panel
+closed itself the instant it opened.** The hint's live-fire pass read
+the panel's `.open` class — which no previous pass had (they read
+`textContent`, which IS written) — and found `open:false, inert:true,
+max-height:0` after every tap, on the hint branch AND on untouched
+main. Root cause: #213's stale-panel MutationObserver watches the card
+face subtree (childList + characterData), and `openFor`'s own
+head/title/body/context/relation `textContent` writes land inside that
+subtree — the delivery microtask fired `close()` right after every
+open. The panels have been writing their prose into an invisible,
+inert box in production since #213 merged; the #213 live-fire verified
+`textContent` and never the visible state. Fix: the observer ignores a
+delivery in which EVERY record targets the module's own chrome (the
+panel's subtree or the hint), closes on any record outside it — a real
+re-render — and stays fail-safe on an unqualified fire (no records →
+close). Both directions mutation-pinned: an always-close revert fails
+the new self-noise pin, a never-close mutant fails the stale-citation
+pin.
+
+**Verification.** Suite 57 files / **1993** tests green (1990 + the
+hint lifecycle pin with canonical voice-register scans on the copy, the
+hint style/[hidden]-guard/module-injection pins, and the observer
+self-noise pin). Six mutants killed: hint never retires, injection
+dropped, [hidden] guard dropped, second-person copy, observer filter
+removed, observer never closes. Product audit PASS. Live-fire in
+Chromium: hint visible on a fresh result at 390×844, panel opens to
+its real 720px box and stays open (the #213 fix), hint retires on
+first open and stays retired through close and later opens, close
+works, a shake-again re-render still closes the stale panel; zero page
+errors. `index.html` byte-unchanged; no DOCTRINE touch.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Dyad t5 activation: the comparative rung goes on offer — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the dyad t5 activation — the

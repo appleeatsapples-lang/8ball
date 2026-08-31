@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initMeaningsUI } from '../ui/meanings.js';
 import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
 import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
+import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
 
 const originalDocument = globalThis.document;
 const originalLocalStorage = globalThis.localStorage;
@@ -139,6 +140,30 @@ describe('ui/meanings.js behavior', () => {
   });
 
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
+  function hint() { return cardFace.children.find(c => c.id === 'meaning-hint'); }
+
+  it('the comprehension hint ships visible, retires on first open, and holds no stored state', () => {
+    // Fourteen tappable compartments whose only affordance was a desktop
+    // hover (journal 2026-08-31): the hint line is the touch-and-labels-off
+    // affordance. It must be present and visible before any interaction,
+    // hide on the FIRST open (the affordance has done its job), stay
+    // hidden through close and later opens, and never touch storage — it
+    // deliberately returns on the next load instead of adding a §5 key.
+    const h = hint();
+    expect(h).toBeDefined();
+    expect(h.hidden).toBeFalsy();
+    expect(h.textContent).toBe('each compartment opens its filed meaning — tap any value');
+    // Register laws on UI chrome copy, through the CANONICAL apparatus
+    // (the pr216 precedent — no ad hoc second-person regex).
+    expect(voiceRegisterHits(h.textContent)).toEqual([]);
+    expect(SECOND_PERSON_RE.test(h.textContent)).toBe(false);
+    cardFace._fire('click', { target: vals.sun });
+    expect(h.hidden).toBe(true);
+    cardFace._fire('click', { target: vals.sun }); // toggle closed
+    expect(h.hidden).toBe(true);
+    cardFace._fire('click', { target: vals.animal }); // a later open
+    expect(h.hidden).toBe(true);
+  });
 
   it('opening scrolls the panel into view after the expand transition (top-row dead-tap fix)', () => {
     // The panel sits below the card; on the tall t3 sheet a tap on a
@@ -284,6 +309,24 @@ describe('ui/meanings.js behavior', () => {
     const p = panel();
     expect(p.classList.contains('open')).toBe(true);
     observers[0].cb(); // the card re-rendered
+    expect(p.classList.contains('open')).toBe(false);
+  });
+
+  it("the panel's own writes never close it — only real card mutations do (the #213 self-close regression)", () => {
+    // Shipped in #213: openFor's textContent writes land inside the
+    // observed cardFace subtree, so the delivery microtask closed every
+    // panel the instant it opened — prose written into a max-height:0
+    // inert box. The observer must ignore a delivery in which EVERY
+    // record targets the module's own chrome, close on any record outside
+    // it, and stay fail-safe on an unqualified fire (covered above).
+    cardFace._fire('click', { target: vals.sun });
+    const p = panel();
+    expect(p.classList.contains('open')).toBe(true);
+    p.contains = () => true; // every record inside the panel's own subtree
+    observers[0].cb([{ target: {} }]);
+    expect(p.classList.contains('open')).toBe(true);
+    p.contains = () => false; // a record outside it — a real re-render
+    observers[0].cb([{ target: vals.sun }]);
     expect(p.classList.contains('open')).toBe(false);
   });
 

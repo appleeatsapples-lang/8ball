@@ -69,6 +69,16 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect(meaningsJs).toMatch(/id = 'meaning-panel'/);
   });
 
+  it('the comprehension hint is module-injected chrome: styled with a [hidden] guard, absent from the host', () => {
+    expect(meaningsJs).toMatch(/\.meaning-hint \{[^}]*color: var\(--text-muted\)/);
+    // .meaning-hint styles set no display, so the UA [hidden] rule would
+    // suffice today — the author guard pins the F1 bug class shut against
+    // a future display: declaration on the same selector.
+    expect(meaningsJs).toMatch(/\.meaning-hint\[hidden\] \{ display: none; \}/);
+    expect(meaningsJs).toMatch(/id = 'meaning-hint'/);
+    expect(html + shellCss).not.toMatch(/meaning-hint/);
+  });
+
   it('the shell styles live in ui/shell.css — linked before experience.css, never inlined back', () => {
     // 2026-08-31 split (DOCTRINE §6 shell-stylesheet amendment): the whole
     // inline <style> block moved VERBATIM to ui/shell.css. Link order is
