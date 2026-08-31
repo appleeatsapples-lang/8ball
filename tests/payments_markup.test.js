@@ -232,7 +232,7 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
 
   // 3. reads chip — RETIRED (v0.55: no counter exists to display) ───
   it('the reads chip is fully retired — markup, CSS, and wiring', () => {
-    expect(html).not.toMatch(/reads-chip/);
+    expect(html + shellCss).not.toMatch(/reads-chip/);
     expect(html).not.toMatch(/readsChip/);
     expect(html).not.toMatch(/reads left/);
   });
@@ -252,7 +252,7 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
 
   // 3c. v0.7.0 compartment card — seal system tokens ────────────────
   it('the locked-extras bars are fully retired (v0.7.0 seal system supersedes)', () => {
-    expect(html).not.toMatch(/locked-extras/);
+    expect(html + shellCss).not.toMatch(/locked-extras/);
   });
 
   it('compartment cells and seal layers are present (v0.7.0)', () => {

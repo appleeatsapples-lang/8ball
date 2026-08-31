@@ -45,6 +45,35 @@ served side by side: computed styles IDENTICAL across 17 selectors ×
 submit flow driven on both — the mobile reveal contract
 (experience.css over shell.css) holds; zero console errors.
 
+**Cross-model audit (pr215), reconciled.** Two lanes, both MERGE WITH
+FIXES (one HIGH + one LOW; one HIGH + four MED + four LOW + two NIT —
+the HIGH was the same finding, caught independently). Landed: the split
+had silenced FIVE CSS negative guards by leaving them scanning a
+`<style>` block that no longer exists — kua's no-shell-CSS pin (HIGH,
+fixed mid-audit), tiers' `.coord-cell.locked`, labels' side-rail
+ownership pin (title and comments also corrected: `ui/shell.css` owns
+that block now), and payments' two retirement guards (`reads-chip`,
+`locked-extras`); every one was mutation-proven silent first and
+mutation-proven revived after. Also landed: the DOCTRINE footer version
+bump the amendment had omitted (v0.65 → v0.66, changelog line added);
+the §5 privacy scan now reads `.css` files and carries CSS egress
+tokens (`@import`, remote `url(`) — before this, both stylesheets sat
+outside every §5 scan; the hidden-guard walker in the public-surface
+test scans `experience.css`'s display rules too; the link-order pin
+matches by href (attribute-order-proof) and its non-vacuous floor rose
+to 20KB after a 58% truncation was shown to pass the old floor; the §6
+amendment now states the no-inline-`<style>` rule the new pin enforces;
+CLAUDE.md's inventory names the two stylesheets; 8BALL/README single-
+file wording admits the `ui/*.css` target. Acknowledged on the record
+(both lanes, no code change): the split trades away inline CSS's
+delivery guarantee — a failed `/ui/shell.css` fetch now renders the
+whole page unstyled where before only the experience layer was exposed;
+same-origin atomic deploys make this the accepted cost of any
+inline-to-external split, and critical-CSS inlining would need a fresh
+§6 amendment. Declined: nothing — every fix-class finding landed.
+Post-reconciliation suite: 57 files / **1981** tests green (the four CSS
+egress tokens each add a scan test); product audit PASS, 0 blocking.
+
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 

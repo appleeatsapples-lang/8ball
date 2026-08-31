@@ -394,7 +394,7 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
 // one instance — including `#offer-btn`, which had the same defect before
 // this rung existed.
 describe('hidden-attribute guards (the F1 bug class)', () => {
-  const css = shellCss;
+  const css = shellCss + readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8');
 
   // Classes on elements that ship with a bare `hidden` attribute, plus those
   // on elements whose id is assigned `.hidden = ...` anywhere in the script.

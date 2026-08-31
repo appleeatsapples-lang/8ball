@@ -901,7 +901,7 @@ describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () 
 
   it('the mock\'s opacity trick is not ported: no opacity-gated .coord-val rule', () => {
     expect(html + shellCss).not.toMatch(/\.sealed[^{]*\.coord-val[^{]*\{[^}]*opacity:\s*0/);
-    expect(html).not.toMatch(/\.coord-cell\.locked/);
+    expect(html + shellCss).not.toMatch(/\.coord-cell\.locked/);
   });
 });
 

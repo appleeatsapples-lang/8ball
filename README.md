@@ -33,7 +33,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
 ```
 8ball/
-├── index.html               UI + boot, single file, ES modules (≤1500 LOC per §6)
+├── index.html               UI + boot markup/script (≤1500 LOC per §6; shell styles live in ui/shell.css since 2026-08-31)
 ├── core/                    12 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution

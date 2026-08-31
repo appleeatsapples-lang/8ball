@@ -76,14 +76,16 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     // shell.css must too, or every experience.css override flips. And no
     // <style> block may creep back into the shell markup: headroom eroding
     // back toward the 1500 cap starts exactly there.
-    const shellAt = html.indexOf('<link rel="stylesheet" href="/ui/shell.css">');
-    const expAt = html.indexOf('<link rel="stylesheet" href="/ui/experience.css">');
-    expect(shellAt, 'shell.css link missing from index.html head').toBeGreaterThan(-1);
-    expect(expAt, 'experience.css link missing from index.html head').toBeGreaterThan(-1);
-    expect(shellAt).toBeLessThan(expAt);
+    const shellLink = html.match(/<link[^>]+href="\/ui\/shell\.css"[^>]*>/);
+    const expLink = html.match(/<link[^>]+href="\/ui\/experience\.css"[^>]*>/);
+    expect(shellLink, 'shell.css link missing from index.html head').not.toBeNull();
+    expect(expLink, 'experience.css link missing from index.html head').not.toBeNull();
+    expect(shellLink.index).toBeLessThan(expLink.index);
     expect(html).not.toMatch(/<style[\s>]/);
-    // Non-vacuous: the moved rules are really in the stylesheet.
-    expect(shellCss.length).toBeGreaterThan(10000);
+    // Non-vacuous: the moved rules are really in the stylesheet (the block
+    // was ~26.5KB at the split; 20000 still fails on any wholesale loss
+    // while leaving room for ordinary rule churn).
+    expect(shellCss.length).toBeGreaterThan(20000);
   });
 
   it('index.html net line-budget for this feature is import + one init call (single-file rule)', () => {
