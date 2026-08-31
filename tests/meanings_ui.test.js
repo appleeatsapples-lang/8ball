@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const meaningsJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
 
 describe('ui/meanings.js DI shape + boot wiring', () => {
@@ -63,9 +64,26 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   it('injects its own style/panel rather than editing index.html markup/CSS', () => {
     // Structural guard for the "2-line index.html footprint" design constraint.
     expect(html).not.toMatch(/id="meaning-panel"/);
-    expect(html).not.toMatch(/\.meaning-panel\s*\{/);
+    expect(html + shellCss).not.toMatch(/\.meaning-panel\s*\{/);
     expect(meaningsJs).toMatch(/document\.createElement\('style'\)/);
     expect(meaningsJs).toMatch(/id = 'meaning-panel'/);
+  });
+
+  it('the shell styles live in ui/shell.css — linked before experience.css, never inlined back', () => {
+    // 2026-08-31 split (DOCTRINE §6 shell-stylesheet amendment): the whole
+    // inline <style> block moved VERBATIM to ui/shell.css. Link order is
+    // load-bearing — the inline block preceded the experience.css link, so
+    // shell.css must too, or every experience.css override flips. And no
+    // <style> block may creep back into the shell markup: headroom eroding
+    // back toward the 1500 cap starts exactly there.
+    const shellAt = html.indexOf('<link rel="stylesheet" href="/ui/shell.css">');
+    const expAt = html.indexOf('<link rel="stylesheet" href="/ui/experience.css">');
+    expect(shellAt, 'shell.css link missing from index.html head').toBeGreaterThan(-1);
+    expect(expAt, 'experience.css link missing from index.html head').toBeGreaterThan(-1);
+    expect(shellAt).toBeLessThan(expAt);
+    expect(html).not.toMatch(/<style[\s>]/);
+    // Non-vacuous: the moved rules are really in the stylesheet.
+    expect(shellCss.length).toBeGreaterThan(10000);
   });
 
   it('index.html net line-budget for this feature is import + one init call (single-file rule)', () => {

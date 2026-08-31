@@ -47,6 +47,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const paymentsJs = readFileSync(
   join(__dirname, '..', 'ui', 'payments.js'),
   'utf-8'
@@ -239,11 +240,11 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
   // 3b. v0.6.1 card geometry — growable flip stack ──────────────────
 
   it('flip faces are grid-stacked so the card can grow at t3 (v0.6.1)', () => {
-    const inner = html.match(/\.flip-inner\s*\{([\s\S]*?)\}/);
+    const inner = shellCss.match(/\.flip-inner\s*\{([\s\S]*?)\}/);
     expect(inner, '.flip-inner CSS block not found').not.toBeNull();
     expect(inner[1]).toMatch(/display:\s*grid/);
     expect(inner[1]).not.toMatch(/position:\s*absolute/);
-    const side = html.match(/\.flip-side\s*\{([\s\S]*?)\}/);
+    const side = shellCss.match(/\.flip-side\s*\{([\s\S]*?)\}/);
     expect(side, '.flip-side CSS block not found').not.toBeNull();
     expect(side[1]).toMatch(/grid-area:\s*1 \/ 1/);
     expect(side[1]).not.toMatch(/position:\s*absolute/);
@@ -264,10 +265,12 @@ describe('paid-surface markup (DOCTRINE §1 v0.22 / §6)', () => {
 
   it('seal treatment is the single root token .card.seal-hatch with one gradient (F1)', () => {
     expect(html).toMatch(/class="card seal-hatch"/);
-    expect(html).toMatch(/\.card\.seal-hatch \.coord-seal/);
+    expect(shellCss).toMatch(/\.card\.seal-hatch \.coord-seal/);
     // The hatch gradient is defined exactly once — swapping treatment
-    // later (bars/stamp) must stay a single-token change.
-    expect((html.match(/repeating-linear-gradient/g) || []).length).toBe(1);
+    // later (bars/stamp) must stay a single-token change. Counted over the
+    // markup AND the shell stylesheet together, so the split cannot hide a
+    // second definition on either side.
+    expect(((html + shellCss).match(/repeating-linear-gradient/g) || []).length).toBe(1);
   });
 
   // 4. unlocked_render_markup ───────────────────────────────────────

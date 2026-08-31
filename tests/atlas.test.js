@@ -17,6 +17,7 @@ import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from '
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
 const html = read('index.html');
+const shellCss = read('ui', 'shell.css');
 const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
@@ -93,8 +94,8 @@ describe('ATLAS legend (CLP cut 2)', () => {
   });
 
   it('gated behind the existing labels toggle — no new localStorage key', () => {
-    expect(html).toMatch(/\.card \.coord-atlas\s*\{[^}]*display:\s*none/);
-    expect(html).toMatch(/\.card\.labels-revealed \.coord-atlas\s*\{[^}]*display:\s*block/);
+    expect(shellCss).toMatch(/\.card \.coord-atlas\s*\{[^}]*display:\s*none/);
+    expect(shellCss).toMatch(/\.card\.labels-revealed \.coord-atlas\s*\{[^}]*display:\s*block/);
     expect(tiersJs).not.toMatch(/localStorage/);
   });
 

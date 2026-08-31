@@ -88,13 +88,16 @@ naming only two.)
   of them (`product.hko_calendar`, and the pair that execute the L48 suites)
   are the fail-closed gates — a missing comparator, fixture or regression
   suite is a failure, never a skip.
-- **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. It is
-  at 1450, so there are 50 lines of headroom; past that, split into `ui/*.js`
-  per §6 rather than trimming to squeeze under. The §1.J dyad tier spent 6 of
-  the previous 9 by design — its screen, styles and entry control are all
-  injected from `ui/dyad.js`, and what remains in the host is only the import
-  and the DI call. **The next feature of any size must start by splitting**,
-  not by looking for lines to reclaim here.
+- **Single-file rule** (§7 stage 5) — `index.html` must stay ≤1500 lines. The
+  2026-08-31 shell-stylesheet split (§6 amendment, controller-ordered) moved
+  the whole inline `<style>` block verbatim to `ui/shell.css`, taking the file
+  from 1455 to 683 lines — ~800 of headroom. `ui/shell.css` must stay linked
+  BEFORE `ui/experience.css` (cascade order; pinned in
+  `tests/meanings_ui.test.js` along with a no-inline-`<style>`-creep guard).
+  Features still split into `ui/*.js` per §6 — modules inject their own
+  scoped styles at init, never edit the shell stylesheets; the §1.J dyad tier
+  is the model (screen, styles and entry control all injected from
+  `ui/dyad.js`, host footprint = import + DI call).
 - **Journal-touch gate** (PR only) — a PR touching `DOCTRINE.md` or
   `content/*.js` must also touch `journal.md`; one touching `DOCTRINE.md` must
   also add a file under `audits/`.
