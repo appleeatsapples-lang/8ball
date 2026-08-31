@@ -726,6 +726,36 @@ describe('dyad surface — presentation: axis interaction CSS (44px target + foc
     expect(dyadJs).toMatch(
       /#dyad-screen \.dyad-axis > summary:focus-visible \{[\s\S]*?outline:\s*2px solid var\(--text\)/);
   });
+
+  it('the standalone sheets release the .card 5/8 ratio box (2026-08-31 layout audit)', () => {
+    // The two dyad sheets inherit .card's aspect-ratio while their content
+    // runs ~300-400px past it; the embedded-WebView family the flip-stage
+    // field defect came from is not trusted to grow ratio boxes, so the
+    // box is released explicitly — same posture as ui/labels.js's stage
+    // rules, scoped by the data attribute so the host card face (the
+    // flip-stage rules' job) is untouched. Delta-audit hardening: scan the
+    // COMMENT-STRIPPED source (a commented-out rule rode the raw scan
+    // green), and demand the rule at the top level of the stylesheet —
+    // stripping every at-rule block first, so wrapping it in a
+    // never-matching @media/@layer/@supports cannot satisfy the pin.
+    let topLevel = dyadCode;
+    for (let at = topLevel.indexOf('@media'); at !== -1; at = topLevel.indexOf('@media')) {
+      const open = topLevel.indexOf('{', at);
+      let depth = 0, end = -1;
+      for (let i = open; i < topLevel.length; i++) {
+        if (topLevel[i] === '{') depth++;
+        else if (topLevel[i] === '}' && --depth === 0) { end = i; break; }
+      }
+      if (open === -1 || end === -1) break;
+      topLevel = topLevel.slice(0, at) + topLevel.slice(end + 1);
+    }
+    // any scoping at-rule shape (@layer, @supports, @container) is banned
+    // outright in the dyad stylesheet rather than stripped around
+    // (@keyframes defines an animation, it scopes nothing):
+    expect((topLevel.match(/@[a-z-]+/g) || []).filter(t => !['@media', '@keyframes'].includes(t)))
+      .toEqual([]);
+    expect(topLevel).toMatch(/#dyad-screen \[data-sheet-face\] \{\s*aspect-ratio:\s*auto;\s*\}/);
+  });
 });
 
 describe('dyad surface — F5: both sides are real standalone sheets', () => {

@@ -5,7 +5,182 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — STAGED on branch, PR pending
+## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — STAGED on branch (rides PR #223)
+
+**What happened.** On the controller's "keep auditing layout" order, a
+systematic sweep of every screen and state at six viewports (320×568 →
+1280×800): every element with a fixed aspect-ratio whose used height
+exceeds the ratio-implied height is a WKWebView overlap trap of the
+class the field report proved on-device, whatever Chromium renders.
+The sweep flagged twelve instances collapsing to ONE construct at one
+band — `#flip-stage` at ≥720px (+146px resting; per the delta audit's
+deeper sweep +367px at t3, +465px free-revealed, +716px t3-revealed and
++984px with a meaning panel open; the overflow lands on the feedback
+block below — iPad-class embedded WebViews) — and a targeted probe of
+the t5 dyad screen (the sweep's first pass never rendered it; driver
+defect, not product) found the second: the dyad's two standalone
+sheets inherit `.card`'s 5/8 box with content +292/+400px past it.
+Nothing else in the product carries the trap: `.card-back`'s own 5/8
+declaration is never in effect anywhere it renders (its single render
+site sits under `.flip-side .card-back { aspect-ratio: auto }`, and its
+height comes from the 100% grid-row contract — the delta audit
+corrected this entry's first reason, which wrongly credited the ratio
+box), and the
+remaining sweep noise was hit-test artifacts (elements correctly
+behind open modals; the face-down card back; the meaning panel's close
+control in its clipped CLOSED state — verified fully tappable open).
+
+**The fix, completing the #196 → pr223 arc.** `ui/labels.js`'s
+injected stage rules drop their LAST condition — the 719.98px media
+query — becoming three unconditional lines: the flip-stage layout is
+explicit at every width, in every state. Three narrowings retired in
+sequence, each after content outgrew a band the previous scope
+excluded (labels-only 2026-08-02; resting-state pr223; width today).
+And `ui/dyad.js`'s screen stylesheet gains
+`#dyad-screen [data-sheet-face] { aspect-ratio: auto; height: auto; }`
+— the paid screen's two sheets released the same way, scoped by the
+data attribute so the host card face stays the stage rules' job.
+
+**Verification.** Chromium: the re-run sweep reports ZERO ratio traps
+at any viewport or state; dyad sheets render at identical heights with
+what follows clearing them; 768×1024 and 1280×800 keep the
+side-by-side rail with the back-beat full-height (722=722). A "≤4px
+front-card delta at ≥720" this entry first claimed did NOT reproduce —
+the delta audit's full-DOM geometry diff (every element, 7 viewports ×
+5 states, base vs head) found ZERO differing nodes, so the change is a
+total Chromium no-op and the earlier 726px reading was a transient
+measurement, retracted here. Mutants killed at first landing:
+re-adding a media condition around the stage rules, deleting the dyad
+release rule. The
+behavioral injectStyle payload test updated to assert NO media query —
+the full-suite run caught the stale expectation before push, and the
+product audit's vitest leg failed with it, exactly as the fail-closed
+pipeline should. Suite 57 files / 2007 tests green; product audit
+PASS, 0 blocking. This rides PR #223 as the same defect family; the
+delta re-entered §10 audit before the merge word.
+
+**Cross-model delta audit (pr223 third commit), reconciled.** Lanes:
+MERGE WITH FIXES and MERGE WITH FIXES, both re-deriving the sweep
+independently (base 33-46 trap states, head ZERO, the same two
+constructs) and both proving the no-op claims stronger than stated
+(full-DOM geometry diffs byte-identical; the dyad flow identical at
+six viewports). Findings, all landed: the `@media` ban was not an
+at-rule ban — an `@layer` wrapper rode the suite green and RE-ARMED
+the trap at 390×844, +135px, because layered rules lose to the
+unlayered shell; the styleBlock extractor took the first match, so a
+dead decoy literal freed the shipped payload; ONE added line in the
+shell (`#result .flip-stage { aspect-ratio: 5/8 }`) out-cascaded the
+injected release and restored the ≥720 trap with the suite green and
+— the lanes' sharpest point — ZERO sweep hits, since the sweep's
+heuristic only sees boxes whose content already outgrew them in the
+measuring engine; the dyad pin matched raw source (a commented-out or
+never-matching-media-wrapped rule rode green); and the dyad rule's
+`height: auto` was a dead declaration the suite was about to pin.
+Landed as: a full `@`-ban on the extracted (and now
+counted-exactly-once) STYLE literal; a shell/experience source guard —
+no flip-surface-targeting rule may declare a ratio VALUE outside the
+three single-selector base boxes, nor any fixed height; the dyad pin
+rebuilt over comment-stripped, at-rule-stripped top-level text; the
+dead declaration dropped. Five delta mutants killed (layer wrap, decoy
+literal, shell re-arm, comment-out, media-wrap), fourteen across the
+PR. Record corrections folded in above (the retracted ≤4px delta, the
+state-labeled ≥720 overflow figures, the card-back reason). The
+stale ≥720 rail comment in ui/shell.css corrected (the same
+comment-drift class this PR already fixed once). One lane also caught
+a port collision mid-audit — a stale server answering 200 with BASE
+content, which could have validated the wrong tree — cross-checked
+served bytes against disk before trusting any measurement; future
+briefs pin that check. l48-gate note, recorded honestly: the gate
+passes mechanically on the existing pr223 artifact, so the delta
+artifact that lands with this reconciliation is a §10/L48 obligation
+CI cannot enforce. Suite after reconciliation: 57 files / 2008 tests
+green; product audit PASS, 0 blocking.
+
+## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — STAGED on branch, PR pending
+
+**What happened.** The controller sent a live-device screenshot (iOS
+in-app browser, the deployed site): the result card painting over the
+result rail, the $3 offer half-hidden behind the card's lower edge with
+labels HIDDEN. Diagnosis, reproduced against the shipped tree: this is
+the exact defect class PR #196 fixed on 2026-08-02 — in embedded
+WKWebView builds the 5/8 `aspect-ratio` flip-stage box does not grow to
+match a card face taller than the ratio height, so the excess paints
+over the rail stacked below (Chromium and desktop WebKit DO grow it,
+which is why every container live-fire passes and why the defect only
+shows on real devices). #196 scoped its explicit-layout fix to
+`.labels-revealed`, the only state that outgrew the box THEN. Since
+then the RESTING card has outgrown it too — the kua sealed block, the
+comprehension hint, and the prose blocks put the free card at ~708px
+against the ratio box's ~573 at 390 wide, and the ratio box can no
+longer win at ANY sub-720 width — so the same WKWebView non-growth
+returned outside the fix's scope, now covering the paywall CTA on
+exactly the in-app-browser traffic the social drip drives.
+
+**The fix.** The injected mobile rule in `ui/labels.js` drops its
+`.labels-revealed` condition: below 719.98px the flip-stage layout is
+explicit always (`aspect-ratio: auto; height: auto`, `min-height: 0` on
+the inner grid, front card to intrinsic height, back face deliberately
+kept at height:100% per #196's F3 so the pre-flip back-beat cannot
+collapse). On growing engines this is a measured no-op; on WKWebView it
+removes the trap — there is no ratio box left to under-size. The
+`labels-revealed` class toggle on #flip-stage stays as pinned API
+surface; the layout just no longer depends on it. This follows #196's
+own recorded lesson verbatim: make the layout explicit instead of
+trusting any engine's ratio-box growth behavior — now for every mobile
+state, not one.
+
+**Verification.** Chromium live-fire, zero failures, zero page errors:
+resting, labels-revealed, and back-beat states at 390×844, 390×660 (the
+in-app shape) and 320×568 — stage always equals card height, the $3
+offer clears the card (112–127px gap), the back face paints full-height
+(708=708; an initial 715 reading was a mid-flip-transition measurement
+artifact, re-measured settled), and 1280×800's desktop rail is
+unchanged by this diff. A base-tree comparison confirms Chromium
+geometry is byte-identical before/after (stage already grew there).
+Suite 57 files / 2006 tests green; product audit PASS, 0 blocking.
+WKWebView itself is not runnable from this container — the
+counterfactual is structural (the sub-720 ratio box is gone entirely),
+and a real-device re-check of the deployed site after merge is the
+closing verification, which only the controller can perform.
+
+**Cross-model audit (pr223), reconciled.** Lanes: MERGE WITH FIXES
+(1 P1, 3 MED, 2 LOW) and MERGE WITH FIXES (1 MED). Every product claim
+reproduced by both — one lane ran 48 paired base-vs-head geometry
+measurements plus sha-identical full-page screenshots proving the
+no-op claim; the other swept 17 widths (280→719) confirming the ratio
+box never wins sub-720 (worst margin 208px) and reproduced the ~708/
+~573 numbers. Findings, all landed: **P1** — this entry's first draft
+ATE the previous entry's heading, the THIRD occurrence today of the
+same insertion defect; the #222 heading is restored, and the class now
+fails CI instead of waiting for a reviewer — a journal structural
+guard in tests/repo_shape.test.js pins that no `## ` section carries
+two `**What happened.**` bodies (mutation-verified against today's
+exact corruption). **MED (both lanes, from different dodges)** — the
+first-draft pins were whole-file toMatch and vacuous in the file's own
+documented class: an appended media condition (`and (min-width:
+700px)`) disabled the whole fix at the field viewport with the suite
+green, a decoy block rode green too, and the no-labels-revealed pin
+fell to a descendant-combinator selector. Rebuilt on the EXTRACTED
+media block: exact-prelude brace matching, all three rules pinned
+inside it, `min-height: 0` pinned (Chromium-invisible,
+WKWebView-load-bearing — the second MED), and a whole-block token ban
+on `labels-revealed`. Seven mutants killed across the change now: the
+original three plus appended-condition, decoy-block, min-height
+deletion, and descendant-shape reintroduction. **MED** — the same
+WKWebView ratio-box trap is LIVE on two surfaces this fix does not
+reach and this entry's first draft mis-read as clearance: the ≥720px
+desktop rail (576px box vs 722px resting / 1041px revealed content —
+bites only ≥720-wide embedded WebViews, e.g. iPad in-app) and the t5
+dyad's two standalone sheets (5/8 box vs 804/887px content at 390
+wide). Neither is a regression of this PR; both are RECORDED HERE AS
+QUEUED, the dyad one first in line since it breaks the paid screen in
+the same environment the field report came from. **LOW** — a stale
+ownership comment in the test contradicting the new assertion,
+corrected; the artifact rides this commit. Suite after reconciliation:
+57 files / 2006 tests green (+3 total); product audit PASS,
+0 blocking.
+
+## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — SHIPPED (#222)
 
 **What happened.** The pr218 artifact's recorded gap — "the host/sheet
 kua parity rested on two source regexes" — is closed (other named

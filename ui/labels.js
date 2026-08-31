@@ -43,32 +43,41 @@ export function setLabelsRevealed(revealed) {
   catch (_) { /* localStorage unavailable; preference survives only this session */ }
 }
 
-// ── revealed-label intrinsic height (iOS/WebKit fix, 2026-08-02) ──
-// Below the 720px side-rail breakpoint (index.html), .flip-stage and
-// .result-rail stack in normal flow, so anything the compact 5/8 card box
-// doesn't contain paints over the rail beneath it. Revealed labels
-// (coord-prov / coord-atlas / public-title, index.html) make the card
-// taller than that box; Chromium grows the stage to match, but WebKit
-// builds have been observed not to (unverified in WebKit itself — see the
-// handoff brief this fix was built from). Rather than depend on that
-// cross-engine behavior, drop the fixed box for the stage and the front
-// card while revealed, so both size off actual rendered content (auto)
-// instead of a ratio or a percentage of an ancestor. `aspect-ratio: auto`
-// is the load-bearing declaration — the base .flip-stage rule sets no
-// height, only the 5/8 ratio box. The back face is deliberately NOT
-// dropped to auto: it keeps index.html's height:100%, which resolves
-// against its grid-stretched .flip-side once the front's content has
-// sized the row (definite in every engine), so the pre-flip back-beat
-// still paints a full-height card back instead of a content-height strip.
-// The 719.98px bound is the standard fractional-width complement of the
-// 720px breakpoint (zoomed viewports can land between 719px and 720px).
-// Desktop (≥720px) is untouched: this block only applies below it.
+// ── flip-stage intrinsic height (iOS/WebKit fix, 2026-08-02;
+//    unconditioned for state 2026-08-31, then for width the same day) ──
+// The .flip-stage 5/8 ratio box does not reliably grow to match a card
+// face taller than the ratio height in embedded WKWebView builds (iOS
+// in-app browsers — where both field reports came from), so the excess
+// paints over whatever sits beyond the stage: the stacked result rail
+// below 720px, the side rail's neighbors above it. Chromium and desktop
+// WebKit grow it, which is why the defect never shows in container
+// live-fires. Three narrowings have now been retired in sequence, each
+// after the content outgrew the box in a state the previous scope
+// excluded: the 2026-08-02 fix covered `.labels-revealed` only (the one
+// state that outgrew the box then); the resting card outgrew it by
+// 2026-08-31 (the kua sealed block, the comprehension hint — ~708px vs
+// ~573 at 390 wide) and a live device showed the card over the $3 offer,
+// so the state condition went; the same day's layout audit measured the
+// ≥720px side rail at +146px resting and +458..465px at t3/revealed —
+// the same trap on iPad-class embedded WebViews — so the width condition
+// goes too. The rules are now UNCONDITIONAL: on growing engines they are
+// a measured no-op at every width (the stage already sizes to content;
+// the ≥720 rail centers its items, so nothing stretched depended on the
+// box), and on WKWebView there is no ratio box left to under-size, in
+// any state, at any width. The `.labels-revealed` class toggle on
+// #flip-stage stays — pinned API surface, keeps the layout state
+// observable — but layout does not depend on it.
+// `aspect-ratio: auto` is the load-bearing declaration — the base
+// .flip-stage rule sets no height, only the 5/8 ratio box. The back face
+// is deliberately NOT dropped to auto: it keeps index.html's
+// height:100%, which resolves against its grid-stretched .flip-side once
+// the front's content has sized the row (definite in every engine), so
+// the pre-flip back-beat still paints a full-height card back instead of
+// a content-height strip.
 const STYLE = `
-@media (max-width: 719.98px) {
-  .flip-stage.labels-revealed { aspect-ratio: auto; height: auto; }
-  .flip-stage.labels-revealed .flip-inner { min-height: 0; }
-  .flip-stage.labels-revealed .flip-side .card { height: auto; }
-}
+.flip-stage { aspect-ratio: auto; height: auto; }
+.flip-stage .flip-inner { min-height: 0; }
+.flip-stage .flip-side .card { height: auto; }
 `;
 
 function injectStyle() {

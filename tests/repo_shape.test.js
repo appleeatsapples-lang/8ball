@@ -47,3 +47,28 @@ describe('repository-shape counts (CLAUDE.md canonical inventory)', () => {
     expect(countJs('tests', '.test.js')).toBe(claimed);
   });
 });
+
+// Journal structural integrity. Three times on 2026-08-31 alone, an entry
+// prepended to journal.md by string-replacing the previous heading DELETED
+// that heading, orphaning a shipped entry's body inside the new entry (twice
+// caught only by cross-model audit lanes — pr221 P1-2, pr223 P1-1). The
+// journal is append-only and its headings are the log's anchors, so this
+// converts the recurring review catch into a pinned invariant: every entry
+// body opens with `**What happened.**`, and no `## ` section may contain two
+// of them — a second one means a heading was eaten. The guard reads the real
+// file, so it fails in the same change that corrupts it.
+describe('journal structural integrity (the eaten-heading class)', () => {
+  it('no journal section carries two entry bodies', () => {
+    const journal = readFileSync(join(root, 'journal.md'), 'utf-8');
+    const sections = journal.split(/\n## /);
+    expect(sections.length).toBeGreaterThan(100); // non-vacuous: the log is real
+    const offenders = sections
+      // Line-anchored: an entry body OPENS a line with the marker; a prose
+      // mention of the literal (as this guard's own journal entry makes)
+      // sits mid-sentence and must not count.
+      .map((body, i) => ({ i, hits: (body.match(/^\*\*What happened\.\*\*/gm) || []).length, head: body.slice(0, 60) }))
+      .filter(s => s.hits > 1);
+    expect(offenders, `a heading was deleted above the second "What happened." in: ${JSON.stringify(offenders)}`)
+      .toEqual([]);
+  });
+});

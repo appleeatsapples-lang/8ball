@@ -766,9 +766,11 @@
     .topbar { padding: 0 16px; }
   }
 
-  /* Result screen desktop side rail (≥720px): the card keeps its 5/8
-     specimen proportions while the controls (SHAKE / SHARE / TRY) move into
-     a rail beside it, so SHARE stays above the fold. Every rule is #result-
+  /* Result screen desktop side rail (≥720px): the card sizes to its
+     content (the 5/8 box is released at every width by ui/labels.js's
+     injected rules since the 2026-08-31 layout audit — the sheet outgrew
+     the ratio at every tier) while the controls (SHAKE / SHARE / TRY) move
+     into a rail beside it, so SHARE stays above the fold. Every rule is #result-
      scoped so the shared onboarding screen (same main/.stage/.screen) is
      untouched. Mobile/narrow stays stacked. */
   @media (min-width: 720px) {
