@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
+const experienceCss = readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8');
 const meaningsJs = readFileSync(join(__dirname, '..', 'ui', 'meanings.js'), 'utf-8');
 
 describe('ui/meanings.js DI shape + boot wiring', () => {
@@ -67,6 +68,16 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect(html + shellCss).not.toMatch(/\.meaning-panel\s*\{/);
     expect(meaningsJs).toMatch(/document\.createElement\('style'\)/);
     expect(meaningsJs).toMatch(/id = 'meaning-panel'/);
+  });
+
+  it('the comprehension hint is module-injected chrome: styled with a [hidden] guard, absent from the host', () => {
+    expect(meaningsJs).toMatch(/\.meaning-hint \{[^}]*color: var\(--text-muted\)/);
+    // .meaning-hint styles set no display, so the UA [hidden] rule would
+    // suffice today — the author guard pins the F1 bug class shut against
+    // a future display: declaration on the same selector.
+    expect(meaningsJs).toMatch(/\.meaning-hint\[hidden\] \{ display: none; \}/);
+    expect(meaningsJs).toMatch(/id = 'meaning-hint'/);
+    expect(html + shellCss + experienceCss).not.toMatch(/meaning-hint/);
   });
 
   it('the shell styles live in ui/shell.css — linked before experience.css, never inlined back', () => {
