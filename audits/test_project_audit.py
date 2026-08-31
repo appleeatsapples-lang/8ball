@@ -1259,6 +1259,47 @@ class PathRedactionHelperTests(unittest.TestCase):
         self.assertEqual(pa.redact_paths({"n": 3, "f": 1.5, "b": True, "z": None}, pairs),
                          {"n": 3, "f": 1.5, "b": True, "z": None})
 
+    def test_non_native_leaves_are_stringified_through_redaction(self):
+        """PR #194 fast-follow, re-queued by the PR #219 audit (F5): a
+        non-str leaf — a Path, a datetime, an exception object — used to
+        ride through redact_paths via the final passthrough and get
+        stringified only later, by json.dumps(default=str), AFTER the
+        redaction boundary. That leaked the absolute path into the
+        artifact in every environment, and under the widened #219 needles
+        it would now surface as a real-run test failure the first time a
+        check author stores a Path in evidence. The fallback stringifies
+        such leaves through the same needle pass instead."""
+        root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
+        pairs = pa.redaction_map(root)
+        payload = {"evidence": {"report": Path(root) / "audits" / "latest.json",
+                                "err": OSError(f"open {root}/x failed")}}
+        out = pa.redact_paths(payload, pairs)
+        # The exact leak shape: the boundary output serialized the same
+        # way main() serializes it.
+        rendered = json.dumps(out, indent=2, default=str)
+        self.assertNotIn(root, rendered,
+                         f"non-str leaf carried an absolute path past redaction: {rendered}")
+        self.assertIsInstance(out["evidence"]["report"], str)
+        self.assertEqual(out["evidence"]["report"],
+                         f"{pa.PRODUCT_ROOT_PLACEHOLDER}{os.sep}audits{os.sep}latest.json")
+        self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out["evidence"]["err"])
+
+    def test_non_native_keys_are_stringified_through_redaction(self):
+        """The same bypass in key position is worse than a leak — it is a
+        crash: json.dumps never applies default= to keys, so a Path key
+        raises TypeError and no artifact is written at all. The key
+        fallback stringifies it through the needles, keeping the artifact
+        writable and clean; JSON-native non-str keys (int/bool/None) stay
+        untouched for json.dumps to coerce itself."""
+        root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
+        pairs = pa.redaction_map(root)
+        out = pa.redact_paths({Path(root) / "core": "modules", 3: "three"}, pairs)
+        rendered = json.dumps(out, default=str)  # must not raise
+        self.assertNotIn(root, rendered,
+                         f"non-str key carried an absolute path past redaction: {rendered}")
+        self.assertIn(f"{pa.PRODUCT_ROOT_PLACEHOLDER}{os.sep}core", out)
+        self.assertEqual(out[3], "three")
+
     def test_redacts_dict_keys_not_only_values(self):
         """P1 (PR #194 pre-merge audit): a path landing in a dict key — e.g.
         a per-file evidence map keyed by absolute path — must be redacted

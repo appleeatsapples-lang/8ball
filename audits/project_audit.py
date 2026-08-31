@@ -86,7 +86,13 @@ def redaction_map(product_root):
 def redact_paths(value, pairs):
     """Recursively rewrite every string in a JSON-shaped structure,
     including dict keys — a path can land in a key (e.g. a per-file
-    evidence map) just as easily as in a value."""
+    evidence map) just as easily as in a value.
+
+    Leaves that are not JSON-native (a Path, a datetime, an exception)
+    are stringified HERE, through the same needle pass. Left as-is they
+    would only be stringified later by json.dumps(default=str) — after
+    this boundary — carrying an absolute path straight past redaction
+    (the PR #194 fast-follow this fallback closes)."""
     if isinstance(value, str):
         for needle, token in pairs:
             value = value.replace(needle, token)
@@ -98,7 +104,17 @@ def redact_paths(value, pairs):
     if isinstance(value, dict):
         out = {}
         for key, item in value.items():
-            redacted_key = redact_paths(key, pairs) if isinstance(key, str) else key
+            if isinstance(key, str):
+                redacted_key = redact_paths(key, pairs)
+            elif isinstance(key, (int, float, bool)) or key is None:
+                # JSON-native key types; json.dumps coerces them itself.
+                redacted_key = key
+            else:
+                # The same bypass as the leaf fallback, in key position.
+                # json.dumps would refuse a Path key outright (default= is
+                # never applied to keys), so stringify-through-redaction
+                # keeps the artifact writable AND clean.
+                redacted_key = redact_paths(str(key), pairs)
             if redacted_key in out:
                 # Two distinct keys redacted to the same string: disambiguate
                 # rather than silently dropping one of the entries.
@@ -110,7 +126,13 @@ def redact_paths(value, pairs):
                 redacted_key = candidate
             out[redacted_key] = redact_paths(item, pairs)
         return out
-    return value
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    # Any other leaf type reaches json.dumps(default=str) and would be
+    # stringified after the boundary; stringify it through the needles
+    # instead so no leaf type can bypass redaction. default=str stays on
+    # the dumps as belt-and-braces for types this recursion never sees.
+    return redact_paths(str(value), pairs)
 
 
 def clip(text, limit=MAX_CAPTURE_CHARS):

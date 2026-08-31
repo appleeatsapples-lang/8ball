@@ -5,7 +5,51 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — STAGED on branch, PR pending
+## 2026-08-31 — No leaf type crosses the redaction boundary: the PR #194 fast-follow lands — STAGED on branch, PR pending
+
+**What happened.** The queued `redact_paths` fallback — tracked since
+the PR #194 pre-merge audit and re-queued by the pr219 audit as F5 —
+is closed. The defect class: `redact_paths` returned any leaf that
+wasn't a str/list/tuple/dict unchanged, and both artifact write-outs
+serialize with `json.dumps(..., default=str)`, so a non-native leaf
+(a `Path`, a `datetime`, an exception object) was stringified AFTER
+the redaction boundary and carried its absolute path — home directory,
+account name — straight into the shared artifact. Nothing leaks today
+(no current check stores such a leaf), but the boundary's whole design
+argument (journal 2026-08-02 lineage: a redaction each check author
+must remember is one that will be forgotten) applied to itself: the
+first future check that filed a `Path` in evidence would have leaked
+silently. Under the widened pr219 needles it would at least have
+surfaced as a real-run assurance failure — the one real flake vector
+that widening carried, now retired.
+
+**The fix.** Two fallbacks at the boundary in
+`audits/project_audit.py`, same pattern both positions. Leaf position:
+JSON-native scalars (int/float/bool/None) pass through untouched;
+anything else is stringified THROUGH the needle pass
+(`redact_paths(str(value), pairs)`) instead of after it — `default=str`
+stays on the dumps as belt-and-braces for types the recursion never
+sees. Key position: the same bypass is a crash rather than a leak
+(`json.dumps` never applies `default=` to keys, so a `Path` key raised
+TypeError and no artifact was written at all); non-str non-native keys
+now stringify through the needles too, keeping the artifact writable
+AND clean, while JSON-native non-str keys stay untouched for
+`json.dumps` to coerce itself. The existing key-collision
+disambiguation covers the new key path unchanged.
+
+**Verification.** Two new assurance tests (a `Path`+`OSError` evidence
+payload serialized exactly as `main()` serializes, and a `Path` key
+beside an int key); suite now **104/104 OK in this container**. Two
+mutants killed: reverting the leaf fallback to the old `return value`
+passthrough fails the leaf test (the leak reproduced); reverting the
+key fallback to the old str-only ternary errors the key test with the
+documented TypeError crash. Full vitest suite 57 files / 1995 tests
+green; product audit PASS, 0 blocking (the run's one warn is this
+change's own then-uncommitted working tree). `audits/project_audit.py`
+and its assurance suite are the only code files changed, in the same
+commit per the CLAUDE.md rule.
+
+## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — SHIPPED as #219
 
 **What happened.** The one failure every container run of
 `python3 -m unittest audits.test_project_audit` has carried —
