@@ -43,31 +43,41 @@ export function setLabelsRevealed(revealed) {
   catch (_) { /* localStorage unavailable; preference survives only this session */ }
 }
 
-// ── revealed-label intrinsic height (iOS/WebKit fix, 2026-08-02) ──
+// ── mobile flip-stage intrinsic height (iOS/WebKit fix, 2026-08-02;
+//    unconditioned 2026-08-31) ──
 // Below the 720px side-rail breakpoint (index.html), .flip-stage and
 // .result-rail stack in normal flow, so anything the compact 5/8 card box
-// doesn't contain paints over the rail beneath it. Revealed labels
-// (coord-prov / coord-atlas / public-title, index.html) make the card
-// taller than that box; Chromium grows the stage to match, but WebKit
-// builds have been observed not to (unverified in WebKit itself — see the
-// handoff brief this fix was built from). Rather than depend on that
-// cross-engine behavior, drop the fixed box for the stage and the front
-// card while revealed, so both size off actual rendered content (auto)
-// instead of a ratio or a percentage of an ancestor. `aspect-ratio: auto`
-// is the load-bearing declaration — the base .flip-stage rule sets no
-// height, only the 5/8 ratio box. The back face is deliberately NOT
-// dropped to auto: it keeps index.html's height:100%, which resolves
-// against its grid-stretched .flip-side once the front's content has
-// sized the row (definite in every engine), so the pre-flip back-beat
-// still paints a full-height card back instead of a content-height strip.
-// The 719.98px bound is the standard fractional-width complement of the
-// 720px breakpoint (zoomed viewports can land between 719px and 720px).
-// Desktop (≥720px) is untouched: this block only applies below it.
+// doesn't contain paints over the rail beneath it. Chromium and desktop
+// WebKit grow the stage to match taller content, but the embedded
+// WKWebView builds (iOS in-app browsers — where the field reports come
+// from) do not. The 2026-08-02 fix scoped the explicit layout to
+// `.labels-revealed`, the only state that outgrew the box THEN; by
+// 2026-08-31 the RESTING card had outgrown it too (the kua sealed block,
+// the comprehension hint, and the prose blocks put the free card at
+// ~708px against the ratio box's ~573 at 390 wide), and the same
+// overflow returned with labels hidden — painting the card over the $3
+// offer, reported from a real device. The rule is therefore
+// unconditional on mobile now: the ratio box could no longer win at any
+// sub-720 width, so on growing engines this is a no-op (verified by
+// measurement) and on WKWebView it removes the trap. The
+// `.labels-revealed` class toggle on #flip-stage stays — it is pinned
+// API surface and keeps the layout state observable — but the layout no
+// longer depends on it.
+// `aspect-ratio: auto` is the load-bearing declaration — the base
+// .flip-stage rule sets no height, only the 5/8 ratio box. The back face
+// is deliberately NOT dropped to auto: it keeps index.html's
+// height:100%, which resolves against its grid-stretched .flip-side once
+// the front's content has sized the row (definite in every engine), so
+// the pre-flip back-beat still paints a full-height card back instead of
+// a content-height strip. The 719.98px bound is the standard
+// fractional-width complement of the 720px breakpoint (zoomed viewports
+// can land between 719px and 720px). Desktop (≥720px) is untouched:
+// this block only applies below it.
 const STYLE = `
 @media (max-width: 719.98px) {
-  .flip-stage.labels-revealed { aspect-ratio: auto; height: auto; }
-  .flip-stage.labels-revealed .flip-inner { min-height: 0; }
-  .flip-stage.labels-revealed .flip-side .card { height: auto; }
+  .flip-stage { aspect-ratio: auto; height: auto; }
+  .flip-stage .flip-inner { min-height: 0; }
+  .flip-stage .flip-side .card { height: auto; }
 }
 `;
 

@@ -143,7 +143,7 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
 
   it('the mobile-only intrinsic-height override lives below the 720px side-rail breakpoint', () => {
     expect(labelsJs).toMatch(/@media \(max-width: 719\.98px\)/);
-    expect(labelsJs).toMatch(/\.flip-stage\.labels-revealed\s*\{[^}]*height:\s*auto/);
+    expect(labelsJs).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
   });
 
   // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
@@ -153,7 +153,18 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   // the property that actually releases the fixed box; without this pin the
   // suite stayed green with the fix deleted.
   it('pins aspect-ratio: auto — the declaration that actually releases the 5/8 box', () => {
-    expect(labelsJs).toMatch(/\.flip-stage\.labels-revealed\s*\{[^}]*aspect-ratio:\s*auto/);
+    expect(labelsJs).toMatch(/\.flip-stage\s*\{[^}]*aspect-ratio:\s*auto/);
+  });
+
+  // 2026-08-31 field report (iOS in-app browser): with labels HIDDEN the
+  // resting card had outgrown the ratio box too — the kua sealed block and
+  // the comprehension hint pushed the free card past the 5/8 height at
+  // every sub-720 width — and the same WKWebView non-growth painted the
+  // card over the $3 offer. The layout rule is therefore unconditional on
+  // mobile: re-scoping it to `.labels-revealed` reintroduces the resting
+  // overflow on the engines the fix exists for.
+  it('the intrinsic-height rule no longer conditions on labels-revealed', () => {
+    expect(labelsJs).not.toMatch(/\.flip-stage\.labels-revealed\s*\{/);
   });
 
   // PR-196 premerge audit: only the FRONT card drops to intrinsic height.

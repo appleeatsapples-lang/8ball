@@ -5,7 +5,56 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — STAGED on branch, PR pending
+## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — STAGED on branch, PR pending
+
+**What happened.** The controller sent a live-device screenshot (iOS
+in-app browser, the deployed site): the result card painting over the
+result rail, the $3 offer half-hidden behind the card's lower edge with
+labels HIDDEN. Diagnosis, reproduced against the shipped tree: this is
+the exact defect class PR #196 fixed on 2026-08-02 — in embedded
+WKWebView builds the 5/8 `aspect-ratio` flip-stage box does not grow to
+match a card face taller than the ratio height, so the excess paints
+over the rail stacked below (Chromium and desktop WebKit DO grow it,
+which is why every container live-fire passes and why the defect only
+shows on real devices). #196 scoped its explicit-layout fix to
+`.labels-revealed`, the only state that outgrew the box THEN. Since
+then the RESTING card has outgrown it too — the kua sealed block, the
+comprehension hint, and the prose blocks put the free card at ~708px
+against the ratio box's ~573 at 390 wide, and the ratio box can no
+longer win at ANY sub-720 width — so the same WKWebView non-growth
+returned outside the fix's scope, now covering the paywall CTA on
+exactly the in-app-browser traffic the social drip drives.
+
+**The fix.** The injected mobile rule in `ui/labels.js` drops its
+`.labels-revealed` condition: below 719.98px the flip-stage layout is
+explicit always (`aspect-ratio: auto; height: auto`, `min-height: 0` on
+the inner grid, front card to intrinsic height, back face deliberately
+kept at height:100% per #196's F3 so the pre-flip back-beat cannot
+collapse). On growing engines this is a measured no-op; on WKWebView it
+removes the trap — there is no ratio box left to under-size. The
+`labels-revealed` class toggle on #flip-stage stays as pinned API
+surface; the layout just no longer depends on it. This follows #196's
+own recorded lesson verbatim: make the layout explicit instead of
+trusting any engine's ratio-box growth behavior — now for every mobile
+state, not one.
+
+**Verification.** Chromium live-fire, zero failures, zero page errors:
+resting, labels-revealed, and back-beat states at 390×844, 390×660 (the
+in-app shape) and 320×568 — stage always equals card height, the $3
+offer clears the card (112–127px gap), the back face paints full-height
+(708=708; an initial 715 reading was a mid-flip-transition measurement
+artifact, re-measured settled), and 1280×800 keeps the desktop rail's
+ratio box untouched. A base-tree comparison confirms Chromium geometry
+is byte-identical before/after (stage already grew there). Three
+mutants killed on the updated pins: re-conditioning the rule on
+`.labels-revealed` (the field regression, 3 tests), dropping
+`aspect-ratio: auto` (the #196-audit vacuous-pin lesson), and dragging
+`.card-back` to auto (the #196 F3 collapse). Suite 57 files / 2004
+tests green (+1); product audit PASS, 0 blocking. WKWebView itself is
+not runnable from this container — the counterfactual is structural
+(the sub-720 ratio box is gone entirely), and a real-device re-check of
+the deployed site after merge is the closing verification, which only
+the controller can perform.
 
 **What happened.** The pr218 artifact's recorded gap — "the host/sheet
 kua parity rested on two source regexes" — is closed (other named
