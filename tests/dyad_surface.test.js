@@ -733,9 +733,28 @@ describe('dyad surface — presentation: axis interaction CSS (44px target + foc
     // field defect came from is not trusted to grow ratio boxes, so the
     // box is released explicitly — same posture as ui/labels.js's stage
     // rules, scoped by the data attribute so the host card face (the
-    // flip-stage rules' job) is untouched.
-    expect(dyadJs).toMatch(
-      /#dyad-screen \[data-sheet-face\] \{[^}]*aspect-ratio:\s*auto;[^}]*height:\s*auto/);
+    // flip-stage rules' job) is untouched. Delta-audit hardening: scan the
+    // COMMENT-STRIPPED source (a commented-out rule rode the raw scan
+    // green), and demand the rule at the top level of the stylesheet —
+    // stripping every at-rule block first, so wrapping it in a
+    // never-matching @media/@layer/@supports cannot satisfy the pin.
+    let topLevel = dyadCode;
+    for (let at = topLevel.indexOf('@media'); at !== -1; at = topLevel.indexOf('@media')) {
+      const open = topLevel.indexOf('{', at);
+      let depth = 0, end = -1;
+      for (let i = open; i < topLevel.length; i++) {
+        if (topLevel[i] === '{') depth++;
+        else if (topLevel[i] === '}' && --depth === 0) { end = i; break; }
+      }
+      if (open === -1 || end === -1) break;
+      topLevel = topLevel.slice(0, at) + topLevel.slice(end + 1);
+    }
+    // any scoping at-rule shape (@layer, @supports, @container) is banned
+    // outright in the dyad stylesheet rather than stripped around
+    // (@keyframes defines an animation, it scopes nothing):
+    expect((topLevel.match(/@[a-z-]+/g) || []).filter(t => !['@media', '@keyframes'].includes(t)))
+      .toEqual([]);
+    expect(topLevel).toMatch(/#dyad-screen \[data-sheet-face\] \{\s*aspect-ratio:\s*auto;\s*\}/);
   });
 });
 

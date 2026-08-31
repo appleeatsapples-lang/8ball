@@ -237,8 +237,11 @@ const STYLE = `
    (the flip-stage provably did not on-device), so the box is released
    explicitly — the same make-the-layout-explicit posture as ui/labels.js's
    stage rule. Chromium-measured no-op. Scoped to the dyad's own sheets by
-   the data attribute; the host card face is the flip-stage rule's job. */
-#dyad-screen [data-sheet-face] { aspect-ratio: auto; height: auto; }
+   the data attribute; the host card face is the flip-stage rule's job.
+   No height declaration: nothing sets a height on these sheets, so unlike
+   the stage's card (whose shell height:100% must be overridden) there is
+   nothing to release — the delta audit proved an added height:auto dead. */
+#dyad-screen [data-sheet-face] { aspect-ratio: auto; }
 @media (min-width: 720px) {
   #dyad-screen .dyad-sheets { overflow-x: visible; }
   #dyad-screen .dyad-sheets > div { width: auto; flex: 1 1 0; }

@@ -13,13 +13,19 @@ systematic sweep of every screen and state at six viewports (320×568 →
 exceeds the ratio-implied height is a WKWebView overlap trap of the
 class the field report proved on-device, whatever Chromium renders.
 The sweep flagged twelve instances collapsing to ONE construct at one
-band — `#flip-stage` at ≥720px (+146px resting, +458..465px at
-t3/revealed; iPad-class embedded WebViews) — and a targeted probe of
+band — `#flip-stage` at ≥720px (+146px resting; per the delta audit's
+deeper sweep +367px at t3, +465px free-revealed, +716px t3-revealed and
++984px with a meaning panel open; the overflow lands on the feedback
+block below — iPad-class embedded WebViews) — and a targeted probe of
 the t5 dyad screen (the sweep's first pass never rendered it; driver
 defect, not product) found the second: the dyad's two standalone
 sheets inherit `.card`'s 5/8 box with content +292/+400px past it.
-Nothing else in the product carries the trap: `.card-back`'s ratio box
-GIVES its height (content smaller — the desired look), and the
+Nothing else in the product carries the trap: `.card-back`'s own 5/8
+declaration is never in effect anywhere it renders (its single render
+site sits under `.flip-side .card-back { aspect-ratio: auto }`, and its
+height comes from the 100% grid-row contract — the delta audit
+corrected this entry's first reason, which wrongly credited the ratio
+box), and the
 remaining sweep noise was hit-test artifacts (elements correctly
 behind open modals; the face-down card back; the meaning panel's close
 control in its clipped CLOSED state — verified fully tappable open).
@@ -38,17 +44,57 @@ data attribute so the host card face stays the stage rules' job.
 **Verification.** Chromium: the re-run sweep reports ZERO ratio traps
 at any viewport or state; dyad sheets render at identical heights with
 what follows clearing them; 768×1024 and 1280×800 keep the
-side-by-side rail with the back-beat full-height (722=722); the one
-honest delta at ≥720 is the front card now sizing to true content
-(726px) instead of being clamped to the grown row (722px) — ≤4px,
-nothing overlapped. Mutants killed: re-adding a media condition around
-the stage rules (2 tests), deleting the dyad release rule. The
+side-by-side rail with the back-beat full-height (722=722). A "≤4px
+front-card delta at ≥720" this entry first claimed did NOT reproduce —
+the delta audit's full-DOM geometry diff (every element, 7 viewports ×
+5 states, base vs head) found ZERO differing nodes, so the change is a
+total Chromium no-op and the earlier 726px reading was a transient
+measurement, retracted here. Mutants killed at first landing:
+re-adding a media condition around the stage rules, deleting the dyad
+release rule. The
 behavioral injectStyle payload test updated to assert NO media query —
 the full-suite run caught the stale expectation before push, and the
 product audit's vitest leg failed with it, exactly as the fail-closed
 pipeline should. Suite 57 files / 2007 tests green; product audit
 PASS, 0 blocking. This rides PR #223 as the same defect family; the
-delta re-enters §10 audit before the merge word.
+delta re-entered §10 audit before the merge word.
+
+**Cross-model delta audit (pr223 third commit), reconciled.** Lanes:
+MERGE WITH FIXES and MERGE WITH FIXES, both re-deriving the sweep
+independently (base 33-46 trap states, head ZERO, the same two
+constructs) and both proving the no-op claims stronger than stated
+(full-DOM geometry diffs byte-identical; the dyad flow identical at
+six viewports). Findings, all landed: the `@media` ban was not an
+at-rule ban — an `@layer` wrapper rode the suite green and RE-ARMED
+the trap at 390×844, +135px, because layered rules lose to the
+unlayered shell; the styleBlock extractor took the first match, so a
+dead decoy literal freed the shipped payload; ONE added line in the
+shell (`#result .flip-stage { aspect-ratio: 5/8 }`) out-cascaded the
+injected release and restored the ≥720 trap with the suite green and
+— the lanes' sharpest point — ZERO sweep hits, since the sweep's
+heuristic only sees boxes whose content already outgrew them in the
+measuring engine; the dyad pin matched raw source (a commented-out or
+never-matching-media-wrapped rule rode green); and the dyad rule's
+`height: auto` was a dead declaration the suite was about to pin.
+Landed as: a full `@`-ban on the extracted (and now
+counted-exactly-once) STYLE literal; a shell/experience source guard —
+no flip-surface-targeting rule may declare a ratio VALUE outside the
+three single-selector base boxes, nor any fixed height; the dyad pin
+rebuilt over comment-stripped, at-rule-stripped top-level text; the
+dead declaration dropped. Five delta mutants killed (layer wrap, decoy
+literal, shell re-arm, comment-out, media-wrap), fourteen across the
+PR. Record corrections folded in above (the retracted ≤4px delta, the
+state-labeled ≥720 overflow figures, the card-back reason). The
+stale ≥720 rail comment in ui/shell.css corrected (the same
+comment-drift class this PR already fixed once). One lane also caught
+a port collision mid-audit — a stale server answering 200 with BASE
+content, which could have validated the wrong tree — cross-checked
+served bytes against disk before trusting any measurement; future
+briefs pin that check. l48-gate note, recorded honestly: the gate
+passes mechanically on the existing pr223 artifact, so the delta
+artifact that lands with this reconciliation is a §10/L48 obligation
+CI cannot enforce. Suite after reconciliation: 57 files / 2008 tests
+green; product audit PASS, 0 blocking.
 
 ## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — STAGED on branch, PR pending
 

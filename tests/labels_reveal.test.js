@@ -157,9 +157,62 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   })();
 
   it('the injected stylesheet exists and carries no condition of any kind', () => {
+    // Delta-audit hardening, both halves: (1) exactly ONE STYLE literal in
+    // the module — the extractor takes the first match, so a dead decoy
+    // literal ahead of the real one satisfied every pin below while the
+    // shipped payload drifted free; (2) NO at-rule of any kind, not just
+    // @media — an @layer wrapper survived the @media ban with the suite
+    // green and re-armed the trap at 390×844 (+135px, the field viewport):
+    // layered rules lose to the unlayered shell, so any scoping at-rule
+    // (@media, @layer, @supports, @container) is a re-narrowing.
+    expect((labelsJs.match(/const STYLE = /g) || []).length).toBe(1);
     expect(styleBlock.length, 'STYLE literal missing or malformed').toBeGreaterThan(50);
-    expect(styleBlock).not.toMatch(/@media/);
+    expect(styleBlock).not.toMatch(/@/);
     expect(styleBlock).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
+  });
+
+  it('the shell never re-arms the ratio box on the flip surfaces (delta audit MED-3)', () => {
+    // One higher-specificity line in the shell (`#result .flip-stage {
+    // aspect-ratio: 5 / 8; }`) beat the injected same-specificity rules and
+    // restored the 576px box against a 722px card with the whole suite
+    // green. The injected stylesheet wins today only because the base
+    // `.flip-stage` selector ties it and loses on order; the contract is
+    // therefore pinned at the source: in the two host stylesheets, the ONLY
+    // rule targeting a flip surface that may declare aspect-ratio or height
+    // is the base `.flip-stage` rule (the box the injection releases) and
+    // `.flip-side .card, .flip-side .card-back`'s height:100% (the
+    // back-beat contract the injection deliberately preserves).
+    const experienceCss = readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8');
+    for (const source of [shellCss, experienceCss]) {
+      const noComments = source.replace(/\/\*[\s\S]*?\*\//g, '');
+      const re = /([^{}]+)\{([^{}]*)\}/g;
+      let m;
+      while ((m = re.exec(noComments)) !== null) {
+        const sels = m[1].split(',').map(x => x.trim());
+        if (!sels.some(s => /flip-stage|flip-inner|flip-side/.test(s))) continue;
+        // A RELEASE (aspect-ratio: auto) is always legal — it is the fix's
+        // own vocabulary. A ratio VALUE re-arms the box and is legal only
+        // on the three single-selector BASE rules: `.flip-stage` (the box
+        // the injection is ordered after and releases), and the bare
+        // `.card` / `.card-back` boxes (whose ratio GIVES their height on
+        // surfaces with smaller content; on the flip surfaces both are
+        // released by `.flip-side .card, .flip-side .card-back`'s auto,
+        // and the dyad screen releases its sheets by data attribute).
+        const RATIO_BASES = ['.flip-stage', '.card', '.card-back'];
+        const ratioValues = [...m[2].matchAll(/aspect-ratio\s*:\s*([^;]+)/g)].map(v => v[1].trim());
+        for (const v of ratioValues) {
+          if (v === 'auto') continue;
+          expect(sels.length === 1 && RATIO_BASES.includes(sels[0]),
+            `ratio-box value "${v}" on "${m[1].trim()}" would out-cascade the injected release`).toBe(true);
+        }
+        // Heights on flip surfaces may only be auto (a release) or 100%
+        // (the back-beat contract); any fixed value is the same trap.
+        const heights = [...m[2].matchAll(/(?:^|;)\s*height\s*:\s*([^;]+)/g)].map(h => h[1].trim());
+        for (const h of heights) {
+          expect(['auto', '100%'].includes(h), `fixed height "${h}" on "${m[1].trim()}"`).toBe(true);
+        }
+      }
+    }
   });
 
   // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
