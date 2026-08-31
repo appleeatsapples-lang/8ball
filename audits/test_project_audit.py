@@ -1210,9 +1210,11 @@ def _abs_path_leak_hits(text):
     so a home-only predicate could never fire on a leaky report — the guard
     below failed there (correctly: the oracle proved nothing), and the
     real-run zero-hit assertions were vacuous. The product root exists and is
-    redacted in every environment, so the predicate is now meaningful
-    everywhere (repaired 2026-08-31; the "container-only failure" every run
-    since the shell split had to explain away was this).
+    redacted in every environment, so the predicate is now meaningful in
+    every non-degenerate environment (repaired 2026-08-31; the
+    "container-only failure" container verifications had been explaining
+    away since at least 2026-08-02 was this — see the journal entry of the
+    repair for the dismissed 2026-08-02 diagnosis).
     """
     home = os.path.expanduser("~")
     root = str(REPO_ROOT)
@@ -1238,7 +1240,7 @@ class PathRedactionHelperTests(unittest.TestCase):
         out = pa.redact_paths(payload, pairs)
         rendered = json.dumps(out)
         self.assertEqual(_abs_path_leak_hits(rendered), [],
-                         f"home path survived redaction: {rendered}")
+                         f"absolute path survived redaction: {rendered}")
         self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out["product_root"])
         # recursion actually reached a list inside a dict inside a list
         self.assertEqual(out["checks"][0]["evidence"]["nested"]["deep"],
@@ -1268,7 +1270,7 @@ class PathRedactionHelperTests(unittest.TestCase):
         out = pa.redact_paths(payload, pairs)
         rendered = json.dumps(out)
         self.assertEqual(_abs_path_leak_hits(rendered), [],
-                         f"home path survived key redaction: {rendered}")
+                         f"absolute path survived key redaction: {rendered}")
         self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out)
 
     def test_key_redaction_collision_keeps_both_entries(self):
@@ -1319,7 +1321,7 @@ class PathRedactionRealRunTests(unittest.TestCase):
     that would have caught the original defect, and it drives the real
     writer rather than the helper."""
 
-    def test_real_report_artifacts_carry_no_absolute_home_path(self):
+    def test_real_report_artifacts_carry_no_absolute_machine_path(self):
         with tempfile.TemporaryDirectory() as out_dir:
             subprocess.run(
                 [sys.executable, str(SCRIPT), "--output-dir", out_dir],
@@ -1329,8 +1331,14 @@ class PathRedactionRealRunTests(unittest.TestCase):
                 text = (Path(out_dir) / name).read_text()
                 self.assertEqual(_abs_path_leak_hits(text), [],
                                  f"{name} still embeds an absolute machine path")
-                # ...and the assertion is not vacuous: the report is real.
+                # ...and the assertion is not vacuous: the report is real,
+                # and redaction demonstrably RAN on this artifact (pr219
+                # audit F4 — on an all-pass run latest.md carries no
+                # captured output, so the length guard alone cannot tell a
+                # redacted file from one the redactor never saw).
                 self.assertGreater(len(text), 500, f"{name} looks empty")
+                self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, text,
+                              f"{name} shows no redaction placeholder — the scan may be vacuous")
 
     def test_redaction_is_applied_at_serialization_not_per_check(self):
         """Structural. If redaction moved into individual checks, a check
