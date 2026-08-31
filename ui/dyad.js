@@ -230,6 +230,15 @@ const STYLE = `
   padding-bottom: 2px;
 }
 #dyad-screen .dyad-sheets > div { flex: 0 0 auto; width: min(84vw, 320px); scroll-snap-align: center; }
+/* The 2026-08-31 layout audit: the two standalone sheets inherit .card's
+   5/8 aspect-ratio box while their content runs ~300-400px past it. On
+   engines that grow ratio boxes to fit content this is invisible; the
+   embedded-WebView family the field defect came from is not trusted to
+   (the flip-stage provably did not on-device), so the box is released
+   explicitly — the same make-the-layout-explicit posture as ui/labels.js's
+   stage rule. Chromium-measured no-op. Scoped to the dyad's own sheets by
+   the data attribute; the host card face is the flip-stage rule's job. */
+#dyad-screen [data-sheet-face] { aspect-ratio: auto; height: auto; }
 @media (min-width: 720px) {
   #dyad-screen .dyad-sheets { overflow-x: visible; }
   #dyad-screen .dyad-sheets > div { width: auto; flex: 1 1 0; }

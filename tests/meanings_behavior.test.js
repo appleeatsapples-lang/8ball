@@ -631,9 +631,13 @@ describe('ui/labels.js behavior', () => {
       initLabelsUI(refs(), {});
       const style = byId.get('labels-style');
       expect(style).toBeTruthy();
-      // the payload is the mobile override itself, not an empty shell
+      // the payload is the intrinsic-height override itself, not an empty
+      // shell — and since the 2026-08-31 layout audit it is UNCONDITIONAL
+      // (no media query: every width band a condition excludes is a band
+      // where the WKWebView ratio-box trap re-arms; the >=720 rail was the
+      // last one).
       expect(style.textContent).toMatch(/aspect-ratio:\s*auto/);
-      expect(style.textContent).toMatch(/@media \(max-width: 719\.98px\)/);
+      expect(style.textContent).not.toMatch(/@media/);
       // idempotent: a second init finds the node by id and does not re-append
       initLabelsUI(refs(), {});
       expect(appended.length).toBe(1);

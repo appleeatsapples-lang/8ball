@@ -726,6 +726,17 @@ describe('dyad surface — presentation: axis interaction CSS (44px target + foc
     expect(dyadJs).toMatch(
       /#dyad-screen \.dyad-axis > summary:focus-visible \{[\s\S]*?outline:\s*2px solid var\(--text\)/);
   });
+
+  it('the standalone sheets release the .card 5/8 ratio box (2026-08-31 layout audit)', () => {
+    // The two dyad sheets inherit .card's aspect-ratio while their content
+    // runs ~300-400px past it; the embedded-WebView family the flip-stage
+    // field defect came from is not trusted to grow ratio boxes, so the
+    // box is released explicitly — same posture as ui/labels.js's stage
+    // rules, scoped by the data attribute so the host card face (the
+    // flip-stage rules' job) is untouched.
+    expect(dyadJs).toMatch(
+      /#dyad-screen \[data-sheet-face\] \{[^}]*aspect-ratio:\s*auto;[^}]*height:\s*auto/);
+  });
 });
 
 describe('dyad surface — F5: both sides are real standalone sheets', () => {

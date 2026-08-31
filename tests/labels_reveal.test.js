@@ -141,33 +141,25 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
     );
   });
 
-  // The pr223 audit proved the previous whole-file toMatch pins vacuous in
-  // the file's own documented failure class: `@media (max-width: 719.98px)
-  // and (min-width: 700px)` disabled the entire fix at every width below
-  // 700 — the exact field viewport — with the suite green, and a decoy
-  // 719.98 block beside the real rules at another width rode green too. So
-  // the pins below operate on the EXTRACTED media block: brace-matched from
-  // the exact prelude, which itself must carry no extra condition.
-  const MEDIA_PRELUDE = '@media (max-width: 719.98px)';
-  const mediaBlock = (() => {
-    const at = labelsJs.indexOf(MEDIA_PRELUDE);
-    if (at === -1) return '';
-    const open = labelsJs.indexOf('{', at);
-    // The prelude must run straight into its brace — any appended condition
-    // ("and (min-width: …)") re-arms the trap on the widths it excludes.
-    if (!/^@media \(max-width: 719\.98px\)\s*\{$/.test(labelsJs.slice(at, open + 1))) return '';
-    let depth = 0;
-    for (let i = open; i < labelsJs.length; i++) {
-      if (labelsJs[i] === '{') depth++;
-      else if (labelsJs[i] === '}' && --depth === 0) return labelsJs.slice(open + 1, i);
-    }
-    return '';
+  // The pr223 audit proved whole-file toMatch pins vacuous in the file's
+  // own documented failure class (an appended media condition disabled the
+  // whole fix at the field viewport with the suite green; a decoy block
+  // rode green too). The pins below therefore operate on the EXTRACTED
+  // injected stylesheet — the STYLE template literal the module actually
+  // ships — and its contract since the 2026-08-31 layout audit is that
+  // the rules are UNCONDITIONAL: no media query may scope them at all,
+  // because every width band a condition excludes is a band where the
+  // WKWebView ratio-box trap re-arms (sub-720 was the phone field report;
+  // ≥720 measured +146..+465px on the side rail, iPad-class WebViews).
+  const styleBlock = (() => {
+    const m = labelsJs.match(/const STYLE = `\n([\s\S]*?)`;/);
+    return m ? m[1] : '';
   })();
 
-  it('the mobile-only intrinsic-height override lives below the 720px side-rail breakpoint', () => {
-    expect(mediaBlock.length, 'the 719.98px block is missing, conditioned, or malformed')
-      .toBeGreaterThan(50);
-    expect(mediaBlock).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
+  it('the injected stylesheet exists and carries no condition of any kind', () => {
+    expect(styleBlock.length, 'STYLE literal missing or malformed').toBeGreaterThan(50);
+    expect(styleBlock).not.toMatch(/@media/);
+    expect(styleBlock).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
   });
 
   // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
@@ -177,14 +169,14 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   // the property that actually releases the fixed box; without this pin the
   // suite stayed green with the fix deleted.
   it('pins aspect-ratio: auto — the declaration that actually releases the 5/8 box', () => {
-    expect(mediaBlock).toMatch(/\.flip-stage\s*\{[^}]*aspect-ratio:\s*auto/);
+    expect(styleBlock).toMatch(/\.flip-stage\s*\{[^}]*aspect-ratio:\s*auto/);
   });
 
   // pr223 audit MED-3: Chromium-invisible, so only a pin can hold it. The
   // grid's min-height released here is part of the explicit-layout contract
   // the #196 fix established.
   it('pins min-height: 0 on the inner grid — Chromium-invisible, WKWebView-load-bearing', () => {
-    expect(mediaBlock).toMatch(/\.flip-inner\s*\{[^}]*min-height:\s*0/);
+    expect(styleBlock).toMatch(/\.flip-inner\s*\{[^}]*min-height:\s*0/);
   });
 
   // 2026-08-31 field report (iOS in-app browser): with labels HIDDEN the
@@ -198,7 +190,7 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   // whatever the selector shape — reintroduces the resting overflow on the
   // engines the fix exists for and fails here.
   it('the intrinsic-height rules never condition on labels-revealed, in any selector shape', () => {
-    expect(mediaBlock).not.toMatch(/labels-revealed/);
+    expect(styleBlock).not.toMatch(/labels-revealed/);
   });
 
   // PR-196 premerge audit: only the FRONT card drops to intrinsic height.
@@ -210,8 +202,13 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
     expect(labelsJs).not.toMatch(/\.flip-side \.card-back/);
   });
 
-  it('does not touch the ≥720px desktop side-rail breakpoint (ui/shell.css owns that block)', () => {
+  it('leaves the side-rail LAYOUT to the shell — this module only releases heights', () => {
+    // Since the 2026-08-31 layout audit the height rules deliberately apply
+    // at every width (the >=720 rail was the last trap band); the shell
+    // still owns the rail's flex layout, and this module must never grow
+    // its own breakpoints back.
     expect(labelsJs).not.toMatch(/min-width:\s*720px/);
+    expect(styleBlock).not.toMatch(/flex|grid-template|max-width/);
     // The mobile flip-stage layout stays owned by ui/labels.js (pr223: the
     // rule is unconditional now, no longer keyed to .labels-revealed) — a
     // competing .flip-stage.labels-revealed definition appearing in the

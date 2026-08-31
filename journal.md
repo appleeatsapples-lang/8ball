@@ -5,6 +5,51 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — STAGED on branch (rides PR #223)
+
+**What happened.** On the controller's "keep auditing layout" order, a
+systematic sweep of every screen and state at six viewports (320×568 →
+1280×800): every element with a fixed aspect-ratio whose used height
+exceeds the ratio-implied height is a WKWebView overlap trap of the
+class the field report proved on-device, whatever Chromium renders.
+The sweep flagged twelve instances collapsing to ONE construct at one
+band — `#flip-stage` at ≥720px (+146px resting, +458..465px at
+t3/revealed; iPad-class embedded WebViews) — and a targeted probe of
+the t5 dyad screen (the sweep's first pass never rendered it; driver
+defect, not product) found the second: the dyad's two standalone
+sheets inherit `.card`'s 5/8 box with content +292/+400px past it.
+Nothing else in the product carries the trap: `.card-back`'s ratio box
+GIVES its height (content smaller — the desired look), and the
+remaining sweep noise was hit-test artifacts (elements correctly
+behind open modals; the face-down card back; the meaning panel's close
+control in its clipped CLOSED state — verified fully tappable open).
+
+**The fix, completing the #196 → pr223 arc.** `ui/labels.js`'s
+injected stage rules drop their LAST condition — the 719.98px media
+query — becoming three unconditional lines: the flip-stage layout is
+explicit at every width, in every state. Three narrowings retired in
+sequence, each after content outgrew a band the previous scope
+excluded (labels-only 2026-08-02; resting-state pr223; width today).
+And `ui/dyad.js`'s screen stylesheet gains
+`#dyad-screen [data-sheet-face] { aspect-ratio: auto; height: auto; }`
+— the paid screen's two sheets released the same way, scoped by the
+data attribute so the host card face stays the stage rules' job.
+
+**Verification.** Chromium: the re-run sweep reports ZERO ratio traps
+at any viewport or state; dyad sheets render at identical heights with
+what follows clearing them; 768×1024 and 1280×800 keep the
+side-by-side rail with the back-beat full-height (722=722); the one
+honest delta at ≥720 is the front card now sizing to true content
+(726px) instead of being clamped to the grown row (722px) — ≤4px,
+nothing overlapped. Mutants killed: re-adding a media condition around
+the stage rules (2 tests), deleting the dyad release rule. The
+behavioral injectStyle payload test updated to assert NO media query —
+the full-suite run caught the stale expectation before push, and the
+product audit's vitest leg failed with it, exactly as the fail-closed
+pipeline should. Suite 57 files / 2007 tests green; product audit
+PASS, 0 blocking. This rides PR #223 as the same defect family; the
+delta re-enters §10 audit before the merge word.
+
 ## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — STAGED on branch, PR pending
 
 **What happened.** The controller sent a live-device screenshot (iOS
