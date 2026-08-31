@@ -1314,9 +1314,10 @@ class PathRedactionHelperTests(unittest.TestCase):
 
 
 class PathRedactionRealRunTests(unittest.TestCase):
-    """End-to-end: a real audit of the real repo must emit no absolute home
-    or product-root path in either artifact. This is the assertion that would have caught the original
-    defect, and it drives the real writer rather than the helper."""
+    """End-to-end: a real audit of the real repo must emit no absolute
+    home or product-root path in either artifact. This is the assertion
+    that would have caught the original defect, and it drives the real
+    writer rather than the helper."""
 
     def test_real_report_artifacts_carry_no_absolute_home_path(self):
         with tempfile.TemporaryDirectory() as out_dir:
