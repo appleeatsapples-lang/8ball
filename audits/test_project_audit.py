@@ -1271,8 +1271,13 @@ class PathRedactionHelperTests(unittest.TestCase):
         such leaves through the same needle pass instead."""
         root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
         pairs = pa.redaction_map(root)
+        # Three leaf types, deliberately of unrelated shapes (pr220 audit,
+        # both lanes independently: with fewer, a fallback narrowed to an
+        # allow-list of exactly the tested types would still pass — the
+        # pin must force the GENERIC else-branch, not a type roster).
         payload = {"evidence": {"report": Path(root) / "audits" / "latest.json",
-                                "err": OSError(f"open {root}/x failed")}}
+                                "err": OSError(f"open {root}/x failed"),
+                                "seen": {root}}}
         out = pa.redact_paths(payload, pairs)
         # The exact leak shape: the boundary output serialized the same
         # way main() serializes it.
@@ -1283,6 +1288,8 @@ class PathRedactionHelperTests(unittest.TestCase):
         self.assertEqual(out["evidence"]["report"],
                          f"{pa.PRODUCT_ROOT_PLACEHOLDER}{os.sep}audits{os.sep}latest.json")
         self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out["evidence"]["err"])
+        self.assertEqual(out["evidence"]["seen"],
+                         "{'" + pa.PRODUCT_ROOT_PLACEHOLDER + "'}")
 
     def test_non_native_keys_are_stringified_through_redaction(self):
         """The same bypass in key position is worse than a leak — it is a
@@ -1293,12 +1300,17 @@ class PathRedactionHelperTests(unittest.TestCase):
         untouched for json.dumps to coerce itself."""
         root = os.path.join(os.path.expanduser("~"), "dev", "8ball")
         pairs = pa.redaction_map(root)
-        out = pa.redact_paths({Path(root) / "core": "modules", 3: "three"}, pairs)
+        # A tuple key beside the Path key: same genericity rationale as
+        # the leaf test above — a Path-only key fallback survived every
+        # other test in this file (pr220 audit, lane-run mutant).
+        out = pa.redact_paths({Path(root) / "core": "modules", 3: "three",
+                               (1, 2): "tuple-key"}, pairs)
         rendered = json.dumps(out, default=str)  # must not raise
         self.assertNotIn(root, rendered,
                          f"non-str key carried an absolute path past redaction: {rendered}")
         self.assertIn(f"{pa.PRODUCT_ROOT_PLACEHOLDER}{os.sep}core", out)
         self.assertEqual(out[3], "three")
+        self.assertEqual(out["(1, 2)"], "tuple-key")
 
     def test_redacts_dict_keys_not_only_values(self):
         """P1 (PR #194 pre-merge audit): a path landing in a dict key — e.g.
