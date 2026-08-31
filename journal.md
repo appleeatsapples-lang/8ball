@@ -5,6 +5,53 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — DOCTRINE v0.68: the §1.G body/context boundary is drawn — three authored layers — STAGED on branch, PR pending
+
+**What happened.** The last open controller call on the board —
+recorded by the pr212 audit's opus lane, named open in DOCTRINE's
+meanings-v4 and meanings-v5 routing notes — is resolved on the
+controller's order ("do the §1.G body/context boundary"). The
+question: §1.G's meaning-body contract predates prose of the
+slot-line kind, so do the appended lines (v4's 72 numerology slot
+lines, v5's 24 placement lines) sit inside the "registered meaning",
+or do they constitute a third authored layer?
+
+**The resolution: a third layer, named the placement layer.** The
+v0.68 boundary amendment states a §1.G panel as exactly three
+authored layers, each with its own charter, keying, and immutability
+unit: (1) the registered body — v0.44's citation contract, keyed by
+VALUE alone, immutable per §4, byte-identical wherever the same value
+renders; (2) the placement layer — `NUMEROLOGY_SLOT_LINES` +
+`PLACEMENT_LINES`, keyed by position × value, stating the tradition's
+registered OFFICE of the slot or placement (the ascendant fronts the
+encounter; the month branch runs off-stage), appended after the
+unedited body, versioned separately under §4's new-file rule, bound
+by the same §2 scans; (3) the `in this sheet` context synthesis
+(v0.53), with `THEME_TENSIONS` classified as its authored table input
+so every v4/v5 table has exactly one home. The resolution is the one
+the shipped invariants already argue: the appended lines have a
+different key (position × value, not value), a different §4
+versioning unit (their own tables), and a positional contract
+(appended after, never rewriting what precedes) — three mechanical
+distinctions that were always a layer boundary in fact; the amendment
+makes them one in constitution. The alternative (folding the lines
+into the "registered meaning") would have contradicted the body's own
+byte-identity pin, under which a registered meaning cannot change
+while its panel's prose does.
+
+**What changed on disk.** DOCTRINE.md only, in the §1.G region: the
+v0.68 amendment inserted after the v5 routing note; both routing
+notes carry sighting-corrected resolution markers per the v0.48–v0.61
+footer precedent (the v0.64 RENDER resolution's exact shape); footer
+rotated (v0.68 head, v0.67 prior, v0.66 to superseded) with the
+changelog line. No product behavior, table, pin, or scan changes —
+the amendment names what the mechanics already hold, which is why the
+question could wait for the controller's pen. Suite 57 files / 2011
+tests green; product audit PASS, 0 blocking. Docs-only PR + this
+journal entry + the §10 two-lane artifact (DOCTRINE touch = mandatory
+cross-model audit before merge; the journal-touch gate's audits/-file
+requirement rides the same artifact).
+
 ## 2026-08-31 — Desktop layout pass: the t3 rail's $6 offer was below the fold; the rail goes top-aligned + sticky — STAGED on branch, PR pending
 
 **What happened.** On the controller's order, the desktop counterpart
