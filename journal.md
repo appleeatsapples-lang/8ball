@@ -5,7 +5,77 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — STAGED on branch, PR pending
+## 2026-08-31 — No leaf type crosses the redaction boundary: the PR #194 fast-follow lands — STAGED on branch, PR pending
+
+**What happened.** The queued `redact_paths` fallback — tracked since
+the PR #194 pre-merge audit and re-queued by the pr219 audit as F5 —
+is closed. The defect class: `redact_paths` returned any leaf that
+wasn't a str/list/tuple/dict unchanged, and both artifact write-outs
+serialize with `json.dumps(..., default=str)`, so a non-native leaf
+(a `Path`, a `datetime`, an exception object) was stringified AFTER
+the redaction boundary and carried its absolute path — home directory,
+account name — straight into the shared artifact. Nothing leaks today
+(no current check stores such a leaf), but the boundary's whole design
+argument (journal 2026-08-02 lineage: a redaction each check author
+must remember is one that will be forgotten) applied to itself: the
+first future check that filed a `Path` in evidence would have leaked
+silently. Under the widened pr219 needles it would at least have
+surfaced as a real-run assurance failure — the one real flake vector
+that widening carried, now retired.
+
+**The fix.** Two fallbacks at the boundary in
+`audits/project_audit.py`, same pattern both positions. Leaf position:
+JSON-native scalars (int/float/bool/None) pass through untouched;
+anything else is stringified THROUGH the needle pass
+(`redact_paths(str(value), pairs)`) instead of after it — `default=str`
+stays on the dumps as belt-and-braces for types the recursion never
+sees. Key position: the same bypass is a crash rather than a leak
+(`json.dumps` never applies `default=` to keys, so a `Path` key raised
+TypeError and no artifact was written at all); non-str non-native keys
+now stringify through the needles too, keeping the artifact writable
+AND clean, while JSON-native non-str keys stay untouched for
+`json.dumps` to coerce itself. The existing key-collision
+disambiguation covers the new key path unchanged.
+
+**Verification.** Two new assurance tests (a `Path`+`OSError` evidence
+payload serialized exactly as `main()` serializes, and a `Path` key
+beside an int key); suite now **104/104 OK in this container**. Two
+mutants killed: reverting the leaf fallback to the old `return value`
+passthrough fails the leaf test (the leak reproduced); reverting the
+key fallback to the old str-only ternary errors the key test with the
+documented TypeError crash. Full vitest suite 57 files / 1995 tests
+green; product audit PASS, 0 blocking (the run's one warn is this
+change's own then-uncommitted working tree). `audits/project_audit.py`
+and its assurance suite are the only code files changed, in the same
+commit per the CLAUDE.md rule.
+
+**Cross-model audit (pr220), reconciled.** Lanes: SAFE TO MERGE (1 MED,
+1 LOW) and MERGE WITH FIXES (1 MED, 1 LOW, 2 NIT, 2 INFO). Both lanes
+independently reproduced every claim (one instrumented `redact_paths`
+inside a real audit run: zero non-native occurrences today, so the
+change is behavior-neutral now and purely forward-looking), and both
+found the same assurance gap from opposite ends — the new tests didn't
+pin the fallbacks' GENERICITY. A leaf fallback narrowed to an
+allow-list of exactly {Path, OSError} passed both new tests, and a
+Path-only KEY fallback survived the entire 104-test suite while still
+crashing on tuple/bytes keys. Landed: a set leaf and a tuple key join
+the two tests; both narrowing mutants now die (allow-list leaf FAILS,
+Path-only key ERRORS), on top of the two original revert-mutants.
+Also landed, the convention findings both lanes hit: the previous
+entry's status normalized to the historical `SHIPPED (#NN)` form, and
+thirteen stale `STAGED on branch, PR pending` / `SHIPPED TO BRANCH`
+headings for #208–#219 flipped to `SHIPPED (#NN)` per the #56 batch
+precedent (bodies untouched, per-cut record preserved). Recorded, not
+actioned (both lanes rate it unreachable today, pre-existing shape): a
+stringified non-native key could in principle collide with a JSON-native
+int key without tripping the disambiguation branch (`json.dumps` writes
+`{"3": …}` twice); queued with the other named non-ordered items. One
+lane confirmed a bonus the PR didn't claim: the fallback also closes
+the set/frozenset/bytes leaf vectors, verified by a 22-type
+old-vs-new equivalence sweep. Suite after reconciliation: assurance
+104/104, vitest 57 files / 1995 tests, product audit PASS 0 blocking.
+
+## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — SHIPPED (#219)
 
 **What happened.** The one failure every container run of
 `python3 -m unittest audits.test_project_audit` has carried —
@@ -78,7 +148,7 @@ the docstring-wrap NIT from the first lane, landed mid-audit.
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — STAGED on branch, PR pending
+## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — SHIPPED (#218)
 
 **What happened.** The controller ordered the last flagged queue item:
 the pr208 audit's F9 — the kua block's two value lines carried two type
@@ -138,7 +208,7 @@ Live-fire at t3 and t5: both value lines italic, secondary margin-top
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-31 — Comprehension hint + the #213 panel self-close regression, found and fixed — STAGED on branch, PR pending
+## 2026-08-31 — Comprehension hint + the #213 panel self-close regression, found and fixed — SHIPPED (#217)
 
 **What happened.** The controller ordered the comprehension hints — the
 flagged gap from the 2026-08-30 comprehension read: fourteen tappable
@@ -218,7 +288,7 @@ page errors.
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-31 — Dyad t5 activation: the comparative rung goes on offer — STAGED on branch, PR pending
+## 2026-08-31 — Dyad t5 activation: the comparative rung goes on offer — SHIPPED (#216)
 
 **What happened.** The controller ordered the dyad t5 activation — the
 fresh decision DOCTRINE v0.62's commercial-truth amendment required.
@@ -325,7 +395,7 @@ pipefail now fails deterministically instead of flaking.
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-31 — Shell-stylesheet split: index.html 1455 → 683 — STAGED on branch, PR pending
+## 2026-08-31 — Shell-stylesheet split: index.html 1455 → 683 — SHIPPED (#215)
 
 **What happened.** The controller ordered the index.html split — the
 standing prerequisite for any next sizable feature (the file sat at
@@ -397,7 +467,7 @@ egress tokens each add a scan test); product audit PASS, 0 blocking.
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-30 — Interpretation optimization III: placement lines close the last duplication + city prefetch — STAGED on branch, PR pending
+## 2026-08-30 — Interpretation optimization III: placement lines close the last duplication + city prefetch — SHIPPED (#214)
 
 **What happened.** The controller ordered items 5 and 8 of the measured
 optimization pass: the last residual meaning duplication (rising reuses
@@ -478,7 +548,7 @@ lookup in the module, unreachable from engine-fed values; filed as is).
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
-## 2026-08-30 — Interpretation optimization II: filed relations in panels + four harmony frames — STAGED on branch, PR pending
+## 2026-08-30 — Interpretation optimization II: filed relations in panels + four harmony frames — SHIPPED (#213)
 
 **What happened.** The controller ordered items 3 and 4 of the measured
 optimization pass (every context sentence shared one skeleton — 396/396
@@ -569,7 +639,7 @@ Suite 57 files / **1970** tests green (1965 + 5). Six lane mutants
 re-run: each red. Record:
 `audits/claude_relay_pr213_premerge_audit_2026-08-30_response.md`.
 Merge word stays with the controller.
-## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — STAGED on branch, PR pending
+## 2026-08-30 — Interpretation optimization: slot lines, tension registry, panel scroll — SHIPPED (#212)
 
 **What happened.** The controller ordered items 6, 1 and 2 from this
 session's measured optimization pass (25 of 33 sampled sheets carried
@@ -668,7 +738,7 @@ Record: `audits/claude_relay_pr212_premerge_audit_2026-08-30_response.md`.
 Merge word stays with the controller — the 89 authored sentences remain
 flagged for the controller's own read.
 
-## 2026-08-30 — DOCTRINE mechanical edit: the §1.D v0.64 "open product call" clause marked resolved — STAGED on branch, PR pending
+## 2026-08-30 — DOCTRINE mechanical edit: the §1.D v0.64 "open product call" clause marked resolved — SHIPPED (#211)
 
 **What happened.** PR #210 (merged `d4de8aa`) answered the F4
 render-or-record call with RENDER; the pr210 artifact queued this
@@ -693,7 +763,7 @@ in the artifact). Merge stays with the controller.
 **Scope (files):** `DOCTRINE.md` (two markers), this entry; the L48
 artifact follows once the PR number exists.
 
-## 2026-08-30 — Kua citation bodies rendered: the F4 call resolved as RENDER — STAGED on branch, PR pending
+## 2026-08-30 — Kua citation bodies rendered: the F4 call resolved as RENDER — SHIPPED (#210)
 
 **What happened.** §1.D v0.64 left one product call open: the §1.G
 citation body (`KUA_TRIGRAMS[n].body`) lost its only renderer when the
@@ -748,7 +818,7 @@ ship — the mechanical clause update is queued for the next doctrine PR;
 the journal is current-state authority meanwhile. Merge word stays with
 the controller.
 
-## 2026-08-30 — DOCTRINE v0.64: the gender-ask retirement is written into the constitution — STAGED on branch, PR pending
+## 2026-08-30 — DOCTRINE v0.64: the gender-ask retirement is written into the constitution — SHIPPED (#209)
 
 **What happened.** PR #208 merged (`4c99ab4`) with DOCTRINE still
 describing the gender input — the divergence its pre-merge audit flagged
@@ -857,7 +927,7 @@ each red on exactly its new pin; restored, green. `index.html` untouched
 **Scope (files):** `ui/citysearch.js`, `ui/readings.js`, 4 test files,
 the L48 artifact, this entry.
 
-## 2026-08-30 — Boot scrub: the stale stored gender token now leaves existing devices — SHIPPED TO BRANCH, tests green, live-fire verified
+## 2026-08-30 — Boot scrub: the stale stored gender token now leaves existing devices — SHIPPED (#208), tests green, live-fire verified
 
 **Operator decision.** The entry below left gendered-cycle payloads on
 existing devices as inert residue; the operator called the scrub.
@@ -892,7 +962,7 @@ rendered, kua both-values intact, zero console errors. `index.html`
 **Scope (files):** `ui/profile.js`, `ui/payments.js`, `ui/readings.js`,
 `index.html` (imports + 3-call boot line), 3 test files, this entry.
 
-## 2026-08-30 — Gender ask removed: the product asks no gender question — SHIPPED TO BRANCH, tests green, live-fire verified
+## 2026-08-30 — Gender ask removed: the product asks no gender question — SHIPPED (#208), tests green, live-fire verified
 
 **Operator decision.** "I don't want the gender part." Scope taken as: the
 gender question leaves every surface — the primary form's optional
