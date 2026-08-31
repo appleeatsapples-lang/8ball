@@ -22,8 +22,45 @@ parity pin: both value lines carry `card-habit` in BOTH renderers, and
 `card-note` on a secondary line fails). Two revert mutants killed (host
 and sheet independently). Live-fire at t3: `.kua-primary` and
 `.kua-secondary` both compute `font-style: italic`, both bodies
-`normal`; zero page errors. No DOCTRINE or content touch; CSS classes
-only — no rule changed, no new style injected.
+`normal`; zero page errors. No DOCTRINE or content touch. CSS classes
+only in the two renderers, plus ONE rule added to the injected
+`KUA_STYLE` post-audit: `card-note` had been silently carrying the 6px
+`margin-top` that separated the secondary value line from the primary's
+body, and the swap stripped it — the pre-merge audit measured the loss
+and the restoring rule (scoped on `.kua-read`, so both renderers get it
+from the one stylesheet) is live-fire re-measured at 6px in the host
+block and both dyad sheets. (The first draft of this entry claimed "no
+rule changed, no new style injected" — true of the diff as first
+staged, false after the audit fix; corrected per pr208 F7 precedent.)
+
+**Cross-model audit (pr218), reconciled.** Both lanes MERGE WITH FIXES
+(1 MED; 2 MED + 2 LOW + 2 NIT + 1 INFO) — and both independently
+live-fire-measured the same MED: the class swap stripped the 6px
+`margin-top` `card-note` had been carrying on the secondary line, so it
+sat flush against the primary's citation body (the opposite of the
+grouping F9 asked for). One lane found it and shipped the fix
+mid-audit; the other re-measured the fix rather than trusting it —
+6px restored, both renderers, via one `.kua-read`-scoped rule in the
+injected stylesheet, now source-pinned and deletion-mutant-killed.
+Also landed: the journal sentence the fix falsified is corrected above
+(the second lane's F2); the host-side negative class pin is
+order-proof (F3 — 'card-habit kua-secondary card-note' had ridden the
+whole suite green; the appended-class mutant now dies); the kua block
+JOINED the bounded host-vs-sheet differential (F4 — the standalone
+sheet host had no data-sheet-kua-* nodes at all, so the sweep asserted
+nothing about kua and the parity claim rested on two source regexes;
+it now verifies the tier gating, sealed toggle, and all five field
+routings per profile per tier, in the publicRead DI shape); and the
+displaced `.kua-note` selector assertion moved back under its own test
+heading with `sheetJs` hoisted (F5). The second lane also flagged the
+mid-audit push (the stop-hook-prompted landing of the first lane's
+fix) — same relay-process defect pr217's artifact owned; owned again.
+
+**Verification (post-reconciliation).** Suite 57 files / **1995** tests
+green. Four mutants killed: the two renderer reverts, the appended
+`card-note` class, the margin-rule deletion. Product audit PASS.
+Live-fire at t3 and t5: both value lines italic, secondary margin-top
+6px, both sheets matching the host; zero page errors.
 
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
