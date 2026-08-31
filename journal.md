@@ -5,7 +5,45 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — DOCTRINE v0.69: the §1.J price-column reconciliation closes, adopting nothing — STAGED on branch, PR pending
+## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — STAGED on branch, PR pending
+
+**What happened.** The `tests/cities.test.js` city-shape test — the
+suite's one recorded flake, timed out under CPU contention on four
+separate audit cycles (pr136 disclosed it first; the pr222, pr225 and
+pr226 lanes each hit it again) — is restructured so the flake class
+cannot recur. Self-selected as the top non-reserved queue item on the
+controller's "Go" after #226 merged: every one of those incidents cost
+an audit lane a clean full-suite signal and bought a paragraph of
+"recorded, not rerun-past" boilerplate in the artifact.
+
+**Root cause, and why the budget was the wrong knob.** The test ran
+~53k city entries × ~17 `expect()` calls ≈ 900k vitest assertions;
+vitest's per-expect overhead put it at ~12s against a specially
+widened 15s budget. The margin lost whenever anything contended for
+the CPU — parallel audit-lane suites, a render job, a cold cache.
+Widening the budget again would just move the cliff; the overhead was
+never buying anything, since a data defect fails identically whether
+the assertion fires from `expect()` or from a collected message.
+
+**The fix.** The same seventeen checks now run as plain JS collecting
+violation messages (`index N: cc "x1" is not two uppercase letters`),
+capped at six like the near-duplicates test, with a single terminal
+`expect(violations).toEqual([])`. The `{ timeout: 15_000 }` override
+is deleted — the test rejoins the suite's default budget at ~280ms
+isolated (from ~12s), and the comment above it records the incident
+history so the shape isn't "simplified" back. Mutation-verified
+seven ways before commit: bad cc, null lat, 5-element entry,
+out-of-range tzIdx, float tzIdx, negative pop, empty name — each
+temporarily corrupted into a copy of `assets/cities.json`, each
+KILLED with its indexed message, the asset restored byte-identical
+(git-verified clean).
+
+**Contract unchanged.** Same fields, same bounds, same failure
+precision; no product code touched, no test added or removed (57
+files / 2011 tests before and after). Suite green; product audit
+PASS, 0 blocking.
+
+## 2026-08-31 — DOCTRINE v0.69: the §1.J price-column reconciliation closes, adopting nothing — SHIPPED (#226)
 
 **What happened.** The open doctrine work v0.61 filed and the v0.67
 activation amendment explicitly kept open — "reconciling the two

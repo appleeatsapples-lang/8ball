@@ -54,32 +54,37 @@ describe('cities.json — tz array', () => {
 });
 
 describe('cities.json — city shape', () => {
-  // ~53k entries x ~17 assertions: legitimately >5s under vitest 4's
-  // per-expect overhead. Scoped here so the rest of the suite keeps
-  // the tight default budget.
-  it('every entry is a 6-element array with correctly typed fields', { timeout: 15_000 }, () => {
+  // ~53k entries × ~17 checks. An earlier shape of this test made every
+  // check its own expect() (~900k vitest assertions), whose per-expect
+  // overhead put the run at ~12s against a widened 15s budget — which
+  // then timed out under CPU contention on four separate recorded
+  // occasions (journal: pr136, pr222, pr225, pr226 audit cycles). The
+  // same contract now runs as plain JS collecting violation messages
+  // with a single terminal expect: identical checks, millisecond
+  // runtime, and the test rejoins the suite's default budget.
+  it('every entry is a 6-element array with correctly typed fields', () => {
     const maxTzIdx = data.tz.length - 1;
-    for (let i = 0; i < data.cities.length; i++) {
+    const violations = [];
+    const flag = (i, msg) => violations.push(`index ${i}: ${msg}`);
+    for (let i = 0; i < data.cities.length && violations.length <= 5; i++) {
       const c = data.cities[i];
-      expect(Array.isArray(c), `index ${i}`).toBe(true);
-      expect(c.length, `index ${i}`).toBe(6);
+      if (!Array.isArray(c)) { flag(i, 'entry is not an array'); continue; }
+      if (c.length !== 6) { flag(i, `length ${c.length}, expected 6`); continue; }
       const [name, cc, lat, lng, tzIdx, pop] = c;
-      expect(typeof name, `index ${i} name`).toBe('string');
-      expect(name.length).toBeGreaterThan(0);
-      expect(typeof cc, `index ${i} cc`).toBe('string');
-      expect(cc).toMatch(/^[A-Z]{2}$/);
-      expect(typeof lat, `index ${i} lat`).toBe('number');
-      expect(lat).toBeGreaterThanOrEqual(-90);
-      expect(lat).toBeLessThanOrEqual(90);
-      expect(typeof lng, `index ${i} lng`).toBe('number');
-      expect(lng).toBeGreaterThanOrEqual(-180);
-      expect(lng).toBeLessThanOrEqual(180);
-      expect(Number.isInteger(tzIdx), `index ${i} tzIdx`).toBe(true);
-      expect(tzIdx).toBeGreaterThanOrEqual(0);
-      expect(tzIdx).toBeLessThanOrEqual(maxTzIdx);
-      expect(Number.isInteger(pop), `index ${i} pop`).toBe(true);
-      expect(pop).toBeGreaterThanOrEqual(0);
+      if (typeof name !== 'string' || name.length === 0)
+        flag(i, `name ${JSON.stringify(name)} is not a non-empty string`);
+      if (typeof cc !== 'string' || !/^[A-Z]{2}$/.test(cc))
+        flag(i, `cc ${JSON.stringify(cc)} is not two uppercase letters`);
+      if (typeof lat !== 'number' || !(lat >= -90 && lat <= 90))
+        flag(i, `lat ${lat} is not a number in [-90, 90]`);
+      if (typeof lng !== 'number' || !(lng >= -180 && lng <= 180))
+        flag(i, `lng ${lng} is not a number in [-180, 180]`);
+      if (!Number.isInteger(tzIdx) || tzIdx < 0 || tzIdx > maxTzIdx)
+        flag(i, `tzIdx ${tzIdx} is not an integer in [0, ${maxTzIdx}]`);
+      if (!Number.isInteger(pop) || pop < 0)
+        flag(i, `pop ${pop} is not a non-negative integer`);
     }
+    expect(violations, 'city-shape violations (first few shown)').toEqual([]);
   });
 });
 
