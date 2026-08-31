@@ -5,6 +5,66 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — STAGED on branch, PR pending
+
+**What happened.** The controller ordered the last flagged queue item:
+the pr208 audit's F9 — the kua block's two value lines carried two type
+styles (`card-habit` italic on the primary, `card-note` upright on the
+secondary), an arbitrary leftover of the single-value layout now that
+the gender retirement made the both-values render the only read. Both
+value headlines now wear `card-habit`; both bodies stay `card-note`.
+Two renderers moved together: the host block (`ui/kua.js`) and the
+dyad's instanced sheets (`ui/sheet.js`), so the t5 pair cannot disagree
+with the host about the kua block's face.
+
+**Verification.** Suite 57 files / **1995** tests green (1994 + a
+parity pin: both value lines carry `card-habit` in BOTH renderers, and
+`card-note` on a secondary line fails). Two revert mutants killed (host
+and sheet independently). Live-fire at t3: `.kua-primary` and
+`.kua-secondary` both compute `font-style: italic`, both bodies
+`normal`; zero page errors. No DOCTRINE or content touch. CSS classes
+only in the two renderers, plus ONE rule added to the injected
+`KUA_STYLE` post-audit: `card-note` had been silently carrying the 6px
+`margin-top` that separated the secondary value line from the primary's
+body, and the swap stripped it — the pre-merge audit measured the loss
+and the restoring rule (scoped on `.kua-read`, so both renderers get it
+from the one stylesheet) is live-fire re-measured at 6px in the host
+block and both dyad sheets. (The first draft of this entry claimed "no
+rule changed, no new style injected" — true of the diff as first
+staged, false after the audit fix; corrected per pr208 F7 precedent.)
+
+**Cross-model audit (pr218), reconciled.** Both lanes MERGE WITH FIXES
+(1 MED; 2 MED + 2 LOW + 2 NIT + 1 INFO) — and both independently
+live-fire-measured the same MED: the class swap stripped the 6px
+`margin-top` `card-note` had been carrying on the secondary line, so it
+sat flush against the primary's citation body (the opposite of the
+grouping F9 asked for). One lane found it and shipped the fix
+mid-audit; the other re-measured the fix rather than trusting it —
+6px restored, both renderers, via one `.kua-read`-scoped rule in the
+injected stylesheet, now source-pinned and deletion-mutant-killed.
+Also landed: the journal sentence the fix falsified is corrected above
+(the second lane's F2); the host-side negative class pin is
+order-proof (F3 — 'card-habit kua-secondary card-note' had ridden the
+whole suite green; the appended-class mutant now dies); the kua block
+JOINED the bounded host-vs-sheet differential (F4 — the standalone
+sheet host had no data-sheet-kua-* nodes at all, so the sweep asserted
+nothing about kua and the parity claim rested on two source regexes;
+it now verifies the tier gating, sealed toggle, and all five field
+routings per profile per tier, in the publicRead DI shape); and the
+displaced `.kua-note` selector assertion moved back under its own test
+heading with `sheetJs` hoisted (F5). The second lane also flagged the
+mid-audit push (the stop-hook-prompted landing of the first lane's
+fix) — same relay-process defect pr217's artifact owned; owned again.
+
+**Verification (post-reconciliation).** Suite 57 files / **1995** tests
+green. Four mutants killed: the two renderer reverts, the appended
+`card-note` class, the margin-rule deletion. Product audit PASS.
+Live-fire at t3 and t5: both value lines italic, secondary margin-top
+6px, both sheets matching the host; zero page errors.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Comprehension hint + the #213 panel self-close regression, found and fixed — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the comprehension hints — the

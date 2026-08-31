@@ -35,6 +35,7 @@ vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
 
 import { makeClassList } from './helpers/dom.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
+import { kuaReadFor } from '../ui/kua.js';
 import {
   T5_PRODUCT_URL,
   DYAD_RELATION_NODES,
@@ -987,7 +988,9 @@ function makeStandaloneSheetHost(prefix) {
     byAttr.set(`[data-sheet-cell="${prefix}:${key}"]`, cell);
   }
   for (const attr of ['catalog', 'name', 'type', 'habit', 'note',
-    'families', 'antifit', 'roleline', 'public-bridge']) {
+    'families', 'antifit', 'roleline', 'public-bridge',
+    'kua', 'kua-primary', 'kua-body-primary', 'kua-secondary',
+    'kua-body-secondary', 'kua-note']) {
     byAttr.set(`[data-sheet-${attr}="${prefix}"]`, mk());
   }
   for (const attr of ['face', 'entry', 'public']) {
@@ -1050,8 +1053,9 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     const { host: sheetHost } = makeStandaloneSheetHost('x');
     const sheet = createSheet(sheetHost, { prefix: 'x' });
     const publicRead = publicReadFor(profile);
-    const { cardEntry: sheetCardEntry, publicRead: sheetPublicOpen } =
-      sheet.render(profile, tier, { noteSlot: 'mid', publicRead });
+    const kuaRead = kuaReadFor(profile);
+    const { cardEntry: sheetCardEntry, publicRead: sheetPublicOpen, kua: sheetKuaOpen } =
+      sheet.render(profile, tier, { noteSlot: 'mid', publicRead, kua: kuaRead });
 
     const stateOf = root => (root.classList.contains('sealed') ? 'sealed'
       : root.classList.contains('unres') ? 'unres' : 'value');
@@ -1096,6 +1100,26 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     // master-birthday case follows rather than relying on this sweep.
     expect(sheetHost.querySelector('[data-sheet-public-bridge="x"]').textContent, `${label}/${tier} bridge`)
       .toBe(publicOpen && publicRead ? publicRead.bridge : '');
+
+    // Kua block: same DI shape as publicRead — the differential verifies
+    // the tier GATING and the field routing, not a recomputation (pr218
+    // audit F4: this block previously had no data-sheet-kua-* nodes in the
+    // standalone host, so the sweep asserted nothing about kua at all and
+    // the host/sheet kua parity rested on two source regexes).
+    const kuaOpen = coordsForTier(tier).has('kuaRead');
+    expect(sheetKuaOpen, `${label}/${tier} kuaOpen`).toBe(kuaOpen && !!kuaRead);
+    expect(sheetHost.querySelector('[data-sheet-kua="x"]').classList.contains('sealed'),
+      `${label}/${tier} kua sealed`).toBe(!(kuaOpen && kuaRead));
+    expect(sheetHost.querySelector('[data-sheet-kua-primary="x"]').textContent, `${label}/${tier} kua primary`)
+      .toBe(kuaOpen && kuaRead ? kuaRead.primary : '');
+    expect(sheetHost.querySelector('[data-sheet-kua-body-primary="x"]').textContent, `${label}/${tier} kua bodyP`)
+      .toBe(kuaOpen && kuaRead ? (kuaRead.primaryBody || '') : '');
+    expect(sheetHost.querySelector('[data-sheet-kua-secondary="x"]').textContent, `${label}/${tier} kua secondary`)
+      .toBe(kuaOpen && kuaRead ? kuaRead.secondary : '');
+    expect(sheetHost.querySelector('[data-sheet-kua-body-secondary="x"]').textContent, `${label}/${tier} kua bodyS`)
+      .toBe(kuaOpen && kuaRead ? (kuaRead.secondaryBody || '') : '');
+    expect(sheetHost.querySelector('[data-sheet-kua-note="x"]').textContent, `${label}/${tier} kua note`)
+      .toBe(kuaOpen && kuaRead ? (kuaRead.note || '') : '');
   });
 
   // The sweep above varies the LIFE PATH across facet-anchor groups; the

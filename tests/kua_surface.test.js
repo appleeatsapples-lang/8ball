@@ -41,6 +41,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const kuaJs = readFileSync(join(__dirname, '..', 'ui', 'kua.js'), 'utf-8');
+const sheetJs = readFileSync(join(__dirname, '..', 'ui', 'sheet.js'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 
 const makeNode = () => ({ textContent: 'STALE', classList: makeClassList() });
@@ -167,6 +168,25 @@ describe('kua render — contract', () => {
     expect(kuaJs).toMatch(/qq\('\.kua-primary'\)/);
     expect(kuaJs).toMatch(/qq\('\.kua-secondary'\)/);
     expect(kuaJs).toMatch(/qq\('\.kua-note'\)/);
+  });
+
+  it('the two kua value lines carry ONE type style, in the host block and the dyad sheets alike (pr208 F9)', () => {
+    // Since the gender retirement the both-values render is the only read;
+    // primary italic (card-habit) beside secondary upright (card-note) was
+    // an arbitrary leftover of the single-value layout. Both value
+    // headlines wear card-habit; both bodies stay card-note.
+    expect(kuaJs).toMatch(/card-habit kua-primary/);
+    expect(kuaJs).toMatch(/card-habit kua-secondary/);
+    // Order-proof class-list shape (pr218 audit F3: the bare substring pin
+    // let 'card-habit kua-secondary card-note' ride the whole suite green).
+    expect(kuaJs).not.toMatch(/class="[^"]*card-note[^"]*kua-secondary|class="[^"]*kua-secondary[^"]*card-note/);
+    expect(sheetJs).toMatch(/card-habit" data-sheet-kua-primary/);
+    expect(sheetJs).toMatch(/card-habit" data-sheet-kua-secondary/);
+    expect(sheetJs).not.toMatch(/card-note" data-sheet-kua-secondary/);
+    // The swap strips card-note's 6px margin-top (pr218 audit MED): the
+    // injected style must restore the secondary line's separation, scoped
+    // on .kua-read so both renderers get it from the one stylesheet.
+    expect(kuaJs).toMatch(/\.kua-read \.kua-secondary, \.kua-read \[data-sheet-kua-secondary\] \{ margin-top: 6px; \}/);
   });
 
   it('the module exposes no gender surface at all', () => {
