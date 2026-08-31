@@ -130,4 +130,18 @@ Superseded by the LOW 11 fix above: the degradation is now runtime-driven.
   untouched, R2 grandfather still t3, `?paid` replay idempotent, R6 contract
   holding at every tier including garbage values.
 
+## Post-reconciliation addendum: the CI flake on the reconciled head
+
+One CI run failed `tests/l48_gate_composition.test.js`'s composition oracle
+(a gate went green on the doctrine-plus-brief fixture) while the same file
+passed locally 10/10 and on the prior CI run. Root-caused deterministically,
+not re-run away: the harness's `set -eo pipefail` wrapper was stricter than
+GitHub's real `bash -e {0}`, and `grep -q`'s early exit could SIGPIPE the
+feeding `echo`, turning a matched `^DOCTRINE\.md$` clause into a failed
+pipeline that read as no-match — the docs-only exemption then fired. The
+harness only; the real gates are immune (no pipefail in CI). Fixed by making
+the wrapper faithful, with a sentinel that forces the SIGPIPE case via an
+over-pipe-buffer input; re-adding pipefail fails the sentinel
+deterministically.
+
 qualifier: recorded, not certified. Merge authority remains the controller's.

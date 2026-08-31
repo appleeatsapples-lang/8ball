@@ -92,6 +92,23 @@ the disclosure beside it, $3 offer gone; t5 swaps the entry in with
 the offer hidden AND its href stripped; zero page errors. DOCTRINE
 v0.67 (§1.J/§4.B/§5.B activation amendment + footer).
 
+**CI flake on the reconciliation head, root-caused and fixed.** One
+run of `tests/l48_gate_composition.test.js` failed on CI (its
+composition oracle saw a gate go GREEN on the doctrine-plus-brief
+fixture) while passing locally 10/10 and on the previous CI run of the
+same file. Root cause, proven deterministically: the harness wrapped
+the extracted gate scripts in `set -eo pipefail`, but GitHub's real
+`run:` shell is `bash -e {0}` — no pipefail. `grep -q` exits on its
+first match; if the `echo` feeding it is still writing, echo dies of
+SIGPIPE (141), and under pipefail that becomes the pipeline's status —
+so the gate's `! echo "$CHANGED" | grep -q '^DOCTRINE.md$'` read a
+MATCHED DOCTRINE.md as no-match and took the docs-only exit 0. A
+false green of the HARNESS only, timing-raced on small inputs, never
+of the real gates (whose pipeline status is grep's own). Fixed by
+making the wrapper faithful (`set -e`), with a sentinel that forces
+the SIGPIPE case via a 40k-line over-pipe-buffer input — re-adding
+pipefail now fails deterministically instead of flaking.
+
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
