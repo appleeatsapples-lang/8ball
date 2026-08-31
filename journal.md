@@ -5,7 +5,51 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — No leaf type crosses the redaction boundary: the PR #194 fast-follow lands — STAGED on branch, PR pending
+## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky — STAGED on branch, PR pending
+
+**What happened.** The pr208 opus F8 LOW — "at 320×568 the revealed
+in-flow submit rests below the fold with no scroll affordance" — gets
+its design pass. Measured before touching anything: at 320×568 with the
+rising block open, the revealed button sat with 43 of its 48px below
+the fold (5–17px peeking), the page's only scroll recovery living on
+the body scroller with zero visual affordance. F8's "recoverable"
+stood (wheel/touch scroll works; Enter submits), but the sole submit
+control on the smallest screens was effectively invisible at the
+moment it appeared — and real phone viewports are shorter still once
+browser chrome is counted, which no fixed compaction can chase.
+
+**The design.** In the `(max-width: 480px) and (max-height: 680px)`
+branch of `ui/experience.css`, `#enter-btn` goes `position: sticky;
+bottom: env(safe-area-inset-bottom, 0px)` instead of static. Sticky is
+the shape that satisfies every constraint that killed the
+alternatives: it keeps the in-flow layout slot (so the fixed circle's
+birthplace-row overlap — the reason this branch exists — cannot
+return, and there is no shift on reveal), it pins the revealed control
+to the viewport bottom at ANY height (a compaction pass would only
+chase the fold), and it docks into its natural place once the user
+scrolls. The opaque `rgba(0,0,0,0.96)` background + 12px halo is the
+same trick the fixed circle uses, covering the side gutters and the
+hint text it overlays until scroll; while hidden or withdrawn the
+reveal contract's `visibility: hidden` paints neither button nor halo,
+so pre-reveal the content behind stays readable. `right/left: auto`
+neutralize the fixed rule's inherited `right: 16px` (sticky reads
+inset properties). The `:has()` reveal and `aria-expanded` withdraw
+rules are position-independent and apply unchanged.
+
+**Verification.** Live-fire at three geometries, zero page errors: at
+320×568 the revealed button is fully on-screen stuck to the viewport
+bottom, docks on scroll, withdraws while the birthplace listbox is
+open, returns on pick, and submits from the stuck position; at
+400×640 (same branch, form fits) sticky stays dormant and nothing
+moves; at 390×844 the fixed-circle branch is untouched. Test pins
+updated in `tests/mobile_submit_reveal.test.js` (sticky + bottom
+offset + opaque background + halo, background:transparent outlawed,
++1 test) and three mutants killed: sticky→static revert,
+opaque→transparent revert, dropped bottom offset. The hide-inventory
+and no-display:none pins pass unchanged on the new rule. Suite 57
+files / 1996 tests green; product audit PASS, 0 blocking.
+
+
 
 **What happened.** The queued `redact_paths` fallback — tracked since
 the PR #194 pre-merge audit and re-queued by the pr219 audit as F5 —

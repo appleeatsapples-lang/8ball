@@ -24,8 +24,14 @@
 // row spans the full form width, so a bottom-right fixed control overlaps it
 // whenever the viewport is shorter than the form leaves room for (~623px at
 // 360px wide, worse at 320px — measured 2026-08-30); no size or corner fixes
-// that, so the short-viewport block returns the submit to the in-flow,
-// full-width shape it has above 480px.
+// that, so the short-viewport block returns the submit to the full-width
+// shape it has above 480px — STICKY to the viewport bottom since the pr208
+// F8 design pass (2026-08-31): a static button at 320x568 revealed with 43
+// of its 48px below the fold and no scroll affordance. Sticky keeps the
+// in-flow slot but pins the revealed control on-screen at any height; the
+// opaque halo covers what it overlays, and visibility:hidden (the reveal
+// contract's hide mechanism) paints neither button nor halo, which is one
+// more reason display:none stays illegal here.
 //
 // Static-scan style for the CSS half (mirrors tests/monochrome_surface.test.js);
 // the behavior half drives the real controller with the injected DOM mocks
@@ -174,14 +180,28 @@ describe('mobile #enter-btn geometry — short viewports retire the fixed circle
     expect(shortBlock.length).toBeGreaterThan(100);
   });
 
-  it('returns #enter-btn to in-flow full width below 680px height', () => {
-    // position: static defuses the fixed circle's right/bottom/z-index in one
-    // move; width restores the block shape. Without this, the button overlaps
-    // the birthplace label + input at 320x568 (btn top 480 vs city row
-    // 493-537) with nothing focused and nothing to scroll.
-    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*static/s);
+  it('returns #enter-btn to full width below 680px height, sticky to the viewport bottom', () => {
+    // sticky (not fixed) defuses the circle's corner overlap: the button
+    // keeps its in-flow slot at the end of the form, so nothing sits under
+    // it once the user scrolls, yet the revealed control pins to the
+    // viewport bottom instead of waiting 43px below the fold (static, the
+    // pre-pr208-F8 state measured at 320x568 on 2026-08-31). width
+    // restores the block shape.
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*sticky/s);
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*bottom:\s*env\(safe-area-inset-bottom,\s*0px\)/s);
     expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*width:\s*100%/s);
     expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*border-radius:\s*0/s);
+  });
+
+  it('the sticky submit is opaque over the content it overlays', () => {
+    // While stuck it sits above the birthplace hint; a transparent
+    // background (the pre-F8 value) would render the button's label over
+    // that text. The 12px halo covers the stage's side gutters, same trick
+    // as the fixed circle's. Both must survive together — background alone
+    // leaves text visible in the gutters beside the 100%-width box.
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*box-shadow:\s*0 0 0 12px rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
+    expect(shortBlock).not.toMatch(/#enter-btn\s*\{[^}]*background:\s*transparent/s);
   });
 
   it('drops the FAB-clearance padding the in-flow button no longer needs', () => {

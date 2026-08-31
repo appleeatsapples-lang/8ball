@@ -540,21 +540,38 @@ body {
      whenever the viewport is shorter than the form leaves room for (~623px
      at 360px wide, worse at 320px — measured 2026-08-30, and pre-existing
      before the aria-expanded reveal fix). No size or corner fixes that, so
-     below the short-viewport line the submit returns to the in-flow,
-     full-width shape it has above 480px. The @supports reveal/withdraw
-     rules above are position-independent and keep applying unchanged. */
+     below the short-viewport line the submit returns to the full-width
+     shape it has above 480px — but STICKY, not static (the pr208 F8 design
+     pass, measured 2026-08-31): at 320x568 a static button sat with 43 of
+     its 48px below the fold, revealed off-screen with no scroll affordance.
+     Sticky keeps the in-flow layout slot (no overlap while hidden, no
+     shift on reveal, docks into place once scrolled) yet pins the revealed
+     control to the viewport bottom, so the submit is on-screen the moment
+     it exists at ANY height — including real phone viewports where browser
+     chrome eats past the 568px this file can see. The opaque halo is the
+     same rgba(0,0,0,0.96) trick the fixed circle uses, covering the side
+     gutters and the text it overlays until the user scrolls; while the
+     button is hidden or withdrawn, visibility:hidden paints neither button
+     nor halo, so the content behind stays readable. right/left return to
+     auto: sticky reads inset properties, and inheriting the fixed rule's
+     right:16px would add a horizontal constraint this axis never needs.
+     The @supports reveal/withdraw rules above are position-independent and
+     keep applying unchanged. */
   #profile-form {
     padding-bottom: 0;
   }
 
   #enter-btn {
-    position: static;
+    position: sticky;
+    right: auto;
+    bottom: env(safe-area-inset-bottom, 0px);
+    left: auto;
     width: 100%;
     min-height: var(--control-height);
     padding: 12px 18px;
     border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    background: rgba(0, 0, 0, 0.96);
+    box-shadow: 0 0 0 12px rgba(0, 0, 0, 0.96);
     letter-spacing: 0.28em;
   }
 }
