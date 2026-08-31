@@ -35,7 +35,8 @@ vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
 
 import { makeClassList } from './helpers/dom.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
-import { kuaReadFor } from '../ui/kua.js';
+import { kuaReadFor, initKuaUI } from '../ui/kua.js';
+import { initPublicUI } from '../ui/public.js';
 import {
   T5_PRODUCT_URL,
   DYAD_RELATION_NODES,
@@ -1176,6 +1177,178 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
     inst.withDom(() => closeDyad());
     expect(bridgeA.textContent).toBe('');
     expect(bridgeB.textContent).toBe('');
+  });
+});
+
+// ── class-parity differential: host markup vs buildSheetMarkup ────────────
+//
+// The pr218 kua F9 defect class: the same logical prose line rendered with a
+// DIFFERENT register class on the host card face than on the dyad sheets
+// (card-note vs card-habit), so the two surfaces typeset the same value
+// differently. The fix was pinned with parallel SOURCE REGEXES over the two
+// renderers — dodgeable independently, and blind to any future line the pin
+// never named. The pr218 artifact recorded that gap ("the parity claim rests
+// on two source regexes"); this differential closes it the same way the
+// bounded value differential above works: derive BOTH sides from the real
+// artifacts at runtime — the host's shipped index.html markup and the nodes
+// the real initKuaUI/initPublicUI builders append, against the real
+// buildSheetMarkup() output — and compare, never restating either side's
+// expected classes in the test.
+describe('dyad surface — class-parity differential: host markup vs buildSheetMarkup (pr218 F4 fast-follow)', () => {
+  // Every class on these nodes that any stylesheet keys presentation off.
+  // Host-only LOOKUP hooks (ids; the kua-primary/-secondary/-body-* classes
+  // ui/kua.js queries by) are excluded — the sheet addresses the same nodes
+  // by data attributes instead, and the style-companion test below guards
+  // the one seam that exclusion opens.
+  const REGISTER = ['catalog', 'card-name', 'card-type', 'card-habit', 'card-note',
+    'kua-body', 'kua-note', 'public-bridge', 'card-entry', 'public-read', 'kua-read',
+    'card', 'seal-hatch', 'public-title', 'kua-title'];
+  const reg = list => list.filter(c => REGISTER.includes(c)).sort();
+
+  const sheetMarkup = buildSheetMarkup('x');
+  const sheetClassOf = attr => {
+    const m = sheetMarkup.match(new RegExp(`class="([^"]*)"[^>]*data-sheet-${attr}="x"`));
+    return m ? m[1].split(/\s+/) : null;
+  };
+  const hostClassOfId = id => {
+    const m = html.match(new RegExp(`class="([^"]*)"\\s+id="${id}"`));
+    return m ? m[1].split(/\s+/) : null;
+  };
+
+  // Drive the REAL host node builders under a capture document. Both are
+  // re-inited to an empty surface afterwards so no later render in this file
+  // can reach the capture mocks.
+  function captureKuaHost() {
+    const prior = globalThis.document;
+    const styles = [];
+    globalThis.document = {
+      getElementById: () => null,
+      head: { appendChild: n => styles.push(n) },
+      createElement: () => ({ className: '', innerHTML: '', textContent: '', id: '',
+        classList: makeClassList(), appendChild() {}, setAttribute() {} }),
+    };
+    try {
+      const created = [];
+      initKuaUI({ cardFace: { appendChild: n => created.push(n), querySelector: () => null } });
+      return { node: created[0], style: styles.map(s => s.textContent).join('\n') };
+    } finally {
+      initKuaUI({});
+      globalThis.document = prior;
+    }
+  }
+  function captureBridgeHost() {
+    const prior = globalThis.document;
+    globalThis.document = {
+      getElementById: () => null,
+      head: { appendChild() {} },
+      createElement: () => ({ className: '', appendChild() {} }),
+    };
+    try {
+      const appended = [];
+      initPublicUI({ root: { appendChild: n => appended.push(n), querySelector: () => null } });
+      return appended[0];
+    } finally {
+      initPublicUI(null);
+      globalThis.document = prior;
+    }
+  }
+
+  const kuaHost = captureKuaHost();
+  const bridgeHost = captureBridgeHost();
+  const kuaHostClassOf = hook => {
+    const m = kuaHost.node.innerHTML.match(new RegExp(`class="([^"]*\\b${hook}\\b[^"]*)"`));
+    return m ? m[1].split(/\s+/) : null;
+  };
+
+  // First tokens of every prose-register class attribute in a markup slice,
+  // in document order — the shape that catches two lines SWAPPING registers
+  // even when the per-field sets still balance out.
+  const proseSeq = slice =>
+    [...slice.matchAll(/class="((?:card-habit|card-note)[^"]*)"/g)].map(m => m[1].split(/\s+/)[0]);
+  const slice = (source, from, to) => {
+    const a = source.indexOf(from);
+    const b = to ? source.indexOf(to) : source.length;
+    expect(a, from).toBeGreaterThan(-1);
+    if (to) expect(b, to).toBeGreaterThan(a);
+    return source.slice(a, to ? b : undefined);
+  };
+
+  it('every shared value node carries the same register classes on both surfaces', () => {
+    const PAIRS = [
+      // [sheet data attr, host classes]
+      ['catalog', hostClassOfId('card-catalog')],
+      ['name', hostClassOfId('card-name')],
+      ['type', hostClassOfId('card-type')],
+      ['habit', hostClassOfId('card-habit')],
+      ['note', hostClassOfId('card-note')],
+      ['families', hostClassOfId('public-families')],
+      ['antifit', hostClassOfId('public-antifit')],
+      ['roleline', hostClassOfId('public-roleline')],
+      ['face', hostClassOfId('card-face')],
+      ['entry', hostClassOfId('card-entry')],
+      ['public', hostClassOfId('public-read')],
+      ['public-bridge', bridgeHost.className.split(/\s+/)],
+      ['kua', kuaHost.node.className.split(/\s+/)],
+      ['kua-primary', kuaHostClassOf('kua-primary')],
+      ['kua-body-primary', kuaHostClassOf('kua-body-primary')],
+      ['kua-secondary', kuaHostClassOf('kua-secondary')],
+      ['kua-body-secondary', kuaHostClassOf('kua-body-secondary')],
+      ['kua-note', kuaHostClassOf('kua-note')],
+    ];
+    for (const [attr, hostClasses] of PAIRS) {
+      const sheetClasses = sheetClassOf(attr);
+      expect(sheetClasses, `sheet node data-sheet-${attr} missing`).not.toBeNull();
+      expect(hostClasses, `host counterpart of ${attr} missing`).not.toBeNull();
+      const hostReg = reg(hostClasses);
+      // Non-vacuous: a field whose register set filtered to nothing would
+      // "agree" no matter what the sheet renders.
+      expect(hostReg.length, `${attr}: host register set is empty`).toBeGreaterThan(0);
+      expect(reg(sheetClasses), attr).toEqual(hostReg);
+    }
+  });
+
+  it('the prose lines of each block keep the same register ORDER on both surfaces', () => {
+    // Entry block: host static markup vs the sheet's entry slice.
+    expect(proseSeq(slice(sheetMarkup, 'data-sheet-entry="x"', 'data-sheet-public="x"')))
+      .toEqual(proseSeq(slice(html, 'id="card-entry"', 'id="public-read"')));
+    // Public block: the host's static three lines plus the bridge node the
+    // real builder appends at runtime.
+    expect(proseSeq(slice(sheetMarkup, 'data-sheet-public="x"', 'data-sheet-kua="x"')))
+      .toEqual([
+        ...proseSeq(slice(html, 'id="public-read"', '</article>')),
+        bridgeHost.className.split(/\s+/)[0],
+      ]);
+    // Kua block: entirely runtime on the host side.
+    expect(proseSeq(slice(sheetMarkup, 'data-sheet-kua="x"')))
+      .toEqual(proseSeq(kuaHost.node.innerHTML));
+    // And the comparison is not vacuous: the kua block really carries the
+    // alternating five-line shape.
+    expect(proseSeq(kuaHost.node.innerHTML)).toHaveLength(5);
+  });
+
+  it('every style keyed on a host-only kua hook class also keys the sheet attribute', () => {
+    // The seam the register filter above deliberately leaves open: the host
+    // addresses its kua lines by hook CLASSES the sheet does not carry (the
+    // sheet uses data attributes). If a rule in the injected stylesheet
+    // styles `.kua-read .kua-secondary` without a `[data-sheet-kua-secondary]`
+    // companion, the host gets presentation the dyad sheets silently lose —
+    // exactly the pr218 margin defect. Derived from the stylesheet the real
+    // initKuaUI injects, not from source text.
+    const HOOKS = ['kua-primary', 'kua-body-primary', 'kua-secondary', 'kua-body-secondary'];
+    const rules = [...kuaHost.style.matchAll(/([^{}]+)\{[^}]*\}/g)].map(m => m[1]);
+    let keyed = 0;
+    for (const sel of rules) {
+      for (const hook of HOOKS) {
+        if (new RegExp(`\\.${hook}(?![\\w-])`).test(sel)) {
+          keyed += 1;
+          expect(sel, `rule "${sel.trim()}" styles .${hook} but not the sheet's attribute`)
+            .toContain(`[data-sheet-${hook}]`);
+        }
+      }
+    }
+    // Non-vacuous: the margin rule keys .kua-secondary today. If every hook
+    // rule disappears this guard should be revisited, not silently pass.
+    expect(keyed).toBeGreaterThan(0);
   });
 });
 

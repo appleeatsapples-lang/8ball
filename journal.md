@@ -5,7 +5,51 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky in a bounded band — STAGED on branch, PR pending
+## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — STAGED on branch, PR pending
+
+**What happened.** The last named repo queue item — the pr218 artifact's
+recorded gap "the host/sheet kua parity rested on two source regexes" —
+is closed. The defect class it guards is pr218's F9 itself: the same
+logical prose line typeset with a different register class on the host
+card face than on the dyad's two sheets (`card-note` vs `card-habit`),
+invisible to every value-level assertion because the TEXT agreed while
+the typography diverged. The fix's pins were parallel source regexes
+over the two renderers — dodgeable independently, and blind to any line
+they never named.
+
+**The differential.** A new describe in `tests/dyad_surface.test.js`
+built on the bounded value differential's own principle: derive BOTH
+sides from the real artifacts at runtime, restate neither. The host
+side comes from the shipped `index.html` markup (the card face's
+static innerHTML) plus the nodes the REAL `initKuaUI` and
+`initPublicUI` builders append under a capture document — including
+the stylesheet `initKuaUI` injects. The sheet side comes from the real
+`buildSheetMarkup()`. Three contracts: (1) per-field register-class
+set equality across all eighteen shared nodes (value lines, block
+roots, the runtime-appended bridge, all five kua lines), with an
+emptiness guard so a typo'd lookup cannot pass vacuously; (2)
+prose-line register ORDER per block — the shape that catches two lines
+swapping registers while the per-field sets still balance; (3) the
+style-companion rule for the seam the register filter deliberately
+leaves open — any injected rule keyed on a host-only kua hook class
+must also key the sheet's data attribute, which is exactly the channel
+pr218's margin fix used. Host-only lookup hooks are excluded from the
+register vocabulary by design; contract (3) is what makes that
+exclusion safe.
+
+**Verification.** Six mutants killed, each in a SHIPPED module rather
+than the test: the F9 revert on the sheet side, the same drift on the
+HOST side, a kua line-order swap that preserves every per-field set,
+the margin rule dropping its `[data-sheet-kua-secondary]` companion,
+the bridge register drifting via `BRIDGE_CLASS`, and the families line
+drifting on the sheet. Both init captures re-init to an empty surface
+afterwards so no later render in the file can reach the mocks. Suite
+57 files / 2002 tests green (+3); product audit PASS, 0 blocking. No
+shipped module changed — this is a tests-only PR (journal rides
+along), and the CLAUDE.md count lines are untouched (no new test
+file).
+
+## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky in a bounded band — SHIPPED (#221)
 
 **What happened.** The pr208 opus F8 LOW — "at 320×568 the revealed
 in-flow submit rests below the fold with no scroll affordance" — gets
