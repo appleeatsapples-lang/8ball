@@ -541,8 +541,15 @@ body {
      at 360px wide, worse at 320px — measured 2026-08-30, and pre-existing
      before the aria-expanded reveal fix). No size or corner fixes that, so
      below the short-viewport line the submit returns to the in-flow,
-     full-width shape it has above 480px. The @supports reveal/withdraw
-     rules above are position-independent and keep applying unchanged. */
+     full-width shape it has above 480px. This static shape is ALSO the
+     floor the sticky band below falls back to: any bottom-pinned control
+     — fixed or sticky alike — occludes the time/birthplace inputs once
+     the viewport is short enough that the fields themselves reach the
+     bottom edge (interception measured up to ~512px tall at 320 wide,
+     shallower at wider widths — pr221 audit, both trees), and a submit
+     that swallows taps meant for the birthplace field is strictly worse
+     than one below the fold. In-flow can be scrolled to; an occluder
+     cannot be dismissed. */
   #profile-form {
     padding-bottom: 0;
   }
@@ -556,6 +563,48 @@ body {
     background: transparent;
     box-shadow: none;
     letter-spacing: 0.28em;
+  }
+}
+
+@media (max-width: 480px) and (min-height: 520px) and (max-height: 680px) {
+  /* The pr208 F8 design pass, bounded by the pr221 audit. In the band
+     where the stuck slot lands on non-interactive content only (520px —
+     clear of the ~512px worst-case interception ceiling above — up to the
+     680px line where the fixed circle takes over), the full-width submit
+     rides sticky: it keeps its in-flow slot (no shift on reveal, docks
+     into place once scrolled) but pins the revealed control to the
+     viewport bottom, instead of settling with ~31 of its 48px below the
+     fold with no scroll affordance (static, measured at 320x568). Below
+     520px the previous block's static shape holds — see its comment for
+     why no bottom-pinned control is safe there. The opaque background +
+     12px halo is the fixed circle's own trick, covering the side gutters
+     and the hint text it overlays until the user scrolls; while hidden or
+     withdrawn, the reveal contract's visibility:hidden paints neither
+     button nor halo. The 2px floor on the bottom offset keeps the focus
+     ring from clipping at the viewport edge; env() contributes only under
+     viewport-fit=cover, same as the fixed circle's use of it. The
+     @supports reveal/withdraw rules are position-independent and keep
+     applying unchanged; the suggestions listbox additionally out-stacks
+     the button (z-index 10 over 9) and the withdraw rule removes it while
+     the listbox is open. */
+  #enter-btn {
+    position: sticky;
+    bottom: max(2px, env(safe-area-inset-bottom, 0px));
+    background: rgba(0, 0, 0, 0.96);
+    box-shadow: 0 0 0 12px rgba(0, 0, 0, 0.96);
+  }
+
+  /* The polar notice is the one signal in the button's stuck footprint a
+     user must not miss (rising silently unavailable). While it shows, the
+     submit returns to the in-flow shape so the notice is never occluded —
+     the same trade the sub-520 floor makes, scoped to the one state that
+     needs it. Browsers without :has() keep the sticky button; they are
+     the same ones the reveal contract already leaves it always-visible
+     for. */
+  #profile-form:has(#polar-message:not([hidden])) #enter-btn {
+    position: static;
+    background: transparent;
+    box-shadow: none;
   }
 }
 
