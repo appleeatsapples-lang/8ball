@@ -141,9 +141,33 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
     );
   });
 
+  // The pr223 audit proved the previous whole-file toMatch pins vacuous in
+  // the file's own documented failure class: `@media (max-width: 719.98px)
+  // and (min-width: 700px)` disabled the entire fix at every width below
+  // 700 — the exact field viewport — with the suite green, and a decoy
+  // 719.98 block beside the real rules at another width rode green too. So
+  // the pins below operate on the EXTRACTED media block: brace-matched from
+  // the exact prelude, which itself must carry no extra condition.
+  const MEDIA_PRELUDE = '@media (max-width: 719.98px)';
+  const mediaBlock = (() => {
+    const at = labelsJs.indexOf(MEDIA_PRELUDE);
+    if (at === -1) return '';
+    const open = labelsJs.indexOf('{', at);
+    // The prelude must run straight into its brace — any appended condition
+    // ("and (min-width: …)") re-arms the trap on the widths it excludes.
+    if (!/^@media \(max-width: 719\.98px\)\s*\{$/.test(labelsJs.slice(at, open + 1))) return '';
+    let depth = 0;
+    for (let i = open; i < labelsJs.length; i++) {
+      if (labelsJs[i] === '{') depth++;
+      else if (labelsJs[i] === '}' && --depth === 0) return labelsJs.slice(open + 1, i);
+    }
+    return '';
+  })();
+
   it('the mobile-only intrinsic-height override lives below the 720px side-rail breakpoint', () => {
-    expect(labelsJs).toMatch(/@media \(max-width: 719\.98px\)/);
-    expect(labelsJs).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
+    expect(mediaBlock.length, 'the 719.98px block is missing, conditioned, or malformed')
+      .toBeGreaterThan(50);
+    expect(mediaBlock).toMatch(/\.flip-stage\s*\{[^}]*height:\s*auto/);
   });
 
   // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
@@ -153,7 +177,14 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   // the property that actually releases the fixed box; without this pin the
   // suite stayed green with the fix deleted.
   it('pins aspect-ratio: auto — the declaration that actually releases the 5/8 box', () => {
-    expect(labelsJs).toMatch(/\.flip-stage\s*\{[^}]*aspect-ratio:\s*auto/);
+    expect(mediaBlock).toMatch(/\.flip-stage\s*\{[^}]*aspect-ratio:\s*auto/);
+  });
+
+  // pr223 audit MED-3: Chromium-invisible, so only a pin can hold it. The
+  // grid's min-height released here is part of the explicit-layout contract
+  // the #196 fix established.
+  it('pins min-height: 0 on the inner grid — Chromium-invisible, WKWebView-load-bearing', () => {
+    expect(mediaBlock).toMatch(/\.flip-inner\s*\{[^}]*min-height:\s*0/);
   });
 
   // 2026-08-31 field report (iOS in-app browser): with labels HIDDEN the
@@ -161,10 +192,13 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   // the comprehension hint pushed the free card past the 5/8 height at
   // every sub-720 width — and the same WKWebView non-growth painted the
   // card over the $3 offer. The layout rule is therefore unconditional on
-  // mobile: re-scoping it to `.labels-revealed` reintroduces the resting
-  // overflow on the engines the fix exists for.
-  it('the intrinsic-height rule no longer conditions on labels-revealed', () => {
-    expect(labelsJs).not.toMatch(/\.flip-stage\.labels-revealed\s*\{/);
+  // mobile. A token ban over the whole extracted block, not a selector
+  // regex: the pr223 audit dodged the first version with a descendant
+  // combinator, so ANY reappearance of the class inside the block —
+  // whatever the selector shape — reintroduces the resting overflow on the
+  // engines the fix exists for and fails here.
+  it('the intrinsic-height rules never condition on labels-revealed, in any selector shape', () => {
+    expect(mediaBlock).not.toMatch(/labels-revealed/);
   });
 
   // PR-196 premerge audit: only the FRONT card drops to intrinsic height.
@@ -178,9 +212,12 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
 
   it('does not touch the ≥720px desktop side-rail breakpoint (ui/shell.css owns that block)', () => {
     expect(labelsJs).not.toMatch(/min-width:\s*720px/);
-    // .flip-stage.labels-revealed stays owned by ui/labels.js — a duplicate
-    // definition in the shell (index.html markup or ui/shell.css, where the
-    // side-rail block moved on 2026-08-31) would silently shadow it.
+    // The mobile flip-stage layout stays owned by ui/labels.js (pr223: the
+    // rule is unconditional now, no longer keyed to .labels-revealed) — a
+    // competing .flip-stage.labels-revealed definition appearing in the
+    // shell (index.html markup or ui/shell.css, where the side-rail block
+    // moved on 2026-08-31) would re-condition the layout behind this
+    // module's back.
     expect(html + shellCss).not.toMatch(/\.flip-stage\.labels-revealed/);
   });
 

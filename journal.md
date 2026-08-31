@@ -43,18 +43,53 @@ resting, labels-revealed, and back-beat states at 390×844, 390×660 (the
 in-app shape) and 320×568 — stage always equals card height, the $3
 offer clears the card (112–127px gap), the back face paints full-height
 (708=708; an initial 715 reading was a mid-flip-transition measurement
-artifact, re-measured settled), and 1280×800 keeps the desktop rail's
-ratio box untouched. A base-tree comparison confirms Chromium geometry
-is byte-identical before/after (stage already grew there). Three
-mutants killed on the updated pins: re-conditioning the rule on
-`.labels-revealed` (the field regression, 3 tests), dropping
-`aspect-ratio: auto` (the #196-audit vacuous-pin lesson), and dragging
-`.card-back` to auto (the #196 F3 collapse). Suite 57 files / 2004
-tests green (+1); product audit PASS, 0 blocking. WKWebView itself is
-not runnable from this container — the counterfactual is structural
-(the sub-720 ratio box is gone entirely), and a real-device re-check of
-the deployed site after merge is the closing verification, which only
-the controller can perform.
+artifact, re-measured settled), and 1280×800's desktop rail is
+unchanged by this diff. A base-tree comparison confirms Chromium
+geometry is byte-identical before/after (stage already grew there).
+Suite 57 files / 2006 tests green; product audit PASS, 0 blocking.
+WKWebView itself is not runnable from this container — the
+counterfactual is structural (the sub-720 ratio box is gone entirely),
+and a real-device re-check of the deployed site after merge is the
+closing verification, which only the controller can perform.
+
+**Cross-model audit (pr223), reconciled.** Lanes: MERGE WITH FIXES
+(1 P1, 3 MED, 2 LOW) and MERGE WITH FIXES (1 MED). Every product claim
+reproduced by both — one lane ran 48 paired base-vs-head geometry
+measurements plus sha-identical full-page screenshots proving the
+no-op claim; the other swept 17 widths (280→719) confirming the ratio
+box never wins sub-720 (worst margin 208px) and reproduced the ~708/
+~573 numbers. Findings, all landed: **P1** — this entry's first draft
+ATE the previous entry's heading, the THIRD occurrence today of the
+same insertion defect; the #222 heading is restored, and the class now
+fails CI instead of waiting for a reviewer — a journal structural
+guard in tests/repo_shape.test.js pins that no `## ` section carries
+two `**What happened.**` bodies (mutation-verified against today's
+exact corruption). **MED (both lanes, from different dodges)** — the
+first-draft pins were whole-file toMatch and vacuous in the file's own
+documented class: an appended media condition (`and (min-width:
+700px)`) disabled the whole fix at the field viewport with the suite
+green, a decoy block rode green too, and the no-labels-revealed pin
+fell to a descendant-combinator selector. Rebuilt on the EXTRACTED
+media block: exact-prelude brace matching, all three rules pinned
+inside it, `min-height: 0` pinned (Chromium-invisible,
+WKWebView-load-bearing — the second MED), and a whole-block token ban
+on `labels-revealed`. Seven mutants killed across the change now: the
+original three plus appended-condition, decoy-block, min-height
+deletion, and descendant-shape reintroduction. **MED** — the same
+WKWebView ratio-box trap is LIVE on two surfaces this fix does not
+reach and this entry's first draft mis-read as clearance: the ≥720px
+desktop rail (576px box vs 722px resting / 1041px revealed content —
+bites only ≥720-wide embedded WebViews, e.g. iPad in-app) and the t5
+dyad's two standalone sheets (5/8 box vs 804/887px content at 390
+wide). Neither is a regression of this PR; both are RECORDED HERE AS
+QUEUED, the dyad one first in line since it breaks the paid screen in
+the same environment the field report came from. **LOW** — a stale
+ownership comment in the test contradicting the new assertion,
+corrected; the artifact rides this commit. Suite after reconciliation:
+57 files / 2006 tests green (+3 total); product audit PASS,
+0 blocking.
+
+## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — SHIPPED (#222)
 
 **What happened.** The pr218 artifact's recorded gap — "the host/sheet
 kua parity rested on two source regexes" — is closed (other named
