@@ -166,6 +166,20 @@ describe('kua render — contract', () => {
     // and the pre-existing slots the same mutant class could take
     expect(kuaJs).toMatch(/qq\('\.kua-primary'\)/);
     expect(kuaJs).toMatch(/qq\('\.kua-secondary'\)/);
+  });
+
+  it('the two kua value lines carry ONE type style, in the host block and the dyad sheets alike (pr208 F9)', () => {
+    // Since the gender retirement the both-values render is the only read;
+    // primary italic (card-habit) beside secondary upright (card-note) was
+    // an arbitrary leftover of the single-value layout. Both value
+    // headlines wear card-habit; both bodies stay card-note.
+    expect(kuaJs).toMatch(/card-habit kua-primary/);
+    expect(kuaJs).toMatch(/card-habit kua-secondary/);
+    expect(kuaJs).not.toMatch(/card-note kua-secondary/);
+    const sheetJs = readFileSync(join(__dirname, '..', 'ui', 'sheet.js'), 'utf-8');
+    expect(sheetJs).toMatch(/card-habit" data-sheet-kua-primary/);
+    expect(sheetJs).toMatch(/card-habit" data-sheet-kua-secondary/);
+    expect(sheetJs).not.toMatch(/card-note" data-sheet-kua-secondary/);
     expect(kuaJs).toMatch(/qq\('\.kua-note'\)/);
   });
 

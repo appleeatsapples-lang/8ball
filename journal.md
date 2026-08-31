@@ -5,6 +5,29 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — STAGED on branch, PR pending
+
+**What happened.** The controller ordered the last flagged queue item:
+the pr208 audit's F9 — the kua block's two value lines carried two type
+styles (`card-habit` italic on the primary, `card-note` upright on the
+secondary), an arbitrary leftover of the single-value layout now that
+the gender retirement made the both-values render the only read. Both
+value headlines now wear `card-habit`; both bodies stay `card-note`.
+Two renderers moved together: the host block (`ui/kua.js`) and the
+dyad's instanced sheets (`ui/sheet.js`), so the t5 pair cannot disagree
+with the host about the kua block's face.
+
+**Verification.** Suite 57 files / **1995** tests green (1994 + a
+parity pin: both value lines carry `card-habit` in BOTH renderers, and
+`card-note` on a secondary line fails). Two revert mutants killed (host
+and sheet independently). Live-fire at t3: `.kua-primary` and
+`.kua-secondary` both compute `font-style: italic`, both bodies
+`normal`; zero page errors. No DOCTRINE or content touch; CSS classes
+only — no rule changed, no new style injected.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Comprehension hint + the #213 panel self-close regression, found and fixed — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the comprehension hints — the

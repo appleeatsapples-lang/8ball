@@ -134,7 +134,7 @@ export function buildSheetMarkup(prefix) {
     '<div class="kua-title">KUA</div>' +
     `<div class="card-habit" data-sheet-kua-primary="${prefix}"></div>` +
     `<div class="card-note kua-body" data-sheet-kua-body-primary="${prefix}"></div>` +
-    `<div class="card-note" data-sheet-kua-secondary="${prefix}"></div>` +
+    `<div class="card-habit" data-sheet-kua-secondary="${prefix}"></div>` +
     `<div class="card-note kua-body" data-sheet-kua-body-secondary="${prefix}"></div>` +
     `<div class="card-note kua-note" data-sheet-kua-note="${prefix}"></div>` +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +

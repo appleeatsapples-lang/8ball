@@ -132,7 +132,7 @@ function resolveKuaRoot(refs) {
     '<div class="kua-title">KUA</div>' +
     '<div class="card-habit kua-primary"></div>' +
     '<div class="card-note kua-body kua-body-primary"></div>' +
-    '<div class="card-note kua-secondary"></div>' +
+    '<div class="card-habit kua-secondary"></div>' +
     '<div class="card-note kua-body kua-body-secondary"></div>' +
     '<div class="card-note kua-note"></div>' +
     '<span class="coord-seal" aria-hidden="true"></span>';
