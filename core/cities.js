@@ -188,6 +188,30 @@ export async function loadCities() {
   return _loading;
 }
 
+/**
+ * Fire-and-forget prefetch of the city dataset.
+ *
+ * The dataset is ~2.4MB; when the first import only starts on the first
+ * debounced keystroke, the first suggestion list arrives behind a
+ * multi-second fetch on slow links. Warming on birthplace-field focus
+ * moves that fetch into the dead time while the person types. Shares
+ * loadCities()' cache/in-flight promise, so a warm followed by a real
+ * search never issues a duplicate request. The module-level `_warmed`
+ * latch makes warming once-per-session across ALL callers — two city
+ * fields exist (host + dyad), and without the latch two sequential
+ * failed warms would silently spend two of the three bounded importer
+ * attempts before the user's first real search (pr214 audit F1). A
+ * failed warm therefore consumes AT MOST one attempt, ever, and swallows
+ * the rejection — the real search path surfaces errors through its own
+ * status line.
+ */
+let _warmed = false;
+export function warmCities() {
+  if (_warmed) return;
+  _warmed = true;
+  loadCities().catch(() => {});
+}
+
 // ── Search normalization ───────────────────────────────────────────
 // NFD-decompose then strip combining marks so "Reykjavík" and
 // "Reykjavik" hit the same index path, and lowercase so search is

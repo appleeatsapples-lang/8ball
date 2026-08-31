@@ -24,7 +24,8 @@ import {
   COORDINATE_CONTEXT,
   NUMEROLOGY_SLOT_LINES,
   THEME_TENSIONS,
-} from '../content/meanings.v4.js';
+  PLACEMENT_LINES,
+} from '../content/meanings.v5.js';
 import { NUMEROLOGY_MEANINGS as V2_NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
@@ -71,6 +72,11 @@ function* currentMeaningStrings() {
   }
   for (const [pair, sentence] of Object.entries(THEME_TENSIONS)) {
     yield { path: `tension.${pair}`, text: sentence };
+  }
+  for (const [placement, lines] of Object.entries(PLACEMENT_LINES)) {
+    for (const [value, line] of Object.entries(lines)) {
+      yield { path: `placementLine.${placement}.${value}`, text: line };
+    }
   }
   // Every harmony frame, rendered with real registry parts — not only the
   // frames a fixture happens to hit (the pr212 frame-coverage lesson).
@@ -203,15 +209,27 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
     // PR #101 MED-2 + PR #104 codex absorb: a future meanings.v3.js (§4 —
     // new release = new file) must not ship unscanned while this file greens
     // on v1. This file intentionally retains a historical v1 scan while the
-    // currentMeaningStrings walker below scans the active v4 additions.
-    // Runtime imports must therefore resolve exclusively to meanings.v4.js.
+    // currentMeaningStrings walker below scans the active v5 additions.
+    // Runtime imports must therefore resolve exclusively to meanings.v5.js —
+    // in BOTH runtime importers: ui/meanings.js and core/dyad.js (the pr214
+    // audit F3 proved a dyad reverted to v3 rode green when only the UI
+    // module was scanned). The dyad's meaningSource provenance literal must
+    // also name the file it actually imports — emitting one and importing
+    // another is the F6 defect class its own comment warns about.
     const family = /from\s+['"]\.{1,2}\/content\/(meanings\.[\w.]+\.js)['"]/g;
     const own = [...readFileSync(fileURLToPath(import.meta.url), 'utf-8').matchAll(family)]
       .map(match => match[1]);
-    const runtime = [...meaningsUiJs.matchAll(family)].map(match => match[1]);
-    expect(own).toContain('meanings.v4.js');
-    expect(runtime.length).toBeGreaterThan(0);
-    expect(new Set(runtime)).toEqual(new Set(['meanings.v4.js']));
+    const dyadJs = readFileSync(join(__dirname, '..', 'core', 'dyad.js'), 'utf-8');
+    const runtime = [
+      ...meaningsUiJs.matchAll(family),
+      ...dyadJs.matchAll(family),
+    ].map(match => match[1]);
+    expect(own).toContain('meanings.v5.js');
+    expect(runtime.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(runtime)).toEqual(new Set(['meanings.v5.js']));
+    const provenance = dyadJs.match(/meaningSource:\s*'content\/(meanings\.[\w.]+\.js) NUMEROLOGY_MEANINGS'/);
+    expect(provenance).not.toBeNull();
+    expect(provenance[1]).toBe('meanings.v5.js');
   });
 });
 
@@ -473,6 +491,11 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
         expect(typeof line).toBe('string');
         expect(line.length).toBeGreaterThan(30);
       }
+      // Same whole-line uniqueness guard the placement families carry
+      // (pr214 audit F6) — a duplicated value line within a family rode
+      // green here too.
+      expect(new Set(Object.values(lines)).size, `${slot} lines must be unique`)
+        .toBe(Object.keys(lines).length);
     }
     // Assembly contract, byte-exact over EVERY family and value: base body
     // + one space + that slot's own line. The pr212 audit proved the
@@ -521,6 +544,76 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
       for (const [a, b] of pairs) {
         expect(entryFor(a, value).body, `${a}/${b}=${value}`).not.toBe(entryFor(b, value).body);
       }
+    }
+  });
+
+  it('v5 placement lines: two exact families, every sign and branch, appended never edited', () => {
+    expect(Object.keys(PLACEMENT_LINES).sort()).toEqual(['innerAnimal', 'rising']);
+    expect(Object.keys(PLACEMENT_LINES.rising).sort())
+      .toEqual(SUN_SIGNS.map(s => s.name).sort());
+    expect(Object.keys(PLACEMENT_LINES.innerAnimal).sort())
+      .toEqual([...ANIMALS].sort());
+    for (const [placement, lines] of Object.entries(PLACEMENT_LINES)) {
+      for (const line of Object.values(lines)) {
+        expect(typeof line).toBe('string');
+        expect(line.length).toBeGreaterThan(30);
+      }
+      // Within a family every line shares an authored prefix, so a
+      // copy-pasted value line is easy to make and invisible to the
+      // vocabulary oracle (pr214 audit F6 mutation-proved it riding
+      // green). Whole-line uniqueness per family closes it.
+      expect(new Set(Object.values(lines)).size, `${placement} lines must be unique`)
+        .toBe(Object.keys(lines).length);
+    }
+    // Assembly contract, byte-exact over EVERY value (the pr212 lesson —
+    // startsWith/endsWith lets a dropped join space or a family swap ride
+    // green): shared base body + one space + that placement's own line.
+    // The primary compartments stay byte-identical to the registry.
+    for (const sign of SUN_SIGNS.map(s => s.name)) {
+      expect(entryFor('rising', sign).body, `rising=${sign}`)
+        .toBe(`${SUN_MEANINGS[sign].body} ${PLACEMENT_LINES.rising[sign]}`);
+      expect(entryFor('sun', sign).body, `sun=${sign}`).toBe(SUN_MEANINGS[sign].body);
+    }
+    for (const animal of ANIMALS) {
+      expect(entryFor('innerAnimal', animal).body, `innerAnimal=${animal}`)
+        .toBe(`${ANIMAL_MEANINGS[animal].body} ${PLACEMENT_LINES.innerAnimal[animal]}`);
+      expect(entryFor('animal', animal).body, `animal=${animal}`).toBe(ANIMAL_MEANINGS[animal].body);
+    }
+  });
+
+  it('v5 placement lines: each family names its OWN placement — an oracle a family swap cannot satisfy', () => {
+    // The pr212 audit swapped two whole slot-line families and every
+    // table-as-its-own-oracle pin stayed green; same defense here. The
+    // rising lines must read the value as the ascendant, the private-animal
+    // lines as the off-stage register — vocabulary a swap cannot fake.
+    const PLACEMENT_VOCAB = {
+      rising: /rising sign/,
+      innerAnimal: /private animal/,
+    };
+    for (const [placement, re] of Object.entries(PLACEMENT_VOCAB)) {
+      for (const [value, line] of Object.entries(PLACEMENT_LINES[placement])) {
+        expect(re.test(line), `${placement}[${value}] must name its placement (${re})`).toBe(true);
+      }
+      for (const [other, lines] of Object.entries(PLACEMENT_LINES)) {
+        if (other === placement) continue;
+        for (const [value, line] of Object.entries(lines)) {
+          expect(re.test(line), `${other}[${value}] wrongly names ${placement}'s office`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('v5 placement lines: a shared sign or branch no longer renders the same body twice', () => {
+    // The last measured duplication (3 of 33 sampled sheets): sun/rising
+    // share SUN_MEANINGS and the public/private animal share
+    // ANIMAL_MEANINGS, so a repeated value rendered verbatim twice.
+    for (const sign of SUN_SIGNS.map(s => s.name)) {
+      expect(entryFor('sun', sign).body, `sun/rising=${sign}`)
+        .not.toBe(entryFor('rising', sign).body);
+    }
+    for (const animal of ANIMALS) {
+      expect(entryFor('animal', animal).body, `animal/innerAnimal=${animal}`)
+        .not.toBe(entryFor('innerAnimal', animal).body);
     }
   });
 
