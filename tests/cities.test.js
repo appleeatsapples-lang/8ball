@@ -57,14 +57,18 @@ describe('cities.json — city shape', () => {
   // ~53k entries × ~17 checks. An earlier shape of this test made every
   // check its own expect() (~900k vitest assertions), whose per-expect
   // overhead put the run at ~12s against a widened 15s budget — which
-  // then timed out under CPU contention on four separate recorded
-  // occasions (journal: pr136, pr222, pr225, pr226 audit cycles). The
+  // then timed out under CPU contention or a cold cache on four
+  // recorded occasions (journal: pr136, pr222, pr225, pr226 cycles). The
   // same contract now runs as plain JS collecting violation messages
   // with a single terminal expect: identical checks, millisecond
   // runtime, and the test rejoins the suite's default budget.
   it('every entry is a 6-element array with correctly typed fields', () => {
     const maxTzIdx = data.tz.length - 1;
     const violations = [];
+    // Strings render quoted so `tzIdx "240"` can't read as the number
+    // 240; Infinity (reachable via JSON's 1e999) stays "Infinity"
+    // rather than JSON.stringify's misleading "null".
+    const show = (v) => typeof v === 'string' ? JSON.stringify(v) : String(v);
     const flag = (i, msg) => violations.push(`index ${i}: ${msg}`);
     for (let i = 0; i < data.cities.length && violations.length <= 5; i++) {
       const c = data.cities[i];
@@ -72,17 +76,17 @@ describe('cities.json — city shape', () => {
       if (c.length !== 6) { flag(i, `length ${c.length}, expected 6`); continue; }
       const [name, cc, lat, lng, tzIdx, pop] = c;
       if (typeof name !== 'string' || name.length === 0)
-        flag(i, `name ${JSON.stringify(name)} is not a non-empty string`);
+        flag(i, `name ${show(name)} is not a non-empty string`);
       if (typeof cc !== 'string' || !/^[A-Z]{2}$/.test(cc))
-        flag(i, `cc ${JSON.stringify(cc)} is not two uppercase letters`);
+        flag(i, `cc ${show(cc)} is not two uppercase letters`);
       if (typeof lat !== 'number' || !(lat >= -90 && lat <= 90))
-        flag(i, `lat ${lat} is not a number in [-90, 90]`);
+        flag(i, `lat ${show(lat)} is not a number in [-90, 90]`);
       if (typeof lng !== 'number' || !(lng >= -180 && lng <= 180))
-        flag(i, `lng ${lng} is not a number in [-180, 180]`);
+        flag(i, `lng ${show(lng)} is not a number in [-180, 180]`);
       if (!Number.isInteger(tzIdx) || tzIdx < 0 || tzIdx > maxTzIdx)
-        flag(i, `tzIdx ${tzIdx} is not an integer in [0, ${maxTzIdx}]`);
+        flag(i, `tzIdx ${show(tzIdx)} is not an integer in [0, ${maxTzIdx}]`);
       if (!Number.isInteger(pop) || pop < 0)
-        flag(i, `pop ${pop} is not a non-negative integer`);
+        flag(i, `pop ${show(pop)} is not a non-negative integer`);
     }
     expect(violations, 'city-shape violations (first few shown)').toEqual([]);
   });

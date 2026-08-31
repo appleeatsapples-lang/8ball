@@ -8,10 +8,12 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 ## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — STAGED on branch, PR pending
 
 **What happened.** The `tests/cities.test.js` city-shape test — the
-suite's one recorded flake, timed out under CPU contention on four
-separate audit cycles (pr136 disclosed it first; the pr222, pr225 and
-pr226 lanes each hit it again) — is restructured so the flake class
-cannot recur. Self-selected as the top non-reserved queue item on the
+suite's one OUTSTANDING recorded flake (the l48_gate_composition one
+was root-caused and fixed at the time), timed out under CPU contention
+or a cold cache on four recorded occasions (pr136 disclosed it first;
+the pr222 lane hit it cold-cache, the pr225 and pr226 lanes under
+contention) — is restructured so this flake shape is gone from this
+test. Self-selected as the top non-reserved queue item on the
 controller's "Go" after #226 merged: every one of those incidents cost
 an audit lane a clean full-suite signal and bought a paragraph of
 "recorded, not rerun-past" boilerplate in the artifact.
@@ -27,21 +29,53 @@ the assertion fires from `expect()` or from a collected message.
 
 **The fix.** The same seventeen checks now run as plain JS collecting
 violation messages (`index N: cc "x1" is not two uppercase letters`),
-capped at six like the near-duplicates test, with a single terminal
-`expect(violations).toEqual([])`. The `{ timeout: 15_000 }` override
-is deleted — the test rejoins the suite's default budget at ~280ms
-isolated (from ~12s), and the comment above it records the incident
-history so the shape isn't "simplified" back. Mutation-verified
-seven ways before commit: bad cc, null lat, 5-element entry,
-out-of-range tzIdx, float tzIdx, negative pop, empty name — each
-temporarily corrupted into a copy of `assets/cities.json`, each
-KILLED with its indexed message, the asset restored byte-identical
-(git-verified clean).
+with a single terminal `expect(violations).toEqual([])`. The scan
+stops once more than five violations are collected — like the
+near-duplicates test's early exit, though a single many-fielded
+corrupt entry still reports each of its messages, so the stop never
+under-reports. The `{ timeout: 15_000 }` override is deleted — the
+test body runs in ~17–22ms isolated (the whole file, JSON parse
+included, in well under a second; the old shape measured ~12s) — and
+the comment above it records the incident history so the shape isn't
+"simplified" back. Mutation-verified seven ways before commit: bad
+cc, null lat, 5-element entry, out-of-range tzIdx, float tzIdx,
+negative pop, empty name — each temporarily corrupted into a copy of
+`assets/cities.json`, each KILLED with its indexed message, the asset
+restored byte-identical (git-verified clean).
 
 **Contract unchanged.** Same fields, same bounds, same failure
 precision; no product code touched, no test added or removed (57
 files / 2011 tests before and after). Suite green; product audit
 PASS, 0 blocking.
+
+**Audit reconciliation (§10 two-lane, both MERGE WITH FIXES).** The
+contract-equivalence question the brief aimed at the change came back
+clean from both lanes independently: one lane ran 43 raw-JSON
+corruptions against the old and new shapes in parallel worktrees and
+got identical verdicts on all 43 (including six survive-by-design
+boundary cases); the other devised 17 of its own, all killed; NaN is
+unreachable through `JSON.parse` and ±Infinity (JSON's `1e999`)
+behaves identically in both shapes; the early exit cannot false-pass
+(it only fires once `violations` is non-empty, and any non-empty
+array fails the terminal expect); and structural-failure handling is
+strictly better than before (the old chain aborted the whole scan at
+the first bad entry — the new one reports six). Every fix-class
+finding was prose accuracy, landed in this entry's corrections above:
+"one recorded flake" needed OUTSTANDING (the l48_gate_composition
+flake is on the record, fixed), the pr222 sighting was cold-cache
+rather than contention, the "~280ms isolated" figure was the whole
+file's first-draft timing rather than the test's (the truth is
+better: ~17–22ms), and "capped at six" overstated the early exit.
+One message nit landed in code: values now render through a `show()`
+helper so a string `"240"` prints quoted and can't read as the
+number. Recorded for the queue, not fixed here: the next-tightest
+margin in the suite is a `tests/public.test.js` register sweep at
+~2.7–3.0s against the 5s default; and a hypothetical `null` city
+entry would crash at collection time before this test runs
+(pre-existing, identical in both shapes). Lane-infrastructure note
+for the next cycle: give each audit lane its own scratch
+subdirectory — the shared directory produced one real (harmless)
+collision this round.
 
 ## 2026-08-31 — DOCTRINE v0.69: the §1.J price-column reconciliation closes, adopting nothing — SHIPPED (#226)
 
