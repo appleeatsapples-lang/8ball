@@ -5,6 +5,42 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — The auditor's guard test is environment-independent: 102/102 in a container — STAGED on branch, PR pending
+
+**What happened.** The one failure every container run of
+`python3 -m unittest audits.test_project_audit` has carried —
+`test_guard_can_fail`, explained away as "container-only,
+pre-existing" in six PR verifications across two days — is repaired at
+its root. The guard was RIGHT to fail: the leak predicate carried
+home-directory needles only, and in a container the repo lives outside
+`$HOME` (`/home/user/8ball` vs `/root`), so the predicate could never
+fire on a leaky report — which made the real-run
+no-absolute-path-in-artifacts assertions vacuous in exactly the
+environments most of this project's verification now runs in. The
+guard-the-guard test was correctly reporting that the oracle proved
+nothing; the oracle was the defect.
+
+**The fix.** The predicate (`_abs_path_leak_hits`, née
+`_home_leak_hits`) now carries the PRODUCT ROOT needles beside the home
+ones — the auditor redacts both to placeholders, and the product root
+exists in every environment. The guard's leaky payload was already
+built from `REPO_ROOT`, so it now fires everywhere; the real-run
+end-to-end assertion is strictly stronger (it now also catches a
+product-root leak in the shipped artifacts, which the old home-only
+needles ignored on machines where the repo is not under `$HOME`).
+
+**Verification.** Assurance suite **102/102 OK in this container** for
+the first time; two mutants killed in both directions — reverting the
+predicate to home-only fails the guard here (the old state,
+reproduced), and dropping the auditor's product-root redaction pair
+fails the real-run artifact assertion (proving the widened oracle
+bites end to end). Full vitest suite 57 files / 1995 tests green;
+product audit PASS. `audits/test_project_audit.py` is the only file
+changed; the auditor itself is byte-untouched.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Kua type-style unification (the pr208 F9 cosmetic) — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the last flagged queue item:

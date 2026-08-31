@@ -1199,14 +1199,25 @@ class GuardedCheckTests(unittest.TestCase):
 # boundary rather than in each check, because the failure mode being prevented
 # is a future check forgetting to redact.
 
-def _home_leak_hits(text):
-    """Every absolute home-ish path still present in a rendered report.
+def _abs_path_leak_hits(text):
+    """Every absolute machine path still present in a rendered report — the
+    home directory AND the product root, both of which redaction replaces.
 
     Shared by the real-run assertion and by the guard-the-guard case below, so
     the sentinel exercises the exact predicate the real test relies on.
+    Home-only needles made the whole family environment-dependent: in a
+    container the repo lives OUTSIDE $HOME (e.g. /home/user/8ball vs /root),
+    so a home-only predicate could never fire on a leaky report — the guard
+    below failed there (correctly: the oracle proved nothing), and the
+    real-run zero-hit assertions were vacuous. The product root exists and is
+    redacted in every environment, so the predicate is now meaningful
+    everywhere (repaired 2026-08-31; the "container-only failure" every run
+    since the shell split had to explain away was this).
     """
     home = os.path.expanduser("~")
-    needles = [n for n in {home, os.path.realpath(home)} if n and n != os.sep]
+    root = str(REPO_ROOT)
+    needles = {home, os.path.realpath(home), root, os.path.realpath(root)}
+    needles = [n for n in needles if n and n != os.sep]
     return [n for n in needles if n in text]
 
 
@@ -1226,7 +1237,7 @@ class PathRedactionHelperTests(unittest.TestCase):
         }
         out = pa.redact_paths(payload, pairs)
         rendered = json.dumps(out)
-        self.assertEqual(_home_leak_hits(rendered), [],
+        self.assertEqual(_abs_path_leak_hits(rendered), [],
                          f"home path survived redaction: {rendered}")
         self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out["product_root"])
         # recursion actually reached a list inside a dict inside a list
@@ -1256,7 +1267,7 @@ class PathRedactionHelperTests(unittest.TestCase):
         payload = {root: "value", os.path.expanduser("~"): "other"}
         out = pa.redact_paths(payload, pairs)
         rendered = json.dumps(out)
-        self.assertEqual(_home_leak_hits(rendered), [],
+        self.assertEqual(_abs_path_leak_hits(rendered), [],
                          f"home path survived key redaction: {rendered}")
         self.assertIn(pa.PRODUCT_ROOT_PLACEHOLDER, out)
 
@@ -1290,17 +1301,21 @@ class PathRedactionHelperTests(unittest.TestCase):
 
     def test_guard_can_fail(self):
         """Guard-the-guard: the leak predicate must actually fire on a report
-        that was NOT redacted, or every assertion built on it is a false green."""
+        that was NOT redacted, or every assertion built on it is a false
+        green. The leaky payload is built from REPO_ROOT, which the predicate
+        carries as a needle in EVERY environment — under the old home-only
+        needles this correctly failed in containers, where the repo is not
+        under $HOME and the oracle proved nothing."""
         leaky = json.dumps({"product_root": str(REPO_ROOT),
                             "output": f"RUN v4 {REPO_ROOT}"})
-        self.assertNotEqual(_home_leak_hits(leaky), [],
+        self.assertNotEqual(_abs_path_leak_hits(leaky), [],
                             "the leak detector cannot see an unredacted report, so "
                             "the real-run test below proves nothing")
 
 
 class PathRedactionRealRunTests(unittest.TestCase):
-    """End-to-end: a real audit of the real repo must emit no home path in
-    either artifact. This is the assertion that would have caught the original
+    """End-to-end: a real audit of the real repo must emit no absolute home
+    or product-root path in either artifact. This is the assertion that would have caught the original
     defect, and it drives the real writer rather than the helper."""
 
     def test_real_report_artifacts_carry_no_absolute_home_path(self):
@@ -1311,8 +1326,8 @@ class PathRedactionRealRunTests(unittest.TestCase):
             )
             for name in ("latest.json", "latest.md"):
                 text = (Path(out_dir) / name).read_text()
-                self.assertEqual(_home_leak_hits(text), [],
-                                 f"{name} still embeds an absolute home path")
+                self.assertEqual(_abs_path_leak_hits(text), [],
+                                 f"{name} still embeds an absolute machine path")
                 # ...and the assertion is not vacuous: the report is real.
                 self.assertGreater(len(text), 500, f"{name} looks empty")
 
