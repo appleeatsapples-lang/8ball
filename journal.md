@@ -5,7 +5,51 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — DOCTRINE v0.68: the §1.G body/context boundary is drawn — three authored layers — STAGED on branch, PR pending
+## 2026-08-31 — DOCTRINE v0.69: the §1.J price-column reconciliation closes, adopting nothing — STAGED on branch, PR pending
+
+**What happened.** The open doctrine work v0.61 filed and the v0.67
+activation amendment explicitly kept open — "reconciling the two
+ladders" between the Price column's $1/$2/$3 run and §1.J's $6 rung,
+whose price came from the commissioning brief's entity-count ladder
+(one person · two people), a framing the constitution never adopted —
+is resolved on the controller's order ("do the §1.J price-column
+reconciliation"). The pr225 audit had just re-surfaced it as still
+open and controller-reserved.
+
+**The resolution: derive, don't adopt.** The v0.69 amendment closes
+the question by giving the constitution its own account of the $6
+instead of importing the brief's ladder: the Price column's unit is
+the COMPLETE SINGLE SHEET at $3 (the v0.55 run read as
+fractions-to-whole of one sheet — $1 and $2 partial densities, $3 the
+whole, which the §4.B sprint sells directly); t5's $6 is TWO units —
+a second person's complete sheet with the relation layer riding the
+pair as one indivisible step, components deliberately unpriced
+separately, so no clause ever owes the defense v0.60 found impossible
+for the retired rung's "$9 for five derived strings". The brief's
+entity-count ladder stays unadopted — made unnecessary rather than
+made law. The four-rung reading is t1 · $1 / t2 · $2 / t3 · $3 /
+t5 · $6; the operator-locked rung table stays verbatim per L17; the
+v0.58 instance of the same open sentence was mooted by the v0.60
+retirement and needs no marker, so the count of open price
+reconciliations is now zero.
+
+**What changed on disk.** DOCTRINE.md only: the v0.69 amendment
+appended after the v0.67 activation amendment; both open-work
+sentences (§1.J's v0.61 "remains open doctrine work" and v0.67's
+"stays open as v0.61 filed it") carry APPENDED sighting-corrected
+resolution markers per the v0.48–v0.61 footer precedent — original
+words intact, the pr225 L17 lesson applied on the first draft this
+time; footer rotated (v0.69 head, v0.68 prior, v0.67 to superseded)
+with the changelog line. No price, product, or code change —
+$1/$2/$3/$6 are already the live Gumroad prices and offer labels.
+This entry also batch-flips four stale STAGED headings (#223 ×2,
+#224, #225) to SHIPPED per the #56 precedent, bodies untouched. Suite
+57 files / 2011 tests green; product audit PASS, 0 blocking. DOCTRINE
+touch = mandatory §10 two-lane audit before merge; the artifact rides
+the reconciliation commit and satisfies the DOCTRINE-artifact leg and
+l48-gate.
+
+## 2026-08-31 — DOCTRINE v0.68: the §1.G body/context boundary is drawn — three authored layers — SHIPPED (#225)
 
 **What happened.** The open controller call the pr212 audit's opus
 lane recorded — named open in DOCTRINE's meanings-v4 and meanings-v5
@@ -95,7 +139,7 @@ each lane hit the pre-existing `tests/cities.test.js` 15s-budget
 contention flake (passes in isolation at ~12s); unrelated to a
 docs-only diff, and merge-time CI is the clean check.
 
-## 2026-08-31 — Desktop layout pass: the t3 rail's $6 offer was below the fold; the rail goes top-aligned + sticky — STAGED on branch, PR pending
+## 2026-08-31 — Desktop layout pass: the t3 rail's $6 offer was below the fold; the rail goes top-aligned + sticky — SHIPPED (#224)
 
 **What happened.** On the controller's order, the desktop counterpart
 of the mobile fold pass: a fold audit at six desktop viewports
@@ -166,7 +210,7 @@ in this entry and the rule's comment; the dead 56px var fallback went
 with the calc. Suite after reconciliation: 57 files / 2011 tests
 green; product audit PASS, 0 blocking.
 
-## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — STAGED on branch (rides PR #223)
+## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — SHIPPED (#223)
 
 **What happened.** On the controller's "keep auditing layout" order, a
 systematic sweep of every screen and state at six viewports (320×568 →
@@ -257,7 +301,7 @@ artifact that lands with this reconciliation is a §10/L48 obligation
 CI cannot enforce. Suite after reconciliation: 57 files / 2008 tests
 green; product audit PASS, 0 blocking.
 
-## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — STAGED on branch, PR pending
+## 2026-08-31 — Field report: card paints over the $3 offer in iOS in-app browsers — the #196 fix unconditioned — SHIPPED (#223)
 
 **What happened.** The controller sent a live-device screenshot (iOS
 in-app browser, the deployed site): the result card painting over the
