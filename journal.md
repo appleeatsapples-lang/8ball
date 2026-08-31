@@ -7,9 +7,11 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 
 ## 2026-08-31 — Class-parity differential: host vs dyad-sheet register classes, runtime-derived — STAGED on branch, PR pending
 
-**What happened.** The last named repo queue item — the pr218 artifact's
-recorded gap "the host/sheet kua parity rested on two source regexes" —
-is closed. The defect class it guards is pr218's F9 itself: the same
+**What happened.** The pr218 artifact's recorded gap — "the host/sheet
+kua parity rested on two source regexes" — is closed (other named
+non-ordered items stay queued; this was the last one shaped as repo
+work the controller had flagged). The defect class it guards is pr208's
+F9 (fixed in PR #218): the same
 logical prose line typeset with a different register class on the host
 card face than on the dyad's two sheets (`card-note` vs `card-habit`),
 invisible to every value-level assertion because the TEXT agreed while
@@ -37,17 +39,46 @@ pr218's margin fix used. Host-only lookup hooks are excluded from the
 register vocabulary by design; contract (3) is what makes that
 exclusion safe.
 
-**Verification.** Six mutants killed, each in a SHIPPED module rather
-than the test: the F9 revert on the sheet side, the same drift on the
-HOST side, a kua line-order swap that preserves every per-field set,
-the margin rule dropping its `[data-sheet-kua-secondary]` companion,
-the bridge register drifting via `BRIDGE_CLASS`, and the families line
-drifting on the sheet. Both init captures re-init to an empty surface
-afterwards so no later render in the file can reach the mocks. Suite
-57 files / 2002 tests green (+3); product audit PASS, 0 blocking. No
-shipped module changed — this is a tests-only PR (journal rides
-along), and the CLAUDE.md count lines are untouched (no new test
-file).
+**Verification.** Eleven mutants killed across the change, each in a
+SHIPPED module rather than the test. Honest split (pr222 audit MED-1):
+three of the first six were ALREADY killed at base by the
+tests/kua_surface.test.js source regexes this differential now backs
+with an independent guard (the sheet-side F9 revert, the same drift on
+the host side, the margin rule dropping its companion) — the NEW kill
+power is the other eight: a kua line-order swap that preserves every
+per-field set, the bridge register drifting via `BRIDGE_CLASS`, the
+families line drifting on the sheet, and the five structural drifts
+below. Both init captures re-init to an empty surface afterwards so no
+later render in the file can reach the mocks — verified by the audit
+by instrumentation and order-shuffled runs. This is a tests-only PR
+(journal rides along), and the CLAUDE.md count lines are untouched (no
+new test file).
+
+**Cross-model audit (pr222), reconciled.** Lanes: MERGE WITH FIXES
+(2 MED, 2 LOW, 1 NIT, 2 INFO) and MERGE WITH FIXES (1 MED, 1 LOW,
+1 NIT) — every claim reproduced by both, 24 sha-verified mutant/probe
+cycles in one lane. The shared MED, proven live by both from different
+ends: `public-title`/`kua-title` sat in the register vocabulary with
+nothing reaching them, and five presentation-bearing shared classes
+(`public-title`, `kua-title`, `card-prose-rule`, `coord-val`,
+`coord-seal` — the first pair keys shell.css's labels-reveal
+visibility toggle, so a sheet-side rename would leave the dyad's
+"DOMAIN FIT"/"KUA" titles permanently hidden) drifted through the full
+suite green. **Landed:** a structural-class test — count parity per
+class over the combined runtime host surface vs the sheet markup, plus
+title-label text parity — with five new mutants killed (both title
+renames, a dropped prose rule, a coord-seal rename, a host-side label
+drift). Also landed: the mutant-claim honesty above (MED-1); the F9
+attribution corrected pr218→pr208 in this entry and the test header
+(LOW); the "last named repo queue item" overclaim softened (LOW); the
+capture results null-guarded before use so a dropped append reads as a
+clean assertion, not a TypeError (NIT); parser failure messages now
+name attribute reordering beside "missing" — the audit probed both
+parsers in every direction and they fail closed (LOW, recorded). One
+lane's first full-suite run hit a cold-cache cities.test.js timeout
+that vanished on warm re-runs — not this PR's, recorded. Suite after
+reconciliation: 57 files / 2003 tests green (+4 total); product audit
+PASS, 0 blocking.
 
 ## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky in a bounded band — SHIPPED (#221)
 

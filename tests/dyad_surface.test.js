@@ -1182,18 +1182,18 @@ describe('dyad surface — bounded honest differential: sheet.js vs a REAL rende
 
 // ── class-parity differential: host markup vs buildSheetMarkup ────────────
 //
-// The pr218 kua F9 defect class: the same logical prose line rendered with a
-// DIFFERENT register class on the host card face than on the dyad sheets
-// (card-note vs card-habit), so the two surfaces typeset the same value
-// differently. The fix was pinned with parallel SOURCE REGEXES over the two
-// renderers — dodgeable independently, and blind to any future line the pin
-// never named. The pr218 artifact recorded that gap ("the parity claim rests
-// on two source regexes"); this differential closes it the same way the
-// bounded value differential above works: derive BOTH sides from the real
-// artifacts at runtime — the host's shipped index.html markup and the nodes
-// the real initKuaUI/initPublicUI builders append, against the real
-// buildSheetMarkup() output — and compare, never restating either side's
-// expected classes in the test.
+// The pr208 F9 defect class (fixed in PR #218): the same logical prose line
+// rendered with a DIFFERENT register class on the host card face than on the
+// dyad sheets (card-note vs card-habit), so the two surfaces typeset the
+// same value differently. The fix was pinned with parallel SOURCE REGEXES
+// over the two renderers — dodgeable independently, and blind to any future
+// line the pin never named. The pr218 artifact recorded that gap ("the
+// parity claim rests on two source regexes"); this differential closes it
+// the same way the bounded value differential above works: derive BOTH
+// sides from the real artifacts at runtime — the host's shipped index.html
+// markup and the nodes the real initKuaUI/initPublicUI builders append,
+// against the real buildSheetMarkup() output — and compare, never restating
+// either side's expected classes in the test.
 describe('dyad surface — class-parity differential: host markup vs buildSheetMarkup (pr218 F4 fast-follow)', () => {
   // Every class on these nodes that any stylesheet keys presentation off.
   // Host-only LOOKUP hooks (ids; the kua-primary/-secondary/-body-* classes
@@ -1274,6 +1274,10 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
   };
 
   it('every shared value node carries the same register classes on both surfaces', () => {
+    // A dropped runtime append (or a builder that stopped returning nodes)
+    // must read as a clean assertion, not a raw TypeError (pr222 audit NIT).
+    expect(kuaHost.node, 'initKuaUI appended no block node').toBeTruthy();
+    expect(bridgeHost, 'initPublicUI appended no bridge node').toBeTruthy();
     const PAIRS = [
       // [sheet data attr, host classes]
       ['catalog', hostClassOfId('card-catalog')],
@@ -1297,8 +1301,11 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
     ];
     for (const [attr, hostClasses] of PAIRS) {
       const sheetClasses = sheetClassOf(attr);
-      expect(sheetClasses, `sheet node data-sheet-${attr} missing`).not.toBeNull();
-      expect(hostClasses, `host counterpart of ${attr} missing`).not.toBeNull();
+      // "missing" here also covers a purely cosmetic attribute reorder —
+      // the parsers assume class precedes the hook attribute and fail
+      // CLOSED on any other shape (pr222 audit, probed in both directions).
+      expect(sheetClasses, `sheet node data-sheet-${attr} missing or attribute-reordered`).not.toBeNull();
+      expect(hostClasses, `host counterpart of ${attr} missing or attribute-reordered`).not.toBeNull();
       const hostReg = reg(hostClasses);
       // Non-vacuous: a field whose register set filtered to nothing would
       // "agree" no matter what the sheet renders.
@@ -1324,6 +1331,42 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
     // And the comparison is not vacuous: the kua block really carries the
     // alternating five-line shape.
     expect(proseSeq(kuaHost.node.innerHTML)).toHaveLength(5);
+  });
+
+  it('the structural classes the stylesheets key on appear equally on both surfaces', () => {
+    // pr222 audit (both lanes, independently): five presentation-bearing
+    // shared classes rode the full suite green when drifted on the sheet
+    // side only — public-title and kua-title (the labels-reveal visibility
+    // toggle in shell.css keys on the literal class, so a sheet-side rename
+    // leaves the dyad's "DOMAIN FIT"/"KUA" titles permanently hidden),
+    // card-prose-rule, coord-val and coord-seal. None carries an id or a
+    // data attribute, so the per-field table above cannot reach them; count
+    // parity over the combined runtime host surface can. The host side is
+    // the shipped card face plus the two runtime-appended blocks — the same
+    // sources the field table uses.
+    const hostCombined = slice(html, 'id="card-face"', '</article>')
+      + kuaHost.node.innerHTML + ` class="${bridgeHost.className}"`;
+    const count = (source, cls) =>
+      [...source.matchAll(/class="([^"]*)"/g)]
+        .filter(m => m[1].split(/\s+/).includes(cls)).length;
+    for (const cls of ['public-title', 'kua-title', 'card-prose-rule', 'coord-val', 'coord-seal']) {
+      const hostCount = count(hostCombined, cls);
+      expect(hostCount, `${cls}: absent from the host surface — scan vacuous`).toBeGreaterThan(0);
+      expect(count(sheetMarkup, cls), cls).toBe(hostCount);
+    }
+    // And the two section titles say the same thing on both surfaces —
+    // label text is part of the shared structure, not a per-person value.
+    for (const [cls, hostSource] of [
+      ['public-title', html],
+      ['kua-title', kuaHost.node.innerHTML],
+    ]) {
+      const label = source => {
+        const m = source.match(new RegExp(`class="${cls}"[^>]*>([^<]*)<`));
+        return m ? m[1] : null;
+      };
+      expect(label(sheetMarkup), `${cls} label`).not.toBeNull();
+      expect(label(sheetMarkup), `${cls} label`).toBe(label(hostSource));
+    }
   });
 
   it('every style keyed on a host-only kua hook class also keys the sheet attribute', () => {
