@@ -50,6 +50,7 @@ import { makeClassList } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const resultJs = readFileSync(join(__dirname, '..', 'ui', 'result.js'), 'utf-8');
 
@@ -899,8 +900,8 @@ describe('tiers — DOM purity (§1.D v0.37: no paid value below its tier)', () 
   });
 
   it('the mock\'s opacity trick is not ported: no opacity-gated .coord-val rule', () => {
-    expect(html).not.toMatch(/\.sealed[^{]*\.coord-val[^{]*\{[^}]*opacity:\s*0/);
-    expect(html).not.toMatch(/\.coord-cell\.locked/);
+    expect(html + shellCss).not.toMatch(/\.sealed[^{]*\.coord-val[^{]*\{[^}]*opacity:\s*0/);
+    expect(html + shellCss).not.toMatch(/\.coord-cell\.locked/);
   });
 });
 

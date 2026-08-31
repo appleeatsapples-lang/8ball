@@ -5,6 +5,78 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Shell-stylesheet split: index.html 1455 → 683 — STAGED on branch, PR pending
+
+**What happened.** The controller ordered the index.html split — the
+standing prerequisite for any next sizable feature (the file sat at
+1455/1500 after pr214). The whole inline `<style>` block (771 lines)
+moved VERBATIM to a new `ui/shell.css`, linked from the head BEFORE
+`ui/experience.css` so the cascade order the inline block had is
+preserved exactly. `index.html` is now 683 lines — ~800 of headroom.
+Byte-identity of the moved rules is proven (sha256 of the removed block
+equals sha256 of the stylesheet body under its header comment); zero
+CSS rules changed.
+
+**Doctrine.** §6's single-file rule names `ui/*.js` as the split target
+and says "not before" the cap; a shell-stylesheet amendment (L17 style,
+the sentence stands verbatim) records the second sanctioned target —
+a plain `ui/*.css` linked from the head, the shape `ui/experience.css`
+already established — and that this below-cap split ran on the
+controller's explicit order.
+
+**Tests.** Twenty-one CSS pins across ten files pointed at the inline
+block; each was repointed to read `ui/shell.css` (positives) or the
+combined shell source (negatives, so they keep guarding both sides —
+`.meaning-panel` stays module-injected, no `.field-error` color
+regression, no sealed-value opacity trick). Two structural gains:
+`tests/monochrome_surface.test.js`'s all-source palette scan now
+includes `ui/*.css` — closing a pre-existing gap where
+`ui/experience.css` sat outside every retired-palette/achromatic scan —
+and a new pin in `tests/meanings_ui.test.js` fixes the link order
+(shell before experience), forbids any inline `<style>` creeping back,
+and requires the stylesheet to be non-vacuous.
+
+**Verification.** Suite 57 files / **1977** tests green (1976 + the
+shell-split pin). Three mutants killed: swapped link order, an inline
+`<style>` block reintroduced, a rule deleted from shell.css (the
+repointed pins bite). Live-fire in Chromium, old tree vs new tree
+served side by side: computed styles IDENTICAL across 17 selectors ×
+14 properties at 1280×900, 390×844 and 320×568, with the full
+submit flow driven on both — the mobile reveal contract
+(experience.css over shell.css) holds; zero console errors.
+
+**Cross-model audit (pr215), reconciled.** Two lanes, both MERGE WITH
+FIXES (one HIGH + one LOW; one HIGH + four MED + four LOW + two NIT —
+the HIGH was the same finding, caught independently). Landed: the split
+had silenced FIVE CSS negative guards by leaving them scanning a
+`<style>` block that no longer exists — kua's no-shell-CSS pin (HIGH,
+fixed mid-audit), tiers' `.coord-cell.locked`, labels' side-rail
+ownership pin (title and comments also corrected: `ui/shell.css` owns
+that block now), and payments' two retirement guards (`reads-chip`,
+`locked-extras`); every one was mutation-proven silent first and
+mutation-proven revived after. Also landed: the DOCTRINE footer version
+bump the amendment had omitted (v0.65 → v0.66, changelog line added);
+the §5 privacy scan now reads `.css` files and carries CSS egress
+tokens (`@import`, remote `url(`) — before this, both stylesheets sat
+outside every §5 scan; the hidden-guard walker in the public-surface
+test scans `experience.css`'s display rules too; the link-order pin
+matches by href (attribute-order-proof) and its non-vacuous floor rose
+to 20KB after a 58% truncation was shown to pass the old floor; the §6
+amendment now states the no-inline-`<style>` rule the new pin enforces;
+CLAUDE.md's inventory names the two stylesheets; 8BALL/README single-
+file wording admits the `ui/*.css` target. Acknowledged on the record
+(both lanes, no code change): the split trades away inline CSS's
+delivery guarantee — a failed `/ui/shell.css` fetch now renders the
+whole page unstyled where before only the experience layer was exposed;
+same-origin atomic deploys make this the accepted cost of any
+inline-to-external split, and critical-CSS inlining would need a fresh
+§6 amendment. Declined: nothing — every fix-class finding landed.
+Post-reconciliation suite: 57 files / **1981** tests green (the four CSS
+egress tokens each add a scan test); product audit PASS, 0 blocking.
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-30 — Interpretation optimization III: placement lines close the last duplication + city prefetch — STAGED on branch, PR pending
 
 **What happened.** The controller ordered items 5 and 8 of the measured

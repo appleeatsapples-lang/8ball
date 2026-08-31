@@ -13,6 +13,7 @@ import { tierDensitySummary, TIER_COORDS } from '../ui/tiers.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
 const html = read('index.html');
+const shellCss = read('ui', 'shell.css');
 const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
@@ -82,9 +83,9 @@ describe('density strip — copy + placement + gating', () => {
     expect(card).not.toMatch(/density-strip/);
   });
   it('is always-on — no .card.labels-revealed gate (unlike placards/atlas)', () => {
-    expect(html).toMatch(/\.density-strip\s*\{/);
-    expect(html).not.toMatch(/labels-revealed[^{]*\.density-strip/);
-    expect(html).not.toMatch(/\.density-strip[^}]*display:\s*none/);
+    expect(shellCss).toMatch(/\.density-strip\s*\{/);
+    expect(html + shellCss).not.toMatch(/labels-revealed[^{]*\.density-strip/);
+    expect(html + shellCss).not.toMatch(/\.density-strip[^}]*display:\s*none/);
   });
 });
 

@@ -58,7 +58,7 @@ Layered source:
 | `.github/workflows/` | `ci.yml` |
 | (root)            | `index.html`, `netlify.toml`, `package.json`, `DOCTRINE.md`, `journal.md`, `8BALL.md`, `README.md`, `LICENSE` |
 
-**Single-file rule:** `index.html` ≤ 1500 lines. Past that, split into `ui/*.js` ES modules.
+**Single-file rule:** `index.html` ≤ 1500 lines. Past that, split into `ui/*.js` ES modules — or, for the host's own static styles, a `ui/*.css` stylesheet linked from the head (§6 shell-stylesheet amendment, 2026-08-31: the inline `<style>` block lives in `ui/shell.css`, linked before `ui/experience.css`).
 
 ---
 

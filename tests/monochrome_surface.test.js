@@ -17,12 +17,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const read = (...p) => readFileSync(join(root, ...p), 'utf-8');
 const html = read('index.html');
+const shellCss = read('ui', 'shell.css');
 const shareJs = read('ui', 'share.js');
-// All ui/*.js modules, not a hand-picked subset — a stray old-token
-// consumer in an untouched-looking module (concordance/labels/modals/
-// payments/profile/public/tiers) must not go unscanned just because this
-// change's own file list didn't happen to name it.
-const uiFiles = readdirSync(join(root, 'ui')).filter((f) => f.endsWith('.js'));
+// All ui/*.js modules AND ui/*.css stylesheets, not a hand-picked
+// subset — a stray old-token consumer in an untouched-looking module
+// (concordance/labels/modals/payments/profile/public/tiers) must not go
+// unscanned just because this change's own file list didn't happen to
+// name it. The .css leg was added when the shell styles moved out of
+// index.html (2026-08-31): without it, both shell.css and the
+// pre-existing experience.css would sit outside every palette scan.
+const uiFiles = readdirSync(join(root, 'ui')).filter((f) => f.endsWith('.js') || f.endsWith('.css'));
 const allSource = [html, ...uiFiles.map((f) => read('ui', f))].join('\n');
 
 // WCAG relative-luminance contrast ratio for a white-alpha color composited
@@ -61,20 +65,20 @@ describe('monochrome surface — retired palette never returns', () => {
   });
 
   it('the semantic token block is black-background / white-writing', () => {
-    expect(html).toMatch(/--bg:\s*#000;/);
-    expect(html).toMatch(/--surface:\s*#000;/);
-    expect(html).toMatch(/--text:\s*#fff;/);
-    expect(html).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\);/);
-    expect(html).toMatch(/--text-placeholder:\s*rgba\(255,\s*255,\s*255,\s*0\.55\);/);
-    expect(html).toMatch(/--rule:\s*rgba\(255,\s*255,\s*255,\s*0\.45\);/);
-    expect(html).toMatch(/--interaction-fill:\s*rgba\(255,\s*255,\s*255,\s*0\.10\);/);
-    expect(html).toMatch(/--interaction-fill-active:\s*rgba\(255,\s*255,\s*255,\s*0\.16\);/);
+    expect(shellCss).toMatch(/--bg:\s*#000;/);
+    expect(shellCss).toMatch(/--surface:\s*#000;/);
+    expect(shellCss).toMatch(/--text:\s*#fff;/);
+    expect(shellCss).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\);/);
+    expect(shellCss).toMatch(/--text-placeholder:\s*rgba\(255,\s*255,\s*255,\s*0\.55\);/);
+    expect(shellCss).toMatch(/--rule:\s*rgba\(255,\s*255,\s*255,\s*0\.45\);/);
+    expect(shellCss).toMatch(/--interaction-fill:\s*rgba\(255,\s*255,\s*255,\s*0\.10\);/);
+    expect(shellCss).toMatch(/--interaction-fill-active:\s*rgba\(255,\s*255,\s*255,\s*0\.16\);/);
   });
 
   it('card and modal surfaces resolve to the black --surface token, not a light fill', () => {
-    expect(html).toMatch(/\.card\s*\{[^}]*background:\s*var\(--surface\)/);
-    expect(html).toMatch(/\.card-back\s*\{[^}]*background:\s*var\(--surface\)/);
-    expect(html).toMatch(/\.modal\s*\{[^}]*background:\s*var\(--surface\)/);
+    expect(shellCss).toMatch(/\.card\s*\{[^}]*background:\s*var\(--surface\)/);
+    expect(shellCss).toMatch(/\.card-back\s*\{[^}]*background:\s*var\(--surface\)/);
+    expect(shellCss).toMatch(/\.modal\s*\{[^}]*background:\s*var\(--surface\)/);
   });
 
   it('primary, muted and placeholder text meet their contrast targets on black', () => {
@@ -92,8 +96,8 @@ describe('monochrome surface — retired palette never returns', () => {
     // (confirmed reproducible, 2026-07-29 cross-model audit). Pin both the
     // literal values AND that whatever they are now clears 3:1, so a future
     // edit can't quietly drop back below the floor.
-    const coordCellBorder = html.match(/\.coord-cell\s*\{[^}]*border:\s*1px solid rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
-    const sealHatch = html.match(/\.card\.seal-hatch \.coord-seal\s*\{[^}]*rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
+    const coordCellBorder = shellCss.match(/\.coord-cell\s*\{[^}]*border:\s*1px solid rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
+    const sealHatch = shellCss.match(/\.card\.seal-hatch \.coord-seal\s*\{[^}]*rgba\(\s*255,\s*255,\s*255,\s*([\d.]+)\)/);
     expect(coordCellBorder, '.coord-cell border rgba not found').not.toBeNull();
     expect(sealHatch, '.seal-hatch rgba not found').not.toBeNull();
     expect(contrastOfWhiteAlphaOnBlack(Number(coordCellBorder[1]))).toBeGreaterThanOrEqual(3);
@@ -128,8 +132,8 @@ describe('monochrome surface — retired palette never returns', () => {
   it('active/selected controls use a stronger white-alpha fill, not inversion to black text', () => {
     // The one deliberate exception is the paywall CTA (solid white fill,
     // black text) — every OTHER active/selected control must keep --text.
-    expect(html).toMatch(/\.btn\.active,\s*\n\s*\.btn:active\s*\{\s*background:\s*var\(--interaction-fill-active\);\s*color:\s*var\(--text\);/);
-    expect(html).toMatch(/\.modal-actions \.btn:active,\s*\n\s*\.modal \.modal-actions \.btn\.active\s*\{\s*background:\s*var\(--interaction-fill-active\)/);
+    expect(shellCss).toMatch(/\.btn\.active,\s*\n\s*\.btn:active\s*\{\s*background:\s*var\(--interaction-fill-active\);\s*color:\s*var\(--text\);/);
+    expect(shellCss).toMatch(/\.modal-actions \.btn:active,\s*\n\s*\.modal \.modal-actions \.btn\.active\s*\{\s*background:\s*var\(--interaction-fill-active\)/);
   });
 
   it('share SVG palette is black background + white primary text, fully achromatic', () => {
@@ -151,7 +155,7 @@ describe('monochrome surface — retired palette never returns', () => {
   });
 
   it('the in-app specimen preview renders achromatic without a new tracked asset', () => {
-    expect(html).toMatch(/\.paywall-specimen img\s*\{[^}]*filter:\s*grayscale\(1\)[^}]*\}/);
+    expect(shellCss).toMatch(/\.paywall-specimen img\s*\{[^}]*filter:\s*grayscale\(1\)[^}]*\}/);
   });
 
   it('every rendered color literal in the shared surfaces is achromatic (R=G=B)', () => {

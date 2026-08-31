@@ -20,6 +20,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 
 describe('DOB validation markup (v0.3.0 fix B)', () => {
   it('dob-error element exists with id, class, alert semantics, and hidden attribute', () => {
@@ -49,8 +50,8 @@ describe('DOB validation markup (v0.3.0 fix B)', () => {
   });
 
   it('field-error CSS class is defined alongside hint classes', () => {
-    expect(html).toMatch(/\.field-error\s*\{/);
-    expect(html).toMatch(/\.field-error\[hidden\]/);
+    expect(shellCss).toMatch(/\.field-error\s*\{/);
+    expect(shellCss).toMatch(/\.field-error\[hidden\]/);
   });
 });
 

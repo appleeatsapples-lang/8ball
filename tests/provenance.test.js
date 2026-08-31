@@ -14,6 +14,7 @@ import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from '
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
 const html = read('index.html');
+const shellCss = read('ui', 'shell.css');
 const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
@@ -80,8 +81,8 @@ describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
   });
 
   it('gated behind the existing labels toggle — no new localStorage key', () => {
-    expect(html).toMatch(/\.card \.coord-prov\s*\{[^}]*display:\s*none/);
-    expect(html).toMatch(/\.card\.labels-revealed \.coord-prov\s*\{[^}]*display:\s*block/);
+    expect(shellCss).toMatch(/\.card \.coord-prov\s*\{[^}]*display:\s*none/);
+    expect(shellCss).toMatch(/\.card\.labels-revealed \.coord-prov\s*\{[^}]*display:\s*block/);
     expect(tiersJs).not.toMatch(/localStorage/);
   });
 

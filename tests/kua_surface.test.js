@@ -39,6 +39,7 @@ import { buildProfile } from '../core/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const kuaJs = readFileSync(join(__dirname, '..', 'ui', 'kua.js'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 
@@ -181,8 +182,10 @@ describe('kua injection — the host is untouched', () => {
     expect(html).not.toMatch(/class="kua-read"/);
     expect(html).not.toContain('id="gender-input"');
     expect(html).not.toContain('id="kua-style"');
-    const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
-    expect(css).not.toMatch(/\.kua-read/);
+    // The shell styles moved to ui/shell.css (2026-08-31 split); the old
+    // html.slice('<style'...) form silently scanned '' once the inline
+    // block was gone — caught by the pr215 audit as a dead guard.
+    expect(html + shellCss).not.toMatch(/\.kua-read/);
   });
 
   it('the boot call hands the host-owned card face only', () => {

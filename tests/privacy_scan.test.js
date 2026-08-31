@@ -18,7 +18,12 @@ const REPO_ROOT = join(__dirname, '..');
 // runtime, so storing/transmitting tokens there would not violate §5.
 const SCAN_ROOTS = ['core', 'content', 'ui'];
 const SCAN_FILES = ['index.html'];
-const TEXT_EXTS = ['.js', '.html'];
+// .css joined on 2026-08-31 (pr215 audit F6): the shell styles moved to
+// ui/shell.css, and a stylesheet has §5-relevant egress shapes of its own
+// (@import url(...), background/font src url(https://...)) that the
+// JS-shaped tokens below never matched — before this, ui/experience.css
+// sat outside the scan entirely.
+const TEXT_EXTS = ['.js', '.html', '.css'];
 
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -61,7 +66,15 @@ const FORBIDDEN = [
   { token: 'navigator.sendBeacon', caseSensitive: true  },
   { token: 'gtag(',                caseSensitive: true  },
   { token: 'dataLayer',            caseSensitive: true  },
-  { token: 'analytics.',           caseSensitive: true  }
+  { token: 'analytics.',           caseSensitive: true  },
+  // CSS egress shapes (pr215 audit F6): a stylesheet can create out-of-band
+  // requests without any JS API. Same-origin url(/...) and data: URIs stay
+  // legal; a remote absolute URL or an @import (any target — this repo
+  // links its two stylesheets from the head, never chains them) does not.
+  { token: '@import',              caseSensitive: false },
+  { token: 'url(http',             caseSensitive: false },
+  { token: "url('http",            caseSensitive: false },
+  { token: 'url("http',            caseSensitive: false }
 ];
 
 // Allow-list is the inventory of keys actually used as of this commit.

@@ -19,6 +19,7 @@ import { makeEl, makeModalRefs } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 
 describe('modal a11y — markup pins', () => {
   it('all three dialogs carry aria-modal="true" alongside role="dialog"', () => {
@@ -35,27 +36,27 @@ describe('modal a11y — markup pins', () => {
     // --text-muted, since both surfaces are black now: rgba(255,255,255,0.72)
     // on black is ~10.54:1 (AA needs 4.5:1) — comfortably above the old
     // 4.76:1 on-dark figure it replaces.
-    expect(html).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/);
+    expect(shellCss).toMatch(/--text-muted:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/);
     // Spot-pin the two worst offenders: the error message and the
     // density strip both sit on the page background.
-    expect(html).toMatch(/\.field-error\s*\{[^}]*var\(--text-muted\)/);
-    expect(html).toMatch(/\.density-strip\s*\{[^}]*var\(--text-muted\)/);
+    expect(shellCss).toMatch(/\.field-error\s*\{[^}]*var\(--text-muted\)/);
+    expect(shellCss).toMatch(/\.density-strip\s*\{[^}]*var\(--text-muted\)/);
     // The pre-2026-07-05 `.field-error { color: var(--ink) }` override made
     // the error text ~1.1:1 (near-black on black); --ink is retired, but a
     // literal black/surface color would reproduce the same failure mode.
-    expect(html).not.toMatch(/\.field-error\s*\{\s*color:\s*(var\(--surface\)|#000|black)/i);
+    expect(html + shellCss).not.toMatch(/\.field-error\s*\{\s*color:\s*(var\(--surface\)|#000|black)/i);
   });
 
   it('closed modals leave the keyboard tab order (visibility, not just opacity)', () => {
     // opacity:0 elements stay focusable; without visibility:hidden a
     // keyboard user can Tab into an invisible dialog — and the Tab trap
     // would pin them there.
-    expect(html).toMatch(/\.modal-bg\s*\{[^}]*visibility:\s*hidden/);
-    expect(html).toMatch(/\.modal-bg\.open\s*\{[^}]*visibility:\s*visible/);
+    expect(shellCss).toMatch(/\.modal-bg\s*\{[^}]*visibility:\s*hidden/);
+    expect(shellCss).toMatch(/\.modal-bg\.open\s*\{[^}]*visibility:\s*visible/);
   });
 
   it('modal-disclosure no longer dilutes its AA-passing color with opacity', () => {
-    expect(html).not.toMatch(/\.modal-disclosure\s*\{[^}]*opacity\s*:/);
+    expect(html + shellCss).not.toMatch(/\.modal-disclosure\s*\{[^}]*opacity\s*:/);
   });
 });
 

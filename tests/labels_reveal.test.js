@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const labelsJs = readFileSync(join(__dirname, '..', 'ui', 'labels.js'), 'utf-8');
 
@@ -146,7 +147,8 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
   });
 
   // PR-196 premerge audit (relay, 2026-08-02): the base .flip-stage rule in
-  // index.html sets NO height — only the 5/8 aspect-ratio box — so
+  // the shell styles (index.html then; ui/shell.css since the 2026-08-31
+  // split) sets NO height — only the 5/8 aspect-ratio box — so
   // `height: auto` above pins a no-op declaration. `aspect-ratio: auto` is
   // the property that actually releases the fixed box; without this pin the
   // suite stayed green with the fix deleted.
@@ -163,9 +165,12 @@ describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
     expect(labelsJs).not.toMatch(/\.flip-side \.card-back/);
   });
 
-  it('does not touch the ≥720px desktop side-rail breakpoint (index.html owns that block)', () => {
+  it('does not touch the ≥720px desktop side-rail breakpoint (ui/shell.css owns that block)', () => {
     expect(labelsJs).not.toMatch(/min-width:\s*720px/);
-    expect(html).not.toMatch(/\.flip-stage\.labels-revealed/);
+    // .flip-stage.labels-revealed stays owned by ui/labels.js — a duplicate
+    // definition in the shell (index.html markup or ui/shell.css, where the
+    // side-rail block moved on 2026-08-31) would silently shadow it.
+    expect(html + shellCss).not.toMatch(/\.flip-stage\.labels-revealed/);
   });
 
   it('self-injects its stylesheet the same way ui/dyad.js does (idempotent, scoped <style> id)', () => {

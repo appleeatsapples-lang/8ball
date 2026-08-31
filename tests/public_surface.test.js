@@ -40,6 +40,7 @@ import { buildProfile } from '../core/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
+const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 
 const makeNode = () => ({ textContent: 'STALE', classList: makeClassList() });
 // `bridge` is supplied explicitly here. In production index.html names four
@@ -393,7 +394,7 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
 // one instance — including `#offer-btn`, which had the same defect before
 // this rung existed.
 describe('hidden-attribute guards (the F1 bug class)', () => {
-  const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+  const css = shellCss + readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8');
 
   // Classes on elements that ship with a bare `hidden` attribute, plus those
   // on elements whose id is assigned `.hidden = ...` anywhere in the script.
@@ -473,14 +474,12 @@ describe('public-read wiring seams the first pass left unpinned', () => {
     // newlyEntitledCells reported 'publicRead' while the consumer had no way
     // to resolve its root — the beat was dead code and its test a tautology.
     expect(html).toMatch(/publicRead: \$\('public-read'\)/);
-    const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
-    expect(css).toMatch(/\.public-read\.unsealing \.card-habit/);
+    expect(shellCss).toMatch(/\.public-read\.unsealing \.card-habit/);
   });
 
   it('the block label follows the labels-reveal convention like every other label', () => {
-    const css = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
-    expect(css).toMatch(/\.public-title \{[^}]*visibility: hidden/);
-    expect(css).toMatch(/\.card\.labels-revealed \.public-title \{[^}]*visibility: visible/);
+    expect(shellCss).toMatch(/\.public-title \{[^}]*visibility: hidden/);
+    expect(shellCss).toMatch(/\.card\.labels-revealed \.public-title \{[^}]*visibility: visible/);
   });
 
   it('the density strip does not claim a full sheet over a sealed block', () => {
