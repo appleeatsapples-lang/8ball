@@ -16,38 +16,70 @@ is resolved on the controller's order ("do the §1.J price-column
 reconciliation"). The pr225 audit had just re-surfaced it as still
 open and controller-reserved.
 
-**The resolution: derive, don't adopt.** The v0.69 amendment closes
-the question by giving the constitution its own account of the $6
-instead of importing the brief's ladder: the Price column's unit is
-the COMPLETE SINGLE SHEET at $3 (the v0.55 run read as
-fractions-to-whole of one sheet — $1 and $2 partial densities, $3 the
-whole, which the §4.B sprint sells directly); t5's $6 is TWO units —
-a second person's complete sheet with the relation layer riding the
-pair as one indivisible step, components deliberately unpriced
-separately, so no clause ever owes the defense v0.60 found impossible
-for the retired rung's "$9 for five derived strings". The brief's
-entity-count ladder stays unadopted — made unnecessary rather than
-made law. The four-rung reading is t1 · $1 / t2 · $2 / t3 · $3 /
-t5 · $6; the operator-locked rung table stays verbatim per L17; the
-v0.58 instance of the same open sentence was mooted by the v0.60
-retirement and needs no marker, so the count of open price
-reconciliations is now zero.
+**The resolution, as corrected by its own audit: a ledger, not a
+formula.** The first draft derived the $6 as "two units of $3" via a
+fractions-to-whole reading of v0.55 — and both audit lanes broke that
+derivation on the one path the product presents: a t3 owner pays
+$3 + $6 = $9 for two sheets, so the subtraction silently prices the
+relation layer at exactly the standalone $3 the same sentence claimed
+no clause quotes, in the very category v0.60 used to retire the $9
+rung. The reconciled account adopts the reading one lane proved
+sound: the Price column is v0.55's LEDGER of controller-set,
+one-time, FROM-ZERO rung prices — monotone, never derived by formula
+($1/$2/$3 weren't either), and never prorated on upgrade (a t1 owner
+pays the full $3 to reach t3; established behavior, now DISCLOSED
+instead of left for subtraction to discover). t5's from-zero price is
+$6 — two complete sheets' worth at the ladder's own literal $3
+complete-sheet price, the relation layer deliberately unpriced, and
+the direct path real (the bare `neysyv` URL grants t5 from any tier);
+subtraction has never priced anything in this column, so the v0.60
+defense is never owed. The brief's entity-count ladder stays
+unadopted. The four-rung reading is t1 · $1 / t2 · $2 / t3 · $3 /
+t5 · $6 — stated WITH its dominance fact (direct $6 beats the $9
+path for a strict superset; surfacing the direct path below t3 stays
+the reserved v0.61/v0.67 controller decision) and with the storefront
+kept distinct (only the $3 product is live today; the $6 listing is
+staged and unpublished pending the v0.67 operator-hand steps; t1/t2
+are not currently separate storefront offers). All three open-work
+sentences — §1.J's v0.61, the v0.67 closer, and the v0.58 clause's
+(marked MOOTED by the v0.60 retirement) — carry appended markers, so
+zero open reconciliations is literal on the page.
 
 **What changed on disk.** DOCTRINE.md only: the v0.69 amendment
-appended after the v0.67 activation amendment; both open-work
-sentences (§1.J's v0.61 "remains open doctrine work" and v0.67's
-"stays open as v0.61 filed it") carry APPENDED sighting-corrected
-resolution markers per the v0.48–v0.61 footer precedent — original
-words intact, the pr225 L17 lesson applied on the first draft this
-time; footer rotated (v0.69 head, v0.68 prior, v0.67 to superseded)
-with the changelog line. No price, product, or code change —
-$1/$2/$3/$6 are already the live Gumroad prices and offer labels.
-This entry also batch-flips four stale STAGED headings (#223 ×2,
-#224, #225) to SHIPPED per the #56 precedent, bodies untouched. Suite
-57 files / 2011 tests green; product audit PASS, 0 blocking. DOCTRINE
-touch = mandatory §10 two-lane audit before merge; the artifact rides
-the reconciliation commit and satisfies the DOCTRINE-artifact leg and
-l48-gate.
+appended after the v0.67 activation amendment; three open-work
+sentences carry APPENDED sighting-corrected markers per the
+v0.48–v0.61 footer precedent — original words intact, the pr225 L17
+lesson applied on the first draft this time; footer rotated (v0.69
+head, v0.68 prior, v0.67 to superseded) with the changelog line. No
+price, product, or code change. This entry also batch-flips four
+stale STAGED headings (#223 ×2, #224, #225) to SHIPPED per the #56
+precedent, bodies untouched. Suite 57 files / 2011 tests green;
+product audit PASS, 0 blocking. DOCTRINE touch = mandatory §10
+two-lane audit before merge; the artifact rides the reconciliation
+commit and satisfies the DOCTRINE-artifact leg and l48-gate.
+
+**Cross-model audit (pr226), reconciled.** Lanes: MERGE WITH FIXES
+and MERGE WITH FIXES, converging independently on the same MAJOR: the
+first draft's unit DERIVATION broke on the presented upgrade path
+(the subtraction-implied $3 relation-layer price above). Landed as
+the rework this entry now describes — one lane supplied the sound
+from-zero/ledger reading and the non-proration disclosure; the
+dominance fact it exposed (P3) is stated in the amendment rather than
+left to be discovered at publication. Also landed: the "already live
+on Gumroad" truth defect (only $3 is live; the amendment now keeps
+ledger and storefront distinct); the fabricated sprint-label
+quotation corrected to §4.B's own `complete 8ball · $3 once`; the
+"fractions-to-whole" gloss dropped (v0.55's run is ordinal — $1 buys
+10 of 15 coordinates, not a third of the sheet); the Table-currency
+claim corrected (this is a NEW supersession beside the v0.55 note,
+not its extension); and the v0.58 sentence marked mooted so the
+zero-count is literal rather than argued. Mechanically clean by both
+lanes' byte-level checks: L17 append-only markers, footer rotation,
+the four heading flips headings-only with correct PR numbers. One
+lane's product-audit run hit the known cities.test.js contention
+flake again (passes in isolation; recorded, not rerun past —
+merge-time CI is the clean check). Suite after reconciliation: 57
+files / 2011 tests green; product audit PASS, 0 blocking.
 
 ## 2026-08-31 — DOCTRINE v0.68: the §1.G body/context boundary is drawn — three authored layers — SHIPPED (#225)
 
