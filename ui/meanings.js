@@ -350,13 +350,22 @@ export function initMeaningsUI(refs) {
   const hint = document.createElement('div');
   hint.className = 'meaning-hint';
   hint.id = 'meaning-hint';
-  hint.textContent = 'each compartment opens its filed meaning — tap any value';
+  hint.textContent = 'each compartment opens — tap any value';
   // Visual/touch affordance only (pr217 audit LOW): AT users already get
   // the affordance from every cell's role="button" + aria-label, and the
   // card face is a polite live region — an unhidden hint is one redundant
   // announced line.
   hint.setAttribute('aria-hidden', 'true');
-  cardFace.appendChild(hint);
+  // Above the prose blocks, under the compartments (pr217 audit MED 1):
+  // appended last it sat at DOM index 15 — ~190px below the fold on the
+  // t3 sheet, off screen at the exact moment it is supposed to teach.
+  const entryBlock = typeof cardFace.querySelector === 'function'
+    ? cardFace.querySelector('#card-entry') : null;
+  if (entryBlock && typeof cardFace.insertBefore === 'function') {
+    cardFace.insertBefore(hint, entryBlock);
+  } else {
+    cardFace.appendChild(hint);
+  }
   const panel = buildPanel();
   cardFace.appendChild(panel);
   const head = panel.querySelector('#meaning-head');
@@ -458,14 +467,17 @@ let scrollTimer = null;
     // max-height:0, inert box. Shipped that way in #213 (its live-fire read
     // textContent, never the .open class); caught by the 2026-08-31
     // comprehension-hint live-fire. Direction of the filter is fail-safe:
-    // a record OUTSIDE the module's own chrome closes, and an UNQUALIFIED
-    // fire (no records — the unit harness's bare cb()) also closes — only
-    // a delivery in which every record targets the panel's own subtree (or
-    // the hint) is ignored as self-noise.
+    // any record OUTSIDE the panel's own subtree closes (a MIXED delivery
+    // therefore closes — the every() is load-bearing and pinned), and an
+    // UNQUALIFIED fire (no records — the unit harness's bare cb()) also
+    // closes; only a delivery in which every record targets the panel's
+    // own subtree is ignored as self-noise. The hint needs no clause here:
+    // its only post-init mutations are attribute writes, which this
+    // config (no attributes:true) never observes.
     const observer = new MutationObserver(records => {
       if (!activeCell) return;
       if (Array.isArray(records) && records.length &&
-          records.every(r => r && r.target && (panel.contains(r.target) || r.target === hint))) {
+          records.every(r => r && r.target && panel.contains(r.target))) {
         return;
       }
       close();

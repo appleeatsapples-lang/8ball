@@ -142,6 +142,27 @@ describe('ui/meanings.js behavior', () => {
   function panel() { return cardFace.children.find(c => c.id === 'meaning-panel'); }
   function hint() { return cardFace.children.find(c => c.id === 'meaning-hint'); }
 
+  it('the hint lands ABOVE the prose blocks, never appended after them (pr217 audit MED 1)', () => {
+    // Appended last, the hint sat ~190px below the fold on the t3 sheet —
+    // off screen at the exact moment it is supposed to teach. It must
+    // insert before #card-entry when that block exists, with the panel
+    // still appended after it.
+    const face = makeNode('div');
+    const entry = makeNode('div');
+    entry.id = 'card-entry';
+    face.appendChild(entry);
+    face.insertBefore = (n, ref) => {
+      const i = face.children.indexOf(ref);
+      face.children.splice(i, 0, n);
+    };
+    initMeaningsUI({ cardFace: face });
+    const idx = id => face.children.findIndex(c => c.id === id);
+    expect(idx('meaning-hint')).toBeGreaterThan(-1);
+    expect(idx('card-entry')).toBeGreaterThan(-1);
+    expect(idx('meaning-hint')).toBeLessThan(idx('card-entry'));
+    expect(idx('meaning-panel')).toBeGreaterThan(idx('card-entry'));
+  });
+
   it('the comprehension hint ships visible, retires on first open, and holds no stored state', () => {
     // Fourteen tappable compartments whose only affordance was a desktop
     // hover (journal 2026-08-31): the hint line is the touch-and-labels-off
@@ -152,7 +173,11 @@ describe('ui/meanings.js behavior', () => {
     const h = hint();
     expect(h).toBeDefined();
     expect(h.hidden).toBeFalsy();
-    expect(h.textContent).toBe('each compartment opens its filed meaning — tap any value');
+    // Mechanism-true copy (pr217 audit MED 2): ten of fourteen free-tier
+    // compartments are sealed and open a status, not a filed meaning — the
+    // line states what a tap DOES, which is true at every tier.
+    expect(h.textContent).toBe('each compartment opens — tap any value');
+    expect(h.className).toBe('meaning-hint');
     // Visual/touch affordance only — suppressed from the accessibility
     // tree (pr217 audit LOW): the cells' role/aria-label pair already
     // carries the affordance for AT, and the card face is aria-live.
@@ -312,7 +337,15 @@ describe('ui/meanings.js behavior', () => {
     cardFace._fire('click', { target: vals.sun });
     const p = panel();
     expect(p.classList.contains('open')).toBe(true);
-    observers[0].cb(); // the card re-rendered
+    // A realistic delivery shape first (real MutationObserver callbacks
+    // always carry a non-empty records array — pr217 audit LOW 5), then
+    // the bare fire as the explicitly-labelled fail-safe branch.
+    p.contains = () => false;
+    observers[0].cb([{ target: vals.sun }]); // the card re-rendered
+    expect(p.classList.contains('open')).toBe(false);
+    cardFace._fire('click', { target: vals.sun }); // reopen
+    expect(p.classList.contains('open')).toBe(true);
+    observers[0].cb(); // unqualified fire — fail-safe direction
     expect(p.classList.contains('open')).toBe(false);
   });
 
@@ -331,6 +364,16 @@ describe('ui/meanings.js behavior', () => {
     expect(p.classList.contains('open')).toBe(true);
     p.contains = () => false; // a record outside it — a real re-render
     observers[0].cb([{ target: vals.sun }]);
+    expect(p.classList.contains('open')).toBe(false);
+    // The every() is load-bearing (pr217 audit MED 3: every→some survived
+    // the whole suite): a MIXED delivery — one self-noise record, one real
+    // one — must close, or a future path that batches a panel write with a
+    // render write reopens the #213 stale-citation class.
+    cardFace._fire('click', { target: vals.sun });
+    expect(p.classList.contains('open')).toBe(true);
+    const inside = {};
+    p.contains = target => target === inside;
+    observers[0].cb([{ target: inside }, { target: vals.sun }]);
     expect(p.classList.contains('open')).toBe(false);
   });
 

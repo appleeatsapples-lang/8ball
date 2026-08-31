@@ -49,6 +49,39 @@ first open and stays retired through close and later opens, close
 works, a shake-again re-render still closes the stale panel; zero page
 errors. `index.html` byte-unchanged; no DOCTRINE touch.
 
+**Cross-model audit (pr217), reconciled.** Lanes: SAFE TO MERGE (1 LOW)
+and MERGE WITH FIXES (3 MED, 4 LOW, 2 NIT); both independently
+reproduced the #213 P1 on the base tree — one instrumented a shadow
+observer and dumped every real delivery, confirming panel opens emit
+only panel-internal records and re-renders only external ones. Landed:
+the hint moved ABOVE the prose blocks (appended last it sat ~190px
+below the t3 fold — off screen at the moment it teaches; now in
+viewport at both tiers, pinned); the copy made mechanism-true — `each
+compartment opens — tap any value` — because ten of fourteen free-tier
+compartments are sealed and open a status, not a filed meaning (§2
+accuracy); the filter's load-bearing every() pinned with a
+mixed-delivery case (every→some had survived the whole suite); the
+dead `r.target === hint` clause deleted with its misleading comment
+(hint mutations are attribute-only and unobserved); a realistic
+records-array delivery drives the older stale-close pin beside the
+labelled bare-fire fail-safe; the hint's className pinned (deleting it
+had survived); aria-hidden on the hint (the other lane's LOW — AT
+already has the cells' role/label pair and the card face is a live
+region); experience.css joined the absent-from-host scan union.
+Accepted and named rather than fixed (the lane's own cheapest option):
+`try another` leaves an open panel behind in the hidden result screen —
+display:none takes it out of the a11y tree and the next submit's
+render records close it, so it self-corrects with no user-visible
+state. One more thing the audit put plainly: main is serving the
+broken panel RIGHT NOW — this deploy is the remedy, not the risk.
+
+**Verification (post-reconciliation).** Suite 57 files / **1994** tests
+green. Nine hint/observer mutants killed in total (the reconciliation
+added: every→some, className dropped, placement reverted to append,
+aria-hidden dropped). Live-fire: hint in viewport at free AND t3 with
+the new copy, panel opens and stays open at t3, hint retires; zero
+page errors.
+
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
 
