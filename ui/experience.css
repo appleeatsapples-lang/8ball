@@ -350,13 +350,37 @@ body {
     max-width: 820px;
   }
 
+  /* The 2026-08-31 desktop layout pass (offset corrected by its audit).
+     This block used to re-center the rail against the card (overriding
+     the shell's flex-start): harmless at free-card heights, but the t3
+     card is ~1034px tall and centering pushed the rail's LAST items — the
+     $6 comparative offer and its disclosure — to ~730px from the top,
+     below or cut by the fold on 768/720-tall desktops (fully off-screen
+     at 1280×720; the base defect also clipped #forget-btn in revealed
+     states). Top-aligned, every control sits in the first ~500px at
+     every tier; sticky keeps the whole rail — offer included — in view
+     while the tall card scrolls.
+     THE OFFSET IS 24px, NOT topbar+24: `html { overflow-x: hidden }`
+     makes BODY the scroll container, and body's own padding-top already
+     clears the fixed topbar — a sticky inset resolves from the scroll
+     container's content box, so adding the topbar height again parked
+     the rail 64px low and, at 150% zoom on a 1280×800 display (853×533
+     CSS px, still ≥720 wide), pushed the offer below the fold — the
+     exact defect this rule exists to fix. 24px matches the stage's own
+     desktop padding: the stuck rail top lands at the card top (88px,
+     audit-measured). align-self pins the sticky element against a
+     future align-items change; the rail (~485px at its tallest, status
+     lines included) fits every ≥720-wide viewport's height band, so
+     sticking never traps content off-screen. */
   #result .result-main {
-    align-items: center;
     gap: 48px;
   }
 
   #result .result-rail {
     flex: 0 1 320px;
+    align-self: flex-start;
+    position: sticky;
+    top: 24px;
   }
 
   #result .labels-toggle {

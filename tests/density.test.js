@@ -108,3 +108,77 @@ describe('result surface — accessibility pins (evolution pass)', () => {
     expect(card[0]).toMatch(/aria-label="specimen sheet"/);
   });
 });
+
+// ── desktop rail fold contract (2026-08-31 desktop layout pass) ───────────
+// On ≥720px viewports the result rail sat vertically CENTERED beside the
+// card. Harmless at free-tier heights, but the t3 card is ~1034px tall and
+// centering pushed the rail's last items — the $6 comparative offer and its
+// disclosure — to ~730px from the top: fully below the fold at 1280×720,
+// cut in half on 768-tall desktops (and #forget-btn clipped in revealed
+// states). The pass top-aligns the rail (the shell block's flex-start
+// governs once the experience layer stops re-centering) and pins it sticky
+// at 24px — NOT topbar+24: body is the scroll container and its padding
+// already clears the fixed bar, so a topbar-added offset parked the rail
+// 64px low and re-armed the defect at 150% zoom (the pr224 audit's F1).
+//
+// The pr224 audit broke the first version of these pins four ways (later
+// overriding rule, double-spaced selector, child combinator, bare-class
+// selector — presence checks, not cascade checks). These pins therefore
+// normalize selector whitespace, match ANY selector shape naming the
+// element, and assert the CASCADE WINNER: no rule anywhere in either host
+// stylesheet may re-declare the guarded properties to a defeating value.
+describe('desktop rail fold contract (≥720px)', () => {
+  const experienceCss = read('ui', 'experience.css')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = source => [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map(m => ({ sel: m[1].replace(/\s+/g, ' ').trim(), body: m[2] }));
+  const targeting = (source, needle) =>
+    rules(source).filter(r => r.sel.split(',').some(s => s.includes(needle)));
+  const decls = (body, prop) =>
+    [...body.matchAll(new RegExp('(?:^|;)\\s*' + prop + '\\s*:\\s*([^;]+)', 'g'))]
+      .map(m => m[1].trim());
+
+  it('no rule in either host stylesheet re-centers the rail against the card', () => {
+    // The shell's ≥720 block sets align-items: flex-start on the flex row;
+    // ANY later align-items on a .result-main-targeting selector — any
+    // shape, any file — can re-arm the fold defect.
+    for (const [name, source] of [['experience', experienceCss], ['shell', shellCss.replace(/\/\*[\s\S]*?\*\//g, '')]]) {
+      for (const r of targeting(source, '.result-main')) {
+        for (const v of decls(r.body, 'align-items')) {
+          expect(v, `${name}: align-items "${v}" on "${r.sel}"`).toBe('flex-start');
+        }
+      }
+    }
+    // non-vacuous: the experience gap rule and the shell layout rule exist
+    expect(targeting(experienceCss, '.result-main').length).toBeGreaterThan(0);
+    expect(targeting(shellCss, '.result-main').length).toBeGreaterThan(0);
+  });
+
+  it('the rail is sticky at 24px, top-aligned — and nothing anywhere defeats it', () => {
+    const railRules = targeting(experienceCss, '.result-rail')
+      .concat(targeting(shellCss.replace(/\/\*[\s\S]*?\*\//g, ''), '.result-rail'));
+    expect(railRules.length).toBeGreaterThan(0);
+    const all = prop => railRules.flatMap(r => decls(r.body, prop));
+    // every declaration of the guarded properties, in every rule of every
+    // shape, must carry the contract value — a later "position: static"
+    // override is a re-arm, not a tie-break this test loses.
+    const positions = all('position');
+    expect(positions.length).toBeGreaterThan(0);
+    for (const v of positions) expect(v, 'position').toBe('sticky');
+    for (const v of all('align-self')) expect(v, 'align-self').toBe('flex-start');
+    const tops = all('top');
+    expect(tops.length).toBeGreaterThan(0);
+    // 24px exactly: body is the scroll container and its padding already
+    // clears the topbar; any topbar-added value parks the rail low and
+    // re-arms the fold defect under zoom (pr224 audit F1).
+    for (const v of tops) expect(v, 'top').toBe('24px');
+  });
+
+  it('the shell keeps the flex row the rail contract rides on', () => {
+    const main = targeting(shellCss.replace(/\/\*[\s\S]*?\*\//g, ''), '#result .result-main');
+    expect(main.length).toBeGreaterThan(0);
+    const bodyAll = main.map(r => r.body).join(';');
+    expect(bodyAll).toMatch(/display:\s*flex/);
+    expect(bodyAll).toMatch(/align-items:\s*flex-start/);
+  });
+});

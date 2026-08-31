@@ -5,6 +5,77 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Desktop layout pass: the t3 rail's $6 offer was below the fold; the rail goes top-aligned + sticky — STAGED on branch, PR pending
+
+**What happened.** On the controller's order, the desktop counterpart
+of the mobile fold pass: a fold audit at six desktop viewports
+(1024×768 → 1920×1080) measuring which controls are visible without
+scrolling, per tier and state. The historical record closed first: the
+old CiC concern — SHARE below the fold on short desktops — is
+confirmed RESOLVED by the side rail (in-fold everywhere measured), and
+the free tier's $3 offer is in-fold at every desktop size. The one
+real defect found: at t3 the rail sat vertically CENTERED beside the
+~1034px card (the experience layer re-centered what the shell's rail
+block had set to flex-start), pushing the rail's LAST items — the $6
+comparative offer and its gumroad disclosure — to ~730px from the top:
+fully below the fold at 1280×720, cut in half on 768-tall desktops
+(1024×768, 1366×768). The t5 upsell was invisible on short desktops at
+exactly the tier it targets — and per the audit the base defect was
+broader than first measured: t5 and revealed-label states clipped too,
+including #forget-btn below the fold at three viewports in
+free-revealed (this entry's first "the free tier escaped" was wrong).
+
+**The design, as corrected by its audit.** Top-aligned + sticky, the
+standard product-rail pattern: the experience layer stops re-declaring
+`align-items` (the shell's flex-start governs), and `#result
+.result-rail` gains `align-self: flex-start; position: sticky;
+top: 24px`. The offset is the audit's F1: the first cut shipped
+`calc(topbar + 24px)`, but `html { overflow-x: hidden }` makes BODY
+the scroll container and body's padding-top already clears the fixed
+bar — a sticky inset resolves from the scroll container's content box,
+so the topbar-added value parked the rail 64px low and, at 150%
+browser zoom on a 1280×800 display (853×533 CSS px, still ≥720 wide),
+pushed the $6 offer below the fold — the exact defect under repair.
+At 24px the stuck rail lands at the card top (88=88, measured) and
+every control including the revenue CTA sits in the first ~500px at
+every tier and viewport, pinned in view while the tall card scrolls —
+screenshot-verified at 1280×800 t3, resting and scrolled (the card's
+kua block moving under the rail stuck at 88), and the zoom case
+verified in-fold at 853×533. ≥720-scoped: mobile measures
+byte-identical (rail static, in-flow at the stage boundary).
+
+**Verification.** Fold audit re-run post-correction: every control
+in-fold at all six viewports × free/free-revealed/t3 states, dyad
+screen centered with no horizontal overflow, onboarding unchanged; the
+full-scroll dock clears the feedback block; the rail's tallest tier
+measures ~485px with status lines (this entry's first "~420px" was
+low), inside every ≥720 height band. Suite 57 files / 2011 tests
+green (+3); product audit PASS, 0 blocking.
+
+**Cross-model audit (pr224), reconciled.** Lanes: MERGE WITH FIXES
+and MERGE WITH FIXES, both reproducing the base defect (broader than
+claimed — see above) and the head fix across every viewport × state
+they drove (one lane: 36 runs, zero failures; both byte-verified the
+tree their server actually served, the prior audit's port-collision
+lesson applied). Findings, all landed: **F1 (both lanes, from
+different ends)** — the sticky offset double-counted the topbar
+against the body scroll container; fixed to `top: 24px`, live-fire
+verified (rail = card top at load, stuck at 88 across scroll, the
+150%-zoom case in-fold at 853×533). **F2 (both lanes)** — the
+first-cut pins tested presence, not cascade: a later overriding rule
+restored the full defect with all pins green, and double-spaced /
+child-combinator / bare-class selector shapes plus a shell
+display:block dodge all rode green. Rebuilt cascade-aware: selector
+whitespace normalized, any selector shape naming the element matched,
+and every declaration of the guarded properties in either host
+stylesheet must carry the contract value — six dodge mutants now die
+on top of the original three. **F3–F5 (record)** — the "~420px" rail
+figure, the false "free tier escaped" claim, and the stuck-top
+"matches the card top" comment (true only after the F1 fix) corrected
+in this entry and the rule's comment; the dead 56px var fallback went
+with the calc. Suite after reconciliation: 57 files / 2011 tests
+green; product audit PASS, 0 blocking.
+
 ## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — STAGED on branch (rides PR #223)
 
 **What happened.** On the controller's "keep auditing layout" order, a
