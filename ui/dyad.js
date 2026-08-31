@@ -53,19 +53,21 @@ import { buildSheetMarkup, createSheet } from './sheet.js';
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
-// ── the rung is not live, and fails closed until it is ────────────
-// The $6 comparative Gumroad listing exists but is unpublished and not for
-// sale; publishing or changing it is the operator's action, never an agent's
-// (§10). No fulfillment path is wired. While this constant is empty the CTA
-// carries no href and stays hidden, so no visitor can reach a dead checkout. Unlike the
-// retired T4_PRODUCT_URL precedent (§1.D v0.58), filling THIS constant in is
-// deliberately NOT sufficient on its own to make the rung buyable: entry
-// visibility (`dyadEntryVisible`, below) is entitlement-only and does not
-// react to it (PR #187 R6 — a prior draft made the entry visible below t5
-// once this was non-empty, with no click path behind it, a visible dead
-// button). Turning the rung commercially live needs a real offer path shipped
-// as its own change; this constant alone stays inert until that exists.
-export const T5_PRODUCT_URL = '';
+// ── the rung's checkout (activated 2026-08-31, controller order) ──
+// The $6 comparative Gumroad listing (`neysyv`). This constant went from ''
+// to the live URL together with the offer path it feeds — the below-t5
+// rail anchor injected beside the entry control, whose click IS the
+// checkout redirect (§5.B Call 2 mechanism, same as the paywall CTA). That
+// coupling is the PR #187 R6 lesson honored, not bypassed: entry visibility
+// (`dyadEntryVisible`, below) is STILL entitlement-only and does not
+// react to this constant; the offer is its own control (`dyadOfferVisible`)
+// with its own coherent click path. Fail-closed degradation is preserved:
+// empty this string and the offer anchor loses its href and stays hidden
+// again — no dead checkout is reachable either way. The URL stays BARE (no
+// query): the `?paid=t5` return travels on the Gumroad Content-tab button,
+// which — like publishing the listing itself — is the operator's console
+// action, never an agent's (§10).
+export const T5_PRODUCT_URL = 'https://theeightball.gumroad.com/l/neysyv';
 
 // ── pure ──────────────────────────────────────────────────────────
 
@@ -94,6 +96,20 @@ export function dyadEntitled(tier) {
  */
 export function dyadEntryVisible(tier) {
   return dyadEntitled(tier);
+}
+
+/**
+ * Should the below-t5 OFFER anchor exist on the result rail?
+ *
+ * The other half of the R6 contract: the offer is a separate control from
+ * the entry, with a click path that is coherent for an unentitled device —
+ * a plain checkout redirect to `T5_PRODUCT_URL`. Visible exactly when the
+ * device does NOT own the rung AND the checkout URL exists; at t5 the
+ * entry control takes the same rail slot instead, and with the URL empty
+ * the rung fails closed exactly as it did before activation.
+ */
+export function dyadOfferVisible(tier) {
+  return !dyadEntitled(tier) && T5_PRODUCT_URL !== '';
 }
 
 // The relation layer's value nodes, mapped to the formatDyadRelation field
@@ -173,6 +189,7 @@ export function dyadRelationFor(profileA, profileB) {
 // ── injected markup + scoped CSS ──────────────────────────────────
 
 const STYLE = `
+#dyad-offer-link { text-decoration: none; }
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
 #dyad-screen #dyad-output { scroll-margin-top: calc(var(--topbar-height, 56px) + 12px); }
@@ -375,6 +392,20 @@ function injectEntryButton(controls) {
     open();
   });
   controls.appendChild(btn);
+  // The below-t5 OFFER: a plain checkout anchor in the entry's rail slot —
+  // its own control, its own click path (the R6 contract). Same §5.B Call 2
+  // mechanism as the paywall CTA: bare Gumroad href, target _self, no JS
+  // handler, no fetch. href only exists while T5_PRODUCT_URL is non-empty,
+  // so an emptied constant fails the rung closed again with no dead link.
+  if (document.getElementById('dyad-offer-link')) return;
+  const offer = document.createElement('a');
+  offer.className = 'btn btn-block btn-secondary';
+  offer.id = 'dyad-offer-link';
+  offer.textContent = 'buy comparative — a second sheet + the relation layer — $6';
+  offer.hidden = true; // fail closed until a render says otherwise
+  if (T5_PRODUCT_URL) offer.setAttribute('href', T5_PRODUCT_URL);
+  offer.setAttribute('target', '_self');
+  controls.appendChild(offer);
 }
 
 /**
@@ -385,6 +416,10 @@ function injectEntryButton(controls) {
 export function syncDyadEntry(tier) {
   const btn = $('dyad-open-btn');
   if (btn) btn.hidden = !dyadEntryVisible(tier);
+  // The offer swaps with the entry on the same render tick, so at no tier
+  // do both show and at no entitled tier does a buy link linger.
+  const offer = $('dyad-offer-link');
+  if (offer) offer.hidden = !dyadOfferVisible(tier);
   return btn ? !btn.hidden : false;
 }
 
@@ -654,9 +689,11 @@ export function render() {
   const spine = $('dyad-spine');
   if (spine && spine.classList && relation) spine.classList.add('dyad-spine-revealing');
 
-  // The rung is owned here by definition, so there is nothing to offer. The
-  // CTA stays hidden and href-less; it exists only so that filling
-  // T5_PRODUCT_URL in has one obvious place to become an offer.
+  // The rung is owned here by definition, so there is nothing to offer —
+  // open() refuses below t5, so only entitled devices reach this render.
+  // The screen's own CTA node therefore stays hidden and href-less
+  // permanently; the live offer is the below-t5 rail anchor
+  // (#dyad-offer-link), never this node.
   const cta = $('dyad-cta');
   if (cta) {
     cta.hidden = true;

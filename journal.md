@@ -5,6 +5,52 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Dyad t5 activation: the comparative rung goes on offer — STAGED on branch, PR pending
+
+**What happened.** The controller ordered the dyad t5 activation — the
+fresh decision DOCTRINE v0.62's commercial-truth amendment required.
+`T5_PRODUCT_URL` in `ui/dyad.js` went from `''` to the live `neysyv`
+Buy Link (`https://theeightball.gumroad.com/l/neysyv`, $6, bare — no
+query), and the offer path PR #187 R6 demanded ships WITH it: a
+below-t5 result-rail anchor (`#dyad-offer-link`, injected beside the
+entry control) whose click IS the checkout — a plain `<a href>` with
+target `_self`, §5.B Call 2 mechanism, no script handler, no fetch.
+
+**The R6 contract, honored not bypassed.** `dyadEntryVisible` stays
+entitlement-only and byte-untouched; the offer is its own predicate
+(`dyadOfferVisible` = not entitled AND URL non-empty) and its own
+control, and the two swap on the same `syncDyadEntry` tick — no tier
+shows both, no entitled device shows a buy link, and no unentitled
+device shows a dead entry. The `?paid=t5` return needed zero code:
+`handlePaidReturn` accepts whatever `isTier` accepts (v0.61), raising
+the stored tier monotonically with +3 credits. Fail-closed degradation
+is retained: an emptied constant hides the offer, drops its href, and
+turns the exact-URL pin red rather than shipping a quiet dead checkout.
+The paywall modal is untouched (still exactly one Gumroad CTA, the t3
+product); `index.html` is byte-unchanged.
+
+**What remains operator-hand, named per §10.** Publishing the `neysyv`
+listing in the Gumroad dashboard, and wiring its Content-tab button to
+`/?paid=t5` (the same steps the t1/t2/t3 products got at v0.6.0).
+Until both are done the anchor lands on Gumroad's own "not currently
+for sale" page — an inert storefront page, not a broken surface; the
+runtime waits on no further code.
+
+**Verification.** Suite 57 files / **1985** tests green (1981 + the
+exact-bare-URL pin, the offer/entry complement truth table with its
+empty-URL source pins, the rail swap behavior pin, and the clinical
+label pin). Six mutants killed: emptied constant, URL-guard dropped
+from the predicate, offer visible at t5, unconditional href, query
+param on the Buy Link, a JS click handler bolted onto the anchor.
+Product audit PASS. Live-fire in Chromium, end to end: free tier shows
+the offer with the exact bare href and label and no entry; navigating
+`/?paid=t5` stores tier `t5`, swaps the offer out and the entry in,
+and the dyad screen opens; a plain reload keeps the entitlement; zero
+page errors. DOCTRINE v0.67 (§1.J/§4.B activation amendment + footer).
+
+**State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
+cross-model audit next; merge only on the controller's explicit word.
+
 ## 2026-08-31 — Shell-stylesheet split: index.html 1455 → 683 — STAGED on branch, PR pending
 
 **What happened.** The controller ordered the index.html split — the

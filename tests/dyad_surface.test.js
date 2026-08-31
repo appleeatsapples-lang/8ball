@@ -7,9 +7,11 @@
 //   1. SEALED-DOM PURITY. Below t5 the relation layer renders its seal with
 //      the value nodes EMPTY — absent, not hidden (§1.D v0.37). An
 //      unentitled render must carry no entitled passage anywhere in the DOM.
-//   2. FAIL-CLOSED OFFER. T5_PRODUCT_URL ships empty, so the CTA has no href
-//      and stays hidden. The rung is not buyable, and nothing in this ship
-//      may make it buyable by accident.
+//   2. THE OFFER (activated 2026-08-31, controller order). T5_PRODUCT_URL
+//      carries the live neysyv checkout and a below-t5 rail anchor
+//      (#dyad-offer-link) is its own control with its own click path — the
+//      entry control stays entitlement-only (R6). Emptying the constant
+//      fails the rung closed again: no href, no visible offer.
 //   3. NO STORAGE. The tier introduces no localStorage key, and the second
 //      person is never persisted — the §5 allow-list is unchanged by it.
 //   4. THE LADDER APPEND is safe: t5 outranks t3, monotonicity holds, the
@@ -35,6 +37,7 @@ import {
   DYAD_AXIS_IDS,
   dyadEntitled,
   dyadEntryVisible,
+  dyadOfferVisible,
   formatDyadRelation,
   dyadRelationFor,
   initDyadUI,
@@ -370,6 +373,58 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
       h.withDom(() => syncDyadEntry(tier));
       expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
     }
+  });
+
+  it('the checkout constant is the exact bare neysyv Buy Link (activation, 2026-08-31)', () => {
+    // Mirrors tests/payments_markup.test.js's exact-URL discipline: locks
+    // the product URL and the bare shape, guarding against a rung->product
+    // mismatch and against tracking-param leakage. Emptying the constant is
+    // also caught here, which is the fail-closed degradation pin: with ''
+    // this fails loudly instead of a dead checkout shipping quietly.
+    expect(T5_PRODUCT_URL).toBe('https://theeightball.gumroad.com/l/neysyv');
+    expect(T5_PRODUCT_URL).not.toMatch(/[?&]/);
+  });
+
+  it('dyadOfferVisible is the entry predicate\'s complement gated on the URL — never both, never a dead link', () => {
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      expect(dyadOfferVisible(tier), tier).toBe(true);
+      expect(dyadEntryVisible(tier), tier).toBe(false);
+    }
+    expect(dyadOfferVisible('t5')).toBe(false);
+    expect(dyadEntryVisible('t5')).toBe(true);
+    // Source pin for the empty-URL guard the baked-in constant keeps this
+    // suite from driving at runtime: the predicate must consult the
+    // constant, and the injected anchor must only carry an href while it
+    // is non-empty.
+    expect(dyadJs).toMatch(/!dyadEntitled\(tier\) && T5_PRODUCT_URL !== ''/);
+    expect(dyadJs).toMatch(/if \(T5_PRODUCT_URL\) offer\.setAttribute\('href', T5_PRODUCT_URL\)/);
+  });
+
+  it('the rail offer anchor: checkout redirect below t5, absent at t5, swapped with the entry on the same sync', () => {
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      const h = harness(tier);
+      h.withDom(() => syncDyadEntry(tier));
+      const offer = h.get('dyad-offer-link');
+      expect(offer, tier).not.toBeNull();
+      expect(offer.hidden, tier).toBe(false);
+      expect(offer.getAttribute('href'), tier).toBe(T5_PRODUCT_URL);
+      expect(offer.getAttribute('target'), tier).toBe('_self');
+      // A plain anchor IS the click path — no JS handler to rot (R6: the
+      // control and its path ship together, and the path is the browser's).
+      expect(Object.keys(offer.listeners), tier).toEqual([]);
+      expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
+    }
+    const h5 = harness('t5');
+    h5.withDom(() => syncDyadEntry('t5'));
+    expect(h5.get('dyad-offer-link').hidden).toBe(true);
+    expect(h5.get('dyad-open-btn').hidden).toBe(false);
+  });
+
+  it('the offer label is clinical: names what the rung sells and its price, no urgency, no second person', () => {
+    const h = harness('free');
+    const offer = h.get('dyad-offer-link');
+    expect(offer.textContent).toBe('buy comparative — a second sheet + the relation layer — $6');
+    expect(offer.textContent).not.toMatch(/\byou\b|\byour\b|!|now|today|only|last chance/i);
   });
 
   it('open() refuses below t5', () => {
