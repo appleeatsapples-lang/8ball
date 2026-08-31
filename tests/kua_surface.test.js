@@ -180,6 +180,10 @@ describe('kua render — contract', () => {
     expect(sheetJs).toMatch(/card-habit" data-sheet-kua-primary/);
     expect(sheetJs).toMatch(/card-habit" data-sheet-kua-secondary/);
     expect(sheetJs).not.toMatch(/card-note" data-sheet-kua-secondary/);
+    // The swap strips card-note's 6px margin-top (pr218 audit MED): the
+    // injected style must restore the secondary line's separation, scoped
+    // on .kua-read so both renderers get it from the one stylesheet.
+    expect(kuaJs).toMatch(/\.kua-read \.kua-secondary, \.kua-read \[data-sheet-kua-secondary\] \{ margin-top: 6px; \}/);
     expect(kuaJs).toMatch(/qq\('\.kua-note'\)/);
   });
 

@@ -96,6 +96,12 @@ const KUA_STYLE = `
 .card.labels-revealed .kua-title { visibility: visible; }
 .kua-read .coord-seal { inset: 16px 10% 4px; }
 .kua-note:empty { display: none; }
+/* card-habit carries no margin-top (card-note's 6px was what separated the
+   secondary value line from the primary's body before the pr218 type-style
+   unification stripped it — the audit's MED). Scoped on .kua-read, so the
+   host block and the dyad sheets' kua blocks stay in step through the one
+   injected stylesheet. */
+.kua-read .kua-secondary, .kua-read [data-sheet-kua-secondary] { margin-top: 6px; }
 .kua-body:empty { display: none; }
 .kua-read.unsealing .card-habit,
 .kua-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
