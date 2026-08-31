@@ -5,6 +5,45 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-08-31 — Desktop layout pass: the t3 rail's $6 offer was below the fold; the rail goes top-aligned + sticky — STAGED on branch, PR pending
+
+**What happened.** On the controller's order, the desktop counterpart
+of the mobile fold pass: a fold audit at six desktop viewports
+(1024×768 → 1920×1080) measuring which controls are visible without
+scrolling, per tier and state. The historical record closed first: the
+old CiC concern — SHARE below the fold on short desktops — is
+confirmed RESOLVED by the side rail (in-fold everywhere measured), and
+the free tier's $3 offer is in-fold at every desktop size. The one
+real defect found: at t3 the rail sat vertically CENTERED beside the
+~1034px card (the experience layer re-centered what the shell's rail
+block had set to flex-start), pushing the rail's LAST items — the $6
+comparative offer and its gumroad disclosure — to ~730px from the top:
+fully below the fold at 1280×720, cut in half on 768-tall desktops
+(1024×768, 1366×768). The t5 upsell was invisible on short desktops at
+exactly the tier it targets; the free tier escaped only because its
+rail is shorter.
+
+**The design.** Top-aligned + sticky, the standard product-rail
+pattern: the experience layer stops re-declaring `align-items` (the
+shell's flex-start governs), and `#result .result-rail` gains
+`align-self: flex-start; position: sticky;
+top: calc(var(--topbar-height, 56px) + 24px)`. Every control including
+the revenue CTA now sits in the first ~500px at every tier and
+viewport, and the whole rail stays in view while the tall card scrolls
+— screenshot-verified at 1280×800 t3, resting and scrolled 400px (the
+card's kua block scrolling under a pinned rail). ≥720-scoped: mobile
+measures byte-identical (rail static, in-flow at the stage boundary).
+
+**Verification.** Fold audit re-run: every control in-fold at all six
+viewports × free/free-revealed/t3 states, dyad screen centered with no
+horizontal overflow, onboarding unchanged. Sticky measured live
+(railTop pinned at 152 across a 400px scroll while the card moves).
+Three mutants killed on the new fold-contract pins in
+tests/density.test.js: re-centering the rail, dropping
+position: sticky, and the shell losing the flex-start the experience
+layer now defers to. Suite 57 files / 2011 tests green (+3); product
+audit PASS, 0 blocking.
+
 ## 2026-08-31 — Layout audit: the last two ratio-box traps retired; the class is extinct — STAGED on branch (rides PR #223)
 
 **What happened.** On the controller's "keep auditing layout" order, a

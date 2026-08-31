@@ -108,3 +108,48 @@ describe('result surface — accessibility pins (evolution pass)', () => {
     expect(card[0]).toMatch(/aria-label="specimen sheet"/);
   });
 });
+
+// ── desktop rail fold contract (2026-08-31 desktop layout pass) ───────────
+// On ≥720px viewports the result rail sat vertically CENTERED beside the
+// card. Harmless at free-tier heights, but the t3 card is ~1034px tall and
+// centering pushed the rail's last items — the $6 comparative offer and its
+// disclosure — to ~730px from the top: fully below the fold at 1280×720,
+// cut in half on 768-tall desktops. The pass top-aligns the rail (the shell
+// block's flex-start governs once the experience layer stops re-centering)
+// and pins it sticky, so every control including the revenue CTA sits in
+// the first ~500px at every tier AND stays in view while the tall card
+// scrolls. Source pins here; the fold measurements live in the live-fire
+// record (journal entry of the pass).
+describe('desktop rail fold contract (≥720px)', () => {
+  const experienceCss = read('ui', 'experience.css')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('the experience layer no longer re-centers the rail against the card', () => {
+    // The shell's ≥720 block sets align-items: flex-start; the defect was
+    // the experience layer overriding it back to center. No #result
+    // .result-main rule may re-declare align-items anywhere.
+    const rules = [...experienceCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const mains = rules.filter(r => r[1].includes('#result .result-main'));
+    expect(mains.length).toBeGreaterThan(0); // non-vacuous: the gap rule stays
+    for (const r of mains) {
+      expect(r[2], `align-items on "${r[1].trim()}" re-arms the fold defect`)
+        .not.toMatch(/align-items/);
+    }
+  });
+
+  it('the rail is sticky and self-aligned to the top', () => {
+    const rail = [...experienceCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(r => r[1].includes('#result .result-rail'));
+    expect(rail.length).toBeGreaterThan(0);
+    const body = rail.map(r => r[2]).join(';');
+    expect(body).toMatch(/position:\s*sticky/);
+    // align-self pins the sticky element against any future align-items
+    // change on the container.
+    expect(body).toMatch(/align-self:\s*flex-start/);
+    expect(body).toMatch(/top:\s*calc\(var\(--topbar-height,\s*56px\)\s*\+\s*24px\)/);
+  });
+
+  it('the shell keeps the flex-start the experience layer now defers to', () => {
+    expect(shellCss).toMatch(/#result \.result-main \{[^}]*align-items:\s*flex-start/);
+  });
+});
