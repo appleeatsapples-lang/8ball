@@ -12,9 +12,14 @@ fresh decision DOCTRINE v0.62's commercial-truth amendment required.
 `T5_PRODUCT_URL` in `ui/dyad.js` went from `''` to the live `neysyv`
 Buy Link (`https://theeightball.gumroad.com/l/neysyv`, $6, bare — no
 query), and the offer path PR #187 R6 demanded ships WITH it: a
-below-t5 result-rail anchor (`#dyad-offer-link`, injected beside the
-entry control) whose click IS the checkout — a plain `<a href>` with
-target `_self`, §5.B Call 2 mechanism, no script handler, no fetch.
+result-rail anchor (`#dyad-offer-link`, injected beside the entry
+control) whose click IS the checkout — a plain `<a href>` with target
+`_self`, §5.B Call 2 mechanism, no script handler, no fetch — with the
+modal checkout's gumroad disclosure injected beside it. The offer is
+scoped to t3 exactly (owns the complete sheet, not the dyad): the one
+rung the label's "$6 second sheet + relation layer" delta is true of;
+below t3 the rail presents the $3 step alone, and whether t5 joins that
+presentation stays the reserved v0.61 controller decision.
 
 **The R6 contract, honored not bypassed.** `dyadEntryVisible` stays
 entitlement-only and byte-untouched; the offer is its own predicate
@@ -22,31 +27,70 @@ entitlement-only and byte-untouched; the offer is its own predicate
 control, and the two swap on the same `syncDyadEntry` tick — no tier
 shows both, no entitled device shows a buy link, and no unentitled
 device shows a dead entry. The `?paid=t5` return needed zero code:
-`handlePaidReturn` accepts whatever `isTier` accepts (v0.61), raising
-the stored tier monotonically with +3 credits. Fail-closed degradation
-is retained: an emptied constant hides the offer, drops its href, and
-turns the exact-URL pin red rather than shipping a quiet dead checkout.
+`handlePaidReturn` accepts whatever `isTier` accepts (v0.61), and the
+monotonic tier write is the ENTIRE grant — no credits exist to add
+(§1.D v0.55; the first draft of this entry claimed "+3 credits", a
+superseded v0.36 lineage sentence — pr216 audit HIGH 2). Fail-closed
+degradation is retained and runtime-driven (the offer predicate takes
+an injectable url): an emptied constant hides the offer, strips its
+href, and turns the exact-URL pin red rather than shipping a quiet
+dead checkout.
 The paywall modal is untouched (still exactly one Gumroad CTA, the t3
 product); `index.html` is byte-unchanged.
 
-**What remains operator-hand, named per §10.** Publishing the `neysyv`
-listing in the Gumroad dashboard, and wiring its Content-tab button to
-`/?paid=t5` (the same steps the t1/t2/t3 products got at v0.6.0).
-Until both are done the anchor lands on Gumroad's own "not currently
-for sale" page — an inert storefront page, not a broken surface; the
-runtime waits on no further code.
+**What remains operator-hand, named per §10 — one step is a trap
+(pr216 audit HIGH 1).** Publishing the `neysyv` listing, and
+RE-POINTING its EXISTING Content-tab button — wired to `/?paid=t2` in
+the listing's v0.6.0 life as the t2 product — to `/?paid=t5`.
+Publishing without the re-point silently grants a $6 buyer t2: one
+rung below the $3 product, no dyad, monotonic and permanent,
+undetectable by the runtime. Until both steps are done the anchor
+lands on Gumroad's own "not currently for sale" page — an inert
+storefront page, not a broken surface; the runtime waits on no further
+code.
 
-**Verification.** Suite 57 files / **1985** tests green (1981 + the
-exact-bare-URL pin, the offer/entry complement truth table with its
-empty-URL source pins, the rail swap behavior pin, and the clinical
-label pin). Six mutants killed: emptied constant, URL-guard dropped
-from the predicate, offer visible at t5, unconditional href, query
-param on the Buy Link, a JS click handler bolted onto the anchor.
-Product audit PASS. Live-fire in Chromium, end to end: free tier shows
-the offer with the exact bare href and label and no entry; navigating
-`/?paid=t5` stores tier `t5`, swaps the offer out and the entry in,
-and the dyad screen opens; a plain reload keeps the entitlement; zero
-page errors. DOCTRINE v0.67 (§1.J/§4.B activation amendment + footer).
+**Cross-model audit (pr216), reconciled.** Two lanes: MERGE WITH FIXES
+(1 LOW + 1 NIT) and MERGE WITH FIXES (2 HIGH + 5 MED + 5 LOW + 2 NIT).
+The two HIGHs were doc-truth, both landed above rather than patched
+after: the re-point trap (`neysyv`'s existing button is t2-era — §5.B
+v0.36 and §1.D v0.55 still bound it to `/?paid=t2`, so "wire the
+button" framing invited a $6-buys-t2 grant) and the resurrected "+3
+credits" claim §1.D v0.55 had retired. Landed with them: the offer
+rescoped to t3 exactly (MED 5 — the delta label overstated the price
+to every tier below t3, which saw two prices on one rail); the gumroad
+disclosure injected beside the anchor (MED 4 — the rail path bypassed
+the only third-party notice in the product); blocked-storage exposure
+decided and named instead of found (MED 3 — no preflight, because the
+return path is retry-preserving by design: a failed tier write keeps
+the `?paid=t5` URL and banners the recovery instruction); the stale
+"only purchase surface" test retitled with a companion pin declaring
+the exact reachable-checkout set {xjpvp modal, neysyv rail} across
+index.html + ui/* (MED 6); `8BALL.md`'s storefront paragraph and two
+further unsuperseded empty-constant clauses (§7 v0.61 extension, §1.J
+"Two limits") added to the v0.67 supersession list (MED 7/LOW 8); the
+rail pair given full-width grid cells (LOW 9 — the $6 control rendered
+as a half-width four-line cell below the device footer); the
+[hidden]-guard dependency pinned at both ends for the injected
+controls (LOW 10); the offer predicate given an injectable url so the
+empty-URL degradation is runtime-driven, not source-regexed (LOW 11);
+the injection-time dark state pinned (LOW 12); the dead in-screen
+placeholder CTA deleted outright (NIT 13); the href stripped whenever
+the offer hides, and the pin retitled to what it enforces (NIT 14);
+and the offer-label scan routed through the canonical voice-register
+helpers instead of an ad hoc regex that had re-introduced the exact
+second-person gap they exist to close (the other lane's LOW).
+
+**Verification (post-reconciliation).** Suite 57 files / **1989**
+tests green. Eight mutants killed on the reconciled shape: emptied
+constant, predicate widened back below t3, URL-guard dropped, href
+parked instead of stripped, offer injected visible, disclosure
+emptied, label rewritten with the `yours` inflection the ad hoc regex
+missed, a JS click handler bolted on. Product audit PASS. Live-fire in
+Chromium: free shows only the $3 step (no dyad offer, no note); t3
+shows the $6 anchor at full rail width with the exact bare href and
+the disclosure beside it, $3 offer gone; t5 swaps the entry in with
+the offer hidden AND its href stripped; zero page errors. DOCTRINE
+v0.67 (§1.J/§4.B/§5.B activation amendment + footer).
 
 **State.** Staged on `claude/eight-ball-app-testing-rqphfo`; PR + §10
 cross-model audit next; merge only on the controller's explicit word.
