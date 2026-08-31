@@ -18,7 +18,7 @@
 // the other surface suites.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -372,10 +372,29 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
     expect(pay).not.toMatch(/T4_PRODUCT_URL|applyT4Offer/);
   });
 
-  it('the sprint $3 offer is still the only purchase surface', () => {
+  it('index.html carries exactly one Gumroad URL — the t3 modal CTA', () => {
+    // Retitled at pr216 (audit MED 6): since the dyad t5 activation this
+    // is NOT "the only purchase surface" — ui/dyad.js injects the t3-only
+    // $6 rail anchor at runtime — and a title claiming otherwise while
+    // green makes the suite's record of the paywall surface decorative.
+    // What this pins is the static file: one URL, the t3 product.
     expect((html.match(/gumroad\.com/g) || []).length).toBe(1);
     expect(html).toMatch(/id="paywall-cta-t3"[^>]*href="https:\/\/theeightball\.gumroad\.com\/l\/xjpvp"/);
     expect(html).toMatch(/id="offer-btn"[^>]*>open the complete sheet · \$3 once</);
+  });
+
+  it('the full set of reachable checkouts is declared: exactly {xjpvp modal, neysyv dyad rail}', () => {
+    // The companion the retitle above requires (pr216 audit MED 6): a
+    // third checkout surface anywhere in the shipped page — static OR
+    // injected — must be declared here, not discovered in production.
+    const uiDir = join(__dirname, '..', 'ui');
+    const sources = [html, ...readdirSync(uiDir).filter(f => f.endsWith('.js') || f.endsWith('.css'))
+      .map(f => readFileSync(join(uiDir, f), 'utf-8'))].join('\n');
+    const urls = [...new Set(sources.match(/https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+/g) || [])].sort();
+    expect(urls).toEqual([
+      'https://theeightball.gumroad.com/l/neysyv',
+      'https://theeightball.gumroad.com/l/xjpvp',
+    ]);
   });
 });
 

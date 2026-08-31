@@ -7,9 +7,14 @@
 //   1. SEALED-DOM PURITY. Below t5 the relation layer renders its seal with
 //      the value nodes EMPTY — absent, not hidden (§1.D v0.37). An
 //      unentitled render must carry no entitled passage anywhere in the DOM.
-//   2. FAIL-CLOSED OFFER. T5_PRODUCT_URL ships empty, so the CTA has no href
-//      and stays hidden. The rung is not buyable, and nothing in this ship
-//      may make it buyable by accident.
+//   2. THE OFFER (activated 2026-08-31, controller order). T5_PRODUCT_URL
+//      carries the live neysyv checkout and a rail anchor
+//      (#dyad-offer-link) is its own control with its own click path — the
+//      entry control stays entitlement-only (R6). Scoped to t3 exactly
+//      (owns the complete sheet, not the dyad — the tier the label's delta
+//      is true of; pr216 audit MED 5). Emptying the constant fails the
+//      rung closed again: no href, no visible offer. A disclosure note
+//      travels with the anchor (pr216 audit MED 4).
 //   3. NO STORAGE. The tier introduces no localStorage key, and the second
 //      person is never persisted — the §5 allow-list is unchanged by it.
 //   4. THE LADDER APPEND is safe: t5 outranks t3, monotonicity holds, the
@@ -29,12 +34,14 @@ import { fileURLToPath } from 'node:url';
 vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
 
 import { makeClassList } from './helpers/dom.js';
+import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
 import {
   T5_PRODUCT_URL,
   DYAD_RELATION_NODES,
   DYAD_AXIS_IDS,
   dyadEntitled,
   dyadEntryVisible,
+  dyadOfferVisible,
   formatDyadRelation,
   dyadRelationFor,
   initDyadUI,
@@ -202,7 +209,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   // Every id and data-attribute the screen markup can contain.
   const ids = [
     'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
-    'dyad-cta', 'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
+    'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
     'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
@@ -370,6 +377,114 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
       h.withDom(() => syncDyadEntry(tier));
       expect(h.get('dyad-open-btn').hidden, tier).toBe(true);
     }
+  });
+
+  it('the checkout constant is the exact bare neysyv Buy Link (activation, 2026-08-31)', () => {
+    // Mirrors tests/payments_markup.test.js's exact-URL discipline: locks
+    // the product URL and the bare shape, guarding against a rung->product
+    // mismatch and against tracking-param leakage. Emptying the constant is
+    // also caught here, which is the fail-closed degradation pin: with ''
+    // this fails loudly instead of a dead checkout shipping quietly.
+    expect(T5_PRODUCT_URL).toBe('https://theeightball.gumroad.com/l/neysyv');
+    expect(T5_PRODUCT_URL).not.toMatch(/[?&]/);
+  });
+
+  it('dyadOfferVisible: t3 exactly — owns the complete sheet, not the dyad — and never beside the entry', () => {
+    // Scoped to the rung the label's delta is true of (pr216 audit MED 5):
+    // below t3 the rail's $3 complete-sheet offer is the presented step,
+    // and a $6 'second sheet + relation layer' framing would overstate the
+    // price of what those devices would actually be buying.
+    for (const tier of ['free', 't1', 't2']) {
+      expect(dyadOfferVisible(tier), tier).toBe(false);
+      expect(dyadEntryVisible(tier), tier).toBe(false);
+    }
+    expect(dyadOfferVisible('t3')).toBe(true);
+    expect(dyadEntryVisible('t3')).toBe(false);
+    expect(dyadOfferVisible('t5')).toBe(false);
+    expect(dyadEntryVisible('t5')).toBe(true);
+    // The empty-URL degradation, driven at RUNTIME via the injectable url
+    // parameter (pr216 audit LOW 11 — the baked-in constant kept the old
+    // source-regex pin from proving behavior): an empty URL fails closed
+    // at every tier, entitled or not.
+    for (const tier of ['free', 't1', 't2', 't3', 't5']) {
+      expect(dyadOfferVisible(tier, ''), `${tier} empty-url`).toBe(false);
+    }
+    // And the DOM half: the sync owns the href lifecycle, so a hidden
+    // offer must never carry one.
+    expect(dyadJs).toMatch(/if \(show && T5_PRODUCT_URL\) offer\.setAttribute\('href', T5_PRODUCT_URL\);/);
+  });
+
+  it('the rail offer anchor: live checkout at t3 only, hidden AND href-stripped elsewhere, swapped with the entry on one sync', () => {
+    // t3: the offer is the live checkout — visible, bare href, _self, and
+    // a plain anchor IS the click path (no JS handler to rot; R6: the
+    // control and its path ship together, and the path is the browser's).
+    const h3 = harness('t3');
+    // Injection ships it dark before any render decides (pr216 audit LOW
+    // 12 — this line carried a stated fail-closed contract nothing held).
+    expect(h3.get('dyad-offer-link').hidden).toBe(true);
+    h3.withDom(() => syncDyadEntry('t3'));
+    const offer = h3.get('dyad-offer-link');
+    expect(offer.hidden).toBe(false);
+    expect(offer.getAttribute('href')).toBe(T5_PRODUCT_URL);
+    expect(offer.getAttribute('target')).toBe('_self');
+    expect(Object.keys(offer.listeners)).toEqual([]);
+    expect(h3.get('dyad-open-btn').hidden).toBe(true);
+    // Everywhere else: hidden, and the href is STRIPPED, not parked — a
+    // hidden control must not carry a live checkout in the DOM (pr216
+    // audit NIT 14).
+    for (const tier of ['free', 't1', 't2', 't5']) {
+      const h = harness(tier);
+      h.withDom(() => syncDyadEntry(tier));
+      const o = h.get('dyad-offer-link');
+      expect(o.hidden, tier).toBe(true);
+      expect(o.getAttribute('href'), tier).toBeUndefined();
+    }
+    const h5 = harness('t5');
+    h5.withDom(() => syncDyadEntry('t5'));
+    expect(h5.get('dyad-open-btn').hidden).toBe(false);
+  });
+
+  it('the third-party disclosure travels with the offer (pr216 audit MED 4)', () => {
+    // Every other checkout is reached through the paywall modal, whose
+    // gumroad disclosure is CI-pinned; a rail path that navigates off-site
+    // must carry the same claim in the same register.
+    const h3 = harness('t3');
+    h3.withDom(() => syncDyadEntry('t3'));
+    const note = h3.get('dyad-offer-note');
+    expect(note).not.toBeNull();
+    expect(note.hidden).toBe(false);
+    expect(note.textContent).toBe('gumroad handles payment and email. your name, birth data, and reading stay in this browser.');
+    for (const tier of ['free', 't1', 't2', 't5']) {
+      const h = harness(tier);
+      h.withDom(() => syncDyadEntry(tier));
+      expect(h.get('dyad-offer-note').hidden, tier).toBe(true);
+    }
+  });
+
+  it('both injected rail controls wear the [hidden]-guarded class (pr216 audit LOW 10)', () => {
+    // The public-surface hidden-guard walker reads index.html only, so
+    // injected controls sit outside it. They are safe because btn-block
+    // carries the author [hidden] guard in the shell stylesheet — pin the
+    // dependency at both ends so it is coverage, not luck.
+    expect(dyadJs.match(/className = 'btn btn-block btn-secondary'/g) || []).toHaveLength(2);
+    const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
+    expect(shell).toMatch(/\.btn-block\[hidden\] \{ display: none; \}/);
+  });
+
+  it('the offer label is clinical: names what the rung sells and its price, no urgency, no second person', () => {
+    // Scanned through the CANONICAL voice-policy apparatus, not an ad hoc
+    // regex (pr216 audit LOW: a hand-rolled \byour\b re-introduced exactly
+    // the yours/yourself gap SECOND_PERSON_RE exists to close, and the
+    // banned-register table never touched this label at all — the first
+    // priced, purchase-triggering string ui/dyad.js has carried). The
+    // urgency alternation stays because sales-pressure vocabulary is
+    // deliberately NOT in the §2 register tables.
+    const h = harness('free');
+    const offer = h.get('dyad-offer-link');
+    expect(offer.textContent).toBe('buy comparative — a second sheet + the relation layer — $6');
+    expect(voiceRegisterHits(offer.textContent)).toEqual([]);
+    expect(SECOND_PERSON_RE.test(offer.textContent)).toBe(false);
+    expect(offer.textContent).not.toMatch(/!|\bnow\b|\btoday\b|\bonly\b|last chance/i);
   });
 
   it('open() refuses below t5', () => {
@@ -707,8 +822,11 @@ describe('dyad surface — F1: nothing of person B survives closing', () => {
     inst.withDom(() => closeDyad());
     expect(inst.get('dyad-relation').classList.contains('sealed')).toBe(false);
     expect(inst.get('dyad-relation').getAttribute('aria-label')).toBeUndefined();
-    expect(inst.get('dyad-cta').hidden).toBe(true);
-    expect(inst.get('dyad-cta').getAttribute('href')).toBeUndefined();
+  });
+
+  it('the in-screen placeholder CTA is deleted, not merely hidden (pr216 audit NIT 13)', () => {
+    // A permanently inert CTA waiting in shipped markup is the R6 shape.
+    expect(dyadJs).not.toMatch(/dyad-cta/);
   });
 
   it('an INVALID re-submission invalidates the previous pair first (fail closed)', () => {

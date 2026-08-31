@@ -120,13 +120,42 @@ function buildRepo({ baseFiles, headFiles }) {
 }
 
 // Run a script the way GitHub Actions runs a bash `run:` step: `bash -e
-// {script}` — errexit on, so an unhandled command failure aborts the step
-// exactly as it would in real CI, rather than silently continuing past it.
+// {0}` — errexit on, NO pipefail (verified against a real job log's
+// `shell: /usr/bin/bash -e {0}` line). The first version of this harness
+// added `-o pipefail`, which is STRICTER than the thing it replays and
+// broke fidelity in a timing-dependent way (pr216 CI, root-caused
+// 2026-08-31): `grep -q` exits on its first match, and if the `echo`
+// feeding it is still writing, echo dies of SIGPIPE (141). Under pipefail
+// that 141 becomes the pipeline's status, so the gate's
+// `! echo "$CHANGED" | grep -qE '^DOCTRINE\.md$'` read a MATCHED
+// DOCTRINE.md as a failed pipeline — i.e. as NO match — and the docs-only
+// exemption fired: a false GREEN, at random, only in the harness, never in
+// real CI (where the pipeline's status is grep's own). The sentinel test
+// below pins the semantics deterministically with an over-pipe-buffer
+// input, so re-adding pipefail here fails loudly instead of flaking.
 function runStep(workDir, script) {
-  const wrapped = `set -eo pipefail\n${script}`;
+  const wrapped = `set -e\n${script}`;
   const r = spawnSync('bash', ['-c', wrapped], { cwd: workDir, encoding: 'utf-8' });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
+
+describe('the harness itself mirrors GitHub bash -e semantics', () => {
+  it("an early-exit grep -q never turns a matched first clause into a miss (SIGPIPE/pipefail)", () => {
+    // 40k lines >> the 64KB pipe buffer, so echo is GUARANTEED to still be
+    // writing when grep -q exits on line 1 — the SIGPIPE case is forced,
+    // not raced. Under GitHub's real `bash -e` the pipeline's status is
+    // grep's (0, matched); under the old pipefail wrapper it was echo's
+    // 141 and the `!` read it as no-match.
+    const script = [
+      `CHANGED=$(python3 -c "print('DOCTRINE.md'); print('x.md\\n'*40000, end='')")`,
+      `if ! echo "$CHANGED" | grep -qE '^DOCTRINE\.md$'; then echo NOMATCH; else echo MATCH; fi`,
+    ].join('\n');
+    const r = runStep(REPO_ROOT, script);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain('MATCH');
+    expect(r.stdout).not.toContain('NOMATCH');
+  });
+});
 
 const PR = 176;
 const BASE_FILES = {
