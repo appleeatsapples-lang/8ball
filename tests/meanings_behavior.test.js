@@ -153,6 +153,10 @@ describe('ui/meanings.js behavior', () => {
     expect(h).toBeDefined();
     expect(h.hidden).toBeFalsy();
     expect(h.textContent).toBe('each compartment opens its filed meaning — tap any value');
+    // Visual/touch affordance only — suppressed from the accessibility
+    // tree (pr217 audit LOW): the cells' role/aria-label pair already
+    // carries the affordance for AT, and the card face is aria-live.
+    expect(h.attrs['aria-hidden']).toBe('true');
     // Register laws on UI chrome copy, through the CANONICAL apparatus
     // (the pr216 precedent — no ad hoc second-person regex).
     expect(voiceRegisterHits(h.textContent)).toEqual([]);

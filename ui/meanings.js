@@ -351,6 +351,11 @@ export function initMeaningsUI(refs) {
   hint.className = 'meaning-hint';
   hint.id = 'meaning-hint';
   hint.textContent = 'each compartment opens its filed meaning — tap any value';
+  // Visual/touch affordance only (pr217 audit LOW): AT users already get
+  // the affordance from every cell's role="button" + aria-label, and the
+  // card face is a polite live region — an unhidden hint is one redundant
+  // announced line.
+  hint.setAttribute('aria-hidden', 'true');
   cardFace.appendChild(hint);
   const panel = buildPanel();
   cardFace.appendChild(panel);
