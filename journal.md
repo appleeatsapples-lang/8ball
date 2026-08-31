@@ -5,51 +5,85 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky — STAGED on branch, PR pending
+## 2026-08-31 — 320×568 design pass: the short-viewport submit goes sticky in a bounded band — STAGED on branch, PR pending
 
 **What happened.** The pr208 opus F8 LOW — "at 320×568 the revealed
 in-flow submit rests below the fold with no scroll affordance" — gets
 its design pass. Measured before touching anything: at 320×568 with the
-rising block open, the revealed button sat with 43 of its 48px below
-the fold (5–17px peeking), the page's only scroll recovery living on
-the body scroller with zero visual affordance. F8's "recoverable"
-stood (wheel/touch scroll works; Enter submits), but the sole submit
-control on the smallest screens was effectively invisible at the
-moment it appeared — and real phone viewports are shorter still once
-browser chrome is counted, which no fixed compaction can chase.
+rising block open, the revealed button settles with ~31 of its 48px
+below the fold (an earlier 43px figure measured the hidden state's
+translateY offset — corrected per the pr221 audit), the page's only
+scroll recovery living on the body scroller with zero visual
+affordance. F8's "recoverable" stood (wheel/touch scroll works; Enter
+submits), but the sole submit control on the smallest screens was
+mostly invisible at the moment it appeared.
 
-**The design.** In the `(max-width: 480px) and (max-height: 680px)`
-branch of `ui/experience.css`, `#enter-btn` goes `position: sticky;
-bottom: env(safe-area-inset-bottom, 0px)` instead of static. Sticky is
-the shape that satisfies every constraint that killed the
-alternatives: it keeps the in-flow layout slot (so the fixed circle's
-birthplace-row overlap — the reason this branch exists — cannot
-return, and there is no shift on reveal), it pins the revealed control
-to the viewport bottom at ANY height (a compaction pass would only
-chase the fold), and it docks into its natural place once the user
-scrolls. The opaque `rgba(0,0,0,0.96)` background + 12px halo is the
-same trick the fixed circle uses, covering the side gutters and the
-hint text it overlays until scroll; while hidden or withdrawn the
-reveal contract's `visibility: hidden` paints neither button nor halo,
-so pre-reveal the content behind stays readable. `right/left: auto`
-neutralize the fixed rule's inherited `right: 16px` (sticky reads
-inset properties). The `:has()` reveal and `aria-expanded` withdraw
-rules are position-independent and apply unchanged.
+**The design, as bounded by the audit.** A new
+`(max-width: 480px) and (min-height: 520px) and (max-height: 680px)`
+band in `ui/experience.css` rides `#enter-btn` as `position: sticky;
+bottom: max(2px, env(safe-area-inset-bottom, 0px))`: it keeps the
+in-flow layout slot (no shift on reveal, docks into place on scroll)
+while pinning the revealed control to the viewport bottom, with the
+fixed circle's own opaque `rgba(0,0,0,0.96)` background + 12px halo
+covering what it overlays until scroll; hidden or withdrawn,
+`visibility: hidden` paints neither. Below 520px the previous static
+in-flow shape is the floor, and that bound is the point: the first cut
+of this pass ran sticky at every height, and the pr221 audit's P1
+proved that at ≲512px tall the stuck opaque button rides over the
+time/birthplace inputs — a tap on the birthplace field submitted the
+form, the fixed circle's original sin back in a new shape, in exactly
+the chrome-reduced band the first draft cited as motivation. No
+bottom-pinned control is safe once the fields themselves reach the
+viewport's bottom edge; in-flow can be scrolled to, an occluder cannot
+be dismissed. A `:has(#polar-message:not([hidden]))` escape returns
+the button in-flow while the polar notice shows (audit F4: the stuck
+button fully occluded the only signal that rising could not be
+computed). The 2px bottom floor keeps the focus ring from clipping at
+the viewport edge. The `:has()` reveal and `aria-expanded` withdraw
+rules are position-independent and apply unchanged; the suggestions
+listbox additionally out-stacks the button.
 
-**Verification.** Live-fire at three geometries, zero page errors: at
-320×568 the revealed button is fully on-screen stuck to the viewport
-bottom, docks on scroll, withdraws while the birthplace listbox is
-open, returns on pick, and submits from the stuck position; at
-400×640 (same branch, form fits) sticky stays dormant and nothing
-moves; at 390×844 the fixed-circle branch is untouched. Test pins
-updated in `tests/mobile_submit_reveal.test.js` (sticky + bottom
-offset + opaque background + halo, background:transparent outlawed,
-+1 test) and three mutants killed: sticky→static revert,
-opaque→transparent revert, dropped bottom offset. The hide-inventory
-and no-display:none pins pass unchanged on the new rule. Suite 57
-files / 1996 tests green; product audit PASS, 0 blocking.
+**Verification.** Live-fire sweep, zero page errors, zero failures: 28
+sub-band geometries (320–414 wide × 455–519 tall) all static with no
+tap interception on any input center; 25 band geometries (320–480 ×
+520–680) all sticky, revealed on-screen, no interception; the audit's
+exact 320×480 reproduction now focuses the birthplace field instead of
+submitting the form; the polar escape verified at 320×568 with a real
+arctic pick (notice shown, unoccluded, button in-flow); withdraw /
+return / submit-from-stuck-position intact at 320×568; 390×844 fixed
+circle untouched. Nine mutants killed across the change: sticky→static
+revert, opaque→transparent revert, dropped bottom offset, and the six
+dodge-class mutants below.
 
+**Cross-model audit (pr221), reconciled.** Lanes: DO NOT MERGE (2 P1,
+2 MED + minors) and MERGE WITH FIXES (1 MED, 1 LOW, 1 NIT) — the DO
+NOT MERGE was earned, and the redesign above IS the reconciliation.
+P1-1: the unbounded sticky tap interception (fixed by the 520px band;
+the interception sweep is now part of live-fire). P1-2: the first
+draft of this very entry was written OVER the previous entry's
+heading, orphaning a shipped entry's body in an append-only log —
+restored, and the same defect had already happened once this session
+(caught then by self-review, now by the audit; the lesson is to stop
+editing the journal head by string-replacing the previous heading).
+MED (both lanes, same class): the new pins were dodgeable by media-
+block reordering, block duplication, a second later rule, or
+`overflow: hidden` on the form — landed as a file-wide position-
+declaration inventory with source-order assertions plus an ancestor-
+chain overflow/contain guard, each mutation-verified (six mutants).
+MED (lane A F4): the polar-notice occlusion, fixed via the escape
+above. Corrected figures and claims: the 43px→31px fold measurement,
+`env()` noted as inert without `viewport-fit=cover` (kept for parity
+with the fixed circle), the inert `right/left: auto` neutralizers
+dropped with their wrong justification, and 400×640 "nothing moves"
+softened to behaviorally-identical (sub-pixel antialiasing shifts).
+Decided exposure, controller's to overrule: within the band the stuck
+button covers the tail of the birthplace hint (non-interactive) until
+scroll or dock. Landscape ≤480-tall-but-wide viewports sit in neither
+mobile branch — pre-existing shape, unchanged by this PR, noted.
+Suite after reconciliation: 57 files / 1999 tests green; product audit
+PASS, 0 blocking.
 
+## 2026-08-31 — No leaf type crosses the redaction boundary: the PR #194 fast-follow lands — SHIPPED (#220)
 
 **What happened.** The queued `redact_paths` fallback — tracked since
 the PR #194 pre-merge audit and re-queued by the pr219 audit as F5 —

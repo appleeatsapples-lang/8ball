@@ -24,14 +24,17 @@
 // row spans the full form width, so a bottom-right fixed control overlaps it
 // whenever the viewport is shorter than the form leaves room for (~623px at
 // 360px wide, worse at 320px — measured 2026-08-30); no size or corner fixes
-// that, so the short-viewport block returns the submit to the full-width
-// shape it has above 480px — STICKY to the viewport bottom since the pr208
-// F8 design pass (2026-08-31): a static button at 320x568 revealed with 43
-// of its 48px below the fold and no scroll affordance. Sticky keeps the
-// in-flow slot but pins the revealed control on-screen at any height; the
-// opaque halo covers what it overlays, and visibility:hidden (the reveal
-// contract's hide mechanism) paints neither button nor halo, which is one
-// more reason display:none stays illegal here.
+// that, so the short-viewport block returns the submit to the in-flow
+// full-width shape it has above 480px. Since the pr208 F8 design pass
+// (2026-08-31, bounded by the pr221 audit) a 520-680px band rides the same
+// shape STICKY to the viewport bottom: at 320x568 the static button
+// revealed with ~31 of its 48px below the fold and no scroll affordance,
+// but below ~512px tall a bottom-pinned control intercepts taps meant for
+// the time/birthplace inputs, so under the band's min-height the static
+// floor holds. The opaque halo covers what the stuck button overlays, and
+// visibility:hidden (the reveal contract's hide mechanism) paints neither
+// button nor halo, which is one more reason display:none stays illegal
+// here.
 //
 // Static-scan style for the CSS half (mirrors tests/monochrome_surface.test.js);
 // the behavior half drives the real controller with the injected DOM mocks
@@ -175,33 +178,98 @@ describe('mobile #enter-btn geometry — short viewports retire the fixed circle
     cssNoComments,
     '@media (max-width: 480px) and (max-height: 680px)',
   );
+  const BAND_MARKER = '@media (max-width: 480px) and (min-height: 520px) and (max-height: 680px)';
+  const bandBlock = blockAfter(cssNoComments, BAND_MARKER);
 
-  it('the short-viewport block exists and is non-vacuous', () => {
+  it('the short-viewport and sticky-band blocks exist and are non-vacuous', () => {
     expect(shortBlock.length).toBeGreaterThan(100);
+    expect(bandBlock.length).toBeGreaterThan(100);
   });
 
-  it('returns #enter-btn to full width below 680px height, sticky to the viewport bottom', () => {
-    // sticky (not fixed) defuses the circle's corner overlap: the button
-    // keeps its in-flow slot at the end of the form, so nothing sits under
-    // it once the user scrolls, yet the revealed control pins to the
-    // viewport bottom instead of waiting 43px below the fold (static, the
-    // pre-pr208-F8 state measured at 320x568 on 2026-08-31). width
-    // restores the block shape.
-    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*sticky/s);
-    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*bottom:\s*env\(safe-area-inset-bottom,\s*0px\)/s);
+  it('returns #enter-btn to in-flow full width below 680px height', () => {
+    // position: static defuses the fixed circle's right/bottom/z-index in
+    // one move; width restores the block shape. This is also the floor the
+    // sticky band falls back to under 520px: the pr221 audit measured a
+    // bottom-pinned control intercepting taps meant for the time/birthplace
+    // inputs up to ~512px tall (a tap on the birthplace field submitted the
+    // form), so below the band's min-height NOTHING may pin to the bottom.
+    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*static/s);
     expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*width:\s*100%/s);
     expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*border-radius:\s*0/s);
   });
 
-  it('the sticky submit is opaque over the content it overlays', () => {
-    // While stuck it sits above the birthplace hint; a transparent
-    // background (the pre-F8 value) would render the button's label over
-    // that text. The 12px halo covers the stage's side gutters, same trick
-    // as the fixed circle's. Both must survive together — background alone
-    // leaves text visible in the gutters beside the 100%-width box.
-    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
-    expect(shortBlock).toMatch(/#enter-btn\s*\{[^}]*box-shadow:\s*0 0 0 12px rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
-    expect(shortBlock).not.toMatch(/#enter-btn\s*\{[^}]*background:\s*transparent/s);
+  it('the 520-680px band pins the revealed submit to the viewport bottom, opaque', () => {
+    // Sticky keeps the in-flow slot but the revealed control stays
+    // on-screen instead of settling ~31 of its 48px below the fold (static,
+    // measured at 320x568). The min-height gate is the pr221 P1 fix: the
+    // stuck slot must only ever land on non-interactive content. Opaque
+    // background + 12px halo cover what it overlays; transparent (the
+    // static value) would render the label over the hint text.
+    expect(bandBlock).toMatch(/#enter-btn\s*\{[^}]*position:\s*sticky/s);
+    expect(bandBlock).toMatch(/#enter-btn\s*\{[^}]*bottom:\s*max\(2px,\s*env\(safe-area-inset-bottom,\s*0px\)\)/s);
+    expect(bandBlock).toMatch(/#enter-btn\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
+    expect(bandBlock).toMatch(/#enter-btn\s*\{[^}]*box-shadow:\s*0 0 0 12px rgba\(0,\s*0,\s*0,\s*0\.96\)/s);
+  });
+
+  it('the polar notice forces the submit back in-flow so it is never occluded', () => {
+    // pr221 audit F4: at some band geometries the stuck button fully
+    // covered #polar-message — the only signal that rising could not be
+    // computed. While the notice shows, sticky yields.
+    const polar = enterBtnRules.filter(r => r.sel.includes('#polar-message:not([hidden])'));
+    expect(polar).toHaveLength(1);
+    expect(polar[0].body).toMatch(/position:\s*static/);
+    expect(polar[0].body).toMatch(/background:\s*transparent/);
+    expect(polar[0].body).toMatch(/box-shadow:\s*none/);
+    expect(bandBlock).toContain(polar[0].body); // scoped to the band, not global
+  });
+
+  it('the three position rules appear in cascade order, and nowhere else', () => {
+    // pr221 audit (both lanes, independently): reordering or duplicating
+    // the media blocks reverted live behavior with every pin green — the
+    // dodge class this file's header documents. Pin the full file-wide
+    // inventory of #enter-btn position declarations AND their source
+    // order: fixed (the <=480 circle) < static (the short floor) < sticky
+    // (the band) < static (the polar escape). Any extra position
+    // declaration, anywhere, is a fifth entry and fails.
+    const positions = [];
+    const re = /#enter-btn[^{}]*\{[^}]*?position:\s*([a-z-]+)/gs;
+    let m;
+    while ((m = re.exec(cssNoComments)) !== null) positions.push(m[1]);
+    // rulesTargeting covers selectors mentioning #enter-btn; cross-check
+    // with it so a rule the regex missed cannot hide.
+    const fromRules = enterBtnRules
+      .map(r => (r.body.match(/position:\s*([a-z-]+)/) || [])[1])
+      .filter(Boolean);
+    expect(fromRules.sort()).toEqual([...positions].sort());
+    expect(positions).toEqual(['fixed', 'static', 'sticky', 'static']);
+    const fixedAt = cssNoComments.indexOf('position: fixed');
+    const bandAt = cssNoComments.indexOf(BAND_MARKER);
+    const shortAt = cssNoComments.indexOf('@media (max-width: 480px) and (max-height: 680px)');
+    expect(fixedAt).toBeGreaterThan(-1);
+    expect(shortAt).toBeGreaterThan(fixedAt);
+    expect(bandAt).toBeGreaterThan(shortAt);
+  });
+
+  it('no ancestor of the submit gains an overflow or contain that would break sticky', () => {
+    // pr221 audit F3: `#profile-form { overflow: hidden }` killed the
+    // sticky behavior with computed position still "sticky" and every pin
+    // green. Sticky constrains against the nearest scroll container; any
+    // overflow/contain on the button's INNER ancestor chain re-scopes or
+    // clips it. html/body stay out of the guard: their overflow-x:hidden
+    // is the established page-scroller setup sticky rides on — body IS the
+    // scroll container the constraint resolves against.
+    const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const chain = ['#profile-form', '#onboarding', '.screen', '.stage'];
+    for (const source of [cssNoComments, shell]) {
+      for (const r of rulesTargeting(source, '')) {
+        const sels = r.sel.split(',').map(s => s.trim());
+        if (sels.some(s => chain.includes(s))) {
+          expect(r.body, `${r.sel} must not clip/re-scope the sticky submit`)
+            .not.toMatch(/overflow|contain\s*:/);
+        }
+      }
+    }
   });
 
   it('drops the FAB-clearance padding the in-flow button no longer needs', () => {
