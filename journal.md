@@ -14,15 +14,17 @@ standalone specimen sheet, and the paid copy that named "the kua
 line". The order superseded, same day and minutes apart, the
 keep-as-is answer recorded in the entry below — the controller
 re-reviewed against the live render and chose removal on screen-space
-grounds (the block was six rendered lines plus a title on an already
-long sheet).
+grounds (the block was six rendered lines — two labeled values, two
+citation bodies, the register note, the title — on an already long
+sheet).
 
 **The shape of the removal — render out, registries stay.** Deleted:
 `ui/kua.js` (the renderer, 196 lines) and `tests/kua_surface.test.js`
-(its render pins, 25 tests). Excised: the `kuaRead` coordinate from
+(its render pins, 24 tests). Excised: the `kuaRead` coordinate from
 `ui/tiers.js`'s T3_COORDS and unseal beat, the kua handoff in
-`ui/dyad.js`, the kua section and cell routing in `ui/sheet.js`, the
-import/DI/blockTail/render wiring and both about-copy mentions in
+`ui/dyad.js`, the kua section markup, value-node refs and render
+branch in `ui/sheet.js`, the import/DI/blockTail/render wiring and
+both copy mentions (the about modal and the paywall value line) in
 `index.html`, and the `.kua-title` leg of the labels-reveal rule in
 `ui/experience.css`. Kept, deliberately: `content/kua.v1.js` unedited
 (§4 binds shipped content batches; the §1.D v0.60 t4 retirement is
@@ -47,9 +49,37 @@ prose-order slice, structural counts, the style-companion test whose
 subject no longer exists); `tests/tiers.test.js` pins the two-block
 t3 ceiling with a comment naming the retirement;
 `tests/payments_markup.test.js` pins the updated copy. Suite 56 files
-/ 1986 tests green (57/2011 before — one file and 25 dyad-leg tests
-retired with the render); CLAUDE.md counts trued (ui 15 → 14 modules,
-tests 57 → 56). Product audit PASS, 0 blocking.
+/ 1986 tests green (57/2011 before — the 24-test render suite retired
+with its subject plus one dyad style-companion test, a delta of 25);
+CLAUDE.md counts trued (ui 15 → 14 modules, tests 57 → 56). Product
+audit PASS, 0 blocking.
+
+**Audit reconciliation (§10 two-lane: Lane A MERGE WITH FIXES, Lane B
+SAFE TO MERGE — every fix in the record, none in the removal).** Both
+lanes independently found zero residue in shipped code, proved the
+registries byte-identical to base with suites that still bite under
+mutation, verified the v0.64 scrubs alive and pinned, and live-fired
+their own byte-verified checkouts (free through t5, the t2→t3 unseal
+beat included) to zero kua nodes, zero errors and no layout hole. The
+one MAJOR was this record's own: the constitution, footer and this
+entry all certified a marker APPENDED to the §1.D v0.64 clause that
+was never there — the authoring replace silently no-opped on a
+mismatched quote and nothing checked the result. The marker is now
+truly appended, and the miss is recorded as the lesson: a certifying
+sentence is written only after grepping the text it certifies. Also
+landed: the owner-impact sentence the v0.58/v0.60 precedent owed (a
+device that bought t3/t5 while the copy promised the kua line keeps
+every entitlement and loses the block — stated in the v0.70 amendment
+rather than left to be discovered), the test accounting above
+corrected (24 + 1, not 25 + 25), the six-lines description aligned
+with the renderer's actual output, two stale present-tense comments in
+`ui/profile.js`/`ui/readings.js` retired to past tense, and the
+out-of-scope `.kua-gender-field` comment edit in `ui/experience.css`
+reverted (a live test guard still names that token). Queued, not
+fixed here: the `.public-title` labels-reveal rule is unpinned —
+renaming its selector rides the suite green; pre-existing at base,
+verified not a regression of this PR. The per-lane scratch
+subdirectories ordered after pr227's collision ran collision-free.
 
 ## 2026-09-01 — kua render re-reviewed: the v0.64 labeled render stands — RECORDED, superseded same day (removal ordered)
 

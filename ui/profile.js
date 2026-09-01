@@ -102,9 +102,10 @@ export function optsFromPayload(obj) {
   if (typeof obj.lat === 'number') opts.lat = obj.lat;
   if (typeof obj.lng === 'number') opts.lng = obj.lng;
   // A stored payload from the gendered-kua cycle may still carry a
-  // `gender` key; it is deliberately NOT forwarded — the kua block reads
-  // both classical values for every profile now, so the stored token is
-  // inert data awaiting the next natural overwrite.
+  // `gender` key; it is deliberately NOT forwarded — the retired kua block
+  // read both classical values for every profile (nothing renders them
+  // since v0.70), so the stored token is inert data awaiting the next
+  // natural overwrite.
   return opts;
 }
 

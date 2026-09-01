@@ -498,7 +498,7 @@ body {
        Keyed to aria-expanded, which ui/citysearch.js sets on render and
        clears on selection, Escape, blur, empty results and reset — so the
        state always resolves. It must NOT be keyed to :focus within
-       #rising-fields (or the retired v0.63 gender field): selecting a suggestion keeps
+       #rising-fields / .kua-gender-field: selecting a suggestion keeps
        focus in the input on purpose (citysearch.js preventDefault on
        mousedown, so the choice survives the focus shift), so a focus rule
        left the only submit control permanently invisible once a birthplace
