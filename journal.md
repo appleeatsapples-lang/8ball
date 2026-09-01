@@ -5,7 +5,38 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — STAGED on branch, PR pending
+## 2026-09-01 — kua render re-reviewed: the v0.64 labeled render stands — RECORDED, confirmation pending
+
+**What happened.** The controller, reviewing the live t3 read, flagged
+the kua block's gender words against a recollection that the kua
+agreement was "no gender associated." Checked against the record: what
+§1.D v0.64 (controller decision, 2026-08-30) retired was the gender
+ASK — no input, nothing stored, boot scrubs for stale tokens — while
+deliberately keeping the render LABELED: both classical values shown,
+`male ·` / `female ·` as the value labels, and the register note
+naming the method's gender dependence ("the eight mansions method
+assigns by gender; both classical values shown"). The shipped block
+matches that recorded agreement exactly.
+
+**The decision, put to the controller with the trade-offs named.**
+Three remedies offered: strip the gender words (label by trigram only
+— softer citation honesty, since the render would no longer say WHY
+there are two values, the disclosure the v0.62 principle protects);
+retire the block entirely; or keep as-is. **The controller chose KEEP
+AS-IS:** the gender words are method disclosure, not an ask, and the
+v0.64 contract stands unchanged. No code, content, or DOCTRINE change.
+Immediately after that choice the controller posted a live screenshot
+of the block (the labeled values and the register note rendering
+exactly as the record specifies), interrupting the recording of this
+entry — so this entry states the decision as given and holds its
+status at confirmation-pending until the controller says whether the
+screenshot was confirmation of the discussed render or a
+reconsideration; a follow-up entry (or marker on this one) will close
+it either way. Recorded so the next sighting of gender vocabulary on
+the kua block resolves against this entry instead of re-opening the
+question.
+
+## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — SHIPPED (#227)
 
 **What happened.** The `tests/cities.test.js` city-shape test — the
 suite's one OUTSTANDING recorded flake (the l48_gate_composition one
