@@ -78,11 +78,11 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
 // so the ladder is three rungs again and the block is the t3 ceiling
 // alongside the written entry.
-// §1.D kua amendment — `kuaRead` joins the t3 ceiling as a third BLOCK in
-// the `cardEntry` / `publicRead` sense: no compartment, no census weight.
-// The product asks no gender question; every render shows both classical
-// values with the method's gender dependence disclosed (ui/kua.js).
-const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead', 'kuaRead'];
+// §1.D kua-retirement amendment — the kua block left the t3 ceiling on the
+// controller's 2026-09-01 decision (screen space): `kuaRead` is no longer a
+// coordinate anywhere, `content/kua.v1.js` and `core/kua.js` stay as
+// registries per §4, and no renderer exists.
+const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
 // §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
 // completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus
 // the relation layer between the two. `dyadRelation` is therefore a BLOCK in
@@ -170,7 +170,6 @@ export function newlyEntitledCells(prevTier, tier) {
   );
   if (next.has('cardEntry') && !prev.has('cardEntry')) fresh.push('cardEntry');
   if (next.has('publicRead') && !prev.has('publicRead')) fresh.push('publicRead');
-  if (next.has('kuaRead') && !prev.has('kuaRead')) fresh.push('kuaRead');
   return fresh;
 }
 
@@ -180,11 +179,6 @@ let _hooks = null;
 let _cells = null;
 let _entry = null;
 let _publicRoot = null;
-// The kua block's root is CREATED by ui/kua.js (index.html carries no kua
-// markup), so it registers here by export rather than riding initTiersUI
-// refs — and initTiersUI deliberately does not reset it, because boot
-// order runs initTiersUI before initKuaUI.
-let _kuaRoot = null;
 let _lastRenderedTier = null;
 
 export function initTiersUI(refs, hooks) {
@@ -214,16 +208,6 @@ export function initTiersUI(refs, hooks) {
  */
 export function primeUnsealBaseline(tier) {
   _lastRenderedTier = tier || 'free';
-}
-
-/**
- * Register the kua block's root for the unseal beat. Called by
- * ui/kua.js after it creates/finds its node — the beat resolution below
- * needs a root, and a beat that cannot resolve one is dead code (the
- * exact defect tests/public_surface.test.js pinned for the public block).
- */
-export function registerKuaRoot(node) {
-  _kuaRoot = node || null;
 }
 
 // setCell(key, state, text) with state ∈ value | sealed | unres.
@@ -357,7 +341,6 @@ export function renderTierSections(profile, tier) {
   for (const key of newly) {
     const root = key === 'cardEntry' ? _entry
       : key === 'publicRead' ? _publicRoot
-      : key === 'kuaRead' ? _kuaRoot
       : _cells[key] && _cells[key].root;
     if (!root || !root.classList) continue;
     root.classList.add('unsealing');

@@ -710,12 +710,8 @@ export function render() {
   // facet-index key itself; the host decides what each role means.
   const noteSlot = (p, role) => (typeof _hooks.getNoteSlot === 'function' ? _hooks.getNoteSlot(p, role) : 'mid');
   const publicRead = p => (typeof _hooks.getPublicRead === 'function' ? _hooks.getPublicRead(p) : null);
-  // Kua is handed in like the public read (same single-consumer rationale,
-  // ui/sheet.js render doc): each side shows the both-values read.
-  const kua = p => (typeof _hooks.getKua === 'function' ? _hooks.getKua(p) : null);
-
-  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA), kua: kua(profileA) });
-  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second, 'b'), publicRead: publicRead(_second), kua: kua(_second) });
+  if (_sheetA) _sheetA.render(profileA, tier, { noteSlot: noteSlot(profileA, 'a'), publicRead: publicRead(profileA) });
+  if (_sheetB) _sheetB.render(_second, tier, { noteSlot: noteSlot(_second, 'b'), publicRead: publicRead(_second) });
 
   setText('dyad-head-a', profileA.firstName || 'a');
   setText('dyad-head-b', _second.firstName || 'b');
