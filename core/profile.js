@@ -20,6 +20,7 @@
 
 import { getCountryTimeZoneByCode } from './countries.js';
 import { computeRising } from './rising.js';
+import { computeMoon } from './moon.js';
 import { lunarNewYearDate, monthAnimalSolarTerm } from './calendar.js';
 import { getBirthCard } from './birthcard.js';
 import { mod, sumDigits } from './math.js';
@@ -320,6 +321,29 @@ export function buildProfile(name, dobIso, opts) {
       }
     }
   }
+  // ── Moon sign (§1.K). The Moon's tropical sign is GEOCENTRIC: it needs
+  // the birth time and a timezone to reach UT, but no latitude, longitude
+  // or polar rule. Same HH:MM parse and the same tz resolution (direct
+  // opts.tz, else the legacy country-derived zone) as the rising block, so
+  // the two time-derived coordinates fail closed the same way:
+  //   undefined → no valid time, or no timezone (the unresolved dash)
+  //   string    → the sign (core/moon.js, Meeus ch. 47)
+  let moonSign;
+  if (opts && opts.time) {
+    const mt = /^(\d{1,2}):(\d{2})$/.exec(opts.time);
+    if (mt) {
+      const hour = parseInt(mt[1], 10);
+      const minute = parseInt(mt[2], 10);
+      if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        const tz = typeof opts.tz === 'string' && opts.tz.length > 0
+          ? opts.tz
+          : (opts.country ? getCountryTimeZoneByCode(opts.country) : null);
+        if (tz) {
+          moonSign = computeMoon({ year: y, month: m, day: d, hour, minute, tz });
+        }
+      }
+    }
+  }
   // ── Hour pillar (additive, build A). Needs ONLY the birth hour — no lat/lng/tz
   // — so it resolves whenever a valid HH:MM birth time is present, even without
   // a city (brief §5). Reuses the same HH:MM parse shape as the rising block above.
@@ -355,6 +379,7 @@ export function buildProfile(name, dobIso, opts) {
     maturitySum: getMaturitySum(y, m, d, cleanName),
     yyyy: y, mm: m, dd: d,
     risingSign,
+    moonSign,
     birthCard: getBirthCard(y, m, d),
     dayPillar: getDayPillar(y, m, d),
     hourPillar

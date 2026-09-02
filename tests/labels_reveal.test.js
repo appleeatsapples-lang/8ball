@@ -32,19 +32,19 @@ describe('labels-reveal toggle (v0.2.7)', () => {
   // ships all eight rows.
   it('eight coord-section elements present', () => {
     const matches = html.match(/class="coord-section"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(9);
   });
 
-  it('eight coord-title elements present', () => {
+  it('nine coord-title elements present (§1.K: the MOON row)', () => {
     const matches = html.match(/class="coord-title"/g) || [];
-    expect(matches.length).toBe(8);
+    expect(matches.length).toBe(9);
   });
 
-  it('fourteen compartment value nodes present (v0.7.0 per-cell sheet)', () => {
-    // 1+1+2+2+3+3+1+1 cells per the §1.D v0.37 row table; every cell
-    // carries one .coord-val value node.
+  it('fifteen compartment value nodes present (v0.7.0 per-cell sheet + the §1.K moon)', () => {
+    // 1+2+1+1+2+1+1+3+3 cells per the §1.F v0.72 groups plus the §1.K MOON
+    // row; every cell carries one .coord-val value node.
     const matches = html.match(/class="coord-val"/g) || [];
-    expect(matches.length).toBe(14);
+    expect(matches.length).toBe(15);
   });
 
   it('locked title copy: FIVE-ELEMENT', () => {

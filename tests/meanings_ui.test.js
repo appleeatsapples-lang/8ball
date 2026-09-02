@@ -34,7 +34,7 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   it('registers every coordinate value id as interactive', () => {
     for (const id of [
       'coord-arcana-symbol', 'coord-element-symbol',
-      'coord-sun-symbol', 'coord-rising-symbol',
+      'coord-sun-symbol', 'coord-rising-symbol', 'coord-moon-symbol',
       'coord-animal-symbol', 'coord-inner-symbol',
       'coord-lifepath-symbol', 'coord-namenumber-symbol', 'coord-soulurge-symbol',
       'coord-personality-symbol', 'coord-birthday-symbol', 'coord-maturity-symbol',
@@ -44,9 +44,9 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     }
   });
 
-  it('imports the expanded meaning/context registry from meanings.v5.js', () => {
+  it('imports the expanded meaning/context registry from meanings.v6.js', () => {
     expect(meaningsJs).toMatch(
-      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*PLACEMENT_LINES,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v5\.js'/
+      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*PLACEMENT_LINES,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v6\.js'/
     );
   });
 

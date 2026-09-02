@@ -257,7 +257,7 @@ describe('buildProfile integration — additive only', () => {
     'name', 'firstName', 'sunSign', 'chineseElement', 'animal', 'innerAnimal',
     'lifePath', 'lifePathSum', 'nameNumber', 'nameNumberSum', 'soulUrge',
     'soulUrgeSum', 'personality', 'personalitySum', 'birthday', 'maturity',
-    'maturitySum', 'yyyy', 'mm', 'dd', 'risingSign', 'birthCard',
+    'maturitySum', 'yyyy', 'mm', 'dd', 'risingSign', 'moonSign', 'birthCard',
   ];
 
   it('adds exactly dayPillar + hourPillar, in order, removing/reordering none (gender left with the ask, 2026-08-30)', () => {

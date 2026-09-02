@@ -63,7 +63,7 @@
         <p class="field-error" id="dob-error" role="alert" aria-live="assertive" hidden>enter a valid date of birth.</p>
       </div>
       <details class="field-group" id="rising-fields" open>
-        <summary>birth time &amp; place — adds your rising sign (optional)</summary>
+        <summary>birth time &amp; place — adds your rising sign and moon sign (optional)</summary>
         <div class="field">
           <label for="time-input">birth time</label>
           <input id="time-input" type="time" placeholder="">
@@ -74,7 +74,7 @@
           <ul class="city-suggestions" id="city-suggestions" role="listbox" aria-label="city suggestions"></ul>
           <p class="city-status" id="city-status" role="status" aria-live="polite" hidden></p>
         </div>
-        <p class="hint" id="rising-hint">type a city to fill timezone and coordinates. dst and historical timezone changes are adjusted automatically. above 66.5° latitude rising sign is unavailable.</p>
+        <p class="hint" id="rising-hint">type a city to fill timezone and coordinates. dst and historical timezone changes are adjusted automatically. above 66.5° latitude rising sign is unavailable; the moon sign has no latitude limit.</p>
         <p class="polar-message" id="polar-message" hidden>rising unavailable at this latitude.</p>
         <p class="legacy-hint" id="legacy-hint" hidden>this profile pre-dates city lookup. update your birthplace for accuracy.</p>
       </details>
@@ -122,6 +122,10 @@
               <div class="coord-section">
                 <div class="coord-title" id="coord-sun-title">SUN ↑ RISING</div>
                 <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-sun-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span><span class="coord-cell"><span class="coord-val" id="coord-rising-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
+              </div>
+              <div class="coord-section">
+                <div class="coord-title">MOON</div>
+                <div class="coord-cells"><span class="coord-cell"><span class="coord-val" id="coord-moon-symbol"></span><span class="coord-seal" aria-hidden="true"></span></span></div>
               </div>
             </div>
             <div class="coord-group" data-system="chinese">
@@ -232,9 +236,9 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
-    <p>there is no mystery layer. the sheet files five coordinates from your date of birth alone: tarot birth card, sun sign, public animal, life path, catalog numeral. the rest open when your name enters the math: rising sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from.</p>
+    <p>there is no mystery layer. the sheet files five coordinates from your date of birth alone: tarot birth card, sun sign, public animal, life path, catalog numeral. the rest open when your name enters the math: rising sign and moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant and lunar longitude from astronomical formulas. calculator-grade work. reveal labels on the card to read each coordinate's derivation and which counting system it comes from.</p>
     <p>nothing leaves your device on its own. inputs, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>everything is free. the complete sheet — all fifteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, and the paired read is there for any two dates. no payment, no subscription, no 8ball account, nothing to unlock. devices that bought a rung while the sheet was paid keep everything they had and gain the rest like everyone else. the deck is visible in source. this is a toy, and it is fun.</p>
+    <p>everything is free. the complete sheet — all sixteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, and the paired read is there for any two dates. no payment, no subscription, no 8ball account, nothing to unlock. devices that bought a rung while the sheet was paid keep everything they had and gain the rest like everyone else. the deck is visible in source. this is a toy, and it is fun.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -389,7 +393,7 @@ initTiersUI({
   publicRead: $('public-read'),
   cells: {
     arcana: $('coord-arcana-symbol'), element: $('coord-element-symbol'),
-    sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'),
+    sun: $('coord-sun-symbol'), rising: $('coord-rising-symbol'), moon: $('coord-moon-symbol'),
     animal: $('coord-animal-symbol'), innerAnimal: $('coord-inner-symbol'),
     lifePath: $('coord-lifepath-symbol'), nameNumber: $('coord-namenumber-symbol'),
     soulUrge: $('coord-soulurge-symbol'), personality: $('coord-personality-symbol'),

@@ -260,7 +260,7 @@ describe('free disclosure — the about modal states the free surface', () => {
   });
 
   it('names the whole free surface: sheet, meanings, written entry, domain fit, paired read', () => {
-    expect(aboutSubtree).toMatch(/all fifteen coordinates/);
+    expect(aboutSubtree).toMatch(/all sixteen coordinates/);
     expect(aboutSubtree).toMatch(/their meanings/);
     expect(aboutSubtree).toMatch(/written card entry/);
     expect(aboutSubtree).toMatch(/domain fit/);

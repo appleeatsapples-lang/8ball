@@ -36,7 +36,7 @@ describe('ATLAS legend (CLP cut 2)', () => {
     // spell every coordinate out in their .coord-title, so they carry NO
     // atlas note (a line there would only echo the title).
     expect(Object.keys(ATLAS_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge',
     ]);
     for (const k of ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar']) {
@@ -157,24 +157,24 @@ function makeCell(section) {
 }
 
 const SECTION_OF = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
+  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun', moon: 'moon',
   animal: 'animal', innerAnimal: 'animal',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
   dayPillar: 'dayPillar', hourPillar: 'hourPillar',
 };
 const ROW_KEYS = {
-  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'],
+  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'], moon: ['moon'],
   animal: ['animal', 'innerAnimal'], numerology: ['lifePath', 'nameNumber', 'soulUrge'],
   numbers2: ['personality', 'birthday', 'maturity'], dayPillar: ['dayPillar'], hourPillar: ['hourPillar'],
 };
 const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+  'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
   'lifePath', 'nameNumber', 'soulUrge',
   'personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar',
 ];
 // Rows that carry an atlas legend vs the self-naming rows that do not.
-const ATLAS_ROWS = ['arcana', 'element', 'sun', 'animal', 'numerology'];
+const ATLAS_ROWS = ['arcana', 'element', 'sun', 'moon', 'animal', 'numerology'];
 const SELF_NAMING_ROWS = ['numbers2', 'dayPillar', 'hourPillar'];
 
 const PROFILE = {

@@ -22,19 +22,19 @@ describe('tierDensitySummary count math (derived from tier constants)', () => {
   // coordinate per §1.D), so the free count (5) matches the product-wide
   // "five coordinates" framing. sealed counts only the sealable cells.
   it('free: 5 of 15 open, 10 sealed', () => {
-    expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 10, total: 15 });
+    expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
-  it('t1: 10 open, 5 sealed', () => {
-    expect(tierDensitySummary('t1')).toEqual({ open: 10, sealed: 5, total: 15 });
+  it('t1: 11 open, 5 sealed (§1.K: the moon rides t1 beside rising)', () => {
+    expect(tierDensitySummary('t1')).toEqual({ open: 11, sealed: 5, total: 16 });
   });
-  it('t2: 14 open, 1 sealed', () => {
-    expect(tierDensitySummary('t2')).toEqual({ open: 14, sealed: 1, total: 15 });
+  it('t2: 15 open, 1 sealed', () => {
+    expect(tierDensitySummary('t2')).toEqual({ open: 15, sealed: 1, total: 16 });
   });
-  it('t3: 15 of 15 open, 0 sealed (written entry is a block, not a coordinate)', () => {
-    expect(tierDensitySummary('t3')).toEqual({ open: 15, sealed: 0, total: 15 });
+  it('t3: 16 of 16 open, 0 sealed (written entry is a block, not a coordinate)', () => {
+    expect(tierDensitySummary('t3')).toEqual({ open: 16, sealed: 0, total: 16 });
   });
   it('unknown tier falls back to free', () => {
-    expect(tierDensitySummary('bogus')).toEqual({ open: 5, sealed: 10, total: 15 });
+    expect(tierDensitySummary('bogus')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
   it('free open count matches the product-wide "five coordinates" framing', () => {
     // couples the strip numerator to prose_coordinate_count's base

@@ -27,7 +27,7 @@ import {
   NUMEROLOGY_SLOT_LINES,
   THEME_TENSIONS,
   PLACEMENT_LINES,
-} from '../content/meanings.v5.js';
+} from '../content/meanings.v6.js';
 import { sheetRelationFor } from './concordance.js';
 
 const TABLES = {
@@ -35,6 +35,7 @@ const TABLES = {
   element: ELEMENT_MEANINGS,
   sun: SUN_MEANINGS,
   rising: SUN_MEANINGS,
+  moon: SUN_MEANINGS,
   animal: ANIMAL_MEANINGS,
   innerAnimal: ANIMAL_MEANINGS,
   lifePath: NUMEROLOGY_MEANINGS,
@@ -54,6 +55,7 @@ const COORDINATES = {
   element: { valueId: 'coord-element-symbol', label: 'element' },
   sun: { valueId: 'coord-sun-symbol', label: 'sun' },
   rising: { valueId: 'coord-rising-symbol', label: 'rising' },
+  moon: { valueId: 'coord-moon-symbol', label: 'moon' },
   animal: { valueId: 'coord-animal-symbol', label: 'public animal' },
   innerAnimal: { valueId: 'coord-inner-symbol', label: 'private animal' },
   lifePath: { valueId: 'coord-lifepath-symbol', label: 'life path' },
@@ -73,6 +75,7 @@ const zeroGuardCopy = (label, missing) =>
 
 const UNRESOLVED_COPY = {
   rising: 'no rising value is present yet, so its first-impression meaning cannot be placed beside the sun and personality coordinates. birth time and birthplace complete this part of the sheet.',
+  moon: 'no moon value is present yet, so its night-register meaning cannot be placed beside the sun and rising coordinates. birth time and birthplace complete this part of the sheet.',
   dayPillar: 'no day-pillar value is present yet, so its date-specific meaning cannot be placed beside the public animal and element coordinates. date of birth completes this part of the sheet.',
   hourPillar: 'no hour-pillar value is present yet, so its time-specific meaning cannot be placed beside the private animal and rising coordinates. birth time completes this part of the sheet.',
   nameNumber: zeroGuardCopy('name-number', 'the entered name supplies no counted letters'),
@@ -183,10 +186,10 @@ export function entryFor(key, rawValue) {
   // entries' v1-reused bodies included); the slot's own authored line is
   // APPENDED, reading the value in this slot specifically.
   const slotLine = NUMEROLOGY_SLOT_LINES[key] && NUMEROLOGY_SLOT_LINES[key][lookupKeyFor(key, rawValue)];
-  // v5 placement lines: the same contract for the two remaining
-  // table-sharing surfaces — rising reuses SUN_MEANINGS and the private
-  // animal reuses ANIMAL_MEANINGS, so a shared sign/branch rendered the
-  // identical body twice on one card. Base body stays byte-identical;
+  // v5/v6 placement lines: the same contract for the table-sharing
+  // surfaces — rising AND the moon (v6, §1.K) reuse SUN_MEANINGS and the
+  // private animal reuses ANIMAL_MEANINGS, so a shared sign/branch rendered
+  // the identical body twice (or three times) on one card. Base body stays byte-identical;
   // the placement's authored line is appended.
   const placementLine = PLACEMENT_LINES[key] && PLACEMENT_LINES[key][lookupKeyFor(key, rawValue)];
   const appended = slotLine || placementLine;
@@ -346,7 +349,7 @@ export function initMeaningsUI(refs) {
   if (!cardFace || cardFace.querySelector('#meaning-panel')) return;
   if (typeof document.getElementById === 'function' && document.getElementById('meaning-panel')) return;
   injectStyle();
-  // Comprehension hint (journal 2026-08-31): fourteen compartments are
+  // Comprehension hint (journal 2026-08-31): fifteen compartments are
   // tappable, but the only affordance was a desktop hover — on touch, and
   // for the bare labels-off glyphs, nothing said the sheet opens. One
   // clinical line under the sheet carries both affordances (the panel a

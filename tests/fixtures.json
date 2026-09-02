@@ -554,5 +554,74 @@
       "lp": 33,
       "expected": "high"
     }
+  ],
+  "_moon_cases_comment": "Moon-sign fixtures (§1.K): synthetic city/time pairs — the rising fixtures' major-city centroids, one southern-hemisphere DST case, and Meeus example 47.a as a wall-clock instant. Each carries the engine's geocentric longitude to three decimals so a regression is visible as an angle before it is visible as a sign. None anchored to a real person (§11).",
+  "moon_cases": [
+    {
+      "label": "London noon BST 1990",
+      "dob": "1990-06-15",
+      "time": "12:00",
+      "tz": "Europe/London",
+      "utcOffsetMinutes": 60,
+      "moonLongitudeDeg": 344.789,
+      "expected": {
+        "moonSign": "pisces"
+      }
+    },
+    {
+      "label": "NYC afternoon EST 1985",
+      "dob": "1985-03-15",
+      "time": "14:30",
+      "tz": "America/New_York",
+      "utcOffsetMinutes": -300,
+      "moonLongitudeDeg": 290.554,
+      "expected": {
+        "moonSign": "capricorn"
+      }
+    },
+    {
+      "label": "Riyadh sunrise AST 2000-01-01",
+      "dob": "2000-01-01",
+      "time": "06:00",
+      "tz": "Asia/Riyadh",
+      "utcOffsetMinutes": 180,
+      "moonLongitudeDeg": 218.8,
+      "expected": {
+        "moonSign": "scorpio"
+      }
+    },
+    {
+      "label": "Tokyo midnight JST 1977",
+      "dob": "1977-11-03",
+      "time": "00:00",
+      "tz": "Asia/Tokyo",
+      "utcOffsetMinutes": 540,
+      "moonLongitudeDeg": 112.953,
+      "expected": {
+        "moonSign": "cancer"
+      }
+    },
+    {
+      "label": "Sydney evening AEDT 2010 (southern summer)",
+      "dob": "2010-01-20",
+      "time": "19:45",
+      "tz": "Australia/Sydney",
+      "utcOffsetMinutes": 660,
+      "moonLongitudeDeg": 355.029,
+      "expected": {
+        "moonSign": "pisces"
+      }
+    },
+    {
+      "label": "Meeus 47.a as a wall-clock case (UTC)",
+      "dob": "1992-04-12",
+      "time": "00:00",
+      "tz": "UTC",
+      "utcOffsetMinutes": 0,
+      "moonLongitudeDeg": 133.163,
+      "expected": {
+        "moonSign": "leo"
+      }
+    }
   ]
 }

@@ -5,7 +5,84 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-02 — the registry desk: the reading pane and the filed rail — STAGED on branch, PR pending
+## 2026-09-02 — DOCTRINE v0.73: the moon sign — the sixteenth coordinate — STAGED on branch, PR pending
+
+**What happened.** "We need to add moon sign as well." The sheet gains
+its second astronomical coordinate after the rising sign: the **moon
+sign**, the tropical sign of the Moon's geocentric ecliptic longitude
+at birth. It is a compartment of its own — a **MOON** row under the
+WESTERN group, after SUN ↑ RISING, whose paired-row grammar is
+untouched — so `CELL_KEYS` is fifteen, the §1.F census is 16 of 16,
+and every surface that states the count moved with it: the density
+strip, the about copy, the README, the labels/tiers/share/sheet-group
+pins. The row rides both dyad sheets through the registry and the
+§5.D share PNG gains it automatically (nine rows now).
+
+**The engine, proven against the book.** `core/moon.js` implements
+Meeus, *Astronomical Algorithms* ch. 47: the mean longitude L′, the
+full 60-term periodic series Σl (E-factored on the terms in M), the
+three additive terms (A1, L′−F, A2), then the sign by 30° sector.
+`tests/moon.test.js` reproduces the book's worked example 47.a (1992
+April 12, 0h TD → λ = 133.162655°) at EVERY intermediate — L′, D, M,
+M′, F, E, Σl — to six decimals, so a wrong coefficient anywhere in the
+table fails by name, not by an angle that happens to land in the same
+sign. Two stated approximations are boundary-irrelevant: mean rather
+than apparent longitude (nutation ≤ ~0.005°, about 30 s of clock
+against a minute-resolution input) and JD(UT) for JDE (ΔT < 70 s over
+1900–2100, the same treatment `core/calendar.js` records; < 0.001° of
+lunar motion).
+
+**Inputs and the honest dash.** The Moon crosses a sign every ~2.5
+days, so a date-only reading would be wrong on a material fraction of
+birthdays: the coordinate requires the birth time and a timezone
+(which the product learns from a selected city) and shows the
+unresolved dash without them — §1.B's anti-silent-substitution rule,
+never a most-likely guess. Unlike rising it needs no latitude or
+longitude (the sign is geocentric) and has no polar exception;
+`core/profile.js` resolves `moonSign` through the same HH:MM parse and
+the same tz resolution (direct `tz`, else the legacy country-derived
+zone) as rising, and fails closed the same way. The form's disclosure
+now reads "adds your rising sign and moon sign"; the hint says the
+moon has no latitude limit.
+
+**Meanings, the v0.68 three layers.** The moon cell shares
+`SUN_MEANINGS` byte-identical with the sun and rising (layer 1) and
+gains its own placement family, `PLACEMENT_LINES.moon` in the new
+batch `content/meanings.v6.js` — v5 re-exported unedited, the family
+added by the star-export/local-shadow mechanism (layer 2). The twelve
+lines read the sign in the Moon's office — the night luminary, the
+register of reflex and retention — and name the essential dignity
+where the tradition files one (domicile cancer · exaltation taurus ·
+detriment capricorn · fall scorpio); the other eight make no dignity
+claim because the tradition files none. v6 also carries the moon's
+context role (`the night register`, partners sun and rising) so the
+"in this sheet" line has a harmony to read. The existing placement
+pins extend to three families (own-office vocabulary, whole-line
+uniqueness, byte-exact assembly after the unedited body); the
+scan-target parity pin moves both runtime importers (`ui/meanings.js`,
+`core/dyad.js` + its provenance literal) to v6.
+
+**Fixtures (§3).** `tests/fixtures.json` gains `moon_cases` — six
+synthetic city/time pairs (the rising fixtures' major-city centroids, a
+southern-hemisphere DST case, and the Meeus instant as a wall-clock
+case), each carrying the wall-clock offset and the engine's longitude
+to three decimals — consumed in lockstep with `buildProfile`'s
+`moonSign`, plus the no-time / no-tz / legacy-country / no-place
+paths. Per §11 none is anchored to a real person.
+
+**Tests.** `tests/moon.test.js` (new, 28 tests). Count pins repointed
+across tiers, labels, share, sheet-groups, dyad-surface, density,
+provenance, atlas, numerology-display, pillars (the profile key order
+gains `moonSign` after `risingSign`), prose-coordinate-count,
+payments-markup, meanings-ui and meanings-content. Suite 59 files /
+1982 tests green; product audit PASS. DOCTRINE §1.K new, §1.F carries
+the census marker, footer v0.73.
+
+**Queued.** The labeled-view simplification; `/cards` and og-image
+regeneration (the moon row widens that gap: the 611 specimen JPEGs
+show fourteen cells).
+
+## 2026-09-02 — the registry desk: the reading pane and the filed rail — SHIPPED (#231)
 
 **What happened.** With #230 merged the controller moved to the wide
 screen — "we are now on desktop go wild" — and this is the pass: at
