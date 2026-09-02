@@ -86,6 +86,8 @@ const STYLE = `
   border-top: 1px solid rgba(255,255,255,0.15);
   transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease; }
 .meaning-panel.open { max-height: 720px; overflow-y: auto; opacity: 1; margin-top: 4px; padding-top: 16px; }
+/* the ≥1100 desk (ui/experience.css) lifts this clamp for a DOCKED panel by
+   specificity — keep this selector at class level, never #id or !important */
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 6px; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
@@ -338,7 +340,11 @@ function detailFor(key, cell, rawValue) {
 
 export function initMeaningsUI(refs) {
   const cardFace = refs && refs.cardFace;
+  // Double-init guard: the panel may be docked OUTSIDE cardFace on the
+  // ≥1100 desk, so the card-scoped probe alone went blind there (pr231
+  // audit LOW-1) — ask the document as well.
   if (!cardFace || cardFace.querySelector('#meaning-panel')) return;
+  if (typeof document.getElementById === 'function' && document.getElementById('meaning-panel')) return;
   injectStyle();
   // Comprehension hint (journal 2026-08-31): fourteen compartments are
   // tappable, but the only affordance was a desktop hover — on touch, and
@@ -367,7 +373,35 @@ export function initMeaningsUI(refs) {
     cardFace.appendChild(hint);
   }
   const panel = buildPanel();
-  cardFace.appendChild(panel);
+  // ── where the panel lives (the ≥1100 registry desk, journal 2026-09-02) ──
+  // Below the desk breakpoint the panel is appended INSIDE #card-face and
+  // expands inline, exactly as it has since #212. On a wide screen the host
+  // offers a reading pane beside the sheet (refs.readingPane, index.html's
+  // #reading-pane) and the panel docks there instead: the card keeps its
+  // height, the entry reads in a column, and the card's own mutation
+  // observer below still closes the panel on a re-render — the panel is
+  // now OUTSIDE the observed subtree, so its own writes are never
+  // self-noise. The node is MOVED, never duplicated, and moves back when
+  // the viewport crosses the breakpoint; ids and aria-controls hold. A
+  // crossing with a panel OPEN closes it: the move is a childList record
+  // on cardFace outside the panel's subtree, which the observer treats as
+  // a re-render — deterministic, and the cell is one tap away.
+  const DESK_QUERY = '(min-width: 1100px)';
+  const pane = refs && refs.readingPane;
+  const mql = pane && typeof matchMedia === 'function' ? matchMedia(DESK_QUERY) : null;
+  function mountPanel() {
+    const docked = !!(mql && mql.matches && pane && typeof pane.appendChild === 'function');
+    const target = docked ? pane : cardFace;
+    if (panel.parentNode !== target) target.appendChild(panel);
+    if (pane && pane.classList) pane.classList.toggle('docked', docked);
+  }
+  // The pane's empty line yields to an OPEN docked panel; the module owns
+  // that state, so it is a class the module sets, not a :has() rule.
+  function setPaneEntry(open) {
+    if (pane && pane.classList) pane.classList.toggle('has-entry', !!open);
+  }
+  mountPanel();
+  if (mql && typeof mql.addEventListener === 'function') mql.addEventListener('change', mountPanel);
   const head = panel.querySelector('#meaning-head');
   const title = panel.querySelector('#meaning-title');
   const body = panel.querySelector('#meaning-body');
@@ -400,6 +434,7 @@ let scrollTimer = null;
     if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
     panel.classList.remove('open');
     setPanelHidden(true);
+    setPaneEntry(false);
   }
 
   function openFor(key, cell) {
@@ -430,6 +465,7 @@ let scrollTimer = null;
     relationBody.textContent = detail.relation || '';
     panel.classList.add('open');
     setPanelHidden(false);
+    setPaneEntry(true);
     // The panel lives BELOW the card, so a tap on a top-row cell of the tall
     // t3 sheet opened it ~200px under the fold — the tap looked like a no-op
     // (live-fire, 2026-08-30). Scroll it into view AFTER the 280ms max-height

@@ -31,9 +31,12 @@ const shareJs = readFileSync(
 );
 
 describe('share-surface markup (DOCTRINE §5.D / §6)', () => {
-  // The result-controls region: from the controls container open to the
-  // disclaimer line that closes the button stack.
-  const rcStart = html.indexOf('class="result-controls"');
+  // The rail's control region: from the rail open to the disclaimer line
+  // that closes the button stack. Since the 2026-09-02 desk pass the
+  // controls are filed in three .result-controls.rail-group blocks
+  // (read · keep · device — tests/desk_layout.test.js), so the slice
+  // starts at the rail, not at a single controls container.
+  const rcStart = html.indexOf('class="result-rail"');
   const controls = html.slice(
     rcStart,
     html.indexOf('class="disclaimer"', rcStart)
