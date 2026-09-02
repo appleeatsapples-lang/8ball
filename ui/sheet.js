@@ -51,13 +51,13 @@
 import {
   CELL_KEYS,
   CELL_COORD,
-  SHEET_ROWS,
   cellRenderState,
   coordsForTier,
   PROV_NOTE,
   ATLAS_NOTE,
   provText,
   atlasText,
+  SHEET_GROUPS,
 } from './tiers.js';
 import { CARDS } from '../content/cards.v1.full.js';
 import { getCard, MissingCardError } from '../core/engine.js';
@@ -100,7 +100,7 @@ const cellHtml = (prefix, key) =>
  * tappable — see the limit recorded in DOCTRINE §1.J.)
  */
 export function buildSheetMarkup(prefix) {
-  const sections = SHEET_ROWS.map(keys => {
+  const sectionHtml = keys => {
     const lead = keys[0];
     const atlas = atlasText(keys);
     return '<div class="coord-section">' +
@@ -109,7 +109,15 @@ export function buildSheetMarkup(prefix) {
       `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
       `<div class="coord-prov">${provText(keys)}</div>` +
       '</div>';
-  }).join('');
+  };
+  // System groups (§1.F v0.72): the same registry the host sheet is built
+  // from, so group order, titles and row membership cannot drift between
+  // the two surfaces (tests/dyad_surface.test.js pins the parity).
+  const sections = SHEET_GROUPS.map(g =>
+    `<div class="coord-group" data-system="${g.key}">` +
+    `<div class="coord-group-title">${g.title}</div>` +
+    g.rows.map(sectionHtml).join('') +
+    '</div>').join('');
 
   return '<article class="card seal-hatch" data-sheet-face="' + prefix + '">' +
     `<span class="catalog" data-sheet-catalog="${prefix}">no. —</span>` +
@@ -118,6 +126,7 @@ export function buildSheetMarkup(prefix) {
     sections +
     '<div class="card-entry" data-sheet-entry="' + prefix + '">' +
     '<div class="card-prose-rule"></div>' +
+    '<div class="entry-title">WRITTEN ENTRY</div>' +
     `<div class="card-habit" data-sheet-habit="${prefix}"></div>` +
     `<div class="card-note" data-sheet-note="${prefix}"></div>` +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +

@@ -5,7 +5,60 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-02 — DOCTRINE v0.71: the product is completely free — STAGED on branch, PR pending
+## 2026-09-02 — DOCTRINE v0.72: the sheet organized by system — STAGED on branch, PR pending
+
+**What happened.** Minutes after the free amendment went live the
+controller ordered the next refinement — "Continue refining I want it
+more organized" — and, offered three passes (group the sheet by
+system · reorganize the rail · simplify the labeled view), chose the
+sheet grouping first. The card's eight rows now sit under four
+always-visible system titles — TAROT · WESTERN · CHINESE ·
+NUMEROLOGY — with hairline rules flanking each title, and the two
+prose blocks below carry always-on titles (WRITTEN ENTRY, DOMAIN
+FIT). The unlabeled sheet, which had read as a stack of bare boxes
+(1 · 1 · 2 · 2 · 3 · 3 · 1 · 1) over two untitled paragraphs, now
+reads as a table of contents; the labeled state keeps every row
+title, atlas gloss and placard under its group.
+
+**Four groups, not the five first offered.** The option text promised
+"TAROT · WESTERN · CHINESE · NUMEROLOGY · PILLARS"; building it showed
+the fifth header would have been a false taxonomy — the five-element
+row IS the Chinese year stem and the animal pair the year/month
+branches, so the day and hour pillars complete one four-pillar set.
+The Chinese rows are made contiguous under one title instead
+(five-element · public/private · day pillar · hour pillar), and the
+count is stated in the amendment as a truth claim.
+
+**One registry.** `SHEET_GROUPS` in `ui/tiers.js` is the single source
+of order: `SHEET_ROWS`, the §5.D `SHARE_ROWS` and `CELL_KEYS` all
+derive from it, so the host sheet, both dyad sheets and the share
+snapshot cannot disagree. Row order changed (arcana · sun/rising ·
+element · animals · day · hour · life/name/soul · the t2 triplet),
+which reorders the unseal-beat sequence and the snapshot rows; the
+snapshot SHAPE is unchanged and the group titles stay off the PNG
+(`ui/share.js` walks rows, never groups). Block titles left the
+labels gate — through v0.71 DOMAIN FIT hid behind the toggle and the
+entry had no title at all.
+
+**Test surface.** New `tests/sheet_groups.test.js` (12 tests): the
+registry's order/titles/honesty/frozenness, host markup and
+`buildSheetMarkup` parsed group-by-group against it, both block
+titles on both surfaces, no labels gate on any group or block title
+in either stylesheet (any selector shape), titles off the PNG, titles
+in the §2 register. Order pins in `tiers`/`dyad_surface` updated to
+the grouped DOM order; the class-parity differential gains
+`coord-group`, `coord-group-title` and `entry-title` count + text
+parity; `public_surface`'s "block label follows the labels-reveal
+convention" pin inverted. Suite 57 files / 1940 tests green; product
+audit PASS. Live-fire: mobile card 754 → 909px (the cost of six
+titles), desktop labeled state reads system → row → detail.
+
+**Constitution.** DOCTRINE v0.72 in §1.F: system groups as legibility
+surface (c), the registry named, the four-group truth claim, the row
+order and its consequences, block titles out of the labels gate;
+footer rotated with the changelog line.
+
+## 2026-09-02 — DOCTRINE v0.71: the product is completely free — SHIPPED (#229)
 
 **What happened.** On the controller's order — "And let's make it
 completely free / Approve and continue / No more gumroad this is fun"

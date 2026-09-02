@@ -157,9 +157,9 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
     // line used to compare newlyEntitledCells('free','t1') WITH ITSELF, which
     // can never fail. It carries the literal expected set now.
     expect(newlyEntitledCells('free', 't1'))
-      .toEqual(['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']);
+      .toEqual(['rising', 'element', 'innerAnimal', 'nameNumber', 'soulUrge']);
     expect(newlyEntitledCells('t1', 't2'))
-      .toEqual(['personality', 'birthday', 'maturity', 'dayPillar']);
+      .toEqual(['dayPillar', 'personality', 'birthday', 'maturity']);
     expect(newlyEntitledCells('t2', 't3')).toEqual(['hourPillar', 'cardEntry', 'publicRead']);
   });
 });
@@ -1221,7 +1221,7 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
     const count = (source, cls) =>
       [...source.matchAll(/class="([^"]*)"/g)]
         .filter(m => m[1].split(/\s+/).includes(cls)).length;
-    for (const cls of ['public-title', 'card-prose-rule', 'coord-val', 'coord-seal']) {
+    for (const cls of ['public-title', 'entry-title', 'coord-group', 'coord-group-title', 'card-prose-rule', 'coord-val', 'coord-seal']) {
       const hostCount = count(hostCombined, cls);
       expect(hostCount, `${cls}: absent from the host surface — scan vacuous`).toBeGreaterThan(0);
       expect(count(sheetMarkup, cls), cls).toBe(hostCount);
@@ -1230,6 +1230,8 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
     // label text is part of the shared structure, not a per-person value.
     for (const [cls, hostSource] of [
       ['public-title', html],
+      ['entry-title', html],
+      ['coord-group-title', html],
     ]) {
       const label = source => {
         const m = source.match(new RegExp(`class="${cls}"[^>]*>([^<]*)<`));

@@ -494,9 +494,14 @@ describe('public-read wiring seams the first pass left unpinned', () => {
     expect(shellCss).toMatch(/\.public-read\.unsealing \.card-habit/);
   });
 
-  it('the block label follows the labels-reveal convention like every other label', () => {
-    expect(shellCss).toMatch(/\.public-title \{[^}]*visibility: hidden/);
-    expect(shellCss).toMatch(/\.card\.labels-revealed \.public-title \{[^}]*visibility: visible/);
+  it('the block label is ALWAYS visible — it left the labels-reveal gate with the system groups (§1.F v0.72)', () => {
+    // Through v0.71 DOMAIN FIT hid behind the labels toggle like a row
+    // title; the grouping pass made block titles part of the sheet's
+    // always-on table of contents. Neither stylesheet may re-gate it.
+    const expCss = readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8');
+    expect(shellCss).not.toMatch(/\.public-title[^{]*\{[^}]*visibility:\s*hidden/);
+    expect(shellCss + expCss).not.toMatch(/labels-revealed[^{]*\.public-title/);
+    expect(shellCss).toMatch(/\.public-title, \.entry-title \{/);
   });
 
   it('the density strip claims the full sheet and nothing is sealed to contradict it', () => {

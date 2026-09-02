@@ -122,6 +122,23 @@
   }
   .card { justify-content: space-evenly; }
   .card .coord-section { text-align: center; }
+  /* ── system groups (§1.F v0.72): the card organized by counting system.
+     The group title is ALWAYS visible (unlike the per-row titles, which
+     stay behind the labels toggle): it is the sheet's own table of
+     contents — a system name, never a value, never interpretation. Off
+     the share PNG (ui/share.js walks rows, not groups). */
+  .card .coord-group { margin-top: 10px; }
+  .card .coord-group:first-of-type { margin-top: 2px; }
+  .card .coord-group-title {
+    font-size: 9px; letter-spacing: 0.22em; line-height: 1.4;
+    color: var(--text-muted); text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .card .coord-group-title::before,
+  .card .coord-group-title::after {
+    content: ""; flex: 1; height: 1px; background: var(--rule);
+  }
+  .card .coord-group .coord-section + .coord-section { margin-top: 4px; }
   .card .coord-title {
     font-size: 11px;
     letter-spacing: 0.1em;
@@ -190,8 +207,15 @@
   .public-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
   /* sealed public-read block (t3 ceiling, §1.D v0.60) — same seal treatment */
   .public-read { position: relative; min-height: 52px; }
-  .public-title { font-size: 10px; letter-spacing: .14em; opacity: .55; margin-bottom: 4px; visibility: hidden; }
-  .card.labels-revealed .public-title { visibility: visible; }
+  /* block titles (§1.F v0.72): the written entry and the domain fit each
+     carry an always-visible title in the group-title register — through
+     v0.71 DOMAIN FIT hid behind the labels toggle and the entry had none,
+     so the two prose blocks read as untitled paragraphs by default. */
+  .public-title, .entry-title {
+    font-size: 9px; letter-spacing: 0.22em; line-height: 1.4;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-bottom: 4px; text-align: center;
+  }
   .public-read .coord-seal { inset: 16px 10% 4px; }
   @keyframes sealOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
   @keyframes valIn { from { opacity: 0; } to { opacity: 1; } }
