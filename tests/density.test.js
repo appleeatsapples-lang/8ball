@@ -71,9 +71,11 @@ describe('density strip — copy + placement + gating', () => {
     expect(copy).not.toMatch(/unlock|discover|reveal|buy|free/i);
     expect(copy).not.toMatch(/\bnow\b|only|hurry|countdown|\$|price|upgrade|limited/i);
   });
-  it('copy interpolates count fields only — no profile value', () => {
-    expect(block).toMatch(/\$\{density\.open\}/);
-    expect(block).toMatch(/\$\{density\.sealed\}/);
+  it('copy interpolates count fields only — no profile value (free amendment: constant full-open line)', () => {
+    // The sealed branch left with the storefront; the census is the total,
+    // interpolated from the tier constants and never a profile value.
+    expect(block).toMatch(/\$\{density\.total\} of \$\{density\.total\} coordinates open · full sheet/);
+    expect(block).not.toMatch(/density\.sealed|sealed at paid/);
     expect(block).not.toMatch(/profile\.|currentProfile/);
   });
   it('strip lives in .result-rail, OUTSIDE the share-serialized #card-face', () => {

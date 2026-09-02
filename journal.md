@@ -5,7 +5,77 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-01 — DOCTRINE v0.70: the kua block is retired from the render — STAGED on branch, PR pending
+## 2026-09-02 — DOCTRINE v0.71: the product is completely free — STAGED on branch, PR pending
+
+**What happened.** On the controller's order — "And let's make it
+completely free / Approve and continue / No more gumroad this is fun"
+— the storefront retired in full. Every device now renders the
+complete product: all fifteen coordinates, their meanings, the
+written card entry, domain fit, and the dyad's paired read, with
+nothing sealed anywhere and nothing to buy. The order arrived minutes
+after the kua removal (#228) went live; the controller's stated
+ground is the product's own nature — it is a toy, and it is fun.
+
+**The shape of the retirement — ceiling up, storefront out,
+registries stay.** The whole change hangs on one seam the codebase
+already had: `getRenderTier()` in `ui/payments.js` was the single
+density resolver for every render path, so the free ceiling is that
+function returning `t5` unconditionally — storage never consulted,
+no caller changed. Deleted around it: the paywall modal with its
+specimen preview, the lock icon, the sprint offer control, the dyad
+offer anchor and disclosure, every checkout URL, the `?paid=` return
+handler, purchase staging, and the tier/credits/pending storage
+shims (`ui/payments.js` went 406 → 187 lines). The about copy, meta
+descriptions and og/twitter tags rewrote to the free surface (the
+"five from your date of birth alone" derivation split survives as
+derivation, not commerce). `ui/modals.js` dropped its paywall hooks
+and the forget flow's pending-profile leg. Kept, deliberately, per
+the kua-retirement precedent: `core/payments.js` untouched as the
+tested state-machine registry, the facet-rotation machinery (never
+commerce), `TIER_COORDS` as the render registry, and the dyad's
+entitlement predicates — every gate keeps its single seam, which now
+always answers yes.
+
+**Storage shrinks, with the v0.64 standard applied.** A read-verified
+boot scrub (`scrubRetiredCommerceKeys`) removes the three commerce
+keys; the pending key held a staged name+DOB payload across checkout
+— personal data that must not linger for a flow that no longer
+exists — and its removal subsumes the old pending-gender scrub.
+Live-fire proved it: a device seeded with a t1 tier, legacy credits
+and a gendered pending payload boots to exactly two keys (profile +
+facet) and renders the full free sheet.
+
+**Test surface.** `tests/payments_markup.test.js` rewrote into the
+free-surface suite (28 tests): zero-checkout-token absence guards
+over every shipped source file, the free ceiling proven pure, the
+scrub proven surgical and fail-safe, the status banner behavior, the
+free disclosure pins, and a retired-exports guard so the checkout
+API cannot quietly return. `tests/tiers.test.js` swapped the storage
+wrapper and `?paid=` describes for free-ceiling pins;
+`tests/public_surface.test.js` inverted its declared-checkout-set
+pin to exactly-none; dyad/modals/a11y/density/monochrome/facet/
+profile/prose/reach suites updated to the free contract. Suite 56
+files / 1929 tests green (1986 before — the commerce behavior tests
+retired with their subject). The product audit's blocking
+t4-migration probe was repointed to the free ceiling (t5 over legacy
+storage + no writes + scrub verified) with the assurance suite run
+in the same breath (104 OK) and the new probe mutation-verified
+three ways (wrong ceiling, storage write, scrub no-op — all fail).
+Live-fire: fresh mobile and legacy-paid desktop devices both render
+15/15 open, dyad opens and fills both sheets plus the relation, zero
+commerce nodes, zero price strings, zero console errors.
+
+**Constitution.** DOCTRINE v0.71 in the §4.B stack: the free
+amendment with its seven-point operative clause (ceiling, deletion +
+absence guard, storage shrink, registries, owner impact, revenue
+thread closed as MOOT, re-commercialization requires a fresh
+decision from zero), appended markers on the v0.56 sprint, v0.67
+activation and v0.69 ledger clauses per L17, footer rotated with the
+changelog line. Owner impact stated plainly: buyers keep everything
+and gain the rest like everyone else; the paid era's ledger stands
+as history.
+
+## 2026-09-01 — DOCTRINE v0.70: the kua block is retired from the render — SHIPPED (#228)
 
 **What happened.** On the controller's order ("No strip / Yes remove —
 it's taking a lot of space"), the kua block left the product's render

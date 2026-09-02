@@ -134,8 +134,7 @@ body {
 }
 
 .field-group summary,
-.feedback-details summary,
-.paywall-specimen summary {
+.feedback-details summary {
   min-height: var(--tap-target);
   display: flex;
   align-items: center;
@@ -209,14 +208,6 @@ body {
   font-size: 58px;
 }
 
-.card .lock-icon {
-  top: 4px;
-  left: 5px;
-  width: var(--tap-target);
-  height: var(--tap-target);
-  padding: 13px;
-}
-
 .result-controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -227,7 +218,6 @@ body {
   margin-top: 0;
 }
 
-#offer-btn,
 #shake-again-btn,
 #try-another-btn,
 .reading-save-status,
@@ -235,10 +225,6 @@ body {
 .result-controls > .disclaimer,
 .result-controls > .footer-actions {
   grid-column: 1 / -1;
-}
-
-#offer-btn:not([hidden]) {
-  border-color: var(--text);
 }
 
 .result-controls .disclaimer,
@@ -262,14 +248,6 @@ body {
   line-height: 1.5;
 }
 
-.modal .paywall-facts {
-  margin-bottom: 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.10em;
-  color: var(--text-muted);
-}
-
 .modal .modal-status {
   margin-top: 14px;
   color: var(--text);
@@ -277,12 +255,11 @@ body {
   line-height: 1.6;
 }
 
-.modal .modal-actions .btn,
-.modal .modal-cta {
+.modal .modal-actions .btn {
   min-height: var(--control-height);
 }
 
-.paid-banner {
+.status-banner {
   width: min(420px, calc(100vw - 32px));
   text-align: center;
   line-height: 1.5;
@@ -352,20 +329,20 @@ body {
   /* The 2026-08-31 desktop layout pass (offset corrected by its audit).
      This block used to re-center the rail against the card (overriding
      the shell's flex-start): harmless at free-card heights, but the t3
-     card is ~1034px tall and centering pushed the rail's LAST items — the
-     $6 comparative offer and its disclosure — to ~730px from the top,
-     below or cut by the fold on 768/720-tall desktops (fully off-screen
-     at 1280×720; the base defect also clipped #forget-btn in revealed
-     states). Top-aligned, every control sits in the first ~500px at
-     every tier; sticky keeps the whole rail — offer included — in view
-     while the tall card scrolls.
+     card is ~1034px tall and centering pushed the rail's LAST items (at
+     the time, the since-retired $6 offer and its disclosure) to ~730px
+     from the top, below or cut by the fold on 768/720-tall desktops
+     (fully off-screen at 1280×720; the base defect also clipped
+     #forget-btn in revealed states). Top-aligned, every control sits in
+     the first ~500px; sticky keeps the whole rail in view while the
+     tall card scrolls.
      THE OFFSET IS 24px, NOT topbar+24: `html { overflow-x: hidden }`
      makes BODY the scroll container, and body's own padding-top already
      clears the fixed topbar — a sticky inset resolves from the scroll
      container's content box, so adding the topbar height again parked
      the rail 64px low and, at 150% zoom on a 1280×800 display (853×533
-     CSS px, still ≥720 wide), pushed the offer below the fold — the
-     exact defect this rule exists to fix. 24px matches the stage's own
+     CSS px, still ≥720 wide), pushed the rail's tail below the fold —
+     the exact defect this rule exists to fix. 24px matches the stage's own
      desktop padding: the stuck rail top lands at the card top (88px,
      audit-measured). align-self pins the sticky element against a
      future align-items change; the rail (~485px at its tallest, status

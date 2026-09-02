@@ -14,7 +14,6 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initModalsUI } from '../ui/modals.js';
-import { initPaywallUI, openPaywall, closePaywall } from '../ui/payments.js';
 import { makeEl, makeModalRefs } from './helpers/dom.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -22,12 +21,13 @@ const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
 
 describe('modal a11y — markup pins', () => {
-  it('all three dialogs carry aria-modal="true" alongside role="dialog"', () => {
-    // Was four before the 18+ age-gate modal's removal (journal 2026-07-06).
+  it('both dialogs carry aria-modal="true" alongside role="dialog"', () => {
+    // Was four before the 18+ age-gate removal (journal 2026-07-06), three
+    // until the paywall modal retired with the free amendment (2026-09-02).
     const dialogs = html.match(/role="dialog"/g) || [];
     const modal = html.match(/role="dialog" aria-modal="true"/g) || [];
-    expect(dialogs).toHaveLength(3);
-    expect(modal).toHaveLength(3);
+    expect(dialogs).toHaveLength(2);
+    expect(modal).toHaveLength(2);
   });
 
   it('the muted-text token exists and the AA-passing pairs are on it', () => {
@@ -173,17 +173,4 @@ describe('modal a11y — focus save / trap / restore behavior', () => {
     expect(pageBtn.focusCount).toBe(2);
   });
 
-  it('paywall open focuses "maybe later" and close restores the opener (shake button)', () => {
-    const modal = makeEl('paywallModal');
-    const closeBtn = makeEl('paywallClose');
-    const shakeBtn = makeEl('shakeBtn');
-    initPaywallUI({ modal, closeBtn, banner: makeEl('banner') });
-    shakeBtn.focus();
-    openPaywall();
-    expect(closeBtn.focusCount).toBe(1);
-    expect(modal.classList.contains('open')).toBe(true);
-    closePaywall();
-    expect(shakeBtn.focusCount).toBe(2);
-    expect(modal.classList.contains('open')).toBe(false);
-  });
 });

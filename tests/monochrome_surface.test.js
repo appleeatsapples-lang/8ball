@@ -154,8 +154,10 @@ describe('monochrome surface — retired palette never returns', () => {
     }
   });
 
-  it('the in-app specimen preview renders achromatic without a new tracked asset', () => {
-    expect(shellCss).toMatch(/\.paywall-specimen img\s*\{[^}]*filter:\s*grayscale\(1\)[^}]*\}/);
+  it('the paywall specimen preview is retired with the storefront (free amendment)', () => {
+    // Its achromatic-filter pin guarded the only in-app color image; with
+    // the paywall gone the selector must be gone too, not merely unstyled.
+    expect(shellCss).not.toMatch(/paywall-specimen/);
   });
 
   it('every rendered color literal in the shared surfaces is achromatic (R=G=B)', () => {

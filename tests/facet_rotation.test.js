@@ -324,9 +324,13 @@ describe('t3-only host wiring', () => {
     expect(html).toMatch(/cardNote\.textContent = cell\.note\[getFacetSlot\(profile\.lifePath\)\]/);
   });
 
-  it('new profiles and consumed pending profiles explicitly reset to the anchor', () => {
+  it('new profiles explicitly reset to the anchor; the boot rehydrate never does', () => {
+    // The consumed-pending reset retired with the paid return (free
+    // amendment): boot is always a plain rehydrate now, pinned as an
+    // explicit no-reset so the position survives reloads.
     expect(html).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: isNew \}\)/);
-    expect(html).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: consumedPending \}\)/);
+    expect(html).toMatch(/ensureFacetIndex\(profile\.lifePath, \{ reset: false \}\)/);
+    expect(html).not.toMatch(/consumedPending/);
   });
 
   it('forget and corrupt-profile cleanup clear the facet position', () => {

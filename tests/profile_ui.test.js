@@ -254,13 +254,15 @@ describe('ui/profile.js boot scrub — the stale gender token leaves the device'
   });
 
   it('boot() runs all three scrubs before rehydration (index.html wiring)', () => {
+    // Was gender ×3: scrubPendingGender retired with the pending key
+    // itself — the commerce scrub removes the whole payload, gender token
+    // included (free amendment).
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
     const bootBody = html.slice(html.indexOf('function boot()'));
-    const scrubAt = bootBody.indexOf('scrubStoredGender(); scrubPendingGender(); scrubSavedReadingsGender();');
+    const scrubAt = bootBody.indexOf('scrubStoredGender(); scrubSavedReadingsGender(); scrubRetiredCommerceKeys();');
     expect(scrubAt).toBeGreaterThan(-1);
     expect(scrubAt).toBeLessThan(bootBody.indexOf('loadSavedProfile()'));
-    expect(scrubAt).toBeLessThan(bootBody.indexOf('handlePaidReturn('));
   });
 });
 
