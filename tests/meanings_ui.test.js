@@ -19,9 +19,12 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect(meaningsJs).toMatch(/export function initMeaningsUI\s*\(\s*refs\s*\)/);
   });
 
-  it('index.html imports and calls initMeaningsUI once, passing cardFace', () => {
+  it('index.html imports and calls initMeaningsUI once, passing cardFace and the reading pane', () => {
     expect(html).toMatch(/import\s*{\s*initMeaningsUI\s*}\s*from\s*'\.\/ui\/meanings\.js'/);
-    expect(html).toMatch(/initMeaningsUI\(\{\s*cardFace\s*\}\)/);
+    // The pane ref is the ≥1100 desk's dock (tests/desk_layout.test.js);
+    // cardFace stays first and stays the panel's home below the breakpoint.
+    expect(html).toMatch(/initMeaningsUI\(\{\s*cardFace,\s*readingPane:\s*\$\('reading-pane'\)\s*\}\)/);
+    expect((html.match(/initMeaningsUI\(/g) || []).length).toBe(1);
   });
 
   it('excludes catalog from COORDINATES — no detail trigger for the compound card', () => {

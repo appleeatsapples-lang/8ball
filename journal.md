@@ -5,7 +5,80 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-02 — DOCTRINE v0.72: the sheet organized by system — STAGED on branch, PR pending
+## 2026-09-02 — the registry desk: the reading pane and the filed rail — STAGED on branch, PR pending
+
+**What happened.** With #230 merged the controller moved to the wide
+screen — "we are now on desktop go wild" — and this is the pass: at
+≥1100px the result screen becomes a three-column **registry desk**.
+The sheet stays the 360px 5:8 object it is at every ≥720 width; beside
+it a new **reading pane** (`#reading-pane`, an `<aside>` in
+`.result-main` between the stage and the rail) is where a
+compartment's entry now files, instead of expanding inside the card
+and stretching it ~250px under the row that was tapped; the rail is
+the third column. Below 1100 nothing moves: the pane is
+`display:none`, the meaning panel lives in `#card-face` exactly as it
+has since #212, and the 390/720 renders are byte-for-byte the same
+markup. The rail's second offered pass — reorganize the rail — is
+folded in at every width: the controls are filed under three small
+titles, **read** (flip again · read beside another sheet — the dyad
+entry injects into `#rail-read`), **keep** (save reading · share and
+their status lines) and **device** (try another · stored only on this
+device · forget this device). Labels toggle and density strip stay
+above the groups, ungrouped.
+
+**How the panel docks.** `ui/meanings.js` takes a second ref,
+`readingPane`, and asks `matchMedia('(min-width: 1100px)')` once at
+init and on every `change`: the ONE panel node is `appendChild`-moved
+into the pane (which gains `.docked`) above the breakpoint and back into
+the card below it — never duplicated, so `#meaning-panel`, its role and
+`aria-controls` hold across a crossing. A crossing with a panel OPEN
+closes it: the move is a `childList` record on the card outside the
+panel's own subtree, which the existing re-render observer treats as a
+re-render (deterministic; the cell is one tap away — live-fired both
+directions at 1440↔1000 and 1920↔1000, no console errors). Docked, the
+panel is a column, not an inline expander: no 720px clamp, no inner
+scrollbar — the pane itself is sticky at the rail's 24px top, capped at
+`100vh − 48px`, and scrolls inside itself so a long entry never pushes
+the rail. Its empty line — "select a compartment — its entry files
+here." — yields only to an open docked panel (`:has`). A host with no
+`matchMedia` (the injected-DOM test surface) or no pane ref keeps the
+panel in the card and asks no query.
+
+**What stays put, and one dead rule caught in the build.** The pane
+sits OUTSIDE `#card-face`, so the §5.D share PNG serializes exactly
+what it did (pinned: `ui/share.js` names neither pane nor panel). The
+≥720 sticky-rail contract (`tests/density.test.js`) is untouched — the
+desk block may size the rail (`0 0 300px`) but may not name its
+position, top or display. The first draft declared the stage
+`flex: 0 0 400px` at the desk; the shell's own `max-width: 360px` cap
+made it a lying declaration (measured 360 at 1440 and 1920 alike), so
+the rule is gone and the desk pin now forbids the block from naming the
+stage at all. Measured columns (Chromium): 1100 → 360 · 320 · 300;
+1200 → 360 · 420 · 300; 1440/1920 → 360 · 520 · 300; no horizontal
+overflow at any of 390 / 1024 / 1099 / 1100 / 1200 / 1440 / 1920.
+
+**Tests.** `tests/desk_layout.test.js` (new, 20 tests): host markup
+(pane placement, outside the card, one empty line in register, the two
+DI refs), rail groups (order, membership, register, styled once), the
+experience layer (pane hidden at the top level and absent from the 720
+block; sticky/self-scrolling at the desk; the wide tier only widens;
+the desk never touches the rail contract, the labels toggle or the
+card; breakpoint declared once in the module and once in the
+stylesheet), and the docking logic run for real against DOM mocks
+whose `appendChild` moves like the DOM's (home below, moved above, back
+and forth on a crossing, never a second copy, no-`matchMedia` and
+no-pane hosts, and a cell still opens while docked). Mutation-verified:
+dropping the initial `mountPanel()` call, moving the breakpoint,
+dropping the `change` listener, and un-hiding the pane at the top
+level each fail the file. Two pins repointed for the new rail shape
+(`share_surface` slices the rail, not a single controls container;
+`meanings_ui` pins the two-ref boot call and that it is called once).
+Suite 58 files / 1960 tests green; product audit PASS, 0 blocking.
+
+**Queued.** The moon sign (§1.K, engine and content staged); the
+labeled-view simplification; `/cards` and og-image regeneration.
+
+## 2026-09-02 — DOCTRINE v0.72: the sheet organized by system — SHIPPED (#230)
 
 **What happened.** Minutes after the free amendment went live the
 controller ordered the next refinement — "Continue refining I want it

@@ -367,7 +367,30 @@ export function initMeaningsUI(refs) {
     cardFace.appendChild(hint);
   }
   const panel = buildPanel();
-  cardFace.appendChild(panel);
+  // ── where the panel lives (the ≥1100 registry desk, journal 2026-09-02) ──
+  // Below the desk breakpoint the panel is appended INSIDE #card-face and
+  // expands inline, exactly as it has since #212. On a wide screen the host
+  // offers a reading pane beside the sheet (refs.readingPane, index.html's
+  // #reading-pane) and the panel docks there instead: the card keeps its
+  // height, the entry reads in a column, and the card's own mutation
+  // observer below still closes the panel on a re-render — the panel is
+  // now OUTSIDE the observed subtree, so its own writes are never
+  // self-noise. The node is MOVED, never duplicated, and moves back when
+  // the viewport crosses the breakpoint; ids and aria-controls hold. A
+  // crossing with a panel OPEN closes it: the move is a childList record
+  // on cardFace outside the panel's subtree, which the observer treats as
+  // a re-render — deterministic, and the cell is one tap away.
+  const DESK_QUERY = '(min-width: 1100px)';
+  const pane = refs && refs.readingPane;
+  const mql = pane && typeof matchMedia === 'function' ? matchMedia(DESK_QUERY) : null;
+  function mountPanel() {
+    const docked = !!(mql && mql.matches && pane && typeof pane.appendChild === 'function');
+    const target = docked ? pane : cardFace;
+    if (panel.parentNode !== target) target.appendChild(panel);
+    if (pane && pane.classList) pane.classList.toggle('docked', docked);
+  }
+  mountPanel();
+  if (mql && typeof mql.addEventListener === 'function') mql.addEventListener('change', mountPanel);
   const head = panel.querySelector('#meaning-head');
   const title = panel.querySelector('#meaning-title');
   const body = panel.querySelector('#meaning-body');
