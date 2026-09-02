@@ -29,6 +29,7 @@ import {
   PLACEMENT_LINES,
 } from '../content/meanings.v6.js';
 import { sheetRelationFor } from './concordance.js';
+import { derivationText } from './tiers.js';
 
 const TABLES = {
   arcana: ARCANA_MEANINGS,
@@ -92,7 +93,12 @@ const STYLE = `
 /* the ≥1100 desk (ui/experience.css) lifts this clamp for a DOCKED panel by
    specificity — keep this selector at class level, never #id or !important */
 .meaning-head { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--text-muted); margin-bottom: 6px; }
+  color: var(--text-muted); margin-bottom: 2px; }
+/* v0.74: the compartment's system name and derivation, one line under the
+   head — where the §1.E placard and the §1.F atlas gloss now live. */
+.meaning-derivation { font-size: 9px; letter-spacing: 0.1em; text-transform: lowercase;
+  color: var(--text-muted); margin-bottom: 8px; }
+.meaning-derivation:empty { display: none; }
 .meaning-title { font-size: 14px; font-style: italic; color: var(--text);
   text-transform: lowercase; margin-bottom: 8px; }
 .meaning-body { font-size: 12px; line-height: 1.55; color: var(--text); text-align: left; }
@@ -133,6 +139,7 @@ function buildPanel() {
   panel.setAttribute('aria-labelledby', 'meaning-head meaning-title');
   panel.innerHTML =
     '<div class="meaning-head" id="meaning-head"></div>' +
+    '<div class="meaning-derivation" id="meaning-derivation"></div>' +
     '<div class="meaning-title" id="meaning-title"></div>' +
     '<div class="meaning-body" id="meaning-body"></div>' +
     '<div class="meaning-context-head" id="meaning-context-head">in this sheet</div>' +
@@ -406,6 +413,7 @@ export function initMeaningsUI(refs) {
   mountPanel();
   if (mql && typeof mql.addEventListener === 'function') mql.addEventListener('change', mountPanel);
   const head = panel.querySelector('#meaning-head');
+  const derivation = panel.querySelector('#meaning-derivation');
   const title = panel.querySelector('#meaning-title');
   const body = panel.querySelector('#meaning-body');
   const contextHead = panel.querySelector('#meaning-context-head');
@@ -456,6 +464,8 @@ let scrollTimer = null;
     cell.setAttribute('aria-expanded', 'true');
     const detail = detailFor(key, cell, rawValue);
     head.textContent = coordinate.label.toUpperCase();
+    // system name · derivation (v0.74) — registry text, tier-invariant, no value
+    derivation.textContent = derivationText(key);
     title.textContent = detail.title;
     body.textContent = detail.body;
     contextHead.hidden = !detail.context;

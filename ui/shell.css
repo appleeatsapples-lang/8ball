@@ -154,27 +154,10 @@
   }
   .card.labels-revealed .coord-title { visibility: visible; }
 
-  /* provenance placards (CLP §1.E): per-coordinate derivation note under
-     each row, shown only when labels are revealed (display:none keeps the
-     default card height unchanged). Off-card / off-share: ui/share.js reads
-     .coord-val + .coord-title, never .coord-prov. */
-  .card .coord-prov {
-    font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
-    color: var(--text-muted); text-transform: lowercase;
-    margin-top: 3px; display: none;
-  }
-  .card.labels-revealed .coord-prov { display: block; }
-
-  /* ATLAS legend (CLP cut 2): system-name gloss under the abbreviated
-     title, same labels gate as the placard. display:none keeps the default
-     card height unchanged; off-share like .coord-prov (share reads
-     .coord-val + .coord-title only, never .coord-atlas). */
-  .card .coord-atlas {
-    font-size: 9px; letter-spacing: 0.08em; line-height: 1.4;
-    color: var(--text-muted); text-transform: lowercase;
-    margin-bottom: 3px; display: none;
-  }
-  .card.labels-revealed .coord-atlas { display: block; }
+  /* v0.74 (the labeled-view simplification): the §1.E placard and the §1.F
+     atlas gloss no longer render on the card — the labels toggle reveals the
+     row titles only; a compartment's system name and derivation are one line
+     under the meaning panel's head (ui/meanings.js .meaning-derivation). */
 
   /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
      Full cell structure at every tier; sealed cell = EMPTY value node +

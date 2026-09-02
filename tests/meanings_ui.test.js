@@ -68,10 +68,19 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect(meaningsJs).toMatch(/\.meaning-panel\.open \{ max-height: 720px; overflow-y: auto;/);
   });
 
-  it('uses meaning context rather than derivation/provenance copy', () => {
+  it('uses meaning context rather than derivation/provenance copy in the BODY', () => {
     expect(meaningsJs).toContain('harmonyFor');
     expect(meaningsJs).toContain('in this sheet');
+    // the registries never reach the body: the v0.74 derivation line is its
+    // own node, composed by ui/tiers.js derivationText, written on open
     expect(meaningsJs).not.toMatch(/PROV_NOTE|ATLAS_NOTE|derived by/);
+    expect(meaningsJs).toMatch(/derivation\.textContent = derivationText\(key\);/);
+    expect(meaningsJs).not.toMatch(/body\.textContent = [^;]*derivation/);
+  });
+
+  it('v0.74: the panel carries the derivation line between head and title, hidden when empty', () => {
+    expect(meaningsJs).toMatch(/id="meaning-head"><\/div>' \+\s*'<div class="meaning-derivation" id="meaning-derivation"><\/div>' \+\s*'<div class="meaning-title"/);
+    expect(meaningsJs).toMatch(/\.meaning-derivation:empty \{ display: none; \}/);
   });
 
   it('injects its own style/panel rather than editing index.html markup/CSS', () => {

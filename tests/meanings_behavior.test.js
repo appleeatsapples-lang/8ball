@@ -264,6 +264,8 @@ describe('ui/meanings.js behavior', () => {
     const p = panel();
     expect(p.classList.contains('open')).toBe(true);
     expect(p._byId['meaning-head'].textContent).toBe('SUN');
+    // v0.74: system name · derivation under the head, from the registries
+    expect(p._byId['meaning-derivation'].textContent).toBe('sun sign · tropical zodiac');
     expect(p._byId['meaning-title'].textContent).toBe(entry.register);
     expect(p._byId['meaning-body'].textContent).toBe(entry.body);
     expect(cells.sun.classList.contains('active')).toBe(true);

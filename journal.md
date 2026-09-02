@@ -5,7 +5,63 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-02 — DOCTRINE v0.73: the moon sign — the sixteenth coordinate — STAGED on branch, PR pending
+## 2026-09-02 — DOCTRINE v0.74: the labeled view simplified — the placard and the atlas leave the card for the panel — STAGED on branch, PR pending
+
+**What happened.** "Now the labeled view simplification" — the third of
+the three passes offered with v0.72. Through v0.73 the labeled sheet
+stacked three text lines on every row: the row title, the §1.F atlas
+gloss above the cells ("sun sign · rising sign") and the §1.E placard
+below them ("tropical zodiac · ascendant"). Measured at 390 wide the
+toggle grew the card 938 → 1289px (+351); at 1440, 951 → 1314. With
+the v0.72 system titles naming the tradition and every compartment
+opening its own panel, the two small lines said what the title and the
+panel already said, in a smaller type, twice per row. Now the labels
+toggle reveals the **row titles only** — one line per row, on the host
+sheet and on both dyad sheets — and a compartment's system name and
+derivation are **one line under the meaning panel's head**: `expression
+· letter-value sum`, `moon sign · lunar longitude`, `sexagenary cycle`
+(the self-naming rows carry the note alone; the head already names
+them). Measured after: 938 → 1055 at 390 (+117), 951 → 1068 at 1440.
+
+**How.** `ui/tiers.js derivationText(key)` — pure over the two unchanged
+registries (`ATLAS_NOTE` where it carries one, then `PROV_NOTE`), keyed
+by coordinate, never a profile, so no value or PII can reach it —
+composes the line; `ui/meanings.js` writes it into a new
+`.meaning-derivation` node between the head and the title on every
+open (`:empty` hides it; no coordinate is empty). The two init-time
+write passes in `ui/tiers.js` (`attachProvenance`, `attachAtlas`) are
+retired, `ui/sheet.js` stops emitting `.coord-atlas` / `.coord-prov` on
+the dyad sheets, and `ui/shell.css` drops the two labels-gated rules.
+The about copy and README say where the derivation now lives.
+
+**What holds.** Every §1.E/§1.F invariant, in the new place:
+tier-invariant (registry text — a sealed compartment's panel still
+names its derivation), catalog-isolated, no value, no PII, no new
+localStorage key, off the §5.D PNG (the panel is never serialized; the
+share path still reads `.coord-val` + `.coord-title` only). The
+density census (§1.F(b)) stays always-on in the rail. The labels key
+and the toggle's copy are unchanged. Live-fired at 390 and 1440: zero
+atlas/placard nodes on any sheet, nine titles visible when labeled,
+the three example lines above read off the live panel, both dyad
+sheets at eighteen titles and zero lines, no console errors.
+
+**Tests.** `tests/atlas.test.js` and `tests/provenance.test.js` keep
+every registry pin (coverage, order, §2 voice, no digits, lowercase,
+the pr232 value pins) and replace the DOM-write blocks with the
+retirement pins (no writer, no node, no gated rule, in `tiers.js`,
+`sheet.js`, `index.html` and `shell.css`), the composition contract of
+`derivationText` (legend first where it exists, the note last, pure,
+one argument, profile-independent, no digit) and a real-init check that
+no section gains a node. `meanings_ui` pins the node's position and
+the `:empty` rule and that the registries never reach the body;
+`meanings_behavior` reads `sun sign · tropical zodiac` off a live open.
+Suite 60 files / 1999 tests green (five DOM-write tests retired, three
+composition tests added); product audit PASS. DOCTRINE: §1.E and
+§1.F(a) v0.74 amendments, footer v0.74.
+
+**Queued.** `/cards` and og-image regeneration (sources off-repo).
+
+## 2026-09-02 — DOCTRINE v0.73: the moon sign — the sixteenth coordinate — SHIPPED (#232)
 
 **What happened.** "We need to add moon sign as well." The sheet gains
 its second astronomical coordinate after the rising sign: the **moon
