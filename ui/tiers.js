@@ -203,7 +203,7 @@ export function initTiersUI(refs, hooks) {
 /**
  * Prime the unseal baseline with the tier the device was entitled to
  * BEFORE a possible paid return is applied (index.html boot, ahead of
- * handlePaidReturn). The first render then unseals exactly the delta on
+ * the retired paid-return handler once ran). The first render then unseals exactly the delta on
  * a paid-return boot, and nothing on a plain rehydrate.
  */
 export function primeUnsealBaseline(tier) {

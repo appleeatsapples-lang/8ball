@@ -23,14 +23,14 @@
 <meta property="og:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Specimen sheet with four open compartments and ten sealed hatches, beside the 8 ball wordmark — a magic 8-ball that knows you.">
+<meta property="og:image:alt" content="Specimen sheet beside the 8 ball wordmark — a magic 8-ball that knows you; every compartment opens free.">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="8 ball · specimen registry">
 <meta name="twitter:description" content="A magic 8-ball that knows you — name + birth data in, one fixed identity sheet out: tarot, western astrology, chinese zodiac, and numerology on one card. The complete sheet, free. Stored only on your device.">
 <meta name="twitter:image" content="https://the-eight-ball.netlify.app/assets/og-image.png">
-<meta name="twitter:image:alt" content="Specimen sheet with four open compartments and ten sealed hatches, beside the 8 ball wordmark — a magic 8-ball that knows you.">
+<meta name="twitter:image:alt" content="Specimen sheet beside the 8 ball wordmark — a magic 8-ball that knows you; every compartment opens free.">
 
 <link rel="stylesheet" href="/ui/shell.css">
 <link rel="stylesheet" href="/ui/experience.css">
@@ -289,6 +289,7 @@ const modalsUI = initModalsUI(
   { clearProfile,
     clearSavedReadings: () => { const outcome = clearAllSavedReadings(); if (outcome.ok && readingsUI) readingsUI.setActiveReading(null); return outcome; },
     clearFacetState: clearFacetIndex,
+    clearRetiredKeys: scrubRetiredCommerceKeys,
     resetFormDisplay: () => { resetResultTransitions(); resetFormDisplay(); cityUI.reset(); },
   },
 );
@@ -415,10 +416,10 @@ const cityUI = initCitySearchUI(
 // ── render card face from profile ─────────────────────────────────
 // v0.6.0 (DOCTRINE §1.D, R1): coordinate rows render up to opts.tier —
 // always the device's entitled density from getRenderTier(); fill +
-// visibility live in ui/tiers.js renderTierSections. cardEntry is true
-// only at t3, where the written 144-card entry renders through the
-// pre-existing v0.22 unlocked path. Toggle is the `.unlocked` class;
-// depth slots CSS-driven.
+// visibility live in ui/tiers.js renderTierSections. cardEntry gates the
+// written 144-card entry branch (the v0.22 "unlocked path" by lineage —
+// the `.unlocked` class itself retired with the free amendment: no
+// stylesheet rule keyed it once the lock icon left).
 
 function renderCard(profile, opts) {
   const tier = (opts && opts.tier) || 'free';
@@ -439,9 +440,6 @@ function renderCard(profile, opts) {
     else throw err;
   }
 
-  // Free amendment: the lock icon is gone, but `.unlocked` still keys
-  // presentation in the shell stylesheet, so the class ride stays.
-  cardFace.classList.toggle('unlocked', cardEntry);
   // public read (§1.D v0.60, folded into t3) — entitlement resolved HERE,
   // from the same `tier` the seals use, never inside ui/public.js.
   const publicOpen = coordsForTier(tier).has('publicRead');
@@ -466,9 +464,9 @@ function renderCard(profile, opts) {
         cardNote.textContent = '';
       }
     } catch (_) {
-      // If anything in the card-entry branch throws, drop back to the
-      // coordinates-only render rather than display half-state.
-      cardFace.classList.remove('unlocked');
+      // If anything in the card-entry branch throws, the entry slots keep
+      // whatever cleared state the branch reached — no class state left
+      // to unwind since `.unlocked` retired with the lock icon.
     }
   } else {
     // Sub-t3: the sealed entry block carries no entry text — no card

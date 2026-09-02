@@ -74,9 +74,11 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     if (originalLocalStorage === undefined) delete globalThis.localStorage; else globalThis.localStorage = originalLocalStorage;
   });
 
-  it('forget-confirm closes and resets only after all three erasures verify', () => {
-    // Was four: the pending-profile leg retired with the storefront (the
-    // commerce keys are boot-scrubbed before this control is reachable).
+  it('forget-confirm closes and resets only after all four erasures verify', () => {
+    // The fourth leg is the retired-commerce-keys scrub: a stale
+    // pre-amendment tab can write a commerce key AFTER this page booted
+    // (the pr229 audit drove exactly that), so forget re-runs the scrub
+    // rather than trusting boot settled it.
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
     const order = [];
@@ -84,11 +86,12 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => { order.push('clear-profile'); return true; },
       clearSavedReadings: () => { order.push('clear-readings'); return { ok: true }; },
       clearFacetState: () => { order.push('clear-facet'); return true; },
+      clearRetiredKeys: () => { order.push('clear-retired'); return true; },
       resetFormDisplay: () => order.push('reset'),
     });
     api.openForget();
     refs.forgetConfirm._fire('click');
-    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'reset']);
+    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'clear-retired', 'reset']);
     expect(refs.forgetModal.classList.contains('open')).toBe(false);
     expect(refs.forgetStatus.hidden).toBe(true);
   });
@@ -101,6 +104,7 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => true,
       clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
       clearFacetState: () => true,
+      clearRetiredKeys: () => true,
       resetFormDisplay,
     });
     api.openForget();

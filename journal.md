@@ -75,6 +75,42 @@ changelog line. Owner impact stated plainly: buyers keep everything
 and gain the rest like everyone else; the paid era's ledger stands
 as history.
 
+**Audit reconciliation (§10 two-lane, both MERGE WITH FIXES — the
+runtime cleared, the record and three unswept corners did not).**
+Both lanes independently proved the runtime sound: registries
+sha256-identical to base, the suite/audit/assurance counts exact,
+L17 word-diff perfect (one licensed deletion in all of DOCTRINE),
+and independent live-fire across eight device states — fresh, every
+legacy rung, raw t4, credits-only, a gendered staged payload, all
+garbage — to 15/15 + dyad + clean scrub + zero errors; ten of ten
+and three of three mutants died. The HIGH was the corner the change
+never looked at: `README.md` is SERVED on the production origin
+(netlify publishes the repo root and the rewrite is non-forced) and
+still sold "three paid rungs ($1/$2/$3)" — rewritten to the free
+surface and added to the absence guard's scanned set. The MEDIUMs,
+all landed: the forget-device flow could miss a commerce key written
+by a stale pre-amendment tab AFTER boot (one lane drove it) — forget
+now re-runs the read-verified scrub as its fourth erasure leg; the
+`.unlocked` class was dead wiring under a false comment (no
+stylesheet rule keyed it) — the class riders are gone from
+index.html and ui/sheet.js; DOCTRINE's own authoritative-composition
+summary, the §1.D v0.55 density clause, the §5 key bullets and the
+§5.B Call 2 section all read as live commerce unmarked — each now
+carries a routing marker; the og/twitter alt text still described
+"ten sealed hatches" — rewritten (the og IMAGE itself still shows
+sealed hatches and needs a regenerated asset: QUEUED, its PNG
+sources are off-repo); 8BALL.md's storefront block gained its
+superseded-in-full marker; three stale comments retired. And the
+repeat of pr228's lesson, caught by BOTH lanes: the amendment
+certified the auditor's assurance suite "updated in the same commit"
+when it had only been RUN — and the gap was real (one lane gutted
+the probe and rode all 104 assurance tests green). The suite now
+carries five FreeCeilingProbeTests that exercise the real check
+against conforming and violating module stubs — a gutted probe now
+fails four of them, mutation-verified — and the amendment text says
+what actually happened. Suite 56 files / 1929 tests green; assurance
+109 OK; product audit PASS, 0 blocking.
+
 ## 2026-09-01 — DOCTRINE v0.70: the kua block is retired from the render — SHIPPED (#228)
 
 **What happened.** On the controller's order ("No strip / Yes remove —

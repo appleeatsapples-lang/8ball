@@ -191,7 +191,7 @@ export function applyBirthInputValidationState(entry, refs) {
 // DOM refs and the two cross-module state setters (selectedCity,
 // currentProfile both live in index.html as `let` bindings) are
 // passed in via initProfileUI so this module remains import-safe
-// before the DOM parses. Same shape as ui/payments.js initPaywallUI.
+// before the DOM parses. Same shape as ui/payments.js initStatusBanner.
 
 let _refs = null;
 let _hooks = null;

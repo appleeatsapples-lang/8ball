@@ -112,14 +112,17 @@ export function initModalsUI(refs, hooks) {
         return outcome === true || Boolean(outcome && outcome.ok === true);
       } catch (_) { return false; }
     };
-    // The pending-profile leg retired with the storefront (free
-    // amendment): the commerce keys are scrubbed at every boot before
-    // this control is reachable, so there is no staged payload left for
-    // forget to own.
+    // The pending-profile leg became the retired-keys leg with the free
+    // amendment. The boot scrub runs before this control is reachable,
+    // but a stale pre-amendment tab can still write a commerce key AFTER
+    // this page booted (the pr229 audit drove exactly that), so forget
+    // re-runs the same read-verified scrub rather than assuming boot
+    // settled it.
     const erased = [
       verified(h.clearProfile),
       verified(h.clearSavedReadings),
       verified(h.clearFacetState),
+      verified(h.clearRetiredKeys),
     ].every(Boolean);
     if (!erased) {
       if (forgetStatus) {

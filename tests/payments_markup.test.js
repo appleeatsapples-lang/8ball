@@ -43,10 +43,15 @@ const root = join(__dirname, '..');
 const html = readFileSync(join(root, 'index.html'), 'utf-8');
 const paymentsJs = readFileSync(join(root, 'ui', 'payments.js'), 'utf-8');
 
-// Every shipped source file the product serves: the host page, every ui
-// module and stylesheet, every core module, every content batch.
+// Every source file the product SERVES: the host page, every ui module
+// and stylesheet, every core module, every content batch — and README.md,
+// which netlify publishes on the production origin (pr229 audit HIGH:
+// commerce copy survived there while every guard looked elsewhere).
 function shippedSources() {
-  const files = [['index.html', html]];
+  const files = [
+    ['index.html', html],
+    ['README.md', readFileSync(join(root, 'README.md'), 'utf-8')],
+  ];
   for (const dir of ['ui', 'core', 'content']) {
     for (const name of readdirSync(join(root, dir))) {
       if (!/\.(js|css)$/.test(name)) continue;

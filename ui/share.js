@@ -33,7 +33,7 @@
 // outbound surfaces are the user's own native share sheet and clipboard.
 // No fetch / XHR / beacon is introduced — §5 same-origin/no-beacon and
 // §7 no-telemetry are preserved (DOCTRINE §5.D invariant c). DI shape
-// mirrors ui/payments.js initPaywallUI and ui/profile.js initProfileUI.
+// mirrors ui/payments.js initStatusBanner and ui/profile.js initProfileUI.
 
 // ── constants ─────────────────────────────────────────────────────
 // The bare production URL is the only discovery handle that travels
