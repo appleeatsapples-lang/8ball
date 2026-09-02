@@ -5,8 +5,6 @@
 //     Escape-closes-any-open-modal handler
 //
 // Does NOT own:
-//   - the paywall modal (lives in ui/payments.js); the Escape handler closes
-//     it via the injected isPaywallOpen / closePaywall hooks
 //   - profile or Saved Readings persistence (clearProfile,
 //     clearSavedReadings, and resetFormDisplay are injected hooks)
 //
@@ -27,9 +25,8 @@
 // single slot, so a second modal opening over a first (or one Escape
 // closing several) still restores each opener correctly. Guards degrade
 // to no-ops under the suite's hand-rolled DOM mocks (node env, no
-// jsdom). ui/payments.js imports these for the paywall — the dependency
-// stays one-way (modals.js never imports payments.js; the Escape
-// handler reaches the paywall via hooks).
+// jsdom). (The paywall modal these once also served retired with the
+// free amendment, 2026-09-02.)
 
 const _openers = [];
 
@@ -115,11 +112,17 @@ export function initModalsUI(refs, hooks) {
         return outcome === true || Boolean(outcome && outcome.ok === true);
       } catch (_) { return false; }
     };
+    // The pending-profile leg became the retired-keys leg with the free
+    // amendment. The boot scrub runs before this control is reachable,
+    // but a stale pre-amendment tab can still write a commerce key AFTER
+    // this page booted (the pr229 audit drove exactly that), so forget
+    // re-runs the same read-verified scrub rather than assuming boot
+    // settled it.
     const erased = [
       verified(h.clearProfile),
       verified(h.clearSavedReadings),
       verified(h.clearFacetState),
-      verified(h.clearPendingProfile),
+      verified(h.clearRetiredKeys),
     ].every(Boolean);
     if (!erased) {
       if (forgetStatus) {
@@ -140,13 +143,11 @@ export function initModalsUI(refs, hooks) {
   trapTab(aboutModal);
   trapTab(forgetModal);
 
-  // escape closes any open modal (paywall via injected hooks — it lives in
-  // ui/payments.js)
+  // escape closes any open modal
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (aboutModal.classList.contains('open')) closeAbout();
     if (forgetModal.classList.contains('open')) closeForget();
-    if (h.isPaywallOpen && h.isPaywallOpen()) { if (h.closePaywall) h.closePaywall(); }
   });
 
   return { openAbout, closeAbout, openForget, closeForget };

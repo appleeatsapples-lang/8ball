@@ -1406,6 +1406,60 @@ class PathRedactionRealRunTests(unittest.TestCase):
                         "markdown is rendered from the same redacted report")
 
 
+class FreeCeilingProbeTests(unittest.TestCase):
+    """The repointed product.t4_migration probe (free amendment, doctrine
+    v0.71) must be able to FAIL. The pr229 audit proved the prior gap was
+    real: a gutted probe rode this whole suite green. Each test here builds
+    a minimal product root whose ui/payments.js violates one clause of the
+    free-ceiling contract and asserts the real check catches it."""
+
+    GOOD = (
+        "export function getRenderTier() { return 't5'; }\n"
+        "export function scrubRetiredCommerceKeys() {\n"
+        "  for (const k of ['eight_ball_pending_profile_v1', 'eight_ball_tier_v1', 'eight_ball_credits_v1']) {\n"
+        "    try { localStorage.removeItem(k); } catch (_) {}\n"
+        "  }\n"
+        "  return true;\n"
+        "}\n"
+    )
+
+    def run_probe_with(self, payments_src):
+        with tempfile.TemporaryDirectory() as d:
+            ui = Path(d) / "ui"
+            ui.mkdir()
+            (ui / "payments.js").write_text(payments_src)
+            return pa.check_t4_migration(d)
+
+    def test_conforming_module_passes(self):
+        chk = self.run_probe_with(self.GOOD)
+        self.assertEqual(chk["status"], "pass", chk["summary"])
+        self.assertEqual(chk["severity"], "blocking")
+
+    def test_wrong_ceiling_fails(self):
+        chk = self.run_probe_with(self.GOOD.replace("return 't5';", "return 't3';"))
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("free ceiling", chk["output"] + chk["summary"])
+
+    def test_resolver_that_writes_storage_fails(self):
+        src = self.GOOD.replace(
+            "export function getRenderTier() { return 't5'; }",
+            "export function getRenderTier() { localStorage.setItem('eight_ball_tier_v1', 't5'); return 't5'; }")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("wrote storage", chk["output"])
+
+    def test_scrub_that_does_not_remove_the_key_fails(self):
+        src = self.GOOD.replace("localStorage.removeItem(k);", ";")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("scrub", chk["output"].lower())
+
+    def test_scrub_reporting_false_fails(self):
+        src = self.GOOD.replace("return true;", "return false;")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+
+
 class TestLauncherPositionTests(unittest.TestCase):
     """P2 (PR #194 pre-merge audit): `unittest.main()` must run after every
     TestCase class is defined. Direct execution (`python3

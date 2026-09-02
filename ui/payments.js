@@ -1,53 +1,32 @@
 // 8ball / ui/payments.js
-// v0.3.0 paid-surface controller (DOCTRINE §4.B / §5 v0.22 / §6;
-// ownership model §1.D / §5 v0.55).
-//
-// Owns:
-//   - localStorage keys for credits (legacy, read-only) / pending_profile /
-//     tier / facet
-//   - getter/setter shims for the stored tier and current facet, plus the
-//     read-only legacy-credits getter feeding the §1.D R2 grandfather
-//   - paywall modal open/close + outside-click + Escape handlers
-//   - paid-return banner fade animation
-//   - the `?paid=t1|t2|t3` redirect handler (handlePaidReturn) which calls
-//     applyPaidReturn from core/payments.js, persists the monotonic tier,
-//     and signals to the caller whether a pending profile was consumed
-//
-// Does NOT own:
-//   - the state-machine logic itself (lives in core/payments.js — pure,
-//     no DOM, vitest-testable without jsdom)
-//   - the stored-profile shape or saveProfile/loadSavedProfile (those
-//     are in index.html alongside the v0.2.7.2 city+tz payload schema;
-//     this module passes the consumed pending profile back via callback)
-//   - the unlocked-render branch in renderCard (lives in index.html
-//     because it shares cardFace + the symbol-render state)
-//   - the lock-icon Path B click handler (the only paywall trigger,
-//     §4.B v0.55 — it calls openPaywall directly from index.html)
-//
-// Extracted from index.html at step 6/12 of v0.3.0 because index.html
-// crossed the 1500-line single-file ceiling (DOCTRINE §6). The split
-// target — `ui/*.js` modules — is exactly what §6 specifies.
+// Storage + status-banner module. Historically the v0.3.0 paid-surface
+// controller; the product went COMPLETELY FREE on the controller's
+// 2026-09-02 order (no storefront, no checkout, nothing to unlock) —
+// see the DOCTRINE free amendment. What remains here:
+//   - the render-density resolver (getRenderTier — now the free ceiling,
+//     the same single-resolver seam every render path already used)
+//   - the facet (written-entry note rotation) storage machinery, which
+//     was never commerce
+//   - the status banner (formerly the paid-return banner)
+//   - the one-time boot scrub that retires the commerce keys
+// Retired with the storefront: the paywall modal, purchase staging, the
+// `?paid=` return handler, and the tier/credits/pending storage shims.
+// core/payments.js stays untouched as the tested state-machine registry
+// (the kua-retirement precedent: a surface retires, its engine stands).
+// The filename stays for exactly that lineage — renaming it would churn
+// every import edge to erase a history the journal already records.
 
-import {
-  anchorFacetIndex, applyPaidReturn, isTier, nextFacetState,
-  maxTier, normalizeCounter, normalizeFacetIndex, normalizeTier,
-  resolveRenderTier,
-} from '../core/payments.js';
-// Shared modal open/close (class + aria-hidden + focus save/restore)
-// and Tab trap. One-way dependency: modals.js never imports payments.js.
-import { openModal, closeModal, trapTab } from './modals.js';
-// Public deck bundle for the fixed paywall specimen cell (§4.B v0.56) —
-// same import edge ui/sheet.js already carries.
-import { CARDS } from '../content/cards.v1.full.js';
+import { anchorFacetIndex, nextFacetState, normalizeFacetIndex } from '../core/payments.js';
 
 // ── localStorage keys ─────────────────────────────────────────────
-// CREDITS_KEY and PENDING_KEY are §5 v0.22 allow-list keys; TIER_KEY and
-// FACET_KEY are the v0.6.0 and v0.7.1 extensions. tests/privacy_scan resolves
-// identifier-as-key via same-file `const IDENT = '...'` lookup, so the
-// bare string definitions here are mandatory for the scan.
-// The v0.3.0 tries counter is RETIRED (§5 v0.55) — its key is named
-// nowhere in runtime source, never read or written; stale values on old
-// devices are inert, per the v0.48 retired-key precedent.
+// FACET_KEY is live. CREDITS_KEY, PENDING_KEY and TIER_KEY are RETIRED
+// commerce keys (free amendment): nothing reads or writes them anymore,
+// and scrubRetiredCommerceKeys below actively removes them at boot —
+// PENDING_KEY held a staged name+DOB payload, which must not linger on a
+// device for a checkout that no longer exists (the v0.64 gender-scrub
+// standard: retired personal data is erased, not left inert). The
+// constants stay exported so the scrub and the privacy scan both name
+// the exact keys.
 export const CREDITS_KEY = 'eight_ball_credits_v1';
 export const PENDING_KEY = 'eight_ball_pending_profile_v1';
 export const TIER_KEY = 'eight_ball_tier_v1';
@@ -76,91 +55,25 @@ const RETIRED_FACET_KEYS = [LEGACY_FACET_KEY, LEGACY_FACET_KEY_V2];
 // These are render positions, not newly authored lateral copy.
 const FACET_SLOTS = ['low', 'mid', 'high'];
 
-export const PAID_SUCCESS_MESSAGE = 'complete sheet open in this browser.';
-export const PURCHASE_STORAGE_MESSAGE = 'purchase paused — allow local storage, then try again.';
-export const RETURN_STORAGE_MESSAGE = 'purchase return not finalized — allow local storage, then reload.';
-// Surfaced immediately at save time (not later, at purchase time) when
-// saveProfile()'s read-verified write fails — so a blocked-storage buyer
-// sees why before, not after, stagePurchase() correctly refuses to open
-// the paywall on a profile it can't re-read.
-export const PROFILE_SAVE_STORAGE_MESSAGE = 'reading not saved — allow local storage to purchase or reopen it later.';
+// Surfaced at save time when saveProfile()'s read-verified write fails.
+// The purchase clause left this string with the storefront.
+export const PROFILE_SAVE_STORAGE_MESSAGE = 'reading not saved — allow local storage to reopen it later.';
 
 // ── storage shims ─────────────────────────────────────────────────
-// Two payment-state payloads live in localStorage (ownership model, §5 v0.55):
-//   credits     LEGACY, read-only int — written by pre-v0.55 purchases,
-//               never written or decremented again. Its only consumer is
-//               the §1.D R2 grandfather read inside getRenderTier; once
-//               that persists the tier, the value is ignored forever.
-//   pending     JSON payload — written when the paywall opens (Path B
-//               lock-tap), consumed on the ?paid=tN return to render the
-//               user's pending profile at the stored tier. Lifetime is
-//               one round-trip.
-//
 // Every read defends against a localStorage exception (private mode,
-// quota, etc.) by returning a safe zero/null default. Corrupt legacy
-// payloads are normalized to whole non-negative integers before use.
-// Purchase-critical writes return a read-verified boolean so checkout or
-// return finalization can stop without consuming the recovery record.
-// Facet display state is also read-verified: a blocked/no-op write must not
-// make the UI claim that a different written entry is now visible.
+// quota, etc.) by returning a safe null default. Facet display state is
+// read-verified: a blocked/no-op write must not make the UI claim that a
+// different written entry is now visible.
 
-export function getCredits() {
-  try { return normalizeCounter(localStorage.getItem(CREDITS_KEY)); }
-  catch (_) { return 0; }
-}
-// Tier is the highest rung purchased ("t1" | "t2" | "t3"); absent = free.
-// Monotonic — only handlePaidReturn writes it, via the max-rank result of
-// applyPaidReturn. Garbage in storage reads as free (never throws).
-//
-// A RAW retired-tier value (currently only 't4', §1.D v0.60) is let through
-// UNNORMALIZED rather than gated out here. Both callers — getRenderTier via
-// resolveRenderTier, and handlePaidReturn via applyPaidReturn — immediately
-// run the value through normalizeTier/RETIRED_TIERS themselves, so this is
-// the one seam a retired token must survive to reach that table. Gating it
-// to null here (the pre-fix behavior) discarded the raw 't4' before either
-// caller could apply the retirement mapping, so a device holding a raw
-// stored 't4' fell through to the unrelated legacy-credit grandfather path
-// instead — silently landing on 'free' with no credits, or on t3 via the
-// WRONG mechanism with credits, and never persisting a rewrite in the
-// no-credits case. `isTier(normalizeTier(t))` is true for both a current
-// rung and a retired one that maps onto a current rung, and false for any
-// other garbage — so true unknown/corrupt values still fail closed to null.
-export function getTier() {
-  try {
-    const t = localStorage.getItem(TIER_KEY);
-    return isTier(normalizeTier(t)) ? t : null;
-  } catch (_) { return null; }
-}
-export function setTier(tier) {
-  if (!isTier(tier)) return false;
-  try {
-    // Re-resolve at the write boundary so every caller gets monotonic
-    // behavior, not only handlePaidReturn's pure-state preflight.
-    const next = maxTier(normalizeTier(getTier()), tier);
-    localStorage.setItem(TIER_KEY, next);
-    const stored = normalizeTier(localStorage.getItem(TIER_KEY));
-    // A concurrent higher-rung write is also success; a missing/lower value
-    // means the grant was not durably verified and must remain retryable.
-    return isTier(stored) && maxTier(stored, next) === stored;
-  } catch (_) { return false; }
-}
-// THE single render-density helper (remediation R1, PR #36 Codex inv.
-// 5+11): every render path — cold-boot rehydration, same-card shake,
-// same-pair submit, paid-return boot — resolves density here and only
-// here. Delegates the rule to core/payments.js resolveRenderTier; this
-// wrapper adds the storage read and the R2 grandfather persistence:
-// credits with no tier key (pre-v0.6.0 purchase shape) resolve to t3
-// and the key is written on first detection so the rule is total.
+// THE single render-density helper (remediation R1, PR #36): every render
+// path — cold-boot rehydration, same-card shake, same-pair submit —
+// resolves density here and only here. Under the free amendment the
+// resolution is the CEILING for every device: the complete sheet plus the
+// dyad, with nothing sealed and nothing stored. The single-resolver seam
+// is deliberately kept (rather than deleting the call sites) so density
+// still has exactly one authority.
 export function getRenderTier() {
-  const stored = getTier();
-  const resolved = resolveRenderTier({ tier: stored, credits: getCredits() });
-  // Persist whenever the resolved tier differs from what is stored. That
-  // covers both migrations: the R2 legacy-credit grandfather (no stored
-  // tier) and a retired rung (§1.D v0.60 — a stored 't4' is rewritten to
-  // 't3' on first detection, so the withdrawal is a one-time normalization
-  // rather than a lookup every device repeats forever).
-  if (isTier(resolved) && resolved !== stored) setTier(resolved);
-  return resolved;
+  return 't5';
 }
 export function getFacetIndex() {
   // One-shot calc-v4 migration: drop BOTH retired generations before reading
@@ -223,184 +136,52 @@ export function consumeFacetShake(lifePath) {
   const verified = setFacetIndex(state.facetIndex);
   return verified === null ? null : { ...state, facetIndex: verified };
 }
-export function getPendingProfile() {
-  try {
-    const raw = localStorage.getItem(PENDING_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (obj && obj.name && obj.dob) return obj;
-    return null;
-  } catch (_) { return null; }
-}
-export function setPendingProfile(payload) {
-  if (!payload || !payload.name || !payload.dob) return false;
-  try {
-    const raw = JSON.stringify(payload);
-    localStorage.setItem(PENDING_KEY, raw);
-    return localStorage.getItem(PENDING_KEY) === raw;
-  } catch (_) { return false; }
-}
 /**
- * One-time boot scrub (gender removal, journal 2026-08-30): a pending
- * payload staged in the gendered-kua cycle may carry a `gender` key.
- * Consumption already launders it (the paid-return handler re-saves
- * through saveProfile, which no longer copies the field), so this only
- * takes the token off a device whose stage was never consumed.
+ * One-time boot scrub (free amendment, 2026-09-02): the three retired
+ * commerce keys leave the device. PENDING_KEY is the load-bearing one —
+ * it staged a name+DOB payload across checkout, personal data that must
+ * not linger for a flow that no longer exists (this also subsumes the
+ * v0.64 scrubPendingGender pass: removing the payload removes any stale
+ * gender token inside it). TIER_KEY and CREDITS_KEY are non-personal but
+ * the §5 inventory must match what IS stored, so they go too. Read-
+ * verified, pure when there is nothing to remove, silent-fail-safe on
+ * storage errors (nothing reads the keys anymore, so a failed removal
+ * only delays cleanliness to the next boot).
  */
-export function scrubPendingGender() {
-  try {
-    const raw = localStorage.getItem(PENDING_KEY);
-    if (!raw) return false;
-    const obj = JSON.parse(raw);
-    if (!obj || typeof obj !== 'object' || !('gender' in obj)) return false;
-    delete obj.gender;
-    const next = JSON.stringify(obj);
-    localStorage.setItem(PENDING_KEY, next);
-    return localStorage.getItem(PENDING_KEY) === next;
-  } catch (_) { return false; }
-}
-
-export function clearPendingProfile() {
-  try {
-    localStorage.removeItem(PENDING_KEY);
-    return localStorage.getItem(PENDING_KEY) === null;
-  } catch (_) { return false; }
-}
-
-// ── paywall modal + banner ────────────────────────────────────────
-// DOM refs are injected at boot via initPaywallUI so this module
-// remains import-safe before the DOM parses. The three-rung ladder CTAs
-// are plain <a href> elements in the HTML — no JS hook, browser
-// navigates to each rung's Gumroad Buy Link on tap (DOCTRINE §5.B
-// Call 2 v0.36: three products, same bare-href mechanism).
-
-let paywallModal = null;
-let paywallClose = null;
-let paidBanner = null;
-
-export function initPaywallUI({ modal, closeBtn, banner, specimen }) {
-  paywallModal = modal;
-  paywallClose = closeBtn;
-  paidBanner = banner;
-  paywallClose.addEventListener('click', closePaywall);
-  paywallModal.addEventListener('click', e => {
-    if (e.target === paywallModal) closePaywall();
-  });
-  trapTab(paywallModal);
-  // ── paywall specimen preview (§4.B v0.56) ──────────────────────
-  // One FIXED catalog cell (no. v = aries × dragon — the same cell the
-  // /cards/spec_no-v.jpg sheet shows), rendered from the public deck
-  // bundle this module already ships with. Constant for every visitor:
-  // never the visitor's profile, tier, or facet position. The visitor's
-  // own written entry stays t3-gated (§1.D / §5.C). `specimen` refs are
-  // optional so pre-split callers (and tests) stay valid.
-  if (specimen) {
-    const specimenCell = CARDS.aries && CARDS.aries.dragon;
-    if (specimenCell) {
-      specimen.name.textContent = specimenCell.name;
-      specimen.type.textContent = specimenCell.type;
-      specimen.habit.textContent = specimenCell.habit;
-      specimen.note.textContent = specimenCell.note.mid;
-    }
+export function scrubRetiredCommerceKeys() {
+  const keys = [PENDING_KEY, TIER_KEY, CREDITS_KEY];
+  let verified = true;
+  for (const key of keys) {
+    try { localStorage.removeItem(key); } catch (_) { verified = false; }
   }
+  for (const key of keys) {
+    try { if (localStorage.getItem(key) !== null) verified = false; }
+    catch (_) { verified = false; }
+  }
+  return verified;
 }
 
-export function openPaywall() {
-  // Focus lands on "maybe later" — dismissal stays one keypress away;
-  // the opener (usually the shake button) is restored on close.
-  openModal(paywallModal, paywallClose);
+// ── status banner ─────────────────────────────────────────────────
+// Formerly the paid-return banner; the fade mechanism survives as the
+// host's one transient status surface (today: the blocked-storage save
+// message). DOM ref injected at boot so the module stays import-safe
+// before the DOM parses.
+
+let statusBanner = null;
+
+export function initStatusBanner(banner) {
+  statusBanner = banner;
 }
 
-export function closePaywall() {
-  closeModal(paywallModal);
-}
-
-export function isPaywallOpen() {
-  return paywallModal != null && paywallModal.classList.contains('open');
-}
-
-export function showPaidBanner(message = PAID_SUCCESS_MESSAGE) {
-  paidBanner.textContent = message;
-  paidBanner.hidden = false;
+export function showStatusBanner(message) {
+  if (!statusBanner || !message) return;
+  statusBanner.textContent = message;
+  statusBanner.hidden = false;
   // Force reflow so the opacity transition fires from 0 → 1.
-  void paidBanner.offsetWidth;
-  paidBanner.classList.add('visible');
+  void statusBanner.offsetWidth;
+  statusBanner.classList.add('visible');
   setTimeout(() => {
-    paidBanner.classList.remove('visible');
-    setTimeout(() => { paidBanner.hidden = true; }, 600);
+    statusBanner.classList.remove('visible');
+    setTimeout(() => { statusBanner.hidden = true; }, 600);
   }, 4000);
-}
-
-// Checkout is safe to expose only after the pending profile has been written
-// and read back. Without that recovery record, a buyer can pay successfully
-// but return to a browser that cannot reconstruct the sheet they purchased.
-export function stagePurchase(payload) {
-  if (!setPendingProfile(payload)) {
-    showPaidBanner(PURCHASE_STORAGE_MESSAGE);
-    return false;
-  }
-  openPaywall();
-  return true;
-}
-
-// ── paid-return handler (§5.B Call 2 / §6.6 / §7.2; ownership v0.55) ──
-// Reads `?paid=<rung>` and runs applyPaidReturn. The accepted set is
-// whatever `isTier` accepts — deliberately NOT enumerated here, because the
-// enumeration is what went stale when §1.D v0.58 appended t4 (this comment
-// said `t1|t2|t3` for a day while the code below already honoured t4).
-// The purchase is permanent: the stored tier rises to max(current,
-// purchased) and never downgrades — that write is the entire grant; no
-// credits exist. Unknown ?paid= values are ignored — the replay-safe
-// branch is preserved: no tier write, no banner. If a pending profile is
-// present (the Path B lock-tap wrote it before the redirect) the caller's
-// onConsumePending callback is fired with the profile so it can persist
-// it through the host's saveProfile (which owns the v0.2.7.2 city+tz
-// payload shape). Always strips the query string and shows the banner;
-// returns true iff a pending profile was consumed.
-//
-// Caller is expected to fire this from inside boot() so the tier +
-// banner sequence runs on every load, including a fresh return-from-payment.
-
-export function handlePaidReturn(onConsumePending) {
-  const params = new URLSearchParams(window.location.search);
-  const purchased = params.get('paid');
-  if (!isTier(purchased)) return false;
-  const paidState = applyPaidReturn({
-    pendingProfile: getPendingProfile(),
-    tier: getTier(),
-    purchasedTier: purchased
-  });
-  // The tier key is the entire ownership record. Never claim success, clear
-  // recovery state, or strip the retry URL until its write is read back.
-  if (!setTier(paidState.tier)) {
-    showPaidBanner(RETURN_STORAGE_MESSAGE);
-    return false;
-  }
-  let consumedPending = false;
-  if (paidState.action === 'render-unlocked' && paidState.profile) {
-    if (typeof onConsumePending !== 'function') {
-      showPaidBanner(RETURN_STORAGE_MESSAGE);
-      return false;
-    }
-    try {
-      if (onConsumePending(paidState.profile) === false) {
-        showPaidBanner(RETURN_STORAGE_MESSAGE);
-        return false;
-      }
-    } catch (_) {
-      showPaidBanner(RETURN_STORAGE_MESSAGE);
-      return false;
-    }
-    consumedPending = true;
-  }
-  if (!clearPendingProfile()) {
-    showPaidBanner(RETURN_STORAGE_MESSAGE);
-    return false;
-  }
-  if (window.history && window.history.replaceState) {
-    try { window.history.replaceState({}, '', window.location.pathname); }
-    catch (_) {} // Entitlement is durable; history cleanup is best-effort.
-  }
-  showPaidBanner();
-  return consumedPending;
 }

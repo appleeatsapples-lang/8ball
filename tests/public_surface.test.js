@@ -338,9 +338,13 @@ describe('public read — the t4 retirement must not downgrade anyone', () => {
     expect(resolveRenderTier({ tier: null, credits: 0 })).toBe('free');
   });
 
-  it('the UI persists the migration instead of re-resolving it forever', () => {
+  it('the migration machinery retired with the storefront — the resolver is the constant ceiling', () => {
+    // Through the free amendment the t4→t3 rewrite lived in getRenderTier;
+    // with storage out of the density path there is nothing to migrate and
+    // nothing left that could resurrect a stored rung.
     const src = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf-8');
-    expect(src).toMatch(/if \(isTier\(resolved\) && resolved !== stored\) setTier\(resolved\)/);
+    expect(src).not.toMatch(/setTier|resolveRenderTier/);
+    expect(src).toMatch(/export function getRenderTier\(\) \{\n  return 't5';\n\}/);
   });
 });
 
@@ -372,29 +376,20 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
     expect(pay).not.toMatch(/T4_PRODUCT_URL|applyT4Offer/);
   });
 
-  it('index.html carries exactly one Gumroad URL — the t3 modal CTA', () => {
-    // Retitled at pr216 (audit MED 6): since the dyad t5 activation this
-    // is NOT "the only purchase surface" — ui/dyad.js injects the t3-only
-    // $6 rail anchor at runtime — and a title claiming otherwise while
-    // green makes the suite's record of the paywall surface decorative.
-    // What this pins is the static file: one URL, the t3 product.
-    expect((html.match(/gumroad\.com/g) || []).length).toBe(1);
-    expect(html).toMatch(/id="paywall-cta-t3"[^>]*href="https:\/\/theeightball\.gumroad\.com\/l\/xjpvp"/);
-    expect(html).toMatch(/id="offer-btn"[^>]*>open the complete sheet · \$3 once</);
+  it('index.html carries zero checkout URLs (free amendment)', () => {
+    // Through pr216 this pinned "exactly one" (the t3 modal CTA), then the
+    // declared pair with the dyad rail anchor. The free amendment retired
+    // the storefront: the set of reachable checkouts is EMPTY, pinned the
+    // same declared-set way so a returning one is discovered here first.
+    expect((html.match(/gumroad\.com/g) || []).length).toBe(0);
   });
 
-  it('the full set of reachable checkouts is declared: exactly {xjpvp modal, neysyv dyad rail}', () => {
-    // The companion the retitle above requires (pr216 audit MED 6): a
-    // third checkout surface anywhere in the shipped page — static OR
-    // injected — must be declared here, not discovered in production.
+  it('the full set of reachable checkouts is declared: exactly none, page and modules alike', () => {
     const uiDir = join(__dirname, '..', 'ui');
     const sources = [html, ...readdirSync(uiDir).filter(f => f.endsWith('.js') || f.endsWith('.css'))
       .map(f => readFileSync(join(uiDir, f), 'utf-8'))].join('\n');
     const urls = [...new Set(sources.match(/https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+/g) || [])].sort();
-    expect(urls).toEqual([
-      'https://theeightball.gumroad.com/l/neysyv',
-      'https://theeightball.gumroad.com/l/xjpvp',
-    ]);
+    expect(urls).toEqual([]);
   });
 });
 
@@ -435,8 +430,11 @@ describe('hidden-attribute guards (the F1 bug class)', () => {
   }
 
   it('finds the elements it is supposed to be checking', () => {
+    // The sprint offer control this walker once anchored on retired with
+    // the storefront; the status banner is the surviving ships-hidden
+    // element with an author-styled class.
     const ids = hiddenElements().map(e => e.id);
-    expect(ids).toContain('offer-btn');      // the sprint offer control
+    expect(ids).toContain('status-banner');
   });
 
   it('every element that ships or toggles hidden is actually hidden by a guard', () => {
@@ -459,7 +457,7 @@ describe('hidden-attribute guards (the F1 bug class)', () => {
   });
 
   it('the guards resolve to display: none, not merely to a selector', () => {
-    for (const sel of ['.modal .modal-cta[hidden]', '.btn-block[hidden]']) {
+    for (const sel of ['.btn-block[hidden]']) {
       const at = css.indexOf(sel);
       expect(at, `${sel} missing`).toBeGreaterThan(-1);
       expect(css.slice(at, at + 200)).toMatch(/display:\s*none/);
@@ -501,8 +499,11 @@ describe('public-read wiring seams the first pass left unpinned', () => {
     expect(shellCss).toMatch(/\.card\.labels-revealed \.public-title \{[^}]*visibility: visible/);
   });
 
-  it('the density strip does not claim a full sheet over a sealed block', () => {
-    expect(html).toMatch(/domain fit sealed/);
+  it('the density strip claims the full sheet and nothing is sealed to contradict it', () => {
+    // The sealed-tail guard inverted with the free amendment: the strip
+    // says full sheet for everyone, and no sealed vocabulary may ride it.
+    expect(html).toMatch(/coordinates open · full sheet/);
+    expect(html).not.toMatch(/domain fit sealed|sealed at paid/);
   });
 
   it('the internal spec is not published on the product domain', () => {

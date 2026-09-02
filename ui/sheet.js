@@ -228,7 +228,6 @@ export function createSheet(host, { prefix } = {}) {
       // packet each side keeps its own.
       const entryOpen = coords.has('cardEntry');
       const face = q(`[data-sheet-face="${prefix}"]`);
-      if (face && face.classList) face.classList.toggle('unlocked', entryOpen);
       const entry = q(`[data-sheet-entry="${prefix}"]`);
       if (entry && entry.classList) entry.classList.toggle('sealed', !entryOpen);
       const cell = entryOpen && CARDS[profile.sunSign]
@@ -280,7 +279,6 @@ export function createSheet(host, { prefix } = {}) {
         `[data-sheet-public="${prefix}"]`]) {
         const node = q(sel);
         if (node && node.classList) {
-          node.classList.remove('unlocked');
           node.classList.remove('sealed');
         }
       }

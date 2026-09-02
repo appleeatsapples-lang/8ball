@@ -53,24 +53,11 @@ import { buildSheetMarkup, createSheet } from './sheet.js';
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
-// ── the rung's checkout (activated 2026-08-31, controller order) ──
-// The $6 comparative Gumroad listing (`neysyv`). This constant went from ''
-// to the live URL together with the offer path it feeds — the below-t5
-// rail anchor injected beside the entry control, whose click IS the
-// checkout redirect (§5.B Call 2 mechanism, same as the paywall CTA). That
-// coupling is the PR #187 R6 lesson honored, not bypassed: entry visibility
-// (`dyadEntryVisible`, below) is STILL entitlement-only and does not
-// react to this constant; the offer is its own control (`dyadOfferVisible`)
-// with its own coherent click path. Fail-closed degradation is preserved:
-// empty this string and the offer anchor loses its href and stays hidden
-// again — no dead checkout is reachable either way. The URL stays BARE (no
-// query): the `?paid=t5` return travels on the listing's Content-tab
-// button, which — like publishing the listing itself — is the operator's
-// console action, never an agent's (§10). That button EXISTS and points at
-// `/?paid=t2` from the listing's v0.6.0 life as the t2 product (pr216
-// audit HIGH 1): the operator step is a RE-POINT, not a fresh wire, and an
-// unchanged button silently grants a $6 buyer t2.
-export const T5_PRODUCT_URL = 'https://theeightball.gumroad.com/l/neysyv';
+// The rung's checkout is RETIRED (free amendment, 2026-09-02): the product
+// is completely free and the dyad opens for every device through the same
+// entitlement predicate as before — which now always answers yes, because
+// the render tier is the ceiling. The staged comparative listing was
+// never published; no checkout URL ships.
 
 // ── pure ──────────────────────────────────────────────────────────
 
@@ -84,43 +71,12 @@ export function dyadEntitled(tier) {
 }
 
 /**
- * Should the entry control exist on the result rail?
- *
- * Only for a device that owns the rung (DOCTRINE §1.J "entitlement is
- * all-or-nothing... below t5 the entry control is absent"). This does NOT
- * react to `T5_PRODUCT_URL`: a prior draft showed the control below t5 once
- * that constant was non-empty, but the click handler still only knew how to
- * `open()` the screen an unentitled device cannot use — a visible button with
- * no reachable checkout behind it (PR #187 R6). A real below-t5 offer needs
- * its own coherent click path (e.g. a checkout redirect) designed and shipped
- * together with the control that triggers it, not a second condition bolted
- * onto this predicate. Until that ships, the entry stays absent below t5,
- * full stop.
+ * Should the entry control exist on the result rail? One predicate,
+ * entitlement-only (PR #187 R6) — under the free ceiling it is always
+ * true, but the gate stays so the rule keeps a single seam.
  */
 export function dyadEntryVisible(tier) {
   return dyadEntitled(tier);
-}
-
-/**
- * Should the t5 OFFER anchor exist on the result rail?
- *
- * The other half of the R6 contract: the offer is a separate control from
- * the entry, with a click path that is coherent for an unentitled device —
- * a plain checkout redirect to `url`. Scoped to exactly the rung whose
- * delta the label states (pr216 audit MED 5): a device that owns the
- * complete single sheet (`cardEntry`, i.e. t3) but not the dyad. Below t3
- * the rail's $3 complete-sheet offer is the one presented step — whether
- * t5 ever joins THAT presentation is the still-open ladder decision v0.61
- * reserved to the controller, which this predicate deliberately does not
- * make. At t5 the entry control takes the rail slot instead, and with the
- * URL empty the rung fails closed exactly as before activation. The `url`
- * parameter defaults to the shipped constant and exists so the empty-URL
- * degradation is TESTABLE at runtime (pr216 audit LOW 11) — this is not
- * the R6 mistake recurring: R6 barred the ENTRY predicate from gaining a
- * second input; the offer predicate is defined in terms of the URL.
- */
-export function dyadOfferVisible(tier, url = T5_PRODUCT_URL) {
-  return coordsForTier(tier).has('cardEntry') && !dyadEntitled(tier) && url !== '';
 }
 
 // The relation layer's value nodes, mapped to the formatDyadRelation field
@@ -200,18 +156,11 @@ export function dyadRelationFor(profileA, profileB) {
 // ── injected markup + scoped CSS ──────────────────────────────────
 
 const STYLE = `
-#dyad-offer-link { text-decoration: none; }
 /* The rail is a two-column grid (ui/experience.css .result-controls); the
    injected pair spans it like the host's own full-width controls, so the
-   $6 offer never renders as a half-width cell wrapped to four lines
-   (pr216 audit LOW 9). The disclosure inherits the modal-disclosure
-   register but needs the modal-scoped shell rule re-stated for the rail. */
-.result-controls #dyad-offer-link,
-.result-controls #dyad-open-btn,
-.result-controls #dyad-offer-note { grid-column: 1 / -1; }
-#dyad-offer-note { font-size: 9px; letter-spacing: 0.04em;
-  color: var(--text-muted); text-align: center; margin: 0; }
-#dyad-offer-note[hidden] { display: none; }
+   entry control never renders as a half-width cell wrapped to two
+   lines (pr216 audit LOW 9). */
+.result-controls #dyad-open-btn { grid-column: 1 / -1; }
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
 #dyad-screen #dyad-output { scroll-margin-top: calc(var(--topbar-height, 56px) + 12px); }
@@ -424,30 +373,6 @@ function injectEntryButton(controls) {
     open();
   });
   controls.appendChild(btn);
-  // The t5 OFFER: a plain checkout anchor in the entry's rail slot — its
-  // own control, its own click path (the R6 contract). Same §5.B Call 2
-  // mechanism as the paywall CTA: bare Gumroad href, target _self, no JS
-  // handler, no fetch. The href is owned by syncDyadEntry — set only while
-  // the offer is visible AND the URL is non-empty, stripped otherwise — so
-  // an emptied constant fails the rung closed with no dead link and a
-  // hidden offer carries no live checkout in the DOM (pr216 audit NIT 14).
-  if (document.getElementById('dyad-offer-link')) return;
-  const offer = document.createElement('a');
-  offer.className = 'btn btn-block btn-secondary';
-  offer.id = 'dyad-offer-link';
-  offer.textContent = 'buy comparative — a second sheet + the relation layer — $6';
-  offer.hidden = true; // fail closed until a render says otherwise
-  offer.setAttribute('target', '_self');
-  controls.appendChild(offer);
-  // The third-party disclosure the modal checkout carries and this rail
-  // path would otherwise bypass (pr216 audit MED 4) — same register, same
-  // claim, shown and hidden with the offer it belongs to.
-  const note = document.createElement('p');
-  note.className = 'modal-disclosure';
-  note.id = 'dyad-offer-note';
-  note.textContent = 'gumroad handles payment and email. your name, birth data, and reading stay in this browser.';
-  note.hidden = true;
-  controls.appendChild(note);
 }
 
 /**
@@ -458,18 +383,6 @@ function injectEntryButton(controls) {
 export function syncDyadEntry(tier) {
   const btn = $('dyad-open-btn');
   if (btn) btn.hidden = !dyadEntryVisible(tier);
-  // The offer swaps with the entry on the same render tick, so at no tier
-  // do both show and at no entitled tier does a buy link linger. The sync
-  // owns the href's whole lifecycle: a hidden offer carries none.
-  const offer = $('dyad-offer-link');
-  if (offer) {
-    const show = dyadOfferVisible(tier);
-    offer.hidden = !show;
-    if (show && T5_PRODUCT_URL) offer.setAttribute('href', T5_PRODUCT_URL);
-    else if (offer.removeAttribute) offer.removeAttribute('href');
-  }
-  const note = $('dyad-offer-note');
-  if (note) note.hidden = !dyadOfferVisible(tier);
   return btn ? !btn.hidden : false;
 }
 
@@ -729,11 +642,8 @@ export function render() {
   const spine = $('dyad-spine');
   if (spine && spine.classList && relation) spine.classList.add('dyad-spine-revealing');
 
-  // The rung is owned here by definition, so there is nothing to offer —
-  // open() refuses below t5, so only entitled devices reach this render.
-  // The old in-screen placeholder CTA is deleted (pr216 audit NIT 13:
-  // a permanently inert CTA in shipped markup is the R6 shape); the offer
-  // lives exclusively on the result rail (#dyad-offer-link).
+  // The gate is open for every device under the free ceiling; open()
+  // still refuses below t5 so the single predicate stays the rule.
   const errEl = $('dyad-error');
   if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
   if (output) {

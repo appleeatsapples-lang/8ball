@@ -91,26 +91,28 @@ function aboutText() {
 }
 
 describe('prose coordinate-count copy (v0.6.0 free surface)', () => {
-  it('meta descriptions claim the free-surface count derived from TIER_COORDS', () => {
-    const expected = `${countWord(FREE_COORDINATE_COUNT)} calibrated coordinates`;
+  it('meta descriptions claim the free complete surface — no count split, no price (free amendment)', () => {
+    // Through v0.6.0 these claimed "five calibrated coordinates free; $3
+    // opens the complete sheet". The free amendment (2026-09-02) retired
+    // the split: the whole sheet is free, so the descriptions say free +
+    // complete and carry no price tag.
     for (const text of [
       metaContent('description'),
       propertyContent('og:description'),
       metaContent('twitter:description'),
     ]) {
-      expect(text.toLowerCase()).toContain(expected);
-      // The free card is the demo; the sprint's single complete offer is
-      // the disclosed price (§4.B v0.56 — supersedes the "paid rungs"
-      // phrasing pinned here through v0.55).
       expect(text.toLowerCase()).toContain('free');
-      expect(text).toContain('$3');
       expect(text.toLowerCase()).toContain('complete');
+      expect(text).not.toMatch(/\$\d/);
+      expect(text.toLowerCase()).toContain('stored only on your device');
     }
   });
 
-  it('about-modal free count matches TIER_COORDS and names every free coordinate', () => {
+  it('about-modal DOB-alone count matches TIER_COORDS and names every DOB coordinate', () => {
+    // The same five are now the DOB-ALONE subset rather than the free
+    // tier — the derivation split survives the commerce split's retirement.
     const text = aboutText().toLowerCase();
-    expect(text).toContain(`files ${countWord(FREE_COORDINATE_COUNT)} coordinates`);
+    expect(text).toContain(`files ${countWord(FREE_COORDINATE_COUNT)} coordinates from your date of birth alone`);
     for (const coordinate of FREE_COORDINATE_NAMES) {
       expect(text, `about copy should name ${coordinate}`).toContain(coordinate);
     }

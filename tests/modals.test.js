@@ -36,10 +36,11 @@ describe('ui/modals.js DI shape (DOCTRINE §6 v0.23)', () => {
     expect(html).not.toMatch(/function openAbout\s*\(/);
   });
 
-  it('escape-to-close reaches the paywall via injected hooks, not a cross-module import', () => {
-    expect(modalsJs).toMatch(/isPaywallOpen/);
-    expect(modalsJs).toMatch(/closePaywall/);
-    // modals.js must NOT import payments.js — the paywall arrives via hooks.
+  it('the paywall hooks are retired and modals.js still never imports payments.js', () => {
+    // The free amendment removed the paywall; the Escape handler owns only
+    // the two dialogs this module wires. The one-way dependency rule
+    // survives the retirement.
+    expect(modalsJs).not.toMatch(/isPaywallOpen|closePaywall/);
     expect(modalsJs).not.toMatch(/from ['"]\.\/payments\.js['"]/);
   });
 });
@@ -74,6 +75,10 @@ describe('ui/modals.js behavior (hook wiring)', () => {
   });
 
   it('forget-confirm closes and resets only after all four erasures verify', () => {
+    // The fourth leg is the retired-commerce-keys scrub: a stale
+    // pre-amendment tab can write a commerce key AFTER this page booted
+    // (the pr229 audit drove exactly that), so forget re-runs the scrub
+    // rather than trusting boot settled it.
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
     const order = [];
@@ -81,12 +86,12 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => { order.push('clear-profile'); return true; },
       clearSavedReadings: () => { order.push('clear-readings'); return { ok: true }; },
       clearFacetState: () => { order.push('clear-facet'); return true; },
-      clearPendingProfile: () => { order.push('clear-pending'); return true; },
+      clearRetiredKeys: () => { order.push('clear-retired'); return true; },
       resetFormDisplay: () => order.push('reset'),
     });
     api.openForget();
     refs.forgetConfirm._fire('click');
-    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'clear-pending', 'reset']);
+    expect(order).toEqual(['clear-profile', 'clear-readings', 'clear-facet', 'clear-retired', 'reset']);
     expect(refs.forgetModal.classList.contains('open')).toBe(false);
     expect(refs.forgetStatus.hidden).toBe(true);
   });
@@ -99,7 +104,7 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => true,
       clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
       clearFacetState: () => true,
-      clearPendingProfile: () => true,
+      clearRetiredKeys: () => true,
       resetFormDisplay,
     });
     api.openForget();
@@ -117,7 +122,6 @@ describe('ui/modals.js behavior (hook wiring)', () => {
       clearProfile: () => true,
       clearSavedReadings: () => ({ ok: false, status: 'unavailable' }),
       clearFacetState: () => true,
-      clearPendingProfile: () => true,
       resetFormDisplay: () => {},
     });
     api.openForget();
@@ -133,17 +137,12 @@ describe('ui/modals.js behavior (hook wiring)', () => {
     expect(html).toMatch(/id="forget-status"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"[^>]*hidden/);
   });
 
-  it('Escape closes an open about modal and routes to the injected paywall close', () => {
+  it('Escape closes an open about modal', () => {
     globalThis.localStorage = makeStorage();
     const refs = makeModalRefs();
-    let closedPaywall = 0;
-    const api = initModalsUI(refs, {
-      isPaywallOpen: () => true,
-      closePaywall: () => closedPaywall++,
-    });
+    const api = initModalsUI(refs, {});
     api.openAbout();
     keydown({ key: 'Escape' });
     expect(refs.aboutModal.classList.contains('open')).toBe(false);
-    expect(closedPaywall).toBe(1);
   });
 });

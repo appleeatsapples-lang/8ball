@@ -325,6 +325,13 @@ def check_index_budget(product_root):
     return make_check(check_id, title, "blocking", status, summary, duration, None, "", {"lines": n, "limit": 1500})
 
 
+# Free amendment (2026-09-02): this check was the t4 -> t3 migration probe
+# until the storefront retired. What it verifies now is the FREE CEILING:
+# the single density resolver answers 't5' for every device — including one
+# holding the legacy raw 't4' the old migration existed for — and never
+# writes storage (the retired keys are the boot scrub's job). The check id
+# keeps its slot so the fourteen-check inventory and the fail-closed wiring
+# in run_all stay stable.
 T4_MIGRATION_SCRIPT = """
 const store = new Map();
 globalThis.localStorage = {
@@ -336,28 +343,33 @@ store.set('eight_ball_tier_v1', 't4');
 const mod = await import('./ui/payments.js');
 const resolved = mod.getRenderTier();
 const storedAfter = globalThis.localStorage.getItem('eight_ball_tier_v1');
-if (resolved !== 't3') {
-  console.error(`FAIL: getRenderTier() resolved ${JSON.stringify(resolved)}, expected 't3'`);
+if (resolved !== 't5') {
+  console.error(`FAIL: getRenderTier() resolved ${JSON.stringify(resolved)}, expected the free ceiling 't5'`);
   process.exit(1);
 }
-if (storedAfter !== 't3') {
-  console.error(`FAIL: localStorage['eight_ball_tier_v1'] after getRenderTier() is ${JSON.stringify(storedAfter)}, expected 't3'`);
+if (storedAfter !== 't4') {
+  console.error(`FAIL: the resolver wrote storage — localStorage['eight_ball_tier_v1'] is ${JSON.stringify(storedAfter)}, expected the seeded 't4' untouched`);
   process.exit(1);
 }
-console.log('PASS: raw stored t4 resolves to t3 via getRenderTier() and persists t3 to storage');
+const scrubbed = mod.scrubRetiredCommerceKeys();
+if (scrubbed !== true || globalThis.localStorage.getItem('eight_ball_tier_v1') !== null) {
+  console.error('FAIL: scrubRetiredCommerceKeys did not verifiably remove the retired tier key');
+  process.exit(1);
+}
+console.log('PASS: free ceiling resolves t5 over legacy storage without writing; the boot scrub retires the key');
 process.exit(0);
 """
 
 
 def check_t4_migration(product_root):
     check_id = "product.t4_migration"
-    title = "retired-tier t4 -> t3 migration (ui/payments.js getRenderTier)"
+    title = "free ceiling over legacy storage (ui/payments.js getRenderTier + boot scrub)"
     cmd = ["node", "--input-type=module", "-e", T4_MIGRATION_SCRIPT]
 
     def evaluate(rc, out, err):
         if rc == 0:
-            return "pass", "t4 -> t3 render + persistence migration verified", {"returncode": rc}
-        return "fail", "t4 -> t3 migration assertion failed (see output)", {"returncode": rc}
+            return "pass", "free ceiling + no-write + commerce-key scrub verified", {"returncode": rc}
+        return "fail", "free-ceiling assertion failed (see output)", {"returncode": rc}
     return run_check(check_id, title, "blocking", cmd, cwd=product_root, timeout=30, evaluate=evaluate)
 
 
