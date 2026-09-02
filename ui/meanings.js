@@ -75,7 +75,7 @@ const zeroGuardCopy = (label, missing) =>
 
 const UNRESOLVED_COPY = {
   rising: 'no rising value is present yet, so its first-impression meaning cannot be placed beside the sun and personality coordinates. birth time and birthplace complete this part of the sheet.',
-  moon: 'no moon value is present yet, so its night-register meaning cannot be placed beside the sun and rising coordinates. birth time and birthplace complete this part of the sheet.',
+  moon: 'no moon value is present yet, so its night-register meaning cannot be placed beside the sun and rising coordinates. birth time and a birthplace, for its timezone, complete this part of the sheet.',
   dayPillar: 'no day-pillar value is present yet, so its date-specific meaning cannot be placed beside the public animal and element coordinates. date of birth completes this part of the sheet.',
   hourPillar: 'no hour-pillar value is present yet, so its time-specific meaning cannot be placed beside the private animal and rising coordinates. birth time completes this part of the sheet.',
   nameNumber: zeroGuardCopy('name-number', 'the entered name supplies no counted letters'),

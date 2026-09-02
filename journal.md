@@ -20,7 +20,9 @@ pins. The row rides both dyad sheets through the registry and the
 
 **The engine, proven against the book.** `core/moon.js` implements
 Meeus, *Astronomical Algorithms* ch. 47: the mean longitude L′, the
-full 60-term periodic series Σl (E-factored on the terms in M), the
+periodic series Σl — the 59 non-zero longitude rows of the 60-row
+Table 47.A, its 60th row a distance-only term — (E-factored on the
+terms in M), the
 three additive terms (A1, L′−F, A2), then the sign by 30° sector.
 `tests/moon.test.js` reproduces the book's worked example 47.a (1992
 April 12, 0h TD → λ = 133.162655°) at EVERY intermediate — L′, D, M,
@@ -28,9 +30,10 @@ M′, F, E, Σl — to six decimals, so a wrong coefficient anywhere in the
 table fails by name, not by an angle that happens to land in the same
 sign. Two stated approximations are boundary-irrelevant: mean rather
 than apparent longitude (nutation ≤ ~0.005°, about 30 s of clock
-against a minute-resolution input) and JD(UT) for JDE (ΔT < 70 s over
-1900–2100, the same treatment `core/calendar.js` records; < 0.001° of
-lunar motion).
+against a minute-resolution input) and JD(UT) for JDE (the treatment
+`core/calendar.js` records for the jieqi; ΔT ~70 s today, projected
+near 200 s by 2100 — ≈ 0.01° now, ≈ 0.03° at the far end, about two
+minutes of clock at most).
 
 **Inputs and the honest dash.** The Moon crosses a sign every ~2.5
 days, so a date-only reading would be wrong on a material fraction of
@@ -70,13 +73,61 @@ to three decimals — consumed in lockstep with `buildProfile`'s
 `moonSign`, plus the no-time / no-tz / legacy-country / no-place
 paths. Per §11 none is anchored to a real person.
 
-**Tests.** `tests/moon.test.js` (new, 28 tests). Count pins repointed
+**Tests.** `tests/moon.test.js` (new, 31 tests). Count pins repointed
 across tiers, labels, share, sheet-groups, dyad-surface, density,
 provenance, atlas, numerology-display, pillars (the profile key order
 gains `moonSign` after `risingSign`), prose-coordinate-count,
-payments-markup, meanings-ui and meanings-content. Suite 59 files /
-1982 tests green; product audit PASS. DOCTRINE §1.K new, §1.F carries
+payments-markup, meanings-ui and meanings-content. Suite 60 files /
+2004 tests green; product audit PASS. DOCTRINE §1.K new, §1.F carries
 the census marker, footer v0.73.
+
+**Two-lane audit (pr232), reconciled.** Both lanes: MERGE WITH FIXES.
+The astronomy held on both drives — Lane A re-typed Table 47.A from
+the book, diffed it row-for-row (zero mismatches) and matched the
+module bit-for-bit over 197,433 samples across 1900–2100; Lane B wrote
+a second implementation from the formulas and reproduced every fixture
+exactly; both cross-checked known syzygies against a Meeus ch. 25
+solar longitude at ≤ 0.05° residual. The fixes were repo hygiene, a
+test-honesty gap and doctrine truth: **HIGH (both)** the first commit
+carried a tracked `node_modules` SYMLINK — an absolute, self-referential
+path that slipped `.gitignore`'s directory-only rule, added by a broad
+`git add` in the staging worktree — and on this very checkout the
+`reset --hard` that moved the branch onto it replaced the real
+directory with the link, so the suite went silent until `npm ci`
+restored it; removed from the index, a bare `node_modules` line added
+to `.gitignore`. **M2 (Lane A)** the fixtures' three-decimal angle pin
+exercised the bare series, never the shipping parse → offset → JD path,
+so a mutant that DROPPED THE BIRTH MINUTES rode the suite green;
+`moonLongitudeFor(opts)` is now the entry point `computeMoon` maps to a
+sign, the fixtures pin the angle through it, and two cusp cases sit one
+minute either side of 270° (2000-01-05 10:24/10:25 UTC → sagittarius /
+capricorn) — the minutes mutant and the offset-sign mutant now fail 4
+and 5 tests. **M3 (both)** the ΔT bound was the SUN's order of magnitude,
+not the Moon's: 70 s at 0.49–0.63°/hour is ≈ 0.01°, not < 0.001°, and
+ΔT is ~70 s today and projected near 200 s by 2100 — restated in the
+module, §1.K and this entry as ≈ 0.01° now / ≈ 0.03° at the far end,
+about two minutes of clock. **M4 (Lane A)** "the full 60-term series"
+was not what the code holds: 59 rows — the book's 60th carries only a
+distance term — restated everywhere. **M5 (both)** the suite count read
+1982 (a pre-final run); corrected. **M6 (Lane A)** `8BALL.md`'s three
+orientation sentences still said fourteen compartments / v5 — dated
+markers appended; **(Lane B)** DOCTRINE's content-version footer lines
+likewise. **M7 (Lane A)** the v0.73 footer entry omitted the
+merge-authority sentence every entry since v0.64 carries — appended.
+**L8 (both)** `PROV_NOTE.moon` / `ATLAS_NOTE.moon` were unpinned by
+value (a rising↔moon swap rode green) — pinned, with uniqueness. **L9**
+the moon's unresolved copy had no pin — pinned; it now names the
+timezone the birthplace supplies. **L10 (both)** §4 immutability had no
+mechanical backstop and v5 is live through v6's re-export —
+`tests/content_immutability.test.js` (new) pins every shipped meanings
+batch by content hash and requires every batch on disk to be listed.
+**L11** DOCTRINE line 11's clause-family enumeration gains the §1.K
+marker; **L12** the MOON title carries `id="coord-moon-title"` like
+its sibling. Recorded, not fixed: `PUBLIC_TIER_SPEC.md` still says
+fifteen (superseded-era document); the twelve moon lines share the
+family's 74-character prefix by design; pre-1911 LMT zones fail closed
+in parity with rising. Suite 60 files / 2004 tests green; product
+audit PASS.
 
 **Queued.** The labeled-view simplification; `/cards` and og-image
 regeneration (the moon row widens that gap: the 611 specimen JPEGs

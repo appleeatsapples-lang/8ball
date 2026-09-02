@@ -3,7 +3,7 @@
 //   1. AUTHORITY — Meeus, Astronomical Algorithms ch. 47, example 47.a:
 //      1992 April 12, 0h TD (JDE 2448724.5). Every intermediate of the
 //      worked example is pinned to the book's six decimals, not only λ,
-//      so a wrong coefficient anywhere in the 60-term table fails here
+//      so a wrong coefficient anywhere in the 59-row table fails here
 //      by name rather than by an angle that happens to land in the same
 //      sign.
 //   2. SIGN SECTORS — the 30° mapping, its wrap, and the non-finite guard.
@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { moonLongitude, signOfLongitude, computeMoon } from '../core/moon.js';
+import { moonLongitude, signOfLongitude, computeMoon, moonLongitudeFor } from '../core/moon.js';
 import { julianDay, offsetMinutesForWallTime } from '../core/rising.js';
 import { buildProfile } from '../core/profile.js';
 
@@ -111,18 +111,36 @@ describe('moon — motion and timezone discipline', () => {
 //    longitude to three decimals (a regression is an angle before it is a
 //    sign), the sign, and the same sign through buildProfile.
 describe('moon — fixtures.json moon_cases (§3 lockstep with core/profile.js)', () => {
-  expect(fixtures.moon_cases.length).toBeGreaterThanOrEqual(6);
+  expect(fixtures.moon_cases.length).toBeGreaterThanOrEqual(8);
+  // at least two cases within 0.01° of a cusp, on opposite sides of it
+  const nearCusp = fixtures.moon_cases.filter(c => Math.abs(((c.moonLongitudeDeg % 30) + 30) % 30 - (c.moonLongitudeDeg % 30 < 15 ? 0 : 30)) < 0.01);
+  expect(nearCusp.length).toBeGreaterThanOrEqual(2);
+  expect(new Set(nearCusp.map(c => c.expected.moonSign)).size).toBeGreaterThanOrEqual(2);
   for (const c of fixtures.moon_cases) {
     it(c.label, () => {
       const [y, m, d] = c.dob.split('-').map(Number);
       const [hh, mm] = c.time.split(':').map(Number);
       expect(offsetMinutesForWallTime(y, m, d, hh, mm, c.tz)).toBe(c.utcOffsetMinutes);
+      const opts = { year: y, month: m, day: d, hour: hh, minute: mm, tz: c.tz };
+      // the angle through the SHIPPING path (parse → offset → JD → series),
+      // not the bare series: a dropped minute or a flipped offset sign is
+      // an angle error here before it is a sign error below (pr232 audit M2)
+      expect(Number(moonLongitudeFor(opts).toFixed(3))).toBe(c.moonLongitudeDeg);
+      // …and the bare series at the same instant agrees, so the two entry
+      // points cannot drift apart
       const jd = julianDay(y, m, d, 0) + (hh * 60 + mm - c.utcOffsetMinutes) / 1440;
-      expect(Number(moonLongitude(jd).lambda.toFixed(3))).toBe(c.moonLongitudeDeg);
-      expect(computeMoon({ year: y, month: m, day: d, hour: hh, minute: mm, tz: c.tz })).toBe(c.expected.moonSign);
+      expect(moonLongitude(jd).lambda).toBeCloseTo(moonLongitudeFor(opts), 9);
+      expect(computeMoon(opts)).toBe(c.expected.moonSign);
       expect(buildProfile('Test Specimen', c.dob, { time: c.time, tz: c.tz }).moonSign).toBe(c.expected.moonSign);
     });
   }
+
+  it('moonLongitudeFor fails closed exactly where computeMoon does', () => {
+    expect(moonLongitudeFor(undefined)).toBeUndefined();
+    expect(moonLongitudeFor({ year: 2000, month: 1, day: 5, hour: 10, minute: 24 })).toBeUndefined();
+    expect(moonLongitudeFor({ year: 2000, month: 1, day: 5, hour: 10, minute: 60, tz: 'UTC' })).toBeUndefined();
+    expect(moonLongitudeFor({ year: 2000, month: 1, day: 5, hour: 10.5, minute: 0, tz: 'UTC' })).toBeUndefined();
+  });
 
   it('buildProfile: no time, or a time without a timezone, carries no moon sign (the honest dash)', () => {
     expect(buildProfile('Test Specimen', '1990-06-15').moonSign).toBeUndefined();

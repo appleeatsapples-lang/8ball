@@ -555,7 +555,7 @@
       "expected": "high"
     }
   ],
-  "_moon_cases_comment": "Moon-sign fixtures (§1.K): synthetic city/time pairs — the rising fixtures' major-city centroids, one southern-hemisphere DST case, and Meeus example 47.a as a wall-clock instant. Each carries the engine's geocentric longitude to three decimals so a regression is visible as an angle before it is visible as a sign. None anchored to a real person (§11).",
+  "_moon_cases_comment": "Moon-sign fixtures (§1.K): synthetic city/time pairs — the rising fixtures' major-city centroids, one southern-hemisphere DST case, and Meeus example 47.a as a wall-clock instant. Each carries the engine's geocentric longitude to three decimals so a regression is visible as an angle before it is visible as a sign. None anchored to a real person (§11). The two cusp cases sit one minute either side of the 270° sagittarius→capricorn boundary (2000-01-05 UTC) so a dropped minute or a flipped offset sign fails by sign as well as by angle (pr232 audit M2).",
   "moon_cases": [
     {
       "label": "London noon BST 1990",
@@ -621,6 +621,28 @@
       "moonLongitudeDeg": 133.163,
       "expected": {
         "moonSign": "leo"
+      }
+    },
+    {
+      "label": "Cusp, one minute before 270° (UTC)",
+      "dob": "2000-01-05",
+      "time": "10:24",
+      "tz": "UTC",
+      "utcOffsetMinutes": 0,
+      "moonLongitudeDeg": 269.998,
+      "expected": {
+        "moonSign": "sagittarius"
+      }
+    },
+    {
+      "label": "Cusp, one minute after 270° (UTC)",
+      "dob": "2000-01-05",
+      "time": "10:25",
+      "tz": "UTC",
+      "utcOffsetMinutes": 0,
+      "moonLongitudeDeg": 270.006,
+      "expected": {
+        "moonSign": "capricorn"
       }
     }
   ]

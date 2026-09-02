@@ -29,6 +29,14 @@ const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 
 const NOTES = Object.values(ATLAS_NOTE);
 
+describe('ATLAS legend — the moon sign has its own legend (pr232 audit)', () => {
+  it('rising and moon are pinned by value and every legend is distinct', () => {
+    expect(ATLAS_NOTE.rising).toBe('rising sign');
+    expect(ATLAS_NOTE.moon).toBe('moon sign');
+    expect(new Set(Object.values(ATLAS_NOTE)).size).toBe(Object.keys(ATLAS_NOTE).length);
+  });
+});
+
 describe('ATLAS legend (CLP cut 2)', () => {
   it('covers the abbreviated rows; self-naming rows are deliberately omitted', () => {
     // The 9 cells whose title is abbreviated or omits the tradition. The

@@ -2,8 +2,9 @@
 //
 // Geocentric ecliptic longitude of the Moon per Meeus, Astronomical
 // Algorithms (2nd ed.), chapter 47: the mean longitude L′ plus the
-// periodic series Σl (60 longitude terms with the E-factor on the terms in
-// M, plus the three additive A1 / L′−F / A2 terms), then the tropical sign
+// periodic series Σl — the 59 non-zero longitude rows of the 60-row Table
+// 47.A (its 60th row carries only a distance term), with the E-factor on the
+// terms in M, plus the three additive A1 / L′−F / A2 terms — then the tropical sign
 // by 30° sector. Authority pin: Meeus's own worked example 47.a — 1992
 // April 12, 0h TD → λ = 133.162655° — is reproduced to six decimals in
 // tests/moon.test.js, every intermediate included.
@@ -12,10 +13,13 @@
 //   1. MEAN longitude, not apparent: nutation in longitude (≤ ~0.005°) is
 //      not added. The Moon moves ~0.55°/hour, so 0.005° is ~30 seconds
 //      of clock time — below the minute resolution of the birth-time input.
-//   2. JD(UT) is used where the series wants JDE (dynamical time). ΔT is
-//      < 70 s across 1900–2100 (core/calendar.js documents the same
-//      treatment for the jieqi), which moves λ by < 0.001°.
-//   A birth within ~1 minute of a sign cusp is therefore the only case
+//   2. JD(UT) is used where the series wants JDE (dynamical time) — the same
+//      treatment core/calendar.js takes for the jieqi. ΔT was about −3 s in
+//      1900, is ~70 s now, and is projected near 200 s by 2100; at the
+//      Moon's 0.49–0.63°/hour that is ≈ 0.01° today and ≈ 0.03° at the far
+//      end of the range (pr232 audit: an earlier draft claimed < 0.001°,
+//      the SUN's order of magnitude, not the Moon's).
+//   A birth within ~2 minutes of a sign cusp is therefore the only case
 //   either could flip, and no input here resolves a minute to that
 //   certainty anyway.
 //
@@ -97,7 +101,7 @@ export function signOfLongitude(lambdaDeg) {
  * Moon's sign is geocentric). Mirrors computeRising's finite/parse
  * discipline so the two time-derived coordinates fail closed the same way.
  */
-export function computeMoon(opts) {
+export function moonLongitudeFor(opts) {
   if (!opts) return undefined;
   const { year, month, day, hour, minute, tz } = opts;
   for (const n of [year, month, day, hour, minute]) {
@@ -109,5 +113,18 @@ export function computeMoon(opts) {
   // wall-clock → UT: local = UT + offset, so UT = local − offset.
   const utMinutes = hour * 60 + minute - offset;
   const jd = julianDay(year, month, day, 0) + utMinutes / 1440;
-  return signOfLongitude(moonLongitude(jd).lambda);
+  return moonLongitude(jd).lambda;
+}
+
+/**
+ * The sign for a wall-clock birth instant, or undefined. The fixtures pin
+ * the ANGLE through moonLongitudeFor — the same parse, the same offset,
+ * the same JD — so a wrong minute or a wrong offset sign fails as a
+ * longitude before it is visible as a sign (pr232 audit M2: an earlier
+ * draft pinned the angle on the bare series only, and a mutant that
+ * dropped the birth minutes rode the suite green).
+ */
+export function computeMoon(opts) {
+  const lambda = moonLongitudeFor(opts);
+  return lambda === undefined ? undefined : signOfLongitude(lambda);
 }

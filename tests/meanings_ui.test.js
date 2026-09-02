@@ -27,6 +27,15 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect((html.match(/initMeaningsUI\(/g) || []).length).toBe(1);
   });
 
+  it('the moon carries its own unresolved line naming what completes it (pr232 audit L9)', () => {
+    const m = meaningsJs.match(/\n  moon: '([^']+)',/);
+    expect(m, 'UNRESOLVED_COPY.moon missing').not.toBeNull();
+    expect(m[1]).toMatch(/^no moon value is present yet/);
+    expect(m[1]).toMatch(/birth time/);
+    expect(m[1]).toMatch(/timezone/);
+    expect(m[1]).not.toMatch(/\byou\b|\byour\b/);
+  });
+
   it('excludes catalog from COORDINATES — no detail trigger for the compound card', () => {
     expect(meaningsJs).not.toMatch(/catalog:\s*'coord-catalog/);
   });
