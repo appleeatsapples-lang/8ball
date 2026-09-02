@@ -1460,6 +1460,54 @@ class FreeCeilingProbeTests(unittest.TestCase):
         self.assertEqual(chk["status"], "fail", chk["summary"])
 
 
+class ShareWiringFormTests(unittest.TestCase):
+    """product.share_wiring recognizes two consumer forms (§1.F v0.72 added
+    the whole-array pass). Each test builds a stub product root — a
+    ui/tiers.js whose shareRowRefs() returns N rows and an index.html in
+    one wiring shape — and asserts the real check's verdict. The pr229
+    lesson: an auditor check with no assurance test can be gutted silently."""
+
+    def root_with(self, rows, index_html):
+        d = tempfile.TemporaryDirectory()
+        ui = Path(d.name) / "ui"
+        ui.mkdir()
+        (ui / "tiers.js").write_text(
+            "export function shareRowRefs() { return Array.from({ length: %d }, () => ({})); }\n" % rows)
+        (Path(d.name) / "index.html").write_text(index_html)
+        return d
+
+    def run_check(self, rows, index_html):
+        with self.root_with(rows, index_html) as d:
+            return pa.check_share_wiring(Path(d))
+
+    def test_array_literal_matching_count_passes(self):
+        chk = self.run_check(3, "const [a, b, c] = shareRowRefs();\ninitShareUI({ symbols: [a, b, c], });")
+        self.assertEqual(chk["status"], "pass", chk["summary"])
+        self.assertEqual(chk["evidence"]["consumer_form"], "array-literal")
+
+    def test_array_literal_mismatched_count_fails(self):
+        chk = self.run_check(3, "const [a, b] = shareRowRefs();\ninitShareUI({ symbols: [a, b], });")
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+
+    def test_whole_array_pass_bound_once_passes_with_producer_count(self):
+        chk = self.run_check(8, "const shareRows = shareRowRefs();\ninitShareUI({ btn: x, symbols: shareRows, });")
+        self.assertEqual(chk["status"], "pass", chk["summary"])
+        self.assertEqual(chk["evidence"]["consumer_count"], 8)
+        self.assertIn("whole-array", chk["evidence"]["consumer_form"])
+
+    def test_whole_array_pass_with_unbound_identifier_fails(self):
+        chk = self.run_check(8, "const other = shareRowRefs();\ninitShareUI({ symbols: shareRows, });")
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+
+    def test_whole_array_pass_with_two_producer_calls_fails(self):
+        chk = self.run_check(8, "const shareRows = shareRowRefs();\nconst again = shareRowRefs();\ninitShareUI({ symbols: shareRows, });")
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+
+    def test_missing_symbols_fails(self):
+        chk = self.run_check(8, "initShareUI({ btn: x });")
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+
+
 class TestLauncherPositionTests(unittest.TestCase):
     """P2 (PR #194 pre-merge audit): `unittest.main()` must run after every
     TestCase class is defined. Direct execution (`python3

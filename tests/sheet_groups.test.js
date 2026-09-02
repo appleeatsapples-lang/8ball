@@ -104,13 +104,25 @@ describe('sheet groups — host markup and the sheet builder follow the registry
     expect(got.map(g => g.leads)).toEqual(expected.map(g => g.sheetLeads));
   });
 
-  it('both prose blocks carry an always-on title on both surfaces', () => {
+  it('both prose blocks carry an always-on title on both surfaces, each INSIDE its own block', () => {
     for (const [name, src] of [['index.html', cardFace], ['sheet', buildSheetMarkup('x')]]) {
-      expect(src, name).toMatch(/<div class="entry-title">WRITTEN ENTRY<\/div>/);
-      expect(src, name).toMatch(/<div class="public-title">DOMAIN FIT<\/div>/);
-      // the entry title sits INSIDE the entry block, after its rule
-      const entry = src.slice(src.indexOf('card-entry'), src.indexOf('public-read'));
-      expect(entry, name).toMatch(/card-prose-rule[\s\S]*entry-title/);
+      // Exactly one of each title on the card…
+      expect((src.match(/<div class="entry-title">WRITTEN ENTRY<\/div>/g) || []).length, name).toBe(1);
+      expect((src.match(/<div class="public-title">DOMAIN FIT<\/div>/g) || []).length, name).toBe(1);
+      // …and each sits inside its block's own element: the block opens at
+      // its class attribute and closes at its seal span, so a title moved
+      // to a SIBLING of the block (pr230 audit F3) falls outside the slice.
+      const block = cls => {
+        const open = src.search(new RegExp(`<div class="${cls}"`));
+        expect(open, `${name}: ${cls} block`).toBeGreaterThan(-1);
+        const close = src.indexOf('<span class="coord-seal"', open);
+        expect(close, `${name}: ${cls} seal`).toBeGreaterThan(open);
+        return src.slice(open, close);
+      };
+      expect(block('card-entry'), name).toMatch(/card-prose-rule[\s\S]*<div class="entry-title">WRITTEN ENTRY<\/div>/);
+      expect(block('public-read'), name).toMatch(/card-prose-rule[\s\S]*<div class="public-title">DOMAIN FIT<\/div>/);
+      expect(block('card-entry'), name).not.toMatch(/public-title/);
+      expect(block('public-read'), name).not.toMatch(/entry-title/);
     }
   });
 });
@@ -118,11 +130,26 @@ describe('sheet groups — host markup and the sheet builder follow the registry
 describe('sheet groups — always visible, off the PNG, in register', () => {
   const stripComments = css => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  it('no stylesheet gates a group or block title behind the labels toggle, in any selector shape', () => {
+  it('no stylesheet can hide a group or block title — by class, attribute, OR position (pr230 audit)', () => {
+    // §12 forbids jsdom, so this is a SOURCE pin, and the pr230 lanes showed
+    // the first draft's blind spot: a positional gate such as
+    // `[data-system] > div:first-child { display: none }` never names the
+    // class and rode the whole suite green. The pin now inverts: every rule
+    // carrying a HIDING declaration is inspected, and its selector may not
+    // be able to reach a title by class, by the group's data attribute, or
+    // by structural position under the card. Live-fire (every audit lane
+    // drives the real render) remains the ultimate guard; this narrows the
+    // gap between the two.
     const css = stripComments(shellCss + '\n' + expCss);
+    const HIDING = /(visibility\s*:\s*hidden|display\s*:\s*none|opacity\s*:\s*0(?![.\d])|font-size\s*:\s*0(?!\.)|height\s*:\s*0(?![.\d])|clip(-path)?\s*:)/;
+    const REACHES_TITLE = /(coord-group|data-system|entry-title|public-title|first-child|first-of-type|nth-child|nth-of-type|only-child|>\s*div|\bdiv\b)/;
+    const rules = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].map(m => [m[1].trim(), m[2]]);
+    expect(rules.length).toBeGreaterThan(100);
+    const offenders = rules.filter(([sel, decl]) => HIDING.test(decl) && REACHES_TITLE.test(sel));
+    expect(offenders.map(([sel]) => sel), 'rules that could hide a group or block title').toEqual([]);
+    // And the labels toggle names none of the title classes in any shape.
     for (const cls of ['coord-group-title', 'coord-group', 'entry-title', 'public-title']) {
       expect(css, cls).not.toMatch(new RegExp(`labels-revealed[^{]*\\.${cls}\\b`));
-      expect(css, cls).not.toMatch(new RegExp(`\\.${cls}\\b[^{]*\\{[^}]*(visibility:\\s*hidden|display:\\s*none)`));
     }
   });
 

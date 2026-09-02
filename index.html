@@ -399,15 +399,16 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: document.querySe
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
-const [shareArcana, shareElement, shareSun, shareAnimal,
-  shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar] = shareRowRefs();
+// The §5.D snapshot refs in registry (grouped) order — ui/share.js walks
+// them positionally, so no per-row names are needed (and the old ones
+// went stale the moment the rows regrouped, pr230 audit).
+const shareRows = shareRowRefs();
 initShareUI(
   {
     btn: $('share-btn'),
     status: $('share-status'),
     catalog: cardCatalog,
-    symbols: [shareArcana, shareElement, shareSun, shareAnimal,
-      shareNumerology, shareNumbers2, shareDayPillar, shareHourPillar],
+    symbols: shareRows,
   },
   {}
 );

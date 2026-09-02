@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TIER_COORDS } from '../ui/tiers.js';
+import { TIER_COORDS, SHEET_ROWS } from '../ui/tiers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -65,9 +65,10 @@ function renderedCoordinateTitles() {
 }
 
 function shareSymbolRefCount() {
-  const m = html.match(/symbols:\s*\[([^\]]+)\]/);
-  if (!m) throw new Error('initShareUI symbols array not found');
-  return m[1].split(',').map(s => s.trim()).filter(Boolean).length;
+  // §1.F v0.72: index.html passes the registry-ordered row array whole
+  // (`symbols: shareRows`), so the ref count IS the registry's row count.
+  if (!/symbols:\s*shareRows,/.test(html)) throw new Error('initShareUI symbols array not wired from shareRows');
+  return SHEET_ROWS.length;
 }
 
 function metaContent(name) {

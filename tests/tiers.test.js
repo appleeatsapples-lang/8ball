@@ -976,8 +976,10 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     expect(shareRowRefs()[1].title).toBe('SUN · RISING');
   });
 
-  it('index.html wires the share surface through shareRowRefs', () => {
-    expect(html).toMatch(/\] = shareRowRefs\(\)/);
-    expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareAnimal/);
+  it('index.html wires the share surface through shareRowRefs — the row array passed whole', () => {
+    expect(html).toMatch(/const shareRows = shareRowRefs\(\);/);
+    expect(html).toMatch(/symbols:\s*shareRows,/);
+    // No per-row destructuring survives to go stale on the next regroup.
+    expect(html).not.toMatch(/\] = shareRowRefs\(\)/);
   });
 });

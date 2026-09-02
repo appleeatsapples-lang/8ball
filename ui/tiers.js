@@ -107,10 +107,11 @@ export const TIER_COORDS = {
 // row registry: SHARE_ROWS / SHEET_ROWS / CELL_KEYS all derive from it, so
 // the host sheet, the dyad's standalone sheets and the §5.D share snapshot
 // cannot disagree about row order. Four groups, not five: the five-element
-// row is the Chinese YEAR stem and the animal pair the YEAR/MONTH branches,
-// so the day and hour pillars complete one four-pillar set rather than
-// forming a system of their own — a fifth "pillars" header would have been
-// a false taxonomy. Titles are system names only (§2 register: a label,
+// row is the Chinese YEAR stem, the animal pair the YEAR and MONTH branches,
+// and the day and hour rows whole pillars — every one of them a reading of
+// the same four-pillar (year · month · day · hour) system, so a fifth
+// "pillars" header would have been a false taxonomy. (The month STEM is
+// not on the sheet; the set is shared, not complete.) Titles are system names only (§2 register: a label,
 // never interpretation), carry no value and no PII, and stay OFF the share
 // PNG (which serializes rows, not groups — §5.D unchanged).
 export const SHEET_GROUPS = Object.freeze([

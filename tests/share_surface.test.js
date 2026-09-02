@@ -22,6 +22,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Shared hand-rolled DOM mock (§12: no jsdom).
 import { makeClassList } from './helpers/dom.js';
 import { CELL_KEYS } from '../ui/tiers.js';
+import { SHEET_ROWS, shareRowRefs } from '../ui/tiers.js';
 import { ROW_TITLES } from '../ui/sheet.js';
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
 const shareJs = readFileSync(
@@ -270,11 +271,14 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     expect(svg).not.toContain('url(#seal-hatch)');
   });
 
-  it('index.html passes all eight coordinate rows to initShareUI', () => {
-    const m = html.match(/symbols:\s*\[([^\]]+)\]/);
-    expect(m, 'initShareUI symbols array not found').not.toBeNull();
-    const refs = m[1].split(',').map(s => s.trim()).filter(Boolean);
-    expect(refs).toHaveLength(8);
+  it('index.html passes all eight coordinate rows to initShareUI — the registry array, whole', () => {
+    // §1.F v0.72 replaced the per-row destructuring (whose names went
+    // stale the moment the rows regrouped) with the row array itself;
+    // the count is the registry's, pinned at runtime.
+    expect(html).toMatch(/const shareRows = shareRowRefs\(\);/);
+    expect(html).toMatch(/symbols:\s*shareRows,/);
+    expect(SHEET_ROWS).toHaveLength(8);
+    expect(shareRowRefs()).toHaveLength(8);
   });
 
   it('the builder renders per-cell from the row refs, not a hidden-filter', () => {

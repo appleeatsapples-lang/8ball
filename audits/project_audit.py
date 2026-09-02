@@ -944,7 +944,18 @@ def check_share_wiring(product_root):
         except (ValueError, json.JSONDecodeError):
             producer_count = None
 
+    # The consumer is index.html's initShareUI({ symbols: ... }) call. Two
+    # wiring forms are recognized:
+    #   (a) an array LITERAL — counted item by item (the pre-v0.72 shape);
+    #   (b) the whole-array pass `symbols: <ident>` where `<ident>` is bound
+    #       exactly once from `shareRowRefs()` and shareRowRefs() is called
+    #       exactly once in the file (the §1.F v0.72 shape, which retired the
+    #       per-row destructuring after its names went stale on the regroup).
+    #       In form (b) the consumer IS the producer array, so its count is
+    #       the producer's by identity — the check then guards the binding,
+    #       not a number, and any other spelling still fails closed.
     consumer_count = None
+    consumer_form = None
     index_path = product_root / "index.html"
     try:
         html = index_path.read_text(encoding="utf-8")
@@ -955,11 +966,21 @@ def check_share_wiring(product_root):
             if m:
                 items = [x.strip() for x in m.group(1).split(",") if x.strip()]
                 consumer_count = len(items)
+                consumer_form = "array-literal"
+            else:
+                m = re.search(r"symbols\s*:\s*([A-Za-z_$][\w$]*)\s*,", window)
+                if m:
+                    ident = m.group(1)
+                    bound = re.findall(r"\bconst\s+" + re.escape(ident) + r"\s*=\s*shareRowRefs\(\)\s*;", html)
+                    calls = re.findall(r"shareRowRefs\(\)", html)
+                    if len(bound) == 1 and len(calls) == 1 and producer_count is not None:
+                        consumer_count = producer_count
+                        consumer_form = f"whole-array ({ident})"
     except OSError:
         pass
 
     duration = time.monotonic() - start
-    evidence = {"producer_count": producer_count, "consumer_count": consumer_count}
+    evidence = {"producer_count": producer_count, "consumer_count": consumer_count, "consumer_form": consumer_form}
     if rc != 0:
         status = "fail"
         summary = f"node exited {rc} while calling shareRowRefs() (see output)"

@@ -128,7 +128,10 @@
      contents — a system name, never a value, never interpretation. Off
      the share PNG (ui/share.js walks rows, not groups). */
   .card .coord-group { margin-top: 10px; }
-  .card .coord-group:first-of-type { margin-top: 2px; }
+  /* The first group follows .card-type, never a first-of-type sibling —
+     .card-name is the card's first div (pr230 audit: the earlier
+     :first-of-type form matched nothing). */
+  .card .card-type + .coord-group { margin-top: 2px; }
   .card .coord-group-title {
     font-size: 9px; letter-spacing: 0.22em; line-height: 1.4;
     color: var(--text-muted); text-transform: uppercase;

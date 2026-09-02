@@ -23,11 +23,12 @@ title, atlas gloss and placard under its group.
 **Four groups, not the five first offered.** The option text promised
 "TAROT · WESTERN · CHINESE · NUMEROLOGY · PILLARS"; building it showed
 the fifth header would have been a false taxonomy — the five-element
-row IS the Chinese year stem and the animal pair the year/month
-branches, so the day and hour pillars complete one four-pillar set.
-The Chinese rows are made contiguous under one title instead
-(five-element · public/private · day pillar · hour pillar), and the
-count is stated in the amendment as a truth claim.
+row IS the Chinese year stem, the animal pair the year and month
+branches, and the day and hour rows whole pillars: every one a reading
+of the same four-pillar system (shared, not complete — the month stem
+is nowhere on the sheet). The Chinese rows are made contiguous under
+one title instead (five-element · public/private · day pillar · hour
+pillar), and the count is stated in the amendment as a truth claim.
 
 **One registry.** `SHEET_GROUPS` in `ui/tiers.js` is the single source
 of order: `SHEET_ROWS`, the §5.D `SHARE_ROWS` and `CELL_KEYS` all
@@ -40,7 +41,7 @@ snapshot SHAPE is unchanged and the group titles stay off the PNG
 labels gate — through v0.71 DOMAIN FIT hid behind the toggle and the
 entry had no title at all.
 
-**Test surface.** New `tests/sheet_groups.test.js` (12 tests): the
+**Test surface.** New `tests/sheet_groups.test.js` (11 tests): the
 registry's order/titles/honesty/frozenness, host markup and
 `buildSheetMarkup` parsed group-by-group against it, both block
 titles on both surfaces, no labels gate on any group or block title
@@ -50,13 +51,50 @@ the grouped DOM order; the class-parity differential gains
 `coord-group`, `coord-group-title` and `entry-title` count + text
 parity; `public_surface`'s "block label follows the labels-reveal
 convention" pin inverted. Suite 57 files / 1940 tests green; product
-audit PASS. Live-fire: mobile card 754 → 909px (the cost of six
-titles), desktop labeled state reads system → row → detail.
+audit PASS. Live-fire: the mobile card grows by roughly 155px in the
+relay's Chromium — six titles' worth; absolute heights vary with font
+metrics, so the delta is the figure — and the desktop labeled state
+reads system → row → detail.
 
 **Constitution.** DOCTRINE v0.72 in §1.F: system groups as legibility
 surface (c), the registry named, the four-group truth claim, the row
 order and its consequences, block titles out of the labels gate;
 footer rotated with the changelog line.
+
+**Audit reconciliation (§10 two-lane, both MERGE WITH FIXES — the
+reorder cleared, the pins and two records did not).** Both lanes
+verified the load-bearing change by driving it: DOM order equals the
+derived `CELL_KEYS` on the host and both dyad sheets, a base-build
+saved reading reopens on head byte-identical, the share PNG renders
+eight rows in the new order with zero group titles, every title is
+visible across host/dyad × labels on/off × 320/390/1280, and L17 is
+word-diff clean; one lane ran 17 mutants against a hash-manifested
+copy, the other confirmed the taxonomy against `core/pillars.js`.
+The shared finding was pin quality: a POSITIONAL gate — `[data-system]
+> div:first-child { display: none }`, or the same behind
+`:not(.labels-revealed)` — hid every group title in a real render
+while all 1940 tests stayed green, because the first draft's pin only
+inspected selectors that NAME the class. The pin now inverts: every
+rule carrying a hiding declaration (visibility, display, opacity 0,
+zero size, clip) is inspected and its selector may not reach a title
+by class, by the group's data attribute, or by structural position
+under the card; both lanes' mutants and an opacity variant now die.
+The entry-title pin likewise tightened from a string slice to the
+block's own element bounds. Landed with it: the dead
+`.coord-group:first-of-type` rule (matched nothing — `.card-name` is
+the first div) replaced by the adjacency form that does; the share
+wiring's stale per-row destructuring names replaced by the row array
+(which broke the auditor's own `product.share_wiring` literal-counting
+parse — repointed to recognize the whole-array binding, with six new
+assurance tests where it had none: the pr229 class, caught before the
+push this time);
+"complete one four-pillar set" corrected to shared-not-complete (the
+month stem is not on the sheet); the test count (11, not 12) and the
+environment-dependent height figure corrected above. Two blast-radius
+records the amendment had omitted, now stated in it: the 611 hosted
+`/cards` specimen JPEGs and `assets/og-image.png` still carry the
+pre-v0.72 row order (and the og image still shows sealed hatches and
+paid-era copy) — QUEUED for regeneration, sources off-repo.
 
 ## 2026-09-02 — DOCTRINE v0.71: the product is completely free — SHIPPED (#229)
 
