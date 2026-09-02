@@ -31,9 +31,10 @@ export function compactReadingProfile(input) {
     if (typeof input[key] === 'number' && Number.isFinite(input[key])) profile[key] = input[key];
   }
   // A saved reading from the gendered-kua cycle may still carry a
-  // `gender` key; it is deliberately dropped here — the kua block reads
-  // both classical values for every profile now, so reopen and fresh
-  // submit stay identical without it (§5 recompute-on-load).
+  // `gender` key; it is deliberately dropped here — the retired kua block
+  // read both classical values for every profile (and no renderer consumes
+  // them since v0.70), so reopen and fresh submit stay identical without
+  // it (§5 recompute-on-load).
   return profile;
 }
 

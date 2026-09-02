@@ -5,7 +5,117 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — STAGED on branch, PR pending
+## 2026-09-01 — DOCTRINE v0.70: the kua block is retired from the render — STAGED on branch, PR pending
+
+**What happened.** On the controller's order ("No strip / Yes remove —
+it's taking a lot of space"), the kua block left the product's render
+everywhere it appeared: the t3 host card face, both dyad sheets, the
+standalone specimen sheet, and the paid copy that named "the kua
+line". The order superseded, same day and minutes apart, the
+keep-as-is answer recorded in the entry below — the controller
+re-reviewed against the live render and chose removal on screen-space
+grounds (the block was six rendered lines — two labeled values, two
+citation bodies, the register note, the title — on an already long
+sheet).
+
+**The shape of the removal — render out, registries stay.** Deleted:
+`ui/kua.js` (the renderer, 196 lines) and `tests/kua_surface.test.js`
+(its render pins, 24 tests). Excised: the `kuaRead` coordinate from
+`ui/tiers.js`'s T3_COORDS and unseal beat, the kua handoff in
+`ui/dyad.js`, the kua section markup, value-node refs and render
+branch in `ui/sheet.js`, the import/DI/blockTail/render wiring and
+both copy mentions (the about modal and the paywall value line) in
+`index.html`, and the `.kua-title` leg of the labels-reveal rule in
+`ui/experience.css`. Kept, deliberately: `content/kua.v1.js` unedited
+(§4 binds shipped content batches; the §1.D v0.60 t4 retirement is
+the precedent for a render leaving while its tables stand),
+`core/kua.js` as the tested method registry (the continuous formula,
+Li Chun boundary, disclosed raw-5 remap, named post-2000 fork — its
+engine suite `tests/kua.test.js` and registry suite
+`tests/kua_content.test.js` run unchanged), and the v0.64 gender-token
+boot scrubs (a retired render is not a retired privacy guarantee).
+Prices, entitlements and the §1.F census are untouched.
+
+**Constitution.** DOCTRINE v0.70 amendment in the §1.D kua section:
+the retirement stated with its what-changes/what-stays split, the §4
+non-violation reasoned, and appended markers on the v0.63 grant and
+the v0.64 both-values contract per L17 — no words deleted in place.
+Footer rotated (v0.70 head, v0.69 prior, v0.68 to superseded) with
+the changelog line.
+
+**Test surface.** The class-parity differential in
+`tests/dyad_surface.test.js` lost its kua legs (capture, PAIRS rows,
+prose-order slice, structural counts, the style-companion test whose
+subject no longer exists); `tests/tiers.test.js` pins the two-block
+t3 ceiling with a comment naming the retirement;
+`tests/payments_markup.test.js` pins the updated copy. Suite 56 files
+/ 1986 tests green (57/2011 before — the 24-test render suite retired
+with its subject plus one dyad style-companion test, a delta of 25);
+CLAUDE.md counts trued (ui 15 → 14 modules, tests 57 → 56). Product
+audit PASS, 0 blocking.
+
+**Audit reconciliation (§10 two-lane: Lane A MERGE WITH FIXES, Lane B
+SAFE TO MERGE — every fix in the record, none in the removal).** Both
+lanes independently found zero residue in shipped code, proved the
+registries byte-identical to base with suites that still bite under
+mutation, verified the v0.64 scrubs alive and pinned, and live-fired
+their own byte-verified checkouts (free through t5, the t2→t3 unseal
+beat included) to zero kua nodes, zero errors and no layout hole. The
+one MAJOR was this record's own: the constitution, footer and this
+entry all certified a marker APPENDED to the §1.D v0.64 clause that
+was never there — the authoring replace silently no-opped on a
+mismatched quote and nothing checked the result. The marker is now
+truly appended, and the miss is recorded as the lesson: a certifying
+sentence is written only after grepping the text it certifies. Also
+landed: the owner-impact sentence the v0.58/v0.60 precedent owed (a
+device that bought t3/t5 while the copy promised the kua line keeps
+every entitlement and loses the block — stated in the v0.70 amendment
+rather than left to be discovered), the test accounting above
+corrected (24 + 1, not 25 + 25), the six-lines description aligned
+with the renderer's actual output, two stale present-tense comments in
+`ui/profile.js`/`ui/readings.js` retired to past tense, and the
+out-of-scope `.kua-gender-field` comment edit in `ui/experience.css`
+reverted (a live test guard still names that token). Queued, not
+fixed here: the `.public-title` labels-reveal rule is unpinned —
+renaming its selector rides the suite green; pre-existing at base,
+verified not a regression of this PR. The per-lane scratch
+subdirectories ordered after pr227's collision ran collision-free.
+
+## 2026-09-01 — kua render re-reviewed: the v0.64 labeled render stands — RECORDED, superseded same day (removal ordered)
+
+**What happened.** The controller, reviewing the live t3 read, flagged
+the kua block's gender words against a recollection that the kua
+agreement was "no gender associated." Checked against the record: what
+§1.D v0.64 (controller decision, 2026-08-30) retired was the gender
+ASK — no input, nothing stored, boot scrubs for stale tokens — while
+deliberately keeping the render LABELED: both classical values shown,
+`male ·` / `female ·` as the value labels, and the register note
+naming the method's gender dependence ("the eight mansions method
+assigns by gender; both classical values shown"). The shipped block
+matches that recorded agreement exactly.
+
+**The decision, put to the controller with the trade-offs named.**
+Three remedies offered: strip the gender words (label by trigram only
+— softer citation honesty, since the render would no longer say WHY
+there are two values, the disclosure the v0.62 principle protects);
+retire the block entirely; or keep as-is. **The controller chose KEEP
+AS-IS:** the gender words are method disclosure, not an ask, and the
+v0.64 contract stands unchanged. No code, content, or DOCTRINE change.
+Immediately after that choice the controller posted a live screenshot
+of the block (the labeled values and the register note rendering
+exactly as the record specifies), interrupting the recording of this
+entry — so this entry states the decision as given and holds its
+status at confirmation-pending until the controller says whether the
+screenshot was confirmation of the discussed render or a
+reconsideration; a follow-up entry (or marker on this one) will close
+it either way. Recorded so the next sighting of gender vocabulary on
+the kua block resolves against this entry instead of re-opening the
+question. **— Closed same day: the screenshot was a reconsideration.
+The controller's word came back "No strip / Yes remove — it's taking
+a lot of space", superseding the keep-as-is answer; the removal is
+the entry above this one (DOCTRINE v0.70).**
+
+## 2026-08-31 — cities.test.js contention flake retired: the 900k-assertion shape replaced — SHIPPED (#227)
 
 **What happened.** The `tests/cities.test.js` city-shape test — the
 suite's one OUTSTANDING recorded flake (the l48_gate_composition one
