@@ -812,14 +812,16 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
   it('newlyEntitledCells: free → t1 flags exactly the t1 delta in DOM order', () => {
     // §1.D v0.38: life path is already open at free, so it is NOT in the
     // free → t1 unseal delta; the numerology pair (expression/soul urge) is.
+    // DOM order follows the §1.F v0.72 system groups: WESTERN (rising)
+    // precedes the CHINESE rows, which precede NUMEROLOGY.
     expect(newlyEntitledCells('free', 't1')).toEqual(
-      ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge']
+      ['rising', 'element', 'innerAnimal', 'nameNumber', 'soulUrge']
     );
   });
 
   it('newlyEntitledCells: t1 → t3 flags the t2+t3 delta plus both ceiling blocks', () => {
     expect(newlyEntitledCells('t1', 't3')).toEqual(
-      ['personality', 'birthday', 'maturity', 'dayPillar', 'hourPillar', 'cardEntry', 'publicRead']
+      ['dayPillar', 'hourPillar', 'personality', 'birthday', 'maturity', 'cardEntry', 'publicRead']
     );
   });
 
@@ -835,7 +837,7 @@ describe('tiers — unseal trigger (upgrade renders only; β idempotence)', () =
     const { cells } = installCompartments();
     primeUnsealBaseline('free');
     renderTierSections(PROFILE, 't1');
-    const flagged = ['element', 'rising', 'innerAnimal', 'nameNumber', 'soulUrge'];
+    const flagged = ['rising', 'element', 'innerAnimal', 'nameNumber', 'soulUrge'];
     flagged.forEach((key, i) => {
       expect(unsealing(cells[key]), `${key} must unseal on the upgrade render`).toBe(true);
       expect(cells[key].root.style.props['--unseal-delay']).toBe(`${i * 100}ms`);
@@ -933,12 +935,14 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
   it('free render: mixed rows expose the open cell AND the sealed compartment (P1 fix)', () => {
     installCompartments();
     renderTierSections(PROFILE, 'free');
+    // Row indices follow the §1.F v0.72 grouped order: 0 arcana · 1 sun/rising ·
+    // 2 element · 3 animals · 4 day · 5 hour · 6 life/name/soul · 7 the t2 triplet.
     const rows = shareRowRefs();
-    expect(rows[2].cells).toEqual([
+    expect(rows[1].cells).toEqual([
       { state: 'open', value: 'gemini' },
       { state: 'sealed', value: '' },
     ]);
-    expect(rows[4].cells).toEqual([
+    expect(rows[6].cells).toEqual([
       { state: 'open', value: '3' },
       { state: 'sealed', value: '' },
       { state: 'sealed', value: '' },
@@ -949,31 +953,33 @@ describe('tiers — shareRowRefs (§5.D v0.39 full-sheet per-cell snapshot)', ()
     installCompartments();
     renderTierSections(PROFILE, 't1');
     const rows = shareRowRefs();
-    expect(rows[2].cells.map(c => c.value)).toEqual(['gemini', 'virgo']);
+    expect(rows[1].cells.map(c => c.value)).toEqual(['gemini', 'virgo']);
     expect(rows[3].cells.map(c => c.value)).toEqual(['horse', 'rabbit']);
-    expect(rows[4].cells.map(c => c.value)).toEqual(['3', '8', '3']);
-    expect(rows[1].cells.map(c => c.value)).toEqual(['metal']);
-    expect(rows[2].cells.every(c => c.state === 'open')).toBe(true);
+    expect(rows[6].cells.map(c => c.value)).toEqual(['3', '8', '3']);
+    expect(rows[2].cells.map(c => c.value)).toEqual(['metal']);
+    expect(rows[1].cells.every(c => c.state === 'open')).toBe(true);
   });
 
   it('unresolved cells carry state unres + the — field, never a seal (F4)', () => {
     installCompartments();
     renderTierSections({ ...PROFILE, risingSign: undefined, hourPillar: null }, 't3');
     const rows = shareRowRefs();
-    expect(rows[2].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising
-    expect(rows[7].cells[0]).toEqual({ state: 'unres', value: '—' }); // hour pillar
+    expect(rows[1].cells[1]).toEqual({ state: 'unres', value: '—' }); // rising
+    expect(rows[5].cells[0]).toEqual({ state: 'unres', value: '—' }); // hour pillar
   });
 
   it('row titles resolve through the live section (dynamic pair titles reach the PNG)', () => {
     installCompartments();
     renderTierSections(PROFILE, 't1');
-    expect(shareRowRefs()[2].title).toBe('SUN ↑ RISING');
+    expect(shareRowRefs()[1].title).toBe('SUN ↑ RISING');
     renderTierSections(PROFILE, 'free');
-    expect(shareRowRefs()[2].title).toBe('SUN · RISING');
+    expect(shareRowRefs()[1].title).toBe('SUN · RISING');
   });
 
-  it('index.html wires the share surface through shareRowRefs', () => {
-    expect(html).toMatch(/\] = shareRowRefs\(\)/);
-    expect(html).toMatch(/symbols:\s*\[shareArcana, shareElement, shareSun, shareAnimal/);
+  it('index.html wires the share surface through shareRowRefs — the row array passed whole', () => {
+    expect(html).toMatch(/const shareRows = shareRowRefs\(\);/);
+    expect(html).toMatch(/symbols:\s*shareRows,/);
+    // No per-row destructuring survives to go stale on the next regroup.
+    expect(html).not.toMatch(/\] = shareRowRefs\(\)/);
   });
 });

@@ -101,17 +101,33 @@ export const TIER_COORDS = {
   t5: T5_COORDS,
 };
 
-// Cell keys in DOM order, each mapped to the §1.D coordinate key that
-// entitles it. life path is its own (DOB-derived) coordinate at free;
-// expression/name number and soul urge share the name-derived `numerology`
-// coordinate at t1. The §1.B space-separated guarantee survives in the
-// compartment gaps and in the per-cell share snapshot.
-const CELL_KEYS = [
-  'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
-  'lifePath', 'nameNumber', 'soulUrge',
-  'personality', 'birthday', 'maturity',
-  'dayPillar', 'hourPillar',
-];
+// ── the sheet's system groups (§1.F v0.72, controller order 2026-09-02) ──
+// The card is organized by the counting system each row belongs to, in
+// this order, with an always-visible group title above each. This is THE
+// row registry: SHARE_ROWS / SHEET_ROWS / CELL_KEYS all derive from it, so
+// the host sheet, the dyad's standalone sheets and the §5.D share snapshot
+// cannot disagree about row order. Four groups, not five: the five-element
+// row is the Chinese YEAR stem, the animal pair the YEAR and MONTH branches,
+// and the day and hour rows whole pillars — every one of them a reading of
+// the same four-pillar (year · month · day · hour) system, so a fifth
+// "pillars" header would have been a false taxonomy. (The month STEM is
+// not on the sheet; the set is shared, not complete.) Titles are system names only (§2 register: a label,
+// never interpretation), carry no value and no PII, and stay OFF the share
+// PNG (which serializes rows, not groups — §5.D unchanged).
+export const SHEET_GROUPS = Object.freeze([
+  { key: 'tarot', title: 'TAROT', rows: [['arcana']] },
+  { key: 'western', title: 'WESTERN', rows: [['sun', 'rising']] },
+  { key: 'chinese', title: 'CHINESE', rows: [['element'], ['animal', 'innerAnimal'], ['dayPillar'], ['hourPillar']] },
+  { key: 'numerology', title: 'NUMEROLOGY', rows: [['lifePath', 'nameNumber', 'soulUrge'], ['personality', 'birthday', 'maturity']] },
+].map(g => Object.freeze({ ...g, rows: Object.freeze(g.rows.map(r => Object.freeze([...r]))) })));
+
+// Cell keys in DOM order — derived from the group registry, never restated
+// — each mapped to the §1.D coordinate key that entitles it. life path is
+// its own (DOB-derived) coordinate at free; expression/name number and soul
+// urge share the name-derived `numerology` coordinate at t1. The §1.B
+// space-separated guarantee survives in the compartment gaps and in the
+// per-cell share snapshot.
+const CELL_KEYS = SHEET_GROUPS.flatMap(g => g.rows.flat());
 const CELL_COORD = {
   arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising',
   animal: 'animal', innerAnimal: 'innerAnimal',
@@ -363,16 +379,10 @@ export function renderTierSections(profile, tier) {
 // like SUN · RISING surfaces the open sun value AND the sealed rising
 // compartment. The sealed VALUE never leaves the DOM (sealed cells hold
 // textContent === '') and is forced to '' here as a second guarantee.
-const SHARE_ROWS = [
-  ['arcana'],
-  ['element'],
-  ['sun', 'rising'],
-  ['animal', 'innerAnimal'],
-  ['lifePath', 'nameNumber', 'soulUrge'],
-  ['personality', 'birthday', 'maturity'],
-  ['dayPillar'],
-  ['hourPillar'],
-];
+// Rows in DOM order, flattened from the system groups (§1.F v0.72) — the
+// share snapshot walks rows, so the PNG follows the grouped order without
+// carrying the group titles themselves.
+const SHARE_ROWS = SHEET_GROUPS.flatMap(g => g.rows);
 
 // Exported additively so ui/sheet.js can build a second standalone sheet from
 // the SAME row structure the host sheet renders, rather than restating it.

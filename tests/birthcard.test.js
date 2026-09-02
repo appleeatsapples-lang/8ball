@@ -14,6 +14,7 @@ import {
   getBirthCardNumber,
   MAJOR_ARCANA,
 } from '../core/birthcard.js';
+import { SHEET_ROWS } from '../ui/tiers.js';
 import { buildProfile } from '../core/profile.js';
 import { cellRenderState } from '../ui/tiers.js';
 
@@ -115,7 +116,12 @@ describe('render + share wiring (index.html)', () => {
     // share refs are per-row snapshot refs from ui/tiers.js carrying per-cell
     // {state, value} (§5.D v0.39); the arcana row is index 0, its id survives.
     expect(html).toContain('id="coord-arcana-symbol"');
-    expect(html).toMatch(/symbols:\s*\[\s*shareArcana/);
+    // The share refs are the registry-ordered row array passed whole
+    // (§1.F v0.72 retired the per-row destructuring); arcana leads because
+    // the TAROT group leads the registry.
+    expect(html).toMatch(/const shareRows = shareRowRefs\(\);/);
+    expect(html).toMatch(/symbols:\s*shareRows,/);
+    expect(SHEET_ROWS[0]).toEqual(['arcana']);
   });
 
   it('render populates the arcana cell from profile.birthCard.label (ui/tiers.js)', () => {
