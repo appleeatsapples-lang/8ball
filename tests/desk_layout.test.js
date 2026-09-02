@@ -109,8 +109,11 @@ describe('desk — host markup', () => {
 
 describe('desk — the rail groups (read · keep · device)', () => {
   const rail = html.slice(html.indexOf('class="result-rail"'), html.indexOf('/.result-rail'));
-  const groups = [...rail.matchAll(/<div class="rail-group-title">([^<]*)<\/div>\s*<div class="result-controls rail-group" id="([a-z-]+)">([\s\S]*?)<\/div>\s*(?=<div class="rail-group-title"|<\/div><!--)/g)]
-    .map(m => ({ title: m[1], id: m[2], ids: [...m[3].matchAll(/id="([a-z-]+)"/g)].map(x => x[1]) }));
+  // each title is a labelled element and each group a role=group pointing
+  // at it, so the filing is programmatic, not three loose words (pr231
+  // audit LOW-3)
+  const groups = [...rail.matchAll(/<div class="rail-group-title" id="([a-z-]+)-title">([^<]*)<\/div>\s*<div class="result-controls rail-group" id="([a-z-]+)" role="group" aria-labelledby="([a-z-]+)-title">([\s\S]*?)<\/div>\s*(?=<div class="rail-group-title"|<\/div><!--)/g)]
+    .map(m => ({ title: m[2], id: m[3], labelKey: m[1], byKey: m[4], ids: [...m[5].matchAll(/id="([a-z-]+)"/g)].map(x => x[1]) }));
 
   it('three titled groups, in this order, each its own .result-controls grid', () => {
     expect(groups.map(g => [g.title, g.id])).toEqual([
@@ -118,6 +121,10 @@ describe('desk — the rail groups (read · keep · device)', () => {
     ]);
     expect((rail.match(/class="result-controls rail-group"/g) || []).length).toBe(3);
     expect((rail.match(/class="result-controls"/g) || []).length).toBe(0);
+    for (const g of groups) {
+      expect(g.labelKey, g.id).toBe(g.id);
+      expect(g.byKey, g.id).toBe(g.id);
+    }
   });
 
   it('membership: flip again → read; save + share (+ their statuses) → keep; try another + forget → device', () => {
@@ -171,7 +178,10 @@ describe('desk — the experience layer', () => {
     expect(decl(pane.body, 'top')).toBe('24px');
     expect(decl(pane.body, 'align-self')).toBe('flex-start');
     expect(decl(pane.body, 'overflow-y')).toBe('auto');
-    expect(decl(pane.body, 'max-height')).toMatch(/100vh/);
+    // the exact constant: the stuck top is 88px (topbar 64 + the 24px
+    // inset) and the bottom inset 24 — a loose /100vh/ pin let a
+    // +400px cap through (pr231 audit M11 / MED-1)
+    expect(decl(pane.body, 'max-height')).toBe('calc(100vh - 112px)');
     expect(decl(pane.body, 'min-width')).toBe('0');
   });
 
@@ -207,8 +217,17 @@ describe('desk — the experience layer', () => {
     expect(open, 'docked open-panel rule').toBeDefined();
     expect(decl(open.body, 'max-height')).toBe('none');
     expect(decl(open.body, 'overflow')).toBe('visible');
-    // and the empty line yields only to an OPEN docked panel
-    expect(desk).toMatch(/\.reading-pane\.docked:has\(\.meaning-panel\.open\) \.reading-pane-empty \{ display: none; \}/);
+    // and the empty line yields only to an OPEN docked panel — by a class
+    // the module sets, never by :has() (the file's only unguarded use)
+    expect(desk).toMatch(/\.reading-pane\.docked\.has-entry \.reading-pane-empty \{ display: none; \}/);
+    expect(desk).not.toMatch(/:has\(/);
+  });
+
+  it('the desk overrides the module\'s clamp on specificity: the module keeps class-level selectors, no !important', () => {
+    const code = meaningsJs.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(code).toMatch(/^\.meaning-panel\.open \{ max-height: 720px; overflow-y: auto;/m);
+    expect(code).not.toMatch(/#meaning-panel[.:[]/);
+    expect(code).not.toMatch(/!important/);
   });
 
   it('the breakpoint is one number, declared once in the module and matched by the stylesheet', () => {
@@ -319,6 +338,17 @@ describe('desk — the panel docks by media query (ui/meanings.js run for real)'
     const p = panelIn(pane)[0];
     expect(p.id).toBe('meaning-panel');
     expect(p.attrs.role).toBe('region');
+    // docked, the panel is OUTSIDE the card's own aria-live region, so its
+    // own politeness is the only announcement left (pr231 audit M28)
+    expect(p.attrs['aria-live']).toBe('polite');
+  });
+
+  it('a second init is a no-op while the panel is docked outside the card (pr231 audit LOW-1)', () => {
+    host({ matches: true });
+    byId.set('meaning-panel', panelIn(pane)[0]);
+    initMeaningsUI({ cardFace, readingPane: pane });
+    expect(panelCount()).toBe(1);
+    expect(cardFace.children.filter(c => c.id === 'meaning-hint')).toHaveLength(1);
   });
 
   it('a viewport crossing moves the panel back and forth — never a second copy', () => {
@@ -364,5 +394,11 @@ describe('desk — the panel docks by media query (ui/meanings.js run for real)'
     const p = panelIn(pane)[0];
     expect(p.classList.contains('open')).toBe(true);
     expect(p.querySelector('#meaning-head').textContent).toBe('SUN');
+    // the pane's empty line yields to the open entry by the module's class…
+    expect(pane.classList.contains('has-entry')).toBe(true);
+    // …and returns when the entry closes
+    p.querySelector('#meaning-close')._fire('click', { preventDefault() {} });
+    expect(p.classList.contains('open')).toBe(false);
+    expect(pane.classList.contains('has-entry')).toBe(false);
   });
 });

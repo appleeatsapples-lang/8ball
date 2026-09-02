@@ -341,7 +341,16 @@ body {
      audit-measured). align-self pins the sticky element against a
      future align-items change; the rail (~485px at its tallest, status
      lines included) fits every ≥720-wide viewport's height band, so
-     sticking never traps content off-screen. */
+     sticking never traps content off-screen.
+     RE-MEASURED 2026-09-02 (pr231 audit MED-2): the read · keep · device
+     titles grew the rail from 382 to 430px at rest and from 418 to 466px
+     with the save-status line shown (title metrics trimmed from a first
+     draft that measured 450/493). At the 853×533 viewport above the rail
+     fits at rest (tail at 518); with a status line shown its tail sits
+     ~21px under that fold at rest and returns when the page is scrolled
+     to its end (the rail un-sticks) — clipped-at-rest, never unreachable.
+     No source pin can measure a rail; this number is a live-fire fact
+     and is re-measured by every audit lane that drives the desk. */
   #result .result-main {
     gap: 48px;
   }
@@ -618,11 +627,14 @@ body {
    width; each group is its own .result-controls grid so the shell's
    two-column rules keep applying inside it. */
 .rail-group-title {
-  font-size: 9px; letter-spacing: 0.22em; line-height: 1.4;
+  font-size: 9px; letter-spacing: 0.22em; line-height: 1.2;
   color: var(--text-muted); text-transform: uppercase;
-  margin: 14px 0 6px; text-align: center;
+  margin: 10px 0 4px; text-align: center;
 }
-.result-rail .rail-group-title:first-of-type { margin-top: 0; }
+/* the first title follows the density strip — adjacency, not
+   :first-of-type, so a div a module injects ahead of it cannot hand every
+   title the group margin (pr231 audit) */
+.result-rail .density-strip + .rail-group-title { margin-top: 0; }
 .result-controls.rail-group { margin-top: 0; }
 
 /* ── the reading pane: display:none until the registry desk. The
@@ -647,7 +659,12 @@ body {
     align-self: flex-start;
     position: sticky;
     top: 24px;
-    max-height: calc(100vh - 48px);
+    /* the stuck top resolves at 88px from the viewport (body is the
+       scroller; its padding clears the 64px topbar — see the ≥720 rail
+       comment), so the cap subtracts 88 + a 24px bottom inset. A −48px
+       cap parked the pane's last 40px, close button included, under the
+       fold at every short desk viewport (pr231 audit MED-1). */
+    max-height: calc(100vh - 112px);
     overflow-y: auto;
     padding: 18px 20px;
     border: 1px solid var(--rule);
@@ -656,9 +673,16 @@ body {
     font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--text-muted); text-align: center; margin: 24px 0;
   }
-  .reading-pane.docked:has(.meaning-panel.open) .reading-pane-empty { display: none; }
+  /* .has-entry is set by ui/meanings.js when a docked panel opens —
+     the module owns that state and already sets .docked; a :has() rule
+     here would be the file's only unguarded one (pr231 audit LOW-2). */
+  .reading-pane.docked.has-entry .reading-pane-empty { display: none; }
   /* inside the pane the panel is a column, not an inline expander: no
-     max-height clamp, no inner scrollbar — the pane scrolls. */
+     max-height clamp, no inner scrollbar — the pane scrolls. These rules
+     OVERRIDE the module's own injected `.meaning-panel.open` clamp (which
+     sits LATER in the cascade) on specificity alone (0,3,0 over 0,2,0):
+     ui/meanings.js keeps that selector at class specificity and never
+     !important — pinned in tests/desk_layout.test.js (pr231 audit LOW-4). */
   .reading-pane .meaning-panel { border-top: 0; }
   .reading-pane .meaning-panel.open { max-height: none; overflow: visible; padding-top: 0; margin-top: 0; }
   .reading-pane .meaning-body,

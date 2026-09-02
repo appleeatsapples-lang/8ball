@@ -17,9 +17,10 @@ compartment's entry now files, instead of expanding inside the card
 and stretching it ~250px under the row that was tapped; the rail is
 the third column. Below 1100 nothing moves: the pane is
 `display:none`, the meaning panel lives in `#card-face` exactly as it
-has since #212, and the 390/720 renders are byte-for-byte the same
-markup. The rail's second offered pass — reorganize the rail — is
-folded in at every width: the controls are filed under three small
+has since #212, and the CARD and pane markup at 390/720 are byte-for-
+byte the same (the rail's markup changes at every width — next
+sentence — and the page grows ~60px at 390 for it). The rail's second
+offered pass — reorganize the rail — is folded in at every width: the controls are filed under three small
 titles, **read** (flip again · read beside another sheet — the dyad
 entry injects into `#rail-read`), **keep** (save reading · share and
 their status lines) and **device** (try another · stored only on this
@@ -74,6 +75,38 @@ level each fail the file. Two pins repointed for the new rail shape
 (`share_surface` slices the rail, not a single controls container;
 `meanings_ui` pins the two-ref boot call and that it is called once).
 Suite 58 files / 1960 tests green; product audit PASS, 0 blocking.
+
+**Two-lane audit (pr231), reconciled.** Lane B: MERGE, no code
+finding, 11/11 mutants killed, share PNG sha-identical across trees
+and across the breakpoint. Lane A: MERGE WITH FIXES — three MED, six
+LOW, 37 mutants (33 killed). All landed in the reconciliation commit:
+**MED-1** the pane's cap was `100vh − 48px` against a stuck top that
+resolves at 88px (topbar 64 + the 24px inset — the rail's own comment
+records it), so its last 40px, close button included, sat under the
+fold at every short desk viewport; now `100vh − 112px` (measured
+1100×700: pane bottom 676, close reachable at 657 after a pane
+scroll). **MED-2** the group titles grew the rail 382→450px at rest
+(418→493 with a status line), past the ≥720 comment's "~485 at its
+tallest" budget and 5px under the 853×533 fold it cites; title metrics
+trimmed (430 / 466 now — fits at rest, the tail 21px under that fold
+only with a status line shown, reachable by scrolling the page out),
+and the comment carries the re-measured numbers instead of the false
+claim. **MED-3** two pins a wrong value walked through: the pane cap is
+now pinned to its exact constant (a `+400px` cap survived `/100vh/`),
+and the docked panel's own `aria-live` is pinned — outside the card's
+live region it is the only announcement left. **LOW** the double-init
+guard was blind while the panel is docked outside the card (a second
+init made two panels) — the document is asked too, pinned; the empty
+line's `:has()` rule, the file's only unguarded one, is replaced by a
+`.has-entry` class the module sets on open/close, pinned; the three
+groups are `role="group"` with `aria-labelledby` titles, pinned; the
+desk's override of the module's clamp wins on specificity alone with
+the module's rules LATER in the cascade — declared in both files and
+the module pinned to class-level selectors and no `!important`; the
+journal's "byte-for-byte" sentence contradicted the rail pass in the
+next sentence — corrected above; the first-title margin used
+`:first-of-type` — adjacency now. Suite 58 / 1962 green; product audit
+PASS.
 
 **Queued.** The moon sign (§1.K, engine and content staged); the
 labeled-view simplification; `/cards` and og-image regeneration.
