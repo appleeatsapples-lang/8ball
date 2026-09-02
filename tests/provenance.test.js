@@ -27,9 +27,15 @@ const BANNED_VOICE = [...BANNED_VOICE_REGISTER, ...INTERPRETATION_VERBS];
 const NOTES = Object.values(PROV_NOTE);
 
 describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
-  it('covers every one of the 14 coordinate cells in DOM order', () => {
+  it('the two time-derived placards are pinned by value and distinct (pr232 audit)', () => {
+    expect(PROV_NOTE.rising).toBe('ascendant');
+    expect(PROV_NOTE.moon).toBe('lunar longitude');
+    expect(new Set(Object.values(PROV_NOTE)).size).toBeGreaterThanOrEqual(Object.keys(PROV_NOTE).length - 1); // only the two digit-sum rows may share
+  });
+
+  it('covers every one of the 15 coordinate cells in DOM order', () => {
     expect(Object.keys(PROV_NOTE)).toEqual([
-      'arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+      'arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge',
       'personality', 'birthday', 'maturity',
       'dayPillar', 'hourPillar',
@@ -131,14 +137,14 @@ function makeCell(section) {
 }
 
 const SECTION_OF = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun',
+  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun', moon: 'moon',
   animal: 'animal', innerAnimal: 'animal',
   lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
   dayPillar: 'dayPillar', hourPillar: 'hourPillar',
 };
 const ROW_KEYS = {
-  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'],
+  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'], moon: ['moon'],
   animal: ['animal', 'innerAnimal'], numerology: ['lifePath', 'nameNumber', 'soulUrge'],
   numbers2: ['personality', 'birthday', 'maturity'], dayPillar: ['dayPillar'], hourPillar: ['hourPillar'],
 };

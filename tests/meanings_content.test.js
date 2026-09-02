@@ -25,7 +25,7 @@ import {
   NUMEROLOGY_SLOT_LINES,
   THEME_TENSIONS,
   PLACEMENT_LINES,
-} from '../content/meanings.v5.js';
+} from '../content/meanings.v6.js';
 import { NUMEROLOGY_MEANINGS as V2_NUMEROLOGY_MEANINGS } from '../content/meanings.v2.js';
 import { TERMINAL_NUMBERS } from '../core/profile.js';
 import {
@@ -224,12 +224,12 @@ describe('content/meanings.v1.js — voice register + content policy (DOCTRINE �
       ...meaningsUiJs.matchAll(family),
       ...dyadJs.matchAll(family),
     ].map(match => match[1]);
-    expect(own).toContain('meanings.v5.js');
+    expect(own).toContain('meanings.v6.js');
     expect(runtime.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(runtime)).toEqual(new Set(['meanings.v5.js']));
+    expect(new Set(runtime)).toEqual(new Set(['meanings.v6.js']));
     const provenance = dyadJs.match(/meaningSource:\s*'content\/(meanings\.[\w.]+\.js) NUMEROLOGY_MEANINGS'/);
     expect(provenance).not.toBeNull();
-    expect(provenance[1]).toBe('meanings.v5.js');
+    expect(provenance[1]).toBe('meanings.v6.js');
   });
 });
 
@@ -361,8 +361,9 @@ describe('content/meanings.v3.js — all-coordinate context layer', () => {
     }
   });
 
-  it('defines a harmony role and two partners for all 14 sheet coordinates', () => {
-    expect(Object.keys(COORDINATE_CONTEXT)).toHaveLength(14);
+  it('defines a harmony role and two partners for all 15 sheet coordinates', () => {
+    expect(Object.keys(COORDINATE_CONTEXT)).toHaveLength(15);
+    expect(COORDINATE_CONTEXT.moon).toEqual({ role: 'the night register', partners: ['sun', 'rising'] });
     for (const [key, context] of Object.entries(COORDINATE_CONTEXT)) {
       expect(context.role, `${key} role`).toMatch(/^the /);
       expect(context.partners, `${key} partners`).toHaveLength(2);
@@ -547,9 +548,11 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
     }
   });
 
-  it('v5 placement lines: two exact families, every sign and branch, appended never edited', () => {
-    expect(Object.keys(PLACEMENT_LINES).sort()).toEqual(['innerAnimal', 'rising']);
+  it('v5+v6 placement lines: three exact families, every sign and branch, appended never edited', () => {
+    expect(Object.keys(PLACEMENT_LINES).sort()).toEqual(['innerAnimal', 'moon', 'rising']);
     expect(Object.keys(PLACEMENT_LINES.rising).sort())
+      .toEqual(SUN_SIGNS.map(s => s.name).sort());
+    expect(Object.keys(PLACEMENT_LINES.moon).sort())
       .toEqual(SUN_SIGNS.map(s => s.name).sort());
     expect(Object.keys(PLACEMENT_LINES.innerAnimal).sort())
       .toEqual([...ANIMALS].sort());
@@ -573,6 +576,8 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
       expect(entryFor('rising', sign).body, `rising=${sign}`)
         .toBe(`${SUN_MEANINGS[sign].body} ${PLACEMENT_LINES.rising[sign]}`);
       expect(entryFor('sun', sign).body, `sun=${sign}`).toBe(SUN_MEANINGS[sign].body);
+      expect(entryFor('moon', sign).body, `moon=${sign}`)
+        .toBe(`${SUN_MEANINGS[sign].body} ${PLACEMENT_LINES.moon[sign]}`);
     }
     for (const animal of ANIMALS) {
       expect(entryFor('innerAnimal', animal).body, `innerAnimal=${animal}`)
@@ -588,6 +593,7 @@ describe('assembled meaning synthesis — voice register over runtime output (PR
     // lines as the off-stage register — vocabulary a swap cannot fake.
     const PLACEMENT_VOCAB = {
       rising: /rising sign/,
+      moon: /moon sign/,
       innerAnimal: /private animal/,
     };
     for (const [placement, re] of Object.entries(PLACEMENT_VOCAB)) {

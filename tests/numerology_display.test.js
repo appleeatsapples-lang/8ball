@@ -108,7 +108,7 @@ describe('numerology display (v0.3.0 fix A; per-cell compartments at v0.7.0)', (
 
   it('all six active numerology coordinates render their own value', () => {
     const cells = {};
-    for (const key of ['arcana', 'element', 'sun', 'rising', 'animal', 'innerAnimal',
+    for (const key of ['arcana', 'element', 'sun', 'rising', 'moon', 'animal', 'innerAnimal',
       'lifePath', 'nameNumber', 'soulUrge', 'personality', 'birthday', 'maturity',
       'dayPillar', 'hourPillar']) {
       const root = {

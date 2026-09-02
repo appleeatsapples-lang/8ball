@@ -41,7 +41,7 @@
 //   refs: {
 //     sunTitle, animalTitle,   // dynamic .coord-title nodes
 //     entry,                   // #card-entry block root (seal target)
-//     cells: { arcana, element, sun, rising, animal, innerAnimal,
+//     cells: { arcana, element, sun, rising, moon, animal, innerAnimal,
 //              lifePath, nameNumber, soulUrge,
 //              personality, birthday, maturity,
 //              dayPillar, hourPillar },   // .coord-val nodes, one per cell
@@ -69,7 +69,9 @@ import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 // pair (expression/name number, soul urge) and stays t1. Free carries
 // five coordinate VALUES; the t1 numerology line is a pair, not a triplet.
 const FREE_COORDS = ['arcana', 'sun', 'animal', 'lifePath'];
-const T1_COORDS = [...FREE_COORDS, 'rising', 'element', 'innerAnimal', 'numerology'];
+// §1.K v0.73 — `moon` joins t1 beside `rising` as the second time-derived
+// coordinate (a lineage placement: v0.71 renders the ceiling everywhere).
+const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', 'numerology'];
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
@@ -84,7 +86,7 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // registries per §4, and no renderer exists.
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
 // §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
-// completes it at 15 of 15, and what t5 buys is a SECOND complete sheet plus
+// completes it at 15 of 15 (16 of 16 since the §1.K moon row), and what t5 buys is a SECOND complete sheet plus
 // the relation layer between the two. `dyadRelation` is therefore a BLOCK in
 // the `cardEntry` / `publicRead` sense — no compartment, no census weight —
 // and it is the only key here that renders outside #card-face entirely (the
@@ -116,7 +118,7 @@ export const TIER_COORDS = {
 // PNG (which serializes rows, not groups — §5.D unchanged).
 export const SHEET_GROUPS = Object.freeze([
   { key: 'tarot', title: 'TAROT', rows: [['arcana']] },
-  { key: 'western', title: 'WESTERN', rows: [['sun', 'rising']] },
+  { key: 'western', title: 'WESTERN', rows: [['sun', 'rising'], ['moon']] },
   { key: 'chinese', title: 'CHINESE', rows: [['element'], ['animal', 'innerAnimal'], ['dayPillar'], ['hourPillar']] },
   { key: 'numerology', title: 'NUMEROLOGY', rows: [['lifePath', 'nameNumber', 'soulUrge'], ['personality', 'birthday', 'maturity']] },
 ].map(g => Object.freeze({ ...g, rows: Object.freeze(g.rows.map(r => Object.freeze([...r]))) })));
@@ -129,7 +131,7 @@ export const SHEET_GROUPS = Object.freeze([
 // per-cell share snapshot.
 const CELL_KEYS = SHEET_GROUPS.flatMap(g => g.rows.flat());
 const CELL_COORD = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising',
+  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'rising', moon: 'moon',
   animal: 'animal', innerAnimal: 'innerAnimal',
   lifePath: 'lifePath', nameNumber: 'numerology', soulUrge: 'numerology',
   personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
@@ -266,7 +268,7 @@ const isNumerologyValue = value => LIFE_PATH_VALUES.includes(value);
 //                calculator cannot produce can never render;
 //   pillar     — resolved iff the pillar object exists, formatted `animal · element`;
 //   plain      — resolved iff the coordinate has a value at all. Only `rising`
-//                can actually fail here (no birth time/place); the rest always
+//                and `moon` can actually fail here (no birth time/place); the rest always
 //                resolve, which is why they render at every tier.
 //
 // Unentitled ALWAYS returns an empty string, never the withheld value: the
@@ -281,6 +283,7 @@ const PLAIN_VALUE = {
   element: p => p.chineseElement,
   sun: p => p.sunSign,
   rising: p => p.risingSign,
+  moon: p => p.moonSign,
   animal: p => p.animal,
   innerAnimal: p => p.innerAnimal,
 };
@@ -440,6 +443,7 @@ const PROV_NOTE = {
   element: 'year stem',
   sun: 'tropical zodiac',
   rising: 'ascendant',
+  moon: 'lunar longitude',
   animal: 'lunar new year',
   innerAnimal: 'solar term',
   lifePath: 'digit-sum reduction',
@@ -501,6 +505,7 @@ const ATLAS_NOTE = {
   element: 'chinese five-element',
   sun: 'sun sign',
   rising: 'rising sign',
+  moon: 'moon sign',
   animal: 'year animal',
   innerAnimal: 'month animal',
   lifePath: 'life-path',

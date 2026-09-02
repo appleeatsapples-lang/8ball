@@ -274,14 +274,14 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     expect(svg).not.toContain('url(#seal-hatch)');
   });
 
-  it('index.html passes all eight coordinate rows to initShareUI — the registry array, whole', () => {
+  it('index.html passes all nine coordinate rows to initShareUI — the registry array, whole', () => {
     // §1.F v0.72 replaced the per-row destructuring (whose names went
     // stale the moment the rows regrouped) with the row array itself;
     // the count is the registry's, pinned at runtime.
     expect(html).toMatch(/const shareRows = shareRowRefs\(\);/);
     expect(html).toMatch(/symbols:\s*shareRows,/);
-    expect(SHEET_ROWS).toHaveLength(8);
-    expect(shareRowRefs()).toHaveLength(8);
+    expect(SHEET_ROWS).toHaveLength(9);
+    expect(shareRowRefs()).toHaveLength(9);
   });
 
   it('the builder renders per-cell from the row refs, not a hidden-filter', () => {

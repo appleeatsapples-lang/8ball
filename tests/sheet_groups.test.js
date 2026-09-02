@@ -53,6 +53,10 @@ describe('sheet groups — the registry is the single source of row order', () =
     ]);
   });
 
+  it('the western group carries the two time-derived rows: SUN ↑ RISING, then MOON (§1.K)', () => {
+    expect(SHEET_GROUPS.find(g => g.key === 'western').rows).toEqual([['sun', 'rising'], ['moon']]);
+  });
+
   it('the grouping is honest: the four Chinese pillars are one system, not two', () => {
     const chinese = SHEET_GROUPS.find(g => g.key === 'chinese').rows;
     // year stem · year/month branches · day · hour — one four-pillar set.
@@ -63,8 +67,8 @@ describe('sheet groups — the registry is the single source of row order', () =
   it('SHEET_ROWS and CELL_KEYS are derived from the groups, never restated', () => {
     expect(SHEET_ROWS).toEqual(SHEET_GROUPS.flatMap(g => g.rows));
     expect(CELL_KEYS).toEqual(SHEET_GROUPS.flatMap(g => g.rows.flat()));
-    expect(CELL_KEYS).toHaveLength(14);
-    expect(new Set(CELL_KEYS).size).toBe(14);
+    expect(CELL_KEYS).toHaveLength(15);
+    expect(new Set(CELL_KEYS).size).toBe(15);
   });
 
   it('the registry is frozen at every level', () => {
@@ -94,7 +98,7 @@ describe('sheet groups — host markup and the sheet builder follow the registry
     expect(got.map(g => g.key)).toEqual(expected.map(g => g.key));
     expect(got.map(g => g.title)).toEqual(expected.map(g => g.title));
     expect(got.map(g => g.leads)).toEqual(expected.map(g => g.hostLeads));
-    expect((cardFace.match(/class="coord-section"/g) || []).length).toBe(8);
+    expect((cardFace.match(/class="coord-section"/g) || []).length).toBe(9);
   });
 
   it('buildSheetMarkup: the same groups, order, titles and cells', () => {

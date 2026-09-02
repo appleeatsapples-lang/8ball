@@ -1,5 +1,7 @@
 # dependencies
 node_modules/
+# a SYMLINK named node_modules slips the directory-only rule above (pr232 audit H1)
+node_modules
 .pnp
 .pnp.js
 

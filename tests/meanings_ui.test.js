@@ -27,6 +27,15 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     expect((html.match(/initMeaningsUI\(/g) || []).length).toBe(1);
   });
 
+  it('the moon carries its own unresolved line naming what completes it (pr232 audit L9)', () => {
+    const m = meaningsJs.match(/\n  moon: '([^']+)',/);
+    expect(m, 'UNRESOLVED_COPY.moon missing').not.toBeNull();
+    expect(m[1]).toMatch(/^no moon value is present yet/);
+    expect(m[1]).toMatch(/birth time/);
+    expect(m[1]).toMatch(/timezone/);
+    expect(m[1]).not.toMatch(/\byou\b|\byour\b/);
+  });
+
   it('excludes catalog from COORDINATES — no detail trigger for the compound card', () => {
     expect(meaningsJs).not.toMatch(/catalog:\s*'coord-catalog/);
   });
@@ -34,7 +43,7 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   it('registers every coordinate value id as interactive', () => {
     for (const id of [
       'coord-arcana-symbol', 'coord-element-symbol',
-      'coord-sun-symbol', 'coord-rising-symbol',
+      'coord-sun-symbol', 'coord-rising-symbol', 'coord-moon-symbol',
       'coord-animal-symbol', 'coord-inner-symbol',
       'coord-lifepath-symbol', 'coord-namenumber-symbol', 'coord-soulurge-symbol',
       'coord-personality-symbol', 'coord-birthday-symbol', 'coord-maturity-symbol',
@@ -44,9 +53,9 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
     }
   });
 
-  it('imports the expanded meaning/context registry from meanings.v5.js', () => {
+  it('imports the expanded meaning/context registry from meanings.v6.js', () => {
     expect(meaningsJs).toMatch(
-      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*PLACEMENT_LINES,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v5\.js'/
+      /import\s*{[\s\S]*ARCANA_MEANINGS,[\s\S]*ELEMENT_MEANINGS,[\s\S]*COORDINATE_CONTEXT,[\s\S]*PLACEMENT_LINES,[\s\S]*}\s*from\s*'\.\.\/content\/meanings\.v6\.js'/
     );
   });
 

@@ -350,7 +350,7 @@ describe('public read — the t4 retirement must not downgrade anyone', () => {
 
 describe('public read — density census unchanged', () => {
   it('is a block, not a compartment: carrying it does not move the census', () => {
-    expect(tierDensitySummary('t3')).toEqual({ open: 15, sealed: 0, total: 15 });
+    expect(tierDensitySummary('t3')).toEqual({ open: 16, sealed: 0, total: 16 });
     expect(TIER_COORDS.t4).toBeUndefined();
   });
 
