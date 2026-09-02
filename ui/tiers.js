@@ -460,7 +460,9 @@ const PROV_NOTE = {
 
 export { PROV_NOTE };
 
-/** Row provenance text: each cell's derivation note, joined in cell order. */
+/** Row provenance text: each cell's derivation note, joined in cell order.
+ *  Retained as a tested pure join with NO shipped caller since v0.74 (the
+ *  card writer retired); derivationText below is the live consumer. */
 export function provText(keys) {
   return keys.map(k => PROV_NOTE[k] || '').join(' · ');
 }
@@ -497,7 +499,8 @@ const ATLAS_NOTE = {
 export { ATLAS_NOTE };
 
 /** Row atlas text: each cell's system name, joined in cell order. Empty
- *  when no cell in the row carries an atlas note (the self-naming rows). */
+ *  when no cell in the row carries an atlas note (the self-naming rows).
+ *  Retained as a tested pure join with NO shipped caller since v0.74. */
 export function atlasText(keys) {
   return keys.map(k => ATLAS_NOTE[k] || '').filter(Boolean).join(' · ');
 }

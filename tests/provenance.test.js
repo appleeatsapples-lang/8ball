@@ -99,3 +99,29 @@ describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
     expect(shareJs).not.toMatch(/coord-prov/);
   });
 });
+
+// ── v0.74 repo-wide retirement guard (pr233 audit F4/F6) ─────────────
+// The first draft scanned four files; a `.coord-prov` writer injected into
+// ui/labels.js rode the suite green and rendered nine always-visible
+// placards. The guard now walks EVERY shipped source — no allow-list.
+import { readdirSync } from 'node:fs';
+describe('v0.74: no shipped source writes, styles or names the card placard or atlas', () => {
+  const shipped = [];
+  for (const dir of ['ui', 'core', 'content']) {
+    for (const f of readdirSync(join(__dirname, '..', dir))) {
+      if (/\.(js|css)$/.test(f)) shipped.push(join(dir, f));
+    }
+  }
+  for (const f of readdirSync(join(__dirname, '..'))) if (/\.html$/.test(f)) shipped.push(f);
+  it('walks a real inventory', () => {
+    expect(shipped.length).toBeGreaterThan(30);
+    expect(shipped).toContain(join('ui', 'labels.js'));
+    expect(shipped).toContain(join('ui', 'experience.css'));
+    expect(shipped).toContain('index.html');
+  });
+  for (const f of shipped) {
+    it(`${f} carries no coord-prov / coord-atlas / attachProvenance / attachAtlas`, () => {
+      expect(read(f)).not.toMatch(/coord-prov|coord-atlas|attachProvenance|attachAtlas/);
+    });
+  }
+});

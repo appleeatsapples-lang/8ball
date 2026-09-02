@@ -92,11 +92,11 @@ describe('ATLAS legend (CLP cut 2)', () => {
     }
   });
 
-  it('v0.74: the legend is NOT written on any sheet — no writer, no node, no gated rule', () => {
+  it('v0.74: the legend is NOT written on any sheet — no writer, no node, no gated rule (the repo-wide walk lives in tests/provenance.test.js)', () => {
     expect(tiersJs).not.toMatch(/attachAtlas|coord-atlas/);
     expect(sheetJs).not.toMatch(/coord-atlas|atlasText/);
     expect(html).not.toMatch(/coord-atlas/);
-    expect(shellCss).not.toMatch(/coord-atlas/);
+    expect(shellCss + read('ui', 'experience.css') + read('ui', 'labels.js')).not.toMatch(/coord-atlas/);
     expect(tiersJs).not.toMatch(/localStorage/);
   });
 

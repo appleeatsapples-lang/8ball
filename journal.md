@@ -16,12 +16,14 @@ toggle grew the card 938 → 1289px (+351); at 1440, 951 → 1314. With
 the v0.72 system titles naming the tradition and every compartment
 opening its own panel, the two small lines said what the title and the
 panel already said, in a smaller type, twice per row. Now the labels
-toggle reveals the **row titles only** — one line per row, on the host
-sheet and on both dyad sheets — and a compartment's system name and
+toggle reveals the **row titles only** — one line per row on the host
+sheet — and a compartment's system name and
 derivation are **one line under the meaning panel's head**: `expression
 · letter-value sum`, `moon sign · lunar longitude`, `sexagenary cycle`
 (the self-naming rows carry the note alone; the head already names
-them). Measured after: 938 → 1055 at 390 (+117), 951 → 1068 at 1440.
+them). Measured after: +117 at both widths (938 → 1055 at 390 and
+951 → 1068 at 1440 by this lane's method; the audit lanes measured the
+same deltas from absolutes 17px higher — deltas are the claim).
 
 **How.** `ui/tiers.js derivationText(key)` — pure over the two unchanged
 registries (`ATLAS_NOTE` where it carries one, then `PROV_NOTE`), keyed
@@ -43,7 +45,7 @@ density census (§1.F(b)) stays always-on in the rail. The labels key
 and the toggle's copy are unchanged. Live-fired at 390 and 1440: zero
 atlas/placard nodes on any sheet, nine titles visible when labeled,
 the three example lines above read off the live panel, both dyad
-sheets at eighteen titles and zero lines, no console errors.
+sheets at eighteen title nodes and zero lines, no console errors.
 
 **Tests.** `tests/atlas.test.js` and `tests/provenance.test.js` keep
 every registry pin (coverage, order, §2 voice, no digits, lowercase,
@@ -59,7 +61,48 @@ Suite 60 files / 1999 tests green (five DOM-write tests retired, three
 composition tests added); product audit PASS. DOCTRINE: §1.E and
 §1.F(a) v0.74 amendments, footer v0.74.
 
-**Queued.** `/cards` and og-image regeneration (sources off-repo).
+**Two-lane audit (pr233), reconciled.** Lane B: MERGE (one stale
+checklist line, a dead re-export, one pre-existing unpinned rule).
+Lane A: MERGE WITH FIXES — 3 MED, 6 LOW, 4 observations; 17 mutants,
+14 killed. Every product claim reproduced on both lanes: zero
+atlas/placard nodes document-wide, all fifteen panel lines correct
+and tier-invariant (rising/moon/hour pillar unresolved still name
+their derivation), share PNG sha-identical to base, registries
+byte-identical, no new key, zero console errors, no regression at
+320–1440 or on the desk. Landed: **F1 (MED)** the amendment said the
+toggle reveals titles "on both dyad sheets" — it never has: the
+labels class is host-scoped, the dyad sheets' eighteen title nodes
+were and are unrevealed, and their thirty compartments open no panel,
+so for the dyad the derivation surface is retired, not relocated
+(before: hidden markup; after: nothing — no visible pixel lost).
+Restated in the amendment, the footer and above; named as open work
+for the controller. **F3 (both)** `audits/RELEASE_CHECKLIST.md` told
+the smoke test to look for placards and the atlas — rewritten. **F4
+(MED)** the retirement pins scanned four files; a `.coord-prov` writer
+injected into `ui/labels.js` rode the suite green and rendered nine
+always-visible placards — the guard is now repo-wide over every
+shipped `ui/*.js`, `core/*.js`, `content/*.js`, `*.html`, `ui/*.css`
+(F6's `experience.css` gap closes with it). **F5 (both)** nothing pinned
+that the toggle reveals the row titles at all — the PR had retired the
+last two positive `.labels-revealed` pins — so inverting the shell
+rule left a labeled view showing nothing while 1999 tests passed;
+`labels_reveal` now pins the default-hidden and revealed-visible
+`.coord-title` rules. **F7** `ui/labels.js`'s header still described
+the deleted rules and named the wrong file — corrected. **F8** the
+absolute pixel figures did not reproduce (the lanes measured +17px
+on every absolute, both branches, every width); the deltas did —
+restated as deltas. **F9** the two superseded clause sentences carry
+inline markers, per the §1.F(b)/v0.69 precedent. **F10/F11** `provText`
+/ `atlasText` noted as retained joins with no shipped caller; the
+`8BALL.md` module cell carries the marker README got; the dead
+`PROV_NOTE`/`ATLAS_NOTE` re-export in `ui/sheet.js` removed. Recorded,
+not fixed: the docked panel keeps the line at 9px beside a 10px head
+(deliberate); the sealed-compartment claim is structural, since v0.71
+renders no sealed cell (the unresolved case is the live proxy and
+passes). Suite 60 files / 2049 tests green; product audit PASS.
+
+**Queued.** `/cards` and og-image regeneration (sources off-repo); the
+dyad sheets' labels/derivation surface (controller decision).
 
 ## 2026-09-02 — DOCTRINE v0.73: the moon sign — the sixteenth coordinate — SHIPPED (#232)
 

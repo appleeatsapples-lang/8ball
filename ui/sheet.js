@@ -53,8 +53,6 @@ import {
   CELL_COORD,
   cellRenderState,
   coordsForTier,
-  PROV_NOTE,
-  ATLAS_NOTE,
   SHEET_GROUPS,
 } from './tiers.js';
 import { CARDS } from '../content/cards.v1.full.js';
@@ -314,4 +312,4 @@ export function createSheet(host, { prefix } = {}) {
   }
 }
 
-export { PROV_NOTE, ATLAS_NOTE };
+// (the PROV_NOTE / ATLAS_NOTE re-export retired with the v0.74 writers — pr233 audit)
