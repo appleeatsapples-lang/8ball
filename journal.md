@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-03 — the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — STAGED on branch, PR pending
+## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — STAGED on branch, PR #234 open
 
 **What happened.** "Now the cards and og image regeneration." Both
 artifacts had been queued since v0.72 as "sources off-repo": the 611
@@ -62,25 +62,75 @@ for the set); `cards/manifest.json` records their source as the script
 and the new byte counts, count and order unchanged;
 `assets/og-image.png` re-rendered (nine rows, MOON, no hatches, the
 free-era copy — the paid-rung line is gone); `scripts/build_card_jpegs.py`
-now owns the concordance and index families only (it skips the
-specimen codes on write, carries their manifest entries through, and
-skips them on `--check` — an edit exercised only by parse and a stub
-import here, since this container has no Pillow); CLAUDE.md names the
-new script and the two regeneration paths.
+now owns the concordance and index families only: one pass over the
+queue in queue order, rendering its own families and carrying the
+tracked specimen entries (and the tracked note and padding) through
+unchanged, with `--check` comparing the whole ordered manifest — an
+edit exercised only by parse here, since this container has no
+Pillow; CLAUDE.md names the new script and the two regeneration paths,
+and `audits/RELEASE_CHECKLIST.md` gains the re-render step.
 
-**Tests.** `tests/render_cards.test.js` (new, 12 tests): the two code
-shapes and nothing else; determinism; every catalog specimen lands on
-its catalog card and every extended one carries its arcana and year;
-every compartment resolves; inputs are synthetic in shape; the
-snapshot is the registry (four groups, nine rows, fifteen cells, in
-order); the specimen template carries every title, value, the numeral
-and the site and never the name or the date; the og template embeds
-the share SVG beside free-era, price-free copy in greys only; the JPEG
-stripper drops exactly EXIF/ICC/COM. The existing artifact pins
-(`cards_hosting`, `monochrome_assets`, `reach_surface`) pass on the new
-files unchanged. Suite 61 files / 2061 tests green; product audit PASS.
-No DOCTRINE touch: the §5.D share contract and the reach pins are
-unchanged; this is the generated output catching up with them.
+**Tests.** `tests/render_cards.test.js` (new, 17 tests): the two code
+shapes and nothing else; the manifest shape (canvas, quality, note)
+and the site literal against index.html's canonical URL;
+determinism; every catalog specimen lands on its catalog card and
+every extended one carries its arcana and year; every compartment
+resolves; the city table's bound does work against the raw data;
+inputs are synthetic for all 331 (names decompose into the three
+syllable tables, cities come from the table); the snapshot is the
+registry (four groups, nine rows, fifteen cells, titles straight from
+`ROW_TITLES`); the specimen template carries every title, value, the
+numeral and the site and never the name or the date; the og template
+contains the §5.D share SVG byte-for-byte beside free-era, price-free
+copy in greys only; the JPEG stripper is an allowlist (JFIF and the
+non-application segments survive, every other APPn and COM is
+dropped); and two DIGEST PINS over the exact HTML the 331 specimens
+and the og image were rendered from, so a registry or template change
+fails here until `scripts/render_cards.mjs` is re-run. The existing
+artifact pins (`cards_hosting`, `monochrome_assets`, `reach_surface`)
+pass on the new files unchanged. Suite 61 files / 2066 tests green;
+product audit PASS. DOCTRINE v0.75: the §5.D share contract and the
+reach pins are unchanged — this is the generated output catching up
+with them — but the v0.72 record carried two "QUEUED for
+regeneration (sources off-repo)" sentences, both now closed with
+dated markers per L17, and the footer records the closure.
+
+**Two-lane audit (pr234), reconciled.** Both lanes returned MERGE WITH
+FIXES with the same HIGH: `build_card_jpegs.py`'s write path REGROUPED
+the manifest (its own families first, specimen entries appended), so
+the next vault run would have reordered the manifest against the
+queue that `cards_hosting` pins exactly, and its `--check` compared an
+unordered subset — fixed to one queue-order pass and a strict ordered
+comparison (cannot run here; parse-checked). Lane A's H1: nothing tied
+the hosted files to a fresh render — the digest pins above are the
+answer (a one-pixel template change fails them; six mutants killed
+across the pins: the site literal, a row-title literal, the stripper
+keeping APP13, the og art replaced by a stub, the city bound widened,
+the name alphabet widened — every one caught). MEDIUMs: the manifest
+note had two owners (now one constant, `MANIFEST_NOTE`, the python
+side carries the tracked note and padding through); the two stale
+DOCTRINE sentences (closed); the og template only spot-checked the SVG
+(now containment of the builder's own output); the domain was tested
+against itself (now against index.html's canonical link); `globSync`
+sat above the Node 20.19 floor (now `readdirSync`, with an existence
+check); the syllable alphabet was private (now exported and the names
+tested against it). LOWs: stripper as allowlist; `--only` validates
+its list and reports unknown codes; `JPEG_QUALITY` and `CANVAS` pinned
+against the manifest; `rowTitleFor` derives the pair titles from
+`ROW_TITLES` (one literal left, the unresolved-rising grammar, never
+hit by a specimen); `_from_roman` bounded to the 144-card grid; the
+determinism/font clause written into the header (a host missing DejaVu
+Sans Mono renders differently). Visual notes taken from both drives:
+the frame was heavier than the base rule (now 1px, the shell's own
+warm grey), the pairs wobbled under `space-evenly` (now centred with a
+fixed gap), the stack left dead space at the foot (bottom inset 150 →
+120) — the set re-rendered after the template settled and the digests
+computed on that render. Recorded, not fixed: `product.ci_doctrine_gate`
+in the auditor flaked once on Lane A's clone and passed on re-run and
+on every run here (sighting logged, no change). During the mutant
+sweep here a `git checkout` of the renderer reverted the uncommitted
+fix batch; it was replayed from the session record and the digest pin
+proved the replay byte-identical to what had been rendered.
 
 **Queued.** The dyad sheets' labels/derivation surface (controller
 decision, named in v0.74).

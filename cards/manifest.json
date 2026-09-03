@@ -15,42 +15,42 @@
     {
       "code": "spec_no-v",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89179
+      "bytes": 82574
     },
     {
       "code": "spec_no-cxii",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91730
+      "bytes": 85456
     },
     {
       "code": "spec_no-xxxi",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91279
+      "bytes": 85256
     },
     {
       "code": "spec_no-cxxxii",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88325
+      "bytes": 82920
     },
     {
       "code": "spec_no-lxi",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87919
+      "bytes": 81773
     },
     {
       "code": "spec_no-xxxii",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89376
+      "bytes": 83576
     },
     {
       "code": "spec_no-lxxxii",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88368
+      "bytes": 82690
     },
     {
       "code": "spec_no-xlv",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89587
+      "bytes": 82965
     },
     {
       "code": "ss01_aries-x-taurus",
@@ -330,407 +330,407 @@
     {
       "code": "spec_extended_hierophant-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88500
+      "bytes": 82305
     },
     {
       "code": "spec_extended_lovers-1985",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87868
+      "bytes": 81989
     },
     {
       "code": "spec_extended_strength-1991",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91379
+      "bytes": 85021
     },
     {
       "code": "spec_extended_moon-2003",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89652
+      "bytes": 83943
     },
     {
       "code": "spec_extended_justice-1981",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89993
+      "bytes": 84700
     },
     {
       "code": "spec_extended_chariot-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90598
+      "bytes": 84189
     },
     {
       "code": "spec_extended_world-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87151
+      "bytes": 81855
     },
     {
       "code": "spec_extended_justice-1956",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90862
+      "bytes": 85000
     },
     {
       "code": "spec_extended_chariot-1959",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91501
+      "bytes": 85264
     },
     {
       "code": "spec_extended_hermit-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88068
+      "bytes": 82225
     },
     {
       "code": "spec_extended_chariot-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89089
+      "bytes": 83183
     },
     {
       "code": "spec_extended_chariot-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89274
+      "bytes": 83450
     },
     {
       "code": "spec_extended_empress-1969",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91717
+      "bytes": 85942
     },
     {
       "code": "spec_extended_strength-1972",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86218
+      "bytes": 79979
     },
     {
       "code": "spec_extended_chariot-1974",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86186
+      "bytes": 79879
     },
     {
       "code": "spec_extended_hanged-man-1977",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91003
+      "bytes": 84566
     },
     {
       "code": "spec_extended_hanged-man-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90095
+      "bytes": 83879
     },
     {
       "code": "spec_extended_empress-1983",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91185
+      "bytes": 85224
     },
     {
       "code": "spec_extended_strength-1986",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91686
+      "bytes": 85688
     },
     {
       "code": "spec_extended_emperor-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89229
+      "bytes": 83661
     },
     {
       "code": "spec_extended_sun-1941",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91558
+      "bytes": 85325
     },
     {
       "code": "spec_extended_judgement-1942",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86791
+      "bytes": 81059
     },
     {
       "code": "spec_extended_world-1943",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88684
+      "bytes": 82305
     },
     {
       "code": "spec_extended_fool-1944",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88794
+      "bytes": 83525
     },
     {
       "code": "spec_extended_hierophant-1945",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90337
+      "bytes": 84564
     },
     {
       "code": "spec_extended_lovers-1946",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87819
+      "bytes": 81511
     },
     {
       "code": "spec_extended_chariot-1947",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88174
+      "bytes": 81273
     },
     {
       "code": "spec_extended_strength-1948",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90115
+      "bytes": 84097
     },
     {
       "code": "spec_extended_hermit-1949",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89676
+      "bytes": 84084
     },
     {
       "code": "spec_extended_chariot-1950",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87938
+      "bytes": 81895
     },
     {
       "code": "spec_extended_strength-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90491
+      "bytes": 84351
     },
     {
       "code": "spec_extended_hermit-1952",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86217
+      "bytes": 79674
     },
     {
       "code": "spec_extended_lovers-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88738
+      "bytes": 82989
     },
     {
       "code": "spec_extended_emperor-1954",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86954
+      "bytes": 80824
     },
     {
       "code": "spec_extended_chariot-1956",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89483
+      "bytes": 83556
     },
     {
       "code": "spec_extended_strength-1957",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89598
+      "bytes": 83543
     },
     {
       "code": "spec_extended_lovers-1958",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88083
+      "bytes": 82214
     },
     {
       "code": "spec_extended_strength-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90865
+      "bytes": 85396
     },
     {
       "code": "spec_extended_hermit-1961",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89591
+      "bytes": 83006
     },
     {
       "code": "spec_extended_wheel-of-fortune-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90206
+      "bytes": 84227
     },
     {
       "code": "spec_extended_emperor-1963",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89406
+      "bytes": 83252
     },
     {
       "code": "spec_extended_hierophant-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90153
+      "bytes": 84260
     },
     {
       "code": "spec_extended_hierophant-1966",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90611
+      "bytes": 84171
     },
     {
       "code": "spec_extended_lovers-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87199
+      "bytes": 81284
     },
     {
       "code": "spec_extended_chariot-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88985
+      "bytes": 82952
     },
     {
       "code": "spec_extended_strength-1969",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90104
+      "bytes": 83937
     },
     {
       "code": "spec_extended_hierophant-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90722
+      "bytes": 85002
     },
     {
       "code": "spec_extended_lovers-1971",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89222
+      "bytes": 83088
     },
     {
       "code": "spec_extended_lovers-1973",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90583
+      "bytes": 84402
     },
     {
       "code": "spec_extended_hermit-1974",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92669
+      "bytes": 86319
     },
     {
       "code": "spec_extended_wheel-of-fortune-1975",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89200
+      "bytes": 82684
     },
     {
       "code": "spec_extended_strength-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88852
+      "bytes": 82840
     },
     {
       "code": "spec_extended_justice-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88200
+      "bytes": 83120
     },
     {
       "code": "spec_extended_hermit-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87241
+      "bytes": 80871
     },
     {
       "code": "spec_extended_wheel-of-fortune-1980",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90278
+      "bytes": 83755
     },
     {
       "code": "spec_extended_chariot-1981",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89467
+      "bytes": 83767
     },
     {
       "code": "spec_extended_hierophant-1982",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90027
+      "bytes": 83458
     },
     {
       "code": "spec_extended_strength-1984",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88255
+      "bytes": 81724
     },
     {
       "code": "spec_extended_strength-1985",
       "source": "scripts/render_cards.mjs",
-      "bytes": 84863
+      "bytes": 78744
     },
     {
       "code": "spec_extended_hermit-1986",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89378
+      "bytes": 83600
     },
     {
       "code": "spec_extended_hermit-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90033
+      "bytes": 83083
     },
     {
       "code": "spec_extended_wheel-of-fortune-1989",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89674
+      "bytes": 84337
     },
     {
       "code": "spec_extended_emperor-1990",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90730
+      "bytes": 85286
     },
     {
       "code": "spec_extended_chariot-1992",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88894
+      "bytes": 82513
     },
     {
       "code": "spec_extended_strength-1993",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90958
+      "bytes": 85019
     },
     {
       "code": "spec_extended_hermit-1994",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87098
+      "bytes": 80627
     },
     {
       "code": "spec_extended_chariot-1995",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88858
+      "bytes": 82955
     },
     {
       "code": "spec_extended_strength-1996",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89802
+      "bytes": 83631
     },
     {
       "code": "spec_extended_hierophant-1997",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88607
+      "bytes": 81932
     },
     {
       "code": "spec_extended_lovers-1998",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90400
+      "bytes": 84313
     },
     {
       "code": "spec_extended_emperor-1999",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88847
+      "bytes": 82707
     },
     {
       "code": "spec_extended_chariot-2001",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89281
+      "bytes": 83262
     },
     {
       "code": "spec_extended_temperance-2002",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87264
+      "bytes": 81098
     },
     {
       "code": "spec_extended_devil-2003",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86275
+      "bytes": 79963
     },
     {
       "code": "spec_extended_tower-2004",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87518
+      "bytes": 81751
     },
     {
       "code": "spec_extended_star-2005",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90833
+      "bytes": 84920
     },
     {
       "code": "spec_extended_moon-2006",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88356
+      "bytes": 81900
     },
     {
       "code": "spec_extended_sun-2007",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89854
+      "bytes": 84377
     },
     {
       "code": "spec_extended_judgement-2008",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90057
+      "bytes": 83496
     },
     {
       "code": "spec_extended_world-2009",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86637
+      "bytes": 80940
     },
     {
       "code": "spec_extended_death-2010",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88430
+      "bytes": 82890
     },
     {
       "code": "aa08_ox-x-horse",
@@ -1310,407 +1310,407 @@
     {
       "code": "spec_extended_hanged-man-1993",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92725
+      "bytes": 86533
     },
     {
       "code": "spec_extended_hierophant-1999",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89314
+      "bytes": 83321
     },
     {
       "code": "spec_extended_strength-1987",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88591
+      "bytes": 82075
     },
     {
       "code": "spec_extended_emperor-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90236
+      "bytes": 83997
     },
     {
       "code": "spec_extended_hermit-1997",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89392
+      "bytes": 83301
     },
     {
       "code": "spec_extended_fool-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89299
+      "bytes": 84062
     },
     {
       "code": "spec_extended_justice-1954",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88822
+      "bytes": 82654
     },
     {
       "code": "spec_extended_hierophant-1957",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90539
+      "bytes": 84846
     },
     {
       "code": "spec_extended_justice-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86938
+      "bytes": 81368
     },
     {
       "code": "spec_extended_strength-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91824
+      "bytes": 85105
     },
     {
       "code": "spec_extended_lovers-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90621
+      "bytes": 84557
     },
     {
       "code": "spec_extended_empress-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89043
+      "bytes": 82161
     },
     {
       "code": "spec_extended_strength-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88039
+      "bytes": 81424
     },
     {
       "code": "spec_extended_chariot-1972",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88968
+      "bytes": 82792
     },
     {
       "code": "spec_extended_emperor-1975",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87261
+      "bytes": 81582
     },
     {
       "code": "spec_extended_hermit-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88122
+      "bytes": 82578
     },
     {
       "code": "spec_extended_chariot-1980",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92623
+      "bytes": 86010
     },
     {
       "code": "spec_extended_chariot-1984",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89616
+      "bytes": 82560
     },
     {
       "code": "spec_extended_justice-1987",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87940
+      "bytes": 82403
     },
     {
       "code": "spec_extended_hanged-man-1989",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91205
+      "bytes": 84995
     },
     {
       "code": "spec_extended_chariot-1941",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92449
+      "bytes": 85727
     },
     {
       "code": "spec_extended_strength-1942",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87781
+      "bytes": 81986
     },
     {
       "code": "spec_extended_hermit-1943",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89502
+      "bytes": 83121
     },
     {
       "code": "spec_extended_wheel-of-fortune-1944",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89469
+      "bytes": 83067
     },
     {
       "code": "spec_extended_justice-1945",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87510
+      "bytes": 82296
     },
     {
       "code": "spec_extended_empress-1946",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87943
+      "bytes": 81778
     },
     {
       "code": "spec_extended_emperor-1947",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90566
+      "bytes": 85211
     },
     {
       "code": "spec_extended_hierophant-1948",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91599
+      "bytes": 85827
     },
     {
       "code": "spec_extended_lovers-1949",
       "source": "scripts/render_cards.mjs",
-      "bytes": 84254
+      "bytes": 77629
     },
     {
       "code": "spec_extended_empress-1950",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90551
+      "bytes": 84966
     },
     {
       "code": "spec_extended_emperor-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90225
+      "bytes": 84185
     },
     {
       "code": "spec_extended_hierophant-1952",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91045
+      "bytes": 84442
     },
     {
       "code": "spec_extended_empress-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91692
+      "bytes": 85500
     },
     {
       "code": "spec_extended_lovers-1955",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88194
+      "bytes": 82339
     },
     {
       "code": "spec_extended_emperor-1956",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91480
+      "bytes": 85168
     },
     {
       "code": "spec_extended_wheel-of-fortune-1957",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90366
+      "bytes": 84433
     },
     {
       "code": "spec_extended_wheel-of-fortune-1959",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91706
+      "bytes": 85079
     },
     {
       "code": "spec_extended_emperor-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87033
+      "bytes": 81136
     },
     {
       "code": "spec_extended_hierophant-1961",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86923
+      "bytes": 79759
     },
     {
       "code": "spec_extended_lovers-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88589
+      "bytes": 83167
     },
     {
       "code": "spec_extended_lovers-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89067
+      "bytes": 82291
     },
     {
       "code": "spec_extended_chariot-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88573
+      "bytes": 82373
     },
     {
       "code": "spec_extended_wheel-of-fortune-1966",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88881
+      "bytes": 82805
     },
     {
       "code": "spec_extended_justice-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87445
+      "bytes": 81477
     },
     {
       "code": "spec_extended_hanged-man-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89291
+      "bytes": 82749
     },
     {
       "code": "spec_extended_wheel-of-fortune-1969",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92002
+      "bytes": 85511
     },
     {
       "code": "spec_extended_justice-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87102
+      "bytes": 80873
     },
     {
       "code": "spec_extended_hierophant-1972",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89311
+      "bytes": 83292
     },
     {
       "code": "spec_extended_strength-1973",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90129
+      "bytes": 84289
     },
     {
       "code": "spec_extended_lovers-1974",
       "source": "scripts/render_cards.mjs",
-      "bytes": 83216
+      "bytes": 77015
     },
     {
       "code": "spec_extended_chariot-1975",
       "source": "scripts/render_cards.mjs",
-      "bytes": 93652
+      "bytes": 87045
     },
     {
       "code": "spec_extended_wheel-of-fortune-1977",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89690
+      "bytes": 83224
     },
     {
       "code": "spec_extended_strength-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89219
+      "bytes": 83275
     },
     {
       "code": "spec_extended_hierophant-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89637
+      "bytes": 83289
     },
     {
       "code": "spec_extended_lovers-1980",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90644
+      "bytes": 84018
     },
     {
       "code": "spec_extended_emperor-1981",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86821
+      "bytes": 80925
     },
     {
       "code": "spec_extended_chariot-1983",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91722
+      "bytes": 85071
     },
     {
       "code": "spec_extended_hierophant-1984",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88107
+      "bytes": 81514
     },
     {
       "code": "spec_extended_wheel-of-fortune-1986",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90759
+      "bytes": 84686
     },
     {
       "code": "spec_extended_emperor-1987",
       "source": "scripts/render_cards.mjs",
-      "bytes": 93105
+      "bytes": 86891
     },
     {
       "code": "spec_extended_hierophant-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91038
+      "bytes": 85282
     },
     {
       "code": "spec_extended_lovers-1989",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87760
+      "bytes": 82165
     },
     {
       "code": "spec_extended_lovers-1991",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90255
+      "bytes": 84785
     },
     {
       "code": "spec_extended_emperor-1992",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88651
+      "bytes": 82681
     },
     {
       "code": "spec_extended_hierophant-1993",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89260
+      "bytes": 82823
     },
     {
       "code": "spec_extended_justice-1994",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88460
+      "bytes": 82945
     },
     {
       "code": "spec_extended_hanged-man-1995",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90099
+      "bytes": 83591
     },
     {
       "code": "spec_extended_emperor-1996",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87300
+      "bytes": 81448
     },
     {
       "code": "spec_extended_justice-1997",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89655
+      "bytes": 83777
     },
     {
       "code": "spec_extended_hanged-man-1998",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90162
+      "bytes": 84142
     },
     {
       "code": "spec_extended_hanged-man-2000",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90310
+      "bytes": 84033
     },
     {
       "code": "spec_extended_death-2001",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89048
+      "bytes": 83567
     },
     {
       "code": "spec_extended_sun-2002",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88165
+      "bytes": 82420
     },
     {
       "code": "spec_extended_judgement-2003",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89161
+      "bytes": 83068
     },
     {
       "code": "spec_extended_world-2004",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87512
+      "bytes": 81029
     },
     {
       "code": "spec_extended_fool-2005",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87926
+      "bytes": 82773
     },
     {
       "code": "spec_extended_hierophant-2006",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88055
+      "bytes": 82099
     },
     {
       "code": "spec_extended_lovers-2007",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86956
+      "bytes": 80414
     },
     {
       "code": "spec_extended_chariot-2008",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88699
+      "bytes": 82200
     },
     {
       "code": "spec_extended_strength-2009",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89517
+      "bytes": 82943
     },
     {
       "code": "spec_extended_moon-2010",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87748
+      "bytes": 82159
     },
     {
       "code": "aa01_rat-x-ox",
@@ -2005,407 +2005,407 @@
     {
       "code": "spec_extended_emperor-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90684
+      "bytes": 84965
     },
     {
       "code": "spec_extended_devil-2001",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88497
+      "bytes": 82137
     },
     {
       "code": "spec_extended_justice-1958",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87089
+      "bytes": 81203
     },
     {
       "code": "spec_extended_empress-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92090
+      "bytes": 86093
     },
     {
       "code": "spec_extended_lovers-1994",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90951
+      "bytes": 84599
     },
     {
       "code": "spec_extended_sun-1950",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87803
+      "bytes": 82121
     },
     {
       "code": "spec_extended_justice-1952",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86291
+      "bytes": 80259
     },
     {
       "code": "spec_extended_hierophant-1955",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87753
+      "bytes": 80895
     },
     {
       "code": "spec_extended_lovers-1957",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87793
+      "bytes": 82280
     },
     {
       "code": "spec_extended_chariot-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90728
+      "bytes": 84072
     },
     {
       "code": "spec_extended_chariot-1963",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90973
+      "bytes": 84117
     },
     {
       "code": "spec_extended_empress-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88375
+      "bytes": 82140
     },
     {
       "code": "spec_extended_strength-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89562
+      "bytes": 83126
     },
     {
       "code": "spec_extended_hierophant-1971",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89366
+      "bytes": 82611
     },
     {
       "code": "spec_extended_empress-1973",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92111
+      "bytes": 86111
     },
     {
       "code": "spec_extended_hermit-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88652
+      "bytes": 83110
     },
     {
       "code": "spec_extended_chariot-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87286
+      "bytes": 80388
     },
     {
       "code": "spec_extended_empress-1981",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87942
+      "bytes": 81901
     },
     {
       "code": "spec_extended_wheel-of-fortune-1985",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86155
+      "bytes": 79808
     },
     {
       "code": "spec_extended_hanged-man-1987",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89498
+      "bytes": 82279
     },
     {
       "code": "spec_extended_empress-1941",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89169
+      "bytes": 82798
     },
     {
       "code": "spec_extended_emperor-1942",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88704
+      "bytes": 82442
     },
     {
       "code": "spec_extended_hierophant-1943",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89241
+      "bytes": 83094
     },
     {
       "code": "spec_extended_lovers-1944",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87653
+      "bytes": 82145
     },
     {
       "code": "spec_extended_chariot-1945",
       "source": "scripts/render_cards.mjs",
-      "bytes": 93480
+      "bytes": 87974
     },
     {
       "code": "spec_extended_strength-1946",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88463
+      "bytes": 82049
     },
     {
       "code": "spec_extended_hermit-1947",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89097
+      "bytes": 82545
     },
     {
       "code": "spec_extended_wheel-of-fortune-1948",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91372
+      "bytes": 84772
     },
     {
       "code": "spec_extended_justice-1949",
       "source": "scripts/render_cards.mjs",
-      "bytes": 84787
+      "bytes": 79246
     },
     {
       "code": "spec_extended_hermit-1950",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87670
+      "bytes": 80865
     },
     {
       "code": "spec_extended_wheel-of-fortune-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89834
+      "bytes": 83709
     },
     {
       "code": "spec_extended_fool-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88108
+      "bytes": 82511
     },
     {
       "code": "spec_extended_hierophant-1954",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89298
+      "bytes": 82964
     },
     {
       "code": "spec_extended_empress-1955",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89191
+      "bytes": 82727
     },
     {
       "code": "spec_extended_hermit-1956",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90459
+      "bytes": 84577
     },
     {
       "code": "spec_extended_chariot-1957",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89608
+      "bytes": 83355
     },
     {
       "code": "spec_extended_hanged-man-1959",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91970
+      "bytes": 85106
     },
     {
       "code": "spec_extended_wheel-of-fortune-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87664
+      "bytes": 80974
     },
     {
       "code": "spec_extended_justice-1961",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86241
+      "bytes": 79231
     },
     {
       "code": "spec_extended_hierophant-1963",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87338
+      "bytes": 81402
     },
     {
       "code": "spec_extended_empress-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90008
+      "bytes": 83574
     },
     {
       "code": "spec_extended_emperor-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88629
+      "bytes": 82504
     },
     {
       "code": "spec_extended_chariot-1966",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90189
+      "bytes": 83869
     },
     {
       "code": "spec_extended_strength-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90720
+      "bytes": 84194
     },
     {
       "code": "spec_extended_hermit-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90675
+      "bytes": 83914
     },
     {
       "code": "spec_extended_world-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88011
+      "bytes": 82383
     },
     {
       "code": "spec_extended_fool-1971",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87938
+      "bytes": 82528
     },
     {
       "code": "spec_extended_justice-1972",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87438
+      "bytes": 82046
     },
     {
       "code": "spec_extended_hierophant-1973",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91511
+      "bytes": 84818
     },
     {
       "code": "spec_extended_strength-1975",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89539
+      "bytes": 83466
     },
     {
       "code": "spec_extended_lovers-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89338
+      "bytes": 84324
     },
     {
       "code": "spec_extended_chariot-1977",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88318
+      "bytes": 82392
     },
     {
       "code": "spec_extended_wheel-of-fortune-1978",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87013
+      "bytes": 80734
     },
     {
       "code": "spec_extended_justice-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88421
+      "bytes": 82540
     },
     {
       "code": "spec_extended_empress-1980",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90781
+      "bytes": 85385
     },
     {
       "code": "spec_extended_lovers-1982",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88970
+      "bytes": 83162
     },
     {
       "code": "spec_extended_hermit-1983",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90867
+      "bytes": 84017
     },
     {
       "code": "spec_extended_wheel-of-fortune-1984",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87148
+      "bytes": 80649
     },
     {
       "code": "spec_extended_chariot-1986",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89066
+      "bytes": 83418
     },
     {
       "code": "spec_extended_wheel-of-fortune-1987",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90879
+      "bytes": 85084
     },
     {
       "code": "spec_extended_justice-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90574
+      "bytes": 84931
     },
     {
       "code": "spec_extended_justice-1990",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89328
+      "bytes": 83477
     },
     {
       "code": "spec_extended_empress-1991",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91101
+      "bytes": 85527
     },
     {
       "code": "spec_extended_hermit-1992",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90362
+      "bytes": 83686
     },
     {
       "code": "spec_extended_wheel-of-fortune-1993",
       "source": "scripts/render_cards.mjs",
-      "bytes": 93279
+      "bytes": 87407
     },
     {
       "code": "spec_extended_strength-1994",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88949
+      "bytes": 82378
     },
     {
       "code": "spec_extended_hermit-1995",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87189
+      "bytes": 80615
     },
     {
       "code": "spec_extended_wheel-of-fortune-1996",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92540
+      "bytes": 86322
     },
     {
       "code": "spec_extended_emperor-1998",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91082
+      "bytes": 84634
     },
     {
       "code": "spec_extended_justice-1999",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88902
+      "bytes": 83423
     },
     {
       "code": "spec_extended_star-2000",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88131
+      "bytes": 81959
     },
     {
       "code": "spec_extended_moon-2001",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89527
+      "bytes": 83372
     },
     {
       "code": "spec_extended_tower-2002",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87913
+      "bytes": 82137
     },
     {
       "code": "spec_extended_star-2003",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89507
+      "bytes": 83487
     },
     {
       "code": "spec_extended_moon-2004",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90050
+      "bytes": 83467
     },
     {
       "code": "spec_extended_sun-2005",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89375
+      "bytes": 83785
     },
     {
       "code": "spec_extended_judgement-2006",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89469
+      "bytes": 83160
     },
     {
       "code": "spec_extended_world-2007",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88819
+      "bytes": 82631
     },
     {
       "code": "spec_extended_fool-2008",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89420
+      "bytes": 83909
     },
     {
       "code": "spec_extended_hierophant-2009",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89714
+      "bytes": 82703
     },
     {
       "code": "spec_extended_devil-2010",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88006
+      "bytes": 82118
     },
     {
       "code": "ee03_earth-x-metal",
@@ -2670,402 +2670,402 @@
     {
       "code": "spec_extended_strength-1982",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89652
+      "bytes": 84267
     },
     {
       "code": "spec_extended_chariot-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87565
+      "bytes": 80646
     },
     {
       "code": "spec_extended_chariot-1973",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88496
+      "bytes": 82081
     },
     {
       "code": "spec_extended_wheel-of-fortune-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88855
+      "bytes": 82173
     },
     {
       "code": "spec_extended_hermit-1959",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88686
+      "bytes": 81742
     },
     {
       "code": "spec_extended_justice-1950",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90127
+      "bytes": 84850
     },
     {
       "code": "spec_extended_chariot-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91609
+      "bytes": 85577
     },
     {
       "code": "spec_extended_fool-1955",
       "source": "scripts/render_cards.mjs",
-      "bytes": 85294
+      "bytes": 79623
     },
     {
       "code": "spec_extended_strength-1958",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88679
+      "bytes": 82723
     },
     {
       "code": "spec_extended_lovers-1961",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88432
+      "bytes": 82449
     },
     {
       "code": "spec_extended_wheel-of-fortune-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92153
+      "bytes": 85861
     },
     {
       "code": "spec_extended_strength-1966",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87631
+      "bytes": 81937
     },
     {
       "code": "spec_extended_emperor-1969",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91300
+      "bytes": 86014
     },
     {
       "code": "spec_extended_empress-1971",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88732
+      "bytes": 82732
     },
     {
       "code": "spec_extended_strength-1974",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88647
+      "bytes": 82654
     },
     {
       "code": "spec_extended_chariot-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91795
+      "bytes": 85191
     },
     {
       "code": "spec_extended_emperor-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87180
+      "bytes": 81257
     },
     {
       "code": "spec_extended_emperor-1983",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89025
+      "bytes": 82832
     },
     {
       "code": "spec_extended_justice-1985",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86431
+      "bytes": 80797
     },
     {
       "code": "spec_extended_chariot-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88387
+      "bytes": 81859
     },
     {
       "code": "spec_extended_hermit-1941",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90240
+      "bytes": 84379
     },
     {
       "code": "spec_extended_wheel-of-fortune-1942",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89840
+      "bytes": 83733
     },
     {
       "code": "spec_extended_justice-1943",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86988
+      "bytes": 81675
     },
     {
       "code": "spec_extended_empress-1944",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88454
+      "bytes": 82048
     },
     {
       "code": "spec_extended_emperor-1945",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87900
+      "bytes": 82393
     },
     {
       "code": "spec_extended_hierophant-1946",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88018
+      "bytes": 82031
     },
     {
       "code": "spec_extended_lovers-1947",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90718
+      "bytes": 85378
     },
     {
       "code": "spec_extended_chariot-1948",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88965
+      "bytes": 82782
     },
     {
       "code": "spec_extended_strength-1949",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88539
+      "bytes": 81702
     },
     {
       "code": "spec_extended_judgement-1951",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89915
+      "bytes": 84468
     },
     {
       "code": "spec_extended_world-1952",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87715
+      "bytes": 81453
     },
     {
       "code": "spec_extended_wheel-of-fortune-1953",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90374
+      "bytes": 83929
     },
     {
       "code": "spec_extended_chariot-1954",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88569
+      "bytes": 81989
     },
     {
       "code": "spec_extended_strength-1955",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87950
+      "bytes": 81995
     },
     {
       "code": "spec_extended_lovers-1956",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89485
+      "bytes": 83611
     },
     {
       "code": "spec_extended_hermit-1958",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87924
+      "bytes": 81774
     },
     {
       "code": "spec_extended_judgement-1960",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91095
+      "bytes": 84111
     },
     {
       "code": "spec_extended_world-1961",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87047
+      "bytes": 81397
     },
     {
       "code": "spec_extended_fool-1962",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88252
+      "bytes": 82637
     },
     {
       "code": "spec_extended_justice-1963",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87700
+      "bytes": 81436
     },
     {
       "code": "spec_extended_strength-1964",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89035
+      "bytes": 83292
     },
     {
       "code": "spec_extended_hermit-1965",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90982
+      "bytes": 85428
     },
     {
       "code": "spec_extended_hermit-1967",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88555
+      "bytes": 82071
     },
     {
       "code": "spec_extended_wheel-of-fortune-1968",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90388
+      "bytes": 83960
     },
     {
       "code": "spec_extended_justice-1969",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89000
+      "bytes": 83139
     },
     {
       "code": "spec_extended_hermit-1970",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87175
+      "bytes": 81104
     },
     {
       "code": "spec_extended_wheel-of-fortune-1971",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91269
+      "bytes": 84768
     },
     {
       "code": "spec_extended_emperor-1972",
       "source": "scripts/render_cards.mjs",
-      "bytes": 85932
+      "bytes": 79953
     },
     {
       "code": "spec_extended_emperor-1974",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87978
+      "bytes": 81758
     },
     {
       "code": "spec_extended_hierophant-1975",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90577
+      "bytes": 84321
     },
     {
       "code": "spec_extended_justice-1976",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86713
+      "bytes": 81098
     },
     {
       "code": "spec_extended_hermit-1977",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87667
+      "bytes": 81662
     },
     {
       "code": "spec_extended_empress-1979",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89788
+      "bytes": 84156
     },
     {
       "code": "spec_extended_fool-1980",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88085
+      "bytes": 82191
     },
     {
       "code": "spec_extended_hierophant-1981",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91897
+      "bytes": 85679
     },
     {
       "code": "spec_extended_empress-1982",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90600
+      "bytes": 85092
     },
     {
       "code": "spec_extended_lovers-1983",
       "source": "scripts/render_cards.mjs",
-      "bytes": 86871
+      "bytes": 81230
     },
     {
       "code": "spec_extended_hermit-1985",
       "source": "scripts/render_cards.mjs",
-      "bytes": 85233
+      "bytes": 79202
     },
     {
       "code": "spec_extended_hanged-man-1986",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90950
+      "bytes": 84576
     },
     {
       "code": "spec_extended_empress-1988",
       "source": "scripts/render_cards.mjs",
-      "bytes": 94004
+      "bytes": 87693
     },
     {
       "code": "spec_extended_emperor-1989",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89634
+      "bytes": 83382
     },
     {
       "code": "spec_extended_chariot-1990",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91594
+      "bytes": 85629
     },
     {
       "code": "spec_extended_hierophant-1991",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87821
+      "bytes": 81023
     },
     {
       "code": "spec_extended_lovers-1992",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89818
+      "bytes": 83018
     },
     {
       "code": "spec_extended_chariot-1993",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89560
+      "bytes": 83988
     },
     {
       "code": "spec_extended_wheel-of-fortune-1995",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87887
+      "bytes": 81688
     },
     {
       "code": "spec_extended_justice-1996",
       "source": "scripts/render_cards.mjs",
-      "bytes": 84824
+      "bytes": 78792
     },
     {
       "code": "spec_extended_empress-1997",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90537
+      "bytes": 84531
     },
     {
       "code": "spec_extended_wheel-of-fortune-1998",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92920
+      "bytes": 86081
     },
     {
       "code": "spec_extended_chariot-1999",
       "source": "scripts/render_cards.mjs",
-      "bytes": 91929
+      "bytes": 86018
     },
     {
       "code": "spec_extended_temperance-2000",
       "source": "scripts/render_cards.mjs",
-      "bytes": 92203
+      "bytes": 86038
     },
     {
       "code": "spec_extended_strength-2002",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89237
+      "bytes": 83508
     },
     {
       "code": "spec_extended_hermit-2003",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88753
+      "bytes": 82970
     },
     {
       "code": "spec_extended_wheel-of-fortune-2004",
       "source": "scripts/render_cards.mjs",
-      "bytes": 90372
+      "bytes": 83834
     },
     {
       "code": "spec_extended_justice-2005",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87077
+      "bytes": 81181
     },
     {
       "code": "spec_extended_hanged-man-2006",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89521
+      "bytes": 83533
     },
     {
       "code": "spec_extended_death-2007",
       "source": "scripts/render_cards.mjs",
-      "bytes": 89477
+      "bytes": 83742
     },
     {
       "code": "spec_extended_temperance-2008",
       "source": "scripts/render_cards.mjs",
-      "bytes": 88354
+      "bytes": 82353
     },
     {
       "code": "spec_extended_devil-2009",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87638
+      "bytes": 82128
     },
     {
       "code": "spec_extended_chariot-2010",
       "source": "scripts/render_cards.mjs",
-      "bytes": 87281
+      "bytes": 81011
     }
   ],
   "external_count": 10,

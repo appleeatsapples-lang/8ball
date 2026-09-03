@@ -16,16 +16,24 @@
 //   5. the templates — the specimen carries the groups, the titles, every
 //      value, the catalog numeral and the site, and never the name; the og
 //      copy is free-era and price-free
-//   6. the dependency-free JPEG stripper drops exactly EXIF / ICC / COM
+//   6. the dependency-free JPEG stripper keeps JFIF and drops every other
+//      application segment and COM (an allowlist, not a blocklist)
+//   7. the digest pins — the exact HTML every hosted specimen and the og
+//      image were rendered from, so a change to the sheet registries or the
+//      templates fails here until `scripts/render_cards.mjs` is re-run and
+//      the hosted artifacts actually follow (pr234 audit H1)
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseCode, fromRoman, seededRandom, syntheticName, specimenInputsFor, profileFor,
   snapshotFor, specimenHtml, ogHtml, OG_COPY, stripJpegMetadata, loadCities, CANVAS, OG, SITE,
+  JPEG_QUALITY, MANIFEST_NOTE, ONSETS, NUCLEI, CODAS,
 } from '../scripts/render_cards.mjs';
+import { buildCardSVGFromSnapshot } from '../ui/share.js';
 import { SHEET_GROUPS } from '../ui/tiers.js';
 import { ROW_TITLES } from '../ui/sheet.js';
 import { getCard } from '../core/engine.js';
@@ -37,6 +45,8 @@ const root = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(root, 'cards', 'manifest.json'), 'utf-8'));
 const specCodes = manifest.cards.map(c => c.code).filter(parseCode);
 const cities = loadCities();
+const sha256 = s => createHash('sha256').update(s).digest('hex');
+const indexHtml = readFileSync(join(root, 'index.html'), 'utf-8');
 
 describe('render_cards — codes', () => {
   it('parses the catalog and extended specimen shapes, and nothing else', () => {
@@ -58,6 +68,20 @@ describe('render_cards — codes', () => {
       if (parseCode(c.code)) expect(c.source, c.code).toBe('scripts/render_cards.mjs');
       else expect(c.source, c.code).not.toBe('scripts/render_cards.mjs');
     }
+  });
+
+  it('the manifest shape the renderer writes is the shape the hosting pins read: canvas, quality, note', () => {
+    expect(manifest.canvas).toEqual([CANVAS.w, CANVAS.h]);
+    expect(manifest.quality).toBe(JPEG_QUALITY);
+    expect(manifest.note).toBe(MANIFEST_NOTE);
+    expect(MANIFEST_NOTE).toContain('scripts/render_cards.mjs');
+    expect(MANIFEST_NOTE).toContain('scripts/build_card_jpegs.py');
+  });
+
+  it('the site printed on every card is the canonical domain index.html declares', () => {
+    expect(SITE).toBe('the-eight-ball.netlify.app');
+    expect(indexHtml).toContain(`<link rel="canonical" href="https://${SITE}/">`);
+    expect(indexHtml).toContain(`<meta property="og:url" content="https://${SITE}/">`);
   });
 });
 
@@ -101,17 +125,37 @@ describe('render_cards — deterministic synthetic profiles (§11)', () => {
     }
   });
 
-  it('inputs are synthetic: a syllable name, a time on a five-minute grid, a city with a real IANA zone at |lat| <= 60', () => {
-    for (const code of specCodes.slice(0, 40)) {
+  const syllableRe = new RegExp(`^(?:(?:${ONSETS.join('|')})(?:${NUCLEI.join('|')})(?:${CODAS.filter(Boolean).join('|')})?){1,2}$`);
+  const isSyllabic = w => syllableRe.test(w[0].toLowerCase() + w.slice(1));
+
+  it('the city table is the 1500 most populous at |lat| <= 60, each with a real IANA zone', () => {
+    expect(cities).toHaveLength(1500);
+    for (const c of cities) {
+      expect(Math.abs(c.lat), c.city).toBeLessThanOrEqual(60);
+      expect(c.tz, c.city).toMatch(/^[A-Z][A-Za-z_]+\/[A-Za-z_\-/]+$/);
+    }
+    // the bound is doing work only if the raw table reaches past it
+    const raw = JSON.parse(readFileSync(join(root, 'assets', 'cities.json'), 'utf-8'));
+    expect(raw.cities.some(c => Math.abs(c[2]) > 60)).toBe(true);
+  });
+
+  it('inputs are synthetic for all 331: a syllable name from the three tables, a time on a five-minute grid, a city from the table', () => {
+    for (const code of specCodes) {
       const i = specimenInputsFor(code, cities);
       expect(i.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+      for (const w of i.name.split(' ')) expect(isSyllabic(w), `${code} ${w}`).toBe(true);
+      expect(cities.some(c => c.city === i.city && c.tz === i.tz && c.lat === i.lat && c.lng === i.lng), code).toBe(true);
       expect(i.time).toMatch(/^([01]\d|2[0-3]):[0-5][05]$/);
       expect(i.tz).toMatch(/^[A-Z][A-Za-z_]+\/[A-Za-z_\-/]+$/);
       expect(Math.abs(i.lat)).toBeLessThanOrEqual(60);
       expect(i.dob).toMatch(/^(19[5-9]\d|200[0-5])-\d{2}-\d{2}$/.test(i.dob) || parseCode(code).kind === 'extended' ? /^\d{4}-\d{2}-\d{2}$/ : /never/);
     }
     const rnd = seededRandom(7);
-    for (let i = 0; i < 50; i++) expect(syntheticName(rnd)).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+    for (let i = 0; i < 50; i++) {
+      const n = syntheticName(rnd);
+      expect(n).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+      for (const w of n.split(' ')) expect(isSyllabic(w), w).toBe(true);
+    }
   });
 });
 
@@ -123,8 +167,8 @@ describe('render_cards — registry parity', () => {
     expect(snap.groups.map(g => [g.key, g.title])).toEqual(SHEET_GROUPS.map(g => [g.key, g.title]));
     expect(snap.sections).toHaveLength(SHEET_GROUPS.flatMap(g => g.rows).length);
     expect(snap.sections.flatMap(r => r.cells)).toHaveLength(15);
-    expect(snap.sections.map(r => r.title)).toEqual(
-      SHEET_GROUPS.flatMap(g => g.rows).map(keys => keys[0] === 'sun' ? 'SUN ↑ RISING' : keys[0] === 'animal' ? 'PUBLIC ⇌ PRIVATE' : ROW_TITLES[keys[0]]));
+    expect(snap.sections.map(r => r.title)).toEqual(SHEET_GROUPS.flatMap(g => g.rows).map(keys => ROW_TITLES[keys[0]]));
+    expect(snap.sections.map(r => r.cells.length)).toEqual(SHEET_GROUPS.flatMap(g => g.rows).map(keys => keys.length));
     expect(snap.catalog).toBe('no. xxxi');
   });
 
@@ -146,6 +190,8 @@ describe('render_cards — registry parity', () => {
   it('the og template embeds the share PNG\'s own card art beside free-era, price-free copy', () => {
     const html = ogHtml(snap);
     expect(html).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    // the art is the §5.D share renderer's own output over the same snapshot, byte for byte
+    expect(html).toContain(buildCardSVGFromSnapshot({ catalog: snap.catalog, sections: snap.sections }));
     expect(html).toContain('>MOON</text>');
     expect(html).toContain('>leo</text>');
     expect(html).toMatch(new RegExp(`width:${OG.w}px;height:${OG.h}px`));
@@ -167,18 +213,40 @@ describe('render_cards — registry parity', () => {
 
 describe('render_cards — the JPEG stripper', () => {
   const seg = (marker, payload) => Buffer.concat([Buffer.from([0xff, marker, (payload.length + 2) >> 8, (payload.length + 2) & 0xff]), payload]);
-  it('drops EXIF (APP1), ICC (APP2) and COM, keeps JFIF (APP0) and everything from SOS on', () => {
+  it('keeps JFIF (APP0) and everything from SOS on; drops EXIF (APP1), ICC (APP2), Photoshop (APP13), Adobe (APP14) and COM', () => {
     const jfif = seg(0xe0, Buffer.from('JFIF\0'));
     const exif = seg(0xe1, Buffer.from('Exif\0\0abc'));
     const icc = seg(0xe2, Buffer.from('ICC_PROFILE\0xyz'));
+    const irb = seg(0xed, Buffer.from('Photoshop 3.0\0'));
+    const adobe = seg(0xee, Buffer.from('Adobe\0'));
     const com = seg(0xfe, Buffer.from('comment'));
     const dqt = seg(0xdb, Buffer.alloc(3, 1));
     const sos = Buffer.concat([Buffer.from([0xff, 0xda, 0, 2]), Buffer.from([1, 2, 3]), Buffer.from([0xff, 0xd9])]);
-    const input = Buffer.concat([Buffer.from([0xff, 0xd8]), jfif, exif, icc, dqt, com, sos]);
+    const input = Buffer.concat([Buffer.from([0xff, 0xd8]), jfif, exif, icc, irb, dqt, adobe, com, sos]);
     const out = stripJpegMetadata(input);
     expect(out.equals(Buffer.concat([Buffer.from([0xff, 0xd8]), jfif, dqt, sos]))).toBe(true);
   });
   it('refuses a non-JPEG', () => {
     expect(() => stripJpegMetadata(Buffer.from([0x89, 0x50]))).toThrow(/not a JPEG/);
+  });
+});
+
+describe('render_cards — the digest pins (the hosted artifacts follow the templates)', () => {
+  // Re-run `node scripts/render_cards.mjs --specimens --og --driver <dir>`
+  // and update these two digests in the same commit whenever the sheet
+  // registries or the templates change — the hosted /cards JPEGs and the og
+  // image are rendered from exactly this HTML, so a stale digest means the
+  // site is serving a card the sheet no longer draws.
+  const SPECIMEN_HTML_SHA256 = 'fbcac81f5e7894d3e0399fdd2b6ce5ba84959b3a00db14714524f8055d902072';
+  const OG_HTML_SHA256 = 'd397f5e3a5c3db9d4f3a2a7db1d000529f1f443f54e61287e40b01fc8954c69d';
+
+  it('every specimen\'s HTML, in manifest order, digests to the pinned value', () => {
+    const all = specCodes.map(code => specimenHtml(snapshotFor(profileFor(specimenInputsFor(code, cities))))).join('\n');
+    expect(sha256(all)).toBe(SPECIMEN_HTML_SHA256);
+  });
+
+  it('the og image\'s HTML digests to the pinned value', () => {
+    const snap = snapshotFor(profileFor(specimenInputsFor('spec_no-xxxi', cities)));
+    expect(sha256(ogHtml(snap))).toBe(OG_HTML_SHA256);
   });
 });
