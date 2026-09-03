@@ -295,8 +295,12 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
 
   const controls = makeNode();
   const prior = globalThis.document;
+  // v0.76: the paired panel binds one document-level Escape listener; the
+  // harness records it (with its capture flag) so tests can fire it.
+  const docListeners = {};
   globalThis.document = {
     getElementById: id => byId.get(id) || null,
+    addEventListener: (ev, fn, opts) => { docListeners[ev] = { fn, capture: opts === true || !!(opts && opts.capture) }; },
     createElement: tag => {
       const n = makeNode(tag);
       // The entry button and the injected <style> are created, not parsed.
@@ -328,6 +332,16 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       cell: (prefix, key) => byAttr.get(`[data-sheet-cell="${prefix}:${key}"]`),
       cellRoot: (prefix, key) => byAttr.get(`[data-sheet-cell="${prefix}:${key}"]`).closest('.coord-cell'),
       face: prefix => byAttr.get(`[data-sheet-face="${prefix}"]`),
+      docListeners,
+      // fire a document keydown under a document that may carry an open modal
+      escape(modalOpen = false) {
+        const outer = globalThis.document;
+        globalThis.document = {
+          getElementById: id => byId.get(id) || null, createElement: () => makeNode(),
+          querySelector: sel => (modalOpen && sel === '.modal-bg.open' ? makeNode() : null),
+        };
+        try { return docListeners.keydown && docListeners.keydown.fn({ key: 'Escape' }); } finally { globalThis.document = outer; }
+      },
       withDom(fn) {
         const outer = globalThis.document;
         globalThis.document = { getElementById: id => byId.get(id) || null, createElement: () => makeNode() };
@@ -1407,8 +1421,9 @@ const entry = h => {
   h.get('dyad-dob-input').value = '1988-06-15';
 };
 // B2 shares B's date and a DIFFERENT first name, so a head that named the
-// wrong sheet's owner cannot pass by coincidence (A and B are both "specimen").
-const B2 = buildProfile('other b', '1988-06-15');
+// wrong sheet's owner cannot pass by coincidence (A and B are both "specimen";
+// the name is chosen not to be a substring of any screen copy).
+const B2 = buildProfile('zelda b', '1988-06-15');
 const nameA = A.firstName || 'a';
 const nameB = B2.firstName || 'b';
 
@@ -1465,6 +1480,28 @@ describe('dyad surface — v0.76: the paired sheets reveal titles under the one 
       expect(seen).toEqual([true, false]);
       expect(h.face('b').classList.contains('labels-revealed')).toBe(false);
     });
+  });
+
+  it('the toggle derives its next state from the sheet, not storage — no one-way latch when setItem is denied (pr235 audit MED-4)', () => {
+    const prior = globalThis.localStorage;
+    globalThis.localStorage = { getItem: () => null, setItem: () => { throw new Error('denied'); } };
+    try {
+      const seen = [];
+      const h = harness('t5');
+      h.withDom(() => {
+        initDyadUI({ stage: makeNode(), controls: makeNode() }, {
+          getProfile: () => A, getTier: () => 't5', buildSecond: () => B, onLabelsChange: v => seen.push(v),
+        });
+        openDyad();
+        h.get('dyad-labels-toggle').listeners.click();
+      });
+      expect(h.face('a').classList.contains('labels-revealed')).toBe(true);
+      h.withDom(() => h.get('dyad-labels-toggle').listeners.click());
+      expect(h.face('a').classList.contains('labels-revealed')).toBe(false);
+      expect(h.face('b').classList.contains('labels-revealed')).toBe(false);
+      expect(h.get('dyad-labels-toggle').textContent).toBe('→ reveal labels');
+      expect(seen).toEqual([true, false]);
+    } finally { globalThis.localStorage = prior; }
   });
 
   it('render() re-applies the preference (a pair landed after a flip elsewhere agrees)', () => {
@@ -1610,10 +1647,74 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     // the head is not blanked by clear (it is inert and hidden), but a fresh
     // open cannot show a stale owner: names are dropped with the pair
     h.withDom(() => { openDyad(); });
-    h.get('dyad-name-input').value = 'other b'; h.get('dyad-dob-input').value = '1988-06-15';
+    h.get('dyad-name-input').value = 'zelda b'; h.get('dyad-dob-input').value = '1988-06-15';
     h.withDom(() => submitSecond());
     tap(h, 'a', 'sun');
     expect(h.get('dyad-meaning-head').textContent).toBe(`sun · ${nameA}`);
+  });
+
+  it('a close BLANKS the panel — person B\'s name and reading do not outlive a close, a re-open or a fresh pair (pr235 audit HIGH, both lanes)', () => {
+    const h = rendered();
+    tap(h, 'b', 'dayPillar');
+    expect(h.get('dyad-meaning-head').textContent).toBe(`day pillar · ${nameB}`);
+    expect(h.get('dyad-meaning-body').textContent.length).toBeGreaterThan(0);
+    h.withDom(() => closeDyad());
+    for (const id of ['dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body', 'dyad-meaning-context', 'dyad-meaning-relation']) {
+      expect(h.get(id).textContent, id).toBe('');
+    }
+    for (const id of ['dyad-meaning-context-head', 'dyad-meaning-relation-head']) {
+      expect(h.get(id).textContent, id).toBe('');
+      expect(h.get(id).hidden, id).toBe(true);
+    }
+    // the panel's own nodes; the sheet label (dyad-head-b) legitimately names
+    // whoever the CURRENT second person is (the harness's buildSecond is fixed)
+    const carriers = () => [...h.byId.entries()]
+      .filter(([k, n]) => k.startsWith('dyad-meaning') && String(n.textContent || '').includes(nameB)).map(([k]) => k);
+    expect(carriers()).toEqual([]);
+    // a fresh pair with a third person: still nothing until a tap
+    h.withDom(() => { openDyad(); });
+    h.get('dyad-name-input').value = 'third c'; h.get('dyad-dob-input').value = '1995-03-03';
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-meaning-head').textContent).toBe('');
+    expect(carriers()).toEqual([]);
+    // the close control and a second tap blank too (one close path)
+    tap(h, 'a', 'sun');
+    h.withDom(() => h.get('dyad-meaning-close').listeners.click());
+    expect(h.get('dyad-meaning-title').textContent).toBe('');
+  });
+
+  it('Escape closes the paired panel through a capture-phase document listener, returns focus to the cell, and yields to an open modal (pr235 audit)', () => {
+    const h = rendered();
+    expect(h.docListeners.keydown).toBeTruthy();
+    expect(h.docListeners.keydown.capture).toBe(true);
+    tap(h, 'b', 'element');
+    const cell = h.cellRoot('b', 'element');
+    // a modal is open: the panel stays, the modal keeps priority
+    h.escape(true);
+    expect(h.get('dyad-meaning-panel').classList.contains('open')).toBe(true);
+    // no modal: closes, focus returns to the toggler cell without scrolling
+    h.escape(false);
+    expect(h.get('dyad-meaning-panel').classList.contains('open')).toBe(false);
+    expect(h.get('dyad-meaning-panel').inert).toBe(true);
+    expect(cell.focusCalls).toEqual([{ preventScroll: true }]);
+    expect(cell.attrs['aria-expanded']).toBe('false');
+    // nothing active: Escape is a no-op (no focus call, no error)
+    h.escape(false);
+    expect(cell.focusCalls).toHaveLength(1);
+  });
+
+  it('the document listener is bound once per document — a re-entered init on the same document does not stack it', () => {
+    const h = harness('t5');
+    expect(h.docListeners.keydown).toBeTruthy();
+    let count = 0;
+    h.withDom(() => {
+      const doc = globalThis.document;
+      doc.addEventListener = () => { count++; };
+      // first init on THIS document binds; a second on the same document does not
+      initDyadUI({ stage: makeNode(), controls: makeNode() }, { getProfile: () => A, getTier: () => 't5' });
+      initDyadUI({ stage: makeNode(), controls: makeNode() }, { getProfile: () => A, getTier: () => 't5' });
+    });
+    expect(count).toBe(1);
   });
 
   it('the strip is the ONLY listener host — a re-render detaches nothing', () => {

@@ -36,8 +36,11 @@
 // that cannot fall behind its fill list is the actual fix — the previous one
 // was correct when written and wrong one edit later.
 //
-// ── STORAGE / NETWORK: NONE ───────────────────────────────────────
-// No localStorage key is named, read or written. Person B lives in one
+// ── STORAGE / NETWORK: NONE OF ITS OWN ────────────────────────────
+// No localStorage key is named, read or written HERE. Since v0.76 the
+// paired screen reads and writes the ONE existing labels preference through
+// ui/labels.js's pure helpers (that module names the key; the allow-list is
+// unchanged) — nothing else. Person B lives in one
 // module-local binding for the life of the screen and is dropped on close, on
 // an invalid re-submission, and on reload — the §5.F transient shape. Notably
 // the written-entry rotation key is never touched: both sheets take their note
@@ -346,6 +349,9 @@ let _cityUI = null;
 let _activeCell = null;
 let _names = { a: '', b: '' };
 let _panelScrollTimer = null;
+// the document the Escape listener is bound to — once per document (the
+// harness hands init a fresh document each time; the app has one)
+let _escapeDoc = null;
 
 function $(id) {
   return typeof document === 'undefined' ? null : document.getElementById(id);
@@ -405,6 +411,25 @@ function markPairedCells() {
   }
 }
 
+// Every text node the paired panel can hold — blanked on close, because
+// `hidden` is not deletion (PR #187 F1; pr235 audit, both lanes): an inert,
+// aria-hidden panel that still carries person B's first name and reading is
+// live DOM on person A's device, and it would otherwise survive a close, a
+// re-open and a fresh pair with a third person.
+const PAIRED_PANEL_TEXT_IDS = Object.freeze([
+  'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
+  'dyad-meaning-context', 'dyad-meaning-relation',
+]);
+const PAIRED_PANEL_HEAD_IDS = Object.freeze(['dyad-meaning-context-head', 'dyad-meaning-relation-head']);
+
+function blankPairedPanel() {
+  for (const id of PAIRED_PANEL_TEXT_IDS) setText(id, '');
+  for (const id of PAIRED_PANEL_HEAD_IDS) {
+    const node = $(id);
+    if (node) { node.textContent = ''; node.hidden = true; }
+  }
+}
+
 function setPairedPanelHidden(hidden) {
   const panel = $('dyad-meaning-panel');
   if (!panel) return;
@@ -423,6 +448,7 @@ export function closePairedPanel() {
   const panel = $('dyad-meaning-panel');
   if (panel && panel.classList) panel.classList.remove('open');
   setPairedPanelHidden(true);
+  blankPairedPanel();
 }
 
 export function openPairedPanel(cell) {
@@ -495,19 +521,31 @@ function bindPairedPanel() {
   const toggle = $('dyad-labels-toggle');
   if (toggle && toggle.addEventListener) {
     toggle.addEventListener('click', () => {
-      const next = !isLabelsRevealed();
+      // `next` comes from the sheet's own class, as the host derives it from
+      // #card-face — deriving it from storage made the toggle a one-way latch
+      // wherever setItem is denied (pr235 audit MED-4).
+      const faceA = _root && _root.querySelector ? _root.querySelector('[data-sheet-face="a"]') : null;
+      const next = faceA && faceA.classList ? !faceA.classList.contains('labels-revealed') : !isLabelsRevealed();
       setLabelsRevealed(next);
       applyDyadLabels(next);
       if (typeof _hooks.onLabelsChange === 'function') _hooks.onLabelsChange(next);
     });
   }
-  // Escape parity with the host panel; a modal overlay keeps priority.
-  if (typeof document.addEventListener === 'function') {
+  // Escape parity with the host panel; a modal overlay keeps priority. The
+  // listener is CAPTURE-phase (pr235 audit, both lanes): ui/modals.js's own
+  // bubble-phase Escape handler registers first at boot and strips `.open`
+  // from the modal before a later bubble handler could see it, so a
+  // bubble-phase guard here read "no modal open" and closed the panel on the
+  // same keystroke. Capture runs before every bubble handler on the document.
+  // Bound once per document — initDyadUI may be re-entered (the harness
+  // does), and a document listener must not stack.
+  if (typeof document.addEventListener === 'function' && _escapeDoc !== document) {
+    _escapeDoc = document;
     document.addEventListener('keydown', e => {
       if (!e || e.key !== 'Escape' || !_activeCell) return;
       if (typeof document.querySelector === 'function' && document.querySelector('.modal-bg.open')) return;
       closePairedPanel();
-    });
+    }, true);
   }
   setPairedPanelHidden(true);
 }

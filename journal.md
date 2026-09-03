@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — STAGED on branch, PR pending
+## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — STAGED on branch, PR #235 open
 
 **What happened.** "Now the dyad sheets labels and derivation surface" —
 the open work v0.74 named. Through v0.75 the two §1.J sheets had row
@@ -82,7 +82,7 @@ panel reuses the host's parts, classes and pure path and index.html
 hands the hook. `tests/atlas.test.js` and `tests/meanings_ui.test.js`
 repoint two source-literal pins at `buildPanelMarkup('meaning')` and
 pin the `dyad-meaning-` prefix (nine ids, no `meaning-` id). Suite 61
-files / 2079 tests green; product audit PASS. Mutants: render without
+files / 2079 tests green at PR open; product audit PASS. Mutants: render without
 the labels re-apply, the panel reading sheet A for every tap, the
 derivation line dropped, clearOutput leaving the panel open, the hook
 never called — each killed by its pin (listed with the reconciliation).
@@ -94,8 +94,45 @@ closure marker (L17, nothing edited in place); footer and changelog.
 CLAUDE.md's dyad line names the new surface (module counts unchanged —
 no new file).
 
-**Queued.** Nothing named. The friend's rising/moon reading still
-waits on a birth time.
+**Two-lane audit (pr235), reconciled.** Both lanes MERGE WITH FIXES;
+both reproduced the same HIGH: `closePairedPanel()` hid the panel
+(inert, aria-hidden) but never blanked its text, so person B's first
+name and reading survived a close, a re-open and a fresh pair with a
+third person — the "hidden is not deletion" class (PR #187 F1) the
+entry above's own clearOutput docblock cites, missed for the panel;
+and the amendment said the opposite. A close now blanks the six text
+nodes and hides the two heads; pinned by a test that names any panel
+node still carrying B's name after close / re-open / third pair, and
+live-fired by searching the screen's text for the name. Second, the
+Escape "modal keeps priority" guard never held on EITHER panel:
+`ui/modals.js`'s bubble-phase handler registers first at boot and
+strips `.open` before a later handler sees it, so one keystroke closed
+the modal and the panel and clobbered the modal's focus return — a
+pre-existing host defect (Lane A verified on the base) that this PR
+had copied. Both listeners are now capture-phase (the one host-
+behaviour change, named in the amendment) and the paired one binds
+once per document; live-fired on both surfaces. Then: the paired
+toggle derived its next state from storage and latched on wherever
+`setItem` is denied (now the sheet's own class, as the host does;
+pinned under a throwing setItem); §1.J and the module header still
+claimed the dyad reads and writes no storage (marker + rewrite); the
+harness document had no `addEventListener`, so Escape was never even
+attached under test (the harness now records listeners with their
+capture flag and can fire Escape under a document with or without an
+open modal); focus return, the never-reads-the-sheet branches of
+`panelDetailFor`, `coordinateLabel`'s fallback and the once-per-
+document bind are pinned. Recorded, not changed: the 44px tap target
+grows each paired sheet by about a fifth — the growth the host sheet
+took when its cells became interactive; the paired sealed branch is
+unreachable at the free ceiling, as the host's is; the host panel
+stays open behind the paired screen and a paired-screen Escape closes
+it too — a follow-up, with the host panel's own blank-on-close, for
+the controller. Seven reconciliation mutants killed. Suite 61 files /
+2086 tests green; product audit PASS.
+
+**Queued.** The host panel's own blank-on-close and whether it should
+close when the paired screen opens (named above). The friend's
+rising/moon reading still waits on a birth time.
 
 ## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — SHIPPED (#234)
 

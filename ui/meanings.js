@@ -593,11 +593,16 @@ let scrollTimer = null;
 
   // Escape parity with about/forget/paywall (P3 post-spree audit). Defer when
   // any modal-bg overlay is open so modal Escape remains the higher priority.
+  // CAPTURE-phase since v0.76 (pr235 audit, both lanes, verified on the base
+  // too): ui/modals.js's bubble-phase Escape handler registers first at boot
+  // and strips `.open` before a later bubble handler could see it, so the
+  // guard below never held and one keystroke closed the modal AND this
+  // panel. Capture runs before every bubble handler on the document.
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!panel.classList.contains('open')) return;
     if (typeof document.querySelector === 'function'
         && document.querySelector('.modal-bg.open')) return;
     close();
-  });
+  }, true);
 }
