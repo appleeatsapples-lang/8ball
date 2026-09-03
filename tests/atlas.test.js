@@ -15,6 +15,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATLAS_NOTE, PROV_NOTE, atlasText, derivationText, initTiersUI, renderTierSections, shareRowRefs, CELL_KEYS as REGISTRY_CELL_KEYS } from '../ui/tiers.js';
 import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
+import { buildPanelMarkup } from '../ui/meanings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf-8');
@@ -118,7 +119,9 @@ describe('ATLAS legend (CLP cut 2)', () => {
 
   it('v0.74: ui/meanings.js writes the line under the panel head on every open', () => {
     expect(meaningsJs).toMatch(/import \{ derivationText \} from '\.\/tiers\.js'/);
-    expect(meaningsJs).toMatch(/<div class="meaning-derivation" id="meaning-derivation"><\/div>/);
+    // v0.76: the markup is built by buildPanelMarkup (the dyad's paired panel
+    // reuses it under its own prefix); the host panel's line is unchanged
+    expect(buildPanelMarkup('meaning')).toMatch(/<div class="meaning-derivation" id="meaning-derivation"><\/div>/);
     expect(meaningsJs).toMatch(/derivation\.textContent = derivationText\(key\);/);
   });
 

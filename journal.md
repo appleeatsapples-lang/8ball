@@ -5,7 +5,99 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — STAGED on branch, PR #234 open
+## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — STAGED on branch, PR pending
+
+**What happened.** "Now the dyad sheets labels and derivation surface" —
+the open work v0.74 named. Through v0.75 the two §1.J sheets had row
+titles that no toggle could reveal (the labels class was host-scoped:
+`ui/labels.js` flips `#card-face` and the flip stage only) and thirty
+compartments that opened nothing (§1.J's recorded limit: the sheets
+carry no ids, so `ui/meanings.js`'s id-bound panel could not reach
+them). Both close, and by the host's own mechanisms rather than second
+copies.
+
+**Labels.** `ui/dyad.js` applies the host's `.labels-revealed` class to
+both `[data-sheet-face]` articles from the stored preference
+(`isLabelsRevealed`, the pure helper `ui/labels.js` exports) on every
+open and every render, so `ui/shell.css`'s existing
+`.card.labels-revealed .coord-title` rule reveals their titles — no new
+rule, no new class. The paired screen carries its own `.labels-toggle`
+(`#dyad-labels-toggle`, the host's shape and copy) above the sheet
+strip; its click writes the SAME key through `setLabelsRevealed` and
+hands the state to the host's `applyLabelsState` through a new
+`onLabelsChange` hook (one line in index.html, 645 → 646), so the single
+sheet agrees when the reader goes back. One preference, one owner, two
+readers; no key added (§5).
+
+**The panel.** Every one of the thirty paired compartments opens
+`#dyad-meaning-panel`, injected under the strip. `ui/meanings.js` gains
+two exports and changes no behaviour: `buildPanelMarkup(prefix)` (the
+host's panel is `buildPanelMarkup('meaning')`, byte-identical to the
+literal it replaces; the paired one is the `dyad-meaning-` prefix) and
+`panelDetailFor(key, rawValue, readSheet, {sealed})` — the host's own
+open path extracted pure, which the host now calls over its id-bound
+`readValues` and the paired panel calls over the TAPPED sheet's
+`readCells()`, so a value on sheet B is read beside B's other values
+and B's filed relations, never A's. The head is `<label> · <first
+name>` (the name the sheet's own label already shows); the second line
+is `derivationText(key)` — the v0.74 line, the same registry text.
+Cells are marked interactive by ATTRIBUTE (`role="button"`,
+`tabindex="0"`, `aria-controls`, `aria-label`, `data-coordinate-key`,
+`data-sheet-side`), never by id — the G2 rule stands, `ui/sheet.js`'s
+markup is unchanged; click and keydown (Enter/Space) are delegated to
+the strip so a re-render detaches nothing; a second tap, the close
+control and Escape close; `clearOutput()` closes the panel, restores
+the compartment hint and drops the owners' names with the pair. The
+`.meaning-*` classes are the host's, injected at the host's boot
+(`initMeaningsUI` runs before `initDyadUI`), so the paired panel looks
+like the host's because it IS the host's parts.
+
+**Live-fire (§8 gate 9), 390 and 1440.** Pair landed → both sheets'
+titles hidden (4px collapsed boxes), toggle "→ reveal labels"; toggle →
+both `labels-revealed`, titles visible at 15px, host class and copy
+follow, key `true`; tap `b:moon` (no birthplace → unresolved) → head
+"moon · second", derivation "moon sign · lunar longitude", "not
+resolved", the moon copy, no context; tap `a:lifePath` → "life path ·
+test", "life-path · digit-sum reduction", the communicator, "with the
+other numbers" context; second tap closes (inert, aria-hidden); Escape
+closes; back → host sheet labeled, toggle "→ hide labels"; reopen →
+preference held, panel closed, hint back; flip off from the paired
+screen → host follows. No horizontal overflow; no console errors. Page
+height on the paired screen is the content's (probed: 1989 → 2316 with
+a panel open, the back control the last box).
+
+**Tests.** `tests/dyad_surface.test.js` +11 (the harness gains the new
+ids and a self-answering `closest` on the cell roots): open applies the
+stored preference to both sheets and the toggle; the toggle flips both,
+writes the one key and calls the hook (true, then false); render
+re-applies; the module never names the key outside comments; all
+thirty cells interactive by attribute and never by id, the panel inert
+and hidden at rest; a tap on B reads B in B's context with the head
+naming B and the derivation line; the same coordinate on the two sheets
+reads in two contexts; all thirty open with title, body and derivation;
+an unresolved cell opens the unresolved copy; second tap / Enter /
+Space / close / non-key / off-cell behaviours; clearOutput closes and
+restores the hint; the strip is the only listener host; the paired
+panel reuses the host's parts, classes and pure path and index.html
+hands the hook. `tests/atlas.test.js` and `tests/meanings_ui.test.js`
+repoint two source-literal pins at `buildPanelMarkup('meaning')` and
+pin the `dyad-meaning-` prefix (nine ids, no `meaning-` id). Suite 61
+files / 2079 tests green; product audit PASS. Mutants: render without
+the labels re-apply, the panel reading sheet A for every tap, the
+derivation line dropped, clearOutput leaving the panel open, the hook
+never called — each killed by its pin (listed with the reconciliation).
+
+**DOCTRINE v0.76.** §1.E gains the amendment; §1.J's not-tappable limit
+carries a dated supersession marker and v0.74's "open work" sentence a
+closure marker (L17, nothing edited in place); footer and changelog.
+`audits/RELEASE_CHECKLIST.md` gains the paired-sheet smoke line;
+CLAUDE.md's dyad line names the new surface (module counts unchanged —
+no new file).
+
+**Queued.** Nothing named. The friend's rising/moon reading still
+waits on a birth time.
+
+## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — SHIPPED (#234)
 
 **What happened.** "Now the cards and og image regeneration." Both
 artifacts had been queued since v0.72 as "sources off-repo": the 611

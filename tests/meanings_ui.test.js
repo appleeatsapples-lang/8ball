@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildPanelMarkup } from '../ui/meanings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -79,7 +80,15 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   });
 
   it('v0.74: the panel carries the derivation line between head and title, hidden when empty', () => {
-    expect(meaningsJs).toMatch(/id="meaning-head"><\/div>' \+\s*'<div class="meaning-derivation" id="meaning-derivation"><\/div>' \+\s*'<div class="meaning-title"/);
+    // v0.76: the panel parts are built by buildPanelMarkup(prefix) so the dyad
+    // screen can carry a second panel under `dyad-meaning-`; the host's
+    // markup is the `meaning` prefix and keeps its order
+    const parts = buildPanelMarkup('meaning');
+    expect(parts).toMatch(/id="meaning-head"><\/div><div class="meaning-derivation" id="meaning-derivation"><\/div><div class="meaning-title"/);
+    expect(meaningsJs).toMatch(/panel\.innerHTML = buildPanelMarkup\('meaning'\);/);
+    const dyad = buildPanelMarkup('dyad-meaning');
+    expect(dyad).not.toMatch(/id="meaning-/);
+    expect(dyad.match(/id="dyad-meaning-[a-z-]+"/g)).toHaveLength(9);
     expect(meaningsJs).toMatch(/\.meaning-derivation:empty \{ display: none; \}/);
   });
 
