@@ -5,7 +5,87 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-02 — DOCTRINE v0.74: the labeled view simplified — the placard and the atlas leave the card for the panel — STAGED on branch, PR pending
+## 2026-09-03 — the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — STAGED on branch, PR pending
+
+**What happened.** "Now the cards and og image regeneration." Both
+artifacts had been queued since v0.72 as "sources off-repo": the 611
+`/cards` JPEGs came from PNGs in the operator's asset vault through
+`scripts/build_card_jpegs.py`, and `assets/og-image.png` from a vault
+tool, so every change to the sheet since — the v0.72 system groups,
+the v0.73 MOON row, the v0.74 titles-only labels — left them stale
+with no way to regenerate from here. Reading the families showed the
+gap was narrower than the queue line said: the 217 concordance cards
+and the 63 index cards never depicted the sheet; only the 331
+`spec_no-*` / `spec_extended_*` specimen sheets and the og image did.
+Those two are now rendered IN-REPO by `scripts/render_cards.mjs`, from
+the registries the sheet itself derives from, so they cannot drift
+from it again.
+
+**How the renderer works.** Row order, titles and the four groups come
+from `ui/tiers.js SHEET_GROUPS` and `ui/sheet.js ROW_TITLES`; every
+value comes from `core/profile.js buildProfile` through
+`ui/tiers.js cellRenderState` — the one mapping the host sheet, the
+dyad sheets and the §5.D share PNG render with; the og card art is
+`ui/share.js buildCardSVGFromSnapshot`, the share PNG's own builder,
+so the unfurl shows exactly what a share shows (catalog card xxxi, as
+the unfurl always has). Chromium renders the HTML through a scratch-dir
+`playwright-core` passed as `--driver` — never a dependency (§7 stage
+4; the live-fire recipe in CLAUDE.md). The pipeline contract holds
+unchanged and pinned: 1080×1350 JPEG, q90, ≤ 8 MB, no EXIF / ICC / COM
+(Chromium writes an ICC APP2; a dependency-free segment walker strips
+it); the og image 1200×630 and fully achromatic (Chromium's subpixel
+text antialiasing tints glyph edges, so the render launches with LCD
+text off AND a dependency-free PNG pass collapses every pixel to its
+luma before the write — `tests/monochrome_assets.test.js` proves it).
+
+**Specimens are synthetic, and now derived from the code (§11).** A
+specimen code names a catalog position (`spec_no-xxxi` = card 31) or
+an arcana and a year (`spec_extended_hierophant-1965`), never a
+person. The profile behind each card is derived DETERMINISTICALLY from
+the code: a seeded search for a date of birth that lands on that
+catalog position (sun × animal) or that birth card in that year, a
+seeded synthetic name built from syllables (drawn from no list of
+names; never rendered on a card), a seeded birth time on a five-minute
+grid and a seeded city from `assets/cities.json` (the 1500 most
+populous at |lat| ≤ 60, so rising and moon both resolve). Every one of
+the 331 lands where its code says, resolves every compartment — no
+dash on any card — and re-renders byte-identical for the same code on
+the same Chromium build. **The values on the specimen sheets changed:**
+the vault's synthetic profiles were never in this repo and could not
+be reproduced, so each card carries a new synthetic profile. The code,
+the catalog position and the arcana/year each card advertises did not
+change, the 280 concordance and index cards are byte-identical, and
+`tests/cards_hosting.test.js`'s queue list is untouched.
+
+**What changed on disk.** 331 JPEGs re-rendered (83–94 KB each; 21 s
+for the set); `cards/manifest.json` records their source as the script
+and the new byte counts, count and order unchanged;
+`assets/og-image.png` re-rendered (nine rows, MOON, no hatches, the
+free-era copy — the paid-rung line is gone); `scripts/build_card_jpegs.py`
+now owns the concordance and index families only (it skips the
+specimen codes on write, carries their manifest entries through, and
+skips them on `--check` — an edit exercised only by parse and a stub
+import here, since this container has no Pillow); CLAUDE.md names the
+new script and the two regeneration paths.
+
+**Tests.** `tests/render_cards.test.js` (new, 12 tests): the two code
+shapes and nothing else; determinism; every catalog specimen lands on
+its catalog card and every extended one carries its arcana and year;
+every compartment resolves; inputs are synthetic in shape; the
+snapshot is the registry (four groups, nine rows, fifteen cells, in
+order); the specimen template carries every title, value, the numeral
+and the site and never the name or the date; the og template embeds
+the share SVG beside free-era, price-free copy in greys only; the JPEG
+stripper drops exactly EXIF/ICC/COM. The existing artifact pins
+(`cards_hosting`, `monochrome_assets`, `reach_surface`) pass on the new
+files unchanged. Suite 61 files / 2061 tests green; product audit PASS.
+No DOCTRINE touch: the §5.D share contract and the reach pins are
+unchanged; this is the generated output catching up with them.
+
+**Queued.** The dyad sheets' labels/derivation surface (controller
+decision, named in v0.74).
+
+## 2026-09-02 — DOCTRINE v0.74: the labeled view simplified — the placard and the atlas leave the card for the panel — SHIPPED (#233)
 
 **What happened.** "Now the labeled view simplification" — the third of
 the three passes offered with v0.72. Through v0.73 the labeled sheet
