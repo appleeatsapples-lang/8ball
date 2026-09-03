@@ -214,8 +214,8 @@ export function initTiersUI(refs, hooks) {
       root: val && val.closest ? val.closest('.coord-cell') : null,
     };
   }
-  attachProvenance();
-  attachAtlas();
+  // v0.74: no placard or atlas write pass — both surfaces moved into the
+  // meaning panel (derivationText); the card carries titles only.
 }
 
 /**
@@ -435,9 +435,11 @@ export function shareRowRefs() {
 // keyed off CELL_KEYS, never a profile field, so it adds NO coordinate
 // VALUE to the free surface and carries no PII (it names the METHOD, not
 // the value). Clinical derivation grammar only (DOCTRINE §2): the method,
-// never interpretation. Rendered in .coord-prov, OUTSIDE .coord-title, so
-// ui/share.js rowTitleOf never reads it — placards stay out of the §5.D
-// PNG. Gated by the existing .card.labels-revealed toggle (no new key).
+// never interpretation. Since v0.74 (the labeled-view simplification,
+// 2026-09-02) the note is NOT written on the card: it rides the meaning
+// panel's derivation line through derivationText below — so it never
+// touches .coord-title, stays out of the §5.D PNG, and adds no line to the
+// labeled sheet. The registry is the same one §1.E defined.
 const PROV_NOTE = {
   arcana: 'digit-sum reduction',
   element: 'year stem',
@@ -458,30 +460,11 @@ const PROV_NOTE = {
 
 export { PROV_NOTE };
 
-/** Row provenance text: each cell's derivation note, joined in cell order. */
+/** Row provenance text: each cell's derivation note, joined in cell order.
+ *  Retained as a tested pure join with NO shipped caller since v0.74 (the
+ *  card writer retired); derivationText below is the live consumer. */
 export function provText(keys) {
   return keys.map(k => PROV_NOTE[k] || '').join(' · ');
-}
-
-// Append one .coord-prov node per section, in cell order, reading the
-// section element from each row's first cell. Idempotent (skips a section
-// that already has a placard). Feature-detects a real DOM node via
-// ownerDocument so it is a clean no-op under a non-DOM test mock or when a
-// cell/section is absent.
-function attachProvenance() {
-  for (const keys of SHARE_ROWS) {
-    const lead = _cells && _cells[keys[0]];
-    const section = lead && lead.val && lead.val.closest
-      ? lead.val.closest('.coord-section') : null;
-    const doc = section && section.ownerDocument;
-    if (!doc || typeof doc.createElement !== 'function'
-      || typeof section.appendChild !== 'function') continue;
-    if (section.querySelector && section.querySelector('.coord-prov')) continue;
-    const el = doc.createElement('div');
-    el.className = 'coord-prov';
-    el.textContent = provText(keys);
-    section.appendChild(el);
-  }
 }
 
 // ── ATLAS legend (Coordinate Legibility Pack cut 2, under §1.D/§5.D) ──
@@ -493,13 +476,13 @@ function attachProvenance() {
 // init, never on render) · catalog-isolated (keyed off CELL_KEYS via
 // ATLAS_NOTE, never a profile value or the catalog driver; getCard
 // untouched) · adds NO coordinate VALUE (free VALUE count unchanged) · no
-// PII (names the system, never a name/DOB/value). Rendered in .coord-atlas,
-// OUTSIDE .coord-title, so ui/share.js rowTitleOf never reads it — atlas
-// stays out of the §5.D PNG. Gated by the existing .card.labels-revealed
-// toggle (no new key). Only the rows whose title is abbreviated or omits
-// the tradition carry a note: the personality/birthday/maturity row and the
-// day/hour pillar rows already self-name in their .coord-title, so they are
-// deliberately omitted (an atlas line there would only echo the title).
+// PII (names the system, never a name/DOB/value). Since v0.74 the gloss is
+// NOT written on the card either: it leads the meaning panel's derivation
+// line (derivationText below), so it never touches .coord-title and stays
+// out of the §5.D PNG. Only the coordinates whose row title is abbreviated
+// or omits the tradition carry a note: the personality/birthday/maturity
+// row and the day/hour pillar rows already self-name in their .coord-title,
+// so they are deliberately omitted (the panel head names them anyway).
 const ATLAS_NOTE = {
   arcana: 'tarot arcana',
   element: 'chinese five-element',
@@ -516,31 +499,17 @@ const ATLAS_NOTE = {
 export { ATLAS_NOTE };
 
 /** Row atlas text: each cell's system name, joined in cell order. Empty
- *  when no cell in the row carries an atlas note (the self-naming rows). */
+ *  when no cell in the row carries an atlas note (the self-naming rows).
+ *  Retained as a tested pure join with NO shipped caller since v0.74. */
 export function atlasText(keys) {
   return keys.map(k => ATLAS_NOTE[k] || '').filter(Boolean).join(' · ');
 }
 
-// Insert one .coord-atlas node per section ABOVE its .coord-cells (so the
-// legend reads directly under the title it decodes), in cell order. Skips a
-// row with no atlas note (self-naming rows) and any section already carrying
-// one (idempotent). Feature-detects a real DOM node via ownerDocument so it
-// is a clean no-op under a non-DOM test mock or when a cell/section is absent.
-function attachAtlas() {
-  for (const keys of SHARE_ROWS) {
-    const text = atlasText(keys);
-    if (!text) continue;
-    const lead = _cells && _cells[keys[0]];
-    const section = lead && lead.val && lead.val.closest
-      ? lead.val.closest('.coord-section') : null;
-    const doc = section && section.ownerDocument;
-    if (!doc || typeof doc.createElement !== 'function'
-      || typeof section.insertBefore !== 'function') continue;
-    if (section.querySelector && section.querySelector('.coord-atlas')) continue;
-    const el = doc.createElement('div');
-    el.className = 'coord-atlas';
-    el.textContent = text;
-    const cells = section.querySelector ? section.querySelector('.coord-cells') : null;
-    section.insertBefore(el, cells || null);
-  }
+// ── the panel's derivation line (v0.74, the labeled-view simplification) ──
+// `<system name> · <derivation>` for ONE coordinate — the atlas gloss where
+// the registry carries one, then the §1.E derivation note. Pure over the
+// two registries; takes a key, never a profile, so no value or PII can
+// reach it. ui/meanings.js writes it under the panel head on every open.
+export function derivationText(key) {
+  return [ATLAS_NOTE[key], PROV_NOTE[key]].filter(Boolean).join(' · ');
 }

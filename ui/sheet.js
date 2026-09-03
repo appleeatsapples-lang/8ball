@@ -9,11 +9,11 @@
 //
 // WHY NOT REFACTOR ui/tiers.js INTO A FACTORY. That was the obvious route and
 // it is the wrong trade here. `ui/tiers.js` is imported by 14 of the 51 test
-// files, and two of them (tests/atlas.test.js, tests/provenance.test.js) assert
-// on its SOURCE LAYOUT — they slice the file between the literal tokens
-// `export function renderTierSections` and `export function shareRowRefs` and
-// require zero-argument `attachAtlas();` / `attachProvenance();` call forms. A
-// factory refactor breaks those pins for reasons unrelated to what they guard,
+// files, and several of them assert
+// on its SOURCE LAYOUT (through v0.73 two sliced the file between literal
+// tokens and required zero-argument placard/atlas call forms; those writers
+// retired in v0.74 and the source pins that remain are of the same kind). A
+// factory refactor breaks such pins for reasons unrelated to what they guard,
 // and the only way through is to rewrite protected tests to accommodate the
 // refactor — which is exactly the move a re-audit should distrust. More
 // importantly the audit packet requires that "existing single-reading behavior
@@ -23,8 +23,8 @@
 // SO: one VALUE mapping, two DOM writers. Every coordinate string on a sheet
 // built here comes from `ui/tiers.js cellRenderState` — the same pure function
 // `renderTierSections` resolves the host sheet through — and the rows, the
-// entitlement sets, the provenance placards and the atlas legend are all read
-// from `ui/tiers.js` rather than restated. What differs is only which nodes
+// entitlement sets and the row titles are all read from `ui/tiers.js` rather
+// than restated (the placards and the atlas left every sheet in v0.74). What differs is only which nodes
 // get written. `tests/dyad_surface.test.js` pins the equivalence directly: a
 // bounded set (one profile per life-path facet-anchor group, across every
 // tier) is run through a REAL `renderTierSections` host render and through
@@ -53,10 +53,6 @@ import {
   CELL_COORD,
   cellRenderState,
   coordsForTier,
-  PROV_NOTE,
-  ATLAS_NOTE,
-  provText,
-  atlasText,
   SHEET_GROUPS,
 } from './tiers.js';
 import { CARDS } from '../content/cards.v1.full.js';
@@ -103,12 +99,11 @@ const cellHtml = (prefix, key) =>
 export function buildSheetMarkup(prefix) {
   const sectionHtml = keys => {
     const lead = keys[0];
-    const atlas = atlasText(keys);
+    // v0.74: titles only — the atlas gloss and the placard left every sheet
+    // for the host's meaning panel (ui/tiers.js derivationText).
     return '<div class="coord-section">' +
       `<div class="coord-title" data-sheet-title="${prefix}:${lead}">${ROW_TITLES[lead]}</div>` +
-      (atlas ? `<div class="coord-atlas">${atlas}</div>` : '') +
       `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
-      `<div class="coord-prov">${provText(keys)}</div>` +
       '</div>';
   };
   // System groups (§1.F v0.72): the same registry the host sheet is built
@@ -317,4 +312,4 @@ export function createSheet(host, { prefix } = {}) {
   }
 }
 
-export { PROV_NOTE, ATLAS_NOTE };
+// (the PROV_NOTE / ATLAS_NOTE re-export retired with the v0.74 writers — pr233 audit)

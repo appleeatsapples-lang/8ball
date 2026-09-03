@@ -13,6 +13,25 @@ const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8')
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const labelsJs = readFileSync(join(__dirname, '..', 'ui', 'labels.js'), 'utf-8');
 
+describe('labels-reveal — the toggle reveals the row titles (pr233 audit F5)', () => {
+  // v0.74 retired the last two positive .labels-revealed pins with the
+  // placard/atlas rules; inverting the shell rule then left a labeled
+  // view showing NOTHING while the suite passed. Pin both halves.
+  const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+  it('titles are hidden by default and visible under .labels-revealed', () => {
+    expect(shell).toMatch(/\.card \.coord-title \{[^}]*visibility: hidden;[^}]*\}/);
+    expect(shell).toMatch(/\.card\.labels-revealed \.coord-title \{ visibility: visible; \}/);
+  });
+  it('no other rule in either stylesheet hides a title under .labels-revealed', () => {
+    const exp = readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const [sel, decl] of [...(shell + exp).matchAll(/([^{}]+)\{([^}]*)\}/g)].map(m => [m[1].trim(), m[2]])) {
+      if (/labels-revealed/.test(sel) && /coord-title/.test(sel)) {
+        expect(decl, sel).not.toMatch(/visibility:\s*hidden|display:\s*none|opacity:\s*0(?![.\d])/);
+      }
+    }
+  });
+});
+
 describe('labels-reveal toggle (v0.2.7)', () => {
   it('toggle button element exists with id', () => {
     expect(html).toMatch(/id="labels-toggle"/);

@@ -1,14 +1,17 @@
 // 8ball / tests / provenance.test.js
 // Provenance placards (Coordinate Legibility Pack, DOCTRINE §1.E v0.40).
 // Surface-only per-coordinate derivation notes. Pins: full cell coverage,
-// clinical voice (§2), the value-leak / PII sentinel, labels-gating (no new
-// key), and exclusion from the §5.D share artifact.
+// clinical voice (§2), the value-leak / PII sentinel, exclusion from the
+// §5.D share artifact — and, since the v0.74 labeled-view simplification,
+// that the note is NOT written on the card: it closes the meaning panel's
+// derivation line (`system name · derivation`, ui/tiers.js derivationText),
+// so the labeled sheet carries row titles only.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PROV_NOTE, provText, initTiersUI, renderTierSections } from '../ui/tiers.js';
+import { PROV_NOTE, provText, derivationText, CELL_KEYS as REGISTRY_CELL_KEYS } from '../ui/tiers.js';
 import { BANNED_VOICE_REGISTER, INTERPRETATION_VERBS, voiceRegisterHits } from './helpers/voice-register.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,6 +20,7 @@ const html = read('index.html');
 const shellCss = read('ui', 'shell.css');
 const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
+const sheetJs = read('ui', 'sheet.js');
 
 // The §2 mysticism/interpretation register enforced on deck content, plus a
 // few interpretation verbs a derivation note must never reach for. Both lists
@@ -73,23 +77,19 @@ describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
     }
   });
 
-  it('ui/tiers.js writes .coord-prov at init, never on render', () => {
-    expect(tiersJs).toMatch(/function attachProvenance\s*\(/);
-    expect(tiersJs).toMatch(/className = 'coord-prov'/);
-    expect(tiersJs).toMatch(/attachProvenance\(\);/);
-    // tier-invariant: renderTierSections must NOT touch provenance.
-    const render = tiersJs.slice(
-      tiersJs.indexOf('export function renderTierSections'),
-      tiersJs.indexOf('export function shareRowRefs'),
-    );
-    expect(render.includes('attachProvenance')).toBe(false);
-    expect(render.includes('coord-prov')).toBe(false);
+  it('v0.74: the placard is NOT written on any sheet — no writer, no node, no gated rule', () => {
+    expect(tiersJs).not.toMatch(/attachProvenance|coord-prov/);
+    expect(sheetJs).not.toMatch(/coord-prov|provText/);
+    expect(html).not.toMatch(/coord-prov/);
+    expect(shellCss).not.toMatch(/coord-prov/);
+    expect(tiersJs).not.toMatch(/localStorage/);
   });
 
-  it('gated behind the existing labels toggle — no new localStorage key', () => {
-    expect(shellCss).toMatch(/\.card \.coord-prov\s*\{[^}]*display:\s*none/);
-    expect(shellCss).toMatch(/\.card\.labels-revealed \.coord-prov\s*\{[^}]*display:\s*block/);
-    expect(tiersJs).not.toMatch(/localStorage/);
+  it('v0.74: every coordinate reaches the panel derivation line with its note last', () => {
+    for (const key of REGISTRY_CELL_KEYS) {
+      expect(PROV_NOTE[key], `${key} has no note`).toBeTruthy();
+      expect(derivationText(key).endsWith(PROV_NOTE[key]), `${key} line must end with its note`).toBe(true);
+    }
   });
 
   it('NOT serialized into the §5.D share PNG (ui/share.js never reads .coord-prov)', () => {
@@ -100,110 +100,28 @@ describe('provenance placards (DOCTRINE §1.E v0.40)', () => {
   });
 });
 
-// ── DOM-write behavior (the §1.E wiring itself) ──────────────────────
-// tiers.test.js's mock no-ops attachProvenance (its sections carry no
-// ownerDocument), so the actual write path is pinned here with a DOM-
-// capable mock: placards are created, survive a render that seals cells
-// (the F1-WATCH claim), and re-init does not duplicate them.
-function makeClassSet() {
-  const s = new Set();
-  return {
-    add: c => s.add(c), remove: c => s.delete(c), contains: c => s.has(c),
-    toggle: (c, f) => { const on = f === undefined ? !s.has(c) : !!f; if (on) s.add(c); else s.delete(c); return on; },
-  };
-}
-function makeStyle() {
-  const p = {};
-  return { setProperty: (k, v) => { p[k] = v; }, removeProperty: k => { delete p[k]; } };
-}
-function makeSection(title) {
-  const titleNode = { className: 'coord-title', textContent: title };
-  const kids = [];
-  return {
-    titleNode, kids,
-    ownerDocument: { createElement: tag => ({ tagName: tag, className: '', textContent: '' }) },
-    appendChild: n => { kids.push(n); return n; },
-    querySelector: sel => sel === '.coord-title' ? titleNode
-      : sel === '.coord-prov' ? (kids.find(k => k.className === 'coord-prov') || null) : null,
-  };
-}
-function makeCell(section) {
-  const root = { classList: makeClassSet(), style: makeStyle() };
-  const val = {
-    textContent: '',
-    closest: sel => sel === '.coord-cell' ? root : sel === '.coord-section' ? section : null,
-  };
-  return { root, val };
-}
-
-const SECTION_OF = {
-  arcana: 'arcana', element: 'element', sun: 'sun', rising: 'sun', moon: 'moon',
-  animal: 'animal', innerAnimal: 'animal',
-  lifePath: 'numerology', nameNumber: 'numerology', soulUrge: 'numerology',
-  personality: 'numbers2', birthday: 'numbers2', maturity: 'numbers2',
-  dayPillar: 'dayPillar', hourPillar: 'hourPillar',
-};
-const ROW_KEYS = {
-  arcana: ['arcana'], element: ['element'], sun: ['sun', 'rising'], moon: ['moon'],
-  animal: ['animal', 'innerAnimal'], numerology: ['lifePath', 'nameNumber', 'soulUrge'],
-  numbers2: ['personality', 'birthday', 'maturity'], dayPillar: ['dayPillar'], hourPillar: ['hourPillar'],
-};
-const CELL_KEYS = Object.keys(PROV_NOTE);
-const PROFILE = {
-  sunSign: 'capricorn', risingSign: 'leo', animal: 'rabbit', innerAnimal: 'dog',
-  chineseElement: 'water', lifePath: 1, nameNumber: 5, soulUrge: 3,
-  personality: 2, birthday: 7, maturity: 6,
-  birthCard: { label: 'x · wheel of fortune' },
-  dayPillar: { animal: 'horse', stemElement: 'fire' },
-  hourPillar: { animal: 'rat', stemElement: 'wood' },
-};
-
-function buildDom() {
-  const sections = {};
-  for (const s of Object.keys(ROW_KEYS)) sections[s] = makeSection('T');
-  const cells = {};
-  for (const key of CELL_KEYS) cells[key] = makeCell(sections[SECTION_OF[key]]);
-  initTiersUI({
-    sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
-    entry: { classList: makeClassSet(), style: makeStyle() },
-    cells: Object.fromEntries(CELL_KEYS.map(k => [k, cells[k].val])),
-  }, {});
-  return { sections, cells };
-}
-
-describe('provenance placards — DOM write (§1.E wiring)', () => {
-  it('writes one .coord-prov per section with the row note in cell order', () => {
-    const { sections } = buildDom();
-    for (const [s, keys] of Object.entries(ROW_KEYS)) {
-      const prov = sections[s].querySelector('.coord-prov');
-      expect(prov, `section ${s} has no placard`).not.toBeNull();
-      expect(prov.textContent).toBe(provText(keys));
+// ── v0.74 repo-wide retirement guard (pr233 audit F4/F6) ─────────────
+// The first draft scanned four files; a `.coord-prov` writer injected into
+// ui/labels.js rode the suite green and rendered nine always-visible
+// placards. The guard now walks EVERY shipped source — no allow-list.
+import { readdirSync } from 'node:fs';
+describe('v0.74: no shipped source writes, styles or names the card placard or atlas', () => {
+  const shipped = [];
+  for (const dir of ['ui', 'core', 'content']) {
+    for (const f of readdirSync(join(__dirname, '..', dir))) {
+      if (/\.(js|css)$/.test(f)) shipped.push(join(dir, f));
     }
+  }
+  for (const f of readdirSync(join(__dirname, '..'))) if (/\.html$/.test(f)) shipped.push(f);
+  it('walks a real inventory', () => {
+    expect(shipped.length).toBeGreaterThan(30);
+    expect(shipped).toContain(join('ui', 'labels.js'));
+    expect(shipped).toContain(join('ui', 'experience.css'));
+    expect(shipped).toContain('index.html');
   });
-
-  it('a SEALED compartment still shows its derivation placard (F1-WATCH fix)', () => {
-    const { sections, cells } = buildDom();
-    renderTierSections(PROFILE, 'free'); // seals every t1+ cell
-    // five-element is sealed at free — its placard must still be present.
-    expect(cells.element.root.classList.contains('sealed')).toBe(true);
-    expect(sections.element.querySelector('.coord-prov').textContent).toBe('year stem');
-    // private (inner) animal sealed at free — the animal row placard survives.
-    expect(cells.innerAnimal.root.classList.contains('sealed')).toBe(true);
-    expect(sections.animal.querySelector('.coord-prov').textContent)
-      .toBe('lunar new year · solar term');
-  });
-
-  it('is idempotent — re-init over the same sections does not duplicate placards', () => {
-    const { sections } = buildDom();
-    const cells2 = Object.fromEntries(
-      CELL_KEYS.map(k => [k, makeCell(sections[SECTION_OF[k]]).val]));
-    initTiersUI({
-      sunTitle: sections.sun.titleNode, animalTitle: sections.animal.titleNode,
-      entry: { classList: makeClassSet(), style: makeStyle() }, cells: cells2,
-    }, {});
-    for (const s of Object.keys(ROW_KEYS)) {
-      const provs = sections[s].kids.filter(k => k.className === 'coord-prov');
-      expect(provs.length, `section ${s} duplicated placard`).toBe(1);
-    }
-  });
+  for (const f of shipped) {
+    it(`${f} carries no coord-prov / coord-atlas / attachProvenance / attachAtlas`, () => {
+      expect(read(f)).not.toMatch(/coord-prov|coord-atlas|attachProvenance|attachAtlas/);
+    });
+  }
 });

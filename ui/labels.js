@@ -9,9 +9,12 @@
 //     self-injected at init — see the iOS/WebKit note there
 //
 // Does NOT own:
-//   - the result-card's `.labels-revealed` content rules (coord-prov /
-//     coord-atlas / public-title visibility) — those stay in index.html;
-//     this module only flips the class + toggle copy
+//   - the result-card's `.labels-revealed` content rule (.coord-title
+//     visibility) — that lives in ui/shell.css (since v0.66); this module
+//     only flips the class + toggle copy. Since v0.74 the toggle reveals
+//     the row titles ONLY — the placard and the atlas moved into the
+//     meaning panel, and no module may write them on the card
+//     (tests/provenance.test.js scans every shipped source for that).
 //
 // Extracted from index.html during the desktop side-rail layout cycle to
 // free the line budget required by the §6 split (index.html was 1499/1500).
