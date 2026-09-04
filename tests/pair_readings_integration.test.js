@@ -24,10 +24,12 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { makeClassList } from './helpers/dom.js';
+import { initPairShareUI } from '../ui/pairShare.js';
 import {
   DYAD_RELATION_NODES, DYAD_AXIS_IDS,
   initDyadUI, open as openDyad, close as closeDyad, submitSecond,
-  isOpen as isDyadOpen,
+  isOpen as isDyadOpen, currentRelation as dyadCurrentRelation,
+  compareAnother as dyadCompareAnother,
 } from '../ui/dyad.js';
 import { initReadingsUI } from '../ui/readings.js';
 import { initMeaningsUI } from '../ui/meanings.js';
@@ -157,7 +159,39 @@ function makeNode(tag = 'div') {
   return node;
 }
 
-function buildIntegrationHarness() {
+// Minimal on-device raster environment for ui/pairShare.js's real
+// svgToPngBlob() pipeline, scoped to this file. `deferRaster:true` holds
+// every Image load open (one release function per construction, in
+// `rasterLog.pendingImages`) so a test can prove what happens to a STILL-
+// PENDING render when the relation is cleared/changed underneath it —
+// tests/pair_share.test.js's own hand-built controller unit tests already
+// cover this in isolation; what's new here is driving it through the REAL
+// ui/dyad.js clearOutput()/render() call sites (Compare Another, Back, and
+// Previous Readings' closeActiveScreens), not a simulated hook call.
+function installRasterEnv({ deferRaster = false } = {}) {
+  const rasterLog = { created: [], revoked: [], anchors: [], pendingImages: [] };
+  class MockBlob { constructor(parts, opts) { this.parts = parts; this.type = opts && opts.type; } }
+  globalThis.Blob = MockBlob;
+  let seq = 0;
+  const realURL = globalThis.URL;
+  globalThis.URL = {
+    ...realURL,
+    createObjectURL: () => { const u = `blob:mock/${++seq}`; rasterLog.created.push(u); return u; },
+    revokeObjectURL: u => { rasterLog.revoked.push(u); },
+  };
+  globalThis.Image = class {
+    constructor() { this.onload = null; this.onerror = null; }
+    set src(v) {
+      this._src = v;
+      const fire = () => { if (this.onload) this.onload(); };
+      if (deferRaster) rasterLog.pendingImages.push(fire); else fire();
+    }
+    get src() { return this._src; }
+  };
+  return rasterLog;
+}
+
+function buildIntegrationHarness({ rasterLog } = {}) {
   const byId = new Map();
   const byAttr = new Map();
 
@@ -222,15 +256,34 @@ function buildIntegrationHarness() {
     getElementById: id => byId.get(id) || null,
     addEventListener: (ev, fn, opts) => { docListeners[ev] = { fn, capture: opts === true || !!(opts && opts.capture) }; },
     createElement: tag => {
+      if (tag === 'canvas' && rasterLog) {
+        const canvas = {
+          tag, width: 0, height: 0,
+          getContext: () => ({ drawImage: () => {} }),
+          toBlob: cb => cb(new globalThis.Blob(['png-bytes'], { type: 'image/png' })),
+        };
+        return canvas;
+      }
       const n = makeNode(tag);
       const original = n.setAttribute.bind(n);
       n.setAttribute = (k, v) => { if (k === 'id') byId.set(v, n); original(k, v); };
+      if (tag === 'a' && rasterLog) {
+        n.click = () => { rasterLog.anchors.push(n); };
+      }
       return n;
     },
     createTextNode: text => { const n = makeNode('#text'); n.textContent = String(text); return n; },
   };
   ACTIVE_DOCUMENT = document_;
   globalThis.document = document_;
+
+  // Deferred-closure wiring (index.html's own pattern, reproduced verbatim):
+  // initPairShareUI needs to exist before initDyadUI's onRelationChange hook
+  // can call it, but it also needs the DOM refs initDyadUI's own SCREEN_HTML
+  // injects — so the hook reads `pairShareController` at CALL time, not
+  // construction time, and pairShareController is assigned only after both
+  // modules are up.
+  let pairShareController = null;
 
   initDyadUI({ stage, controls: makeNode() }, {
     getProfile: () => A,
@@ -242,11 +295,25 @@ function buildIntegrationHarness() {
     onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
     onExit: () => result.classList.remove('hidden'),
     onLabelsChange: () => {},
+    onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); },
   });
 
   // ── the host meaning panel (ui/meanings.js) — REAL, not stubbed ──
   const cardFace = makeNode('article');
   const meaningsUI = initMeaningsUI({ cardFace, readingPane: null });
+
+  // ── the Pair Imprint (ui/pairShare.js) — REAL, wired exactly like
+  //    index.html: getRelation reads ui/dyad.js's own currentRelation
+  //    export directly (a hook, never an import into pairShare.js itself —
+  //    the isolation boundary that module's own header documents); only
+  //    built when this harness was asked for the raster environment (most
+  //    existing tests here never touch it) ──
+  if (rasterLog) {
+    pairShareController = initPairShareUI(
+      { btn: byId.get('dyad-share-btn'), status: byId.get('dyad-share-status'), disclosure: byId.get('dyad-share-disclosure') },
+      { getRelation: () => dyadCurrentRelation() },
+    );
+  }
 
   // ── previous readings (ui/readings.js) — REAL, sharing onboarding/result ──
   const openBtn = makeNode('button');
@@ -273,7 +340,10 @@ function buildIntegrationHarness() {
     try { return fn(); } finally { globalThis.document = prior; }
   }
 
-  return { get, cell, withDom, document: document_, result, onboarding, stage, openBtn, cardFace, meaningsUI, readingsUI };
+  return {
+    get, cell, withDom, document: document_, result, onboarding, stage, openBtn, cardFace, meaningsUI, readingsUI,
+    pairShareController,
+  };
 }
 
 describe('D2 — Pair -> Previous Readings -> return, over REAL modules (audit D2)', () => {
@@ -357,5 +427,123 @@ describe('D2 — Pair -> Previous Readings -> return, over REAL modules (audit D
     const h = buildIntegrationHarness();
     expect(h.withDom(() => isDyadOpen())).toBe(false);
     expect(() => h.withDom(() => h.openBtn.listeners.click())).not.toThrow();
+  });
+});
+
+// Eighth remediation gate: the real production null-relation notification
+// paths (Compare Another, Back to My Sheet, and Previous Readings closing
+// Pair — all three resolve through ui/dyad.js's ONE clearOutput(), which
+// calls hooks.onRelationChange(null)) driven against a REAL ui/pairShare.js
+// controller, with a raster genuinely held in flight when each fires — not
+// a simulated hook call into a hand-built controller (tests/pair_share.
+// test.js already covers that in isolation) and not a mock standing in for
+// re-init retirement (a different lifecycle event this module also has,
+// covered separately). Proves: (a) the pending prerender's eventual
+// settlement is a no-op against the cleared/replaced cache — no cross-
+// screen effect, since ui/pairShare.js only ever touches its own two
+// injected refs; (b) the button/status DOM genuinely returns to idle, not
+// stuck disabled/busy from an operation that no longer has anything to
+// report.
+describe('eighth remediation gate — real onRelationChange(null) notification paths against a live pairShare controller', () => {
+  function landPair(h) {
+    h.withDom(() => openDyad());
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      return submitSecond();
+    });
+  }
+
+  it('Compare Another: the pending prerender for the closed pair settles as a no-op; the button/status return to idle, not stuck busy', () => {
+    const rasterLog = installRasterEnv({ deferRaster: true });
+    const h = buildIntegrationHarness({ rasterLog });
+    landPair(h);
+    // render() -> onRelationChange(relation) -> notifyRelationChange starts
+    // a real proactive prerender, held.
+    expect(rasterLog.pendingImages).toHaveLength(1);
+    expect(h.get('dyad-share-btn').disabled).toBe(true); // syncBusyFromPrerender reflects the pending render
+    expect(h.get('dyad-share-status').textContent).toBe('preparing pair image…');
+
+    h.withDom(() => dyadCompareAnother()); // real function — clearOutput() -> onRelationChange(null)
+
+    // Idle DOM: nothing left pending to disable the button or explain a
+    // busy state for.
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+
+    // The stale render settles afterward — it must remain a no-op: no
+    // status text reappears, the button stays idle. (ui/pairShare.js's own
+    // notifyRelationChange() checks `controller.cache !== entry` before
+    // writing a settled promise's result — proven here through the REAL
+    // clearOutput() call site, not a simulated one.)
+    rasterLog.pendingImages[0]();
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+  });
+
+  it('Back to My Sheet: same real clearOutput() path, same idle-DOM/no-cross-effect proof', () => {
+    const rasterLog = installRasterEnv({ deferRaster: true });
+    const h = buildIntegrationHarness({ rasterLog });
+    landPair(h);
+    expect(rasterLog.pendingImages).toHaveLength(1);
+
+    h.withDom(() => closeDyad()); // the real "back to my sheet" exit path
+
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+    rasterLog.pendingImages[0]();
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+  });
+
+  it('Previous Readings closing Pair (the real closeActiveScreens hook): pairShare returns to idle, and Previous Readings\' own screen is completely unaffected by it', () => {
+    const rasterLog = installRasterEnv({ deferRaster: true });
+    const h = buildIntegrationHarness({ rasterLog });
+    landPair(h);
+    expect(rasterLog.pendingImages).toHaveLength(1);
+
+    // The real UI activation, same as the D2 tests above — opens Previous
+    // Readings, which closes Pair through the real closeActiveScreens hook.
+    vi.useFakeTimers();
+    h.withDom(() => { h.openBtn.listeners.click(); vi.advanceTimersByTime(310); });
+    vi.useRealTimers();
+
+    expect(h.withDom(() => isDyadOpen())).toBe(false);
+    // pairShare's own refs, idle — the cross-screen proof: closing Pair via
+    // a DIFFERENT screen's own control still reaches the real
+    // clearOutput()/onRelationChange(null) path, and touches nothing of
+    // Previous Readings' own DOM in the process (it only ever writes to the
+    // two refs it was handed at init).
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+    // Previous Readings is the one visible screen, its own heading focused —
+    // unperturbed by the pairShare settlement below.
+    expect(h.result.classList.contains('hidden')).toBe(true);
+    expect(h.document.activeElement.id).toBe('readings-title');
+
+    rasterLog.pendingImages[0](); // the stale prerender settles afterward
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
+    // Still no cross-screen effect: Previous Readings' own ownership is
+    // exactly as it was before the stale render settled.
+    expect(h.result.classList.contains('hidden')).toBe(true);
+    expect(h.document.activeElement.id).toBe('readings-title');
+  });
+
+  it('a resolved (not held) prerender still lands correctly through the real render() -> onRelationChange(relation) path — the baseline this file\'s raster env is proven against', async () => {
+    const rasterLog = installRasterEnv({ deferRaster: false });
+    const h = buildIntegrationHarness({ rasterLog });
+    landPair(h);
+    // No pendingImages recorded — deferRaster:false fires the Image's
+    // onload synchronously, proving the mock's default path (used
+    // implicitly by every OTHER test in this file, which never inspects
+    // pairShare state) is itself sane. The Blob it produces still only
+    // resolves the underlying Promise on the next microtask (Promise
+    // semantics, not this mock's choice), so a flush is genuinely needed
+    // before the cache is warm.
+    expect(rasterLog.pendingImages).toHaveLength(0);
+    await Promise.resolve(); await Promise.resolve();
+    expect(h.get('dyad-share-btn').disabled).toBe(false);
+    expect(h.get('dyad-share-status').hidden).toBe(true);
   });
 });

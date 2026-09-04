@@ -2527,7 +2527,7 @@ describe('item 5 — effective contrast is checked through the REAL ancestor cha
     expect(contrastOfWhiteAlphaOnBlack(0.7 * 0.6)).toBeCloseTo(3.95, 1);
   });
 
-  it('no OTHER opacity-bearing selector in this stylesheet nests inside another opacity-bearing selector\'s element (a full re-scan, not just the one fixed pair)', () => {
+  it('no OTHER opacity-bearing selector in this stylesheet nests inside another opacity-bearing selector\'s element, except the one accounted-for non-text mark below (a full re-scan, not just the one fixed pair)', () => {
     // Every `opacity:` declaration in the module, with its selector.
     const rules = [...dyadJs.matchAll(/#dyad-screen ([^{]+)\{([^}]*)\}/g)]
       .filter(m => /opacity:\s*[\d.]/.test(m[2]))
@@ -2537,10 +2537,11 @@ describe('item 5 — effective contrast is checked through the REAL ancestor cha
     // memory) — .dyad-axis > summary::after is a pseudo-element of an
     // ALREADY-opacity'd summary, but it renders a decorative +/- glyph
     // (redundant with aria-expanded), not a text node subject to the 4.5:1
-    // text floor — WCAG 1.4.11's 3:1 non-text floor applies instead, and
-    // 0.7×0.6=0.42 (~3.95:1) clears it. Every other rule here targets a
-    // sibling or an ancestor-free element — confirmed by walking
-    // SCREEN_HTML's actual nesting, not assumed.
+    // text floor — WCAG 1.4.11's 3:1 non-text floor applies instead. This
+    // nesting is accounted for separately below (eighth remediation gate),
+    // not silently ignored: the compounding ALSO includes the inherited
+    // body color-muted alpha this exemption originally missed, which is
+    // exactly why it needed its own fix rather than a bare carve-out.
     const knownAcceptableNesting = ['#dyad-screen .dyad-axis > summary::after'];
     for (const selector of rules) {
       const full = `#dyad-screen ${selector}`;
@@ -2550,6 +2551,38 @@ describe('item 5 — effective contrast is checked through the REAL ancestor cha
       // SCREEN_HTML nests inside another opacity-bearing element's subtree.
       expect(selector, full).not.toBe('.dyad-relation-scope');
     }
+  });
+
+  // Eighth remediation gate: the exemption above originally computed the
+  // summary::after mark's contrast as its own opacity (0.6) times its
+  // ancestor summary's opacity (0.7) = 0.42, ~3.95:1, and called that
+  // "clears 3:1" — but neither rule set an explicit `color`, so the mark
+  // ALSO inherited the body color-muted rule's own alpha (rgba(255,255,
+  // 255,0.72), ui/shell.css), the same class of miss B8 above exists to
+  // catch for TEXT. True pre-fix alpha: 0.72 × 0.7 × 0.6 = 0.3024, ~2.48:1
+  // — below WCAG 1.4.11's 3:1 non-text-UI-mark floor. Fixed the same way as
+  // B8: an explicit `color: var(--text)` on the mark itself cancels the
+  // inherited alpha, leaving the two already-declared opacities (0.7 × 0.6
+  // = 0.42) as the sole multiplier.
+  function contrastOfWhiteAlphaOnBlack(alpha) {
+    const c = alpha <= 0.03928 ? alpha / 12.92 : Math.pow((alpha + 0.055) / 1.055, 2.4);
+    return (c + 0.05) / 0.05;
+  }
+
+  it('.dyad-axis > summary::after sets an explicit, non-compounded color — ancestor(0.7) × own(0.6) = 0.42 alone clears the 3:1 non-text-mark floor', () => {
+    const rule = dyadJs.match(/#dyad-screen \.dyad-axis > summary::after \{([^}]*)\}/);
+    expect(rule).toBeTruthy();
+    expect(rule[1]).toMatch(/color:\s*var\(--text\)/);
+    expect(rule[1]).toMatch(/opacity:\s*0\.6/);
+    const ancestorSummary = dyadJs.match(/#dyad-screen \.dyad-axis > summary \{([^}]*)\}/);
+    expect(ancestorSummary).toBeTruthy();
+    expect(ancestorSummary[1]).toMatch(/opacity:\s*0\.7/);
+    expect(contrastOfWhiteAlphaOnBlack(0.7 * 0.6)).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it('the PRE-FIX compounded value (inherited 0.72 alpha × ancestor 0.7 × own 0.6 = 0.3024) fails the 3:1 non-text floor — proving this fix was structurally necessary, not the same fix as B8', () => {
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.7 * 0.6)).toBeLessThan(3.0);
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.7 * 0.6)).toBeCloseTo(2.48, 1);
   });
 });
 

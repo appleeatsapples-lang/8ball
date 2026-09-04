@@ -380,7 +380,18 @@ const STYLE = `
   display: flex; align-items: center; justify-content: space-between; min-height: 44px;
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; opacity: 0.7; }
 #dyad-screen .dyad-axis > summary::-webkit-details-marker { display: none; }
-#dyad-screen .dyad-axis > summary::after { content: '+'; opacity: 0.6; }
+/* Eighth remediation gate: this mark is a non-text UI indicator (open/closed
+   state), floor 3:1 per WCAG 1.4.11 — it had no explicit color, so it
+   inherited the body color-muted rule's OWN alpha (rgba(255,255,255,0.72))
+   on top of its own 0.6 opacity AND its ancestor summary's 0.7 opacity:
+   0.72 x 0.7 x 0.6 = 0.3024 effective alpha, ~2.48:1 on black - below the
+   floor. Same B8 fix shape as .dyad-cite-label/.dyad-qualifier above: the
+   explicit color cancels the INHERITED alpha, leaving only the two
+   opacities already declared (ancestor summary's 0.7 x this rule's own 0.6
+   = 0.42) as the sole multiplier - ~3.95:1, non-compounded with inherited
+   color, pinned in tests/dyad_surface.test.js against the same
+   composited-luminance formula used throughout this file. */
+#dyad-screen .dyad-axis > summary::after { content: '+'; opacity: 0.6; color: var(--text); }
 #dyad-screen .dyad-axis[open] > summary::after { content: '−'; }
 /* Explicit visible focus ring — a <summary> is natively keyboard-focusable
    (it's the interactive part of <details>), and the general .info-icon

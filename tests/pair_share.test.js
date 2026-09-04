@@ -1236,9 +1236,16 @@ describe('P1-3 — controller-local isolation: a retired controller\'s completio
   });
 });
 
-// index.html re-initializes against the SAME static `#dyad-share-btn` /
-// `#dyad-share-status` DOM nodes on every dyad-screen open — the realistic
-// re-init shape, distinct from the different-refs scenarios above.
+// Eighth remediation gate: corrected — index.html calls initPairShareUI()
+// exactly ONCE at boot (pinned above: "index.html wires initPairShareUI
+// exactly once"), not on every dyad-screen open; the Pair screen opening and
+// closing repeatedly drives notifyRelationChange(), never a re-init. The
+// SAME static `#dyad-share-btn` / `#dyad-share-status` DOM nodes being
+// reused across a re-init is still a real, defensively-tested shape of this
+// module's controller architecture (a hot-reload, or any future wiring
+// change that calls initPairShareUI more than once against the same
+// injected markup) — exercised here for that reason, not because current
+// production code re-initializes per open.
 function bootSameRefs(refs, getRelation, { prerender = true } = {}) {
   const controller = initPairShareUI(refs, { getRelation });
   if (prerender) controller.notifyRelationChange(getRelation());
@@ -1532,5 +1539,375 @@ describe('A4 — the PNG footer clears the frame edge with a real margin', () =>
     const frameBottom = 48 + Number(frameMatch[1]);
     const urlY = Number(urlMatch[1]);
     expect(frameBottom - urlY).toBeGreaterThan(20);
+  });
+});
+
+// ── eighth remediation gate ─────────────────────────────────────────────
+// A second independent capability audit found: (1) navigator/share/
+// canShare/clipboard/writeText were read as bare property accesses, so a
+// hostile getter on any of them threw straight through this module instead
+// of degrading like an absent one; (2) a DIRECT SYNCHRONOUS AbortError from
+// navigator.share (some platforms throw rather than reject) fell through
+// the generic catch-all as "not attempted" and silently fell back to a
+// download, when it should report `cancelled` with zero fallback, exactly
+// like an async-rejected AbortError already does; (3) `error.name` was read
+// bare when classifying a rejection, so a hostile `.name` getter could
+// escape the catch block and erase the fallback download entirely; (4) a
+// callable share/writeText that returns a non-promise was awaited as if it
+// were a genuine async operation, when `await nonThenable` resolves
+// immediately rather than throwing — silently misreporting a share/copy as
+// successful; (5) `buildPairImprintSnapshot`'s field reads and String()
+// coercions were unguarded. All installEnv() navigator mocks elsewhere in
+// this file wrap share/writeText in a real `async` function, which always
+// returns a genuine Promise regardless of what the inner callback returns —
+// so none of the existing tests above could ever exercise these paths; the
+// tests below construct `navigator` directly for that reason.
+describe('eighth remediation gate — hostile navigator/share/canShare/clipboard/writeText accessor containment', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+
+  it('a navigator global that throws on GET degrades to the plain download fallback — no unhandled throw, a truthful terminal status', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    Object.defineProperty(globalThis, 'navigator', { get() { throw new Error('hostile navigator'); }, configurable: true });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('a throwing navigator.canShare getter degrades to the download fallback, never an uncaught throw', async () => {
+    const log = installEnv();
+    const nav = {};
+    Object.defineProperty(nav, 'canShare', { get() { throw new Error('hostile canShare'); }, configurable: true });
+    setNavigator(nav);
+    // prerender:true (default) — a native share attempt is only ever
+    // possible when the blob was pre-warmed BEFORE the click (P1-4,
+    // transient-activation preservation); a fresh on-click render never
+    // attempts share at all, which would make this test pass for the wrong
+    // reason (never reaching trySyncNativeShare in the first place).
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('a throwing navigator.share getter degrades to the download fallback', async () => {
+    const log = installEnv();
+    const nav = { canShare: () => true };
+    Object.defineProperty(nav, 'share', { get() { throw new Error('hostile share'); }, configurable: true });
+    setNavigator(nav);
+    const { refs } = await boot(() => VALID_RELATION); // prerender:true, see above
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('a throwing navigator.clipboard getter degrades to download-started with no copy — the already-true download is never erased', async () => {
+    const log = installEnv();
+    const nav = {};
+    Object.defineProperty(nav, 'clipboard', { get() { throw new Error('hostile clipboard'); }, configurable: true });
+    setNavigator(nav);
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('a throwing navigator.clipboard.writeText getter degrades to download-started with no copy', async () => {
+    const log = installEnv();
+    const clipboardObj = {};
+    Object.defineProperty(clipboardObj, 'writeText', { get() { throw new Error('hostile writeText'); }, configurable: true });
+    setNavigator({ clipboard: clipboardObj });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('navigator.canShare and navigator.share are invoked with `this` bound to the real navigator object (receiver-sensitive)', async () => {
+    installEnv();
+    let canShareThis = null, shareThis = null;
+    const nav = {
+      canShare() { canShareThis = this; return true; },
+      share() { shareThis = this; return Promise.resolve(); },
+    };
+    setNavigator(nav);
+    const { refs } = await boot(() => VALID_RELATION); // prerender:true — the blob must be pre-warmed, or a fresh on-click render never attempts native share at all (P1-4)
+    await clickShare(refs);
+    expect(canShareThis).toBe(nav);
+    expect(shareThis).toBe(nav);
+  });
+
+  it('navigator.clipboard.writeText is invoked with `this` bound to the real navigator.clipboard object (receiver-sensitive)', async () => {
+    installEnv();
+    let writeTextThis = null;
+    const clipboardObj = { writeText() { writeTextThis = this; return Promise.resolve(); } };
+    setNavigator({ clipboard: clipboardObj });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(writeTextThis).toBe(clipboardObj);
+  });
+});
+
+describe('eighth remediation gate — sync AbortError, hostile error.name, and non-thenable share/writeText returns', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+
+  it('a DIRECT SYNCHRONOUS AbortError thrown by navigator.share (not a rejection) is classified cancelled — zero fallback download, zero clipboard', async () => {
+    const log = installEnv();
+    const abort = new Error('sync abort');
+    abort.name = 'AbortError';
+    setNavigator({ canShare: () => true, share() { throw abort; } });
+    const { refs } = await boot(() => VALID_RELATION); // prerender:true — must reach trySyncNativeShare
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
+  });
+
+  it('a direct synchronous NON-AbortError thrown by navigator.share still falls back to download (old async-only wrapper hid this exact path)', async () => {
+    const log = installEnv();
+    setNavigator({ canShare: () => true, share() { throw new Error('sync boom, not abort'); } });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('a rejected share promise whose error.name getter throws does not escape or erase the fallback — one download fires, a truthful terminal status', async () => {
+    const log = installEnv();
+    const hostileErr = {};
+    Object.defineProperty(hostileErr, 'name', { get() { throw new Error('hostile name'); }, configurable: true });
+    setNavigator({ canShare: () => true, share: () => Promise.reject(hostileErr) });
+    const { refs } = await boot(() => VALID_RELATION);
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('navigator.share returning a plain non-promise value is not awaited as a successful share — falls back to download instead', async () => {
+    const log = installEnv();
+    setNavigator({ canShare: () => true, share: () => 'not a promise' });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+
+  it('navigator.share returning an object whose .then getter throws is treated as non-thenable, not a hung/successful share — falls back to download', async () => {
+    const log = installEnv();
+    const hostileThenable = {};
+    Object.defineProperty(hostileThenable, 'then', { get() { throw new Error('hostile then'); }, configurable: true });
+    setNavigator({ canShare: () => true, share: () => hostileThenable });
+    const { refs } = await boot(() => VALID_RELATION);
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(log.anchors).toHaveLength(1);
+  });
+
+  it('navigator.clipboard.writeText returning a plain non-promise value retains download-started WITHOUT the falsely-earned "-copied" suffix', async () => {
+    const log = installEnv();
+    setNavigator({ clipboard: { writeText: () => 'not a promise' } });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+  });
+});
+
+describe('eighth remediation gate — buildPairImprintSnapshot poison-field containment', () => {
+  // formattedRelation is produced entirely by ui/dyad.js's own
+  // formatDyadRelation() in normal operation, never user-controlled
+  // directly — narrow, evidence-backed disposition: these tests exist as
+  // defense-in-depth for the hook boundary (readRelation's own contract
+  // already treats a throwing hooks.getRelation() as a distinct read
+  // failure), not because a poisoned relation is reachable through any
+  // current production input.
+  it('a relation object with a throwing elementDirectionAB getter degrades to null, never an uncaught throw', () => {
+    const relation = { numerologySpine: '4 + 7', cardPairHead: 'no. i' };
+    Object.defineProperty(relation, 'elementDirectionAB', { get() { throw new Error('poison'); }, configurable: true });
+    expect(() => buildPairImprintSnapshot(relation)).not.toThrow();
+    expect(buildPairImprintSnapshot(relation)).toBeNull();
+  });
+
+  it('a relation field whose String() coercion throws (a poisoned toString) degrades to null, never an uncaught throw', () => {
+    const poison = { toString() { throw new Error('poison toString'); } };
+    const relation = { elementDirectionAB: poison, numerologySpine: '4 + 7', cardPairHead: 'no. i' };
+    expect(() => buildPairImprintSnapshot(relation)).not.toThrow();
+    expect(buildPairImprintSnapshot(relation)).toBeNull();
+  });
+
+  it('reaches onShareClick end to end with a poisoned relation field: status reads "empty", never an unhandled rejection', async () => {
+    installEnv();
+    const poison = { toString() { throw new Error('poison'); } };
+    const relation = { elementDirectionAB: poison, numerologySpine: '4 + 7', cardPairHead: 'no. i' };
+    const { refs } = await boot(() => relation, { prerender: false });
+    await expect(clickShare(refs)).resolves.not.toThrow();
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('empty'));
+  });
+});
+
+describe('eighth remediation gate — opInFlight guards against a real double activation', () => {
+  // Mutation-sensitivity of both tests below is verified by temporarily
+  // neutering the `controller.opInFlight` guard at the top of onShareClick
+  // (ui/pairShare.js) and re-running this file: both tests below fail as
+  // expected (a second render/share genuinely starts) — the same
+  // temporary-source-mutation-plus-revert technique this remediation series
+  // already uses for its CSS contrast fixes, not left embedded in the test
+  // itself since `boot()`'s `controller` is initPairShareUI's PUBLIC return
+  // value ({onShareClick, notifyRelationChange}), not the internal state
+  // object with `.opInFlight` — there is no live handle from test code to
+  // reach into and flip that guard off for an in-test mutation assertion.
+  it('a second click fired while the first is still mid-render (no cache yet) produces exactly ONE render/download', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    clickShare(refs); // first click starts; synchronously reaches the held render (opInFlight is now true)
+    expect(log.pendingImages).toHaveLength(1);
+    expect(refs.btn.disabled).toBe(true);
+    clickShare(refs); // a genuine second activation while the first is still in flight — must be a no-op
+    expect(log.pendingImages).toHaveLength(1); // no second rasterization was started
+    log.pendingImages[0](); // release the one held render
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+
+  it('a second click fired while navigator.share is still pending (cache pre-warmed) produces exactly ONE native-share invocation and exactly one terminal status', async () => {
+    let resolveShare;
+    const sharePromise = new Promise(res => { resolveShare = res; });
+    let shareCallCount = 0;
+    installEnv();
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { canShare: () => true, share: () => { shareCallCount++; return sharePromise; } },
+      configurable: true, writable: true,
+    });
+    const { refs } = await boot(() => VALID_RELATION); // prerender:true — blob pre-warmed before either click
+    const p1 = clickShare(refs); // synchronously reaches and calls navigator.share() once, then awaits it
+    expect(shareCallCount).toBe(1);
+    expect(refs.btn.disabled).toBe(true);
+    const p2 = clickShare(refs); // a genuine second activation while the share promise is still pending
+    expect(shareCallCount).toBe(1); // the guard, not luck: no second invocation happened
+    resolveShare();
+    await p1; await p2;
+    expect(shareCallCount).toBe(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+  });
+});
+
+// A second independent capability audit: syncBusyFromPrerender() ran
+// unguarded the instant onShareClick's `finally` cleared opInFlight — if a
+// background prerender for a NEWER pair (started via notifyRelationChange
+// while the click's own operation was still in flight) was still pending at
+// that moment, it overwrote the just-written truthful terminal status
+// (shared-selected / stale / download-started[-selected][-copied]) with
+// "preparing pair image…", then blanked it entirely once that prerender
+// settled — the real result flashed away for a reason having nothing to do
+// with the click's own outcome. Fixed in syncBusyFromPrerender: the button's
+// disabled/aria-busy MAY still reflect the pending render, but the live
+// status text is left alone while it is genuinely still showing a terminal
+// result (`!el.hidden`).
+describe('eighth remediation gate — async status ownership: a pending background prerender must not overwrite a just-completed click\'s terminal status', () => {
+  const PAIR2 = adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth', numerologySpine: '9 + 2 → 11', cardPairHead: 'no. ii × no. iii',
+  });
+
+  it('resolved native share: the terminal text survives a NEWER pair\'s prerender becoming pending during the finally block, and survives that prerender settling afterward too', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    let resolveShare;
+    const sharePromise = new Promise(res => { resolveShare = res; });
+    const log = installEnv({ imageDefer: true });
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { canShare: () => true, share: () => sharePromise },
+      configurable: true, writable: true,
+    });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const controller = initPairShareUI(refs, { getRelation });
+    controller.notifyRelationChange(currentRelation); // pair1's prerender starts, held
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // release pair1's render — it is genuinely warm before the click
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+    const p1 = clickShare(refs); // cached-blob fast path: calls navigator.share() synchronously, then awaits it (held)
+    expect(refs.btn.disabled).toBe(true);
+
+    // While the share is still pending, the relation changes to PAIR2 and
+    // its own prerender starts — held, so it stays pending through the
+    // click's own settlement below.
+    currentRelation = PAIR2;
+    controller.notifyRelationChange(PAIR2);
+    expect(log.pendingImages).toHaveLength(2);
+
+    resolveShare(); // settle the OLD (pair1) share BEFORE releasing pair2's raster
+    await p1;
+
+    // The click's own truthful terminal result must be visible: the pair
+    // changed underneath it (recheck() reads getRelation() -> PAIR2, not
+    // the original reference), so postEffectStatus reports the SELECTED
+    // variant — and it must not have been overwritten with "preparing pair
+    // image…" by pair2's still-pending prerender settling opInFlight=false
+    // in the same tick.
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+
+    // Release pair2's raster and confirm the SAME terminal remains — not
+    // cleared to empty by the prerender's own settle-path in
+    // syncBusyFromPrerender (which only ever clears ITS OWN "preparing…"
+    // text, never a real terminal status a click already wrote).
+    log.pendingImages[1]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+    expect(refs.status.hidden).toBe(false);
+  });
+
+  it('download fallback path: the terminal text survives a NEWER pair\'s prerender becoming pending during the finally block', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    let resolveClipboard;
+    const clipboardPromise = new Promise(res => { resolveClipboard = res; });
+    const log = installEnv({ imageDefer: true });
+    // No native share support — this click takes the fresh-render
+    // download-only path (P1-4), which still exercises the exact same
+    // finally -> syncBusyFromPrerender race the native-share test above
+    // does. The clipboard write is held under manual control (not
+    // installEnv's default async wrapper) so the relation can be changed
+    // at the EXACT point that matters: after the download has genuinely
+    // fired (P1-2's own pre-effect check would otherwise correctly report
+    // `stale` if the relation changed before the render/download even
+    // started, which is a different, already-covered contract) but before
+    // downloadFallback's own post-clipboard recheck and the click's finally
+    // block both run.
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { clipboard: { writeText: () => clipboardPromise } },
+      configurable: true, writable: true,
+    });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const controller = initPairShareUI(refs, { getRelation });
+    const p1 = clickShare(refs); // no cache yet — the click renders fresh, held
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // release the click's own render — relation is STILL unchanged here
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(log.anchors).toHaveLength(1); // the download has genuinely already fired
+
+    // NOW the relation changes to a newer pair, and that pair's own
+    // prerender starts — held, so it stays pending while the clipboard
+    // write (and then the click's own finally block) settle below.
+    currentRelation = PAIR2;
+    controller.notifyRelationChange(PAIR2);
+    expect(log.pendingImages).toHaveLength(2);
+
+    resolveClipboard(); // settle the clipboard write
+    await p1;
+
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
+
+    log.pendingImages[1](); // release the newer pair's still-pending prerender
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
+    expect(refs.status.hidden).toBe(false);
   });
 });

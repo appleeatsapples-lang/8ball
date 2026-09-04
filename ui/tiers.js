@@ -16,6 +16,18 @@
 // remediation — comments only, so a reader does not mistake retained
 // compatibility plumbing for a live paywall.
 //
+// Eighth remediation gate: stated plainly once, since `tierDensitySummary`
+// below is the arithmetic every other density comment in this file and
+// `ui/shell.css`/`8BALL.md` points back to. The RETAINED LEGACY reading —
+// what the `free` rung's census meant when tiers gated a purchase — was
+// 5 coordinates initially open, 11 sealed behind higher rungs, 16 total
+// (15 sheet cells + the always-open catalog numeral). That reading still
+// computes correctly (the registry and its arithmetic were never edited),
+// but it describes a rung that no longer exists: since doctrine v0.71's
+// free amendment, `getRenderTier()` always resolves the ceiling, so the
+// CURRENT fully-free render shows all 16 open on every device — the "11
+// sealed" figure is retained-registry history, not a live count.
+//
 // Owns:
 //   - TIER_COORDS — the single exported render constant defining which
 //     coordinates each tier surfaces (the §3 rollback flag: reverting the
@@ -93,7 +105,10 @@ const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', '
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
-// 14-cell sheet and is excluded from the density census, so t3's
+// 15-cell sheet (eighth remediation gate: corrected from a stale "14-cell"
+// count that predates §1.K v0.73's MOON row — see tierDensitySummary above
+// for the current arithmetic, 15 sheet cells + the catalog numeral = 16
+// total) and is excluded from the density census, so t3's
 // open/sealed/total census is unchanged by carrying it. It briefly had its
 // own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
 // so the ladder is three rungs again and the block is the t3 ceiling

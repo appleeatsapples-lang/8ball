@@ -141,9 +141,25 @@ export const PAIR_IMPRINT_ALLOW = Object.freeze([
  */
 export function buildPairImprintSnapshot(formattedRelation) {
   if (!formattedRelation || typeof formattedRelation !== 'object') return null;
-  const elementCycle = String(formattedRelation.elementDirectionAB || '');
-  const combinedLifePath = String(formattedRelation.numerologySpine || '');
-  const cardPair = String(formattedRelation.cardPairHead || '');
+  // Eighth remediation gate: `formattedRelation` is produced entirely by
+  // ui/dyad.js's own formatDyadRelation() in normal operation, never
+  // user-controlled directly — but the field reads and String() coercions
+  // below were still bare, unguarded property/toString accesses. A hostile
+  // getter on `elementDirectionAB`/`numerologySpine`/`cardPairHead`, or a
+  // value whose String() coercion itself throws (a poisoned toString/
+  // valueOf/Symbol.toPrimitive), would otherwise escape uncaught from a
+  // synchronous call site in onShareClick that runs BEFORE the busy/opInFlight
+  // state is even set — contained the same way every other external read in
+  // this module is, degrading to `null` (the same "nothing to share" result
+  // an already-missing/failed relation produces) rather than throwing.
+  let elementCycle, combinedLifePath, cardPair;
+  try {
+    elementCycle = String(formattedRelation.elementDirectionAB || '');
+    combinedLifePath = String(formattedRelation.numerologySpine || '');
+    cardPair = String(formattedRelation.cardPairHead || '');
+  } catch (_) {
+    return null;
+  }
   if (!elementCycle || !combinedLifePath || !cardPair) return null;
   return Object.freeze({
     brand: '8 ball · pair reading',
@@ -527,8 +543,55 @@ function readRelation(hooks) {
 // absent `navigator` entirely, resolves to `{ attempted:false }` — never a
 // block, never a `failed` outcome — so the caller always has a path to the
 // on-device download fallback.
+// ── hostile-accessor containment (eighth remediation gate) ─────────────────
+// `navigator.share` / `navigator.canShare` / `navigator.clipboard` /
+// `.writeText` are ordinary property reads throughout this file, which had
+// assumed a well-behaved global. A property that THROWS ON GET — a hostile
+// or broken `navigator` (an extension, a locked-down embed, or an
+// adversarial test harness) — is possible and was not contained the same
+// way a merely-missing method already was: `typeof navigator.share` at a
+// bare property-access site throws straight through the function that reads
+// it, rather than degrading to the same `{attempted:false}` a genuinely
+// absent method produces. `safeProp`/`safeFn` read a property (and confirm
+// it's callable) through a try/catch so a hostile getter degrades exactly
+// like an absent one; the caller still invokes the returned function via an
+// explicit `.call(receiver, ...)` so the native method keeps its correct
+// `this` (an extracted bare reference would lose that binding and could
+// itself throw "Illegal invocation" on some engines).
+function safeProp(obj, key) {
+  try { return obj == null ? undefined : obj[key]; } catch (_) { return undefined; }
+}
+function safeFn(obj, key) {
+  const fn = safeProp(obj, key);
+  return typeof fn === 'function' ? fn : null;
+}
+// `typeof navigator` itself throws if `navigator` is redefined as a global
+// accessor property with a throwing getter — `typeof` only shields an
+// UNRESOLVABLE (undeclared) reference, not a hostile one (confirmed
+// directly: Object.defineProperty(globalThis,'navigator',{get(){throw}})
+// makes even `typeof navigator` throw). `safeNavigator()` is the one place
+// that reference is ever evaluated in this file.
+function safeNavigator() {
+  try { return typeof navigator === 'undefined' ? null : navigator; } catch (_) { return null; }
+}
+// A caught error's OWN `.name` can itself be a throwing getter — reading it
+// to classify AbortError vs. everything else must not let that escape.
+function safeErrorName(err) {
+  try { return err && err.name; } catch (_) { return undefined; }
+}
+// A callable that returns something other than a real promise/thenable
+// (undefined, a plain value, or a hostile object whose `.then` getter
+// throws) must not be awaited as a success — `await nonThenable` resolves
+// immediately rather than throwing, which would otherwise read as the
+// native share/clipboard call having genuinely completed.
+function isThenable(v) {
+  try { return !!v && (typeof v === 'object' || typeof v === 'function') && typeof v.then === 'function'; }
+  catch (_) { return false; }
+}
+
 function trySyncNativeShare(blob, snapshot) {
-  if (typeof navigator === 'undefined') return { attempted: false };
+  const nav = safeNavigator();
+  if (!nav) return { attempted: false };
   let file = null;
   try {
     if (typeof File === 'function') {
@@ -539,24 +602,38 @@ function trySyncNativeShare(blob, snapshot) {
   }
   if (!file) return { attempted: false };
   const caption = buildPairImprintCaption(snapshot);
+  const canShareFn = safeFn(nav, 'canShare');
   let canShareFiles = false;
   try {
     // Evaluated with the EXACT payload navigator.share() below will
     // receive (files AND text) — canShare({files}) alone can answer yes
     // for a payload navigator.share() then refuses once `text` is
     // present.
-    canShareFiles = typeof navigator.canShare === 'function'
-      && !!navigator.canShare({ files: [file], text: caption });
+    canShareFiles = !!(canShareFn && canShareFn.call(nav, { files: [file], text: caption }));
   } catch (_) {
     canShareFiles = false;
   }
-  if (!canShareFiles || typeof navigator.share !== 'function') return { attempted: false };
+  const shareFn = safeFn(nav, 'share');
+  if (!canShareFiles || !shareFn) return { attempted: false };
   try {
-    const promise = navigator.share({ files: [file], text: caption });
-    return { attempted: true, promise };
-  } catch (_) {
-    // Some platforms can throw synchronously rather than reject — contained
-    // exactly like an async rejection would be: fall back, never block.
+    const result = shareFn.call(nav, { files: [file], text: caption });
+    // A callable-but-non-promise return (undefined, a plain value) is not a
+    // genuine share attempt this module can await for a truthful outcome —
+    // falls back to download exactly like an absent/uncallable share would.
+    if (!isThenable(result)) return { attempted: false };
+    return { attempted: true, promise: result };
+  } catch (err) {
+    // Eighth remediation gate: a DIRECT SYNCHRONOUS AbortError (some
+    // platforms throw rather than reject the promise) is a genuine,
+    // already-settled cancellation, not an unattempted call — it must
+    // resolve to `cancelled` with zero download/clipboard fallback, the
+    // same as an async-rejected AbortError already does. Wrapping it as a
+    // rejected promise lets shareOrFallback's existing async catch (which
+    // already reads the error name safely, see below) handle both shapes
+    // through one path. Any OTHER synchronous throw (not AbortError) is
+    // genuinely unattempted and still falls straight through to the
+    // on-device download, exactly as before.
+    if (safeErrorName(err) === 'AbortError') return { attempted: true, promise: Promise.reject(err) };
     return { attempted: false };
   }
 }
@@ -647,9 +724,23 @@ function syncBusyFromPrerender(controller) {
   const pending = isPrerenderPending(controller);
   applyBusyDOM(controller, pending);
   const el = controller.refs && controller.refs.status;
+  const busyMsg = pairShareStatusMessage('busy');
+  // Eighth remediation gate: a background prerender becoming pending for a
+  // NEWER pair (started via notifyRelationChange while a click-triggered
+  // operation was still in flight) must not stomp the truthful terminal
+  // status that operation's own `finally` just wrote (shared-selected,
+  // stale, download-started[-selected][-copied], cancelled, failed) the
+  // instant opInFlight clears and this function runs unguarded again. The
+  // BUTTON's disabled/aria-busy state may still legitimately reflect the
+  // pending render (a second click would have to wait for it either way);
+  // only the live status TEXT is protected, and only for as long as it is
+  // genuinely still showing a real terminal result (`!el.hidden` — the
+  // moment that message's own auto-hide timer actually fires, this stops
+  // applying and a later prerender is free to show `busy` normally).
+  const showingTerminal = !!(el && !el.hidden && el.textContent && el.textContent !== busyMsg);
   if (pending) {
-    setStatus(controller, 'busy');
-  } else if (el && el.textContent === pairShareStatusMessage('busy')) {
+    if (!showingTerminal) setStatus(controller, 'busy');
+  } else if (el && el.textContent === busyMsg) {
     // The pre-render just settled (or there is nothing to prepare) with no
     // click in flight — no download was started and no share was attempted,
     // so there is no terminal outcome to announce. Only ever clears OUR OWN
@@ -813,13 +904,31 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
   // the pair now on screen or the pair SELECTED at click time — it must
   // never be reported as if the download itself never happened.
   let copied = false;
-  if (typeof navigator !== 'undefined'
-    && navigator.clipboard
-    && typeof navigator.clipboard.writeText === 'function') {
+  // Eighth remediation gate: `navigator.clipboard` and its `.writeText`
+  // property are read through `safeProp`/`safeFn` (defined above,
+  // trySyncNativeShare) rather than as bare property accesses — a hostile
+  // `navigator.clipboard` getter must degrade to "no clipboard available"
+  // the same way an absent one already does, never throw straight through
+  // this function and skip the `setStatus` calls below. That containment is
+  // what keeps the ALREADY-TRUE `downloaded` outcome above from being
+  // erased: a throw here can only affect the clipboard branch that follows,
+  // never unwind past the point the download was already reported.
+  const clipboardObj = safeProp(safeNavigator(), 'clipboard');
+  const writeTextFn = safeFn(clipboardObj, 'writeText');
+  if (writeTextFn) {
     let clipboardOk = false;
     try {
-      await navigator.clipboard.writeText(caption);
-      clipboardOk = true;
+      const result = writeTextFn.call(clipboardObj, caption);
+      // Eighth remediation gate: a callable-but-non-promise return is not a
+      // genuine copy this module can vouch for — `await result` on a
+      // non-thenable resolves immediately rather than throwing, which would
+      // otherwise read as the clipboard write having actually succeeded.
+      // Retains the download-started status without the falsely-earned
+      // "-copied" suffix, exactly like a thrown/rejected write does.
+      if (isThenable(result)) {
+        await result;
+        clipboardOk = true;
+      }
     } catch (_) { /* clipboard denied — the download was still started */ }
     // P1-2: re-check AFTER this await REGARDLESS of whether the write
     // resolved or rejected — a clipboard call is a real async boundary the
@@ -875,7 +984,13 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
       const pre = preEffectStatus(check.verdict);
       if (pre) { setStatus(controller, pre); return; }
       if (check.verdict === 'suppressed') return;
-      if (err && err.name === 'AbortError') { setStatus(controller, 'cancelled'); return; }
+      // Eighth remediation gate: `err.name` read through `safeErrorName` —
+      // a rejection object with a THROWING `.name` getter must not escape
+      // this catch block and erase the fallback below; it is classified as
+      // "not AbortError" (safeErrorName returns undefined on a throw) and
+      // falls straight through to the same download-preserving path any
+      // other non-Abort rejection already takes.
+      if (safeErrorName(err) === 'AbortError') { setStatus(controller, 'cancelled'); return; }
       // Second-gate P1-4: a non-Abort rejection (NotAllowedError included)
       // preserves the local download — the platform only refused to open
       // its OWN chooser; the PNG this device already rendered is still
