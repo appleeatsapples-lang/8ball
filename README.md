@@ -22,7 +22,7 @@ npm test         # vitest — file count: CLAUDE.md (canonical); case count: new
 
 Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 
-1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over immutable `content/meanings.v1.js` and the active `content/meanings.v5.js` registry (v3/v4 carried unedited via re-export).
+1. Calculation contract + engine pipeline — `tests/profile.test.js`, `tests/rising.test.js`, `tests/cities.test.js`, `tests/countries.test.js`, `tests/numerology_display.test.js`, `tests/labels_reveal.test.js`, `tests/dob_validation.test.js`, `tests/payments_markup.test.js`. `tests/fixtures.json` is the source of truth for `core/profile.js`; the algorithm must match every fixture exactly. Changes need updates in lockstep (see [`DOCTRINE.md §3`](./DOCTRINE.md)). These files also cover the `getCard` pipeline against the full positional catalog (12 sun × 12 animal = 144), `resolveBracket` cases, rising-sign math, the v0.22 deck scan, and the §1.G content-policy/completeness scans over immutable `content/meanings.v1.js` and the active `content/meanings.v6.js` registry (v2–v5 carried unedited via re-export).
 2. Privacy scan — `tests/privacy_scan.test.js`. No unpermitted network calls (only DOCTRINE §5-permitted same-origin lazy loads and the §5.B user-initiated feedback POST; the checkout redirect retired with doctrine v0.71); no third-party fonts or scripts; system fonts only. Saved Readings adds one doctrine-allow-listed local key; `tests/readings.test.js` locks its minimal schema and lifecycle. Concordance adds no key or schema field; `tests/concordance.test.js` locks its transient recomputation boundary and finite relation inventory.
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
@@ -34,7 +34,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 ```
 8ball/
 ├── index.html               UI + boot markup/script (≤1500 LOC per §6; shell styles live in ui/shell.css since 2026-08-31)
-├── core/                    12 pure-logic ES modules — no DOM
+├── core/                    14 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution
 │   ├── rising.js            Meeus ascendant — DST + historical-tz aware
@@ -46,6 +46,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
 │   ├── public.js            public-reading resolution + disclosed master-mode bridge
 │   ├── dyad.js              pure two-profile relation calculation
+│   ├── moon.js              moon sign + moon placement context (§1.K)
+│   ├── kua.js               eight-trigram Kua registry lookup (renderer retired, table retained)
 │   └── payments.js          pure state machines: new-profile reads + t3 facet rotation
 ├── ui/                      15 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
 │   ├── tiers.js             compartment-card render + shareRowRefs + the provenance/atlas registries + density
@@ -62,13 +64,14 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── sheet.js             shared sheet value mapping/render helpers
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
-├── content/                 12 versioned registry modules
+├── content/                 16 versioned registry modules
 │   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
-│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53)
+│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53; superseded)
 │   ├── meanings.v3.js       twelve terminal values, masters reused from v1 (§1.G v0.62; superseded)
 │   ├── meanings.v4.js       + per-slot numerology lines, theme tensions (§1.G; superseded)
-│   ├── meanings.v5.js       ACTIVE registry — v4 unedited + rising/private-animal placement lines (§1.G)
+│   ├── meanings.v5.js       + rising/private-animal placement lines (§1.G; superseded)
+│   ├── meanings.v6.js       ACTIVE registry — v5 unedited + moon placement family + moon context role (§1.K)
 │   ├── concordance.v1.js    immutable historical relation registry (§1.I v0.51)
 │   ├── concordance.v2.js    superseded registry for the strict 1–9 numerology cut (§1.I v0.54)
 │   ├── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)
@@ -76,7 +79,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── dyad.v2.js           ACTIVE dyad tables + master-preserving combined-path frame (§1.J v0.62)
 │   ├── public.v1.js         immutable public-reading mode registry (§1.D)
 │   ├── public.v2.js         superseded public-reading registry
-│   └── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   ├── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   └── kua.v1.js            eight-trigram registry — table retained, renderer retired (§1.D kua-retirement amendment)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
@@ -85,7 +89,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F; placard + atlas live in the meaning panel since v0.74)
 │   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
 │   ├── share_surface / pair_share / readings / concordance / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
-│   ├── dyad_surface / dyad / dyad_content  the paired reading + Pair Dossier hierarchy (DOCTRINE §1.J)
+│   ├── dyad_surface / dyad / dyad_content / pair_readings_integration  the paired reading + Pair Dossier hierarchy (DOCTRINE §1.J)
 │   └── privacy_scan / pii_scan / dependency_discipline / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs
 ├── assets/                  cities.json + favicons + og:image

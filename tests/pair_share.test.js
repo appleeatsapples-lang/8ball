@@ -29,7 +29,9 @@ import {
   buildPairImprintSVG,
   buildPairImprintCaption,
   pairShareStatusMessage,
+  pairImprintDisclosureText,
   initPairShareUI,
+  FOOTER_LAYOUT,
 } from '../ui/pairShare.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -284,21 +286,33 @@ const originals = {
 
 function makeEl(tag = 'div') {
   const handlers = {};
+  const attrs = {};
   return {
-    tag, textContent: '', hidden: false, clickCount: 0, removeCount: 0,
+    tag, textContent: '', hidden: false, disabled: false, clickCount: 0, removeCount: 0,
+    attrs,
     classList: { add() {}, remove() {}, contains() { return false; } },
     addEventListener(ev, fn) { handlers[ev] = fn; },
     _fire(ev, arg) { return handlers[ev] && handlers[ev](arg); },
     click() { this.clickCount++; },
     remove() { this.removeCount++; },
+    setAttribute(k, v) { attrs[k] = String(v); },
+    getAttribute(k) { return Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : null; },
   };
 }
 
 function installEnv({
   canShare = null, share = null, clipboard = null,
-  toBlob = 'ok', imageFails = false, contextThrows = false,
+  toBlob = 'ok', imageFails = false, contextThrows = false, imageDefer = false,
 } = {}) {
-  const log = { svg: [], created: [], revoked: [], anchors: [], canvases: [], shared: [], copied: [], fetchCalls: 0 };
+  const log = {
+    svg: [], created: [], revoked: [], anchors: [], canvases: [], shared: [], copied: [], fetchCalls: 0,
+    // Only populated when imageDefer is true — one release function per
+    // constructed Image, so a test can hold rasterization "in flight" and
+    // release it at a chosen moment (audit A2: prove the identity guard
+    // catches a change that happens WHILE the async work is pending, not
+    // only before it starts).
+    pendingImages: [],
+  };
 
   globalThis.Blob = class extends RealBlob {
     constructor(parts, opts) {
@@ -313,8 +327,12 @@ function installEnv({
     constructor() { this.onload = null; this.onerror = null; }
     set src(value) {
       this._src = value;
-      if (imageFails) { if (this.onerror) this.onerror(); }
-      else if (this.onload) this.onload();
+      const fire = () => {
+        if (imageFails) { if (this.onerror) this.onerror(); }
+        else if (this.onload) this.onload();
+      };
+      if (imageDefer) log.pendingImages.push(fire);
+      else fire();
     }
     get src() { return this._src; }
   };
@@ -351,7 +369,7 @@ function installEnv({
 }
 
 function boot(getRelation) {
-  const refs = { btn: makeEl('button'), status: makeEl('p') };
+  const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
   initPairShareUI(refs, { getRelation });
   return refs;
 }
@@ -488,5 +506,263 @@ describe('Pair Imprint — the live click path', () => {
     expect(refs.status.hidden).toBe(false);
     vi.advanceTimersByTime(4000);
     expect(refs.status.hidden).toBe(true);
+  });
+});
+
+// ── Remediation gate (audit_pair_dossier_imprint_2026-09-04.md) ─────────
+
+describe('C2 — busy state during generation', () => {
+  it('disables the button and sets aria-busy the instant the click starts, announcing preparation', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = boot(() => VALID_RELATION);
+    const pending = clickShare(refs); // NOT awaited yet — still mid-flight
+    expect(refs.btn.disabled).toBe(true);
+    expect(refs.btn.getAttribute('aria-busy')).toBe('true');
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    log.pendingImages[0](); // release rasterization
+    await pending;
+    expect(refs.btn.disabled).toBe(false);
+    expect(refs.btn.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('clears busy state on EVERY terminal path — empty, failed, and success alike', async () => {
+    installEnv();
+    const refsEmpty = boot(() => null);
+    await clickShare(refsEmpty);
+    // The empty path returns before setBusy(true) is ever reached — there is
+    // no busy state to clear, so aria-busy is simply never touched (stays
+    // the static markup's own default in a real DOM). Not-true is the
+    // correct assertion here, not a forced 'false'.
+    expect(refsEmpty.btn.disabled).toBe(false);
+    expect(refsEmpty.btn.getAttribute('aria-busy')).not.toBe('true');
+
+    installEnv({ contextThrows: true });
+    const refsFailed = boot(() => VALID_RELATION);
+    await clickShare(refsFailed);
+    expect(refsFailed.btn.disabled).toBe(false);
+    expect(refsFailed.btn.getAttribute('aria-busy')).toBe('false');
+
+    installEnv({ clipboard: () => {} });
+    const refsOk = boot(() => VALID_RELATION);
+    await clickShare(refsOk);
+    expect(refsOk.btn.disabled).toBe(false);
+    expect(refsOk.btn.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('the terminal status text is never clobbered by the busy-state teardown', async () => {
+    installEnv({ clipboard: () => {} });
+    const refs = boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+});
+
+describe('C1 — capability is disclosed before the button is ever pressed', () => {
+  const originalShare = globalThis.navigator?.share;
+  const originalCanShare = globalThis.navigator?.canShare;
+
+  it('discloses "shares...directly" when the platform supports native file share', () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const refs = boot(() => VALID_RELATION);
+    expect(refs.disclosure.textContent).toContain('pair imprint');
+    expect(refs.disclosure.textContent).toContain('shares the pair imprint directly');
+    expect(refs.disclosure.textContent).not.toMatch(/web share|navigator|browser api/i);
+  });
+
+  it('discloses "saves...as an image" when native share is unsupported', () => {
+    installEnv();
+    const refs = boot(() => VALID_RELATION);
+    expect(refs.disclosure.textContent).toContain('pair imprint');
+    expect(refs.disclosure.textContent).toContain('saves the pair imprint as an image on this device');
+  });
+
+  it('tolerates a boot with no disclosure ref', () => {
+    installEnv({ clipboard: () => {} });
+    expect(() => initPairShareUI({ btn: makeEl('button'), status: makeEl('p') }, { getRelation: () => null })).not.toThrow();
+  });
+
+  it('the disclosure copy is a pure function of capability — independently testable', () => {
+    expect(pairImprintDisclosureText(true)).toBe('created on this device · personal details excluded · shares the pair imprint directly');
+    expect(pairImprintDisclosureText(false)).toBe('created on this device · personal details excluded · saves the pair imprint as an image on this device');
+  });
+});
+
+describe('A2 — stale/concurrent operations never complete a side effect for the wrong pair', () => {
+  it('permits only one active operation — a second click while one is in flight is a silent no-op', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = boot(() => VALID_RELATION);
+    const first = clickShare(refs);
+    const second = clickShare(refs); // fired before the first has resolved
+    expect(log.pendingImages).toHaveLength(1); // the second click never started its own rasterization
+    log.pendingImages[0]();
+    await Promise.all([first, second]);
+    expect(log.anchors).toHaveLength(1); // exactly one download, not two
+  });
+
+  it('a relation replaced WHILE rasterization is in flight invalidates the operation — no share, no download', async () => {
+    let relation = VALID_RELATION;
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const refs = boot(() => relation);
+    const pending = clickShare(refs);
+    relation = adversarialRelation({ elementDirectionAB: 'A · fire → B · water · generating' }); // Compare Another landed a new pair
+    log.pendingImages[0]();
+    await pending;
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('the pair closing (relation becomes null) WHILE rasterization is in flight is also caught', async () => {
+    let relation = VALID_RELATION;
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = boot(() => relation);
+    const pending = clickShare(refs);
+    relation = null; // Back / close landed
+    log.pendingImages[0]();
+    await pending;
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('a re-init (initPairShareUI called again) invalidates an operation the PRIOR instance started', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = boot(() => VALID_RELATION);
+    const pending = clickShare(refs);
+    // A fresh init — e.g. the host re-wiring the module — bumps the
+    // generation counter out from under the in-flight operation above, AND
+    // takes over module-level `_refs`/`_hooks` (a real re-init replaces the
+    // whole wiring, not just the generation number) — so the stale
+    // resolution is observed on the NEW instance's status node, which is
+    // the accurate description of what re-init actually does.
+    const refs2 = boot(() => VALID_RELATION);
+    log.pendingImages[0]();
+    await pending;
+    expect(log.anchors).toHaveLength(0);
+    expect(refs2.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('an UNCHANGED relation across the same async boundary completes normally — the guard does not false-positive', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = boot(() => VALID_RELATION); // same reference every call
+    const pending = clickShare(refs);
+    log.pendingImages[0]();
+    await pending;
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+  });
+});
+
+describe('A3 — every capability is contained independently; nothing escapes as an unhandled rejection', () => {
+  it('a throwing File constructor settles to "failed", never an unhandled rejection', async () => {
+    installEnv();
+    const RealFile = globalThis.File;
+    globalThis.File = class { constructor() { throw new Error('no File here'); } };
+    try {
+      const refs = boot(() => VALID_RELATION);
+      await expect(clickShare(refs)).resolves.toBeUndefined();
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+    } finally {
+      globalThis.File = RealFile;
+    }
+  });
+
+  it('a throwing canShare falls back to download rather than propagating', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    globalThis.navigator.canShare = () => { throw new Error('canShare exploded'); };
+    globalThis.navigator.share = async () => undefined;
+    const refs = boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+
+  it('canShare is evaluated with the EXACT payload navigator.share receives (files AND text), not a narrower one', async () => {
+    let seenPayload = null;
+    installEnv({
+      canShare: payload => { seenPayload = payload; return true; },
+      share: () => undefined,
+    });
+    const refs = boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(seenPayload).toHaveProperty('files');
+    expect(seenPayload).toHaveProperty('text');
+    expect(typeof seenPayload.text).toBe('string');
+    expect(seenPayload.text.length).toBeGreaterThan(0);
+  });
+
+  it('a throwing download (anchor.click) settles to "failed", never attempts clipboard on top of it', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    const originalCreateElement = globalThis.document.createElement;
+    globalThis.document.createElement = tag => {
+      const el = originalCreateElement(tag);
+      if (tag === 'a') el.click = () => { throw new Error('download blocked'); };
+      return el;
+    };
+    const refs = boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('clipboard failure never invalidates an already-successful download', async () => {
+    const log = installEnv({ clipboard: () => { throw new Error('denied'); } });
+    const refs = boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1); // the download still happened
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
+  });
+
+  it('a throwing getRelation() hook is contained and settles truthfully, never an unhandled rejection', async () => {
+    installEnv();
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    initPairShareUI(refs, { getRelation: () => { throw new Error('hook exploded'); } });
+    // relationNow() contains the throw and treats it the same as "no
+    // relation available" — the outcome is `empty`, not `failed`: nothing
+    // was attempted (no render, no share, no download), so "nothing to
+    // share yet" is the truthful description, not a claim that something
+    // was tried and broke. The load-bearing proof is that the promise
+    // resolves at all — a throwing hook must never become an unhandled
+    // rejection.
+    await expect(clickShare(refs)).resolves.toBeUndefined();
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('empty'));
+  });
+
+  it('an absent navigator object entirely degrades to the download fallback path, not a crash', async () => {
+    installEnv({ clipboard: () => {} });
+    const savedDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    // Simulate an environment where `navigator.canShare`/`.share` are
+    // simply undefined (the realistic "unsupported" shape) rather than
+    // deleting the global entirely, which no real browser ever does but
+    // which the `typeof navigator !== 'undefined'` guards defend anyway.
+    Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
+    try {
+      const refs = boot(() => VALID_RELATION);
+      await expect(clickShare(refs)).resolves.toBeUndefined();
+    } finally {
+      if (savedDescriptor) Object.defineProperty(globalThis, 'navigator', savedDescriptor);
+    }
+  });
+});
+
+describe('A4 — the PNG footer clears the frame edge with a real margin', () => {
+  it('the URL baseline sits comfortably above the frame\'s bottom edge — not 2px from it', () => {
+    const clearance = FOOTER_LAYOUT.frameBottom - FOOTER_LAYOUT.urlBaselineY;
+    // A conservative descent estimate for this font stack at this size —
+    // the "y" in "netlify" is the glyph that actually clipped before.
+    const estimatedDescent = FOOTER_LAYOUT.urlFontSize * 0.3;
+    expect(clearance).toBeGreaterThan(estimatedDescent * 2); // real margin, not a coin-flip
+  });
+
+  it('the rendered SVG places the url text well inside the frame rect, not on top of its stroke', () => {
+    const svg = buildPairImprintSVG(buildPairImprintSnapshot(adversarialRelation()));
+    const frameMatch = svg.match(/<rect x="48" y="48" width="\d+" height="(\d+)"/);
+    const urlMatch = svg.match(/y="(\d+)"[^>]*>the-eight-ball\.netlify\.app</);
+    expect(frameMatch).toBeTruthy();
+    expect(urlMatch).toBeTruthy();
+    const frameBottom = 48 + Number(frameMatch[1]);
+    const urlY = Number(urlMatch[1]);
+    expect(frameBottom - urlY).toBeGreaterThan(20);
   });
 });

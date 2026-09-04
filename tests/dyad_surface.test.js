@@ -50,6 +50,7 @@ import {
   compareAnother,
   isOpen as isDyadOpen,
   currentRelation,
+  elementCycleFacts,
 } from '../ui/dyad.js';
 import { panelDetailFor, coordinateLabel } from '../ui/meanings.js';
 import { derivationText } from '../ui/tiers.js';
@@ -66,13 +67,14 @@ import {
   newlyEntitledCells, cellRenderState,
   initTiersUI, renderTierSections,
 } from '../ui/tiers.js';
-import { buildDyadReading } from '../core/dyad.js';
+import { buildDyadReading, elementDirection } from '../core/dyad.js';
 import { DYAD_QUALIFIER } from '../content/dyad.v2.js';
 import { buildProfile } from '../core/profile.js';
 import { getCard } from '../core/engine.js';
 import { CARDS } from '../content/cards.v1.full.js';
 import { publicReadFor } from '../ui/public.js';
 import { searchCities } from '../core/cities.js';
+import { buildPairImprintSnapshot, buildPairImprintSVG, buildPairImprintCaption, PAIR_IMPRINT_ALLOW } from '../ui/pairShare.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -225,7 +227,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     // narrow-screen A/B jump control, the failure state, and the completion
     // flow's own controls (dyad-back's relabel needs no new id).
     'dyad-heading', 'dyad-scope', 'dyad-signature',
-    'dyad-side-select', 'dyad-side-a', 'dyad-side-b',
+    'dyad-side-select', 'dyad-side-a', 'dyad-side-b', 'dyad-spine-wrap',
     'dyad-relation-failure', 'dyad-relation-retry',
     'dyad-share-disclosure', 'dyad-share-btn', 'dyad-share-status', 'dyad-compare-btn',
     ...DYAD_AXIS_IDS,
@@ -441,12 +443,18 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(h.root.classList.contains('hidden')).toBe(false);
   });
 
-  it('the entry control focuses the paired screen root — the hand-off v0.78 depends on (pr237 audit MED-2)', () => {
+  it('the entry control focuses the paired screen — the hand-off v0.78 depends on, now landing on the NAMED heading (audit B4)', () => {
     // close() parks focus on a cell index.html hides on the very next
-    // statement, so this focus call is the only thing repairing it.
+    // statement, so this focus call is the only thing repairing it. The
+    // v0.78 hand-off only required SOME focus call into the now-visible
+    // screen; audit B4 moved the target from the unnamed section root to
+    // its own top-level heading (matching every sibling screen), which is
+    // a strict improvement — an AT user now hears "pair reading, heading
+    // level 1" instead of silence — not a regression of the hand-off.
     const h = harness('t5');
     h.withDom(() => h.get('dyad-open-btn').listeners.click());
-    expect(h.root.focusCalls).toEqual([{ preventScroll: true }]);
+    expect(h.get('dyad-heading').focusCalls).toEqual([{ preventScroll: true }]);
+    expect(h.root.focusCalls).toEqual([]);
   });
 
   it('onOpen fires only when the dyad will actually open — never below t5 (pr237 audit LOW-3)', () => {
@@ -530,17 +538,18 @@ describe('dyad surface — presentation: spine heads + reveal beat', () => {
     expect(h.get('dyad-output').focusCalls).toEqual([{ preventScroll: true }]);
   });
 
-  it('the spine carries the terse symbolic heads, distinct from the fuller collapsed-detail heads', () => {
+  it('the spine reuses the corrected direction fact — no separate ⇄ glyph to disagree with it (audit A1)', () => {
     const reading = buildDyadReading(A, B);
     const relation = formatDyadRelation(reading);
-    // Terse: no label suffix, no register suffix.
-    expect(relation.elementSpine)
-      .toBe(`${reading.relation.element.a.element} ⇄ ${reading.relation.element.b.element}`);
-    expect(relation.elementSpine).not.toContain('·');
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    // The accordion summary's compact head is bound to elementDirectionAB
+    // directly — DYAD_RELATION_NODES maps 'dyad-spine-element' to that
+    // field, not to a separate terse/undirected glyph field, so it is
+    // mechanically impossible for the summary and the evidence beneath it
+    // to name different directions.
+    expect(h.get('dyad-spine-element').textContent).toBe(relation.elementDirectionAB);
     expect(relation.numerologySpine).toMatch(/^\d+ \+ \d+ → \d+$/);
-    // The fuller heads still carry what the spine strips out.
-    expect(relation.elementHead).toContain('·');
-    expect(relation.elementHead.startsWith(relation.elementSpine.split(' ⇄ ')[0])).toBe(true);
     expect(relation.numerologyHead.startsWith(relation.numerologySpine)).toBe(true);
     // cardPairHead is reused verbatim as the card-pair spine text — no
     // separate field, since the existing head was already the terse form.
@@ -1856,15 +1865,17 @@ describe('Pair Dossier — heading, scope, and the compact pair signature', () =
   });
 });
 
-describe('Pair Dossier — direction-explicit element cycle (resolves the ⇄ vs → ambiguity)', () => {
-  it('the WATER ⇄ WOOD spine stays exactly as pinned; the new fields add A/B direction beside it, never replace it', () => {
+describe('Pair Dossier — direction-explicit element cycle (audit A1: correct for every kind)', () => {
+  // A(specimen a)=earth, B(specimen b)=metal for the shipped fixture pair —
+  // SHENG[earth]==='metal', so aToB.kind is already 'sheng' (active) and the
+  // arrow direction happens to be unchanged by the fix; the label suffix is
+  // the new, previously-missing part.
+  it('the fixture pair (an active/sheng case): forward carries the register label, backward mirrors it', () => {
     const reading = buildDyadReading(A, B);
     const relation = formatDyadRelation(reading);
-    expect(relation.elementDirectionAB).toBe(`A · ${reading.relation.element.a.element} → B · ${reading.relation.element.b.element}`);
-    expect(relation.elementDirectionBA).toBe(`B · ${reading.relation.element.b.element} ← A · ${reading.relation.element.a.element}`);
-    // Both directions cite the same two elements as the spine, just labeled.
-    expect(relation.elementDirectionAB).toContain(reading.relation.element.a.element);
-    expect(relation.elementDirectionBA).toContain(reading.relation.element.a.element);
+    const { a, b } = reading.relation.element;
+    expect(relation.elementDirectionAB).toBe(`A · ${a.element} → B · ${b.element} · generating`);
+    expect(relation.elementDirectionBA).toBe(`B · ${b.element} ← A · ${a.element} · generating`);
   });
 
   it('both direction heads land in the DOM, each immediately before its own authored body', () => {
@@ -1876,6 +1887,88 @@ describe('Pair Dossier — direction-explicit element cycle (resolves the ⇄ vs
     expect(h.get('dyad-element-ab').textContent).toBe(relation.elementAB);
     expect(h.get('dyad-element-direction-ba').textContent).toBe(relation.elementDirectionBA);
     expect(h.get('dyad-element-ba').textContent).toBe(relation.elementBA);
+  });
+
+  // elementCycleFacts() is a pure function of the SAME `element` shape
+  // core/dyad.js's buildDyadReading() produces (`{a,b,aToB,bToA}`), built
+  // here from core/dyad.js's own real elementDirection() over hand-chosen
+  // elements — never a fabricated shape — so every one of the five kinds
+  // elementRelationKind() can return is exercised directly, plus the
+  // "swapped ordered pair" case the audit names (the same two elements,
+  // A/B reversed, must describe the SAME physical generator/controller).
+  const relationOf = (aEl, bEl) => ({
+    a: { element: aEl }, b: { element: bEl },
+    aToB: elementDirection(aEl, bEl), bToA: elementDirection(bEl, aEl),
+  });
+
+  it('same (identical elements): nondirectional, no arrow, no register label', () => {
+    const facts = elementCycleFacts(relationOf('wood', 'wood'));
+    expect(facts.directional).toBe(false);
+    expect(facts.forward).toBe('A · wood = B · wood');
+    expect(facts.backward).toBe('B · wood = A · wood');
+    expect(facts.forward).not.toMatch(/[→←⇄]/);
+  });
+
+  it('sheng (A active — A generates B): arrow A→B, "generating"', () => {
+    // wood generates fire (the sheng cycle).
+    const facts = elementCycleFacts(relationOf('wood', 'fire'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('A · wood → B · fire · generating');
+    expect(facts.backward).toBe('B · fire ← A · wood · generating');
+  });
+
+  it('sheng_by (A passive — A generated by B): arrow reverses to B→A, still "generating" (never the passive label) — the exact audited defect', () => {
+    // Same physical fact as above with A/B swapped: wood (now B) generates
+    // fire (now A). The audited bug rendered this as `wood → water ·
+    // generated by` for an analogous pair — an arrow pointing the WRONG
+    // way paired with a passive label. The fix must draw B→A here, not
+    // A→B, and must never surface the "generated by" passive label.
+    const facts = elementCycleFacts(relationOf('fire', 'wood'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('B · wood → A · fire · generating');
+    expect(facts.forward).not.toContain('generated by');
+    expect(facts.forward).not.toMatch(/^A · fire →/); // the audited-wrong direction
+  });
+
+  it('ke (A active — A controls B): arrow A→B, "controlling"', () => {
+    // wood controls earth (the ke cycle).
+    const facts = elementCycleFacts(relationOf('wood', 'earth'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('A · wood → B · earth · controlling');
+    expect(facts.backward).toBe('B · earth ← A · wood · controlling');
+  });
+
+  it('ke_by (A passive — A controlled by B): arrow reverses to B→A, still "controlling" (never the passive label)', () => {
+    // Same physical fact as above with A/B swapped: wood (now B) controls
+    // earth (now A).
+    const facts = elementCycleFacts(relationOf('earth', 'wood'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('B · wood → A · earth · controlling');
+    expect(facts.forward).not.toContain('controlled by');
+    expect(facts.forward).not.toMatch(/^A · earth →/); // the audited-wrong direction
+  });
+
+  it('swapped ordered pairs describe the SAME physical relation, not two different ones', () => {
+    // wood/fire (A=wood) and fire/wood (A=fire) are the same two elements,
+    // A/B reversed. Both must agree that WOOD is the generator.
+    const woodFirst = elementCycleFacts(relationOf('wood', 'fire'));
+    const fireFirst = elementCycleFacts(relationOf('fire', 'wood'));
+    expect(woodFirst.label).toBe('generating');
+    expect(fireFirst.label).toBe('generating');
+    expect(woodFirst.forward).toContain('A · wood →');
+    expect(fireFirst.forward).toContain('B · wood →');
+  });
+
+  it('mutual consistency: the compact signature, the summary head, and the exported Pair Imprint all read the identical corrected string', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(h.get('dyad-signature-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-spine-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-element-direction-ab').textContent).toBe(relation.elementDirectionAB);
+    expect(snapshot.elementCycle).toBe(relation.elementDirectionAB);
   });
 });
 
@@ -1903,11 +1996,12 @@ describe('Pair Dossier — card pair split into its structural registers', () =>
     );
   });
 
-  it('the bracket head is direction-explicit with A/B, matching the element cycle convention', () => {
+  it('the bracket head uses a NEUTRAL separator, never an arrow (audit A5: bracket.body makes no directional claim)', () => {
     const reading = buildDyadReading(A, B);
     const relation = formatDyadRelation(reading);
     const { bracket } = reading.relation.cardPair;
-    expect(relation.cardBracketHead).toBe(`A · ${bracket.arcA} → B · ${bracket.arcB}`);
+    expect(relation.cardBracketHead).toBe(`A · ${bracket.arcA} · B · ${bracket.arcB}`);
+    expect(relation.cardBracketHead).not.toMatch(/[→←⇄]/);
   });
 });
 
@@ -2144,5 +2238,297 @@ describe('Pair Dossier — narrow-screen A/B jump control', () => {
     expect(h.get('dyad-side-a').textContent).toBe('A');
     expect(h.get('dyad-side-b').textContent).toBe('B');
     expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+  });
+});
+
+// ── Remediation gate (audit_pair_dossier_imprint_2026-09-04.md) ─────────
+
+describe('B1 — novalidate: native constraints no longer bypass the custom error contract', () => {
+  it('the second-entry form carries novalidate, so a real click always reaches validateEntry', () => {
+    expect(dyadJs).toMatch(/id="dyad-form" autocomplete="off" novalidate/);
+  });
+
+  it('required stays on the inputs (a non-JS fallback signal) but novalidate stops it gating submission', () => {
+    expect(dyadJs).toMatch(/id="dyad-name-input" type="text" required/);
+    expect(dyadJs).toMatch(/id="dyad-dob-input" type="date" required/);
+  });
+});
+
+describe('B2 — a null relation exposes only the two sheets plus ONE recovery action', () => {
+  function incoherentBLocal() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('hides the evidence block, the spine, and every completion control tied to a resolved relation', () => {
+    const h = harness('t5', { buildSecond: () => incoherentBLocal() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation').hidden).toBe(true);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(true);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(true);
+    expect(h.get('dyad-share-btn').hidden).toBe(true);
+    expect(h.get('dyad-compare-btn').hidden).toBe(true);
+    // The ONE recovery action — no duplicate.
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+  });
+
+  it('a resolved relation restores every one of those surfaces', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation').hidden).toBe(false);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(false);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(false);
+    expect(h.get('dyad-share-btn').hidden).toBe(false);
+    expect(h.get('dyad-compare-btn').hidden).toBe(false);
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+  });
+
+  it('clearOutput() defaults every one of those surfaces to hidden — the same F1 shape as signature/failure', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-relation').hidden).toBe(true);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(true);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(true);
+    expect(h.get('dyad-share-btn').hidden).toBe(true);
+    expect(h.get('dyad-compare-btn').hidden).toBe(true);
+  });
+});
+
+describe('B3 — Back restores focus to a stable, visible control', () => {
+  it('"back to my sheet" focuses #dyad-open-btn, never leaving focus stranded on the now-hidden #dyad-back', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-back').listeners.click());
+    expect(h.get('dyad-open-btn').focusCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('B4 — a named top-level landmark for the Pair screen', () => {
+  it('the screen root is labelled by its own h1, matching every sibling screen', () => {
+    expect(dyadJs).toMatch(/root\.setAttribute\('aria-labelledby', 'dyad-heading'\)/);
+    expect(dyadJs).toMatch(/<h1 class="dyad-heading" id="dyad-heading" tabindex="-1">pair reading<\/h1>/);
+  });
+
+  it('open() focuses the named heading, not an unnamed section', () => {
+    const h = harness('t5');
+    h.withDom(() => openDyad());
+    expect(h.get('dyad-heading').focusCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('B5 — the A/B cue reflects real scroll position, not only button clicks', () => {
+  it('a scroll listener is attached to the pannable strip', () => {
+    expect(dyadJs).toMatch(/sheetsScrollWrap\.addEventListener\('scroll'/);
+  });
+
+  it('firing the scroll listener with B closer to center presses B and releases A, even though setSide() was never called', () => {
+    // The listener is throttled to one check per animation frame (rAF is
+    // undefined in this node-env harness, so it falls back to a 16ms
+    // setTimeout) — fake timers make that scheduling deterministic rather
+    // than asserting a race against a real 16ms wait.
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5');
+      h.withDom(() => submitSecond());
+      const wrap = h.get('dyad-sheets');
+      const childA = { offsetLeft: 0, offsetWidth: 300 };
+      const childB = { offsetLeft: 320, offsetWidth: 300 };
+      wrap.children = [childA, childB];
+      wrap.clientWidth = 300;
+      wrap.scrollLeft = 320; // panned so B's center is now under the viewport center
+      h.withDom(() => { wrap.listeners.scroll(); vi.advanceTimersByTime(20); });
+      expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('true');
+      expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('scrolling back toward A releases B and presses A again', () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5');
+      h.withDom(() => submitSecond());
+      const wrap = h.get('dyad-sheets');
+      const childA = { offsetLeft: 0, offsetWidth: 300 };
+      const childB = { offsetLeft: 320, offsetWidth: 300 };
+      wrap.children = [childA, childB];
+      wrap.clientWidth = 300;
+      wrap.scrollLeft = 0;
+      h.withDom(() => { wrap.listeners.scroll(); vi.advanceTimersByTime(20); });
+      expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+      expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('B6 — long names never overflow the mobile A/B selector', () => {
+  it('the button bounds itself (min-width:0, flex:1 1 0) and truncates paint only, never the accessible text', () => {
+    expect(dyadJs).toMatch(/\.dyad-side-btn \{[\s\S]{0,40}min-height: 44px; min-width: 0; max-width: 100%; flex: 1 1 0;/);
+    expect(dyadJs).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/);
+  });
+
+  it('a 60-character unbroken name is still the button\'s FULL textContent and title — CSS clips paint, not the DOM', () => {
+    const longName = 'x'.repeat(60);
+    const h = harness('t5', { buildSecond: () => ({ ...B, firstName: longName }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-side-b').textContent).toBe(`B · ${longName}`);
+    expect(h.get('dyad-side-b').attrs.title).toBe(`B · ${longName}`);
+  });
+
+  it('the title attribute clears on close, alongside the rest of the F1 enumeration', () => {
+    const longName = 'y'.repeat(60);
+    const h = harness('t5', { buildSecond: () => ({ ...B, firstName: longName }) });
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-b').attrs.title).toBeUndefined();
+  });
+});
+
+describe('B7 — the narrow-screen jump respects prefers-reduced-motion', () => {
+  const originalMM = globalThis.matchMedia;
+  afterEach(() => {
+    if (originalMM === undefined) delete globalThis.matchMedia; else globalThis.matchMedia = originalMM;
+  });
+
+  it('requests smooth scrolling by default', () => {
+    globalThis.matchMedia = () => ({ matches: false });
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const wrap = h.get('dyad-sheets');
+    wrap.children = [{ offsetLeft: 0 }, { offsetLeft: 320 }];
+    let requested = null;
+    wrap.scrollTo = opts => { requested = opts; };
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(requested.behavior).toBe('smooth');
+  });
+
+  it('requests instant (auto) scrolling under prefers-reduced-motion: reduce', () => {
+    globalThis.matchMedia = q => ({ matches: q === '(prefers-reduced-motion: reduce)' });
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const wrap = h.get('dyad-sheets');
+    wrap.children = [{ offsetLeft: 0 }, { offsetLeft: 320 }];
+    let requested = null;
+    wrap.scrollTo = opts => { requested = opts; };
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(requested.behavior).toBe('auto');
+  });
+});
+
+describe('B8 — citation-label contrast meets AA, non-compounded', () => {
+  // The same composited-luminance formula tests/monochrome_surface.test.js
+  // uses for the rest of the product: white at `alpha` over a pure black
+  // surface, WCAG relative-luminance contrast ratio against black (L=0).
+  function contrastOfWhiteAlphaOnBlack(alpha) {
+    const c = alpha <= 0.03928 ? alpha / 12.92 : Math.pow((alpha + 0.055) / 1.055, 2.4);
+    return (c + 0.05) / 0.05;
+  }
+
+  it('.dyad-cite-label sets an explicit, non-compounded color — 0.55 alone clears 4.5:1', () => {
+    expect(dyadJs).toMatch(/\.dyad-cite-label \{[\s\S]{0,120}color: var\(--text\); opacity: 0\.55;/);
+    expect(contrastOfWhiteAlphaOnBlack(0.55)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('.dyad-qualifier sets an explicit, non-compounded color — 0.6 alone clears 4.5:1', () => {
+    expect(dyadJs).toMatch(/\.dyad-qualifier \{[\s\S]{0,80}color: var\(--text\); opacity: 0\.6;/);
+    expect(contrastOfWhiteAlphaOnBlack(0.6)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the PRE-FIX compounded values (inherited 0.72 alpha × the rule\'s own opacity) fail 4.5:1 — proving the fix was necessary, not cosmetic', () => {
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.55)).toBeLessThan(4.5);
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.6)).toBeLessThan(4.5);
+  });
+});
+
+describe('D1 — the Pair Imprint privacy boundary, proven over the REAL production path (audit D1)', () => {
+  // tests/pair_share.test.js's own sentinel tests build a hand-shaped
+  // "formattedRelation" object — a fiction, however realistic. This test
+  // drives the SAME two sentinel strings through the actual pipeline the
+  // product runs: buildProfile() -> (this harness's) submitSecond() ->
+  // core/dyad.js buildDyadReading() -> formatDyadRelation() ->
+  // currentRelation() -> ui/pairShare.js's real builders. If any layer of
+  // that real chain ever starts leaking, THIS is the test that catches it;
+  // the hand-built version cannot, by construction.
+  const SENTINEL_A_NAME = 'sentinelnameaustria1955';
+  const SENTINEL_B_NAME = 'sentinelnamebravo1988';
+  const SENTINEL_A_DOB = '1955-02-17';
+  const SENTINEL_B_DOB = '1988-06-15';
+  const SENTINEL_CITY = 'sentinelcityzz';
+
+  it('no name, DOB, city, individual coordinate, or written-card string reaches the snapshot/SVG/caption', () => {
+    const sentinelA = buildProfile(SENTINEL_A_NAME, SENTINEL_A_DOB, {
+      city: SENTINEL_CITY, cc: 'US', tz: 'America/New_York', lat: 11.11, lng: 22.22,
+    });
+    const h = harness('t5', {
+      profileA: sentinelA,
+      buildSecond: payload => buildProfile(payload.name, payload.dob, {
+        ...payload, city: SENTINEL_CITY, cc: 'US', tz: 'America/New_York', lat: 33.33, lng: 44.44,
+      }),
+    });
+    h.withDom(() => {
+      h.get('dyad-name-input').value = SENTINEL_B_NAME;
+      h.get('dyad-dob-input').value = SENTINEL_B_DOB;
+      return submitSecond();
+    });
+
+    const relation = currentRelation();
+    expect(relation).not.toBeNull();
+    const sentinelB = buildProfile(SENTINEL_B_NAME, SENTINEL_B_DOB);
+
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(snapshot).not.toBeNull();
+    const svg = buildPairImprintSVG(snapshot);
+    const caption = buildPairImprintCaption(snapshot);
+    const blob = `${JSON.stringify(snapshot)}\n${svg}\n${caption}`;
+
+    // Names, DOBs, the birthplace sentinel.
+    for (const token of [SENTINEL_A_NAME, SENTINEL_B_NAME, SENTINEL_A_DOB, SENTINEL_B_DOB, SENTINEL_CITY]) {
+      expect(blob, token).not.toContain(token);
+    }
+    // Individual coordinate values — real computed values from the real
+    // profiles, not stand-ins. A false pass here (the value coincidentally
+    // matching something legitimately in the imprint, e.g. a life-path
+    // digit that's ALSO part of the combined-life-path finding) is exactly
+    // why this checks the CATALOG/ARCANA/SUN fields specifically — none of
+    // those ever legitimately appear in a Pair Imprint.
+    for (const [label, value] of [
+      ['A birth card', sentinelA.birthCard.label],
+      ['B birth card', sentinelB.birthCard.label],
+      ['A sun sign', sentinelA.sunSign],
+      ['B sun sign', sentinelB.sunSign],
+      ['A public animal', sentinelA.animal],
+      ['B public animal', sentinelB.animal],
+    ]) {
+      expect(blob, label).not.toContain(value);
+    }
+    // The written 144-card entry (name/type/habit/note) for either side —
+    // real deck content looked up the same way the sheet renders it.
+    const cellA = CARDS[sentinelA.sunSign] && CARDS[sentinelA.sunSign][sentinelA.animal];
+    const cellB = CARDS[sentinelB.sunSign] && CARDS[sentinelB.sunSign][sentinelB.animal];
+    for (const cell of [cellA, cellB]) {
+      if (!cell) continue;
+      expect(blob, `${cell.name} (card name)`).not.toContain(cell.name);
+      expect(blob, `${cell.type} (card type)`).not.toContain(cell.type);
+      for (const slot of ['low', 'mid', 'high']) {
+        expect(blob, `${cell.note[slot]} (card note.${slot})`).not.toContain(cell.note[slot]);
+      }
+    }
+    // Unrelated DOM: neither sheet's rendered cell text anywhere in the
+    // blob (spot-checked via a handful of live cell reads).
+    for (const key of ['dayPillar', 'hourPillar']) {
+      const cellText = h.cell('a', key).textContent;
+      if (cellText) expect(blob, `sheet A ${key} cell text`).not.toContain(cellText);
+    }
+  });
+
+  it('the snapshot carries exactly the allow-listed keys even when built from the real pipeline (no incidental extra field)', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const relation = currentRelation();
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(Object.keys(snapshot).sort()).toEqual([...PAIR_IMPRINT_ALLOW].sort());
   });
 });

@@ -43,6 +43,18 @@ const IMPRINT_FILENAME = '8ball-pair-reading.png';
 const PNG_W = 1080;
 const PNG_H = 1350;
 const SAFE_X = 90;
+// Frame geometry, named so the footer's clearance is a checkable relationship
+// rather than two coincidentally-close magic numbers (audit A4: the URL
+// baseline at y=1300 sat 2px from the frame's own bottom edge at y=1302 —
+// inside a descender's reach on "y" in "netlify", so the glyph clipped the
+// rule it was drawn beside). FRAME_BOTTOM is the frame's inner edge;
+// FOOTER_URL_Y carries an explicit ≥20px clearance, asserted in
+// tests/pair_share.test.js rather than eyeballed.
+const FRAME_INSET = 48;
+const FRAME_BOTTOM = PNG_H - FRAME_INSET;
+const FOOTER_DISCLOSURE_Y = 1190;
+const FOOTER_PRIVACY_Y = 1225;
+const FOOTER_URL_Y = 1266;
 const PAPER = '#000000';
 const INK = '#ffffff';
 const LABEL = '#b8b8b8';
@@ -129,15 +141,26 @@ export function buildPairImprintSVG(snapshot) {
     `<line x1="${SAFE_X}" y1="360" x2="${PNG_W - SAFE_X}" y2="360" stroke="${RULE}" stroke-width="2"/>` +
     rows +
     `<line x1="${SAFE_X}" y1="1150" x2="${PNG_W - SAFE_X}" y2="1150" stroke="${RULE}" stroke-width="2"/>` +
-    `<text x="${PNG_W / 2}" y="1200" text-anchor="middle" font-family="${FONT}" ` +
+    `<text x="${PNG_W / 2}" y="${FOOTER_DISCLOSURE_Y}" text-anchor="middle" font-family="${FONT}" ` +
     `font-size="26" letter-spacing="1.5" fill="${LABEL}">${esc(s.disclosure)}</text>` +
-    `<text x="${PNG_W / 2}" y="1240" text-anchor="middle" font-family="${FONT}" ` +
+    `<text x="${PNG_W / 2}" y="${FOOTER_PRIVACY_Y}" text-anchor="middle" font-family="${FONT}" ` +
     `font-size="24" letter-spacing="1.2" fill="${LABEL}">${esc(s.privacyLine)}</text>` +
-    `<text x="${PNG_W / 2}" y="1300" text-anchor="middle" font-family="${FONT}" ` +
+    `<text x="${PNG_W / 2}" y="${FOOTER_URL_Y}" text-anchor="middle" font-family="${FONT}" ` +
     `font-size="26" letter-spacing="1.5" fill="${INK}">${esc(s.url)}</text>` +
     `</svg>`
   );
 }
+
+// Exported for a layout/geometry assertion (audit A4) rather than a visual
+// read: the URL baseline must clear the frame's own bottom edge by a real
+// margin, accounting for a descender's typical reach at this font size
+// ("y" in "netlify" is the actual glyph the clipped render hit — the
+// baseline sat 2px from the frame edge, well inside its own descent).
+export const FOOTER_LAYOUT = Object.freeze({
+  frameBottom: FRAME_BOTTOM,
+  urlBaselineY: FOOTER_URL_Y,
+  urlFontSize: 26,
+});
 
 // ── snapshot → caption ──────────────────────────────────────────────
 // Built from the SAME snapshot the PNG renders — never a second read of the
@@ -166,10 +189,16 @@ export function buildPairImprintCaption(snapshot) {
 // resolves to `downloaded` or `downloaded-copied`.
 export function pairShareStatusMessage(state) {
   switch (state) {
+    case 'busy': return 'preparing pair image…';
     case 'shared': return 'shared.';
     case 'downloaded': return 'image saved to this device.';
     case 'downloaded-copied': return 'image saved · caption copied.';
     case 'cancelled': return 'share cancelled.';
+    // A2: the pair changed (closed, replaced, or a new one submitted)
+    // while this export was in flight — distinct from `failed` (a genuine
+    // exception) and from `cancelled` (the reader dismissed a native
+    // chooser); nothing was shared or saved for the stale pair.
+    case 'stale': return 'the pair changed. share the pair again.';
     case 'empty': return 'nothing to share yet — read a pair first.';
     case 'failed': return 'share failed. image not saved.';
     default: return '';
@@ -219,15 +248,60 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ── capability disclosure (audit C1) ────────────────────────────────
+// Feature-detected ONCE, at init — capability is a property of the browser,
+// not of any particular pair, so it needs no per-relation re-sync. Never
+// claims certainty about what WILL happen (a full canShare check needs an
+// actual File, which does not exist until a click starts rasterizing); it
+// discloses what CAN happen, in clinical, non-technical wording, before the
+// reader ever presses the button.
+function detectShareCapability() {
+  try {
+    return typeof navigator !== 'undefined'
+      && typeof navigator.share === 'function'
+      && typeof navigator.canShare === 'function';
+  } catch (_) {
+    return false;
+  }
+}
+
+export function pairImprintDisclosureText(capable) {
+  return capable
+    ? 'created on this device · personal details excluded · shares the pair imprint directly'
+    : 'created on this device · personal details excluded · saves the pair imprint as an image on this device';
+}
+
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status } — the "share the pair" button and its atomic
-//        polite live region (both injected by ui/dyad.js's SCREEN_HTML,
-//        looked up and wired here — this module never creates them).
+// refs:  { btn, status, disclosure? } — the "share the pair" button, its
+//        atomic polite live region, and (optionally) the pre-action
+//        disclosure node — all injected by ui/dyad.js's SCREEN_HTML, looked
+//        up and wired here — this module never creates them.
 // hooks: { getRelation() } — returns ui/dyad.js's currentRelation(), the
 //        last FORMATTED relation record, or null.
 let _refs = null;
 let _hooks = null;
 let _statusTimer = null;
+// Operation identity guard (audit A2). Bumped on every init (a re-init
+// invalidates any operation an EARLIER instance started) and captured at
+// the top of every click; combined with a fresh read of getRelation()
+// re-checked after each async boundary, this catches all four named
+// invalidation triggers without ui/dyad.js ever importing this module:
+// reset/close and relation replacement change what getRelation() returns
+// (a fresh object, or null); re-init changes the generation number.
+let _generation = 0;
+let _opInFlight = false;
+
+function relationNow() {
+  try {
+    return typeof _hooks.getRelation === 'function' ? _hooks.getRelation() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function staleOperation(startGeneration, relationAtStart) {
+  return _generation !== startGeneration || relationNow() !== relationAtStart;
+}
 
 function setStatus(state) {
   const el = _refs && _refs.status;
@@ -241,58 +315,132 @@ function setStatus(state) {
   }
 }
 
+// Busy state (audit C2): disables the control and announces preparation
+// on entry; on exit it clears ONLY disabled/aria-busy — the terminal
+// setStatus() call that already ran (empty/stale/shared/downloaded/.../
+// failed) owns the visible text, so leaving it alone here is what makes
+// "clear it on every terminal path" true rather than a race between two
+// writers.
+function setBusy(busy) {
+  const btn = _refs && _refs.btn;
+  if (btn) {
+    btn.disabled = !!busy;
+    if (btn.setAttribute) btn.setAttribute('aria-busy', String(!!busy));
+  }
+  if (busy) setStatus('busy');
+}
+
 async function onShareClick() {
-  const relation = typeof _hooks.getRelation === 'function' ? _hooks.getRelation() : null;
-  const snapshot = buildPairImprintSnapshot(relation);
+  // A2: permit only one active operation — a second click (synthetic or a
+  // native click racing a disabled-but-not-yet-repainted button) is a
+  // silent no-op rather than a second concurrent export.
+  if (_opInFlight) return;
+  const startGeneration = _generation;
+  const relationAtStart = relationNow();
+  const snapshot = buildPairImprintSnapshot(relationAtStart);
   if (!snapshot) { setStatus('empty'); return; }
 
-  let blob;
+  _opInFlight = true;
+  setBusy(true);
   try {
-    blob = await svgToPngBlob(buildPairImprintSVG(snapshot), PNG_W, PNG_H);
-  } catch (_) {
-    setStatus('failed');
-    return;
-  }
-  const caption = buildPairImprintCaption(snapshot);
-  const file = new File([blob], IMPRINT_FILENAME, { type: 'image/png' });
-
-  if (
-    navigator.canShare &&
-    navigator.canShare({ files: [file] }) &&
-    typeof navigator.share === 'function'
-  ) {
+    let blob;
     try {
-      await navigator.share({ files: [file], text: caption });
-      setStatus('shared');
-    } catch (err) {
-      // The platform opened a chooser; it does not follow that anything was
-      // shared. A user-dismissed sheet rejects with AbortError — report
-      // that as cancelled, distinct from a genuine share failure, and never
-      // as success (Step 2: "without claiming success when the platform
-      // only opened a chooser").
-      setStatus(err && err.name === 'AbortError' ? 'cancelled' : 'failed');
+      blob = await svgToPngBlob(buildPairImprintSVG(snapshot), PNG_W, PNG_H);
+    } catch (_) {
+      setStatus('failed');
+      return;
     }
-    return;
-  }
+    // A2: the pair may have closed, been replaced, or Compare Another may
+    // have fired while rasterization was in flight — recheck before any
+    // side effect can act on what is now a stale artifact.
+    if (staleOperation(startGeneration, relationAtStart)) { setStatus('stale'); return; }
 
-  // Desktop / unsupported fallback: download + clipboard copy of the
-  // caption (which carries the bare host).
-  downloadBlob(blob, IMPRINT_FILENAME);
-  let copied = false;
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    const caption = buildPairImprintCaption(snapshot);
+    let file;
     try {
-      await navigator.clipboard.writeText(caption);
-      copied = true;
+      // A3: `new File` can throw in an environment without a File
+      // constructor (or a polyfill gap) — contained independently so a
+      // missing constructor degrades to a truthful "failed" rather than an
+      // unhandled rejection.
+      file = new File([blob], IMPRINT_FILENAME, { type: 'image/png' });
+    } catch (_) {
+      setStatus('failed');
+      return;
+    }
+
+    let canShareFiles = false;
+    try {
+      // A3: evaluated with the EXACT payload navigator.share() below will
+      // receive (files AND text) — canShare({files}) alone can answer yes
+      // for a payload navigator.share() then refuses once `text` is
+      // present, which the first version of this function did not guard.
+      canShareFiles = typeof navigator !== 'undefined'
+        && typeof navigator.canShare === 'function'
+        && !!navigator.canShare({ files: [file], text: caption });
+    } catch (_) {
+      canShareFiles = false;
+    }
+
+    if (canShareFiles && typeof navigator.share === 'function') {
+      if (staleOperation(startGeneration, relationAtStart)) { setStatus('stale'); return; }
+      try {
+        await navigator.share({ files: [file], text: caption });
+        setStatus('shared');
+      } catch (err) {
+        // The platform opened a chooser; it does not follow that anything
+        // was shared. A user-dismissed sheet rejects with AbortError —
+        // report that as cancelled, distinct from a genuine share failure,
+        // and never as success ("without claiming success when the
+        // platform only opened a chooser").
+        setStatus(err && err.name === 'AbortError' ? 'cancelled' : 'failed');
+      }
+      return;
+    }
+
+    // Desktop / unsupported fallback: download, independently contained
+    // from the clipboard copy so a clipboard failure can never invalidate
+    // an already-successful download (A3).
+    if (staleOperation(startGeneration, relationAtStart)) { setStatus('stale'); return; }
+    let downloaded = false;
+    try {
+      downloadBlob(blob, IMPRINT_FILENAME);
+      downloaded = true;
+    } catch (_) {
+      downloaded = false;
+    }
+    if (!downloaded) { setStatus('failed'); return; }
+
+    let copied = false;
+    try {
+      if (typeof navigator !== 'undefined'
+        && navigator.clipboard
+        && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(caption);
+        copied = true;
+      }
     } catch (_) { /* clipboard denied — the download still landed */ }
+    setStatus(copied ? 'downloaded-copied' : 'downloaded');
+  } catch (_) {
+    // A3: "contain the complete action and always settle to a truthful
+    // accessible state" — a catch-all so nothing above (however unlikely)
+    // can escape as an unhandled rejection and leave the status stuck on
+    // "preparing pair image…".
+    setStatus('failed');
+  } finally {
+    _opInFlight = false;
+    setBusy(false);
   }
-  setStatus(copied ? 'downloaded-copied' : 'downloaded');
 }
 
 export function initPairShareUI(refs, hooks) {
+  _generation += 1; // A2: invalidates any operation a prior instance started
+  _opInFlight = false;
   _refs = refs || {};
   _hooks = hooks || {};
   if (_refs.btn && _refs.btn.addEventListener) {
     _refs.btn.addEventListener('click', onShareClick);
   }
+  const disclosureEl = _refs.disclosure;
+  if (disclosureEl) disclosureEl.textContent = pairImprintDisclosureText(detectShareCapability());
   return { onShareClick };
 }

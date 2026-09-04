@@ -447,7 +447,7 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
 // only after initDyadUI has run). Its one hook reads ui/dyad.js's last
 // FORMATTED relation record — never a profile, never sheet DOM.
 initPairShareUI(
-  { btn: $('dyad-share-btn'), status: $('dyad-share-status') },
+  { btn: $('dyad-share-btn'), status: $('dyad-share-status'), disclosure: $('dyad-share-disclosure') },
   { getRelation: dyadCurrentRelation },
 );
 
