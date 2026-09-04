@@ -1677,10 +1677,45 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     h.withDom(() => submitSecond());
     expect(h.get('dyad-meaning-head').textContent).toBe('');
     expect(carriers()).toEqual([]);
-    // the close control and a second tap blank too (one close path)
+    // the close control blanks too — on a timer now, so the collapse can run
+    // (pr236 audit HIGH-1); the teardown path above blanks immediately
     tap(h, 'a', 'sun');
-    h.withDom(() => h.get('dyad-meaning-close').listeners.click());
-    expect(h.get('dyad-meaning-title').textContent).toBe('');
+    vi.useFakeTimers();
+    try {
+      // the timer must be advanced INSIDE withDom: the deferred callback
+      // resolves its nodes through document.getElementById, so firing it
+      // outside the mocked document blanks nothing
+      h.withDom(() => {
+        h.get('dyad-meaning-close').listeners.click();
+        expect(h.get('dyad-meaning-title').textContent, 'blanked mid-collapse').not.toBe('');
+        vi.advanceTimersByTime(320);
+      });
+      expect(h.get('dyad-meaning-title').textContent).toBe('');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('the paired blank waits out the collapse, and a reopen inside the window cancels the pending timer (pr236 audit HIGH-1)', () => {
+    const h = rendered();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => {
+        const title = () => h.get('dyad-meaning-title').textContent;
+        h.get('dyad-sheets').listeners.click({ target: h.cellRoot('b', 'element') });
+        const first = title();
+        expect(first.length).toBeGreaterThan(0);
+        h.get('dyad-meaning-close').listeners.click();
+        vi.advanceTimersByTime(280);
+        expect(title(), 'blanked mid-collapse').toBe(first);
+        // reopen a DIFFERENT cell inside the window; the stale timer must not
+        // fire over the new reading
+        vi.advanceTimersByTime(10);
+        h.get('dyad-sheets').listeners.click({ target: h.cellRoot('a', 'arcana') });
+        const second = title();
+        expect(second.length).toBeGreaterThan(0);
+        vi.advanceTimersByTime(400);
+        expect(title(), 'a pending blank wiped a reopened paired panel').toBe(second);
+      });
+    } finally { vi.useRealTimers(); }
   });
 
   it('Escape closes the paired panel through a capture-phase document listener, returns focus to the cell, and yields to an open modal (pr235 audit)', () => {
@@ -1724,7 +1759,13 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
   });
 
   it('the paired panel reuses the host panel\'s parts, classes and pure content path — no second registry, no second markup', () => {
-    expect(dyadJs).toMatch(/import \{ panelDetailFor, buildPanelMarkup, coordinateLabel \} from '\.\/meanings\.js'/);
+    // the named imports, not the literal line — the list grew when the panel
+    // part contract moved to ui/meanings.js (pr235 follow-up)
+    const named = (dyadJs.match(/import \{([^}]*)\} from '\.\/meanings\.js'/) || [, ''])[1]
+      .split(',').map(s => s.trim()).filter(Boolean);
+    for (const name of ['panelDetailFor', 'buildPanelMarkup', 'coordinateLabel']) {
+      expect(named, name).toContain(name);
+    }
     expect(dyadJs).toMatch(/buildPanelMarkup\('dyad-meaning'\)/);
     expect(dyadJs).not.toMatch(/meanings\.v\d|ARCANA_MEANINGS|entryFor|harmonyFor/);
     expect(dyadJs).toMatch(/derivationText\(key\)/);

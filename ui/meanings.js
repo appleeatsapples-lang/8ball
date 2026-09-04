@@ -130,6 +130,16 @@ function injectStyle() {
   document.head.appendChild(style);
 }
 
+// The panel's text-bearing parts, as id SUFFIXES so both panels — the host's
+// `meaning-` and the dyad's `dyad-meaning-` — describe the same set. A close
+// BLANKS them: `hidden` is not deletion (PR #187 F1), and an inert panel that
+// still carries a reading is live DOM either way. The dyad's paired panel
+// derives its own id list from these (ui/dyad.js), and
+// tests/meanings_ui.test.js pins that they cover every text node
+// buildPanelMarkup emits, so a new part cannot be added without a blanker.
+export const PANEL_TEXT_PARTS = Object.freeze(['head', 'derivation', 'title', 'body', 'context', 'relation']);
+export const PANEL_HEAD_PARTS = Object.freeze(['context-head', 'relation-head']);
+
 /**
  * The panel's inner markup, ids prefixed so a second panel can exist on a
  * second screen without colliding with this one (v0.76: the dyad screen's
@@ -154,6 +164,9 @@ export function buildPanelMarkup(prefix) {
 export function coordinateLabel(key) {
   return COORDINATES[key] ? COORDINATES[key].label : String(key);
 }
+
+// The handle a guarded init returns: same shape, nothing to close.
+const NO_UI = Object.freeze({ close() {} });
 
 function buildPanel() {
   const panel = document.createElement('div');
@@ -381,9 +394,10 @@ export function initMeaningsUI(refs) {
   const cardFace = refs && refs.cardFace;
   // Double-init guard: the panel may be docked OUTSIDE cardFace on the
   // ≥1100 desk, so the card-scoped probe alone went blind there (pr231
-  // audit LOW-1) — ask the document as well.
-  if (!cardFace || cardFace.querySelector('#meaning-panel')) return;
-  if (typeof document.getElementById === 'function' && document.getElementById('meaning-panel')) return;
+  // audit LOW-1) — ask the document as well. Every path returns a handle so
+  // the host can close the panel unconditionally (v0.77).
+  if (!cardFace || cardFace.querySelector('#meaning-panel')) return NO_UI;
+  if (typeof document.getElementById === 'function' && document.getElementById('meaning-panel')) return NO_UI;
   injectStyle();
   // Comprehension hint (journal 2026-08-31): fifteen compartments are
   // tappable, but the only affordance was a desktop hover — on touch, and
@@ -461,6 +475,40 @@ let scrollTimer = null;
   }
   setPanelHidden(true);
 
+  // Blank every text part this panel can hold. Derived from the exported
+  // part lists rather than the resolved refs above, so a part added to
+  // buildPanelMarkup without a blanker fails the coverage pin instead of
+  // silently surviving a close.
+  function blankPanel() {
+    for (const part of PANEL_TEXT_PARTS) {
+      const node = panel.querySelector(`#meaning-${part}`);
+      if (node) node.textContent = '';
+    }
+    for (const part of PANEL_HEAD_PARTS) {
+      const node = panel.querySelector(`#meaning-${part}`);
+      if (node) { node.textContent = ''; node.hidden = true; }
+    }
+  }
+
+  // The blank waits out the collapse. `close()` removes `.open`, which starts
+  // the 280ms max-height transition; blanking in the same task reflows the box
+  // to its empty-content height in the FIRST frame, so the card snaps instead
+  // of collapsing — measured at 390 wide as a 365px jump of the card and 183px
+  // of the rail below it (pr236 audit HIGH-1, caught on a transition timeline;
+  // an end-state DOM check cannot see it). 300ms is this module's existing
+  // outlast-the-transition convention, shared with the scroll timer below.
+  // A reopen inside the window cancels the pending timer and blanks up front
+  // instead (openFor below), which is the ONLY thing keeping a stale timer
+  // from wiping a reopened panel — a second `!activeCell` guard here would be
+  // unreachable, and the pr236 audit's own mutant proved it (removing it
+  // changed nothing), so it is not written.
+  let blankTimer = null;
+  function scheduleBlank() {
+    if (blankTimer) clearTimeout(blankTimer);
+    if (typeof setTimeout !== 'function') { blankPanel(); return; }
+    blankTimer = setTimeout(() => { blankTimer = null; blankPanel(); }, 300);
+  }
+
   function close() {
     const cell = activeCell;
     if (cell) {
@@ -475,11 +523,17 @@ let scrollTimer = null;
     panel.classList.remove('open');
     setPanelHidden(true);
     setPaneEntry(false);
+    scheduleBlank();
   }
 
   function openFor(key, cell) {
     const coordinate = COORDINATES[key];
     if (!coordinate) return;
+    // A reopen inside the blank window must drop the pending timer, or it
+    // fires 300ms later and wipes the reading just written (pr236 audit's
+    // mutant proved this load-bearing). No blank is needed alongside it: the
+    // rest of this function overwrites every part unconditionally.
+    if (blankTimer) { clearTimeout(blankTimer); blankTimer = null; }
     hint.hidden = true; // first use retires the affordance for this load
     const valEl = document.getElementById(coordinate.valueId);
     const rawValue = valEl ? valEl.textContent.trim() : '';
@@ -605,4 +659,9 @@ let scrollTimer = null;
         && document.querySelector('.modal-bg.open')) return;
     close();
   }, true);
+
+  // The host's handle (the ui/labels.js DI shape): the only surface exposed
+  // is a close, so another screen can retire this panel without reaching
+  // into its DOM.
+  return { close };
 }

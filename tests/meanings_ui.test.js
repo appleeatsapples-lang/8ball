@@ -7,7 +7,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPanelMarkup, panelDetailFor, coordinateLabel } from '../ui/meanings.js';
+import {
+  buildPanelMarkup, panelDetailFor, coordinateLabel, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS,
+} from '../ui/meanings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -162,5 +164,53 @@ describe('v0.76: the pure panel content path and the Escape listeners (pr235 aud
     const modalsJs = readFileSync(join(__dirname, '..', 'ui', 'modals.js'), 'utf-8');
     // the modal handler is a bubble-phase document listener — the reason capture is needed
     expect(modalsJs).toMatch(/document\.addEventListener\('keydown'/);
+  });
+});
+
+describe('the panel part lists — the blank-on-close contract (pr235 follow-up)', () => {
+  // A part added to buildPanelMarkup without being added to a list would be a
+  // node a close cannot blank. The lists ARE the contract; this proves they
+  // cover the markup, in both panels' prefixes.
+  // The coverage pin can only see parts its own pattern matches. The old
+  // [a-z-] form silently skipped `body2` / `subTitle`, so a real leftover
+  // shipped green (pr236 audit MED-1, mutant M16). Pin the pattern itself
+  // against a synthetic part, or widening it is unfalsifiable.
+  const idsIn = (markup, prefix) =>
+    [...markup.matchAll(new RegExp(`id="${prefix}-([A-Za-z0-9-]+)"`, 'g'))].map(m => m[1]);
+
+  it('the id pattern the coverage check uses sees digits and capitals, not just [a-z-]', () => {
+    const synthetic = '<div id="meaning-body2"></div><div id="meaning-subTitle"></div><div id="meaning-head"></div>';
+    expect(idsIn(synthetic, 'meaning')).toEqual(['body2', 'subTitle', 'head']);
+    expect(idsIn('<div id="dyad-meaning-note2"></div>', 'dyad-meaning')).toEqual(['note2']);
+  });
+
+  it('cover every text-bearing node buildPanelMarkup emits, and nothing else', () => {
+    for (const prefix of ['meaning', 'dyad-meaning']) {
+      const markup = buildPanelMarkup(prefix);
+      const emitted = idsIn(markup, prefix);
+      const listed = [...PANEL_TEXT_PARTS, ...PANEL_HEAD_PARTS];
+      // every emitted part is either listed or the close BUTTON (carries no reading)
+      expect(emitted.filter(p => !listed.includes(p)), prefix).toEqual(['close']);
+      for (const part of listed) expect(emitted, `${prefix} ${part}`).toContain(part);
+      expect(new Set(listed).size).toBe(listed.length);
+    }
+  });
+
+  it('ui/dyad.js derives its blank list from these parts rather than restating it', () => {
+    const dyadJs = readFileSync(join(__dirname, '..', 'ui', 'dyad.js'), 'utf-8');
+    expect(dyadJs).toMatch(/PANEL_TEXT_PARTS\.map\(part => `dyad-meaning-\$\{part\}`\)/);
+    expect(dyadJs).toMatch(/PANEL_HEAD_PARTS\.map\(part => `dyad-meaning-\$\{part\}`\)/);
+    // and does not carry a hand-written copy of the ids
+    expect(dyadJs).not.toMatch(/'dyad-meaning-head', 'dyad-meaning-derivation'/);
+  });
+
+  it('the host panel blanks on close — ui/meanings.js close() calls the blanker', () => {
+    expect(meaningsJs).toMatch(/function blankPanel\(\) \{[\s\S]{0,400}?PANEL_TEXT_PARTS[\s\S]{0,400}?PANEL_HEAD_PARTS/);
+    expect(meaningsJs).toMatch(/setPaneEntry\(false\);\s*\n\s*scheduleBlank\(\);/);
+    // and the paired panel defers the same way, so the two cannot re-fork
+    const dyadJs2 = readFileSync(join(__dirname, '..', 'ui', 'dyad.js'), 'utf-8');
+    expect(dyadJs2).toMatch(/setPairedPanelHidden\(true\);\s*\n\s*schedulePairedBlank\(\);/);
+    // ...but the teardown path blanks immediately, never on a timer (§5.F)
+    expect(dyadJs2).toMatch(/if \(_blankTimer\) \{[^}]*\}\s*\n\s*blankPairedPanel\(\);/);
   });
 });

@@ -61,7 +61,7 @@ import { isLabelsRevealed, setLabelsRevealed } from './labels.js';
 // The paired sheets' compartments open their own panel over the SAME pure
 // content path the host panel reads through (v0.76) — one meaning registry,
 // two readers, and each reading is placed in the context of its own sheet.
-import { panelDetailFor, buildPanelMarkup, coordinateLabel } from './meanings.js';
+import { panelDetailFor, buildPanelMarkup, coordinateLabel, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS } from './meanings.js';
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
@@ -349,6 +349,7 @@ let _cityUI = null;
 let _activeCell = null;
 let _names = { a: '', b: '' };
 let _panelScrollTimer = null;
+let _blankTimer = null;
 // the document the Escape listener is bound to — once per document (the
 // harness hands init a fresh document each time; the app has one)
 let _escapeDoc = null;
@@ -416,11 +417,10 @@ function markPairedCells() {
 // aria-hidden panel that still carries person B's first name and reading is
 // live DOM on person A's device, and it would otherwise survive a close, a
 // re-open and a fresh pair with a third person.
-const PAIRED_PANEL_TEXT_IDS = Object.freeze([
-  'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
-  'dyad-meaning-context', 'dyad-meaning-relation',
-]);
-const PAIRED_PANEL_HEAD_IDS = Object.freeze(['dyad-meaning-context-head', 'dyad-meaning-relation-head']);
+// Derived from ui/meanings.js's part lists, never restated: the two panels
+// blank the same set by construction (pr235 follow-up).
+const PAIRED_PANEL_TEXT_IDS = Object.freeze(PANEL_TEXT_PARTS.map(part => `dyad-meaning-${part}`));
+const PAIRED_PANEL_HEAD_IDS = Object.freeze(PANEL_HEAD_PARTS.map(part => `dyad-meaning-${part}`));
 
 function blankPairedPanel() {
   for (const id of PAIRED_PANEL_TEXT_IDS) setText(id, '');
@@ -437,6 +437,16 @@ function setPairedPanelHidden(hidden) {
   if (panel.setAttribute) panel.setAttribute('aria-hidden', String(hidden));
 }
 
+// Same deferral as the host panel (pr236 audit HIGH-1): blanking inside the
+// 280ms collapse snaps the box instead of letting it shrink. clearOutput()
+// blanks IMMEDIATELY instead — that path tears the whole screen down and
+// carries the §5.F guarantee, so it must not wait on a timer.
+function schedulePairedBlank() {
+  if (_blankTimer) clearTimeout(_blankTimer);
+  if (typeof setTimeout !== 'function') { blankPairedPanel(); return; }
+  _blankTimer = setTimeout(() => { _blankTimer = null; blankPairedPanel(); }, 300);
+}
+
 export function closePairedPanel() {
   const cell = _activeCell;
   if (cell) {
@@ -448,7 +458,7 @@ export function closePairedPanel() {
   const panel = $('dyad-meaning-panel');
   if (panel && panel.classList) panel.classList.remove('open');
   setPairedPanelHidden(true);
-  blankPairedPanel();
+  schedulePairedBlank();
 }
 
 export function openPairedPanel(cell) {
@@ -459,6 +469,9 @@ export function openPairedPanel(cell) {
   if (!key || !sheet) return false;
   const hint = $('dyad-meaning-hint');
   if (hint) hint.hidden = true; // first use retires the affordance for this open
+  // as on the host: drop the pending timer or it wipes the reading below;
+  // no blank alongside, since every part is overwritten unconditionally
+  if (_blankTimer) { clearTimeout(_blankTimer); _blankTimer = null; }
   if (_activeCell === cell) { closePairedPanel(); return false; }
   if (_activeCell) {
     _activeCell.classList.remove('active');
@@ -705,6 +718,9 @@ export function clearOutput() {
   _second = null;
   _names = { a: '', b: '' };
   closePairedPanel();
+  // teardown, not a close animation: blank NOW, never on a timer (§5.F)
+  if (_blankTimer) { clearTimeout(_blankTimer); _blankTimer = null; }
+  blankPairedPanel();
   const hint = $('dyad-meaning-hint');
   if (hint) hint.hidden = false;
   // The pannable mobile strip (STYLE's .dyad-sheets) resets to its leading

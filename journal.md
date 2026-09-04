@@ -5,7 +5,160 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — STAGED on branch, PR #235 open
+## 2026-09-04 — DOCTRINE v0.77: the host panel blanks on close too — one part contract, two panels — STAGED on branch, PR pending
+
+**What happened.** "continue", with #235 green and holding for the
+merge word — so this took the queued half of the v0.76 fix on a staging
+worktree rather than widening an audited PR. v0.76 made a close BLANK
+the PAIRED panel's text after both lanes reproduced person B's name and
+reading outliving a close, a re-open and a fresh pair. The host panel
+had the same gap and was recorded as a follow-up: lower severity, since
+its leftovers are only ever the device owner's own label and reading
+(the host's head is the coordinate label, never a name), but the same
+"hidden is not deletion" shape (PR #187 F1) sitting in the module that
+had just been audited for it.
+
+**One contract, two panels.** Rather than a second blank list,
+`ui/meanings.js` now exports the panel's text-bearing parts as id
+SUFFIXES — `PANEL_TEXT_PARTS` (head · derivation · title · body ·
+context · relation) and `PANEL_HEAD_PARTS` (the two context heads,
+blanked AND hidden so an empty label cannot flash). The host blanks
+`meaning-<part>` from them on every close path; `ui/dyad.js` DERIVES its
+`dyad-meaning-<part>` list from the same two exports instead of the
+hand-written array v0.76 shipped. So a part added to `buildPanelMarkup`
+without a blanker fails a coverage test that reads the markup's own
+output in BOTH prefixes — and dropping a part from the list breaks the
+host AND the paired blank tests together, which is what proves the
+de-fork is real rather than cosmetic.
+
+**A handle, with no caller.** `initMeaningsUI` returns `{ close }` (the
+`ui/labels.js` DI shape; the two double-init guards return a no-op
+handle so a caller never has to check). Nothing calls it yet — it is
+the seam the open question needs, not the answer to it.
+
+**Deliberately not taken.** Whether the host panel should CLOSE when the
+paired screen opens is still the controller's. With this change a panel
+left open behind the dyad blanks the moment it closes and, while open,
+carries only a reading the visitor opened themselves; the v0.76 audit's
+LOW-6 (a dyad-screen Escape also closing the invisible host panel)
+costs a keystroke and shows nothing wrong. So the remainder is
+presentation, and it is not a defect to fix unasked.
+
+**Tests.** +3: all three close paths blank every part and hide both
+heads (driven through the host harness, not asserted off source); the
+part lists cover every text node `buildPanelMarkup` emits in both
+prefixes and nothing but the close button; `ui/dyad.js` derives rather
+than restates. One pre-existing pin that asserted `ui/dyad.js`'s import
+LINE now asserts its named imports, so the list can grow. Suite 61
+files / 2091 tests green; product audit PASS. Five mutants, all killed
+(close without the blank; a part dropped from the list — which killed
+the host and paired tests together; heads blanked but not hidden; the
+guards returning nothing; the dyad restating the ids). Live-fired at
+390 and 1440 (docked pane): every close path blanks all six parts and
+hides both heads, a modal still keeps Escape priority, reopening writes
+fresh text, the paired panel still blanks after back, no console
+errors.
+
+**Two-lane audit (pr236), reconciled.** Lane A MERGE WITH FIXES, Lane B
+MERGE — and the split is the interesting part. Lane A's HIGH is a real
+regression this entry's own first draft shipped and its own live-fire
+missed: `close()` removes `.open`, starting the panel's 280ms
+`max-height` collapse, and blanking in the SAME task reflows the box to
+empty-content height in the first frame — so below 1100px the card
+snaps rather than collapses. Measured at 390 wide: 365px of card and
+183px of rail in one frame, against ~16px on base, with an empty panel
+carrying only CLOSE fading out for the remaining ~270ms. My live-fire
+claim ("every close path blanks all six parts") was true and useless
+here: it read end-state DOM and never looked at the transition. Lane B
+live-fired the same paths and missed it the same way; only Lane A's
+frame-by-frame timeline saw it. That is the §8 gate 9 lesson again, in
+the form it keeps taking — an assertion about the destination that says
+nothing about the journey.
+
+Fixed on BOTH panels so they cannot re-fork: the blank now waits 300ms
+(this module's existing outlast-the-transition convention, shared with
+the scroll timer), a reopen inside the window cancels the pending timer,
+and the dyad's `clearOutput` teardown still blanks IMMEDIATELY — that
+path carries the §5.F guarantee and animates nothing. Re-measured after
+the fix: first-frame drop 16px, card 1218 → 1093 → 955 → 933 across the
+transition, body blanked at 305ms, no console errors.
+
+Then the test-honesty findings, which both lanes reached
+independently. The coverage pin's id pattern was `[a-z-]+`, so a part
+named `body2` or `subTitle` was invisible to it — Lane A built that
+mutant (a part written on every open, blanked by neither panel) and the
+full suite stayed green, which made the amendment's "neither panel can
+gain a part without a blanker" false as written. Widened to
+`[A-Za-z0-9-]+`, and the pattern is now pinned against a synthetic part
+so the widening is falsifiable rather than decorative. The behavioural
+blank test derived its expectation from the very lists under test, so
+dropping a part shrank the oracle with the code; it now walks the
+panel's own nodes and asserts the walk covered every one. And the
+`{ close }` handle shipped with zero coverage — neutering it to a no-op
+passed 2091 tests — so the LIVE init's handle is now exercised.
+
+Three of my own fixes were then cut back by their own mutants: a
+`!activeCell` guard in the deferred callback, and an up-front
+`blankPanel()` in each `openFor`, all survived removal — the cancel in
+`openFor` is what carries the guarantee, and the open overwrites every
+part regardless. They are gone rather than kept as untested defence,
+and the code says why. Nine reconciliation mutants, all killed.
+
+Recorded, not changed: the two source-shape pins Lane B flagged (the
+blank's position after `setPaneEntry`, and `blankPanel` iterating the
+lists) protect documented rationale, not runtime behaviour — true, and
+worth knowing when reading the tally. Lane A's `aria-labelledby`
+observation (both referenced nodes are blanked, harmless only because
+`aria-hidden` lands first) is a latent trap for anyone who later drops
+that attribute; left as-is with the dependency now explicit. And Lane B
+resolved the `Object.freeze` question against Lane A: the freeze does
+throw on mutation in strict mode, so it is real protection for a value
+two modules share, merely untested.
+
+**Sighting, not a fix: the PII gate flaked once.** On the first full run
+after the branch reset, `tests/pii_scan.test.js`'s operator-first-name
+rule failed, taking 13.3s where it normally takes 0.4s. It did not
+reproduce — green standalone and green on a full re-run — and a grep of
+the whole walked tree finds the token only in files that rule already
+allows. The mechanism that makes a flake POSSIBLE is worth naming even
+though the specific cause was not pinned: the scanner's `walk()` skips
+six directories by name and `audits/automated/` is not among them, so
+every run reads the accumulated local product-audit reports — 178 files,
+1.6 MB here, gitignored, never shipped. That is what the 13 seconds
+were. So a privacy gate's verdict depends in part on untracked scratch
+output that changes between runs, which is the wrong shape for a gate
+whose job is to say what the REPOSITORY carries. Recorded for the
+audit rather than changed here: narrowing the walk is a scanner change,
+and this entry is not the place to make one unasked.
+
+**The PII sighting, after two lanes.** Neither lane could reproduce it
+either, so it stays unpinned. Both verified the mechanism from source
+(`SKIP_DIRS` has six names; `audits/automated/` is not one). Lane B
+added two facts this entry missed: the `BANNED` list has NINE entries
+and the test walks the whole tree once PER entry with no caching, so
+the untracked report bulk multiplies the read burden ninefold per run,
+not once — a far more plausible transient shape than a token match; and
+this is the SECOND time this class has bitten (`.claude` was added to
+`SKIP_DIRS` after `settings.local.json` leaked the operator handle into
+this same scan). Lane A found a correctness channel rather than a cost
+one: `project_audit.py` stores each check's full subprocess output
+unconditionally, and `check_local_pii` shells out to
+`run_local_audit.sh`, which prints the operator's own patterns and
+matching lines on a hit — so on the operator's machine a single local
+hit writes an identity token into a report the public scan then reads
+and fails on, in a file the repository does not carry. Both lanes agree
+leaving the scanner untouched in THIS PR is right, and both say it
+should not be left a third time. Filed as the named follow-up: scope
+the walk to tracked content, or skip `audits/automated`.
+
+**How it was built.** On a staging worktree, because
+`claude/eight-ball-app-testing-rqphfo` was still occupied by #235 when
+the work was done: #235 merged as `55e6975`, the branch reset to main,
+and this re-applied onto it byte-for-byte (the squash tree matched the
+staging base, so the patch was clean). Its own two-lane audit runs on
+the PR — the artifact needs the real number.
+
+## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — SHIPPED (#235)
 
 **What happened.** "Now the dyad sheets labels and derivation surface" —
 the open work v0.74 named. Through v0.75 the two §1.J sheets had row
@@ -131,8 +284,9 @@ the controller. Seven reconciliation mutants killed. Suite 61 files /
 2086 tests green; product audit PASS.
 
 **Queued.** The host panel's own blank-on-close and whether it should
-close when the paired screen opens (named above). The friend's
-rising/moon reading still waits on a birth time.
+close when the paired screen opens (named above) — the first of those is
+taken in the entry above. The friend's rising/moon reading still waits
+on a birth time.
 
 ## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — SHIPPED (#234)
 

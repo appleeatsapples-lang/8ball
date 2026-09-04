@@ -10,7 +10,8 @@
 // (node env, no jsdom — same convention as tests/modals.test.js).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initMeaningsUI } from '../ui/meanings.js';
+import { initMeaningsUI, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS,
+} from '../ui/meanings.js';
 import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
 import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
@@ -60,7 +61,9 @@ function makeNode(tag = 'div') {
   Object.defineProperty(node, 'innerHTML', {
     set(v) {
       node._byId = {};
-      for (const m of v.matchAll(/id="([a-z-]+)"/g)) node._byId[m[1]] = makeNode();
+      // [A-Za-z0-9-]: a part named `body2` or `subTitle` was invisible to the
+      // old [a-z-] form, so a real leftover shipped green (pr236 audit MED-1)
+      for (const m of v.matchAll(/id="([A-Za-z0-9-]+)"/g)) node._byId[m[1]] = makeNode();
     },
     get() { return ''; },
   });
@@ -68,7 +71,7 @@ function makeNode(tag = 'div') {
 }
 
 describe('ui/meanings.js behavior', () => {
-  let byId, cardFace, cells, vals;
+  let byId, cardFace, cells, vals, meaningsUI;
 
   const coordinates = [
     ['arcana', 'coord-arcana-symbol'],
@@ -132,7 +135,7 @@ describe('ui/meanings.js behavior', () => {
         for (const fn of docHandlers[ev] || []) fn(e);
       },
     };
-    initMeaningsUI({ cardFace });
+    meaningsUI = initMeaningsUI({ cardFace });
   });
   afterEach(() => {
     if (originalDocument === undefined) delete globalThis.document; else globalThis.document = originalDocument;
@@ -552,6 +555,96 @@ describe('ui/meanings.js behavior', () => {
     expect(panel().classList.contains('open')).toBe(false);
     expect(cells.sun.classList.contains('active')).toBe(false);
     expect(cells.sun.focused).toBe(true);
+  });
+
+  it('a close BLANKS the panel — no reading survives it, by any close path (pr235 follow-up)', () => {
+    vi.useFakeTimers();
+    try {
+    // Walk the panel's OWN nodes, never the lists under test: deriving the
+    // expectation from PANEL_*_PARTS made this oracle shrink with the code, so
+    // dropping a part passed here (pr236 audit, both lanes). `close` is the
+    // button and carries no reading.
+    const nodes = () => Object.entries(panel()._byId).filter(([id]) => id !== 'meaning-close');
+    const written = () => nodes().filter(([, n]) => String(n.textContent || '') !== '').map(([id]) => id);
+    const closers = {
+      'a second tap': () => cardFace._fire('click', { target: vals.sun }),
+      'the close control': () => panel()._byId['meaning-close']._fire('click'),
+      Escape: () => globalThis.document._fire('keydown', { key: 'Escape' }),
+    };
+    for (const [name, closeIt] of Object.entries(closers)) {
+      vals.sun.textContent = 'aries';
+      cardFace._fire('click', { target: vals.sun });
+      expect(panel().classList.contains('open'), name).toBe(true);
+      expect(written().length, `${name}: the open wrote something`).toBeGreaterThan(0);
+      closeIt();
+      expect(panel().classList.contains('open'), name).toBe(false);
+      // the collapse runs first — the text is still there mid-transition
+      expect(written().length, `${name}: blanked during the collapse`).toBeGreaterThan(0);
+      vi.advanceTimersByTime(320);
+      expect(written(), `${name}: text survived the close`).toEqual([]);
+      // the two heads are hidden as well as blank, so an empty label cannot flash
+      for (const part of PANEL_HEAD_PARTS) expect(panel()._byId[`meaning-${part}`].hidden, `${name} ${part}`).toBe(true);
+      // and every node the panel actually has was covered by the walk above
+      expect(nodes().length).toBe(PANEL_TEXT_PARTS.length + PANEL_HEAD_PARTS.length);
+      }
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('the blank waits out the 280ms collapse, and a reopen inside the window cancels it (pr236 audit HIGH-1)', () => {
+    vi.useFakeTimers();
+    try {
+      const body = () => panel()._byId['meaning-body'].textContent;
+      vals.sun.textContent = 'aries';
+      cardFace._fire('click', { target: vals.sun });
+      const opened = body();
+      expect(opened.length).toBeGreaterThan(0);
+      cardFace._fire('click', { target: vals.sun }); // close
+      // NOT blanked while the box is still collapsing — this is the pin that
+      // would have caught the 365px snap
+      vi.advanceTimersByTime(280);
+      expect(body()).toBe(opened);
+      vi.advanceTimersByTime(40);
+      expect(body()).toBe('');
+
+      // a reopen inside the window blanks up front and the stale timer never
+      // wipes the new reading
+      cardFace._fire('click', { target: vals.sun });
+      cardFace._fire('click', { target: vals.sun }); // close again
+      vi.advanceTimersByTime(100);
+      cardFace._fire('click', { target: vals.animal }); // reopen mid-window
+      const reopened = body();
+      expect(reopened.length).toBeGreaterThan(0);
+      vi.advanceTimersByTime(400);
+      expect(body(), 'a pending blank wiped a reopened panel').toBe(reopened);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('the REAL handle returned by the live init closes and blanks the panel (pr236 audit MED-3)', () => {
+    vi.useFakeTimers();
+    try {
+      vals.sun.textContent = 'aries';
+      cardFace._fire('click', { target: vals.sun });
+      expect(panel().classList.contains('open')).toBe(true);
+      meaningsUI.close();                      // the handle from the LIVE init
+      expect(panel().classList.contains('open')).toBe(false);
+      expect(cells.sun.focused).toBe(true);
+      vi.advanceTimersByTime(320);
+      expect(panel()._byId['meaning-body'].textContent).toBe('');
+      meaningsUI.close();                      // idempotent, not a throw
+      expect(panel().classList.contains('open')).toBe(false);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('initMeaningsUI hands back a close, and a guarded re-init hands back a no-op one', () => {
+    // the beforeEach init already built the panel, so this re-init is guarded
+    const second = initMeaningsUI({ cardFace });
+    expect(typeof second.close).toBe('function');
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    expect(panel().classList.contains('open')).toBe(true);
+    second.close(); // the no-op handle must not close the live panel
+    expect(panel().classList.contains('open')).toBe(true);
+    expect(initMeaningsUI({ cardFace: null }).close()).toBeUndefined();
   });
 
   it('Escape is a no-op when a modal-bg overlay is open (modal wins)', () => {
