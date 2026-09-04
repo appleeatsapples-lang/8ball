@@ -585,8 +585,25 @@ const SCREEN_HTML =
   // Failure state (Step 4): visible copy + a recoverable action, never a
   // silent empty block. Shown only when a submitted pair fails to resolve
   // a relation; the two individual sheets above render regardless.
-  '<div class="dyad-relation-failure" id="dyad-relation-failure" hidden>' +
-  '<p>relation layer unavailable. both individual sheets remain valid.</p>' +
+  //
+  // Fourth remediation gate, item 2: this is the ACTUAL relation-resolution
+  // failure surface — a prior gate's live-fire pass proved `#dyad-share-
+  // status` (the Pair Imprint's OWN, separate status node) instead, never
+  // touching this node at all. `role="status" aria-live="polite"
+  // aria-atomic="true"` make it a live region in its own right (matching
+  // the same pattern `#dyad-share-status` already uses, so the codebase has
+  // one convention for "a status surface" rather than two); `tabindex="-1"`
+  // makes it programmatically focusable (not in the natural Tab order, but
+  // reachable via `.focus()` — the same convention `#dyad-heading` uses);
+  // `aria-labelledby` points at its own copy so its accessible name is that
+  // copy, not empty. render() below focuses it explicitly (never relying on
+  // the live region alone, since a static reveal with no NEW text change is
+  // not guaranteed to announce in every AT/browser combination) — but ONLY
+  // when a submission genuinely just failed, never on an unrelated render,
+  // since render() has exactly one caller (submitSecond()).
+  '<div class="dyad-relation-failure" id="dyad-relation-failure" role="status" ' +
+  'aria-live="polite" aria-atomic="true" aria-labelledby="dyad-relation-failure-copy" tabindex="-1" hidden>' +
+  '<p id="dyad-relation-failure-copy">relation layer unavailable. both individual sheets remain valid.</p>' +
   '<button type="button" class="btn btn-secondary" id="dyad-relation-retry">compare another</button>' +
   '</div>' +
   '<p class="dyad-error" id="dyad-error" role="status" hidden></p>' +
@@ -1452,7 +1469,17 @@ export function render() {
   const signature = $('dyad-signature');
   if (signature) signature.hidden = !relation;
   const failure = $('dyad-relation-failure');
-  if (failure) failure.hidden = !!relation;
+  if (failure) {
+    failure.hidden = !!relation;
+    // Fourth remediation gate, item 2: focus the ACTUAL failure surface the
+    // instant a submission produces one — render() has exactly one caller
+    // (submitSecond()), so this only ever fires for a just-submitted pair
+    // that failed closed, never for an unrelated re-render (there is no
+    // other kind). A resolved relation never reaches this branch, so a
+    // successful submission's own focus management (output.focus() below)
+    // is never fought over.
+    if (!relation && typeof failure.focus === 'function') failure.focus({ preventScroll: false });
+  }
   const sideA = $('dyad-side-a');
   const sideB = $('dyad-side-b');
   // audit B6: `title` carries the full, untruncated label back for a
@@ -1474,10 +1501,15 @@ export function render() {
   if (output) {
     output.hidden = false;
     // On short mobile viewports the completed pair begins just below the
-    // still-visible form. Move the new result into view and focus its named
-    // region so submit never appears to do nothing to sighted or AT users.
+    // still-visible form. Move the new result into view either way — both
+    // sheets always render, resolved relation or not — but focus goes to
+    // exactly ONE place: the named output region on a SUCCESSFUL
+    // resolution, or the failure surface's own explicit focus() above on a
+    // fail-closed one (fourth remediation gate, item 2) — never both,
+    // never neither, so submit never appears to do nothing to sighted or
+    // AT users regardless of outcome.
     if (typeof output.scrollIntoView === 'function') output.scrollIntoView({ block: 'start' });
-    if (typeof output.focus === 'function') output.focus({ preventScroll: true });
+    if (relation && typeof output.focus === 'function') output.focus({ preventScroll: true });
   }
   // THE decisive reset for close() → reopen() → next-pair: by this line
   // #dyad-sheets provably has a layout box (output.hidden just went false,

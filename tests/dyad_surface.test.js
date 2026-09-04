@@ -2694,7 +2694,15 @@ describe('D1 — the Pair Imprint privacy boundary, proven over the REAL product
   });
 });
 
-describe('item 8 — a render/share failure is visible, live-announced, and positioned after the two sheets', () => {
+describe('item 8 — the Pair Imprint\'s OWN #dyad-share-status is visible, live-announced, and positioned after the two sheets', () => {
+  // Third-gate item 8 named this describe block "a render/share failure"
+  // but every assertion in it targets `#dyad-share-status` — the Pair
+  // Imprint EXPORT status, a real and correctly-implemented live region,
+  // but NOT the relation-RESOLUTION failure surface a submitted pair can
+  // fail into. Fourth remediation gate, item 2: the title is corrected to
+  // say what this block actually tests; the ACTUAL failure surface
+  // (`#dyad-relation-failure`) gets its own dedicated coverage below,
+  // against the real node, not this one.
   it('#dyad-share-status is a polite, atomic live region, not a silent DOM write', () => {
     expect(dyadJs).toMatch(/id="dyad-share-status"[^>]*role="status"/);
     expect(dyadJs).toMatch(/id="dyad-share-status"[^>]*aria-live="polite"/);
@@ -2706,6 +2714,85 @@ describe('item 8 — a render/share failure is visible, live-announced, and posi
     const statusIdx = dyadJs.indexOf('id="dyad-share-status"');
     expect(outputIdx).toBeGreaterThan(-1);
     expect(statusIdx).toBeGreaterThan(outputIdx);
+  });
+});
+
+describe('fourth-gate item 2 — the ACTUAL relation-resolution failure surface (#dyad-relation-failure) is accessible and recoverable', () => {
+  // A local copy, matching this file's own established convention
+  // (`incoherentBLocal()` near B2's describe block is the same pattern) —
+  // the fail-closed fixture near "Pair Dossier — failure state" above is
+  // scoped to THAT describe callback and is not reachable here. Using it
+  // by name from a sibling describe would silently resolve to a
+  // ReferenceError inside `_hooks.buildSecond`, which `submitSecond()`'s
+  // own try/catch swallows into a validation-error return — a real trap
+  // this file's tests must not fall into again.
+  function incoherentB() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('#dyad-relation-failure carries real status semantics: role=status, polite, atomic, a labelled description, and programmatic focusability', () => {
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*role="status"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-live="polite"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-atomic="true"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-labelledby="dyad-relation-failure-copy"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*tabindex="-1"/);
+    expect(dyadJs).toContain('id="dyad-relation-failure-copy"');
+  });
+
+  it('#dyad-relation-failure sits AFTER #dyad-output, alongside the Pair Imprint status, not buried above the sheets', () => {
+    const outputIdx = dyadJs.indexOf('id="dyad-output"');
+    const failureIdx = dyadJs.indexOf('id="dyad-relation-failure"');
+    expect(outputIdx).toBeGreaterThan(-1);
+    expect(failureIdx).toBeGreaterThan(outputIdx);
+  });
+
+  it('a submitted pair whose relation fails closed reveals AND focuses the real failure node — never #dyad-share-status', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    const failure = h.get('dyad-relation-failure');
+    expect(failure.hidden).toBe(false);
+    expect(failure.focusCalls.length).toBeGreaterThan(0);
+    // The two sheets remain valid and visible regardless (Step 4's own
+    // contract, unaffected by this gate) — a failed relation is never a
+    // failed reading.
+    expect(h.get('dyad-output').hidden).toBe(false);
+  });
+
+  it('a SUCCESSFUL resolution focuses #dyad-output as before, never the (hidden) failure surface', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-output').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('the visible "compare another" recovery action is keyboard-operable and clears the failure surface on use', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => { h.get('dyad-relation-retry').listeners.click(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    // Recovery lands back on the second-entry form, ready to type again —
+    // compareAnother()'s own established contract, unchanged by this gate.
+    expect(h.get('dyad-name-input')).toBeTruthy();
+  });
+
+  it('teardown (Back) hides/resets the failure surface — it never survives a close', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => { h.get('dyad-back').listeners.click(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+  });
+
+  it('a fresh SUCCESSFUL submission after a failure hides the failure surface again — recovery via a real re-submit, not just Compare Another', () => {
+    let shouldFail = true;
+    const h = harness('t5', { buildSecond: () => (shouldFail ? incoherentB() : B) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    shouldFail = false;
+    h.withDom(() => { entry(h); submitSecond(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-output').focusCalls.length).toBeGreaterThan(0);
   });
 });
 

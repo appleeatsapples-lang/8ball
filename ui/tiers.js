@@ -1,6 +1,21 @@
 // 8ball / ui/tiers.js
 // v0.7.0 compartment-card render controller (DOCTRINE §1 / §1.D v0.37 / §6).
 //
+// Fourth Pair Imprint remediation gate, item 3: the "tier"/"entitled"/
+// "paid"/"unseal" vocabulary throughout this file and its comments dates
+// from the product's commercial era and is RETAINED, not live — the
+// product went completely free on the controller's 2026-09-02 order (no
+// storefront, no checkout, nothing to purchase; DOCTRINE §1.D v0.71). Every
+// device now renders at the free ceiling (`getRenderTier()` in
+// `ui/payments.js` always resolves it), so every predicate below that used
+// to gate a PURCHASE now always answers yes — the tier vocabulary and
+// `TIER_COORDS` survive as the RENDER-REGISTRY/ceiling compatibility
+// machinery composing which coordinates a render surfaces, not as a price
+// gate (the kua-retirement precedent: a commercial surface retires, its
+// registry stands). Nothing below this note changed behavior for this
+// remediation — comments only, so a reader does not mistake retained
+// compatibility plumbing for a live paywall.
+//
 // Owns:
 //   - TIER_COORDS — the single exported render constant defining which
 //     coordinates each tier surfaces (the §3 rollback flag: reverting the
@@ -18,8 +33,11 @@
 //     decision. An upgrade render (entitled tier > previously rendered
 //     tier) flags exactly the cells the new tier adds, in DOM order;
 //     same-tier re-renders flag none (β idempotence — no replay on
-//     shake-again / rehydrate). index.html primes the baseline with the
-//     pre-paid-return tier at boot so a paid-return boot unseals once.
+//     shake-again / rehydrate). index.html primes the baseline at boot —
+//     retained compatibility shape from when this preceded a paid-return
+//     handler so that boot could unseal exactly once; `getRenderTier()`
+//     always resolves the same free ceiling now (doctrine v0.71), so this
+//     condition never fires live, but the math stays intact.
 //   - shareRowRefs — per-row snapshot refs for ui/share.js (§5.D v0.39).
 //     The PNG renders the FULL sheet per compartment: each row ref carries
 //     its title + per-cell {state, value}. Open cells → value; sealed cells
@@ -219,18 +237,24 @@ export function initTiersUI(refs, hooks) {
 }
 
 /**
- * Prime the unseal baseline with the tier the device was entitled to
- * BEFORE a possible paid return is applied (index.html boot, ahead of
- * the retired paid-return handler once ran). The first render then unseals exactly the delta on
- * a paid-return boot, and nothing on a plain rehydrate.
+ * Prime the unseal baseline with the render tier at boot, before the
+ * first render. Retained compatibility shape from the commercial era: this
+ * ran BEFORE the (now-retired) paid-return handler applied a purchase, so
+ * the first render could unseal exactly the delta a purchase just granted,
+ * and nothing on a plain rehydrate. `getRenderTier()` always resolves the
+ * free ceiling now (doctrine v0.71), so there is no delta to unseal in
+ * practice — the priming call and the unseal-diff math still run, unchanged,
+ * as part of keeping this module's render-registry composition intact.
  */
 export function primeUnsealBaseline(tier) {
   _lastRenderedTier = tier || 'free';
 }
 
 // setCell(key, state, text) with state ∈ value | sealed | unres.
-// Sealed → value node textContent = '' (DOM purity: no paid value string
-// exists anywhere in the DOM below its tier) and the seal layer active.
+// Sealed → value node textContent = '' (DOM purity: no withheld-tier value
+// string exists anywhere in the DOM — a compatibility state `entitled`
+// never actually returns false at the free ceiling, doctrine v0.71) and the
+// seal layer active.
 // Unres → `—`, no seal. The 'unsealing' beat class is always cleared
 // here and re-applied only by an upgrade render.
 function setCell(key, state, text) {
@@ -353,8 +377,12 @@ export function renderTierSections(profile, tier) {
   }
 
   // Unseal beat: fires only when this render's tier exceeds the last
-  // rendered (or primed) tier — paid-return boot / upgrade. ~100ms DOM-
-  // order stagger via --unseal-delay; the CSS keyframes own the settle.
+  // rendered (or primed) tier — retained compatibility trigger for what
+  // used to be a paid-return boot or upgrade. Since `getRenderTier()`
+  // always resolves the same free ceiling now (doctrine v0.71), this
+  // condition is never true in production and the beat never fires live —
+  // the math stays correct and testable regardless. ~100ms DOM-order
+  // stagger via --unseal-delay; the CSS keyframes own the settle.
   const newly = _lastRenderedTier === null ? [] : newlyEntitledCells(_lastRenderedTier, tier);
   let beat = 0;
   for (const key of newly) {

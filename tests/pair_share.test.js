@@ -855,7 +855,7 @@ describe('C1 / P2 disclosure truth — capability is disclosed truthfully, befor
 });
 
 describe('P1-2 — identity is re-checked after EVERY async boundary, including resolved AND rejected share/clipboard', () => {
-  it('a relation replaced while awaiting navigator.share (RESOLVED) never reports "shared" for the old pair', async () => {
+  it('fourth-gate item 1: a relation replaced while awaiting navigator.share (RESOLVED) reports "previous pair shared", never a bare "shared" AND never a false "stale"', async () => {
     let relation = VALID_RELATION;
     let releaseShare;
     installEnv({
@@ -868,10 +868,17 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation); // Compare Another landed a new pair mid-share
     releaseShare(undefined); // the OLD share resolves successfully...
     await pending;
-    // ...but it must never be reported as `shared` for a pair that is no
-    // longer current.
+    // ...it must never be reported as an unqualified `shared` for a pair
+    // that is no longer current (that would be ambiguous: did it share
+    // the pair now on screen, or not?) — but it ALSO must never be
+    // reported as `stale`, which would falsely imply nothing happened. A
+    // real platform share completed; it is reported as concerning the
+    // previous/selected pair.
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-previous'));
+    expect(refs.status.textContent).toBe('previous pair shared.');
   });
 
   it('a relation replaced while awaiting navigator.share (REJECTED, non-Abort) never reports "downloaded" for the old pair', async () => {
@@ -900,7 +907,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
   });
 
-  it('item 7: a relation replaced while awaiting clipboard.writeText (RESOLVED) never claims the copy succeeded — but truthfully reports the download that already, genuinely, happened', async () => {
+  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (RESOLVED) reports the download AND the copy, explicitly naming the previous pair — never a bare claim and never a false "stale"/"failed"', async () => {
     let relation = VALID_RELATION;
     let releaseCopy;
     installEnv({
@@ -912,18 +919,22 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation);
     releaseCopy(undefined);
     await pending;
-    // The download itself already happened (synchronous, irreversible) —
-    // reporting `stale`/`failed` here would falsely imply nothing was
-    // saved. The copy confirmation specifically is suppressed (the pair
-    // moved on before it could be verified), but the download's real
-    // outcome is not erased into a negative claim.
+    // The download AND the copy both genuinely happened (synchronous
+    // download, then a clipboard write that resolved before identity was
+    // found to have changed) — reporting `stale`/`failed` here would
+    // falsely imply nothing was saved, and a bare "download started ·
+    // caption copied." would ambiguously imply it concerns the pair now
+    // on screen. Both real effects are reported, explicitly named as
+    // concerning the previous/selected pair.
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-previous-copied'));
+    expect(refs.status.textContent).toBe('download started for previous pair · caption copied.');
   });
 
-  it('item 7: a relation replaced while awaiting clipboard.writeText (REJECTED) still truthfully reports the download, never a false "failed"/"stale"', async () => {
+  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (REJECTED) reports the download alone, explicitly naming the previous pair — never a false "failed"/"stale" and never a false copy claim', async () => {
     let relation = VALID_RELATION;
     let rejectCopy;
     installEnv({
@@ -935,7 +946,9 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation);
     rejectCopy(new Error('denied'));
     await pending;
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-previous-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-previous'));
+    expect(refs.status.textContent).toBe('download started for previous pair.');
   });
 
   it('an UNCHANGED relation across every async boundary completes normally — the guard does not false-positive', async () => {
@@ -943,6 +956,50 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     const { refs } = await boot(() => VALID_RELATION); // same reference every call
     await clickShare(refs);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+  });
+
+  it('an UNCHANGED relation across the clipboard await reports the ordinary current-pair copied state, not a "previous pair" qualifier', async () => {
+    installEnv({ clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.textContent).not.toContain('previous');
+  });
+
+  it('fourth-gate item 1: closing/retiring the controller (not just replacing the pair) while a native share resolves SUPPRESSES the announcement entirely — never a leaked "shared"/"previous pair" onto a new owner\'s refs', async () => {
+    let releaseShare;
+    installEnv({
+      canShare: () => true,
+      share: () => new Promise(resolve => { releaseShare = resolve; }),
+    });
+    const { refs: oldRefs } = await boot(() => VALID_RELATION);
+    const pending = clickShare(oldRefs);
+    // A re-init (e.g. the dyad screen closing and a fresh controller taking
+    // over the SAME or different DOM) retires the old controller entirely
+    // — a stronger invalidation than a mere relation replacement.
+    const { refs: newRefs } = await boot(() => VALID_RELATION);
+    releaseShare(undefined);
+    await pending;
+    // Nothing is written to the OLD controller's own refs once retired —
+    // not `shared`, not `shared-previous`, nothing.
+    expect(oldRefs.status.textContent).toBe('');
+    expect(oldRefs.status.hidden).toBe(true);
+    // And definitely nothing leaks onto the NEW controller's refs either.
+    expect(newRefs.status.textContent).toBe('');
+  });
+
+  it('fourth-gate item 1: closing/retiring the controller while a download\'s clipboard step resolves SUPPRESSES the announcement — the download itself already fired (unavoidable), but nothing further is written anywhere', async () => {
+    let releaseCopy;
+    installEnv({
+      clipboard: () => new Promise(resolve => { releaseCopy = resolve; }),
+    });
+    const { refs: oldRefs } = await boot(() => VALID_RELATION);
+    const pending = clickShare(oldRefs); // download fires synchronously
+    const { refs: newRefs } = await boot(() => VALID_RELATION);
+    releaseCopy(undefined);
+    await pending;
+    expect(oldRefs.status.textContent).toBe('');
+    expect(newRefs.status.textContent).toBe('');
   });
 });
 
