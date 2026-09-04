@@ -59,6 +59,62 @@ hides both heads, a modal still keeps Escape priority, reopening writes
 fresh text, the paired panel still blanks after back, no console
 errors.
 
+**Two-lane audit (pr236), reconciled.** Lane A MERGE WITH FIXES, Lane B
+MERGE — and the split is the interesting part. Lane A's HIGH is a real
+regression this entry's own first draft shipped and its own live-fire
+missed: `close()` removes `.open`, starting the panel's 280ms
+`max-height` collapse, and blanking in the SAME task reflows the box to
+empty-content height in the first frame — so below 1100px the card
+snaps rather than collapses. Measured at 390 wide: 365px of card and
+183px of rail in one frame, against ~16px on base, with an empty panel
+carrying only CLOSE fading out for the remaining ~270ms. My live-fire
+claim ("every close path blanks all six parts") was true and useless
+here: it read end-state DOM and never looked at the transition. Lane B
+live-fired the same paths and missed it the same way; only Lane A's
+frame-by-frame timeline saw it. That is the §8 gate 9 lesson again, in
+the form it keeps taking — an assertion about the destination that says
+nothing about the journey.
+
+Fixed on BOTH panels so they cannot re-fork: the blank now waits 300ms
+(this module's existing outlast-the-transition convention, shared with
+the scroll timer), a reopen inside the window cancels the pending timer,
+and the dyad's `clearOutput` teardown still blanks IMMEDIATELY — that
+path carries the §5.F guarantee and animates nothing. Re-measured after
+the fix: first-frame drop 16px, card 1218 → 1093 → 955 → 933 across the
+transition, body blanked at 305ms, no console errors.
+
+Then the test-honesty findings, which both lanes reached
+independently. The coverage pin's id pattern was `[a-z-]+`, so a part
+named `body2` or `subTitle` was invisible to it — Lane A built that
+mutant (a part written on every open, blanked by neither panel) and the
+full suite stayed green, which made the amendment's "neither panel can
+gain a part without a blanker" false as written. Widened to
+`[A-Za-z0-9-]+`, and the pattern is now pinned against a synthetic part
+so the widening is falsifiable rather than decorative. The behavioural
+blank test derived its expectation from the very lists under test, so
+dropping a part shrank the oracle with the code; it now walks the
+panel's own nodes and asserts the walk covered every one. And the
+`{ close }` handle shipped with zero coverage — neutering it to a no-op
+passed 2091 tests — so the LIVE init's handle is now exercised.
+
+Three of my own fixes were then cut back by their own mutants: a
+`!activeCell` guard in the deferred callback, and an up-front
+`blankPanel()` in each `openFor`, all survived removal — the cancel in
+`openFor` is what carries the guarantee, and the open overwrites every
+part regardless. They are gone rather than kept as untested defence,
+and the code says why. Nine reconciliation mutants, all killed.
+
+Recorded, not changed: the two source-shape pins Lane B flagged (the
+blank's position after `setPaneEntry`, and `blankPanel` iterating the
+lists) protect documented rationale, not runtime behaviour — true, and
+worth knowing when reading the tally. Lane A's `aria-labelledby`
+observation (both referenced nodes are blanked, harmless only because
+`aria-hidden` lands first) is a latent trap for anyone who later drops
+that attribute; left as-is with the dependency now explicit. And Lane B
+resolved the `Object.freeze` question against Lane A: the freeze does
+throw on mutation in strict mode, so it is real protection for a value
+two modules share, merely untested.
+
 **Sighting, not a fix: the PII gate flaked once.** On the first full run
 after the branch reset, `tests/pii_scan.test.js`'s operator-first-name
 rule failed, taking 13.3s where it normally takes 0.4s. It did not
@@ -74,6 +130,26 @@ output that changes between runs, which is the wrong shape for a gate
 whose job is to say what the REPOSITORY carries. Recorded for the
 audit rather than changed here: narrowing the walk is a scanner change,
 and this entry is not the place to make one unasked.
+
+**The PII sighting, after two lanes.** Neither lane could reproduce it
+either, so it stays unpinned. Both verified the mechanism from source
+(`SKIP_DIRS` has six names; `audits/automated/` is not one). Lane B
+added two facts this entry missed: the `BANNED` list has NINE entries
+and the test walks the whole tree once PER entry with no caching, so
+the untracked report bulk multiplies the read burden ninefold per run,
+not once — a far more plausible transient shape than a token match; and
+this is the SECOND time this class has bitten (`.claude` was added to
+`SKIP_DIRS` after `settings.local.json` leaked the operator handle into
+this same scan). Lane A found a correctness channel rather than a cost
+one: `project_audit.py` stores each check's full subprocess output
+unconditionally, and `check_local_pii` shells out to
+`run_local_audit.sh`, which prints the operator's own patterns and
+matching lines on a hit — so on the operator's machine a single local
+hit writes an identity token into a report the public scan then reads
+and fails on, in a file the repository does not carry. Both lanes agree
+leaving the scanner untouched in THIS PR is right, and both say it
+should not be left a third time. Filed as the named follow-up: scope
+the walk to tracked content, or skip `audits/automated`.
 
 **How it was built.** On a staging worktree, because
 `claude/eight-ball-app-testing-rqphfo` was still occupied by #235 when

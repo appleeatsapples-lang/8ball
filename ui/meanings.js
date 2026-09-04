@@ -490,6 +490,25 @@ let scrollTimer = null;
     }
   }
 
+  // The blank waits out the collapse. `close()` removes `.open`, which starts
+  // the 280ms max-height transition; blanking in the same task reflows the box
+  // to its empty-content height in the FIRST frame, so the card snaps instead
+  // of collapsing — measured at 390 wide as a 365px jump of the card and 183px
+  // of the rail below it (pr236 audit HIGH-1, caught on a transition timeline;
+  // an end-state DOM check cannot see it). 300ms is this module's existing
+  // outlast-the-transition convention, shared with the scroll timer below.
+  // A reopen inside the window cancels the pending timer and blanks up front
+  // instead (openFor below), which is the ONLY thing keeping a stale timer
+  // from wiping a reopened panel — a second `!activeCell` guard here would be
+  // unreachable, and the pr236 audit's own mutant proved it (removing it
+  // changed nothing), so it is not written.
+  let blankTimer = null;
+  function scheduleBlank() {
+    if (blankTimer) clearTimeout(blankTimer);
+    if (typeof setTimeout !== 'function') { blankPanel(); return; }
+    blankTimer = setTimeout(() => { blankTimer = null; blankPanel(); }, 300);
+  }
+
   function close() {
     const cell = activeCell;
     if (cell) {
@@ -504,12 +523,17 @@ let scrollTimer = null;
     panel.classList.remove('open');
     setPanelHidden(true);
     setPaneEntry(false);
-    blankPanel();
+    scheduleBlank();
   }
 
   function openFor(key, cell) {
     const coordinate = COORDINATES[key];
     if (!coordinate) return;
+    // A reopen inside the blank window must drop the pending timer, or it
+    // fires 300ms later and wipes the reading just written (pr236 audit's
+    // mutant proved this load-bearing). No blank is needed alongside it: the
+    // rest of this function overwrites every part unconditionally.
+    if (blankTimer) { clearTimeout(blankTimer); blankTimer = null; }
     hint.hidden = true; // first use retires the affordance for this load
     const valEl = document.getElementById(coordinate.valueId);
     const rawValue = valEl ? valEl.textContent.trim() : '';
