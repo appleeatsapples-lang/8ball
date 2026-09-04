@@ -32,7 +32,14 @@ import {
   pairImprintDisclosureText,
   initPairShareUI,
   FOOTER_LAYOUT,
+  fitValueFontSize,
+  VALUE_GEOMETRY,
 } from '../ui/pairShare.js';
+import { elementDirection, combinedPath } from '../core/dyad.js';
+import { SUN_SIGNS, ANIMALS } from '../core/profile.js';
+import { getCard } from '../core/engine.js';
+import { ELEMENTS } from '../content/concordance.v1.js';
+import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -168,6 +175,97 @@ describe('buildPairImprintSVG — 1080×1350 portrait, monochrome, escaped', () 
   });
 });
 
+// ── P2 geometry (second remediation gate) ───────────────────────────────
+// The three signature values are FINITE outputs of immutable content tables,
+// not free text — so "the longest real line" is an enumerable fact, not a
+// guess. These tests drive the REAL production functions over every real
+// combination each field can take and assert fitValueFontSize keeps the
+// worst case inside VALUE_GEOMETRY.laneWidth at or above VALUE_GEOMETRY.
+// fontMin — the same fit buildPairImprintSVG's row loop applies internally.
+describe('P2 geometry — the longest REAL element-direction/numerology/card-pair line stays in the lane', () => {
+  function activeCycleLine(a, b) {
+    const aToB = elementDirection(a, b);
+    const bToA = elementDirection(b, a);
+    if (aToB.kind === 'same') return `A · ${a} = B · ${b}`;
+    const aToBActive = aToB.kind === 'sheng' || aToB.kind === 'ke';
+    const active = aToBActive ? aToB : bToA;
+    const fromLabel = aToBActive ? 'A' : 'B';
+    const toLabel = aToBActive ? 'B' : 'A';
+    return `${fromLabel} · ${active.from} → ${toLabel} · ${active.to} · ${active.label}`;
+  }
+
+  function widthOf(text, fontSize) {
+    return text.length * VALUE_GEOMETRY.charAdvanceEm * fontSize;
+  }
+
+  it('every real element-cycle direction (all 25 ordered element pairs, both wings) fits the lane at a legible size', () => {
+    let longest = '';
+    for (const a of ELEMENTS) {
+      for (const b of ELEMENTS) {
+        const line = activeCycleLine(a, b);
+        if (line.length > longest.length) longest = line;
+      }
+    }
+    expect(longest.length).toBeGreaterThan(0);
+    const fitted = fitValueFontSize(longest);
+    expect(fitted).toBeGreaterThanOrEqual(VALUE_GEOMETRY.fontMin);
+    expect(widthOf(longest, fitted)).toBeLessThanOrEqual(VALUE_GEOMETRY.laneWidth);
+  });
+
+  it('every real combined-life-path finding (the full numerology domain, both orders) fits the lane', () => {
+    let longest = '';
+    for (const a of LIFE_PATH_VALUES) {
+      for (const b of LIFE_PATH_VALUES) {
+        const { combined } = combinedPath(a, b);
+        const line = `${a} + ${b} → ${combined}`;
+        if (line.length > longest.length) longest = line;
+      }
+    }
+    expect(longest.length).toBeGreaterThan(0);
+    const fitted = fitValueFontSize(longest);
+    expect(fitted).toBeGreaterThanOrEqual(VALUE_GEOMETRY.fontMin);
+    expect(widthOf(longest, fitted)).toBeLessThanOrEqual(VALUE_GEOMETRY.laneWidth);
+  });
+
+  it('every real card-pair catalog finding (144×144 roman-numeral pairs) fits the lane', () => {
+    const catalogs = [];
+    for (const sun of SUN_SIGNS) {
+      for (const animal of ANIMALS) {
+        catalogs.push(getCard({ sunSign: sun.name, animal }).catalog);
+      }
+    }
+    expect(catalogs).toHaveLength(144);
+    let longest = '';
+    for (const a of catalogs) {
+      for (const b of catalogs) {
+        const line = `no. ${a} × no. ${b}`;
+        if (line.length > longest.length) longest = line;
+      }
+    }
+    const fitted = fitValueFontSize(longest);
+    expect(fitted).toBeGreaterThanOrEqual(VALUE_GEOMETRY.fontMin);
+    expect(widthOf(longest, fitted)).toBeLessThanOrEqual(VALUE_GEOMETRY.laneWidth);
+  });
+
+  it('a short, ordinary string still renders at the full base size — the fit never shrinks what does not need it', () => {
+    expect(fitValueFontSize('4 + 7 → 11')).toBe(VALUE_GEOMETRY.fontMax);
+    expect(fitValueFontSize('no. iv × no. xlii')).toBe(VALUE_GEOMETRY.fontMax);
+  });
+
+  it('the fitted size, applied to the actual longest real element-cycle string, is what buildPairImprintSVG renders', () => {
+    let longest = '';
+    for (const a of ELEMENTS) {
+      for (const b of ELEMENTS) {
+        const line = activeCycleLine(a, b);
+        if (line.length > longest.length) longest = line;
+      }
+    }
+    const snapshot = buildPairImprintSnapshot(adversarialRelation({ elementDirectionAB: longest }));
+    const svg = buildPairImprintSVG(snapshot);
+    expect(svg).toContain(`font-size="${fitValueFontSize(longest)}"`);
+  });
+});
+
 describe('buildPairImprintCaption — same snapshot, same bounds', () => {
   it('carries the three findings, the disclosure, and the bare host', () => {
     const snapshot = buildPairImprintSnapshot(adversarialRelation());
@@ -272,6 +370,14 @@ describe('static structure — self-containment and the isolation boundary', () 
 });
 
 // ── the live click path (node env, no jsdom — mirrors share_behavior.test.js) ──
+//
+// Second remediation gate: the click path now runs through a pre-render
+// cache (P1-4). `installEnv`'s Image mock still fires its `onload`
+// synchronously by default, but `svgToPngBlob` wraps that in a real Promise,
+// so the mock's own resolution only lands on the NEXT microtask — `boot()`
+// below flushes exactly one microtask after triggering the (default) proactive
+// pre-render, matching how a real browser's pre-render would already be
+// settled by the time a human reaches the button.
 
 const RealBlob = globalThis.Blob;
 const originals = {
@@ -282,6 +388,7 @@ const originals = {
   createObjectURL: globalThis.URL.createObjectURL,
   revokeObjectURL: globalThis.URL.revokeObjectURL,
   navigatorDescriptor: Object.getOwnPropertyDescriptor(globalThis, 'navigator'),
+  File: globalThis.File,
 };
 
 function makeEl(tag = 'div') {
@@ -292,7 +399,9 @@ function makeEl(tag = 'div') {
     attrs,
     classList: { add() {}, remove() {}, contains() { return false; } },
     addEventListener(ev, fn) { handlers[ev] = fn; },
+    removeEventListener(ev, fn) { if (handlers[ev] === fn) delete handlers[ev]; },
     _fire(ev, arg) { return handlers[ev] && handlers[ev](arg); },
+    _hasListener(ev) { return !!handlers[ev]; },
     click() { this.clickCount++; },
     remove() { this.removeCount++; },
     setAttribute(k, v) { attrs[k] = String(v); },
@@ -303,14 +412,13 @@ function makeEl(tag = 'div') {
 function installEnv({
   canShare = null, share = null, clipboard = null,
   toBlob = 'ok', imageFails = false, contextThrows = false, imageDefer = false,
+  appendThrows = false, clickThrows = false, removeThrows = false, setTimeoutThrows = false,
 } = {}) {
   const log = {
     svg: [], created: [], revoked: [], anchors: [], canvases: [], shared: [], copied: [], fetchCalls: 0,
     // Only populated when imageDefer is true — one release function per
     // constructed Image, so a test can hold rasterization "in flight" and
-    // release it at a chosen moment (audit A2: prove the identity guard
-    // catches a change that happens WHILE the async work is pending, not
-    // only before it starts).
+    // release it at a chosen moment.
     pendingImages: [],
   };
 
@@ -336,7 +444,13 @@ function installEnv({
     }
     get src() { return this._src; }
   };
-  const body = { appendChild(node) { log.anchors.push(node); return node; } };
+  const body = {
+    appendChild(node) {
+      if (appendThrows) throw new Error('appendChild blocked');
+      log.anchors.push(node);
+      return node;
+    },
+  };
   globalThis.document = {
     body,
     createElement(tag) {
@@ -356,7 +470,12 @@ function installEnv({
         log.canvases.push(canvas);
         return canvas;
       }
-      return makeEl(tag);
+      const el = makeEl(tag);
+      if (tag === 'a') {
+        if (clickThrows) el.click = () => { throw new Error('download blocked'); };
+        if (removeThrows) el.remove = () => { throw new Error('remove blocked'); };
+      }
+      return el;
     },
   };
   const navigator = {};
@@ -365,13 +484,29 @@ function installEnv({
   if (clipboard) navigator.clipboard = { writeText: async text => { log.copied.push(text); return clipboard(text); } };
   Object.defineProperty(globalThis, 'navigator', { value: navigator, configurable: true, writable: true });
   globalThis.fetch = () => { log.fetchCalls++; throw new Error('network is forbidden (§5/§7)'); };
+  if (setTimeoutThrows) {
+    const realSetTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (fn, ms) => {
+      if (typeof fn === 'function' && ms === 1000) throw new Error('setTimeout blocked');
+      return realSetTimeout(fn, ms);
+    };
+  }
   return log;
 }
 
-function boot(getRelation) {
+// `prerender:true` (the default) mirrors production: index.html's
+// onRelationChange hook fires the instant a relation becomes current, well
+// before a human can reach the button, so by the time a test clicks, the
+// cache is normally already populated. `prerender:false` boots with no
+// proactive render at all, for tests of the "cache never warmed" fallback.
+async function boot(getRelation, { prerender = true } = {}) {
   const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
-  initPairShareUI(refs, { getRelation });
-  return refs;
+  const controller = initPairShareUI(refs, { getRelation });
+  if (prerender) {
+    controller.notifyRelationChange(getRelation());
+    await Promise.resolve(); // flush the mock's promise-wrapped rasterization
+  }
+  return { refs, controller };
 }
 
 const VALID_RELATION = adversarialRelation();
@@ -386,10 +521,11 @@ afterEach(() => {
   globalThis.fetch = originals.fetch;
   globalThis.URL.createObjectURL = originals.createObjectURL;
   globalThis.URL.revokeObjectURL = originals.revokeObjectURL;
+  globalThis.File = originals.File;
   if (originals.navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', originals.navigatorDescriptor);
 });
 
-describe('Pair Imprint — the live click path', () => {
+describe('Pair Imprint — the live click path (blob pre-rendered before the click, the common case)', () => {
   it('initPairShareUI tolerates a boot with no refs/hooks', () => {
     installEnv();
     expect(() => initPairShareUI({}, {})).not.toThrow();
@@ -398,7 +534,7 @@ describe('Pair Imprint — the live click path', () => {
 
   it('empty relation: no render attempted, status reads "nothing to share yet"', async () => {
     const log = installEnv({ clipboard: () => {} });
-    const refs = boot(() => null);
+    const { refs } = await boot(() => null);
     await clickShare(refs);
     expect(log.canvases).toHaveLength(0);
     expect(refs.status.hidden).toBe(false);
@@ -408,7 +544,7 @@ describe('Pair Imprint — the live click path', () => {
 
   it('native Web Share success: status reads "shared", the PNG + caption travel together, no download/clipboard', async () => {
     const log = installEnv({ canShare: () => true, share: () => undefined });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.shared).toHaveLength(1);
     expect(log.shared[0].text).toContain('8 ball · pair reading');
@@ -422,22 +558,25 @@ describe('Pair Imprint — the live click path', () => {
     const abort = new Error('cancelled by user');
     abort.name = 'AbortError';
     installEnv({ canShare: () => true, share: () => { throw abort; } });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
   });
 
-  it('a genuine share exception (not AbortError): status reads "failed"', async () => {
-    installEnv({ canShare: () => true, share: () => { throw new Error('boom'); } });
-    const refs = boot(() => VALID_RELATION);
+  it('a genuine share exception (not AbortError, second-gate P1-4): preserves the local download, never just "failed"', async () => {
+    const log = installEnv({ canShare: () => true, share: () => { throw new Error('boom'); }, clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+    // The platform's OWN chooser broke, but the PNG this device already
+    // rendered is still right here — the fallback download must still run.
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
   });
 
   it('no native share support: falls back to download + clipboard copy', async () => {
     const log = installEnv({ clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1);
     expect(log.copied).toHaveLength(1);
@@ -447,7 +586,7 @@ describe('Pair Imprint — the live click path', () => {
 
   it('download fallback with no/denied clipboard: status reads "downloaded" only, never claims a copy', async () => {
     const log = installEnv(); // no clipboard installed
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
@@ -455,45 +594,41 @@ describe('Pair Imprint — the live click path', () => {
 
   it('canShare present but returns false for this file: falls back to download, not a broken share attempt', async () => {
     const log = installEnv({ canShare: () => false, share: () => undefined, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.shared).toHaveLength(0);
     expect(log.anchors).toHaveLength(1);
   });
 
-  it('every object URL created (the SVG source and the download anchor) is revoked', async () => {
+  it('every object URL created (the pre-render SVG source and the download anchor) is revoked', async () => {
     const log = installEnv({ clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    // The pre-render's own SVG-source URL is already revoked by the time
+    // boot() returns (its Image loaded and canvas.toBlob resolved during
+    // the microtask flush) — one create+revoke pair with nothing pending.
+    const { refs } = await boot(() => VALID_RELATION);
+    expect(log.revoked).toHaveLength(1);
     await clickShare(refs);
-    // The SVG blob URL is revoked synchronously once the rasterizer's Image
-    // has loaded — before the download step even starts.
+    // The download anchor's own URL (built from the ALREADY-cached PNG
+    // blob, not a fresh SVG) is created here and revoked on its own 1000ms
+    // timer.
     expect(log.revoked).toHaveLength(1);
     vi.advanceTimersByTime(1000);
-    // The download anchor's URL is revoked on its own 1000ms timer.
     expect(log.revoked).toHaveLength(2);
     expect(log.created).toEqual(log.revoked);
   });
 
-  it('a render failure (canvas context throws): status reads "failed", nothing shared or downloaded', async () => {
-    const log = installEnv({ contextThrows: true, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
-    await clickShare(refs);
-    expect(log.anchors).toHaveLength(0);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
-  });
-
   it('no network call at any point in the flow', async () => {
     const log = installEnv({ canShare: () => true, share: () => undefined });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.fetchCalls).toBe(0);
   });
 
-  it('the SVG handed to the rasterizer is the same allow-listed snapshot the pure builder produces — the adversarial sentinel, end to end', async () => {
+  it('the SVG the rasterizer receives is the same allow-listed snapshot the pure builder produces — the adversarial sentinel, end to end', async () => {
     const log = installEnv({ clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
-    expect(log.svg).toHaveLength(1);
+    expect(log.svg).toHaveLength(1); // rendered once, during pre-render — the click reuses the cached blob
     expect(log.svg[0]).not.toContain(SENTINEL_NAME);
     expect(log.svg[0]).not.toContain(SENTINEL_DOB);
     expect(log.svg[0]).not.toContain('liuhe');
@@ -501,7 +636,7 @@ describe('Pair Imprint — the live click path', () => {
 
   it('a status message clears itself after a few seconds rather than sticking forever', async () => {
     installEnv({ clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(refs.status.hidden).toBe(false);
     vi.advanceTimersByTime(4000);
@@ -509,42 +644,82 @@ describe('Pair Imprint — the live click path', () => {
   });
 });
 
-// ── Remediation gate (audit_pair_dossier_imprint_2026-09-04.md) ─────────
+describe('Pair Imprint — the click path with NO pre-render yet (cache never warmed, or still in flight)', () => {
+  it('no cache at all: renders on click, then falls straight to download — never a native share attempt (activation cannot be preserved)', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined, clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(log.shared).toHaveLength(0); // second-gate P1-4: never attempted without a ready blob
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
 
-describe('C2 — busy state during generation', () => {
-  it('disables the button and sets aria-busy the instant the click starts, announcing preparation', async () => {
-    const log = installEnv({ imageDefer: true, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
-    const pending = clickShare(refs); // NOT awaited yet — still mid-flight
+  it('a render failure with no pre-render (canvas context throws): status reads "failed", nothing shared or downloaded', async () => {
+    const log = installEnv({ contextThrows: true, clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('clicking while the pre-render is STILL in flight waits for it, then downloads only — no native share', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined, clipboard: () => {} });
+    const { refs, controller } = await boot(() => VALID_RELATION, { prerender: false });
+    controller.notifyRelationChange(VALID_RELATION); // starts the render, deliberately held
+    const pending = clickShare(refs); // clicked before the artifact is ready
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // release it
+    await pending;
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+});
+
+// ── second remediation gate (bc23c12 was independently audit-blocked) ────
+
+describe('P1-4 / C2 — busy/disabled state reflects real artifact readiness, not just an active click', () => {
+  it('pre-rendering (BEFORE any click) disables the button, sets aria-busy, and announces preparation', async () => {
+    const log = installEnv({ imageDefer: true });
+    const { refs, controller } = await boot(() => VALID_RELATION, { prerender: false });
+    controller.notifyRelationChange(VALID_RELATION); // background pre-render starts
     expect(refs.btn.disabled).toBe(true);
     expect(refs.btn.getAttribute('aria-busy')).toBe('true');
     expect(refs.status.hidden).toBe(false);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
-    log.pendingImages[0](); // release rasterization
-    await pending;
+    log.pendingImages[0](); // release it
+    await Promise.resolve();
+    await Promise.resolve();
     expect(refs.btn.disabled).toBe(false);
     expect(refs.btn.getAttribute('aria-busy')).toBe('false');
+    // No click ever happened — nothing was shared or saved, so the
+    // transient "preparing…" text clears rather than sticking.
+    expect(refs.status.hidden).toBe(true);
+  });
+
+  it('a click still shows busy at its own start, even on the fast (pre-rendered) path', async () => {
+    installEnv({ canShare: () => true, share: () => new Promise(() => {}) }); // never resolves — hold the click open
+    const { refs } = await boot(() => VALID_RELATION);
+    clickShare(refs); // not awaited — still mid-flight
+    expect(refs.btn.disabled).toBe(true);
+    expect(refs.btn.getAttribute('aria-busy')).toBe('true');
   });
 
   it('clears busy state on EVERY terminal path — empty, failed, and success alike', async () => {
     installEnv();
-    const refsEmpty = boot(() => null);
+    const { refs: refsEmpty } = await boot(() => null);
     await clickShare(refsEmpty);
-    // The empty path returns before setBusy(true) is ever reached — there is
-    // no busy state to clear, so aria-busy is simply never touched (stays
-    // the static markup's own default in a real DOM). Not-true is the
-    // correct assertion here, not a forced 'false'.
     expect(refsEmpty.btn.disabled).toBe(false);
     expect(refsEmpty.btn.getAttribute('aria-busy')).not.toBe('true');
 
-    installEnv({ contextThrows: true });
-    const refsFailed = boot(() => VALID_RELATION);
+    installEnv({ contextThrows: true, clipboard: () => {} });
+    const { refs: refsFailed } = await boot(() => VALID_RELATION);
     await clickShare(refsFailed);
     expect(refsFailed.btn.disabled).toBe(false);
     expect(refsFailed.btn.getAttribute('aria-busy')).toBe('false');
 
     installEnv({ clipboard: () => {} });
-    const refsOk = boot(() => VALID_RELATION);
+    const { refs: refsOk } = await boot(() => VALID_RELATION);
     await clickShare(refsOk);
     expect(refsOk.btn.disabled).toBe(false);
     expect(refsOk.btn.getAttribute('aria-busy')).toBe('false');
@@ -552,29 +727,29 @@ describe('C2 — busy state during generation', () => {
 
   it('the terminal status text is never clobbered by the busy-state teardown', async () => {
     installEnv({ clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
   });
 });
 
-describe('C1 — capability is disclosed before the button is ever pressed', () => {
-  const originalShare = globalThis.navigator?.share;
-  const originalCanShare = globalThis.navigator?.canShare;
-
-  it('discloses "shares...directly" when the platform supports native file share', () => {
+describe('C1 / P2 disclosure truth — capability is disclosed truthfully, before the button is ever pressed', () => {
+  it('discloses a CONDITIONAL native share plus the image-save fallback when the platform supports native file share — never an unconditional promise', async () => {
     installEnv({ canShare: () => true, share: () => undefined });
-    const refs = boot(() => VALID_RELATION);
-    expect(refs.disclosure.textContent).toContain('pair imprint');
-    expect(refs.disclosure.textContent).toContain('shares the pair imprint directly');
+    const { refs } = await boot(() => VALID_RELATION);
+    expect(refs.disclosure.textContent).toContain('created on this device');
+    expect(refs.disclosure.textContent).toContain('personal details excluded');
+    expect(refs.disclosure.textContent).toContain('when your device supports it');
+    expect(refs.disclosure.textContent).toContain('saves as an image');
     expect(refs.disclosure.textContent).not.toMatch(/web share|navigator|browser api/i);
   });
 
-  it('discloses "saves...as an image" when native share is unsupported', () => {
+  it('discloses plain "saves...as an image" when native share is unsupported — nothing conditional to hedge', async () => {
     installEnv();
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     expect(refs.disclosure.textContent).toContain('pair imprint');
     expect(refs.disclosure.textContent).toContain('saves the pair imprint as an image on this device');
+    expect(refs.disclosure.textContent).not.toContain('when your device supports it');
   });
 
   it('tolerates a boot with no disclosure ref', () => {
@@ -583,95 +758,211 @@ describe('C1 — capability is disclosed before the button is ever pressed', () 
   });
 
   it('the disclosure copy is a pure function of capability — independently testable', () => {
-    expect(pairImprintDisclosureText(true)).toBe('created on this device · personal details excluded · shares the pair imprint directly');
-    expect(pairImprintDisclosureText(false)).toBe('created on this device · personal details excluded · saves the pair imprint as an image on this device');
+    expect(pairImprintDisclosureText(true)).toBe(
+      'created on this device · personal details excluded · shares directly when your device supports it, otherwise saves as an image',
+    );
+    expect(pairImprintDisclosureText(false)).toBe(
+      'created on this device · personal details excluded · saves the pair imprint as an image on this device',
+    );
+  });
+
+  it('method presence alone is never enough to claim a share will succeed — the wording never says "will" or an unconditional "shares"', () => {
+    const text = pairImprintDisclosureText(true);
+    expect(text).not.toMatch(/\bwill share\b/i);
+    // "shares directly WHEN..." is conditional; a bare "shares the pair
+    // imprint directly" with nothing after it would be the overclaim this
+    // rewrite exists to remove.
+    expect(text).not.toMatch(/directly\.?$/);
   });
 });
 
-describe('A2 — stale/concurrent operations never complete a side effect for the wrong pair', () => {
-  it('permits only one active operation — a second click while one is in flight is a silent no-op', async () => {
-    const log = installEnv({ imageDefer: true, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
-    const first = clickShare(refs);
-    const second = clickShare(refs); // fired before the first has resolved
-    expect(log.pendingImages).toHaveLength(1); // the second click never started its own rasterization
-    log.pendingImages[0]();
-    await Promise.all([first, second]);
-    expect(log.anchors).toHaveLength(1); // exactly one download, not two
-  });
-
-  it('a relation replaced WHILE rasterization is in flight invalidates the operation — no share, no download', async () => {
+describe('P1-2 — identity is re-checked after EVERY async boundary, including resolved AND rejected share/clipboard', () => {
+  it('a relation replaced while awaiting navigator.share (RESOLVED) never reports "shared" for the old pair', async () => {
     let relation = VALID_RELATION;
-    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
-    const refs = boot(() => relation);
+    let releaseShare;
+    installEnv({
+      canShare: () => true,
+      share: () => new Promise(resolve => { releaseShare = resolve; }),
+    });
+    const { refs, controller } = await boot(() => relation);
     const pending = clickShare(refs);
-    relation = adversarialRelation({ elementDirectionAB: 'A · fire → B · water · generating' }); // Compare Another landed a new pair
-    log.pendingImages[0]();
+    relation = adversarialRelation({ elementDirectionAB: 'A · fire → B · water · generating' });
+    controller.notifyRelationChange(relation); // Compare Another landed a new pair mid-share
+    releaseShare(undefined); // the OLD share resolves successfully...
     await pending;
-    expect(log.shared).toHaveLength(0);
-    expect(log.anchors).toHaveLength(0);
+    // ...but it must never be reported as `shared` for a pair that is no
+    // longer current.
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
     expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
   });
 
-  it('the pair closing (relation becomes null) WHILE rasterization is in flight is also caught', async () => {
+  it('a relation replaced while awaiting navigator.share (REJECTED, non-Abort) never reports "downloaded" for the old pair', async () => {
     let relation = VALID_RELATION;
-    const log = installEnv({ imageDefer: true, clipboard: () => {} });
-    const refs = boot(() => relation);
+    let rejectShare;
+    installEnv({
+      canShare: () => true,
+      share: () => new Promise((_, reject) => { rejectShare = reject; }),
+      clipboard: () => {},
+    });
+    const { refs, controller } = await boot(() => relation);
     const pending = clickShare(refs);
-    relation = null; // Back / close landed
-    log.pendingImages[0]();
+    relation = null; // Back / close landed mid-share
+    controller.notifyRelationChange(relation);
+    rejectShare(new Error('boom'));
     await pending;
-    expect(log.anchors).toHaveLength(0);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
   });
 
-  it('a re-init (initPairShareUI called again) invalidates an operation the PRIOR instance started', async () => {
-    const log = installEnv({ imageDefer: true, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION);
-    const pending = clickShare(refs);
-    // A fresh init — e.g. the host re-wiring the module — bumps the
-    // generation counter out from under the in-flight operation above, AND
-    // takes over module-level `_refs`/`_hooks` (a real re-init replaces the
-    // whole wiring, not just the generation number) — so the stale
-    // resolution is observed on the NEW instance's status node, which is
-    // the accurate description of what re-init actually does.
-    const refs2 = boot(() => VALID_RELATION);
-    log.pendingImages[0]();
-    await pending;
-    expect(log.anchors).toHaveLength(0);
-    expect(refs2.status.textContent).toBe(pairShareStatusMessage('stale'));
+  it('AbortError still reports "cancelled" when the pair is UNCHANGED — the identity check does not false-positive on a legitimate cancel', async () => {
+    const abort = new Error('cancelled by user');
+    abort.name = 'AbortError';
+    installEnv({ canShare: () => true, share: () => { throw abort; } });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
   });
 
-  it('an UNCHANGED relation across the same async boundary completes normally — the guard does not false-positive', async () => {
-    const log = installEnv({ imageDefer: true, clipboard: () => {} });
-    const refs = boot(() => VALID_RELATION); // same reference every call
-    const pending = clickShare(refs);
-    log.pendingImages[0]();
+  it('a relation replaced while awaiting clipboard.writeText (RESOLVED) never reports "downloaded-copied" for the old pair', async () => {
+    let relation = VALID_RELATION;
+    let releaseCopy;
+    installEnv({
+      clipboard: () => new Promise(resolve => { releaseCopy = resolve; }),
+    });
+    const { refs, controller } = await boot(() => relation);
+    const pending = clickShare(refs); // download fires synchronously; clipboard write is the pending await
+    relation = adversarialRelation({ elementDirectionAB: 'A · fire → B · water · generating' });
+    controller.notifyRelationChange(relation);
+    releaseCopy(undefined);
     await pending;
-    expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    // The download itself already happened for the old pair's artifact (it
+    // is synchronous and cannot be un-done), but the COPY confirmation must
+    // not be reported once the pair has moved on.
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('a relation replaced while awaiting clipboard.writeText (REJECTED) is still reported as stale, not downloaded', async () => {
+    let relation = VALID_RELATION;
+    let rejectCopy;
+    installEnv({
+      clipboard: () => new Promise((_, reject) => { rejectCopy = reject; }),
+    });
+    const { refs, controller } = await boot(() => relation);
+    const pending = clickShare(refs);
+    relation = null;
+    controller.notifyRelationChange(relation);
+    rejectCopy(new Error('denied'));
+    await pending;
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('an UNCHANGED relation across every async boundary completes normally — the guard does not false-positive', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const { refs } = await boot(() => VALID_RELATION); // same reference every call
+    await clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
   });
 });
 
-describe('A3 — every capability is contained independently; nothing escapes as an unhandled rejection', () => {
-  it('a throwing File constructor settles to "failed", never an unhandled rejection', async () => {
-    installEnv();
-    const RealFile = globalThis.File;
+describe('P1-3 — controller-local isolation: a retired controller\'s completion cannot touch new refs or admit a third operation', () => {
+  it('an in-flight operation on a RETIRED controller never writes status/busy anywhere once a new controller has taken over', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const { refs: refsOld, controller: oldController } = await boot(() => VALID_RELATION, { prerender: false });
+    oldController.notifyRelationChange(VALID_RELATION); // old controller's OWN pre-render, deliberately held
+    // The pre-render itself (still the ACTIVE controller at this point) is
+    // real, truthful state — busy/disabled/"preparing…" on its own refs.
+    expect(refsOld.btn.disabled).toBe(true);
+    expect(refsOld.status.textContent).toBe(pairShareStatusMessage('busy'));
+    // Re-init BEFORE the old controller's rasterization ever settles.
+    const { refs: refsNew, controller: newController } = await boot(() => VALID_RELATION, { prerender: false });
+    expect(log.pendingImages).toHaveLength(1); // only the OLD controller's render was ever started
+    log.pendingImages[0](); // release the old, now-retired, rasterization
+    await Promise.resolve();
+    await Promise.resolve();
+    // The retired controller's refs are FROZEN at exactly what they showed
+    // the instant it was retired — no further write, including its own
+    // "clear the preparing text now that the render is done" cleanup,
+    // ever lands. This is the correct shape of "only the current token may
+    // write status/busy": a retired controller writes NOTHING more, not
+    // even to tidy up after itself.
+    expect(refsOld.status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(refsOld.btn.disabled).toBe(true);
+    // The NEW controller's refs are entirely unaffected by the old
+    // controller's completion — no status, no busy toggle it didn't itself
+    // request.
+    expect(refsNew.status.textContent).toBe('');
+    expect(refsNew.btn.disabled).toBe(false);
+  });
+
+  it('old AND new deferred rasterizations resolving out of order never cross-contaminate refs or admit a third operation', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const { refs: refsOld, controller: oldController } = await boot(() => VALID_RELATION, { prerender: false });
+    oldController.notifyRelationChange(VALID_RELATION);
+    const oldClick = clickShare(refsOld); // the old controller's click starts its OWN render (no cache yet)
+    expect(log.pendingImages.length).toBeGreaterThanOrEqual(1);
+
+    const { refs: refsNew, controller: newController } = await boot(() => VALID_RELATION, { prerender: false });
+    newController.notifyRelationChange(VALID_RELATION);
+    const newClick = clickShare(refsNew);
+    const totalPending = log.pendingImages.length;
+    expect(totalPending).toBeGreaterThanOrEqual(2); // both controllers' renders are independently in flight
+
+    // Release the NEW controller's rasterization(s) first, then the old
+    // one's — deliberately out of order, to prove completion order cannot
+    // let a retired operation land on live refs or open a slot for a third
+    // click neither controller authorized.
+    for (let i = totalPending - 1; i >= 0; i--) log.pendingImages[i]();
+    await Promise.all([oldClick, newClick]);
+
+    // The OLD controller is retired — its own click's outcome may land on
+    // ITS OWN refs (that operation was its own, not cross-contamination),
+    // but it must never appear on the NEW controller's refs.
+    expect(refsNew.status.textContent).not.toBe('');
+    expect(log.anchors.length).toBeLessThanOrEqual(2); // never more than one download per controller's one click
+  });
+});
+
+describe('P1-1 — File construction failure or absence ALWAYS continues to the on-device download, never "failed"', () => {
+  it('a throwing File constructor falls through to the REAL download side effect — an anchor actually fires, not just a resolved promise', async () => {
+    const log = installEnv({ clipboard: () => {} });
     globalThis.File = class { constructor() { throw new Error('no File here'); } };
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.shared).toHaveLength(0);
+    expect(log.anchors).toHaveLength(1); // the actual anchor/download side effect, not merely a settled promise
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+
+  it('File entirely absent from the global scope (not just throwing) also falls through to a real download', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    delete globalThis.File;
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+
+  it('a truly absent `navigator` object entirely still produces a real download, not a crash', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    const savedDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true, writable: true });
     try {
-      const refs = boot(() => VALID_RELATION);
-      await expect(clickShare(refs)).resolves.toBeUndefined();
-      expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+      const { refs } = await boot(() => VALID_RELATION);
+      await clickShare(refs);
+      expect(log.anchors).toHaveLength(1); // the real side effect, not just a resolved promise
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
     } finally {
-      globalThis.File = RealFile;
+      if (savedDescriptor) Object.defineProperty(globalThis, 'navigator', savedDescriptor);
     }
   });
+});
 
+describe('A3 / P2 hook truth — every capability is contained independently; a broken hook is FAILED, not empty', () => {
   it('a throwing canShare falls back to download rather than propagating', async () => {
     const log = installEnv({ clipboard: () => {} });
     globalThis.navigator.canShare = () => { throw new Error('canShare exploded'); };
     globalThis.navigator.share = async () => undefined;
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.shared).toHaveLength(0);
     expect(log.anchors).toHaveLength(1);
@@ -684,7 +975,7 @@ describe('A3 — every capability is contained independently; nothing escapes as
       canShare: payload => { seenPayload = payload; return true; },
       share: () => undefined,
     });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(seenPayload).toHaveProperty('files');
     expect(seenPayload).toHaveProperty('text');
@@ -693,14 +984,8 @@ describe('A3 — every capability is contained independently; nothing escapes as
   });
 
   it('a throwing download (anchor.click) settles to "failed", never attempts clipboard on top of it', async () => {
-    const log = installEnv({ clipboard: () => {} });
-    const originalCreateElement = globalThis.document.createElement;
-    globalThis.document.createElement = tag => {
-      const el = originalCreateElement(tag);
-      if (tag === 'a') el.click = () => { throw new Error('download blocked'); };
-      return el;
-    };
-    const refs = boot(() => VALID_RELATION);
+    const log = installEnv({ clipboard: () => {}, clickThrows: true });
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.copied).toHaveLength(0);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
@@ -708,41 +993,95 @@ describe('A3 — every capability is contained independently; nothing escapes as
 
   it('clipboard failure never invalidates an already-successful download', async () => {
     const log = installEnv({ clipboard: () => { throw new Error('denied'); } });
-    const refs = boot(() => VALID_RELATION);
+    const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1); // the download still happened
     expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
   });
 
-  it('a throwing getRelation() hook is contained and settles truthfully, never an unhandled rejection', async () => {
+  it('a getRelation() hook that throws on the INITIAL click read settles to "failed" (a read failure), never "empty"', async () => {
     installEnv();
     const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
     initPairShareUI(refs, { getRelation: () => { throw new Error('hook exploded'); } });
-    // relationNow() contains the throw and treats it the same as "no
-    // relation available" — the outcome is `empty`, not `failed`: nothing
-    // was attempted (no render, no share, no download), so "nothing to
-    // share yet" is the truthful description, not a claim that something
-    // was tried and broke. The load-bearing proof is that the promise
-    // resolves at all — a throwing hook must never become an unhandled
-    // rejection.
+    // Second-gate P2 hook truth: a throwing hook is a READ FAILURE, distinct
+    // from a legitimate "nothing to share yet" (a clean null return) — the
+    // outcome is `failed`, and the promise must still resolve rather than
+    // becoming an unhandled rejection.
     await expect(clickShare(refs)).resolves.toBeUndefined();
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('empty'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
   });
 
-  it('an absent navigator object entirely degrades to the download fallback path, not a crash', async () => {
-    installEnv({ clipboard: () => {} });
-    const savedDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
-    // Simulate an environment where `navigator.canShare`/`.share` are
-    // simply undefined (the realistic "unsupported" shape) rather than
-    // deleting the global entirely, which no real browser ever does but
-    // which the `typeof navigator !== 'undefined'` guards defend anyway.
-    Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
-    try {
-      const refs = boot(() => VALID_RELATION);
-      await expect(clickShare(refs)).resolves.toBeUndefined();
-    } finally {
-      if (savedDescriptor) Object.defineProperty(globalThis, 'navigator', savedDescriptor);
-    }
+  it('a getRelation() hook that answers once, then THROWS on the post-await identity re-check, settles to "failed" — never mistaken for "the pair changed"', async () => {
+    let calls = 0;
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const getRelation = () => {
+      calls++;
+      if (calls === 1) return VALID_RELATION; // the click's own initial read
+      throw new Error('hook broke mid-flight'); // every re-check after that
+    };
+    const { refs, controller } = await boot(getRelation, { prerender: false });
+    // notifyRelationChange takes the relation as a direct argument — it
+    // never calls the hook itself — so this starts a (held) pre-render
+    // without consuming a getRelation() call.
+    controller.notifyRelationChange(VALID_RELATION);
+    const pending = clickShare(refs); // consumes call #1 (VALID_RELATION), then awaits the held render
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // release it — the click now reaches its post-await recheck, which is call #2 (throws)
+    await pending;
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+});
+
+describe('P2 cleanup — svgToPngBlob and downloadBlob are idempotent and leak nothing on a throw', () => {
+  it('appendChild throwing during download leaves no anchor and no leaked object URL, and settles truthfully', async () => {
+    const log = installEnv({ clipboard: () => {}, appendThrows: true });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    // The download's own object URL (created before appendChild is
+    // attempted) must still be revoked rather than leaked.
+    expect(log.revoked).toContain(log.created[log.created.length - 1]);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('anchor.remove() throwing after a successful click() does not flip an already-truthful download into "failed"', async () => {
+    const log = installEnv({ clipboard: () => {}, removeThrows: true });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    // The download itself (click()) already fired — that is real user-
+    // visible truth and must not be erased by a DOM-tidiness failure.
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+  });
+
+  it('setTimeout throwing while scheduling the revoke still revokes immediately rather than leaking the object URL', async () => {
+    const log = installEnv({ clipboard: () => {}, setTimeoutThrows: true });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(1);
+    // No 1000ms wait needed — the URL was already revoked synchronously.
+    expect(log.revoked).toContain(log.created[log.created.length - 1]);
+  });
+
+  it('rasterizer setup failure (canvas context throws) revokes the SVG source URL exactly once — no leak', async () => {
+    const log = installEnv({ contextThrows: true, clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    expect(log.canvases).toHaveLength(0); // context throws before any canvas.toBlob call
+    await clickShare(refs);
+    expect(log.created).toHaveLength(1);
+    expect(log.revoked).toHaveLength(1);
+    expect(log.created).toEqual(log.revoked);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('toBlob returning null is treated as a render failure, not a silent success, and still revokes the source URL', async () => {
+    const log = installEnv({ toBlob: 'null', clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    expect(log.created).toEqual(log.revoked);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
   });
 });
 

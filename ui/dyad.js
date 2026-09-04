@@ -1087,6 +1087,14 @@ export function clearOutput() {
   _second = null;
   _names = { a: '', b: '' };
   _relation = null;
+  // Second remediation gate (P1-4): the ONE seam ui/pairShare.js's optional
+  // pre-render cache uses to invalidate — close(), compareAnother(), open()
+  // (which calls this first) and readings.js's closeActiveScreens hook all
+  // route through here, so "the relation stopped being current" is reported
+  // exactly once regardless of which of those four actions caused it. Never
+  // a profile, never a sheet — the same null this function's own state now
+  // carries.
+  if (typeof _hooks.onRelationChange === 'function') _hooks.onRelationChange(null);
   closePairedPanel();
   // teardown, not a close animation: blank NOW, never on a timer (§5.F)
   if (_blankTimer) { clearTimeout(_blankTimer); _blankTimer = null; }
@@ -1292,6 +1300,14 @@ export function render() {
 
   const relation = dyadRelationFor(profileA, _second);
   _relation = relation;
+  // Second remediation gate (P1-4): fires on EVERY render — including a
+  // failed one, where `relation` is null and this is functionally the same
+  // notification clearOutput() above sends. ui/pairShare.js reads exactly
+  // this value's three allow-listed fields and never anything else this
+  // function computed (profileA, _second, tier, notes) — the hook argument
+  // IS the same formatted-relation-record shape currentRelation() already
+  // exposes, never a profile or a sheet.
+  if (typeof _hooks.onRelationChange === 'function') _hooks.onRelationChange(relation);
   const block = $('dyad-relation');
   if (block && block.classList) block.classList.toggle('sealed', !relation);
   if (block && block.setAttribute) {

@@ -2443,40 +2443,99 @@ describe('B8 — citation-label contrast meets AA, non-compounded', () => {
   });
 });
 
-describe('D1 — the Pair Imprint privacy boundary, proven over the REAL production path (audit D1)', () => {
+describe('D1 — the Pair Imprint privacy boundary, proven over the REAL production path (audit D1, strengthened per second remediation gate P2)', () => {
   // tests/pair_share.test.js's own sentinel tests build a hand-shaped
   // "formattedRelation" object — a fiction, however realistic. This test
-  // drives the SAME two sentinel strings through the actual pipeline the
-  // product runs: buildProfile() -> (this harness's) submitSecond() ->
+  // drives the SAME sentinel strings through the actual pipeline the
+  // product runs: real DOM input (including a REAL citysearch selection,
+  // not a hand-built `_city`) -> submitSecond() -> buildProfile() ->
   // core/dyad.js buildDyadReading() -> formatDyadRelation() ->
   // currentRelation() -> ui/pairShare.js's real builders. If any layer of
   // that real chain ever starts leaking, THIS is the test that catches it;
   // the hand-built version cannot, by construction.
+  //
+  // Second gate strengthening: every sentinel is first asserted POSITIVELY
+  // PRESENT upstream — on the real `buildSecond` payload citysearch/DOM
+  // produced, or as a value that measurably changed what buildProfile
+  // computed for A — before the downstream absence check runs. A field the
+  // pipeline silently dropped before this test could even plant it would
+  // make the old "not.toContain" assertions vacuously true; the positive
+  // check closes that gap.
   const SENTINEL_A_NAME = 'sentinelnameaustria1955';
   const SENTINEL_B_NAME = 'sentinelnamebravo1988';
   const SENTINEL_A_DOB = '1955-02-17';
   const SENTINEL_B_DOB = '1988-06-15';
-  const SENTINEL_CITY = 'sentinelcityzz';
+  const SENTINEL_A_TIME = '09:41';
+  const SENTINEL_B_TIME = '21:13';
+  const SENTINEL_A_TZ = 'America/New_York';
+  const SENTINEL_A_LAT = 11.11;
+  const SENTINEL_A_LNG = 22.22;
+  // A real (if obscure) IANA zone — a fictional tz string like
+  // 'Pacific/Sentinel' would make Intl reject it and moonSign/risingSign
+  // resolve to undefined regardless of any leak, defeating the positive-
+  // presence proof below (a false pass, not a real absence).
+  const SENTINEL_CITY = { name: 'sentinelcityzz', country: 'Zeta', countryCode: 'ZZ', lat: 33.33, lng: 44.44, tz: 'Pacific/Kiritimati' };
 
-  it('no name, DOB, city, individual coordinate, or written-card string reaches the snapshot/SVG/caption', () => {
+  it('no name, DOB, birth time, timezone, latitude, longitude, city, individual coordinate, or written-card string reaches the snapshot/SVG/caption — each first proven present upstream', async () => {
+    // ── person A: sentinel time/tz/lat/lng fed directly to buildProfile ──
     const sentinelA = buildProfile(SENTINEL_A_NAME, SENTINEL_A_DOB, {
-      city: SENTINEL_CITY, cc: 'US', tz: 'America/New_York', lat: 11.11, lng: 22.22,
+      time: SENTINEL_A_TIME, tz: SENTINEL_A_TZ, lat: SENTINEL_A_LAT, lng: SENTINEL_A_LNG,
     });
+    // Positive-presence proof for A: the sentinel time/tz/lat/lng were not
+    // silently ignored — they are exactly what let risingSign AND moonSign
+    // resolve at all (both require a valid time + tz; rising additionally
+    // needs lat/lng — core/profile.js's own gating, read here rather than
+    // restated).
+    expect(sentinelA.risingSign, 'sentinel tz/lat/lng were consumed for rising').not.toBeUndefined();
+    expect(sentinelA.moonSign, 'sentinel time/tz were consumed for moon').not.toBeUndefined();
+
+    // ── person B: the REAL citysearch + form flow, not a hand-built _city ──
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([SENTINEL_CITY]);
+    let captured = null;
     const h = harness('t5', {
       profileA: sentinelA,
-      buildSecond: payload => buildProfile(payload.name, payload.dob, {
-        ...payload, city: SENTINEL_CITY, cc: 'US', tz: 'America/New_York', lat: 33.33, lng: 44.44,
-      }),
+      buildSecond: payload => { captured = payload; return buildProfile(payload.name, payload.dob, payload); },
     });
-    h.withDom(() => {
+
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => h.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      const cityInput = h.get('dyad-city-input');
+      cityInput.value = 'se';
+      cityInput.listeners.input();
+      await vi.advanceTimersByTimeAsync(200); // > ui/citysearch.js's 150ms SEARCH_DEBOUNCE_MS
+      const suggestions = h.get('dyad-city-suggestions');
+      expect(suggestions.children.length).toBe(1);
+      suggestions.children[0].listeners.mousedown({ preventDefault() {} });
+
       h.get('dyad-name-input').value = SENTINEL_B_NAME;
       h.get('dyad-dob-input').value = SENTINEL_B_DOB;
-      return submitSecond();
-    });
+      h.get('dyad-time-input').value = SENTINEL_B_TIME;
+      expect(submitSecond()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+
+    // Positive-presence proof for B: the REAL payload the real DOM/citysearch
+    // flow produced carries every sentinel — proving each one genuinely
+    // reached the calculation boundary before the leak check below runs.
+    expect(captured, 'buildSecond was called at all').not.toBeNull();
+    expect(captured.name).toBe(SENTINEL_B_NAME);
+    expect(captured.dob).toBe(SENTINEL_B_DOB);
+    expect(captured.time).toBe(SENTINEL_B_TIME);
+    expect(captured.city).toBe(SENTINEL_CITY.name);
+    expect(captured.cc).toBe(SENTINEL_CITY.countryCode);
+    expect(captured.tz).toBe(SENTINEL_CITY.tz);
+    expect(captured.lat).toBe(SENTINEL_CITY.lat);
+    expect(captured.lng).toBe(SENTINEL_CITY.lng);
 
     const relation = currentRelation();
     expect(relation).not.toBeNull();
-    const sentinelB = buildProfile(SENTINEL_B_NAME, SENTINEL_B_DOB);
+    const sentinelB = buildProfile(SENTINEL_B_NAME, SENTINEL_B_DOB, captured);
+    expect(sentinelB.moonSign, 'sentinel B time/tz were consumed for moon').not.toBeUndefined();
 
     const snapshot = buildPairImprintSnapshot(relation);
     expect(snapshot).not.toBeNull();
@@ -2484,8 +2543,16 @@ describe('D1 — the Pair Imprint privacy boundary, proven over the REAL product
     const caption = buildPairImprintCaption(snapshot);
     const blob = `${JSON.stringify(snapshot)}\n${svg}\n${caption}`;
 
-    // Names, DOBs, the birthplace sentinel.
-    for (const token of [SENTINEL_A_NAME, SENTINEL_B_NAME, SENTINEL_A_DOB, SENTINEL_B_DOB, SENTINEL_CITY]) {
+    // Names, DOBs, birth times, timezone, lat/lng (as rendered numbers and
+    // as strings), the city name and country code — every raw sentinel this
+    // test just proved was genuinely fed into the real pipeline above.
+    for (const token of [
+      SENTINEL_A_NAME, SENTINEL_B_NAME, SENTINEL_A_DOB, SENTINEL_B_DOB,
+      SENTINEL_A_TIME, SENTINEL_B_TIME, SENTINEL_A_TZ, SENTINEL_CITY.tz,
+      String(SENTINEL_A_LAT), String(SENTINEL_A_LNG),
+      String(SENTINEL_CITY.lat), String(SENTINEL_CITY.lng),
+      SENTINEL_CITY.name, SENTINEL_CITY.countryCode,
+    ]) {
       expect(blob, token).not.toContain(token);
     }
     // Individual coordinate values — real computed values from the real
@@ -2501,7 +2568,11 @@ describe('D1 — the Pair Imprint privacy boundary, proven over the REAL product
       ['B sun sign', sentinelB.sunSign],
       ['A public animal', sentinelA.animal],
       ['B public animal', sentinelB.animal],
+      ['A rising sign', sentinelA.risingSign],
+      ['A moon sign', sentinelA.moonSign],
+      ['B moon sign', sentinelB.moonSign],
     ]) {
+      if (value == null) continue;
       expect(blob, label).not.toContain(value);
     }
     // The written 144-card entry (name/type/habit/note) for either side —

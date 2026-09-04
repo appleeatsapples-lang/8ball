@@ -433,6 +433,15 @@ meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') }) || mea
 // module; person B uses this same buildProfile path and is never persisted.
 // getNoteSlot's `role` split (PR #187 R2): A keeps this device's stored
 // position; B resolves as a fresh standalone build of B would, never A's.
+//
+// `pairShareController` is declared before initDyadUI so its hooks object
+// can close over it: initDyadUI needs an onRelationChange hook at construction
+// time, but that hook's real target (ui/pairShare.js's controller) can only
+// be created AFTER initDyadUI has injected the DOM nodes initPairShareUI
+// wires to below. The closure defers the read to CALL time, not init time,
+// so the ordering is safe either way and neither module ever imports the
+// other (second remediation gate, P1-4).
+let pairShareController = null;
 initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') },
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
     buildSecond: profileFromPayload,
@@ -440,13 +449,17 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     getPublicRead: publicReadFor,
     onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
     onExit: () => result.classList.remove('hidden'),
-    onLabelsChange: labelsUI.applyLabelsState });
+    onLabelsChange: labelsUI.applyLabelsState,
+    onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); } });
 
 // Pair Imprint (§5.D / §1.J v0.79) — a SEPARATE module from ui/share.js,
 // wired to the dyad screen's own injected button/status nodes (they exist
-// only after initDyadUI has run). Its one hook reads ui/dyad.js's last
-// FORMATTED relation record — never a profile, never sheet DOM.
-initPairShareUI(
+// only after initDyadUI has run). Its getRelation hook reads ui/dyad.js's
+// last FORMATTED relation record — never a profile, never sheet DOM; its
+// returned notifyRelationChange is what onRelationChange above calls, so
+// the module can pre-render for transient-activation-safe native share
+// (second remediation gate, P1-4) without ui/dyad.js ever importing it.
+pairShareController = initPairShareUI(
   { btn: $('dyad-share-btn'), status: $('dyad-share-status'), disclosure: $('dyad-share-disclosure') },
   { getRelation: dyadCurrentRelation },
 );
