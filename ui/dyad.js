@@ -1477,8 +1477,21 @@ export function render() {
     // that failed closed, never for an unrelated re-render (there is no
     // other kind). A resolved relation never reaches this branch, so a
     // successful submission's own focus management (output.focus() below)
-    // is never fought over.
-    if (!relation && typeof failure.focus === 'function') failure.focus({ preventScroll: false });
+    // is never fought over. A real-browser live-fire pass caught what no
+    // mock-DOM unit test could: calling .focus() in the SAME synchronous
+    // tick as clearing `hidden` silently no-ops in real Chrome — the
+    // browser has not yet recognized the element as visible/focusable, so
+    // `document.activeElement` stays on the just-clicked submit button even
+    // though `hidden` reads false and a LATER, separately-scheduled
+    // `.focus()` call on the same element works. Deferring one frame (the
+    // same requestAnimationFrame/setTimeout(16) fallback already used above
+    // for the scroll-sync throttle) gives the browser that flush.
+    if (!relation && typeof failure.focus === 'function') {
+      const schedule = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : cb => setTimeout(cb, 16);
+      schedule(() => { if (!_relation && typeof failure.focus === 'function') failure.focus({ preventScroll: false }); });
+    }
   }
   const sideA = $('dyad-side-a');
   const sideB = $('dyad-side-b');

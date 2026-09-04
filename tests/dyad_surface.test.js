@@ -2747,15 +2747,30 @@ describe('fourth-gate item 2 — the ACTUAL relation-resolution failure surface 
   });
 
   it('a submitted pair whose relation fails closed reveals AND focuses the real failure node — never #dyad-share-status', () => {
-    const h = harness('t5', { buildSecond: () => incoherentB() });
-    h.withDom(() => submitSecond());
-    const failure = h.get('dyad-relation-failure');
-    expect(failure.hidden).toBe(false);
-    expect(failure.focusCalls.length).toBeGreaterThan(0);
-    // The two sheets remain valid and visible regardless (Step 4's own
-    // contract, unaffected by this gate) — a failed relation is never a
-    // failed reading.
-    expect(h.get('dyad-output').hidden).toBe(false);
+    // A live-fire pass against a real browser (fourth remediation gate)
+    // caught a real-browser-only defect: calling .focus() in the SAME
+    // synchronous tick as clearing `hidden` silently no-oped in real
+    // Chrome, even though this mock-DOM harness (no real layout/focus
+    // semantics) could never have shown that. The fix defers the focus call
+    // one frame via requestAnimationFrame, falling back to setTimeout(16)
+    // where rAF doesn't exist (this Node test environment) — advance fake
+    // timers past that here, exactly as this file's other setTimeout-driven
+    // assertions already do.
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5', { buildSecond: () => incoherentB() });
+      h.withDom(() => submitSecond());
+      const failure = h.get('dyad-relation-failure');
+      expect(failure.hidden).toBe(false);
+      h.withDom(() => vi.advanceTimersByTime(16));
+      expect(failure.focusCalls.length).toBeGreaterThan(0);
+      // The two sheets remain valid and visible regardless (Step 4's own
+      // contract, unaffected by this gate) — a failed relation is never a
+      // failed reading.
+      expect(h.get('dyad-output').hidden).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a SUCCESSFUL resolution focuses #dyad-output as before, never the (hidden) failure surface', () => {
