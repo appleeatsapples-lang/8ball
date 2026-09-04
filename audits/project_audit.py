@@ -135,6 +135,14 @@ def redact_paths(value, pairs):
     return redact_paths(str(value), pairs)
 
 
+# Stored in place of a redacted check's captured output. Fixed text: it must
+# not vary with what was matched, or the notice itself becomes the leak.
+REDACTED_OUTPUT_NOTICE = (
+    "[output withheld — this check can print personal data; see the summary for "
+    "what it found and re-run the command locally to read it]"
+)
+
+
 def clip(text, limit=MAX_CAPTURE_CHARS):
     if text is None:
         return ""
@@ -181,15 +189,24 @@ def make_check(check_id, title, severity, status, summary, duration, command, ou
     }
 
 
-def run_check(check_id, title, severity, cmd, cwd=None, env=None, timeout=None, evaluate=None):
+def run_check(check_id, title, severity, cmd, cwd=None, env=None, timeout=None, evaluate=None,
+              redact_output=False):
     """Standard subprocess-backed check. On runner error (OSError /
     TimeoutExpired), records status="fail" regardless of `evaluate`,
     preserving the check's declared severity so a timeout on a blocking
     check still drives exit code 1. Otherwise, `evaluate(rc, stdout,
     stderr) -> (status, summary, evidence)` decides the outcome; if
-    `evaluate` is None, the default rule is pass iff returncode == 0."""
+    `evaluate` is None, the default rule is pass iff returncode == 0.
+
+    `redact_output=True` keeps the subprocess's stdout/stderr OUT of the
+    stored record entirely. `evaluate` still receives the real output and can
+    summarise it, so the report still says what happened — it just does not
+    persist the bytes. Every report this tool writes is a file on disk
+    (audits/automated/, gitignored) and a CI build artifact, so a check whose
+    output can contain personal data must not store it verbatim (pr236 audit,
+    Lane A; DOCTRINE §7 stage 3 v0.80)."""
     rc, out, err, duration, exc = run_cmd(cmd, cwd=cwd, env=env, timeout=timeout)
-    combined_output = clip(out + err)
+    combined_output = REDACTED_OUTPUT_NOTICE if redact_output else clip(out + err)
     if exc is not None:
         return make_check(
             check_id, title, severity, "fail",
@@ -302,8 +319,28 @@ def check_local_pii(product_root):
     def evaluate(rc, out, err):
         if rc == 0:
             return "pass", "local PII audit clean", {"returncode": rc}
-        return "fail", "local PII audit found hits (see output)", {"returncode": rc}
-    return run_check(check_id, title, "blocking", cmd, cwd=product_root, timeout=180, evaluate=evaluate)
+        # COUNT the hits; never echo them. run_local_audit.sh prints the
+        # controller's own patterns and the matching lines, and this report is
+        # written to disk and uploaded as a CI artifact — the pr236 audit found
+        # that path and the public scan used to read the result back. The
+        # counts say enough to act on; the tokens stay on the machine that
+        # already has them.
+        text = out + err
+        patterns = sum(1 for ln in text.splitlines() if ln.startswith("--- pattern: "))
+        # A hit line is grep -n output: `<file>:<lineno>:<content>`. The first
+        # draft counted any line containing a colon, which swept in the
+        # script's own "LOCAL PII AUDIT: HITS FOUND" banner and reported one
+        # more matching line than there were (pr239 audit, Lane B MED-1 — and
+        # the assurance fixture that was supposed to pin this omitted the
+        # banner, so it pinned the wrong number as correct).
+        lines = sum(1 for ln in text.splitlines()
+                    if not ln.startswith("--- pattern: ") and re.search(r":\d+:", ln))
+        return "fail", (
+            f"local PII audit found hits ({patterns} pattern(s), ~{lines} matching line(s)) — "
+            f"output withheld; run `bash audits/run_local_audit.sh` locally to read them"
+        ), {"returncode": rc, "hit_patterns": patterns, "output_redacted": True}
+    return run_check(check_id, title, "blocking", cmd, cwd=product_root, timeout=180,
+                     evaluate=evaluate, redact_output=True)
 
 
 def check_index_budget(product_root):
