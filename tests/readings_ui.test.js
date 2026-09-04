@@ -827,6 +827,27 @@ describe('readings — the host panel closes before this screen takes over (§1.
     expect(h.page.classList.contains('hidden')).toBe(true);
   });
 
+  it('a second activation while the list is open does not repoint origin — back still lands on the sheet (pr238 audit, both lanes)', () => {
+    // #readings-btn lives in the fixed topbar, outside every .screen, so it
+    // stays clickable while the list covers the stage.
+    const h = boot({ resultVisible: true });
+    h.refs.openBtn._fire('click');
+    expect(h.refs.result.classList.contains('hidden')).toBe(true);
+    h.refs.openBtn._fire('click');            // second activation
+    h.page.querySelector('#readings-back')._fire('click');
+    expect(h.refs.result.classList.contains('hidden'), 'back landed on the form').toBe(false);
+    expect(h.refs.onboarding.classList.contains('hidden')).toBe(true);
+  });
+
+  it('a hook that hides #result itself cannot repoint origin either', () => {
+    // the §1.J paired screen's hook has exactly this body; readings must not
+    // depend on the host's hook leaving #result alone
+    const h = boot({ resultVisible: true, hooks: { onOpen: () => h.refs.result.classList.add('hidden') } });
+    h.refs.openBtn._fire('click');
+    h.page.querySelector('#readings-back')._fire('click');
+    expect(h.refs.result.classList.contains('hidden')).toBe(false);
+  });
+
   it('a host with no hook still opens — the module never requires it', () => {
     const h = boot({ resultVisible: true });
     h.refs.openBtn._fire('click');

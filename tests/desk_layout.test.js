@@ -103,7 +103,11 @@ describe('desk — host markup', () => {
 
   it('index.html closes the host panel when the dyad opens, before hiding the sheet (v0.78)', () => {
     // the handle is captured...
-    expect(html).toMatch(/const meaningsUI = initMeaningsUI\(/);
+    // hoisted with a null-object default and ASSIGNED here, so the readings
+    // hook's binding exists before its listener can run (pr238 audit MED-1)
+    expect(html).toMatch(/let meaningsUI = \{ close\(\) \{\} \};/);
+    expect(html).toMatch(/\n\s*meaningsUI = initMeaningsUI\([\s\S]*?\) \|\| meaningsUI;/);
+    expect(html.indexOf('let meaningsUI')).toBeLessThan(html.indexOf('initReadingsUI('));
     // ...and onOpen closes it FIRST, so the panel's focus return lands on a
     // still-visible cell; the dyad focuses its own root immediately after.
     expect(html).toMatch(/onOpen: \(\) => \{ meaningsUI\.close\(\); result\.classList\.add\('hidden'\); \}/);
@@ -114,12 +118,20 @@ describe('desk — host markup', () => {
 
   it('index.html closes the host panel when the readings list opens too (v0.79)', () => {
     // the same handle, the other screen that hides #result — resolved at click
-    // time because initReadingsUI runs above initMeaningsUI in the boot order
+    // time because initReadingsUI runs above initMeaningsUI in the boot order.
+    // That order is what the record CLAIMS, so it is asserted rather than left
+    // to a comment: the first draft stated it above two regexes that checked
+    // only text presence and proximity, and inverting the two init calls kept
+    // the whole suite green (pr238 audit LOW-2, mutant M16).
+    expect(html.indexOf('initReadingsUI(')).toBeLessThan(html.indexOf('initMeaningsUI('));
     expect(html).toMatch(/onOpen: \(\) => meaningsUI\.close\(\),/);
     expect(html).toMatch(/initReadingsUI\([\s\S]{0,400}?onOpen: \(\) => meaningsUI\.close\(\),/);
     // and the readings module asks for it rather than reaching into the panel
     const readingsJs = readFileSync(join(__dirname, '..', 'ui', 'readings.js'), 'utf-8');
-    expect(readingsJs).toMatch(/if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);\s*\n\s*origin =/);
+    // origin is derived BEFORE the hook and only while the page is hidden —
+    // the inverse of the first draft's pin, which forbade the safe order
+    // (pr238 audit MED-2/MED-3)
+    expect(readingsJs).toMatch(/if \(page\.classList\.contains\('hidden'\)\) \{\s*\n\s*origin = result\.classList[^\n]*\n\s*\}\s*\n\s*if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);/);
     expect(readingsJs).not.toMatch(/meaning-panel|initMeaningsUI/);
   });
 

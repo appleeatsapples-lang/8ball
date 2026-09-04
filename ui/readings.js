@@ -503,8 +503,18 @@ export function initReadingsUI(refs, hooks = {}) {
     // reading opened a screen ago still expanded — the half of "returning
     // lands on a sheet" v0.78 could not claim. `close()` is unconditional, so
     // opening from onboarding (nothing open) is a no-op.
+    // `origin` is derived BEFORE the hook and only while this page is
+    // hidden. Two reasons, both from the pr238 audit: a host hook that
+    // hid `#result` itself (the §1.J paired screen's hook does exactly
+    // that) would make every open capture `onboarding`; and the topbar's
+    // readings button stays hit-testable while the list is open, so a
+    // second activation would re-derive `origin` as `onboarding` — the
+    // sheet being hidden by then — and send `back` to the entry form.
+    // Both lanes reproduced the second one; it predates this hook.
+    if (page.classList.contains('hidden')) {
+      origin = result.classList.contains('hidden') ? onboarding : result;
+    }
     if (typeof hooks.onOpen === 'function') hooks.onOpen();
-    origin = result.classList.contains('hidden') ? onboarding : result;
     onboarding.classList.add('hidden');
     result.classList.add('hidden');
     comparisonPage.classList.add('hidden');
