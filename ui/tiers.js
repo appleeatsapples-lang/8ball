@@ -165,13 +165,16 @@ export function coordsForTier(tier) {
  * Aggregate coordinate census for a tier (CLP cut 3 — density strip).
  * Derived PURELY from the tier constants (CELL_KEYS + CELL_COORD via
  * coordsForTier) — NEVER from a profile, so it carries no coordinate VALUE
- * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
- * a free coordinate per §1.D (always open, never a sealable cell) — so the
- * base (15) matches the product-wide "five coordinates" free framing
+ * and no PII. Counts the 15 sheet cells (§1.K: fourteen at v0.7.0, plus the
+ * MOON row since v0.73) PLUS the catalog numeral, which is a free
+ * coordinate per §1.D (always open, never a sealable cell) — so the base
+ * (16) matches the product-wide "five coordinates" free framing
  * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). Blocks are
  * excluded — cardEntry, publicRead and dyadRelation are not coordinates, so
  * t3 and t5 return the identical census.
- * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
+ * open = open cells + catalog · sealed = sealable cells still hidden · total = 16
+ * (= CELL_KEYS.length + 1, computed below — this comment states the count,
+ * never hand-duplicates it).
  * Returns { open, sealed, total }.
  */
 export function tierDensitySummary(tier) {

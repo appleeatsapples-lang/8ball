@@ -48,9 +48,11 @@ describe('labels-reveal toggle (v0.2.7)', () => {
   // v0.6.0 shipped eight coordinate rows — arcana (lead) + element + sun +
   // animal + numerology + numbers2 + day pillar + hour pillar. §1.K v0.73
   // (2026-09-02) added a ninth: the WESTERN group's MOON row, paired with
-  // SUN ↑ RISING. Visibility per tier is JS-gated (render-registry ceiling
-  // machinery, doctrine v0.71) by ui/tiers.js (tests/tiers.test.js); the
-  // markup ships all nine rows.
+  // SUN ↑ RISING. Per-row visibility runs through ui/tiers.js's retained
+  // render-registry machinery (tests/tiers.test.js) — RETAINED compatibility
+  // structure, not a live JS gate: since doctrine v0.71's free amendment
+  // every device resolves the ceiling tier, so no row is ever hidden on any
+  // current device; the markup ships all nine rows, all visible.
   it('nine coord-section elements present (§1.K: the MOON row)', () => {
     const matches = html.match(/class="coord-section"/g) || [];
     expect(matches.length).toBe(9);

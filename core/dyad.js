@@ -1,4 +1,6 @@
-// 8ball / core / dyad.js — the dyad relation layer (DOCTRINE §1.J, t5)
+// 8ball / core / dyad.js — the dyad relation layer (DOCTRINE §1.J, t5 —
+// "t5" names a render-registry ceiling, not a purchasable tier: doctrine
+// v0.71's free amendment means every device renders it on every load)
 //
 // Pure functions. No DOM, no globals, no I/O, no network, no storage, no
 // model call at runtime or at any other time: every value below is a lookup
@@ -77,9 +79,11 @@ import {
 // stores no stem NAME, so `STEMS[stemIndex]` is a label lookup on the supplied
 // index — not a second derivation from the date. The guard below checks the
 // supplied object is internally coherent (a stem index in range whose element
-// matches the sexagenary table) and throws otherwise: on a paid surface a
-// malformed coordinate must fail closed rather than resolve to a plausible
-// wrong relation. `ui/dyad.js` catches and seals the block.
+// matches the sexagenary table) and throws otherwise: a malformed coordinate
+// must fail closed rather than resolve to a plausible wrong relation,
+// regardless of tier — the whole sheet is free (doctrine v0.71), but a
+// wrong relation would be just as false on a free surface as it would have
+// been on the historical paid one. `ui/dyad.js` catches and seals the block.
 export function dyadDayMaster(profile) {
   const pillar = profile && profile.dayPillar;
   if (!pillar || typeof pillar !== 'object') {

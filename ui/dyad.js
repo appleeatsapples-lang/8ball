@@ -1,5 +1,17 @@
 // 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J, tier t5)
 //
+// CURRENT-TRUTH NOTE (seventh remediation gate): everything below that
+// describes `dyadEntitled(tier)` as a gate — "below t5 refuses", "what t5
+// buys", "unreachable below t5" — is RETAINED render-registry compatibility
+// machinery, not a live restriction. Since the 2026-09-02 free amendment
+// (doctrine §1.D v0.71), the host's `getRenderTier()` always resolves the
+// ceiling tier, so `dyadEntitled()` genuinely runs on every call but never
+// returns false for any current device — every device sees the complete
+// Pair Dossier on every load. The predicate is kept as the single seam all
+// three gates (entry control, `open()`, `render()`) still agree through,
+// exactly as F2 below required, so a future doctrine change has one place
+// to change rather than three that could drift apart again.
+//
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initDyadUI({refs}, {hooks}) injection point below, no module-level DOM
 // access at import time. Injects its own screen markup + scoped CSS at init
@@ -91,7 +103,9 @@ import { todayIsoLocal } from './profile.js';
 /**
  * Does this device own the dyad? ONE predicate, consulted by every gate, so
  * the entry control, the submit path and the render cannot disagree about
- * what t5 sells (PR #187 F2 — they did).
+ * what t5 sells (PR #187 F2 — they did). Retained render-registry
+ * compatibility machinery, not a live restriction — see the CURRENT-TRUTH
+ * NOTE at the top of this file; the render tier is always the ceiling now.
  */
 export function dyadEntitled(tier) {
   return coordsForTier(tier).has('dyadRelation');
@@ -1128,7 +1142,9 @@ export function initDyadUI(refs, hooks) {
   return _root;
 }
 
-/** Open the dyad screen. Refuses below t5 — the screen is the product. */
+/** Open the dyad screen. Refuses below t5 (retained compatibility gate,
+ *  never live — see the CURRENT-TRUTH NOTE at the top of this file) — the
+ *  screen is the product. */
 export function open() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
@@ -1389,7 +1405,9 @@ export function submitSecond() {
  *
  * Below t5 this produces nothing at all — not a sealed preview, nothing. The
  * screen is unreachable there by three independent gates, and this is the
- * last of them.
+ * last of them. Retained compatibility structure only — no current device
+ * ever resolves below t5 (see the CURRENT-TRUTH NOTE at the top of this
+ * file).
  */
 export function render() {
   const tier = currentTier();

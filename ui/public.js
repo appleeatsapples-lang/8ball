@@ -1,9 +1,15 @@
-// 8ball / ui / public.js — the t4 public-read block (§1.D v0.58)
+// 8ball / ui / public.js — the public-read block (§1.D v0.58; originally
+// filed as "t4", HISTORICAL naming — doctrine v0.60/v0.61 retired t4 as a
+// ladder rung, and this block is current-facing described as the t3-ceiling
+// public read; since doctrine v0.71's free amendment every device renders
+// it, "t3-ceiling" is itself a render-registry label, not a purchasable
+// tier)
 //
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initPublicUI({refs}, {hooks}) injection point below, no module-level DOM
 // access at import time. No storage, no network, no new localStorage key —
-// entitlement is resolved by the caller and handed in.
+// entitlement is resolved by the caller and handed in (and — see
+// renderPublicRead below — always resolves `true` on a current device).
 //
 // This module is the FIRST consumer of core/public.js. Until this file
 // existed a test asserted that nothing imported that engine; the assertion
@@ -11,9 +17,11 @@
 // only importer, so a second, unreviewed wiring still fails CI.
 //
 // What it renders is a reading OF the sheet, not new coordinates: the sheet
-// is complete at t3, and t4 adds three ranked domain families, one anti-fit,
-// and one shape-of-role line. `publicRead` is a block like `cardEntry`, so
-// it never enters the 14-cell compartment grid or the density census.
+// is complete at its own ceiling (every device, per doctrine v0.71), and
+// this block adds three ranked domain families, one anti-fit, and one
+// shape-of-role line. `publicRead` is a block like `cardEntry`, so it never
+// enters the 15-cell compartment grid (§1.K: fourteen at v0.7.0, plus the
+// MOON row since v0.73) or the density census.
 
 import { buildPublicReading } from '../core/public.js';
 

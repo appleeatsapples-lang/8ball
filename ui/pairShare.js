@@ -40,9 +40,16 @@
 // on-device, exactly ui/share.js's technique, reimplemented independently
 // rather than imported (its buildCardSVGFromSnapshot reads a coordinate-row
 // snapshot shape this module must never construct). Deterministic
-// 1080×1350 portrait — the same content renders the same pixels every time,
-// since the input is three short strings and fixed product copy, never a
-// profile or a timestamp.
+// 1080×1350 portrait — the SVG source, content, ordering, and geometry are
+// fixed for a given relation (three short strings and fixed product copy,
+// never a profile or a timestamp) and reproduce byte-for-byte across
+// repeated exports IN THE SAME resolved browser/font environment (seventh
+// remediation gate: narrowed per the canonical brief's exact scoping —
+// this exporter uses the OS-dependent system monospace font stack
+// (`FONT` above), never a bundled/fixed font, so cross-platform or
+// cross-font-environment raster-byte identity is NOT claimed; only the
+// deterministic SOURCE/content/geometry, and same-runtime byte identity,
+// are).
 //
 // CONTROLLER ARCHITECTURE (second remediation gate, audit-blocked bc23c12
 // P1-3). Every `initPairShareUI()` call creates a fresh, self-contained
@@ -426,9 +433,10 @@ function svgToPngBlob(svg, width, height) {
 // A3 in ui/pairShare.js's own click handler) reports a truthful `failed`
 // rather than leaking a floating `<a>`/object URL AND still reporting
 // success. `a.remove()` after a successful `click()` is best-effort on its
-// own: the download itself already started, so a failure to tidy the DOM
-// afterward must not flip an already-truthful "downloaded" into "failed" —
-// but the object URL is still guaranteed to be revoked (on the existing
+// own: the download itself already STARTED (this module observes the
+// click firing, never disk completion), so a failure to tidy the DOM
+// afterward must not flip an already-truthful "download-started" into
+// "failed" — but the object URL is still guaranteed to be revoked (on the existing
 // 1000ms grace timer, or immediately if scheduling that timer itself throws).
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -812,7 +820,7 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
     try {
       await navigator.clipboard.writeText(caption);
       clipboardOk = true;
-    } catch (_) { /* clipboard denied — the download still landed */ }
+    } catch (_) { /* clipboard denied — the download was still started */ }
     // P1-2: re-check AFTER this await REGARDLESS of whether the write
     // resolved or rejected — a clipboard call is a real async boundary the
     // pair can change across either way. A changed OR unconfirmed

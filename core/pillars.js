@@ -4,8 +4,12 @@
 // pillars of the Chinese sexagenary (干支) system: a heavenly stem (天干)
 // + earthly branch (地支) pair for each. These are NEW coordinates that
 // the engine did not compute before — additive content, gate-light, no
-// surface change this cycle (the fields are inert on the free card; see
-// brief cc_brief_pillars_module_2026-05-31 §7 and DOCTRINE §1.D-future).
+// surface change this cycle (HISTORICAL, at the time this module shipped:
+// the fields were inert on the free card; see brief
+// cc_brief_pillars_module_2026-05-31 §7 and DOCTRINE §1.D-future — current
+// truth since the 2026-09-02 free amendment, doctrine §1.D v0.71: every
+// device renders the complete sheet, so both pillar cells render on every
+// load, not just above a former paid rung).
 //
 // SCOPE (v1): day pillar + hour pillar ONLY. Year/month rigorous stems and
 // derived numbers are explicit follow-on modules (brief §8). The moon sign
