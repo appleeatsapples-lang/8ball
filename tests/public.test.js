@@ -97,6 +97,21 @@ function* sweepDates(strideDays = 37) {
   }
 }
 
+// Sweep assertions COLLECT and assert once, rather than calling expect() per
+// item. The register sweep below made 198,333 expect() calls for ~136ms of
+// real work — 94% of its 2.17s was vitest's per-assertion overhead, and it was
+// the slowest test in the repository by 4x, close enough to the default 5s
+// budget to time out under load (see DOCTRINE §7 stage 3 v0.79's testTimeout
+// note and the journal's parallel-run flake entries). Collecting is also
+// better diagnosis: a failure lists every offending date instead of aborting
+// on the first. The predicates, the data and the dates are unchanged — this
+// is the pattern the non-sweep tests in this file already use.
+function expectNone(offenders, what) {
+  const shown = offenders.slice(0, 25);
+  const more = offenders.length > 25 ? `\n… and ${offenders.length - 25} more` : '';
+  expect(offenders, `${offenders.length} ${what}:\n${shown.join('\n')}${more}`).toEqual([]);
+}
+
 // Source with `//` comment lines dropped. The modules deliberately keep
 // history notes naming the retired `expression` vocabulary (why the rename
 // happened, per L17 supersede-don't-erase); the label bans below are about
@@ -115,11 +130,13 @@ function collectStrings(value, path = '', out = []) {
 
 describe('public tier — determinism', () => {
   it('the same date yields byte-identical output across 100 runs', () => {
+    const bad = [];
     for (const dob of ['1900-01-01', '1966-01-21', '2000-01-01', '2024-02-10', '2100-12-31']) {
       const first = JSON.stringify(buildPublicReading(dob));
       for (let run = 0; run < 100; run++) {
-        expect(JSON.stringify(buildPublicReading(dob)), `${dob} run ${run}`).toBe(first);
+        if (JSON.stringify(buildPublicReading(dob)) !== first) bad.push(`${dob} run ${run} differs from run 0`);
       }
+      expectNone(bad, 'runs are not byte-identical');
     }
   });
 
@@ -212,20 +229,21 @@ describe('public tier — coverage, no gaps', () => {
   });
 
   it('the whole 1900–2100 range resolves — no throw, no null, no empty field', () => {
+    const bad = [];
     let count = 0;
     for (const dob of sweepDates()) {
       const r = buildPublicReading(dob);
       count += 1;
-      expect(TERMINAL, dob).toContain(r.mode.birthday);
-      expect(NINE, dob).toContain(r.mode.modeKey);
-      expect(r.mode.bridged, dob).toBe(MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined);
-      expect(r.posture.number, dob).toBeGreaterThanOrEqual(0);
-      expect(r.posture.number, dob).toBeLessThanOrEqual(21);
-      expect(r.families, dob).toHaveLength(3);
-      expect(r.antiFit.key, dob).toBeTruthy();
-      expect(r.roleLine.endsWith('.'), dob).toBe(true);
-      expect(collectStrings(r).every(({ text }) => text.length > 0), dob).toBe(true);
+      if (!TERMINAL.includes(r.mode.birthday)) bad.push(`${dob}: birthday ${r.mode.birthday} is not a terminal value`);
+      if (!NINE.includes(r.mode.modeKey)) bad.push(`${dob}: modeKey ${r.mode.modeKey} is outside 1..9`);
+      if (r.mode.bridged !== (MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined)) bad.push(`${dob}: bridged flag disagrees with MASTER_MODE_BRIDGE`);
+      if (!(r.posture.number >= 0 && r.posture.number <= 21)) bad.push(`${dob}: posture number ${r.posture.number} is outside 0..21`);
+      if (r.families.length !== 3) bad.push(`${dob}: ${r.families.length} families, expected 3`);
+      if (!r.antiFit.key) bad.push(`${dob}: anti-fit key is empty`);
+      if (!r.roleLine.endsWith('.')) bad.push(`${dob}: role line does not end in a period`);
+      if (!collectStrings(r).every(({ text }) => text.length > 0)) bad.push(`${dob}: an empty string in the reading`);
     }
+    expectNone(bad, 'readings break the range contract');
     expect(count).toBeGreaterThan(1900);
   });
 });
@@ -273,10 +291,12 @@ describe('public tier — date-only input', () => {
   });
 
   it('accepts the same dates buildProfile accepts across the sweep', () => {
+    const bad = [];
     for (const dob of sweepDates(101)) {
-      expect(() => parsePublicDob(dob), dob).not.toThrow();
-      expect(() => buildProfile('x', dob), dob).not.toThrow();
+      try { parsePublicDob(dob); } catch (err) { bad.push(`${dob}: parsePublicDob threw ${err.message}`); }
+      try { buildProfile('x', dob); } catch (err) { bad.push(`${dob}: buildProfile threw ${err.message}`); }
     }
+    expectNone(bad, 'dates one parser accepts and the other rejects');
   });
 });
 
@@ -296,13 +316,15 @@ describe('public tier — anti-fit is never a fit family', () => {
   });
 
   it('holds on every reading across the 1900–2100 sweep', () => {
+    const bad = [];
     for (const dob of sweepDates()) {
       const r = buildPublicReading(dob);
-      expect(r.families.map(f => f.key), dob).not.toContain(r.antiFit.key);
-      expect(r.families.map(f => f.element), dob).not.toContain(r.antiFit.element);
-      expect(r.favorable, dob).not.toContain(r.primaryUnfavorable);
-      expect(r.unfavorable, dob).not.toContain(r.primaryFavorable);
+      if (r.families.some(f => f.key === r.antiFit.key)) bad.push(`${dob}: anti-fit key ${r.antiFit.key} is also a fit family`);
+      if (r.families.some(f => f.element === r.antiFit.element)) bad.push(`${dob}: anti-fit element ${r.antiFit.element} is also a fit element`);
+      if (r.favorable.includes(r.primaryUnfavorable)) bad.push(`${dob}: ${r.primaryUnfavorable} is both favorable and the primary unfavorable`);
+      if (r.unfavorable.includes(r.primaryFavorable)) bad.push(`${dob}: ${r.primaryFavorable} is both unfavorable and the primary favorable`);
     }
+    expectNone(bad, 'readings put the anti-fit inside the fit');
   });
 });
 
@@ -421,12 +443,14 @@ describe('public tier — independent anchors', () => {
     // its driver from core/profile.js. If these ever diverge, one of the two
     // changed alone, which is the drift this pins against.
     expect(codeOnly(publicSrc)).not.toMatch(/reduceExpression|getExpressionNumber|getExpressionSum/);
+    const bad = [];
     for (const dob of sweepDates(23)) {
       const [, , d] = dob.split('-').map(Number);
       const { mode } = buildPublicReading(dob);
-      expect(mode.birthday, dob).toBe(getBirthday(d));
-      expect(mode.dayOfMonth, dob).toBe(d);
+      if (mode.birthday !== getBirthday(d)) bad.push(`${dob}: mode.birthday ${mode.birthday} ≠ shipped getBirthday ${getBirthday(d)}`);
+      if (mode.dayOfMonth !== d) bad.push(`${dob}: mode.dayOfMonth ${mode.dayOfMonth} ≠ ${d}`);
     }
+    expectNone(bad, 'dates disagree with the shipped birthday number');
   });
 
   it('the driver is NOT a free-surface coordinate — that was the whole ruling', () => {
@@ -506,24 +530,28 @@ describe('public tier — independent anchors', () => {
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
+    const bad = [];
     for (const dob of sweepDates(53)) {
       const [y, m, d] = dob.split('-').map(Number);
       const season = getSeason(y, m, d, getDayMaster(y, m, d).element);
-      expect(season.monthAnimal, dob).toBe(getInnerAnimal(y, m, d));
-      expect(season.element, dob).toBe(BRANCH_ELEMENTS[season.monthAnimal]);
+      if (season.monthAnimal !== getInnerAnimal(y, m, d)) bad.push(`${dob}: month animal ${season.monthAnimal} ≠ shipped ${getInnerAnimal(y, m, d)}`);
+      if (season.element !== BRANCH_ELEMENTS[season.monthAnimal]) bad.push(`${dob}: season element ${season.element} ≠ BRANCH_ELEMENTS[${season.monthAnimal}]`);
     }
+    expectNone(bad, 'dates where the season leaves the shipped solar-term table');
   });
 
   it('the posture and role line follow the shipped birth card', () => {
+    const bad = [];
     for (const dob of sweepDates(89)) {
       const [y, m, d] = dob.split('-').map(Number);
       const card = getBirthCard(y, m, d);
       const r = buildPublicReading(dob);
-      expect(r.posture.number, dob).toBe(card.number);
-      expect(r.posture.roman, dob).toBe(card.roman);
-      expect(r.posture.arcana, dob).toBe(card.name);
-      expect(r.roleLine, dob).toBe(getRoleLine(r.mode.birthday, card.number));
+      if (r.posture.number !== card.number) bad.push(`${dob}: posture number ${r.posture.number} ≠ card ${card.number}`);
+      if (r.posture.roman !== card.roman) bad.push(`${dob}: posture roman ${r.posture.roman} ≠ card ${card.roman}`);
+      if (r.posture.arcana !== card.name) bad.push(`${dob}: posture arcana ${r.posture.arcana} ≠ card ${card.name}`);
+      if (r.roleLine !== getRoleLine(r.mode.birthday, card.number)) bad.push(`${dob}: role line does not follow the shipped card`);
     }
+    expectNone(bad, 'readings leave the shipped birth card');
   });
 });
 
@@ -630,14 +658,21 @@ describe('public tier — voice register (§2 / §4)', () => {
   });
 
   it('assembled output carries the same register across the sweep', () => {
+    const offenders = [];
+    let scanned = 0;
     for (const dob of sweepDates(59)) {
       const r = buildPublicReading(dob);
       for (const { path, text } of collectStrings(r)) {
-        expect(voiceRegisterHits(text), `${dob} ${path}: ${text}`).toEqual([]);
-        expect(SECOND_PERSON_RE.test(text), `${dob} ${path}: ${text}`).toBe(false);
-        expect(DIAGNOSTIC_FRAMING_RE.test(text), `${dob} ${path}: ${text}`).toBe(false);
+        scanned += 1;
+        const hits = voiceRegisterHits(text);
+        if (hits.length) offenders.push(`${dob} ${path}: register "${hits[0].term}" in "${text}"`);
+        if (SECOND_PERSON_RE.test(text)) offenders.push(`${dob} ${path}: second person in "${text}"`);
+        if (DIAGNOSTIC_FRAMING_RE.test(text)) offenders.push(`${dob} ${path}: diagnostic framing in "${text}"`);
       }
     }
+    // non-vacuous: the sweep really assembled readings and really read them
+    expect(scanned).toBeGreaterThan(50000);
+    expectNone(offenders, 'assembled strings break the register');
   });
 
   it('carries no imperative CTA vocabulary in the tables', () => {

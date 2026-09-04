@@ -5,7 +5,82 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — and stops leaking through its own output — STAGED on branch, PR #239
+## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR pending
+
+**What happened.** "Now the public.test.js sweep." The queued item from
+the pr238 flake work: `tests/public.test.js`'s voice-register sweep was
+the slowest test in the repository at ~2.17s, four times the next
+slowest, and 43% of vitest's default 5s budget — close enough that CPU
+contention crossed the line and the run reported a timeout that reads
+like a defect. This is the same class as #227's `cities.test.js`
+900k-assertion flake, and it takes the same fix.
+
+**Root cause, measured before touching anything.** The sweep walks 1,245
+dates, assembles a reading for each, collects ~53 strings per reading —
+66,111 strings — and made THREE `expect()` calls per string. That is
+**198,333 assertions** for **136ms of actual work**: 52ms building the
+readings, 37ms collecting strings, 47ms running the register and regex
+scans. **94% of the test's runtime was vitest's per-assertion
+overhead**, buying nothing — a register violation fails identically
+whether the assertion fires from `expect()` or from a collected message.
+The same shape ran in six other sweeps in the file.
+
+**The fix.** All seven sweeps now collect offender messages and assert
+once, through a shared `expectNone(offenders, what)` helper that names
+what failed and caps the printed list at 25. It is the pattern the
+file's own non-sweep tests already used. Results:
+
+| | before | after |
+|---|---|---|
+| the register sweep | 2,169ms | 100ms |
+| `public.test.js` assertion time | 3,847ms | 696ms |
+| the file's rank in the suite | slowest | third |
+| the SUITE's slowest single test | 2,169ms | 484ms (`render_cards`) |
+
+The register sweep also gained a non-vacuity assertion — it now checks
+that it really scanned >50,000 strings, because an all-negative
+collected assertion greens on an empty walk, which was the exact failure
+mode the pr239 audit found in the PII scan two hours earlier.
+
+**Detection proved identical, not assumed.** The risk in this
+transformation is a faster test that no longer catches anything, so it
+was measured the way #227 measured it: ten violations planted in
+`core/public.js`, each run against BOTH the old and the new test file.
+All ten fail identically on both — a banned register term in the
+assembled output; a role line losing its final period; the anti-fit
+forced into the fit families; the mode driver drifting off the shipped
+birthday; the parser rejecting a year `buildProfile` accepts; a
+nondeterministic field; the season leaving the shipped solar-term
+table; the posture leaving the shipped birth card; and — the case the
+collect-vs-abort change could plausibly have weakened — a violation
+planted on a SINGLE swept date at 90% and at 100% through the range.
+Both shapes catch both. Diagnosis is strictly better: a failure now
+lists every offending date instead of aborting on the first.
+
+**Contract unchanged.** Same predicates, same data, same dates, same
+tests — 42 in the file and 2,131 in the suite, before and after. No
+product code touched, no test added or removed, no doctrine claim
+changed, so no clause moves and the version does not bump.
+
+**Two stale claims corrected in the same change.** `vitest.config.js`
+and `tests/dependency_discipline.test.js` both justified the
+`testTimeout: 20000` pin by naming this test's ~2s idle. That sentence
+is now false, and this repo's whole recent record is about not leaving
+false claims behind. The budget STAYS — the pr238 lanes' evidence was
+about scheduler contention, not about one slow test, and 15 unused
+seconds cost nothing — but both comments now say so in those terms, and
+name the new figures.
+
+**Queued.** `tests/l48_gate_composition.test.js` is now the slowest file
+in the suite at ~3.0s across its tests, and `tests/render_cards.test.js`
+second at ~1.3s; neither is near the budget, so neither is urgent.
+`tests/pii_scan.test.js`'s new merge-conflict probe costs ~400ms of the
+696ms this pass measured there — real work in a temp git repo, and worth
+a look if that file ever matters. The friend's rising/moon reading,
+still waiting on a birth time. `next_strategic_read` (due 2026-08-13)
+and `next_analytics_read` (due 2026-08-06), both overdue.
+
+## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — and stops leaking through its own output — SHIPPED (#239)
 
 **What happened.** "Now the PII scanner walk scope." The follow-up both
 pr236 lanes filed and asked not to be left a third time. The public PII

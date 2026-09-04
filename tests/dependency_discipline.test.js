@@ -54,14 +54,17 @@ describe('dependency discipline (DOCTRINE.md §12, §6)', () => {
 // Toolchain configuration is part of the same discipline: the suite runs on a
 // vendored vitest and nothing else, so the only knob that decides whether a
 // green suite reports green is vitest's own per-test budget. Vitest defaults
-// that budget to 5000ms; this repo's slowest test (`tests/public.test.js`'s
-// voice-register sweep) idles at ~2s, 40% of it, and both pr238 audit lanes
-// showed that CPU contention pushes it over the line deterministically
-// (5/6 and 12/12 reproductions) while disk contention alone does not. The
-// raised budget in vitest.config.js is therefore load-bearing — without it
-// the suite fails under a busy container and the failure reads as a defect.
-// This imports the real config rather than scanning its text, so deleting or
-// lowering the setting fails here.
+// that budget to 5000ms, and both pr238 audit lanes showed that CPU
+// contention pushes tests over that line deterministically (5/6 and 12/12
+// reproductions) while disk contention alone does not.
+//
+// The margin has since widened: when this pin was written the slowest test
+// idled at ~2.17s (43% of the default); after the 2026-09-04 sweep pass it
+// is ~0.48s (~10%). The
+// budget stays because the contention evidence, not the one slow test, is
+// what justified it — and because a suite that reports a timeout as a defect
+// costs more than an unused 15 seconds. This imports the real config rather
+// than scanning its text, so deleting or lowering the setting fails here.
 describe('vitest per-test budget (the parallel-run timeout class)', () => {
   it('vitest.config.js raises testTimeout well above the slowest test', async () => {
     const config = (await import('../vitest.config.js')).default;
@@ -69,12 +72,12 @@ describe('vitest per-test budget (the parallel-run timeout class)', () => {
     expect(
       timeout,
       `vitest.config.js sets no test.testTimeout, so the suite runs on vitest's\n` +
-      `5000ms default. The slowest test idles ~2s and times out under CPU load.`
+      `5000ms default, which CPU contention has been shown to cross.`
     ).toBeTypeOf('number');
     expect(
       timeout,
-      `test.testTimeout = ${timeout}ms. The slowest test idles ~2000ms; a budget\n` +
-      `under 15000ms leaves too little headroom for a contended container.`
+      `test.testTimeout = ${timeout}ms; a budget under 15000ms leaves too little\n` +
+      `headroom for a contended container (see the note above this test).`
     ).toBeGreaterThanOrEqual(15000);
   });
 });
