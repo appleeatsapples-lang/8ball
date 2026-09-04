@@ -22,7 +22,7 @@
 // the two strategies never conflict — they only need to share one
 // `document.getElementById`, one `result`/`onboarding` pair, and one stage.
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { makeClassList } from './helpers/dom.js';
 import { initPairShareUI } from '../ui/pairShare.js';
 import {
@@ -168,17 +168,49 @@ function makeNode(tag = 'div') {
 // cover this in isolation; what's new here is driving it through the REAL
 // ui/dyad.js clearOutput()/render() call sites (Compare Another, Back, and
 // Previous Readings' closeActiveScreens), not a simulated hook call.
+//
+// Ninth remediation gate: this used to overwrite globalThis.Blob, the
+// entire globalThis.URL constructor, and globalThis.Image, and never
+// restored any of them — real global pollution that leaked into every
+// OTHER test in this file (and, since these are real Node globals, could
+// affect this worker's other test files too). Fixed: exact property
+// descriptors are snapshotted (or their genuine absence recorded — `Image`
+// is not a Node global at all, so "restoring" it means deleting the
+// property, not writing back an undefined value) before any override, a
+// `restore()` closure is registered so `afterEach` below can always put
+// them back byte-for-byte even if a test throws mid-assertion, and only
+// `URL`'s own `createObjectURL`/`revokeObjectURL` static methods are
+// replaced — the real `URL` constructor itself is never touched, so
+// nothing else in this file's real production code that might construct a
+// URL is affected.
+let _restoreRasterEnv = null;
+
 function installRasterEnv({ deferRaster = false } = {}) {
+  // A prior call in this same test (never restored, since afterEach only
+  // fires between tests) would otherwise have its snapshot silently
+  // overwritten below — this call's own restore() would then put things
+  // back to the FIRST call's mock, not the true original globals. Restoring
+  // any live prior install first means every installRasterEnv() call always
+  // snapshots the REAL globals, regardless of how many times it's called in
+  // one test.
+  if (_restoreRasterEnv) _restoreRasterEnv();
+
   const rasterLog = { created: [], revoked: [], anchors: [], pendingImages: [] };
+
+  const snapshot = key => ({ key, had: Object.prototype.hasOwnProperty.call(globalThis, key), desc: Object.getOwnPropertyDescriptor(globalThis, key) });
+  const snapshotOn = (obj, key) => ({ obj, key, had: Object.prototype.hasOwnProperty.call(obj, key), desc: Object.getOwnPropertyDescriptor(obj, key) });
+  const restores = [
+    snapshot('Blob'),
+    snapshotOn(globalThis.URL, 'createObjectURL'),
+    snapshotOn(globalThis.URL, 'revokeObjectURL'),
+    snapshot('Image'),
+  ];
+
   class MockBlob { constructor(parts, opts) { this.parts = parts; this.type = opts && opts.type; } }
   globalThis.Blob = MockBlob;
   let seq = 0;
-  const realURL = globalThis.URL;
-  globalThis.URL = {
-    ...realURL,
-    createObjectURL: () => { const u = `blob:mock/${++seq}`; rasterLog.created.push(u); return u; },
-    revokeObjectURL: u => { rasterLog.revoked.push(u); },
-  };
+  globalThis.URL.createObjectURL = () => { const u = `blob:mock/${++seq}`; rasterLog.created.push(u); return u; };
+  globalThis.URL.revokeObjectURL = u => { rasterLog.revoked.push(u); };
   globalThis.Image = class {
     constructor() { this.onload = null; this.onerror = null; }
     set src(v) {
@@ -188,8 +220,26 @@ function installRasterEnv({ deferRaster = false } = {}) {
     }
     get src() { return this._src; }
   };
+
+  _restoreRasterEnv = () => {
+    for (const r of restores) {
+      const target = r.obj || globalThis;
+      if (r.had) Object.defineProperty(target, r.key, r.desc);
+      else delete target[r.key];
+    }
+    _restoreRasterEnv = null;
+  };
   return rasterLog;
 }
+
+// Restoration runs unconditionally after EVERY test in this file, even one
+// that threw mid-assertion — `_restoreRasterEnv` is only non-null when a
+// test actually called installRasterEnv(), so tests that never touch it pay
+// nothing here, and a raster-using test can never leak its mocks into the
+// next `it()` in this file.
+afterEach(() => {
+  if (_restoreRasterEnv) _restoreRasterEnv();
+});
 
 function buildIntegrationHarness({ rasterLog } = {}) {
   const byId = new Map();
@@ -454,7 +504,7 @@ describe('eighth remediation gate — real onRelationChange(null) notification p
     });
   }
 
-  it('Compare Another: the pending prerender for the closed pair settles as a no-op; the button/status return to idle, not stuck busy', () => {
+  it('Compare Another: the pending prerender for the closed pair settles as a no-op; the button/status return to idle, not stuck busy', async () => {
     const rasterLog = installRasterEnv({ deferRaster: true });
     const h = buildIntegrationHarness({ rasterLog });
     landPair(h);
@@ -471,17 +521,23 @@ describe('eighth remediation gate — real onRelationChange(null) notification p
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
 
-    // The stale render settles afterward — it must remain a no-op: no
-    // status text reappears, the button stays idle. (ui/pairShare.js's own
-    // notifyRelationChange() checks `controller.cache !== entry` before
-    // writing a settled promise's result — proven here through the REAL
-    // clearOutput() call site, not a simulated one.)
+    // The stale render settles afterward — outcome coverage: firing the
+    // held Image's onload runs svgToPngBlob's own synchronous cleanup
+    // (canvas.toBlob's callback is synchronous in this mock, so the SVG
+    // source URL is already revoked the instant this call returns), but
+    // the notifyRelationChange().then() handler that would write busy/
+    // status DOM is a genuine microtask — asserted only after real
+    // microtask flushes below, not synchronously, so this cannot pass for
+    // the wrong reason (the .then() handler simply not having run yet).
     rasterLog.pendingImages[0]();
+    expect(rasterLog.created).toHaveLength(1);
+    expect(rasterLog.revoked).toEqual(rasterLog.created); // exact multiset: the one SVG source URL, revoked exactly once
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
   });
 
-  it('Back to My Sheet: same real clearOutput() path, same idle-DOM/no-cross-effect proof', () => {
+  it('Back to My Sheet: same real clearOutput() path, same idle-DOM/no-cross-effect proof', async () => {
     const rasterLog = installRasterEnv({ deferRaster: true });
     const h = buildIntegrationHarness({ rasterLog });
     landPair(h);
@@ -492,11 +548,13 @@ describe('eighth remediation gate — real onRelationChange(null) notification p
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
     rasterLog.pendingImages[0]();
+    expect(rasterLog.revoked).toEqual(rasterLog.created);
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
   });
 
-  it('Previous Readings closing Pair (the real closeActiveScreens hook): pairShare returns to idle, and Previous Readings\' own screen is completely unaffected by it', () => {
+  it('Previous Readings closing Pair (the real closeActiveScreens hook): pairShare returns to idle, and Previous Readings\' own screen is completely unaffected by it', async () => {
     const rasterLog = installRasterEnv({ deferRaster: true });
     const h = buildIntegrationHarness({ rasterLog });
     landPair(h);
@@ -522,6 +580,8 @@ describe('eighth remediation gate — real onRelationChange(null) notification p
     expect(h.document.activeElement.id).toBe('readings-title');
 
     rasterLog.pendingImages[0](); // the stale prerender settles afterward
+    expect(rasterLog.revoked).toEqual(rasterLog.created);
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
     // Still no cross-screen effect: Previous Readings' own ownership is
@@ -545,5 +605,65 @@ describe('eighth remediation gate — real onRelationChange(null) notification p
     await Promise.resolve(); await Promise.resolve();
     expect(h.get('dyad-share-btn').disabled).toBe(false);
     expect(h.get('dyad-share-status').hidden).toBe(true);
+  });
+});
+
+// Ninth remediation gate: installRasterEnv() used to overwrite
+// globalThis.Blob/URL/Image and never restore them — real pollution that
+// leaked into every later test in this file (and, since these are genuine
+// Node globals, potentially this worker's other files too). This pair of
+// tests proves restoration is real, not merely asserted in a comment: the
+// first records the REAL pre-mock identities, installs a raster env, and
+// confirms they're genuinely different afterward; the second runs in a
+// LATER test (so `afterEach` above has already fired once) and confirms
+// everything is back to the exact original identity, and that `Image` —
+// never a real Node global — is fully absent again, not left as `undefined`
+// written over a real property.
+describe('ninth remediation gate — installRasterEnv() restores exactly what it overwrote', () => {
+  const realBlob = globalThis.Blob;
+  const realCreateObjectURL = globalThis.URL.createObjectURL;
+  const realRevokeObjectURL = globalThis.URL.revokeObjectURL;
+  const realImageOwn = Object.prototype.hasOwnProperty.call(globalThis, 'Image');
+
+  it('while installed, the globals are genuinely mocked (the contrast the next test\'s restoration proof depends on)', () => {
+    installRasterEnv();
+    expect(globalThis.Blob).not.toBe(realBlob);
+    expect(globalThis.URL.createObjectURL).not.toBe(realCreateObjectURL);
+    expect(typeof globalThis.Image).toBe('function');
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'Image')).toBe(true);
+  });
+
+  it('after the PRIOR test\'s afterEach ran, every mocked global is back to its exact original identity (or absence)', () => {
+    // No installRasterEnv() call in THIS test — proving restoration already
+    // happened on its own between tests, not merely that a later
+    // installRasterEnv() call would overwrite the mock again.
+    expect(globalThis.Blob).toBe(realBlob);
+    expect(globalThis.URL.createObjectURL).toBe(realCreateObjectURL);
+    expect(globalThis.URL.revokeObjectURL).toBe(realRevokeObjectURL);
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'Image')).toBe(realImageOwn);
+    expect(typeof globalThis.Image).toBe('undefined');
+  });
+
+  it('repeated installRasterEnv() calls do not inherit a prior call\'s mock — each call starts from the real globals', () => {
+    installRasterEnv();
+    const firstMockBlob = globalThis.Blob;
+    installRasterEnv(); // a second, independent call in the same test
+    expect(globalThis.Blob).not.toBe(firstMockBlob); // a fresh mock class, not the same reference reused
+    expect(globalThis.Blob.name).toBe(firstMockBlob.name); // same SHAPE (MockBlob), proving it's a real re-install, not a no-op
+  });
+
+  // The specific failure mode a double-install-without-restoring-between-
+  // calls risks: the SECOND call's snapshot would capture the FIRST call's
+  // mock as if it were "the real original" (since installRasterEnv doesn't
+  // itself auto-restore before re-snapshotting), so afterEach's eventual
+  // restore would put globalThis.Blob back to the FIRST mock, not the true
+  // original — invisible from INSIDE the double-install test itself (both
+  // are mocks, `.not.toBe` can't tell "wrong mock" from "right mock" apart),
+  // only observable in a LATER test. This is that later test.
+  it('after a test that called installRasterEnv() twice, the TRUE original globals are back — not the first call\'s mock', () => {
+    expect(globalThis.Blob).toBe(realBlob);
+    expect(globalThis.Blob.name).not.toBe('MockBlob');
+    expect(globalThis.URL.createObjectURL).toBe(realCreateObjectURL);
+    expect(typeof globalThis.Image).toBe('undefined');
   });
 });

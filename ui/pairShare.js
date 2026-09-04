@@ -680,7 +680,29 @@ function setStatus(controller, state) {
   el.textContent = msg;
   el.hidden = !msg;
   if (msg && state !== 'busy' && typeof setTimeout === 'function') {
-    controller.statusTimer = setTimeout(() => { el.hidden = true; }, 4000);
+    // Ninth remediation gate: this callback used to hide the status text
+    // unconditionally — but syncBusyFromPrerender (eighth gate) can leave
+    // the BUTTON disabled/aria-busy="true" for a genuinely still-pending
+    // newer-pair prerender independent of this timer, and blindly hiding
+    // the text at the 4s mark then left that disabled button with no
+    // visible/live explanation at all — a real accessibility defect, not
+    // just a wording one. On expiry: clear this timer's own ownership
+    // first (so a stale id is never compared against later), then
+    // reconcile with the CURRENT state rather than assuming nothing
+    // changed in the last 4 seconds — if the controller is still live, no
+    // click operation owns busy right now, and a prerender is genuinely
+    // still pending, transition to the truthful `busy` explanation
+    // (setStatus('busy') arms no further timer, matching how a real
+    // click-triggered busy state never auto-hides either); otherwise hide
+    // normally, exactly as before.
+    controller.statusTimer = setTimeout(() => {
+      controller.statusTimer = null;
+      if (!controller.retired && !controller.opInFlight && isPrerenderPending(controller)) {
+        setStatus(controller, 'busy');
+      } else {
+        el.hidden = true;
+      }
+    }, 4000);
   }
 }
 

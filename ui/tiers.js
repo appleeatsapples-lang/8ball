@@ -119,7 +119,15 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // registries per §4, and no renderer exists.
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
 // §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
-// completes it at 15 of 15 (16 of 16 since the §1.K moon row), and what t5 buys is a SECOND complete sheet plus
+// completed it in full at the time this clause shipped — pre-Moon that was
+// 14 sheet cells plus the catalog numeral, 15 coordinates total (ninth
+// remediation gate: stated explicitly here, since the prior wording's bare
+// "15 of 15" and "16 of 16" left it ambiguous whether those counted sheet
+// cells or the total coordinate census, the same conflation elsewhere in
+// this file's header already corrects). The CURRENT census, since §1.K's
+// MOON row, is 15 sheet cells plus the catalog numeral, 16 coordinates
+// total — t3 completes that one instead, and what t5 buys is a SECOND
+// complete sheet plus
 // the relation layer between the two. `dyadRelation` is therefore a BLOCK in
 // the `cardEntry` / `publicRead` sense — no compartment, no census weight —
 // and it is the only key here that renders outside #card-face entirely (the

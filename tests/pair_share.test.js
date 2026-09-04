@@ -1911,3 +1911,95 @@ describe('eighth remediation gate — async status ownership: a pending backgrou
     expect(refs.status.hidden).toBe(false);
   });
 });
+
+// Ninth remediation gate: a real, independently-audited defect distinct
+// from the eighth gate's async-status-ownership fix above. That fix
+// stopped a still-pending newer prerender from overwriting a just-written
+// terminal status the INSTANT the click's own finally block ran. It did
+// NOT cover the terminal status's own 4-SECOND AUTO-HIDE TIMER, which
+// still unconditionally hid the status text on expiry — leaving a button
+// that syncBusyFromPrerender correctly keeps disabled/aria-busy="true"
+// (because a newer pair's render is genuinely still pending) with NO
+// visible or live-announced explanation at all once that timer fired. The
+// fix makes the timer callback check the SAME live state the finally-block
+// fix already checks: if a prerender is still pending and no click owns
+// busy right now, transition to a visible `busy` explanation instead of
+// hiding; otherwise hide exactly as before.
+describe('ninth remediation gate — the terminal status\'s own 4s auto-hide timer reconciles with a still-pending newer prerender', () => {
+  const PAIR2 = adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth', numerologySpine: '9 + 2 → 11', cardPairHead: 'no. ii × no. iii',
+  });
+
+  it('native share terminal: at the 4s mark, a still-pending newer prerender turns the status visibly busy instead of a blind hide; settling it cleans up', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const controller = initPairShareUI(refs, { getRelation });
+    controller.notifyRelationChange(currentRelation); // pair1 prerender, held
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // release pair1's render
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+    await clickShare(refs); // cached-blob fast path; navigator.share() resolves on the next microtask
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.hidden).toBe(false);
+
+    // A newer pair's prerender starts and stays pending through the
+    // terminal status's own 4s window below.
+    currentRelation = PAIR2;
+    controller.notifyRelationChange(PAIR2);
+    expect(log.pendingImages).toHaveLength(2);
+
+    vi.advanceTimersByTime(4000); // the OLD terminal's own auto-hide timer fires here
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(refs.btn.disabled).toBe(true);
+    expect(refs.btn.attrs['aria-busy']).toBe('true');
+
+    log.pendingImages[1](); // release pair2's still-pending render
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(refs.status.hidden).toBe(true);
+    expect(refs.btn.disabled).toBe(false);
+    expect(refs.btn.attrs['aria-busy']).toBe('false');
+  });
+
+  it('download-fallback terminal: the same 4s reconciliation applies when the terminal came from the download path, not native share', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ imageDefer: true, clipboard: () => {} }); // no native share support at all
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const controller = initPairShareUI(refs, { getRelation });
+    controller.notifyRelationChange(currentRelation);
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+    await clickShare(refs); // cached-blob path; no share method -> falls straight to download+clipboard
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.hidden).toBe(false);
+
+    currentRelation = PAIR2;
+    controller.notifyRelationChange(PAIR2);
+    expect(log.pendingImages).toHaveLength(2);
+
+    vi.advanceTimersByTime(4000);
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(refs.btn.disabled).toBe(true);
+
+    log.pendingImages[1]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(refs.status.hidden).toBe(true);
+    expect(refs.btn.disabled).toBe(false);
+  });
+
+  it('the ORDINARY case is unchanged: with nothing pending, the terminal status still hides normally at 4s', async () => {
+    const log = installEnv({ clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION, { prerender: false });
+    await clickShare(refs);
+    expect(refs.status.hidden).toBe(false);
+    vi.advanceTimersByTime(4000);
+    expect(refs.status.hidden).toBe(true);
+  });
+});
