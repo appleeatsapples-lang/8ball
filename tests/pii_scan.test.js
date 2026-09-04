@@ -1,20 +1,41 @@
 // 8ball / tests / pii_scan.test.js
 // Public-repo PII audit. Runs as part of `npm test`.
-// Scans tracked content for patterns that indicate accidental personal-info
-// leakage. Two layers: this public scan + the operator's local scan
+// Scans the repository for patterns that indicate accidental personal-info
+// leakage. Two layers: this public scan + the controller's local scan
 // (audits/LOCAL_PII_AUDIT.md, gitignored data file) before push.
+//
+// SCOPE (v0.80). "The repository" means what git says it is:
+//   git ls-files --cached --others --exclude-standard
+// tracked content PLUS untracked-but-not-ignored files, so a half-built leak
+// is still caught before it is committed. This is the SAME selection
+// audits/run_local_audit.sh has always used — the two layers of one audit now
+// agree about what they are auditing.
+//
+// It used to be a filesystem walk with a hand-maintained SKIP_DIRS list, and
+// the gap between "what we publish" and "what happens to be on this disk" bit
+// three times: `.claude/` had to be added to SKIP_DIRS after a local settings
+// file leaked the controller's handle into this scan; the PR #190 cycle found
+// the scan's file count inflated by generated report output; and the pr236
+// audit found the sharper one — `audits/project_audit.py` stored every check's
+// full subprocess output, the local-PII check shells out to a script that
+// PRINTS the controller's own patterns and matching lines on a hit, and this
+// walk then read those reports out of `audits/automated/`, a directory the
+// repository does not carry. Both lanes said not to leave it a third time.
+// A skip list has to be extended for each new source of untracked bulk; a git
+// selection needs no maintenance, because .gitignore is already the file that
+// answers this question. In this checkout the walk read 1108 files where git
+// lists 903 — 205 of them generated reports.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
-// Skip these dirs entirely.
-const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', '.vitest-cache', '.netlify', '.claude']);
 // Skip the audit doc itself + this test file (their job is to list the patterns).
 const SKIP_FILES = new Set(['LOCAL_PII_AUDIT.md', 'pii_scan.test.js']);
 
@@ -60,14 +81,23 @@ const LABELED_DOB_ALLOW = new Set([
   'audits/RELEASE_CHECKLIST.md'
 ]);
 
-function* walk(dir) {
-  for (const entry of readdirSync(dir)) {
-    if (SKIP_DIRS.has(entry) || SKIP_FILES.has(entry)) continue;
-    const full = join(dir, entry);
-    const st = statSync(full);
-    if (st.isDirectory()) yield* walk(full);
-    else if (st.isFile()) yield full;
+// The repository, as git defines it. FAIL-CLOSED per §7: if git cannot answer,
+// this throws and the scan fails — it never silently falls back to walking the
+// filesystem, which is the behaviour this function replaced.
+function repoFiles() {
+  let out;
+  try {
+    out = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+      cwd: REPO_ROOT, encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (err) {
+    throw new Error(
+      `pii scan could not enumerate the repository (git ls-files failed: ${err.message}).\n` +
+      `This scan is fail-closed: it does not fall back to a filesystem walk, because the ` +
+      `walk is what let generated, untracked report output into the scan's read set.`
+    );
   }
+  return out.split('\0').filter(Boolean);
 }
 
 // Banned tokens for normal (non-doctrine, non-config) tracked content.
@@ -116,15 +146,51 @@ function isText(file) {
   return false;
 }
 
+// Read the scannable set ONCE and test every pattern against it. It used to be
+// one full walk per BANNED entry — nine walks, nine reads of every text file,
+// no caching (pr236 audit, Lane B). The set is built at module load, so the
+// scope probes below add and remove their files without disturbing it.
+// A file git listed can vanish between the listing and the read — the product
+// auditor writes `audits/automated/` while the suite runs, and until v0.80
+// that directory was IN this read set, so an ENOENT here failed the suite as
+// an fs ERROR rather than an assertion (pr238 audit, Lane A). A file that is
+// not there is not published, so it is skipped; anything other than "gone" is
+// still a real error and still throws.
+function readIfPresent(rel) {
+  try {
+    return readFileSync(join(REPO_ROOT, rel), 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT' || err.code === 'EISDIR') return null;
+    throw err;
+  }
+}
+
+const SCANNED = (() => {
+  const out = [];
+  for (const rel of repoFiles()) {
+    if (SKIP_FILES.has(basename(rel))) continue;
+    if (!isText(rel)) continue;
+    const content = readIfPresent(rel);
+    if (content !== null) out.push([rel, content]);
+  }
+  return out;
+})();
+
 describe('public-repo PII scan', () => {
+  // Non-vacuity. Every assertion below is all-negative, so an empty or
+  // degenerate file set greens the entire scan while auditing nothing — the
+  // failure mode a fail-closed selection exists to prevent, and one that a
+  // silent fallback would have produced quietly.
+  it('has a real repository to scan', () => {
+    expect(SCANNED.length).toBeGreaterThan(100);
+    expect(SCANNED.map(([rel]) => rel)).toContain('DOCTRINE.md');
+  });
+
   for (const { pattern, label, allow } of BANNED) {
     it(`no match for ${label}: ${pattern}`, () => {
       const hits = [];
-      for (const file of walk(REPO_ROOT)) {
-        const rel = relative(REPO_ROOT, file);
+      for (const [rel, content] of SCANNED) {
         if (allow.some(a => rel === a || rel.endsWith('/' + a))) continue;
-        if (!isText(file)) continue;
-        const content = readFileSync(file, 'utf-8');
         if (pattern.test(content)) {
           for (const [i, line] of content.split('\n').entries()) {
             if (pattern.test(line)) {
@@ -136,6 +202,66 @@ describe('public-repo PII scan', () => {
       expect(hits, `Banned pattern ${pattern} (${label}) found:\n${hits.join('\n')}`).toEqual([]);
     });
   }
+});
+
+// The scope itself is a claim, so it is tested rather than described. Both
+// halves matter and they pull in opposite directions: ignored output must be
+// OUT (that is the whole change), and an untracked file that is not ignored
+// must be IN (or the scan stops catching a leak in the minutes before it is
+// committed — the window run_local_audit.sh was widened to cover in 2026-07-01).
+describe('public-repo PII scan — scope', () => {
+  function withProbe(rel, body) {
+    const full = join(REPO_ROOT, rel);
+    const dir = dirname(full);
+    const dirExisted = existsSync(dir);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(full, 'pii scan scope probe\n');
+    try {
+      expect(existsSync(full), 'the probe must be on disk for this to mean anything').toBe(true);
+      body();
+    } finally {
+      rmSync(full, { force: true });
+      if (!dirExisted) rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it('excludes generated report output under the gitignored audits/automated/', () => {
+    const rel = 'audits/automated/.pii_scan_scope_probe';
+    withProbe(rel, () => {
+      // on disk, under the repo root, and a filesystem walk would have read it
+      expect(repoFiles()).not.toContain(rel);
+    });
+  });
+
+  it('still includes an untracked file that is not ignored', () => {
+    const rel = '.pii_scan_scope_probe.md';
+    withProbe(rel, () => {
+      expect(repoFiles()).toContain(rel);
+    });
+  });
+
+  // The fail-closed claim is a claim, so it is exercised. Without this, a
+  // future "helpful" fallback to the filesystem walk would restore the exact
+  // behaviour v0.80 removed and every assertion above would stay green.
+  it('fails closed when git cannot answer — no filesystem fallback', () => {
+    const realPath = process.env.PATH;
+    process.env.PATH = join(REPO_ROOT, 'no', 'such', 'bin');
+    try {
+      expect(() => repoFiles()).toThrow(/could not enumerate the repository/);
+    } finally {
+      process.env.PATH = realPath;
+    }
+    // and the real selection still works once git is back
+    expect(repoFiles().length).toBeGreaterThan(100);
+  });
+
+  it('skips a listed file that has vanished or is a directory', () => {
+    expect(readIfPresent('audits/automated/definitely-not-here')).toBeNull();
+    expect(readIfPresent('audits')).toBeNull();
+    // …and still returns real content, so the null above is the branch and
+    // not a function that always yields nothing
+    expect(readIfPresent('DOCTRINE.md')).toContain('§7');
+  });
 });
 
 // Guard the guard: the scan above is all-negative (asserts zero hits), so a

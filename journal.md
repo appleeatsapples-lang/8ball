@@ -5,7 +5,97 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — and, after the audit, the reset path with it — STAGED on branch, PR #238
+## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — STAGED on branch, PR pending
+
+**What happened.** "Now the PII scanner walk scope." The follow-up both
+pr236 lanes filed and asked not to be left a third time. The public PII
+scan walked the working directory minus a hand-maintained `SKIP_DIRS`
+list; it now asks git what the repository is —
+`git ls-files --cached --others --exclude-standard`, tracked content plus
+untracked-but-not-ignored files.
+
+**The selection is not new, which is the whole point.**
+`audits/run_local_audit.sh` — the LOCAL layer of this same audit — has
+used exactly that command since 2026-07-01. So the two layers disagreed
+about what they were auditing, and the looser one was the layer that
+runs in CI on every push. Nobody chose that; it is what you get when one
+layer is written in bash against git and the other in JS against `fs`.
+
+**Measured, not asserted.** In this checkout the walk read **1108 files
+where git lists 903** — the difference is generated product-audit
+reports under `audits/automated/` and Python bytecode. And the scan ran
+one full walk PER banned pattern with no caching: nine passes, 481 text
+files each, **~74 MB read and ~9,972 `statSync` calls** per suite run.
+One read per file now: **279 files, ~6.8 MB, no `statSync`**. The file
+went from ~1.35s to ~0.95s standalone. Cheaper is a side effect; the
+reason is scope.
+
+**Three sightings, and the third is a channel rather than a cost.**
+`.claude/` had to be added to `SKIP_DIRS` after a local settings file put
+the controller's handle in front of this scan. The PR #190 cycle found
+the file count inflated by the same report output. Then pr236's Lane A
+found the sharp one: `project_audit.py` stored every check's full
+subprocess output; its local-PII check shells out to a script that
+PRINTS the controller's own patterns and the matching lines on a hit;
+the walk then read those reports back out of a directory the repository
+does not carry. A skip list has to be extended once per new source of
+untracked bulk, by whoever notices. `.gitignore` is already the file
+that answers this question.
+
+**So the finding's other half closes with it.** `run_check` gains
+`redact_output`, and `check_local_pii` uses it: the report says how many
+patterns hit and how many lines matched, and names the command to re-run
+locally, but the matched text never reaches a file. Every report the
+auditor writes is a file on disk and a CI build artifact — scoping the
+reader was only half the fix. This is wider than the controller's five
+words and it is named here rather than folded in: it is the other half
+of one filed finding, and leaving it means the next pass re-derives it.
+
+**Two things stated rather than left to be discovered.** (a) The scan is
+**fail-closed**: git unable to answer THROWS and stage 3 fails, with no
+fallback to the walk — and a test drives that path, because a silent
+fallback would restore exactly what this retires while every
+all-negative assertion stayed green. The same reasoning adds a
+non-vacuity assertion: an empty file set greens the entire scan while
+auditing nothing. (b) It is a **narrowing**, and one consequence is
+deliberate: gitignored files are no longer scanned. The concrete case is
+`content/cards.v*.js` — private deck variants, read by the walk, not
+read now. They cannot be published while ignored, the local layer never
+read them either, and un-ignoring one puts it back in scope in the same
+change that tracks it.
+
+**Tests.** +5 in `tests/pii_scan.test.js`: the scan has a real
+repository in front of it (>100 files, `DOCTRINE.md` among them);
+gitignored output under `audits/automated/` is out of scope; an
+untracked-but-not-ignored file is still in scope; git failure throws
+rather than falls back; a listed file that has vanished or is a
+directory is skipped while real content still reads. The scope pair
+writes a probe file and asserts it is on disk before asserting anything
+about it, so neither half can pass vacuously. +4 in
+`audits/test_project_audit.py`: a hit never stores the matching lines
+(asserted against the whole check record, not just `output`), the
+summary still reports counts and the re-run command, a clean run stores
+nothing either, and the redaction is the flag rather than a size
+accident. The pre-existing truncation test was re-pointed at
+`run_check` directly — it had been riding on `check_local_pii`, which no
+longer stores output to truncate.
+
+**Mutants: eight, all killed.** Scanner — git failure returning `[]`
+instead of throwing; `--exclude-standard` dropped; `--others` dropped;
+`--cached` dropped; ENOENT rethrown instead of skipped. Auditor — the
+`redact_output` flag ignored in `run_check`; `check_local_pii` no longer
+passing it; the summary echoing the output instead of counting it.
+
+**Suite 61 files / 2118 tests green; product audit PASS (12/0/1 warn/1
+skip); assurance suite 119 tests OK.**
+
+**Queued.** `tests/public.test.js`'s 2s sweep, worth reducing on its own
+merits now that the timeout class is closed by configuration. The
+friend's rising/moon reading, still waiting on a birth time.
+`next_strategic_read` (due 2026-08-13) and `next_analytics_read` (due
+2026-08-06), both overdue.
+
+## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — and, after the audit, the reset path with it — SHIPPED (#238)
 
 **What happened.** "Now the readings list panel." v0.78's own audit
 (Lane A MED-4) found the consistency argument half-true: `ui/readings.js`

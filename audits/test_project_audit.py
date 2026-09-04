@@ -192,33 +192,98 @@ class CheckShapeTests(unittest.TestCase):
 
 
 class TruncationTests(unittest.TestCase):
-    """Force a real check's captured subprocess output past MAX_CAPTURE_CHARS
-    and confirm the real run_check()/clip() pipeline truncates it with the
-    exact documented marker -- exercised via the real check function against
-    a crafted fake product repo, not a reimplementation of clip()."""
+    """Force a check's captured subprocess output past MAX_CAPTURE_CHARS and
+    confirm the real run_check()/clip() pipeline truncates it with the exact
+    documented marker -- the real pipeline, not a reimplementation of clip().
 
-    def test_local_pii_check_output_is_truncated_by_run_check(self):
-        with tempfile.TemporaryDirectory() as product_dir:
-            product_root = Path(product_dir)
-            audits_dir = product_root / "audits"
-            audits_dir.mkdir()
-            # Presence of this file is what makes check_local_pii actually
-            # run its command instead of returning its "skip" status.
-            (audits_dir / "local_personal_data.txt").write_text("dummy pattern\n")
-            script_path = audits_dir / "run_local_audit.sh"
-            script_path.write_text(
-                "#!/usr/bin/env bash\n"
-                "python3 -c \"import sys; sys.stdout.write('x' * 20000)\"\n"
-                "exit 0\n"
-            )
-            script_path.chmod(script_path.stat().st_mode | stat.S_IEXEC)
+    This used to be driven through check_local_pii; that check now redacts its
+    output entirely (v0.80), so it can no longer carry this claim. The command
+    is crafted here instead, which is what the test was always really about."""
 
-            chk = pa.check_local_pii(product_root)
-
+    def test_captured_output_is_truncated_by_run_check(self):
+        chk = pa.run_check(
+            "test.truncation", "captured output", "advisory",
+            ["python3", "-c", "import sys; sys.stdout.write('x' * 20000)"],
+        )
         self.assertEqual(chk["status"], "pass")
         marker = "\n… truncated 4000 characters"
         self.assertTrue(chk["output"].endswith(marker))
         self.assertEqual(len(chk["output"]), pa.MAX_CAPTURE_CHARS + len(marker))
+
+
+class RedactedOutputTests(unittest.TestCase):
+    """Every report this tool writes lands in audits/automated/ and is uploaded
+    as a CI build artifact, so a check whose subprocess can PRINT personal data
+    must not store that output. run_local_audit.sh prints the controller's own
+    patterns and the matching lines on a hit; the pr236 audit found that those
+    reports were then read back by the public PII scan's filesystem walk. The
+    walk is now scoped (DOCTRINE §7 stage 3 v0.80) and this is the other half:
+    the tokens never reach the report in the first place.
+
+    All-negative assertions like `token not in output` green on an empty
+    string, so each one below is paired with a positive: the check really ran,
+    really saw the token, and really reported the hit."""
+
+    SENTINEL = "zzsentinelzz-not-a-real-token"
+
+    def _run(self, script_body, rc):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            audits_dir = root / "audits"
+            audits_dir.mkdir()
+            # presence of the pattern file is what makes the check run its
+            # command instead of returning its "skip" status
+            (audits_dir / "local_personal_data.txt").write_text("dummy pattern\n")
+            script = audits_dir / "run_local_audit.sh"
+            script.write_text(f"#!/usr/bin/env bash\n{script_body}\nexit {rc}\n")
+            script.chmod(script.stat().st_mode | stat.S_IEXEC)
+            return pa.check_local_pii(root)
+
+    def test_a_hit_never_stores_the_matching_lines(self):
+        chk = self._run(
+            f"echo '--- pattern: {self.SENTINEL}'\n"
+            f"echo 'journal.md:12:  a line containing {self.SENTINEL}'",
+            1,
+        )
+        # the check really ran and really failed on the hit...
+        self.assertEqual(chk["status"], "fail")
+        self.assertEqual(chk["severity"], "blocking")
+        # ...and neither the stored output nor the summary carries the token
+        self.assertEqual(chk["output"], pa.REDACTED_OUTPUT_NOTICE)
+        self.assertNotIn(self.SENTINEL, chk["output"])
+        self.assertNotIn(self.SENTINEL, chk["summary"])
+        self.assertNotIn(self.SENTINEL, json.dumps(chk))
+
+    def test_the_summary_still_says_what_was_found(self):
+        chk = self._run(
+            f"echo '--- pattern: {self.SENTINEL}'\n"
+            f"echo 'journal.md:12:  one'\n"
+            f"echo 'README.md:3:  two'",
+            1,
+        )
+        self.assertIn("1 pattern(s)", chk["summary"])
+        self.assertIn("2 matching line(s)", chk["summary"])
+        self.assertIn("run_local_audit.sh", chk["summary"])
+        self.assertEqual(chk["evidence"]["hit_patterns"], 1)
+        self.assertTrue(chk["evidence"]["output_redacted"])
+
+    def test_a_clean_run_stores_no_output_either(self):
+        chk = self._run("echo 'LOCAL PII AUDIT: clean (900 files scanned)'", 0)
+        self.assertEqual(chk["status"], "pass")
+        self.assertEqual(chk["output"], pa.REDACTED_OUTPUT_NOTICE)
+
+    def test_redaction_is_the_run_check_flag_not_a_size_accident(self):
+        # a redacted check stores the notice however small the real output is,
+        # and an un-redacted one stores the real bytes -- so the flag, not
+        # clip(), is what carries this
+        loud = pa.run_check("test.loud", "loud", "advisory",
+                            ["python3", "-c", f"print({self.SENTINEL!r})"])
+        quiet = pa.run_check("test.quiet", "quiet", "advisory",
+                             ["python3", "-c", f"print({self.SENTINEL!r})"],
+                             redact_output=True)
+        self.assertIn(self.SENTINEL, loud["output"])
+        self.assertNotIn(self.SENTINEL, quiet["output"])
+        self.assertEqual(quiet["output"], pa.REDACTED_OUTPUT_NOTICE)
 
 
 class TimeoutHandlingTests(unittest.TestCase):
