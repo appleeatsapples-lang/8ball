@@ -632,6 +632,12 @@ describe('ui/meanings.js behavior', () => {
       expect(panel()._byId['meaning-body'].textContent).toBe('');
       meaningsUI.close();                      // idempotent, not a throw
       expect(panel().classList.contains('open')).toBe(false);
+      // and unconditional: index.html calls it on EVERY dyad entry, including
+      // with nothing open, and the blank must still run (pr237 audit LOW-2)
+      panel()._byId['meaning-body'].textContent = 'left over';
+      meaningsUI.close();
+      vi.advanceTimersByTime(320);
+      expect(panel()._byId['meaning-body'].textContent).toBe('');
     } finally { vi.useRealTimers(); }
   });
 

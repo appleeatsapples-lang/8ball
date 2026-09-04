@@ -45,11 +45,56 @@ pr236 reconciliation had already added exactly that pin (audit MED-3),
 so writing it again would have been two tests for one claim.
 
 **Live-fire, 390 and 1440.** Host panel open → open the dyad → host
-panel `open:false`, `inert:true`, body length 0, pane `has-entry`
-cleared; land a pair and tap `b:sun` → paired panel opens, host stays
-closed; one Escape closes the paired panel and nothing else; back → the
-sheet, panel still closed, and at 1440 the pane's "select a
-compartment" line is back; reopening works normally. No console errors.
+panel `open:false`, `inert:true`, pane `has-entry` cleared, all in the
+same task; the body text is still present at that instant and reaches
+length 0 only when v0.77's 300ms deferral fires — the probe read at
+T+500ms and this entry's first draft narrated that eventual state as an
+immediate one, which Lane B caught (pr237 audit). No user-visible
+consequence, since the panel is already collapsed and transparent, but
+worth correcting precisely because this entry credits catching the #236
+HIGH to distrusting end-state checks. Then: land a pair and tap `b:sun`
+→ paired panel opens, host stays closed; one Escape closes the paired
+panel and nothing else; back → the sheet, panel still closed, and at
+1440 the pane's "select a compartment" line is back; reopening works
+normally. No console errors.
+
+**Two-lane audit (pr237), reconciled.** Lane A MERGE WITH FIXES, Lane B
+MERGE WITH FIXES. Neither found a functional defect: the timing question
+this brief led with came back clean from both, measured on frame
+timelines rather than end states — `#result` goes `display:none` in the
+same task as the class removal, so no frame renders a collapse, and the
+pending blank fires against nodes inside the hidden subtree. Returning
+inside the 300ms window, reopening inside it, and opening the dyad twice
+inside it were all driven with real wall-clock timing: no flash, no
+half-blanked frame, no stale reading restored, and the reopened reading
+survives past the original deadline.
+
+What they found was record and coverage. **The v0.78 amendment paragraph
+did not exist.** The rebase rewrote the docs and produced the closure
+marker, the footer and the changelog line — but not the amendment body
+itself, so §1.E's normative text ended with v0.77's "still open for the
+controller" followed by a marker pointing at "the amendment below" that
+was §1.F. Written now, carrying the footer's substance. **The
+consistency argument was half-true:** `ui/readings.js` also hides
+`#result` and still restores the host panel open, so "returning lands on
+a sheet" held for the paired screen only. The claim is narrowed to what
+is true and the readings case is named as open work rather than widened
+into unasked.
+
+Four mutants Lane A found surviving are now pinned, each sitting exactly
+where the prose made a claim: the dyad root focus (deleting it left
+focus on `<body>` — and v0.78 is what makes it load-bearing, since
+`close()` parks focus on a cell hidden on the very next statement); the
+back control calling `onExit` at all (deleting it left every screen
+hidden, a blank app, with CI green); `close()` being unconditional, as
+v0.77's own comment claims and index.html now relies on; and `onOpen`
+firing only after the entitlement guard. Recorded, not fixed: the
+index.html half of this PR is pinned by a source-text regex only — Lane
+A demonstrated two equivalent mutants it false-kills — which §12's
+no-jsdom rule makes a limit to state rather than a gap to close; the
+dyad half is genuine behavioural coverage. Also pre-existing and
+unchanged: returning from the dyad leaves focus on `<body>`, on this
+branch and on base alike.
 
 **Built on a worktree, rebased after #236.** #236 was under two-lane
 audit while this was written, so it waited rather than pushing into an

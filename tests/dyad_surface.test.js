@@ -196,7 +196,7 @@ function makeNode(tag = 'div') {
 // harness addresses exactly the nodes the real DOM would expose.
 function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   publicRead = () => null, validate = validateBirthInput,
-  buildSecond = () => second, onOpen = () => {} } = {}) {
+  buildSecond = () => second, onOpen = () => {}, onExit = () => {} } = {}) {
   const byId = new Map();
   const byAttr = new Map();
 
@@ -319,7 +319,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       buildSecond,
       getNoteSlot: noteSlot,
       getPublicRead: publicRead,
-      onOpen, onExit() {},
+      onOpen, onExit,
     });
     // The entry button is created via createElement and assigned .id directly.
     for (const child of controls.children) if (child.id) byId.set(child.id, child);
@@ -428,6 +428,34 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     // so index.html's hook closes the host panel while the sheet is on screen
     expect(seen).toEqual([true]);
     expect(h.root.classList.contains('hidden')).toBe(false);
+  });
+
+  it('the entry control focuses the paired screen root — the hand-off v0.78 depends on (pr237 audit MED-2)', () => {
+    // close() parks focus on a cell index.html hides on the very next
+    // statement, so this focus call is the only thing repairing it.
+    const h = harness('t5');
+    h.withDom(() => h.get('dyad-open-btn').listeners.click());
+    expect(h.root.focusCalls).toEqual([{ preventScroll: true }]);
+  });
+
+  it('onOpen fires only when the dyad will actually open — never below t5 (pr237 audit LOW-3)', () => {
+    // hook-before-guard would close the host panel and hide #result while
+    // open() refuses: every screen hidden.
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      const seen = [];
+      const h = harness(tier, { onOpen: () => seen.push(tier) });
+      h.withDom(() => h.get('dyad-open-btn').listeners.click());
+      expect(seen, tier).toEqual([]);
+      expect(h.root.classList.contains('hidden'), tier).toBe(true);
+    }
+  });
+
+  it('the back control calls onExit exactly once, with the screen already hidden (pr237 audit MED-3)', () => {
+    // without the call, back leaves every screen hidden — a blank app
+    const seen = [];
+    const h = harness('t5', { onExit: () => seen.push(h.root.classList.contains('hidden')) });
+    h.withDom(() => { openDyad(); h.get('dyad-back').listeners.click(); });
+    expect(seen).toEqual([true]);
   });
 
   it('open() refuses below t5', () => {
