@@ -196,7 +196,7 @@ function makeNode(tag = 'div') {
 // harness addresses exactly the nodes the real DOM would expose.
 function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   publicRead = () => null, validate = validateBirthInput,
-  buildSecond = () => second } = {}) {
+  buildSecond = () => second, onOpen = () => {} } = {}) {
   const byId = new Map();
   const byAttr = new Map();
 
@@ -319,7 +319,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
       buildSecond,
       getNoteSlot: noteSlot,
       getPublicRead: publicRead,
-      onOpen() {}, onExit() {},
+      onOpen, onExit() {},
     });
     // The entry button is created via createElement and assigned .id directly.
     for (const child of controls.children) if (child.id) byId.set(child.id, child);
@@ -418,6 +418,16 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(dyadJs.match(/className = 'btn btn-block btn-secondary'/g) || []).toHaveLength(1);
     const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
     expect(shell).toMatch(/\.btn-block\[hidden\] \{ display: none; \}/);
+  });
+
+  it('the entry control calls onOpen BEFORE the screen is revealed (v0.78: the host panel closes first)', () => {
+    const seen = [];
+    const h = harness('t5', { onOpen: () => seen.push(document.getElementById('dyad-screen').classList.contains('hidden')) });
+    h.withDom(() => h.get('dyad-open-btn').listeners.click());
+    // called exactly once, and the screen was still hidden at that moment —
+    // so index.html's hook closes the host panel while the sheet is on screen
+    expect(seen).toEqual([true]);
+    expect(h.root.classList.contains('hidden')).toBe(false);
   });
 
   it('open() refuses below t5', () => {

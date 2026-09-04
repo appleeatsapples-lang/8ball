@@ -101,6 +101,17 @@ describe('desk — host markup', () => {
     expect(pane).not.toMatch(/\byou\b|\byour\b/i);
   });
 
+  it('index.html closes the host panel when the dyad opens, before hiding the sheet (v0.78)', () => {
+    // the handle is captured...
+    expect(html).toMatch(/const meaningsUI = initMeaningsUI\(/);
+    // ...and onOpen closes it FIRST, so the panel's focus return lands on a
+    // still-visible cell; the dyad focuses its own root immediately after.
+    expect(html).toMatch(/onOpen: \(\) => \{ meaningsUI\.close\(\); result\.classList\.add\('hidden'\); \}/);
+    // onExit does NOT reopen it — returning lands on a sheet, not a stale panel
+    expect(html).toMatch(/onExit: \(\) => result\.classList\.remove\('hidden'\)/);
+    expect(html).not.toMatch(/onExit:[^,\n]*meaningsUI/);
+  });
+
   it('index.html hands the pane to initMeaningsUI, and the rail-read group to initDyadUI', () => {
     expect(html).toMatch(/initMeaningsUI\(\{\s*cardFace,\s*readingPane:\s*\$\('reading-pane'\)\s*\}\)/);
     expect(html).toMatch(/initDyadUI\(\{\s*stage:\s*document\.querySelector\('\.stage'\),\s*controls:\s*\$\('rail-read'\)\s*\}/);
