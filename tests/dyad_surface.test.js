@@ -1724,7 +1724,13 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
   });
 
   it('the paired panel reuses the host panel\'s parts, classes and pure content path — no second registry, no second markup', () => {
-    expect(dyadJs).toMatch(/import \{ panelDetailFor, buildPanelMarkup, coordinateLabel \} from '\.\/meanings\.js'/);
+    // the named imports, not the literal line — the list grew when the panel
+    // part contract moved to ui/meanings.js (pr235 follow-up)
+    const named = (dyadJs.match(/import \{([^}]*)\} from '\.\/meanings\.js'/) || [, ''])[1]
+      .split(',').map(s => s.trim()).filter(Boolean);
+    for (const name of ['panelDetailFor', 'buildPanelMarkup', 'coordinateLabel']) {
+      expect(named, name).toContain(name);
+    }
     expect(dyadJs).toMatch(/buildPanelMarkup\('dyad-meaning'\)/);
     expect(dyadJs).not.toMatch(/meanings\.v\d|ARCANA_MEANINGS|entryFor|harmonyFor/);
     expect(dyadJs).toMatch(/derivationText\(key\)/);

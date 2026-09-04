@@ -61,7 +61,7 @@ import { isLabelsRevealed, setLabelsRevealed } from './labels.js';
 // The paired sheets' compartments open their own panel over the SAME pure
 // content path the host panel reads through (v0.76) — one meaning registry,
 // two readers, and each reading is placed in the context of its own sheet.
-import { panelDetailFor, buildPanelMarkup, coordinateLabel } from './meanings.js';
+import { panelDetailFor, buildPanelMarkup, coordinateLabel, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS } from './meanings.js';
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
@@ -416,11 +416,10 @@ function markPairedCells() {
 // aria-hidden panel that still carries person B's first name and reading is
 // live DOM on person A's device, and it would otherwise survive a close, a
 // re-open and a fresh pair with a third person.
-const PAIRED_PANEL_TEXT_IDS = Object.freeze([
-  'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
-  'dyad-meaning-context', 'dyad-meaning-relation',
-]);
-const PAIRED_PANEL_HEAD_IDS = Object.freeze(['dyad-meaning-context-head', 'dyad-meaning-relation-head']);
+// Derived from ui/meanings.js's part lists, never restated: the two panels
+// blank the same set by construction (pr235 follow-up).
+const PAIRED_PANEL_TEXT_IDS = Object.freeze(PANEL_TEXT_PARTS.map(part => `dyad-meaning-${part}`));
+const PAIRED_PANEL_HEAD_IDS = Object.freeze(PANEL_HEAD_PARTS.map(part => `dyad-meaning-${part}`));
 
 function blankPairedPanel() {
   for (const id of PAIRED_PANEL_TEXT_IDS) setText(id, '');

@@ -10,7 +10,8 @@
 // (node env, no jsdom — same convention as tests/modals.test.js).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initMeaningsUI } from '../ui/meanings.js';
+import { initMeaningsUI, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS,
+} from '../ui/meanings.js';
 import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
 import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
@@ -552,6 +553,39 @@ describe('ui/meanings.js behavior', () => {
     expect(panel().classList.contains('open')).toBe(false);
     expect(cells.sun.classList.contains('active')).toBe(false);
     expect(cells.sun.focused).toBe(true);
+  });
+
+  it('a close BLANKS the panel — no reading survives it, by any close path (pr235 follow-up)', () => {
+    const parts = [...PANEL_TEXT_PARTS, ...PANEL_HEAD_PARTS];
+    const written = () => parts.filter(part => String(panel()._byId[`meaning-${part}`].textContent || '') !== '');
+    const closers = {
+      'a second tap': () => cardFace._fire('click', { target: vals.sun }),
+      'the close control': () => panel()._byId['meaning-close']._fire('click'),
+      Escape: () => globalThis.document._fire('keydown', { key: 'Escape' }),
+    };
+    for (const [name, closeIt] of Object.entries(closers)) {
+      vals.sun.textContent = 'aries';
+      cardFace._fire('click', { target: vals.sun });
+      expect(panel().classList.contains('open'), name).toBe(true);
+      expect(written().length, `${name}: the open wrote something`).toBeGreaterThan(0);
+      closeIt();
+      expect(panel().classList.contains('open'), name).toBe(false);
+      expect(written(), `${name}: text survived the close`).toEqual([]);
+      // the two heads are hidden as well as blank, so an empty label cannot flash
+      for (const part of PANEL_HEAD_PARTS) expect(panel()._byId[`meaning-${part}`].hidden, `${name} ${part}`).toBe(true);
+    }
+  });
+
+  it('initMeaningsUI hands back a close, and a guarded re-init hands back a no-op one', () => {
+    // the beforeEach init already built the panel, so this re-init is guarded
+    const second = initMeaningsUI({ cardFace });
+    expect(typeof second.close).toBe('function');
+    vals.sun.textContent = 'aries';
+    cardFace._fire('click', { target: vals.sun });
+    expect(panel().classList.contains('open')).toBe(true);
+    second.close(); // the no-op handle must not close the live panel
+    expect(panel().classList.contains('open')).toBe(true);
+    expect(initMeaningsUI({ cardFace: null }).close()).toBeUndefined();
   });
 
   it('Escape is a no-op when a modal-bg overlay is open (modal wins)', () => {

@@ -5,7 +5,84 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — STAGED on branch, PR #235 open
+## 2026-09-04 — DOCTRINE v0.77: the host panel blanks on close too — one part contract, two panels — STAGED on branch, PR pending
+
+**What happened.** "continue", with #235 green and holding for the
+merge word — so this took the queued half of the v0.76 fix on a staging
+worktree rather than widening an audited PR. v0.76 made a close BLANK
+the PAIRED panel's text after both lanes reproduced person B's name and
+reading outliving a close, a re-open and a fresh pair. The host panel
+had the same gap and was recorded as a follow-up: lower severity, since
+its leftovers are only ever the device owner's own label and reading
+(the host's head is the coordinate label, never a name), but the same
+"hidden is not deletion" shape (PR #187 F1) sitting in the module that
+had just been audited for it.
+
+**One contract, two panels.** Rather than a second blank list,
+`ui/meanings.js` now exports the panel's text-bearing parts as id
+SUFFIXES — `PANEL_TEXT_PARTS` (head · derivation · title · body ·
+context · relation) and `PANEL_HEAD_PARTS` (the two context heads,
+blanked AND hidden so an empty label cannot flash). The host blanks
+`meaning-<part>` from them on every close path; `ui/dyad.js` DERIVES its
+`dyad-meaning-<part>` list from the same two exports instead of the
+hand-written array v0.76 shipped. So a part added to `buildPanelMarkup`
+without a blanker fails a coverage test that reads the markup's own
+output in BOTH prefixes — and dropping a part from the list breaks the
+host AND the paired blank tests together, which is what proves the
+de-fork is real rather than cosmetic.
+
+**A handle, with no caller.** `initMeaningsUI` returns `{ close }` (the
+`ui/labels.js` DI shape; the two double-init guards return a no-op
+handle so a caller never has to check). Nothing calls it yet — it is
+the seam the open question needs, not the answer to it.
+
+**Deliberately not taken.** Whether the host panel should CLOSE when the
+paired screen opens is still the controller's. With this change a panel
+left open behind the dyad blanks the moment it closes and, while open,
+carries only a reading the visitor opened themselves; the v0.76 audit's
+LOW-6 (a dyad-screen Escape also closing the invisible host panel)
+costs a keystroke and shows nothing wrong. So the remainder is
+presentation, and it is not a defect to fix unasked.
+
+**Tests.** +3: all three close paths blank every part and hide both
+heads (driven through the host harness, not asserted off source); the
+part lists cover every text node `buildPanelMarkup` emits in both
+prefixes and nothing but the close button; `ui/dyad.js` derives rather
+than restates. One pre-existing pin that asserted `ui/dyad.js`'s import
+LINE now asserts its named imports, so the list can grow. Suite 61
+files / 2091 tests green; product audit PASS. Five mutants, all killed
+(close without the blank; a part dropped from the list — which killed
+the host and paired tests together; heads blanked but not hidden; the
+guards returning nothing; the dyad restating the ids). Live-fired at
+390 and 1440 (docked pane): every close path blanks all six parts and
+hides both heads, a modal still keeps Escape priority, reopening writes
+fresh text, the paired panel still blanks after back, no console
+errors.
+
+**Sighting, not a fix: the PII gate flaked once.** On the first full run
+after the branch reset, `tests/pii_scan.test.js`'s operator-first-name
+rule failed, taking 13.3s where it normally takes 0.4s. It did not
+reproduce — green standalone and green on a full re-run — and a grep of
+the whole walked tree finds the token only in files that rule already
+allows. The mechanism that makes a flake POSSIBLE is worth naming even
+though the specific cause was not pinned: the scanner's `walk()` skips
+six directories by name and `audits/automated/` is not among them, so
+every run reads the accumulated local product-audit reports — 178 files,
+1.6 MB here, gitignored, never shipped. That is what the 13 seconds
+were. So a privacy gate's verdict depends in part on untracked scratch
+output that changes between runs, which is the wrong shape for a gate
+whose job is to say what the REPOSITORY carries. Recorded for the
+audit rather than changed here: narrowing the walk is a scanner change,
+and this entry is not the place to make one unasked.
+
+**How it was built.** On a staging worktree, because
+`claude/eight-ball-app-testing-rqphfo` was still occupied by #235 when
+the work was done: #235 merged as `55e6975`, the branch reset to main,
+and this re-applied onto it byte-for-byte (the squash tree matched the
+staging base, so the patch was clean). Its own two-lane audit runs on
+the PR — the artifact needs the real number.
+
+## 2026-09-03 — DOCTRINE v0.76: the paired sheets' labels and derivation surface — the dyad's thirty compartments open — SHIPPED (#235)
 
 **What happened.** "Now the dyad sheets labels and derivation surface" —
 the open work v0.74 named. Through v0.75 the two §1.J sheets had row
@@ -131,8 +208,9 @@ the controller. Seven reconciliation mutants killed. Suite 61 files /
 2086 tests green; product audit PASS.
 
 **Queued.** The host panel's own blank-on-close and whether it should
-close when the paired screen opens (named above). The friend's
-rising/moon reading still waits on a birth time.
+close when the paired screen opens (named above) — the first of those is
+taken in the entry above. The friend's rising/moon reading still waits
+on a birth time.
 
 ## 2026-09-03 — DOCTRINE v0.75: the cards and the og image regenerated in-repo — the sheet's two depictions can no longer drift — SHIPPED (#234)
 
