@@ -58,7 +58,8 @@ describe('dependency discipline (DOCTRINE.md §12, §6)', () => {
 //
 // The justification is the production sighting, not any one slow test: the
 // pr238 audit recorded `pii_scan` and `cards_hosting` — whose slowest
-// individual tests idle at 111ms and 133ms — crossing 5000ms in a single run,
+// individual tests idled, at the time, at 111ms and 133ms — crossing 5000ms
+// in a single run,
 // a ~40x stall neither lane could induce. The 5/6 and 12/12 contention
 // reproductions those lanes ran were of a different test, one that idled at
 // ~2.17s then and ~0.10s now, so they no longer support a general claim

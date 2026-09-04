@@ -10,8 +10,8 @@ export default defineConfig({
     // reason is NOT the one test that used to be slow.
     //
     // The production sighting the pr238 audit chased was `pii_scan` and
-    // `cards_hosting` — files whose slowest individual tests idle at 111ms
-    // and 133ms — crossing 5000ms in one run: a ~40x stall neither lane could
+    // `cards_hosting` — files whose slowest individual tests idled, at the
+    // time of the sighting, at 111ms and 133ms — crossing 5000ms in one run: a ~40x stall neither lane could
     // induce. That is the case this budget exists for, and it is independent
     // of how fast any single test is. What the lanes DID reproduce on demand
     // (5/6 and 12/12 under CPU load) was a timeout of `tests/public.test.js`'s

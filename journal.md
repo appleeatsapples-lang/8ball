@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR pending
+## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR #240
 
 **What happened.** "Now the public.test.js sweep." The queued item from
 the pr238 flake work: `tests/public.test.js`'s voice-register sweep was
@@ -44,10 +44,11 @@ why: `l48_gate_composition`, `render_cards` and `pii_scan` sit within
 subprocess-heavy. The magnitude is the claim; the identity was noise
 being reported as a fact.
 
-The register sweep also gained a non-vacuity assertion — it now checks
-that it really scanned >50,000 strings, because an all-negative
-collected assertion greens on an empty walk, which was the exact failure
-mode the pr239 audit found in the PII scan two hours earlier.
+The register sweep also gained a non-vacuity assertion, because an
+all-negative collected assertion greens on an empty walk — the exact
+failure mode the pr239 audit had found in the PII scan two hours
+earlier. The first draft of that assertion was a `> 50,000` floor; what
+it is now is in the audit sections below, twice over.
 
 **Detection, measured the way #227 measured it.** Ten violations
 planted in `core/public.js`, each run against BOTH the old and the new
@@ -146,6 +147,96 @@ single-term register hit ignored; every text blanked before the scan;
 the same reading for every date; and the stride narrowed to 73. Suite
 **61 files / 2,133 tests green**; `public.test.js` ~620ms of assertion
 time.
+
+**Four-family audit, on the controller's order — and a THIRD lane found
+what two lanes had missed.** After the two-lane reconciliation the
+controller ordered an audit by every Claude family. Four fresh lanes
+(Fable, Opus, Sonnet, Haiku) took the reconciled head `9f20d52`, each
+against both base and head, each briefed to audit the reconciliation
+rather than the change. Verdicts: Fable, Opus and Sonnet MERGE WITH
+FIXES; Haiku MERGE with no findings. Everything below landed in one
+commit; no mid-audit push.
+
+*HIGH (Fable, Sonnet and Opus, independently) — a second detection
+regression of exactly the class the reconciliation had just fixed.*
+Vitest's `toBeGreaterThanOrEqual`/`toBeLessThanOrEqual` assert the actual
+is a NUMBER before comparing. The rewrite `!(n >= 0 && n <= 21)` is a
+bare JS comparison, and JS coerces: `null >= 0`, `'4' >= 0`, `[4] <= 21`
+and `true >= 0` are all true. Planted on a stride-37-only date, each
+failed the old file with a TypeError and passed the new one 44/44 — the
+`null` plant survived the **whole 2,133-test suite** (Opus). The
+two-lane artifact had waved the range checks through as "equivalent for
+the values in play": the exact hedge it refused for `-0`, one paragraph
+earlier. Three families found it; the first two lanes did not look at
+the numeric matchers' type contract at all. Restored through an
+`inRange(n, lo, hi)` helper that asserts `typeof n === 'number'`.
+
+*HIGH (Opus) / MED (Fable) — `differs()`, the helper that IS the `-0`
+fix, was the one helper the guard-the-guards block did not guard.*
+`differs = () => false` disabled ten comparisons across five sweeps and
+stayed 44/44 green; combined with the audited `-0` plant, the audited
+regression came back silently. A sentinel test now pins `differs` as
+`Object.is` and `inRange` as number-asserting.
+
+*MED (Fable and Opus) — the counts were computed outside the predicate
+walk, so the "killed" mutants were killed in one placement only.* The
+sweep counted strings and characters, then called `registerOffenders`
+separately; nothing tied what the predicate saw to what the counters
+counted. Blanking the texts AT THE CALL SITE — after counting, before
+the call — kept every exact pin green with a planted violation
+undetected, and so did `registerOffenders(dob, [])`. The two-lane
+artifact's "all four mutants killed" was true of the audit's placement
+and false of the semantically identical one a line lower. The counts now
+come back FROM the walk, so a count can only be right if the loop saw
+the text it counted.
+
+*MED (Opus) — the pins fired before `expectNone`, inverting the
+diagnosis claim.* A register violation only ever arrives with a content
+edit, and a content edit moves `chars` — so the realistic failure
+printed "expected 1415066 to be 1414086" and never named the banned
+term. The offenders assertion now runs first.
+
+*MED (Opus) — "applies all three predicates" planted two.* Deleting the
+diagnostic-framing predicate from the helper stayed green under a test
+that claimed to cover it. Third plant added.
+
+*MED (Opus) / LOW (Fable, Sonnet) — the reconciliation reproduced the
+floor it condemned.* `shapes.size > 1000` against a real 1,245: 19.7%
+slack, in a block whose comment says "EXACT, not a floor," and it was
+never the line that killed the mutant credited to it (`scanned` fired
+first). Also inert: the distinct-dates line, since the generator yields
+strictly increasing dates. Exact now; the inert line is gone. Fable and
+Opus also found the adjacent sweep's `count > 1900` floor against 1,985
+untouched, and four sweeps with no count pin at all. Every sweep now
+goes through `sweepList(stride, expectedCount)`, which pins its own
+date count.
+
+*LOW (Sonnet) — the bridge note's register compliance rested on a
+coincidence.* Breaking the sweep's call site was caught only because
+the fixture happens to hold four bridged dates. `MASTER_MODE_BRIDGE_NOTE`
+is now in the direct-scan tables (the gap Lane B queued last pass) and
+one bridged date is checked through the walk directly.
+
+*LOW (Fable, Opus) — the record, again.* Six sentences: the in-file
+comment still said "the predicates are unchanged" after the entry
+itself had said otherwise; a citation to a DOCTRINE "testTimeout note"
+that does not exist; pr238-era timings for `pii_scan`/`cards_hosting`
+stated in the present tense; this entry's heading still "PR pending";
+this entry's "fix" paragraph describing the removed `> 50,000` floor as
+current; and three comments that disagreed about what the 5/6 and 12/12
+figures support. All corrected. Haiku's read is worth one sentence too:
+it re-verified every count and every one of the seven prior kills, ran
+no mutants of its own, and found nothing — which is a statement about
+that lane's method, not about the code.
+
+**Family mutants: twenty run against the reconciled file, all killed** —
+the four non-number postures (`null`, `'4'`, `[4]`, `true`) and the
+`-0` re-verify; `differs` reverted to `!==` and to `() => false`;
+`inRange` without its type guard; texts blanked at the call site, the
+call site fed `[]`, and fed one string; the diagnostic predicate
+deleted; the same reading for every date; the range sweep's stride
+37→38 and the posture sweep's 89→97; and the seven prior kills again.
+`public.test.js` 44 → 46 tests; suite 2,133 → 2,135.
 
 **Two stale claims corrected — and then corrected again by the audit.**
 `vitest.config.js` and `tests/dependency_discipline.test.js` both
