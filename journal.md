@@ -5,7 +5,70 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.78: the host panel closes when the paired screen opens — the open question, answered — STAGED on branch, PR pending
+## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — the last screen that hid it — STAGED on branch, PR pending
+
+**What happened.** "Now the readings list panel." v0.78's own audit
+(Lane A MED-4) found the consistency argument half-true: `ui/readings.js`
+is the OTHER screen that hides `#result`, and it still restored the host
+panel open, so "returning lands on a sheet" was true of the paired
+screen and not of the readings list. That was narrowed rather than
+widened at the time, and named as the controller's. The word came.
+
+**The change, by the same seam.** `openPage()` calls a new `onOpen` hook
+BEFORE hiding anything — the ordering v0.78 established, so the panel's
+own focus return lands on a still-visible cell and `heading.focus()`
+takes focus from there. index.html wires it to the same
+`meaningsUI.close()` handle. Two details worth stating rather than
+leaving to be rediscovered: the hook resolves at CLICK time, not boot,
+because `initReadingsUI` runs above `initMeaningsUI` in index.html's
+boot order (a direct reference at boot would be a temporal-dead-zone
+read); and `close()` is unconditional since v0.77, so opening the list
+from onboarding with nothing open is a no-op rather than a guard.
+`ui/readings.js` names no panel id and imports nothing from
+`ui/meanings.js` — it asks the host, which is the §6 DI shape, and the
+same shape `ui/dyad.js` uses. `closePage()` is untouched and does not
+reopen; the list's existing focus restoration to its own opener stands.
+index.html 647 → 649 lines.
+
+**Tests.** +5: `openPage` calls `onOpen` exactly once with `#result`
+still visible at that moment; opening from onboarding still calls it;
+back does NOT call it again and restores the sheet; a host that passes
+no hook still opens the list (the module never requires it); and
+index.html wires the handle to readings with `ui/readings.js` naming no
+panel id. Suite 61 files / 2105 tests green; product audit PASS. Four
+mutants, all killed (no call; called after the hide; `closePage`
+reopening; the index.html hook dropped).
+
+**Live-fire, 390 and 1440.** Compartment open → previous readings →
+host panel `open:false`, `inert:true`, body length 0, pane `has-entry`
+cleared, focus on the readings heading; back → the sheet with the panel
+still closed, focus on the readings button, and at 1440 the pane's
+"select a compartment" line back; reopening a compartment works
+normally. No console errors at either width.
+
+**Second sighting of the parallel-run flake, and it is not what the
+first one looked like.** During this pass a full `npm test` failed twice
+over in one run: `pii_scan`'s operator-name rule (13.5s, the same
+signature as the 2026-09-03 sighting) AND `cards_hosting`'s JPEG
+integrity check (7s) — the two heaviest file-reading files in the suite,
+failing together. Both passed standalone immediately after, and four
+subsequent full runs were clean, so it is still unpinned. What it DOES
+settle is the framing: the first sighting was recorded as a story about
+`pii_scan`'s walk reading `audits/automated/`, and pr236's lanes
+sharpened that. But `cards_hosting` reads `cards/*.jpg` and never
+touches that directory, so the common factor is heavy parallel file
+reading in this container, not the scanner's scope. Disk (20G free) and
+descriptors (`ulimit -n` 20000) were both far from any limit. The
+scanner-scope follow-up both pr236 lanes endorsed is still worth doing
+on its own merits — it is a correctness argument, not a performance one
+— but it should not be expected to fix this.
+
+**Queued.** The PII scanner's walk scope (pr236, both lanes; unchanged
+by the above). The friend's rising/moon reading, still waiting on a
+birth time. `next_strategic_read` (due 2026-08-13) and
+`next_analytics_read` (due 2026-08-06), both overdue.
+
+## 2026-09-04 — DOCTRINE v0.78: the host panel closes when the paired screen opens — the open question, answered — SHIPPED (#237)
 
 **What happened.** "Take the host panel close question." It had been
 named as the controller's twice — v0.76's audit as LOW-6, v0.77's

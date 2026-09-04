@@ -496,6 +496,14 @@ export function initReadingsUI(refs, hooks = {}) {
   }
 
   function openPage() {
+    // The host meaning panel closes before this screen takes over, exactly as
+    // the §1.J paired screen does (§1.E v0.78/v0.79): the host's own focus
+    // return then lands on a still-visible cell, and `heading.focus()` below
+    // takes focus from there. Without it, `back` restores the sheet with a
+    // reading opened a screen ago still expanded — the half of "returning
+    // lands on a sheet" v0.78 could not claim. `close()` is unconditional, so
+    // opening from onboarding (nothing open) is a no-op.
+    if (typeof hooks.onOpen === 'function') hooks.onOpen();
     origin = result.classList.contains('hidden') ? onboarding : result;
     onboarding.classList.add('hidden');
     result.classList.add('hidden');

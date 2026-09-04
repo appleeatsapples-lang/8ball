@@ -112,6 +112,17 @@ describe('desk — host markup', () => {
     expect(html).not.toMatch(/onExit:[^,\n]*meaningsUI/);
   });
 
+  it('index.html closes the host panel when the readings list opens too (v0.79)', () => {
+    // the same handle, the other screen that hides #result — resolved at click
+    // time because initReadingsUI runs above initMeaningsUI in the boot order
+    expect(html).toMatch(/onOpen: \(\) => meaningsUI\.close\(\),/);
+    expect(html).toMatch(/initReadingsUI\([\s\S]{0,400}?onOpen: \(\) => meaningsUI\.close\(\),/);
+    // and the readings module asks for it rather than reaching into the panel
+    const readingsJs = readFileSync(join(__dirname, '..', 'ui', 'readings.js'), 'utf-8');
+    expect(readingsJs).toMatch(/if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);\s*\n\s*origin =/);
+    expect(readingsJs).not.toMatch(/meaning-panel|initMeaningsUI/);
+  });
+
   it('index.html hands the pane to initMeaningsUI, and the rail-read group to initDyadUI', () => {
     expect(html).toMatch(/initMeaningsUI\(\{\s*cardFace,\s*readingPane:\s*\$\('reading-pane'\)\s*\}\)/);
     expect(html).toMatch(/initDyadUI\(\{\s*stage:\s*document\.querySelector\('\.stage'\),\s*controls:\s*\$\('rail-read'\)\s*\}/);
