@@ -278,7 +278,8 @@ import {
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
-import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
+import { initDyadUI, syncDyadEntry, close as closeDyad, isOpen as isDyadOpen, currentRelation as dyadCurrentRelation } from './ui/dyad.js';
+import { initPairShareUI } from './ui/pairShare.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile, scrubStoredGender,
@@ -364,7 +365,19 @@ readingsUI = initReadingsUI(
     compareReadings: (left, right) => buildConcordance(
       profileFromPayload(left.profile), profileFromPayload(right.profile),
       { tier: getRenderTier() },
-    ) },
+    ),
+    // Screen ownership (§1.J v0.79): Previous Readings is a sibling
+    // full-screen surface to the paired reading. Closing Pair here — before
+    // openPage() decides its own return-to origin below — blanks B and both
+    // meaning panels through the same paths their own exits use, so the two
+    // screens can never stack and returning here always lands on the
+    // single sheet rather than a dead onboarding fallback. `meaningsUI` and
+    // the dyad imports are declared later in this module but this closure
+    // only ever RUNS on a click, well after boot() assigns them.
+    closeActiveScreens: () => {
+      meaningsUI.close();
+      if (isDyadOpen()) { closeDyad(); result.classList.remove('hidden'); }
+    } },
 );
 // v0.3.0 fix B + step-12 absorb (codex hook 4 P2): clamp the native
 // date picker to today using local-date math, not UTC. toISOString()
@@ -428,6 +441,15 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
     onExit: () => result.classList.remove('hidden'),
     onLabelsChange: labelsUI.applyLabelsState });
+
+// Pair Imprint (§5.D / §1.J v0.79) — a SEPARATE module from ui/share.js,
+// wired to the dyad screen's own injected button/status nodes (they exist
+// only after initDyadUI has run). Its one hook reads ui/dyad.js's last
+// FORMATTED relation record — never a profile, never sheet DOM.
+initPairShareUI(
+  { btn: $('dyad-share-btn'), status: $('dyad-share-status') },
+  { getRelation: dyadCurrentRelation },
+);
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
