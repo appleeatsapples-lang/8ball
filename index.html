@@ -413,7 +413,8 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     buildSecond: profileFromPayload,
     getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
     getPublicRead: publicReadFor,
-    onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden') });
+    onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden'),
+    onLabelsChange: labelsUI.applyLabelsState });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).

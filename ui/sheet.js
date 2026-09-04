@@ -93,8 +93,10 @@ const cellHtml = (prefix, key) =>
  * friends, so emitting those ids on a second sheet would make the lookup
  * ambiguous and the host's own meaning panel would start reading whichever
  * node document order happened to return. Attributes keep the two sheets
- * addressable and disjoint. (The cost is that sheets built here are not
- * tappable — see the limit recorded in DOCTRINE §1.J.)
+ * addressable and disjoint. (Through v0.75 the cost was that sheets built
+ * here were not tappable — the limit DOCTRINE §1.J recorded. Since v0.76
+ * ui/dyad.js marks these cells interactive by attribute and opens its own
+ * panel over each sheet's readCells(); the ids stay absent.)
  */
 export function buildSheetMarkup(prefix) {
   const sectionHtml = keys => {

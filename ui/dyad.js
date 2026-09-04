@@ -36,8 +36,11 @@
 // that cannot fall behind its fill list is the actual fix — the previous one
 // was correct when written and wrong one edit later.
 //
-// ── STORAGE / NETWORK: NONE ───────────────────────────────────────
-// No localStorage key is named, read or written. Person B lives in one
+// ── STORAGE / NETWORK: NONE OF ITS OWN ────────────────────────────
+// No localStorage key is named, read or written HERE. Since v0.76 the
+// paired screen reads and writes the ONE existing labels preference through
+// ui/labels.js's pure helpers (that module names the key; the allow-list is
+// unchanged) — nothing else. Person B lives in one
 // module-local binding for the life of the screen and is dropped on close, on
 // an invalid re-submission, and on reload — the §5.F transient shape. Notably
 // the written-entry rotation key is never touched: both sheets take their note
@@ -48,8 +51,17 @@
 // same one-way wiring ui/public.js uses. This module never asks storage.
 
 import { buildDyadReading } from '../core/dyad.js';
-import { coordsForTier } from './tiers.js';
+import { coordsForTier, derivationText, CELL_KEYS } from './tiers.js';
 import { buildSheetMarkup, createSheet } from './sheet.js';
+// The labels preference is ONE preference (§5: no new key): the pure helpers
+// here read and write the labels key ui/labels.js owns; the paired sheets
+// follow it and their toggle writes it back, and the host's applyLabelsState
+// follows through the onLabelsChange hook (v0.76).
+import { isLabelsRevealed, setLabelsRevealed } from './labels.js';
+// The paired sheets' compartments open their own panel over the SAME pure
+// content path the host panel reads through (v0.76) — one meaning registry,
+// two readers, and each reading is placed in the context of its own sheet.
+import { panelDetailFor, buildPanelMarkup, coordinateLabel } from './meanings.js';
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
@@ -247,6 +259,13 @@ const STYLE = `
    strike through it (caught in the §8 gate 9 live-fire pass, not by the
    suite). */
 #dyad-screen #dyad-back { margin-top: 1.25rem; }
+/* v0.76: the paired sheets' labels toggle (the host's .labels-toggle shape,
+   the same preference) sits above the strip; the compartment hint and the
+   paired panel (ui/meanings.js's .meaning-* classes, injected at the host's
+   boot) sit under it, before the spine. */
+#dyad-screen .labels-toggle { margin: 0 auto 8px; }
+#dyad-screen .meaning-hint { margin: 8px 0 0; }
+#dyad-screen .meaning-panel { text-align: left; }
 `;
 
 const SCREEN_HTML =
@@ -268,10 +287,14 @@ const SCREEN_HTML =
   '<button type="submit" class="btn btn-block" id="dyad-submit">read the pair</button>' +
   '</form>' +
   '<div id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden>' +
+  '<button class="labels-toggle" id="dyad-labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>' +
   '<div class="dyad-sheets" id="dyad-sheets">' +
   `<div><div class="dyad-sheet-label" id="dyad-head-a"></div>${buildSheetMarkup('a')}</div>` +
   `<div><div class="dyad-sheet-label" id="dyad-head-b"></div>${buildSheetMarkup('b')}</div>` +
   '</div>' +
+  '<div class="meaning-hint" id="dyad-meaning-hint" aria-hidden="true">each compartment opens — tap any value</div>' +
+  '<div class="meaning-panel" id="dyad-meaning-panel" role="region" aria-live="polite" ' +
+  `aria-labelledby="dyad-meaning-head dyad-meaning-title">${buildPanelMarkup('dyad-meaning')}</div>` +
   '<div class="dyad-spine-wrap">' +
   '<svg class="dyad-spine" id="dyad-spine" viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
   '<line class="dyad-spine-line" x1="4" y1="9" x2="96" y2="9" pathLength="1"></line>' +
@@ -320,6 +343,15 @@ let _second = null;
 // would silently give the NEXT person B someone else's timezone.
 let _city = null;
 let _cityUI = null;
+// The paired panel's active compartment and the two sheet owners' first
+// names (the panel head names whose sheet a reading belongs to). Dropped by
+// clearOutput() with everything else the render path writes.
+let _activeCell = null;
+let _names = { a: '', b: '' };
+let _panelScrollTimer = null;
+// the document the Escape listener is bound to — once per document (the
+// harness hands init a fresh document each time; the app has one)
+let _escapeDoc = null;
 
 function $(id) {
   return typeof document === 'undefined' ? null : document.getElementById(id);
@@ -332,6 +364,190 @@ function setText(id, text) {
 
 function currentTier() {
   return typeof _hooks?.getTier === 'function' ? _hooks.getTier() : 'free';
+}
+
+// ── the paired sheets' labels (v0.76) ────────────────────────────
+// Both sheets wear the host's `.labels-revealed` class (ui/shell.css keys
+// the row-title visibility on `.card.labels-revealed`), applied from the
+// stored preference on every open and render, and flipped by the screen's
+// own toggle — which writes the SAME preference and tells the host through
+// onLabelsChange so the single sheet agrees when the reader goes back.
+function applyDyadLabels(revealed) {
+  for (const prefix of ['a', 'b']) {
+    const face = _root && _root.querySelector ? _root.querySelector(`[data-sheet-face="${prefix}"]`) : null;
+    if (face && face.classList) face.classList.toggle('labels-revealed', !!revealed);
+  }
+  const btn = $('dyad-labels-toggle');
+  if (btn) {
+    btn.textContent = revealed ? '→ hide labels' : '→ reveal labels';
+    if (btn.setAttribute) btn.setAttribute('aria-pressed', revealed ? 'true' : 'false');
+  }
+}
+
+// ── the paired panel (v0.76) ─────────────────────────────────────
+// Thirty compartments, one panel. Cells are marked interactive by ATTRIBUTE
+// (never id — the G2 rule ui/sheet.js states), the click and keydown are
+// delegated to the strip so a re-render never detaches them, and the
+// reading is computed by ui/meanings.js's pure panelDetailFor over the
+// tapped sheet's own readCells(), so a value on sheet B is read beside B's
+// other values and never A's.
+function sheetFor(side) { return side === 'b' ? _sheetB : _sheetA; }
+
+function markPairedCells() {
+  for (const prefix of ['a', 'b']) {
+    for (const key of CELL_KEYS) {
+      const node = _root && _root.querySelector ? _root.querySelector(`[data-sheet-cell="${prefix}:${key}"]`) : null;
+      const cell = node && node.closest ? node.closest('.coord-cell') : null;
+      if (!cell || !cell.setAttribute) continue;
+      cell.classList.add('has-detail');
+      cell.setAttribute('tabindex', '0');
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-expanded', 'false');
+      cell.setAttribute('aria-controls', 'dyad-meaning-panel');
+      cell.setAttribute('aria-label', `${coordinateLabel(key)} details`);
+      cell.setAttribute('data-coordinate-key', key);
+      cell.setAttribute('data-sheet-side', prefix);
+    }
+  }
+}
+
+// Every text node the paired panel can hold — blanked on close, because
+// `hidden` is not deletion (PR #187 F1; pr235 audit, both lanes): an inert,
+// aria-hidden panel that still carries person B's first name and reading is
+// live DOM on person A's device, and it would otherwise survive a close, a
+// re-open and a fresh pair with a third person.
+const PAIRED_PANEL_TEXT_IDS = Object.freeze([
+  'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
+  'dyad-meaning-context', 'dyad-meaning-relation',
+]);
+const PAIRED_PANEL_HEAD_IDS = Object.freeze(['dyad-meaning-context-head', 'dyad-meaning-relation-head']);
+
+function blankPairedPanel() {
+  for (const id of PAIRED_PANEL_TEXT_IDS) setText(id, '');
+  for (const id of PAIRED_PANEL_HEAD_IDS) {
+    const node = $(id);
+    if (node) { node.textContent = ''; node.hidden = true; }
+  }
+}
+
+function setPairedPanelHidden(hidden) {
+  const panel = $('dyad-meaning-panel');
+  if (!panel) return;
+  panel.inert = hidden;
+  if (panel.setAttribute) panel.setAttribute('aria-hidden', String(hidden));
+}
+
+export function closePairedPanel() {
+  const cell = _activeCell;
+  if (cell) {
+    cell.classList.remove('active');
+    if (cell.setAttribute) cell.setAttribute('aria-expanded', 'false');
+  }
+  _activeCell = null;
+  if (cell && typeof cell.focus === 'function') cell.focus({ preventScroll: true });
+  const panel = $('dyad-meaning-panel');
+  if (panel && panel.classList) panel.classList.remove('open');
+  setPairedPanelHidden(true);
+  blankPairedPanel();
+}
+
+export function openPairedPanel(cell) {
+  if (!cell || !cell.getAttribute) return false;
+  const key = cell.getAttribute('data-coordinate-key');
+  const side = cell.getAttribute('data-sheet-side');
+  const sheet = sheetFor(side);
+  if (!key || !sheet) return false;
+  const hint = $('dyad-meaning-hint');
+  if (hint) hint.hidden = true; // first use retires the affordance for this open
+  if (_activeCell === cell) { closePairedPanel(); return false; }
+  if (_activeCell) {
+    _activeCell.classList.remove('active');
+    if (_activeCell.setAttribute) _activeCell.setAttribute('aria-expanded', 'false');
+  }
+  _activeCell = cell;
+  cell.classList.add('active');
+  cell.setAttribute('aria-expanded', 'true');
+  const values = {};
+  for (const [k, v] of Object.entries(sheet.readCells())) values[k] = String(v || '').trim();
+  const rawValue = values[key];
+  const sealed = !!(cell.classList && cell.classList.contains('sealed'));
+  const detail = panelDetailFor(key, rawValue, () => values, { sealed });
+  const owner = _names[side] || side;
+  setText('dyad-meaning-head', `${coordinateLabel(key)} · ${owner}`);
+  // system name · derivation (v0.74's line, the same registry text) — the
+  // derivation surface the paired sheets lacked through v0.75
+  setText('dyad-meaning-derivation', derivationText(key));
+  setText('dyad-meaning-title', detail.title);
+  setText('dyad-meaning-body', detail.body);
+  const contextHead = $('dyad-meaning-context-head');
+  const contextBody = $('dyad-meaning-context');
+  if (contextHead) { contextHead.hidden = !detail.context; contextHead.textContent = detail.contextLabel || 'in this sheet'; }
+  if (contextBody) { contextBody.hidden = !detail.context; contextBody.textContent = detail.context || ''; }
+  const relationHead = $('dyad-meaning-relation-head');
+  const relationBody = $('dyad-meaning-relation');
+  if (relationHead) { relationHead.hidden = !detail.relation; relationHead.textContent = detail.relation ? 'filed relation' : ''; }
+  if (relationBody) { relationBody.hidden = !detail.relation; relationBody.textContent = detail.relation || ''; }
+  const panel = $('dyad-meaning-panel');
+  if (panel && panel.classList) panel.classList.add('open');
+  setPairedPanelHidden(false);
+  // The same after-transition scroll the host panel does (300ms > the
+  // 280ms max-height transition), one pending at a time.
+  if (panel && typeof panel.scrollIntoView === 'function' && typeof setTimeout === 'function') {
+    const instant = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (_panelScrollTimer) clearTimeout(_panelScrollTimer);
+    _panelScrollTimer = setTimeout(() => {
+      _panelScrollTimer = null;
+      if (_activeCell !== cell) return;
+      panel.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' });
+    }, 300);
+  }
+  return true;
+}
+
+function bindPairedPanel() {
+  const strip = $('dyad-sheets');
+  const cellOf = e => (e && e.target && typeof e.target.closest === 'function'
+    ? e.target.closest('.coord-cell.has-detail') : null);
+  if (strip && strip.addEventListener) {
+    strip.addEventListener('click', e => { const cell = cellOf(e); if (cell) openPairedPanel(cell); });
+    strip.addEventListener('keydown', e => {
+      if (!e || (e.key !== 'Enter' && e.key !== ' ')) return;
+      const cell = cellOf(e);
+      if (cell) { if (e.preventDefault) e.preventDefault(); openPairedPanel(cell); }
+    });
+  }
+  const closeBtn = $('dyad-meaning-close');
+  if (closeBtn && closeBtn.addEventListener) closeBtn.addEventListener('click', closePairedPanel);
+  const toggle = $('dyad-labels-toggle');
+  if (toggle && toggle.addEventListener) {
+    toggle.addEventListener('click', () => {
+      // `next` comes from the sheet's own class, as the host derives it from
+      // #card-face — deriving it from storage made the toggle a one-way latch
+      // wherever setItem is denied (pr235 audit MED-4).
+      const faceA = _root && _root.querySelector ? _root.querySelector('[data-sheet-face="a"]') : null;
+      const next = faceA && faceA.classList ? !faceA.classList.contains('labels-revealed') : !isLabelsRevealed();
+      setLabelsRevealed(next);
+      applyDyadLabels(next);
+      if (typeof _hooks.onLabelsChange === 'function') _hooks.onLabelsChange(next);
+    });
+  }
+  // Escape parity with the host panel; a modal overlay keeps priority. The
+  // listener is CAPTURE-phase (pr235 audit, both lanes): ui/modals.js's own
+  // bubble-phase Escape handler registers first at boot and strips `.open`
+  // from the modal before a later bubble handler could see it, so a
+  // bubble-phase guard here read "no modal open" and closed the panel on the
+  // same keystroke. Capture runs before every bubble handler on the document.
+  // Bound once per document — initDyadUI may be re-entered (the harness
+  // does), and a document listener must not stack.
+  if (typeof document.addEventListener === 'function' && _escapeDoc !== document) {
+    _escapeDoc = document;
+    document.addEventListener('keydown', e => {
+      if (!e || e.key !== 'Escape' || !_activeCell) return;
+      if (typeof document.querySelector === 'function' && document.querySelector('.modal-bg.open')) return;
+      closePairedPanel();
+    }, true);
+  }
+  setPairedPanelHidden(true);
 }
 
 function injectStyle() {
@@ -410,6 +626,8 @@ export function syncDyadEntry(tier) {
  *                         whatever is stored.
  *        - getPublicRead(p) the t3 public-read block for a profile
  *        - onOpen()/onExit()  host callbacks that hide and restore the sheet
+ *        - onLabelsChange(revealed) the host's applyLabelsState, so the single
+ *                         sheet follows a flip made on this screen (v0.76)
  */
 export function initDyadUI(refs, hooks) {
   _hooks = hooks || {};
@@ -426,6 +644,8 @@ export function initDyadUI(refs, hooks) {
   injectEntryButton(refs.controls);
   _sheetA = createSheet(_root, { prefix: 'a' });
   _sheetB = createSheet(_root, { prefix: 'b' });
+  markPairedCells();
+  bindPairedPanel();
 
   const form = $('dyad-form');
   if (form) {
@@ -460,6 +680,7 @@ export function open() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
   clearEntryFields();
+  applyDyadLabels(isLabelsRevealed());
   if (_root && _root.classList) _root.classList.remove('hidden');
   if (_root && _root.focus) _root.focus({ preventScroll: true });
   return true;
@@ -482,6 +703,10 @@ export function close() {
  */
 export function clearOutput() {
   _second = null;
+  _names = { a: '', b: '' };
+  closePairedPanel();
+  const hint = $('dyad-meaning-hint');
+  if (hint) hint.hidden = false;
   // The pannable mobile strip (STYLE's .dyad-sheets) resets to its leading
   // edge too. Ordered before #dyad-output is hidden below on principle — a
   // scrollLeft write on a boxless (display:none-ancestor) element is a
@@ -628,6 +853,8 @@ export function render() {
 
   setText('dyad-head-a', profileA.firstName || 'a');
   setText('dyad-head-b', _second.firstName || 'b');
+  _names = { a: profileA.firstName || 'a', b: _second.firstName || 'b' };
+  applyDyadLabels(isLabelsRevealed());
 
   const relation = dyadRelationFor(profileA, _second);
   const block = $('dyad-relation');

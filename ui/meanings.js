@@ -130,6 +130,31 @@ function injectStyle() {
   document.head.appendChild(style);
 }
 
+/**
+ * The panel's inner markup, ids prefixed so a second panel can exist on a
+ * second screen without colliding with this one (v0.76: the dyad screen's
+ * paired sheets open their own panel through ui/dyad.js — same parts, same
+ * classes, ids under `dyad-meaning-`). The host panel is the `meaning`
+ * prefix, byte-identical to what it was before the export.
+ */
+export function buildPanelMarkup(prefix) {
+  const id = part => `${prefix}-${part}`;
+  return `<div class="meaning-head" id="${id('head')}"></div>` +
+    `<div class="meaning-derivation" id="${id('derivation')}"></div>` +
+    `<div class="meaning-title" id="${id('title')}"></div>` +
+    `<div class="meaning-body" id="${id('body')}"></div>` +
+    `<div class="meaning-context-head" id="${id('context-head')}">in this sheet</div>` +
+    `<div class="meaning-context" id="${id('context')}"></div>` +
+    `<div class="meaning-context-head" id="${id('relation-head')}">filed relation</div>` +
+    `<div class="meaning-context" id="${id('relation')}"></div>` +
+    `<button type="button" class="meaning-close" id="${id('close')}">close</button>`;
+}
+
+/** The clinical label a compartment's panel head carries. */
+export function coordinateLabel(key) {
+  return COORDINATES[key] ? COORDINATES[key].label : String(key);
+}
+
 function buildPanel() {
   const panel = document.createElement('div');
   panel.className = 'meaning-panel';
@@ -137,16 +162,7 @@ function buildPanel() {
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-live', 'polite');
   panel.setAttribute('aria-labelledby', 'meaning-head meaning-title');
-  panel.innerHTML =
-    '<div class="meaning-head" id="meaning-head"></div>' +
-    '<div class="meaning-derivation" id="meaning-derivation"></div>' +
-    '<div class="meaning-title" id="meaning-title"></div>' +
-    '<div class="meaning-body" id="meaning-body"></div>' +
-    '<div class="meaning-context-head" id="meaning-context-head">in this sheet</div>' +
-    '<div class="meaning-context" id="meaning-context"></div>' +
-    '<div class="meaning-context-head" id="meaning-relation-head">filed relation</div>' +
-    '<div class="meaning-context" id="meaning-relation"></div>' +
-    '<button type="button" class="meaning-close" id="meaning-close">close</button>';
+  panel.innerHTML = buildPanelMarkup('meaning');
   return panel;
 }
 
@@ -312,8 +328,17 @@ export function harmonyFor(key, entry, values, opts = {}) {
   return composeHarmony(frameIndexFor(key, values[key]), theme, context.role, partners, closing);
 }
 
-function detailFor(key, cell, rawValue) {
-  if (cell.classList.contains('sealed') || !rawValue) {
+/**
+ * Everything a compartment's panel says, computed from the sheet it sits on
+ * — pure over (key, the cell's rendered text, a reader for the whole sheet's
+ * rendered values, the sealed flag). The host sheet reads its values off the
+ * id-bound cells (detailFor below); the dyad's two sheets hand in their own
+ * `readCells()` (v0.76), so a compartment on either paired sheet is read in
+ * the context of THAT sheet, never the host's. `readSheet` is a function so
+ * the sealed/unresolved branches never touch the sheet at all.
+ */
+export function panelDetailFor(key, rawValue, readSheet, { sealed = false } = {}) {
+  if (sealed || !rawValue) {
     return {
       title: 'meaning sealed at this tier',
       body: 'the value is not present on this tier, so its meaning cannot yet be read beside the rest of the sheet.',
@@ -329,7 +354,7 @@ function detailFor(key, cell, rawValue) {
   }
   const entry = entryFor(key, rawValue);
   if (entry) {
-    const values = readValues();
+    const values = readSheet();
     const rel = sheetRelationFor(key, values);
     return {
       title: entry.register,
@@ -346,6 +371,10 @@ function detailFor(key, cell, rawValue) {
     body: 'this value has no meaning entry in the current content registry.',
     context: '',
   };
+}
+
+function detailFor(key, cell, rawValue) {
+  return panelDetailFor(key, rawValue, readValues, { sealed: cell.classList.contains('sealed') });
 }
 
 export function initMeaningsUI(refs) {
@@ -564,11 +593,16 @@ let scrollTimer = null;
 
   // Escape parity with about/forget/paywall (P3 post-spree audit). Defer when
   // any modal-bg overlay is open so modal Escape remains the higher priority.
+  // CAPTURE-phase since v0.76 (pr235 audit, both lanes, verified on the base
+  // too): ui/modals.js's bubble-phase Escape handler registers first at boot
+  // and strips `.open` before a later bubble handler could see it, so the
+  // guard below never held and one keystroke closed the modal AND this
+  // panel. Capture runs before every bubble handler on the document.
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!panel.classList.contains('open')) return;
     if (typeof document.querySelector === 'function'
         && document.querySelector('.modal-bg.open')) return;
     close();
-  });
+  }, true);
 }

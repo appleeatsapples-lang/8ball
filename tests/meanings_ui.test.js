@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildPanelMarkup, panelDetailFor, coordinateLabel } from '../ui/meanings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf-8');
@@ -79,7 +80,15 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   });
 
   it('v0.74: the panel carries the derivation line between head and title, hidden when empty', () => {
-    expect(meaningsJs).toMatch(/id="meaning-head"><\/div>' \+\s*'<div class="meaning-derivation" id="meaning-derivation"><\/div>' \+\s*'<div class="meaning-title"/);
+    // v0.76: the panel parts are built by buildPanelMarkup(prefix) so the dyad
+    // screen can carry a second panel under `dyad-meaning-`; the host's
+    // markup is the `meaning` prefix and keeps its order
+    const parts = buildPanelMarkup('meaning');
+    expect(parts).toMatch(/id="meaning-head"><\/div><div class="meaning-derivation" id="meaning-derivation"><\/div><div class="meaning-title"/);
+    expect(meaningsJs).toMatch(/panel\.innerHTML = buildPanelMarkup\('meaning'\);/);
+    const dyad = buildPanelMarkup('dyad-meaning');
+    expect(dyad).not.toMatch(/id="meaning-/);
+    expect(dyad.match(/id="dyad-meaning-[a-z-]+"/g)).toHaveLength(9);
     expect(meaningsJs).toMatch(/\.meaning-derivation:empty \{ display: none; \}/);
   });
 
@@ -123,5 +132,35 @@ describe('ui/meanings.js DI shape + boot wiring', () => {
   it('index.html net line-budget for this feature is import + one init call (single-file rule)', () => {
     const lines = html.split('\n').length;
     expect(lines, `index.html is ${lines} lines — over the DOCTRINE §6 1500-line cap`).toBeLessThanOrEqual(1500);
+  });
+});
+
+describe('v0.76: the pure panel content path and the Escape listeners (pr235 audit)', () => {
+  it('panelDetailFor never reads the sheet on the sealed or unresolved branches', () => {
+    let reads = 0;
+    const readSheet = () => { reads++; return {}; };
+    expect(panelDetailFor('sun', 'leo', readSheet, { sealed: true }).title).toBe('meaning sealed at this tier');
+    expect(panelDetailFor('sun', '', readSheet).title).toBe('meaning sealed at this tier');
+    expect(panelDetailFor('rising', '\u2014', readSheet).title).toBe('not resolved');
+    expect(reads).toBe(0);
+    expect(panelDetailFor('sun', 'leo', readSheet).title.length).toBeGreaterThan(0);
+    expect(reads).toBe(1);
+    expect(panelDetailFor('sun', 'not a sign', readSheet).title).toBe('meaning not filed');
+    expect(reads).toBe(1);
+  });
+
+  it('coordinateLabel is the panel-head label for every cell key, and the key itself for an unknown one', () => {
+    expect(coordinateLabel('animal')).toBe('public animal');
+    expect(coordinateLabel('innerAnimal')).toBe('private animal');
+    expect(coordinateLabel('nope')).toBe('nope');
+  });
+
+  it('both Escape listeners are capture-phase, so the modal guard runs before ui/modals.js strips .open', () => {
+    const dyadJs = readFileSync(join(__dirname, '..', 'ui', 'dyad.js'), 'utf-8');
+    expect(meaningsJs).toMatch(/if \(e\.key !== 'Escape'\) return;[\s\S]{0,400}?\n  \}, true\);/);
+    expect(dyadJs).toMatch(/e\.key !== 'Escape'[\s\S]{0,400}?\n    \}, true\);/);
+    const modalsJs = readFileSync(join(__dirname, '..', 'ui', 'modals.js'), 'utf-8');
+    // the modal handler is a bubble-phase document listener — the reason capture is needed
+    expect(modalsJs).toMatch(/document\.addEventListener\('keydown'/);
   });
 });
