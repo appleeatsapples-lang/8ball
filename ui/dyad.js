@@ -49,6 +49,21 @@
 //
 // ENTITLEMENT and the public read are resolved by the host and handed in, the
 // same one-way wiring ui/public.js uses. This module never asks storage.
+//
+// ── PAIR DOSSIER + SCREEN OWNERSHIP (v0.79) ───────────────────────
+// Three additions, none touching the calculation or the register law:
+//   1. A compact pair signature (before the two sheets) and direction-
+//      explicit / split-register evidence (below them) reformat fields
+//      formatDyadRelation already computed — no fourth verdict, no edited
+//      content table. See the field comments there.
+//   2. compareAnother()/isOpen() are the seam a sibling screen (Previous
+//      Readings) uses to close Pair without stacking: isOpen() answers
+//      whether this screen is the visible one, close() blanks B and hides
+//      it, exactly as the F1 clear path always has.
+//   3. currentRelation() hands ui/pairShare.js — a SEPARATE module this file
+//      never imports — the last formatted relation record, so the Pair
+//      Imprint exporter (§5.D amendment) narrows its own snapshot from data,
+//      never from a profile or the sheet DOM. No share code lives here.
 
 import { buildDyadReading } from '../core/dyad.js';
 import { coordsForTier, derivationText, CELL_KEYS } from './tiers.js';
@@ -113,6 +128,24 @@ export const DYAD_RELATION_NODES = Object.freeze({
   'dyad-cardpair-head': 'cardPairHead',
   'dyad-cardpair-body': 'cardPair',
   'dyad-qualifier': 'qualifier',
+  // Pair Dossier hierarchy (DOCTRINE §1.J v0.79). The three fields below are
+  // NOT new claims — each is a reformatting of a field already computed
+  // above, read twice into two places: the compact pair-signature row
+  // (before the two sheets) and the direction-explicit accordion heads
+  // (inside the evidence below). Same source, same value, two placements —
+  // never a fourth verdict.
+  'dyad-signature-element': 'elementDirectionAB',
+  'dyad-signature-numerology': 'numerologySpine',
+  'dyad-signature-cardpair': 'cardPairHead',
+  'dyad-element-direction-ab': 'elementDirectionAB',
+  'dyad-element-direction-ba': 'elementDirectionBA',
+  // The card-pair axis split into its two structural registers (year-branch
+  // status, card phase/bracket arc) instead of one flattened paragraph;
+  // `dyad-cardpair-body` above stays as the full citation, unedited.
+  'dyad-cardpair-branch-head': 'cardBranchHead',
+  'dyad-cardpair-branch-body': 'cardBranchBody',
+  'dyad-cardpair-bracket-head': 'cardBracketHead',
+  'dyad-cardpair-bracket-body': 'cardBracketBody',
 });
 
 // The three collapsible <details> wrappers, by id. ONE list, addressed by
@@ -128,6 +161,7 @@ export const DYAD_AXIS_IDS = Object.freeze([
  */
 export function formatDyadRelation(reading) {
   const { element, numerology, cardPair, qualifier } = reading.relation;
+  const { branch, bracket } = cardPair;
   return {
     // Terse symbolic heads for the spine/summary row — no label, no
     // register, just the two-sided shape a reader can take in at a glance.
@@ -136,6 +170,16 @@ export function formatDyadRelation(reading) {
     elementHead: `${element.a.element} → ${element.b.element} · ${element.aToB.label}`,
     elementAB: element.aToB.body,
     elementBA: element.bToA.body,
+    // Direction-explicit pair (Pair Dossier hierarchy): the same aToB/bToA
+    // relation above, restated with "A"/"B" as the anonymous positional
+    // labels the two sheets already carry, so `WATER ⇄ WOOD` (undirected
+    // glyph) and `WATER → WOOD` (the detail head) never read as
+    // contradictory framings of the same fact. Neither line is a sentence —
+    // "A"/"B" name sheet POSITIONS, never a person, so the §1.J register law
+    // (no person as grammatical subject) is untouched; the authored bodies
+    // below (elementAB/elementBA) remain the only prose.
+    elementDirectionAB: `A · ${element.a.element} → B · ${element.b.element}`,
+    elementDirectionBA: `B · ${element.b.element} ← A · ${element.a.element}`,
     numerologyHead: `${numerology.lifePathA} + ${numerology.lifePathB} → ${numerology.combined} · ${numerology.register}`,
     // Two separate strings on purpose (§1.J content-source rule, PR #187 F6):
     // the reduction is authored for this tier and carries no meaning; the
@@ -146,6 +190,14 @@ export function formatDyadRelation(reading) {
     numerologyMeaning: numerology.meaning,
     cardPairHead: `no. ${cardPair.catalogA} × no. ${cardPair.catalogB}`,
     cardPair: cardPair.body,
+    // The card-pair axis, split into the two structural registers the data
+    // already carries (core/dyad.js cardPair()'s own branch/bracket
+    // objects) rather than the flattened `cardPair.body` paragraph above,
+    // which stays as the full citation.
+    cardBranchHead: branch.status === 'registered' ? `year branch · ${branch.key}` : 'year branch · unfiled',
+    cardBranchBody: branch.body,
+    cardBracketHead: `A · ${bracket.arcA} → B · ${bracket.arcB}`,
+    cardBracketBody: bracket.body,
     qualifier,
   };
 }
@@ -266,18 +318,57 @@ const STYLE = `
 #dyad-screen .labels-toggle { margin: 0 auto 8px; }
 #dyad-screen .meaning-hint { margin: 8px 0 0; }
 #dyad-screen .meaning-panel { text-align: left; }
+/* Pair Dossier hierarchy (DOCTRINE §1.J v0.79) — heading, scope line,
+   compact pair signature, direction-explicit evidence, failure state,
+   completion flow. Faint text stays at or above opacity 0.55 on the
+   monochrome black surface (var(--text) is opaque white), which measures
+   ≥4.5:1 — the same floor tests/monochrome_surface.test.js pins for the
+   rest of the product; nothing here introduces a fainter token. */
+#dyad-screen .dyad-heading { margin: 0.4rem 0 0.15rem; font-size: 1.05rem; }
+#dyad-screen .dyad-scope { margin: 0 0 0.75rem; opacity: 0.75; }
+#dyad-screen .dyad-signature {
+  display: grid; gap: 0.5rem; margin: 0 0 1rem; padding: 0.75rem 0;
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+#dyad-screen .dyad-signature-item { display: flex; justify-content: space-between; gap: 0.75rem; align-items: baseline; }
+#dyad-screen .dyad-signature-label {
+  text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.68rem; opacity: 0.7; flex: 0 0 auto; }
+#dyad-screen .dyad-signature-value { font-size: 0.86rem; text-align: right; }
+#dyad-screen .dyad-signature[hidden] { display: none; }
+#dyad-screen .dyad-axis-label {
+  text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.4em; }
+#dyad-screen .dyad-relation-scope {
+  display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: space-between;
+  font-size: 0.72rem; opacity: 0.7; margin-bottom: 0.75rem; }
+#dyad-screen .dyad-relation-failure { margin: 0.75rem 0; }
+#dyad-screen .dyad-relation-failure p { font-size: 0.86rem; opacity: 0.85; margin: 0 0 0.5rem; }
+#dyad-screen .dyad-relation-failure[hidden] { display: none; }
+#dyad-screen .dyad-side-select {
+  display: flex; gap: 0.5rem; margin: 0 0 0.5rem; justify-content: center; }
+#dyad-screen .dyad-side-btn {
+  min-height: 44px; min-width: 44px; padding: 0 1rem;
+  background: transparent; border: 1px solid var(--rule); color: var(--text);
+  font: inherit; cursor: pointer; }
+#dyad-screen .dyad-side-btn[aria-pressed="true"] { border-color: var(--text); font-weight: 600; }
+@media (min-width: 720px) { #dyad-screen .dyad-side-select { display: none; } }
+#dyad-screen .dyad-share-disclosure { font-size: 0.72rem; opacity: 0.7; margin: 1rem 0 0.5rem; text-align: center; }
+#dyad-screen #dyad-share-btn { margin-bottom: 0.5rem; }
+#dyad-screen #dyad-compare-btn { margin-top: 0.25rem; }
+#dyad-screen .share-status { font-size: 0.78rem; opacity: 0.85; text-align: center; margin: 0.35rem 0; }
 `;
 
 const SCREEN_HTML =
   '<div class="registry-header">specimen registry · paired entry</div>' +
+  '<h2 class="dyad-heading" id="dyad-heading">pair reading</h2>' +
+  '<p class="hint dyad-scope" id="dyad-scope">three structural relations. no compatibility score or prediction.</p>' +
   '<p class="hint dyad-intro" id="dyad-intro">the current sheet, read beside a second one. the second entry is not saved.</p>' +
   '<form id="dyad-form" autocomplete="off">' +
   '<div class="field dyad-field"><label for="dyad-name-input">second name</label>' +
-  '<input id="dyad-name-input" type="text" required maxlength="60">' +
-  '<p class="field-error" id="dyad-name-error" hidden>enter a name.</p></div>' +
+  '<input id="dyad-name-input" type="text" required maxlength="60" aria-describedby="dyad-name-error" aria-invalid="false">' +
+  '<p class="field-error" id="dyad-name-error" role="alert" aria-live="assertive" hidden>enter a name.</p></div>' +
   '<div class="field dyad-field"><label for="dyad-dob-input">second date of birth</label>' +
-  '<input id="dyad-dob-input" type="date" required>' +
-  '<p class="field-error" id="dyad-dob-error" hidden>enter a valid past date.</p></div>' +
+  '<input id="dyad-dob-input" type="date" required aria-describedby="dyad-dob-error" aria-invalid="false">' +
+  '<p class="field-error" id="dyad-dob-error" role="alert" aria-live="assertive" hidden>enter a valid past date.</p></div>' +
   '<div class="field dyad-field"><label for="dyad-time-input">second birth time (optional)</label>' +
   '<input id="dyad-time-input" type="time"></div>' +
   '<div class="field city-field dyad-field"><label for="dyad-city-input">second birthplace (optional)</label>' +
@@ -287,7 +378,23 @@ const SCREEN_HTML =
   '<button type="submit" class="btn btn-block" id="dyad-submit">read the pair</button>' +
   '</form>' +
   '<div id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden>' +
+  // Compact pair signature — three labeled findings, read from the SAME
+  // formatted relation record the evidence below expands, before the two
+  // full sheets (Pair Dossier hierarchy). Hidden (not just empty) when a
+  // pair fails to resolve, so the failure copy below is what a reader sees.
+  '<div class="dyad-signature" id="dyad-signature" role="group" aria-label="pair signature" hidden>' +
+  '<div class="dyad-signature-item"><span class="dyad-signature-label">element cycle</span>' +
+  '<span class="dyad-signature-value" id="dyad-signature-element"></span></div>' +
+  '<div class="dyad-signature-item"><span class="dyad-signature-label">combined life path</span>' +
+  '<span class="dyad-signature-value" id="dyad-signature-numerology"></span></div>' +
+  '<div class="dyad-signature-item"><span class="dyad-signature-label">card pair</span>' +
+  '<span class="dyad-signature-value" id="dyad-signature-cardpair"></span></div>' +
+  '</div>' +
   '<button class="labels-toggle" id="dyad-labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>' +
+  '<div class="dyad-side-select" id="dyad-side-select" role="group" aria-label="jump to sheet">' +
+  '<button type="button" class="dyad-side-btn" id="dyad-side-a" aria-pressed="true">A</button>' +
+  '<button type="button" class="dyad-side-btn" id="dyad-side-b" aria-pressed="false">B</button>' +
+  '</div>' +
   '<div class="dyad-sheets" id="dyad-sheets">' +
   `<div><div class="dyad-sheet-label" id="dyad-head-a"></div>${buildSheetMarkup('a')}</div>` +
   `<div><div class="dyad-sheet-label" id="dyad-head-b"></div>${buildSheetMarkup('b')}</div>` +
@@ -309,25 +416,52 @@ const SCREEN_HTML =
   '</svg>' +
   '</div>' +
   '<div class="dyad-relation" id="dyad-relation">' +
-  '<details class="dyad-axis" id="dyad-axis-element"><summary id="dyad-spine-element"></summary>' +
+  // The relation SCOPE/provenance line — where "recorded, not certified."
+  // now sits, instead of as the final line under the evidence.
+  '<div class="dyad-relation-scope"><span>relation layer · structural citations only</span>' +
+  '<span id="dyad-qualifier"></span></div>' +
+  '<details class="dyad-axis" id="dyad-axis-element">' +
+  '<summary><span class="dyad-axis-label">element cycle</span><span id="dyad-spine-element"></span></summary>' +
   '<div class="dyad-axis-detail">' +
-  '<div class="dyad-axis-head" id="dyad-element-head"></div>' +
+  '<div class="dyad-axis-head" id="dyad-element-direction-ab"></div>' +
   '<div class="dyad-axis-body" id="dyad-element-ab"></div>' +
-  '<div class="dyad-axis-body" id="dyad-element-ba"></div></div></details>' +
-  '<details class="dyad-axis" id="dyad-axis-numerology"><summary id="dyad-spine-numerology"></summary>' +
+  '<div class="dyad-axis-head" id="dyad-element-direction-ba"></div>' +
+  '<div class="dyad-axis-body" id="dyad-element-ba"></div>' +
+  '<div class="dyad-cite-label">full citation</div>' +
+  '<div class="dyad-axis-body dyad-cite" id="dyad-element-head"></div></div></details>' +
+  '<details class="dyad-axis" id="dyad-axis-numerology">' +
+  '<summary><span class="dyad-axis-label">combined life path</span><span id="dyad-spine-numerology"></span></summary>' +
   '<div class="dyad-axis-detail">' +
   '<div class="dyad-axis-head" id="dyad-numerology-head"></div>' +
   '<div class="dyad-axis-body" id="dyad-numerology-reduction"></div>' +
   '<div class="dyad-cite-label">numerology registry</div>' +
   '<div class="dyad-axis-body dyad-cite" id="dyad-numerology-meaning"></div></div></details>' +
-  '<details class="dyad-axis" id="dyad-axis-cardpair"><summary id="dyad-cardpair-head"></summary>' +
+  '<details class="dyad-axis" id="dyad-axis-cardpair">' +
+  '<summary><span class="dyad-axis-label">card pair</span><span id="dyad-cardpair-head"></span></summary>' +
   '<div class="dyad-axis-detail">' +
-  '<div class="dyad-axis-body" id="dyad-cardpair-body"></div></div></details>' +
-  '<div class="dyad-qualifier" id="dyad-qualifier"></div>' +
+  '<div class="dyad-axis-head" id="dyad-cardpair-branch-head"></div>' +
+  '<div class="dyad-axis-body" id="dyad-cardpair-branch-body"></div>' +
+  '<div class="dyad-axis-head" id="dyad-cardpair-bracket-head"></div>' +
+  '<div class="dyad-axis-body" id="dyad-cardpair-bracket-body"></div>' +
+  '<div class="dyad-cite-label">full citation</div>' +
+  '<div class="dyad-axis-body dyad-cite" id="dyad-cardpair-body"></div></div></details>' +
+  '</div>' +
+  // Failure state (Step 4): visible copy + a recoverable action, never a
+  // silent empty block. Shown only when a submitted pair fails to resolve
+  // a relation; the two individual sheets above render regardless.
+  '<div class="dyad-relation-failure" id="dyad-relation-failure" hidden>' +
+  '<p>relation layer unavailable. both individual sheets remain valid.</p>' +
+  '<button type="button" class="btn btn-secondary" id="dyad-relation-retry">compare another</button>' +
   '</div>' +
   '<p class="dyad-error" id="dyad-error" role="status" hidden></p>' +
+  // Completion flow (Step 3): primary → secondary → tertiary. "back to my
+  // sheet" (the pre-render exit too) stays outside #dyad-output, below.
+  '<div class="dyad-share-disclosure" id="dyad-share-disclosure">created on this device · personal details excluded</div>' +
+  '<button type="button" class="btn btn-block" id="dyad-share-btn">share the pair</button>' +
+  '<div class="share-status" id="dyad-share-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>' +
+  '<button type="button" class="btn btn-block btn-secondary" id="dyad-compare-btn">compare another</button>' +
   '</div>' +
-  '<button class="btn btn-block btn-secondary" id="dyad-back">back to the sheet</button>';
+  '<button class="btn btn-block btn-secondary" id="dyad-back">back to my sheet</button>';
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
 
@@ -348,6 +482,12 @@ let _cityUI = null;
 // clearOutput() with everything else the render path writes.
 let _activeCell = null;
 let _names = { a: '', b: '' };
+// The last rendered pair's formatted relation, or null (sealed/failed). Read
+// only through currentRelation() below — the seam ui/pairShare.js's DI hook
+// uses (index.html wires `getRelation: currentRelation`), so the Pair
+// Imprint exporter never imports this module's internals and never touches a
+// profile or the sheet DOM (§1.J v0.79 privacy boundary).
+let _relation = null;
 let _panelScrollTimer = null;
 let _blankTimer = null;
 // the document the Escape listener is bound to — once per document (the
@@ -667,6 +807,20 @@ export function initDyadUI(refs, hooks) {
       submitSecond();
     });
   }
+  // Reset-on-input (Step 4 a11y parity): editing a field after a rejected
+  // submit clears ONLY that field's error, mirroring the primary form's
+  // dobInput 'input' listener (index.html) rather than waiting for the next
+  // submit to clear stale error state the reader has already acted on.
+  for (const { input, error } of Object.values(ENTRY_FIELDS)) {
+    const inputEl = $(input);
+    if (inputEl && inputEl.addEventListener) {
+      inputEl.addEventListener('input', () => {
+        const errEl = $(error);
+        if (errEl) errEl.hidden = true;
+        if (inputEl.setAttribute) inputEl.setAttribute('aria-invalid', 'false');
+      });
+    }
+  }
   const back = $('dyad-back');
   if (back) {
     back.addEventListener('click', () => {
@@ -674,6 +828,35 @@ export function initDyadUI(refs, hooks) {
       if (typeof _hooks.onExit === 'function') _hooks.onExit();
     });
   }
+  // Completion flow (Step 3): compare another / the failure state's retry
+  // both re-enter the second-entry form without leaving the screen or
+  // dropping A. "share the pair" is wired independently by ui/pairShare.js
+  // (a dedicated module, never reached from here — the Pair Imprint's
+  // narrow-snapshot boundary stays whole).
+  const compareBtn = $('dyad-compare-btn');
+  if (compareBtn) compareBtn.addEventListener('click', () => { compareAnother(); });
+  const retryBtn = $('dyad-relation-retry');
+  if (retryBtn) retryBtn.addEventListener('click', () => { compareAnother(); });
+  // Narrow-screen A/B jump control (Step 1 responsive requirement): the
+  // strip already keeps one sheet in clear view via scroll-snap; this adds
+  // an explicit position cue + a click-to-jump path for pointer/keyboard
+  // users who don't want to pan. Hidden at ≥720px (STYLE), where both
+  // sheets sit side by side and the cue would be redundant.
+  const sideA = $('dyad-side-a');
+  const sideB = $('dyad-side-b');
+  function setSide(side) {
+    const wrap = $('dyad-sheets');
+    if (wrap && wrap.children && wrap.children[side === 'b' ? 1 : 0] && typeof wrap.scrollTo === 'function') {
+      const target = wrap.children[side === 'b' ? 1 : 0];
+      wrap.scrollTo({ left: target.offsetLeft || 0, behavior: 'smooth' });
+    } else if (wrap) {
+      wrap.scrollLeft = side === 'b' ? (wrap.scrollWidth || 0) : 0;
+    }
+    if (sideA && sideA.setAttribute) sideA.setAttribute('aria-pressed', String(side !== 'b'));
+    if (sideB && sideB.setAttribute) sideB.setAttribute('aria-pressed', String(side === 'b'));
+  }
+  if (sideA) sideA.addEventListener('click', () => setSide('a'));
+  if (sideB) sideB.addEventListener('click', () => setSide('b'));
   // The second birthplace field. ui/citysearch.js is per-instance as of the
   // §1.J remediation precisely so this can exist without repointing the
   // primary form's listeners (which would have dropped the rising sign from
@@ -705,6 +888,41 @@ export function close() {
   clearEntryFields();
 }
 
+/** Whether the paired screen is currently the visible one. Read-only query
+ *  over internal state — the seam ui/readings.js uses (screen-ownership,
+ *  Step 3) to close Pair before opening Previous Readings, rather than
+ *  guessing from #result's own hidden state. */
+export function isOpen() {
+  return !!(_root && _root.classList && !_root.classList.contains('hidden'));
+}
+
+/** The last rendered pair's formatted relation record, or null. Pure query,
+ *  never a profile or DOM — see `_relation`'s comment above. */
+export function currentRelation() {
+  return _relation;
+}
+
+/**
+ * "compare another" (Step 3 completion flow): clears B — every derived
+ * value, name, panel text and relation output clearOutput() already
+ * enumerates — while retaining A and the screen itself, then returns focus
+ * to the second-entry form so a reader can type the next pair immediately.
+ * Unlike open(), the screen is not re-shown (it is already open) and the
+ * pre-render exit control (`dyad-back`) is untouched.
+ */
+export function compareAnother() {
+  if (!dyadEntitled(currentTier())) return false;
+  clearOutput();
+  clearEntryFields();
+  applyDyadLabels(isLabelsRevealed());
+  const nameInput = $('dyad-name-input');
+  if (nameInput) {
+    if (typeof nameInput.scrollIntoView === 'function') nameInput.scrollIntoView({ block: 'center' });
+    if (typeof nameInput.focus === 'function') nameInput.focus({ preventScroll: true });
+  }
+  return true;
+}
+
 /**
  * Blank EVERYTHING the render path can write, and drop person B.
  *
@@ -717,6 +935,7 @@ export function close() {
 export function clearOutput() {
   _second = null;
   _names = { a: '', b: '' };
+  _relation = null;
   closePairedPanel();
   // teardown, not a close animation: blank NOW, never on a timer (§5.F)
   if (_blankTimer) { clearTimeout(_blankTimer); _blankTimer = null; }
@@ -763,6 +982,20 @@ export function clearOutput() {
   if (spine && spine.classList) spine.classList.remove('dyad-spine-revealing');
   const err = $('dyad-error');
   if (err) { err.hidden = true; err.textContent = ''; }
+  // Pair Dossier hierarchy state: the signature row and the failure copy
+  // are mutually exclusive and both start hidden — render() below is the
+  // only place either becomes visible, so a stale one can never survive a
+  // clear/close (the same F1 shape this whole function is).
+  const signature = $('dyad-signature');
+  if (signature) signature.hidden = true;
+  const failure = $('dyad-relation-failure');
+  if (failure) failure.hidden = true;
+  const sideA = $('dyad-side-a');
+  const sideB = $('dyad-side-b');
+  if (sideA && sideA.setAttribute) { sideA.setAttribute('aria-pressed', 'true'); sideA.textContent = 'A'; }
+  if (sideB && sideB.setAttribute) { sideB.setAttribute('aria-pressed', 'false'); sideB.textContent = 'B'; }
+  const shareStatus = $('dyad-share-status');
+  if (shareStatus) { shareStatus.hidden = true; shareStatus.textContent = ''; }
   hideEntryErrors();
 }
 
@@ -778,17 +1011,33 @@ function clearEntryFields() {
   if (_cityUI) _cityUI.reset();
 }
 
+// Field-linked pairs (Step 4 a11y parity with the primary form's dobInput):
+// each error paragraph is aria-describedby'd from its own input, and
+// aria-invalid rides the INPUT, not just the error text's visibility.
+const ENTRY_FIELDS = Object.freeze({
+  name: { input: 'dyad-name-input', error: 'dyad-name-error' },
+  dob: { input: 'dyad-dob-input', error: 'dyad-dob-error' },
+});
+
 function hideEntryErrors() {
-  for (const id of ['dyad-name-error', 'dyad-dob-error']) {
-    const el = $(id);
-    if (el) el.hidden = true;
+  for (const { input, error } of Object.values(ENTRY_FIELDS)) {
+    const errEl = $(error);
+    if (errEl) errEl.hidden = true;
+    const inputEl = $(input);
+    if (inputEl && inputEl.setAttribute) inputEl.setAttribute('aria-invalid', 'false');
   }
 }
 
 function showEntryError(field) {
   hideEntryErrors();
-  const el = $(field === 'name' ? 'dyad-name-error' : 'dyad-dob-error');
-  if (el) el.hidden = false;
+  const target = ENTRY_FIELDS[field] || ENTRY_FIELDS.dob;
+  const errEl = $(target.error);
+  if (errEl) errEl.hidden = false;
+  const inputEl = $(target.input);
+  if (inputEl) {
+    if (inputEl.setAttribute) inputEl.setAttribute('aria-invalid', 'true');
+    if (typeof inputEl.focus === 'function') inputEl.focus();
+  }
 }
 
 /**
@@ -873,6 +1122,7 @@ export function render() {
   applyDyadLabels(isLabelsRevealed());
 
   const relation = dyadRelationFor(profileA, _second);
+  _relation = relation;
   const block = $('dyad-relation');
   if (block && block.classList) block.classList.toggle('sealed', !relation);
   if (block && block.setAttribute) {
@@ -882,6 +1132,18 @@ export function render() {
   for (const [id, field] of Object.entries(DYAD_RELATION_NODES)) {
     setText(id, relation ? relation[field] : '');
   }
+  // Pair Dossier hierarchy: the compact signature reads the same fields the
+  // evidence below expands, and the two individual sheets above render
+  // regardless of whether the relation resolved — a failed relation never
+  // means a failed reading (Step 4: "both individual sheets remain valid").
+  const signature = $('dyad-signature');
+  if (signature) signature.hidden = !relation;
+  const failure = $('dyad-relation-failure');
+  if (failure) failure.hidden = !!relation;
+  const sideA = $('dyad-side-a');
+  const sideB = $('dyad-side-b');
+  if (sideA) sideA.textContent = `A · ${profileA.firstName || 'a'}`;
+  if (sideB) sideB.textContent = `B · ${_second.firstName || 'b'}`;
   const spine = $('dyad-spine');
   if (spine && spine.classList && relation) spine.classList.add('dyad-spine-revealing');
 
