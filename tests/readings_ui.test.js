@@ -777,7 +777,52 @@ describe('page navigation and focus (§5.E)', () => {
     expect(h.refs.saveBtn.disabled).toBe(false);
     expect(h.refs.saveStatus.textContent).toBe('');
   });
+});
 
+describe('screen ownership — Previous Readings closes an active Pair before opening (DOCTRINE §1.J v0.79)', () => {
+  it('calls hooks.closeActiveScreens BEFORE computing where "back" should return to', () => {
+    const calls = [];
+    const h = boot({
+      resultVisible: false,
+      hooks: {
+        // Mirrors index.html's real wiring: `dyadUI.close();
+        // result.classList.remove('hidden');` — Pair's own onOpen had
+        // hidden #result, so restoring it is what makes origin resolve to
+        // the sheet rather than onboarding below.
+        closeActiveScreens: () => {
+          calls.push('closeActiveScreens');
+          h.refs.result.classList.remove('hidden');
+        },
+      },
+    });
+    // Force BOTH host screens hidden — the true "Pair is the active
+    // screen" shape (a third screen this harness does not model directly);
+    // boot()'s resultVisible only toggles between the ordinary two.
+    h.refs.onboarding.classList.add('hidden');
+    h.refs.openBtn._fire('click');
+    expect(calls).toEqual(['closeActiveScreens']);
+    h.page.querySelector('#readings-back')._fire('click');
+    expect(h.refs.result.classList.contains('hidden')).toBe(false);
+    expect(h.refs.onboarding.classList.contains('hidden')).toBe(true);
+  });
+
+  it('without the hook restoring #result, origin falls back to onboarding — the stacking bug this closes', () => {
+    const h = boot({ resultVisible: false, hooks: { closeActiveScreens: () => {} } });
+    h.refs.onboarding.classList.add('hidden');
+    h.refs.openBtn._fire('click');
+    h.page.querySelector('#readings-back')._fire('click');
+    expect(h.refs.onboarding.classList.contains('hidden')).toBe(false);
+  });
+
+  it('a host with no closeActiveScreens hook opens exactly as before — no crash, no behavior change', () => {
+    const h = boot({ resultVisible: true });
+    expect(() => h.refs.openBtn._fire('click')).not.toThrow();
+    expect(h.refs.result.classList.contains('hidden')).toBe(true);
+    expect(h.refs.onboarding.classList.contains('hidden')).toBe(true);
+  });
+});
+
+describe('save flow — the controller reads no storage key other than the archive', () => {
   it('the controller reads no storage key other than the archive', () => {
     const touched = new Set();
     const storage = makeStorage();

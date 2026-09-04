@@ -47,6 +47,9 @@ import {
   submitSecond,
   render as renderDyad,
   closePairedPanel,
+  compareAnother,
+  isOpen as isDyadOpen,
+  currentRelation,
 } from '../ui/dyad.js';
 import { panelDetailFor, coordinateLabel } from '../ui/meanings.js';
 import { derivationText } from '../ui/tiers.js';
@@ -64,6 +67,7 @@ import {
   initTiersUI, renderTierSections,
 } from '../ui/tiers.js';
 import { buildDyadReading } from '../core/dyad.js';
+import { DYAD_QUALIFIER } from '../content/dyad.v2.js';
 import { buildProfile } from '../core/profile.js';
 import { getCard } from '../core/engine.js';
 import { CARDS } from '../content/cards.v1.full.js';
@@ -217,6 +221,13 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
     'dyad-meaning-context-head', 'dyad-meaning-context', 'dyad-meaning-relation-head',
     'dyad-meaning-relation', 'dyad-meaning-close',
+    // v0.79: Pair Dossier hierarchy — heading/scope, compact signature, the
+    // narrow-screen A/B jump control, the failure state, and the completion
+    // flow's own controls (dyad-back's relabel needs no new id).
+    'dyad-heading', 'dyad-scope', 'dyad-signature',
+    'dyad-side-select', 'dyad-side-a', 'dyad-side-b',
+    'dyad-relation-failure', 'dyad-relation-retry',
+    'dyad-share-disclosure', 'dyad-share-btn', 'dyad-share-status', 'dyad-compare-btn',
     ...DYAD_AXIS_IDS,
     ...Object.keys(DYAD_RELATION_NODES),
   ];
@@ -1810,5 +1821,328 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     // the host hands its applyLabelsState through the hook
     const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
     expect(html).toMatch(/onLabelsChange: labelsUI\.applyLabelsState/);
+  });
+});
+
+// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.79) ─────────────────────────
+
+describe('Pair Dossier — heading, scope, and the compact pair signature', () => {
+  it('the pair reading heading and scope line are on screen', () => {
+    expect(dyadJs).toMatch(/pair reading/);
+    expect(dyadJs).toMatch(/three structural relations\. no compatibility score or prediction\./);
+  });
+
+  it('the signature reads the same three fields the evidence below expands, before the two sheets', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-signature-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-signature-numerology').textContent).toBe(relation.numerologySpine);
+    expect(h.get('dyad-signature-cardpair').textContent).toBe(relation.cardPairHead);
+    expect(h.get('dyad-signature').hidden).toBe(false);
+  });
+
+  it('the signature starts hidden in the static markup (pre-JS default)', () => {
+    expect(dyadJs).toMatch(/id="dyad-signature"[^>]*\bhidden\b/);
+  });
+
+  it('the signature is explicitly hidden by the same clear path everything else in the F1 enumeration uses', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-signature').hidden).toBe(false);
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-signature').hidden).toBe(true);
+  });
+});
+
+describe('Pair Dossier — direction-explicit element cycle (resolves the ⇄ vs → ambiguity)', () => {
+  it('the WATER ⇄ WOOD spine stays exactly as pinned; the new fields add A/B direction beside it, never replace it', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(relation.elementDirectionAB).toBe(`A · ${reading.relation.element.a.element} → B · ${reading.relation.element.b.element}`);
+    expect(relation.elementDirectionBA).toBe(`B · ${reading.relation.element.b.element} ← A · ${reading.relation.element.a.element}`);
+    // Both directions cite the same two elements as the spine, just labeled.
+    expect(relation.elementDirectionAB).toContain(reading.relation.element.a.element);
+    expect(relation.elementDirectionBA).toContain(reading.relation.element.a.element);
+  });
+
+  it('both direction heads land in the DOM, each immediately before its own authored body', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-element-direction-ab').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-element-ab').textContent).toBe(relation.elementAB);
+    expect(h.get('dyad-element-direction-ba').textContent).toBe(relation.elementDirectionBA);
+    expect(h.get('dyad-element-ba').textContent).toBe(relation.elementBA);
+  });
+});
+
+describe('Pair Dossier — card pair split into its structural registers', () => {
+  it('the branch and bracket registers render as separate labeled sub-sections, not one flattened paragraph', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-cardpair-branch-head').textContent).toBe(relation.cardBranchHead);
+    expect(h.get('dyad-cardpair-branch-body').textContent).toBe(relation.cardBranchBody);
+    expect(h.get('dyad-cardpair-bracket-head').textContent).toBe(relation.cardBracketHead);
+    expect(h.get('dyad-cardpair-bracket-body').textContent).toBe(relation.cardBracketBody);
+    // The full flattened citation survives too — nothing is lost, just no
+    // longer the PRIMARY presentation.
+    expect(h.get('dyad-cardpair-body').textContent).toBe(relation.cardPair);
+  });
+
+  it('the branch head names the filed relation key, or says unfiled — never invents a fourth verdict', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const branch = reading.relation.cardPair.branch;
+    expect(relation.cardBranchHead).toBe(
+      branch.status === 'registered' ? `year branch · ${branch.key}` : 'year branch · unfiled',
+    );
+  });
+
+  it('the bracket head is direction-explicit with A/B, matching the element cycle convention', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const { bracket } = reading.relation.cardPair;
+    expect(relation.cardBracketHead).toBe(`A · ${bracket.arcA} → B · ${bracket.arcB}`);
+  });
+});
+
+describe('Pair Dossier — the relation scope/provenance line carries the qualifier', () => {
+  it('"recorded, not certified." is not the final line under the evidence — it sits with the scope framing', () => {
+    // Structural: the qualifier node is the FIRST child inside #dyad-relation
+    // (immediately after the opening tag), not the last — i.e. it precedes
+    // every <details> axis rather than trailing them.
+    const relationOpen = dyadJs.indexOf('id="dyad-relation">');
+    const scopeIdx = dyadJs.indexOf('dyad-relation-scope', relationOpen);
+    const firstAxisIdx = dyadJs.indexOf('dyad-axis-element', relationOpen);
+    expect(scopeIdx).toBeGreaterThan(relationOpen);
+    expect(scopeIdx).toBeLessThan(firstAxisIdx);
+  });
+
+  it('the qualifier value is still exactly DYAD_QUALIFIER and still clears on close', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-qualifier').textContent).toBe(DYAD_QUALIFIER);
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-qualifier').textContent).toBe('');
+  });
+});
+
+describe('Pair Dossier — failure state (Step 4: visible copy, never a silent empty block)', () => {
+  // A day-pillar-incoherent profile makes core/dyad.js's dyadDayMaster guard
+  // throw, so dyadRelationFor (which catches) returns null — the same
+  // fail-closed shape the sealed-DOM tests below already exercise, reused
+  // here to drive the FAILURE presentation rather than the entitlement one.
+  function incoherentB() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('an unresolved relation shows explicit visible copy and a recoverable action, never a bare aria-label', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-output').hidden).toBe(false); // the two sheets still render
+    expect(h.get('dyad-relation').classList.contains('sealed')).toBe(true);
+    expect(h.get('dyad-signature').hidden).toBe(true);
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    expect(h.get('dyad-relation-retry')).toBeTruthy();
+  });
+
+  it('both individual sheets remain valid when the relation fails', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.cell('a', 'arcana').textContent).toBe(A.birthCard.label);
+    // B's own sheet still renders from the (otherwise valid) incoherent
+    // profile — only the CROSS-profile relation lookup failed.
+    expect(h.cell('b', 'sun').textContent).toBe(B.sunSign);
+  });
+
+  it('the retry action re-enters the second-entry form (same as "compare another")', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'stale';
+      h.get('dyad-relation-retry').listeners.click();
+    });
+    expect(h.get('dyad-name-input').value).toBe('');
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('a resolved pair after a failed one clears the failure copy and shows the signature', () => {
+    let calls = 0;
+    const h = harness('t5', { buildSecond: () => (calls++ === 0 ? incoherentB() : B) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      return submitSecond();
+    });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-signature').hidden).toBe(false);
+  });
+});
+
+describe('Pair Dossier — completion flow (Step 3: share / compare another / back to my sheet)', () => {
+  it('three actions exist: share the pair (primary), compare another (secondary), back to my sheet (tertiary)', () => {
+    expect(dyadJs).toMatch(/share the pair/);
+    expect(dyadJs).toMatch(/compare another/);
+    expect(dyadJs).toMatch(/back to my sheet/);
+  });
+
+  it('"back to my sheet" is the SAME control as before (id dyad-back), just relabeled — behavior unchanged', () => {
+    let exitCalls = 0;
+    const h = harness('t5', { onExit: () => { exitCalls += 1; } });
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-back').listeners.click());
+    expect(h.get('dyad-screen').classList.contains('hidden')).toBe(true);
+    expect(exitCalls).toBe(1);
+  });
+
+  it('"compare another" clears every B-derived node, keeps A, and returns focus to the name field', () => {
+    const h = harness('t5');
+    h.withDom(() => {
+      // open() clears the entry fields the harness pre-seeds — re-enter
+      // them, exactly as a real second visit to the form would.
+      openDyad();
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    });
+    expect(h.cell('b', 'arcana').textContent).toBe(B.birthCard.label);
+    h.withDom(() => h.get('dyad-compare-btn').listeners.click());
+    // B is gone, everywhere.
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.get('dyad-head-b').textContent).toBe('');
+    for (const key of CELL_KEYS) expect(h.cell('b', key).textContent).toBe('');
+    expect(allText(h)).not.toContain(B.sunSign);
+    // A is retained (compareAnother() never touches getProfile()'s
+    // host-owned A binding) and the SCREEN stays open — unlike "back to my
+    // sheet", it never hides #dyad-screen.
+    expect(h.get('dyad-screen').classList.contains('hidden')).toBe(false);
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('"compare another" is exported directly and refuses below t5', () => {
+    const h = harness('free');
+    expect(h.withDom(() => compareAnother())).toBe(false);
+  });
+
+  it('the pair signature, side-select and share status all reset on "compare another"', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-compare-btn').listeners.click());
+    expect(h.get('dyad-signature').hidden).toBe(true);
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+  });
+});
+
+describe('Pair Dossier — screen ownership (isOpen/close, the Previous-Readings seam)', () => {
+  it('isOpen() tracks the screen\'s own hidden class', () => {
+    const h = harness('t5');
+    expect(h.withDom(() => isDyadOpen())).toBe(false);
+    h.withDom(() => openDyad());
+    expect(isDyadOpen()).toBe(true);
+    h.withDom(() => closeDyad());
+    expect(isDyadOpen()).toBe(false);
+  });
+
+  it('currentRelation() exposes the last rendered relation and clears with everything else', () => {
+    const h = harness('t5');
+    expect(currentRelation()).toBe(null);
+    h.withDom(() => submitSecond());
+    expect(currentRelation()).not.toBe(null);
+    expect(currentRelation().cardPairHead).toMatch(/^no\. .+ × no\. .+$/);
+    h.withDom(() => closeDyad());
+    expect(currentRelation()).toBe(null);
+  });
+
+  it('currentRelation() is null (not the previous pair\'s) after a failure', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(currentRelation()).not.toBe(null);
+    const h2 = harness('t5', { buildSecond: () => ({ ...B, dayPillar: { ...B.dayPillar, stemElement: 'bogus' } }) });
+    h2.withDom(() => submitSecond());
+    expect(currentRelation()).toBe(null);
+  });
+});
+
+describe('Pair Dossier — second-form accessibility parity (Step 4)', () => {
+  it('both inputs carry aria-describedby + aria-invalid, both errors carry role=alert + aria-live=assertive', () => {
+    expect(dyadJs).toMatch(/dyad-name-input[^>]*aria-describedby="dyad-name-error"[^>]*aria-invalid="false"/);
+    expect(dyadJs).toMatch(/dyad-dob-input[^>]*aria-describedby="dyad-dob-error"[^>]*aria-invalid="false"/);
+    expect(dyadJs).toMatch(/dyad-name-error[^>]*role="alert"[^>]*aria-live="assertive"/);
+    expect(dyadJs).toMatch(/dyad-dob-error[^>]*role="alert"[^>]*aria-live="assertive"/);
+  });
+
+  it('a rejected submit sets aria-invalid on the offending field and focuses it', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'name' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-name-error').hidden).toBe(false);
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('true');
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('a rejected dob submit sets aria-invalid on the dob field, not the name field', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'dob' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-dob-error').hidden).toBe(false);
+    expect(h.get('dyad-dob-input').attrs['aria-invalid']).toBe('true');
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+  });
+
+  it('reset-on-input: editing the invalid field after a rejected submit clears its own error immediately', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'name' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-name-error').hidden).toBe(false);
+    h.withDom(() => h.get('dyad-name-input').listeners.input());
+    expect(h.get('dyad-name-error').hidden).toBe(true);
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+  });
+
+  it('a successful submit clears aria-invalid on both fields', () => {
+    const h = harness('t5');
+    h.withDom(() => { h.get('dyad-name-input').attrs['aria-invalid'] = 'true'; return submitSecond(); });
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+    expect(h.get('dyad-dob-input').attrs['aria-invalid']).toBe('false');
+  });
+});
+
+describe('Pair Dossier — narrow-screen A/B jump control', () => {
+  it('both jump buttons exist and default to A pressed in the static markup', () => {
+    expect(dyadJs).toMatch(/id="dyad-side-a" aria-pressed="true"/);
+    expect(dyadJs).toMatch(/id="dyad-side-b" aria-pressed="false"/);
+  });
+
+  it('the clear path resets both buttons to A pressed (the same JS-driven baseline the harness can observe)', () => {
+    const h = harness('t5');
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+  });
+
+  it('clicking B presses B and releases A; labels carry each side\'s first name after a render', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-side-a').textContent).toBe(`A · ${A.firstName}`);
+    expect(h.get('dyad-side-b').textContent).toBe(`B · ${B.firstName}`);
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('false');
+  });
+
+  it('a fresh open() resets both buttons to plain A/B text and A pressed', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-a').textContent).toBe('A');
+    expect(h.get('dyad-side-b').textContent).toBe('B');
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
   });
 });
