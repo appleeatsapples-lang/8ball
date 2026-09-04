@@ -218,20 +218,65 @@ being asked to soften it, which is the disclosure LOW-3 asks the journal for.
   `fetch(`, no new localStorage key, no jsdom; `project_audit.py` PASS with its
   own assurance suite green.
 
+## Post-audit change, on the controller's word — disclosed, not folded in
+
+The reconciliation above filed HIGH-1's third path (`resetFormDisplay`) as
+**open work for the controller**, and that is the version both lanes read. The
+controller's answer was **"fix and merge"**, so the path is closed in a second
+commit on this branch, AFTER both lanes reported. Neither lane audited it. It
+is named here rather than absorbed into the narrative above, because the whole
+point of this artifact is that the record says what was and was not reviewed.
+
+What it does: `initProfileUI` gains an `onReset` hook, called as the first
+statement of `resetFormDisplay` — before `#result` is hidden, the same ordering
+the other two sites use — and index.html wires it to the same
+`meaningsUI.close()` handle. One hook covers all three callers (try another,
+forget this device, boot recovery). `ui/profile.js` names no panel id, matching
+the DI shape Lane B verified for `ui/readings.js`.
+
+Evidence gathered for it, to the standard the lanes applied:
+
+- **Live-fire, 390 and 1440, both user paths.** Try another: panel
+  `open:false, inert:true` and the cell released at t+60ms with `#result`
+  already hidden and focus on `#name-input`; text blank at t+560ms (the v0.77
+  deferred blank); re-entering a reading and reopening a compartment works
+  normally; zero console errors. Forget this device: byte-identical state at
+  t+560ms. This is the exact scenario Lane A and Lane B each reproduced as a
+  defect on the audited head.
+- **Five mutants, all killed.** Drop the `onReset` call; move it after the
+  hide; drop the index.html wiring; add a fourth `#result` hide site; invert
+  the reset ordering against the enumeration pin.
+- **Four tests.** Two in `tests/profile_ui.test.js` (the hook fires exactly
+  once with `#result` still visible; a host passing no hook still resets), two
+  in `tests/desk_layout.test.js` — and the second of those is the durable one:
+  it scans index.html and every `ui/*.js` for any way of hiding `#result`
+  (`classList.add`/`toggle`, `.hidden =`, `style.display`), asserts the site set
+  is exactly the three the doctrine names, and asserts each closes before it
+  hides. **That is the answer to why this class recurred.** v0.78 rounded the
+  claim up, v0.79's first draft rounded it up again, and a brief written
+  specifically to catch it did not prevent it. A claim about an enumeration
+  needs a test over the enumeration; a more careful author is not a control.
+
+Suite and product audit re-run green after the change (below).
+
 ## Final state of the reconciled branch
 
-- Suite **61 files / 2108 tests** green (+3 over the audited head: two
+- Suite **61 files / 2113 tests** green (+8 over the audited head: two
   `readings_ui` tests for the `origin` fixes, one `dependency_discipline` test
-  pinning `testTimeout`).
+  pinning `testTimeout`, two `profile_ui` tests and two `desk_layout` tests for
+  the post-audit reset path, and the boot-order pin LOW-2 asked for).
 - `python3 audits/project_audit.py` — PASS; `python3 -m unittest
   audits.test_project_audit` — OK.
-- Seven reconciliation mutants run, all killed — behavioural: `origin` derived
-  after the hook, `origin` re-derived on re-entry, `testTimeout` deleted,
-  `testTimeout` lowered to 6000; source-shape: the binding back to `const`, the
-  assignment without its `|| meaningsUI` fallback, and the two init calls
-  swapped in boot order.
-- `index.html` 649 → 656 lines (two comment blocks recording why the binding is
-  hoisted and why `origin` is derived where it is).
+- Twelve reconciliation mutants run, all killed — behavioural: `origin`
+  derived after the hook, `origin` re-derived on re-entry, `testTimeout`
+  deleted, `testTimeout` lowered to 6000, the `onReset` call dropped, the
+  `onReset` call moved after the hide; source-shape: the binding back to
+  `const`, the assignment without its `|| meaningsUI` fallback, the two init
+  calls swapped in boot order, the index.html `onReset` wiring dropped, a
+  fourth `#result` hide site added, and the reset ordering inverted against
+  the enumeration pin.
+- `index.html` 649 → 659 lines (the comment blocks recording why the binding is
+  hoisted and why `origin` is derived where it is, plus the `onReset` wiring).
 
 **Merge remains the controller's word per §10 / L48. This artifact claims no
 merge authority.**

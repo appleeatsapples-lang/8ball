@@ -5,16 +5,18 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — the second screen that replaced the sheet — STAGED on branch, PR #238
+## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — and, after the audit, the reset path with it — STAGED on branch, PR #238
 
 **What happened.** "Now the readings list panel." v0.78's own audit
 (Lane A MED-4) found the consistency argument half-true: `ui/readings.js`
 is the other screen that REPLACES the sheet with a screen of its own,
 and it still restored the host panel open, so "returning lands on a
 sheet" was true of the paired screen and not of the readings list.
-(There is a third path that hides `#result` and is not a screen at all —
-see the audit paragraph below; the first draft of this entry and its
-DOCTRINE clause both rounded "both screens" up to "every screen".) That was narrowed rather than
+(There is a third path that hides `#result` and is not a screen at all;
+the first draft of this entry and its DOCTRINE clause both rounded "both
+screens" up to "every screen", both audit lanes caught it, and on the
+controller's word — "fix and merge" — it is closed here too rather than
+queued. See the audit paragraph below.) That was narrowed rather than
 widened at the time, and named as the controller's. The word came.
 
 **The change, by the same seam.** `openPage()` calls a new `onOpen` hook
@@ -37,8 +39,8 @@ that cell in the open case and is uncontested in the closed one.
 `ui/meanings.js` — it asks the host, which is the §6 DI shape, and the
 same shape `ui/dyad.js` uses. `closePage()` is untouched and does not
 reopen; the list's existing focus restoration to its own opener stands.
-index.html 647 → 649 → 656 lines (the last step is the reconciliation's
-two comment blocks, below).
+index.html 647 → 649 → 659 lines (the last step is the reconciliation's
+comment blocks and the reset hook, below).
 
 **Tests.** +5 as built: `openPage` calls `onOpen` exactly once with
 `#result` still visible at that moment; opening from onboarding still
@@ -79,13 +81,32 @@ when the next reading renders under it. v0.78 rounded a two-screen claim
 up to a universal one and its audit caught it; v0.79 exists to correct
 that, and rounded the SAME claim up again — in a pass whose audit brief
 explicitly asked both lanes to look for exactly this class. The
-correction now names the three paths and the two screens separately at
-every site that carried the claim (the clause, the v0.78 marker, the
-footer, the changelog), and whether `resetFormDisplay` should close the
-panel eagerly goes to the controller as open work rather than being
-widened in here. The lesson is not "check the claim" — it was checked,
-by a brief written for it. It is that a sentence which upgrades from
-"both of the two" to "every" gains nothing and can only be wrong.
+correction first narrowed the claim at every site that carried it (the
+clause, the v0.78 marker, the footer, the changelog) and sent the third
+path to the controller as open work. The controller's answer was "fix
+and merge", so it is closed here instead: `initProfileUI` gains an
+`onReset` hook, index.html wires it to the same `meaningsUI.close()`
+handle, and `resetFormDisplay` calls it BEFORE hiding `#result` — the
+same seam and the same ordering as the other two, with the reset's own
+`nameInput.focus()` taking focus afterwards as it always did. Three
+callers (try another, forget this device, boot recovery) get it from one
+hook. Live-fired at 390 and 1440 on both paths: the panel is closed and
+inert at t+60ms, blank at t+560ms, focus on the name field, no console
+errors, and re-entering re-opens compartments normally.
+
+**And the enumeration is now pinned, because the sentence could not be.**
+This chain rounded the same claim up twice — v0.78 said it of two
+screens with a third path live, v0.79's first draft repeated it, and a
+brief written specifically to catch that did not stop it. Reading a
+sentence is not a check. `tests/desk_layout.test.js` now scans
+index.html and every `ui/*.js` for any way of hiding `#result`
+(`classList.add`/`toggle`, `.hidden =`, `style.display`) and asserts the
+site set is exactly the three the doctrine names, plus that each closes
+before it hides. A fourth path fails the suite in the change that adds
+it, and its author has to decide there and then whether the doctrine
+sentence is still true. That is the real lesson: a claim about an
+enumeration needs a test over the enumeration, not a more careful
+author.
 
 *MED-1, a temporal dead zone the new wiring opened.* `let meaningsUI;`
 sat about seventy lines BELOW `initReadingsUI`, and the readings hook
@@ -122,12 +143,15 @@ sentence the record makes is the sentence a test holds (LOW-2).
 rewrote.* Also LOW-1 (the "no-op" imprecision, corrected above and in
 the clause) and LOW-3 (the mutant disclosure, split above).
 
-Final state: suite 61 files / 2108 tests green; product audit PASS.
-Seven reconciliation mutants run, all killed — behavioural: `origin`
+Final state: suite 61 files / 2113 tests green; product audit PASS.
+Twelve reconciliation mutants run, all killed — behavioural: `origin`
 derived after the hook, `origin` re-derived on re-entry, `testTimeout`
-deleted, and `testTimeout` lowered to 6000; source-shape: the binding
-back to `const`, the assignment without its `|| meaningsUI` fallback,
-and the two init calls swapped in boot order.
+deleted, `testTimeout` lowered to 6000, the `onReset` call dropped, and
+the `onReset` call moved after the hide; source-shape: the binding back
+to `const`, the assignment without its `|| meaningsUI` fallback, the two
+init calls swapped in boot order, the index.html `onReset` wiring
+dropped, a fourth `#result` hide site added, and the reset ordering
+inverted against the enumeration pin.
 
 **Second sighting of the parallel-run flake, and it is not what the
 first one looked like.** During this pass a full `npm test` failed twice
@@ -164,10 +188,7 @@ the real config, so deleting or lowering it fails there. Separately and
 on its own merits, `tests/public.test.js`'s 2s baseline is worth
 reducing; that is queued, not done here.
 
-**Queued.** Whether `resetFormDisplay` should close the host panel
-eagerly — the third `#result`-hiding path, named in the clause as the
-controller's rather than widened into this pass (pr238 HIGH-1). The PII
-scanner's walk scope (pr236, both lanes; unchanged by the flake
+**Queued.** The PII scanner's walk scope (pr236, both lanes; unchanged by the flake
 finding), plus the two-line hardening pr238 Lane A noticed alongside it:
 `walk()` does `readdirSync` → `statSync` → `readFileSync` with no
 try/catch over a tree that includes `audits/automated/`, where

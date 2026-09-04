@@ -353,4 +353,35 @@ describe('ui/profile.js form behavior', () => {
     expect(storage.setItem).not.toHaveBeenCalled();
     expect(storage.removeItem).not.toHaveBeenCalled();
   });
+
+  // §1.E v0.79: the third path that hides #result. The paired screen and the
+  // readings list both retire the host meaning panel before replacing the
+  // sheet; this one used to hide #result with the panel still open, leaving a
+  // stale reading inert-but-live until the card-face observer caught it on the
+  // next render (pr238 audit HIGH-1, both lanes, reproduced in a browser).
+  // The ordering is the load-bearing half: the panel's own close() focuses the
+  // cell it came from, so it has to run while #result is still visible.
+  it('reset retires the host panel FIRST, while #result is still visible', () => {
+    installStorage();
+    const refs = makeRefs();
+    const seen = [];
+    initProfileUI(refs, {
+      onReset: () => { seen.push(refs.result.classList.contains('hidden')); },
+    });
+
+    resetFormDisplay();
+
+    expect(seen).toEqual([false]);
+    expect(refs.result.classList.contains('hidden')).toBe(true);
+  });
+
+  it('reset still works for a host that passes no onReset hook', () => {
+    installStorage();
+    const refs = makeRefs();
+    initProfileUI(refs, {});
+
+    expect(() => resetFormDisplay()).not.toThrow();
+    expect(refs.result.classList.contains('hidden')).toBe(true);
+    expect(refs.nameInput.value).toBe('');
+  });
 });

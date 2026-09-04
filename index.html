@@ -338,7 +338,10 @@ let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
   { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; },
+    // the third #result-hiding path — try another, forget this device, and
+    // boot recovery all reach resetFormDisplay (§1.E v0.79)
+    onReset: () => meaningsUI.close() },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),

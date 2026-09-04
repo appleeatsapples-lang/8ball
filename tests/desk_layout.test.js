@@ -19,7 +19,7 @@
 //      or no pane at all (the injected-DOM and test surfaces)
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initMeaningsUI } from '../ui/meanings.js';
@@ -133,6 +133,16 @@ describe('desk — host markup', () => {
     // (pr238 audit MED-2/MED-3)
     expect(readingsJs).toMatch(/if \(page\.classList\.contains\('hidden'\)\) \{\s*\n\s*origin = result\.classList[^\n]*\n\s*\}\s*\n\s*if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);/);
     expect(readingsJs).not.toMatch(/meaning-panel|initMeaningsUI/);
+  });
+
+  it('index.html closes the host panel on the reset path too (v0.79, pr238 HIGH-1)', () => {
+    // the third #result-hiding path: try another, forget this device, and the
+    // corrupted-payload boot recovery all reach ui/profile.js resetFormDisplay,
+    // which asks the host through the same DI seam rather than naming the panel
+    expect(html).toMatch(/onReset: \(\) => meaningsUI\.close\(\)/);
+    const profileJs = readFileSync(join(__dirname, '..', 'ui', 'profile.js'), 'utf-8');
+    expect(profileJs).toMatch(/if \(_hooks\.onReset\) _hooks\.onReset\(\);\s*\n\s*r\.result\.classList\.add\('hidden'\);/);
+    expect(profileJs).not.toMatch(/meaning-panel|initMeaningsUI/);
   });
 
   it('index.html hands the pane to initMeaningsUI, and the rail-read group to initDyadUI', () => {
@@ -434,5 +444,50 @@ describe('desk — the panel docks by media query (ui/meanings.js run for real)'
     p.querySelector('#meaning-close')._fire('click', { preventDefault() {} });
     expect(p.classList.contains('open')).toBe(false);
     expect(pane.classList.contains('has-entry')).toBe(false);
+  });
+});
+
+// The §1.E v0.79 claim is a claim about an ENUMERATION: every path that hides
+// `#result` retires the host meaning panel first. Twice in this chain that
+// claim was rounded up from the paths its author happened to be thinking about
+// — v0.78 said it of two screens when a third path existed, and v0.79's first
+// draft repeated it (pr237 audit MED-4, pr238 audit HIGH-1, both lanes). A
+// sentence like that cannot be held by reading it. This holds it: the set of
+// sites that hide `#result` is pinned, so adding a fourth fails here and the
+// author has to decide, in the same change, whether it retires the panel and
+// whether the doctrine sentence is still true.
+describe('#result is hidden from exactly three places, and each retires the panel first (§1.E v0.79)', () => {
+  const uiDir = join(__dirname, '..', 'ui');
+  const sources = [['index.html', html]].concat(
+    readdirSync(uiDir).filter(f => f.endsWith('.js'))
+      .map(f => [`ui/${f}`, readFileSync(join(uiDir, f), 'utf-8')])
+  );
+  // every way the codebase could hide the section, not just the one it uses
+  const HIDES = /result\.classList\.(?:add|toggle)\('hidden'|result\.hidden\s*=|result\.style\.display/g;
+
+  it('the hide sites are the three the doctrine names', () => {
+    const found = [];
+    for (const [name, src] of sources) {
+      for (const line of src.split('\n')) {
+        if (/\bresult\.classList|\bresult\.hidden|\bresult\.style/.test(line) && line.match(HIDES)) {
+          found.push(name);
+        }
+      }
+    }
+    expect(found.sort()).toEqual(['index.html', 'ui/profile.js', 'ui/readings.js']);
+  });
+
+  it('each of the three closes the host panel before it hides', () => {
+    // the dyad hook and the readings hook, inline in the host…
+    expect(html).toMatch(/onOpen: \(\) => \{ meaningsUI\.close\(\); result\.classList\.add\('hidden'\); \}/);
+    expect(html).toMatch(/onOpen: \(\) => meaningsUI\.close\(\),/);
+    expect(html).toMatch(/onReset: \(\) => meaningsUI\.close\(\)/);
+    // …and the two modules ask the host through their own hook, in that order
+    const readingsJs = readFileSync(join(uiDir, 'readings.js'), 'utf-8');
+    const openPage = readingsJs.slice(readingsJs.indexOf('function openPage'));
+    expect(openPage.indexOf('hooks.onOpen()')).toBeLessThan(openPage.indexOf("result.classList.add('hidden')"));
+    const profileJs = readFileSync(join(uiDir, 'profile.js'), 'utf-8');
+    const reset = profileJs.slice(profileJs.indexOf('export function resetFormDisplay'));
+    expect(reset.indexOf('_hooks.onReset()')).toBeLessThan(reset.indexOf("result.classList.add('hidden')"));
   });
 });
