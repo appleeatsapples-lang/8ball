@@ -97,6 +97,18 @@ const dyadCode = stripComments(dyadJs);
 const A = buildProfile('specimen a', '2000-01-01');
 const B = buildProfile('specimen b', '1988-06-15');
 
+// Fifth remediation gate, item 4: this block tests `core/payments.js`'s
+// tier-ladder registry directly — TIER_ORDER, resolveRenderTier,
+// applyPaidReturn, maxTier, normalizeTier. That module is the kua-retirement
+// precedent's "engine stands" half: it is a tested, pure state-machine
+// registry, but since the 2026-09-02 free amendment (§1.D v0.71) the LIVE
+// render path never calls it — ui/payments.js's own getRenderTier() (the
+// single render-density resolver every real render path uses) unconditionally
+// returns the free ceiling 't5' with no reference to stored tier/credits at
+// all. The "buying"/"paid for"/monotonic-ladder language below describes
+// what these retained functions still correctly compute given historical
+// input SHAPES (so a pre-amendment device's stored state migrates/resolves
+// sanely if ever read again), not anything a current device experiences.
 describe('dyad surface — the ladder append (§1.D v0.61)', () => {
   it('t5 is the fourth rung and outranks t3', () => {
     expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);

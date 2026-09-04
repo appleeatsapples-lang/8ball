@@ -1,8 +1,11 @@
 // 8ball / tests / density.test.js
-// Paid-tier density strip (Coordinate Legibility Pack cut 3). An aggregate
-// census derived PURELY from the tier constants. Pins: the count math,
-// profile-independence (value-leak sentinel), no-FOMO copy (§2/§5.C),
-// always-on gating, and §5.D PNG exclusion.
+// Density strip (Coordinate Legibility Pack cut 3). An aggregate census
+// derived PURELY from the render-registry tier constants — since doctrine
+// v0.71's free amendment every device renders the free ceiling and the
+// strip is always-on; "tier"/"sealed" here name retained compatibility
+// machinery, not a live paywall (see ui/tiers.js's own top-of-file note).
+// Pins: the count math, profile-independence (value-leak sentinel),
+// no-FOMO copy (§2/§5.C), always-on gating, and §5.D PNG exclusion.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

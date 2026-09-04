@@ -306,9 +306,13 @@ export function buildPairImprintCaption(snapshot) {
 //   stale                      — the pair changed while a NON-irreversible
 //                                step (rasterizing, waiting for a
 //                                pre-render, or a share attempt that has not
-//                                yet resolved/rejected) was in flight, so
-//                                nothing was shared or saved for the pair
-//                                this operation started with. Fourth gate,
+//                                yet resolved/rejected) was in flight, so no
+//                                irreversible share/download effect occurred
+//                                for the pair this operation started with.
+//                                Fifth gate, item 3: "saved" is never the
+//                                right word here regardless — this module
+//                                can only observe a download STARTING, never
+//                                completing (item 6). Fourth gate,
 //                                item 1: reserved EXCLUSIVELY for changes
 //                                found BEFORE an irreversible effect starts
 //                                — never used once a share() call has
@@ -619,9 +623,9 @@ function syncBusyFromPrerender(controller) {
     setStatus(controller, 'busy');
   } else if (el && el.textContent === pairShareStatusMessage('busy')) {
     // The pre-render just settled (or there is nothing to prepare) with no
-    // click in flight — nothing was shared or saved, so there is no
-    // terminal outcome to announce. Only ever clears OUR OWN "preparing…"
-    // text, never a real terminal status a click already wrote.
+    // click in flight — no download was started and no share was attempted,
+    // so there is no terminal outcome to announce. Only ever clears OUR OWN
+    // "preparing…" text, never a real terminal status a click already wrote.
     if (controller.statusTimer && typeof clearTimeout === 'function') {
       clearTimeout(controller.statusTimer);
       controller.statusTimer = null;
@@ -709,9 +713,10 @@ function recheck(controller, myToken, relationAtStart) {
 // effect has happened, on the SUCCESS path (a render/wait just completed
 // and the caller is deciding whether to proceed to the effect or stop) —
 // 'current' returns null, meaning "proceed, nothing to announce yet";
-// 'changed'/'unknown' both mean "nothing was shared or saved for this
-// pair", which is exactly what `stale`/`failed` say. 'suppressed' writes
-// nothing (setStatus()'s own retired-check already no-ops for the retired
+// 'changed'/'unknown' both mean "no irreversible share/download effect
+// occurred for this pair", which is exactly what `stale`/`failed` say.
+// 'suppressed' writes nothing (setStatus()'s own retired-check already
+// no-ops for the retired
 // case; this helper never gets called for the true owner in that state
 // anyway).
 function preEffectStatus(verdict) {

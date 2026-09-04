@@ -293,31 +293,88 @@ describe('buildPairImprintCaption — same snapshot, same bounds', () => {
   });
 });
 
-// Item 8: the real taxonomy is EIGHT states, not six — `busy` and `stale`
-// are real, reachable, user-visible states in their own right (an earlier
-// journal entry undercounted this before either existed as a distinguished
-// state), not implementation footnotes. This enumeration is the single
-// source of truth every other "every state"-shaped test/count should agree
-// with.
-const ALL_STATES = ['busy', 'shared', 'download-started', 'download-started-copied', 'cancelled', 'stale', 'empty', 'failed'];
+// Fifth remediation gate, item 2: the real taxonomy is ELEVEN states, not
+// eight — the third gate's eight-state count (itself a correction of an
+// even earlier six-state undercount) predates the fourth gate's
+// post-effect previous-pair distinction (`shared-previous`,
+// `download-started-previous`, `download-started-previous-copied`), and
+// this file's own canonical enumeration was never updated to match, even
+// though ui/pairShare.js's `pairShareStatusMessage` switch itself already
+// carried all eleven. This enumeration is the single source of truth every
+// other "every state"-shaped test/count in this file should agree with.
+const ALL_STATES = [
+  'busy',
+  'shared',
+  'shared-previous',
+  'download-started',
+  'download-started-copied',
+  'download-started-previous',
+  'download-started-previous-copied',
+  'cancelled',
+  'stale',
+  'empty',
+  'failed',
+];
+const SHARED_STATES = ['shared', 'shared-previous'];
+const PREVIOUS_PAIR_STATES = ['shared-previous', 'download-started-previous', 'download-started-previous-copied'];
+const CURRENT_PAIR_DOWNLOAD_STATES = ['download-started', 'download-started-copied'];
 
-describe('pairShareStatusMessage — every outcome is a distinct, non-overclaiming string (the full eight-state taxonomy)', () => {
-  it('all eight real states produce distinct, non-empty messages', () => {
+describe('pairShareStatusMessage — every outcome is a distinct, non-overclaiming string (the full eleven-state taxonomy)', () => {
+  it('all eleven real states produce distinct, non-empty messages', () => {
     const messages = ALL_STATES.map(pairShareStatusMessage);
-    expect(ALL_STATES).toHaveLength(8);
+    expect(ALL_STATES).toHaveLength(11);
     expect(new Set(messages).size).toBe(ALL_STATES.length);
     for (const msg of messages) expect(msg.length).toBeGreaterThan(0);
   });
 
-  it('only `shared` claims the artifact was actually shared', () => {
-    for (const state of ALL_STATES.filter(s => s !== 'shared')) {
+  // `shared` and `shared-previous` BOTH truthfully report a completed share
+  // — navigator.share() genuinely resolved either way (fourth gate, item 1:
+  // a resolved share is a real, irreversible effect that must never be
+  // erased just because identity couldn't be confirmed afterward). The two
+  // are NOT interchangeable: `shared` is the unqualified claim ("this is
+  // the pair on screen"), `shared-previous` explicitly names the pair as
+  // the previous/selected one, never a bare ambiguous "shared."
+  it('`shared` and `shared-previous` both truthfully claim a share completed — every other state never says "shared"', () => {
+    for (const state of SHARED_STATES) {
+      expect(pairShareStatusMessage(state).toLowerCase()).toContain('shared');
+    }
+    for (const state of ALL_STATES.filter(s => !SHARED_STATES.includes(s))) {
       expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('shared');
     }
   });
 
-  it('no state claims the artifact was "saved" — only that a download STARTED (item 6: this module cannot observe disk completion)', () => {
+  it('`shared` is the unqualified current-pair claim; `shared-previous` is never the same bare string', () => {
+    expect(pairShareStatusMessage('shared')).toBe('shared.');
+    expect(pairShareStatusMessage('shared-previous')).not.toBe(pairShareStatusMessage('shared'));
+    expect(pairShareStatusMessage('shared-previous').toLowerCase()).toContain('previous pair');
+  });
+
+  // Fourth gate, item 1's other irreversible-effect pair: a fired download.
+  // `download-started`/`download-started-copied` are the current-pair
+  // claims; the `-previous` variants explicitly name the previous pair
+  // rather than leaving the reader to guess which pair the download
+  // concerned.
+  it('the current-pair download states never say "previous"; the previous-pair download states always do', () => {
+    for (const state of CURRENT_PAIR_DOWNLOAD_STATES) {
+      expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('previous');
+    }
+    for (const state of PREVIOUS_PAIR_STATES.filter(s => s !== 'shared-previous')) {
+      expect(pairShareStatusMessage(state).toLowerCase()).toContain('previous pair');
+    }
+  });
+
+  it('the clipboard-copied variants (current and previous pair) say so; the non-copied variants do not', () => {
+    expect(pairShareStatusMessage('download-started-copied').toLowerCase()).toContain('caption copied');
+    expect(pairShareStatusMessage('download-started-previous-copied').toLowerCase()).toContain('caption copied');
+    expect(pairShareStatusMessage('download-started').toLowerCase()).not.toContain('copied');
+    expect(pairShareStatusMessage('download-started-previous').toLowerCase()).not.toContain('copied');
+  });
+
+  it('no state claims the artifact was "saved" or that a download reached disk — only that a download STARTED (item 6: this module cannot observe disk completion)', () => {
     for (const state of ALL_STATES) {
-      expect(pairShareStatusMessage(state).toLowerCase()).not.toMatch(/\bsaved\b/);
+      const msg = pairShareStatusMessage(state).toLowerCase();
+      expect(msg).not.toMatch(/\bsaved\b/);
+      expect(msg).not.toMatch(/disk/);
     }
   });
 
@@ -706,8 +763,8 @@ describe('P1-4 / C2 — busy/disabled state reflects real artifact readiness, no
     await Promise.resolve();
     expect(refs.btn.disabled).toBe(false);
     expect(refs.btn.getAttribute('aria-busy')).toBe('false');
-    // No click ever happened — nothing was shared or saved, so the
-    // transient "preparing…" text clears rather than sticking.
+    // No click ever happened — no share was attempted and no download was
+    // started, so the transient "preparing…" text clears rather than sticking.
     expect(refs.status.hidden).toBe(true);
   });
 
@@ -922,7 +979,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     // The download AND the copy both genuinely happened (synchronous
     // download, then a clipboard write that resolved before identity was
     // found to have changed) — reporting `stale`/`failed` here would
-    // falsely imply nothing was saved, and a bare "download started ·
+    // falsely imply no download was started, and a bare "download started ·
     // caption copied." would ambiguously imply it concerns the pair now
     // on screen. Both real effects are reported, explicitly named as
     // concerning the previous/selected pair.
