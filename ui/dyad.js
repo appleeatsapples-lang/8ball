@@ -323,9 +323,23 @@ const STYLE = `
   #dyad-screen .dyad-sheets { overflow-x: visible; }
   #dyad-screen .dyad-sheets > div { width: auto; flex: 1 1 0; }
 }
+/* Third remediation gate, item 4: the second-entry name field permits up to
+   60 characters (maxlength=60) with no requirement they contain a
+   space — a single unbroken 60-character token has no natural break
+   opportunity, and CSS's default overflow-wrap:normal only breaks at
+   whitespace/hyphens, so at the narrow-viewport sheet-column width
+   (min(84vw,320px) — 268.8px at exactly 320px) the label overflowed its
+   column horizontally, dragging the whole pannable strip wider with it.
+   overflow-wrap:anywhere lets the browser break WITHIN the word as a
+   last resort (only when no natural break exists — an ordinary short name
+   is completely unaffected); max-width:100% bounds it to the column
+   regardless. This WRAPS rather than truncates, so the full name stays
+   visible — nothing hidden behind an ellipsis, and no separate title
+   needed since nothing is cut. */
 #dyad-screen .dyad-sheet-label {
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem;
-  opacity: 0.7; margin-bottom: 0.35rem; }
+  opacity: 0.7; margin-bottom: 0.35rem;
+  overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
 /* The relation spine — a decorative connector between the two sheets, drawn
    once per render. Resting state (no JS, or the class below never lands) is
    fully drawn and static, so the diagram never depends on the animation to
@@ -392,6 +406,15 @@ const STYLE = `
 #dyad-screen .labels-toggle { margin: 0 auto 8px; }
 #dyad-screen .meaning-hint { margin: 8px 0 0; }
 #dyad-screen .meaning-panel { text-align: left; }
+/* Third remediation gate, item 4: #dyad-meaning-head's text is
+   "coordinateLabel(key) · owner" (see setText('dyad-meaning-head', ...)
+   below) — the SAME unbroken-name overflow risk as .dyad-sheet-label
+   above, on the SAME 60-character second-entry name field. Scoped to this
+   id (never the shared .meaning-head CLASS ui/meanings.js defines and the
+   host's own single-sheet panel also uses — that shared rule is out of
+   this module's scope and untouched) so only the paired panel's instance
+   gains the fix. */
+#dyad-screen #dyad-meaning-head { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
 /* Pair Dossier hierarchy (DOCTRINE §1.J v0.79) — heading, scope line,
    compact pair signature, direction-explicit evidence, failure state,
    completion flow. Faint text stays at or above opacity 0.55 on the
@@ -411,9 +434,21 @@ const STYLE = `
 #dyad-screen .dyad-signature[hidden] { display: none; }
 #dyad-screen .dyad-axis-label {
   text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.4em; }
+/* Third remediation gate, item 5: this rule used to carry its OWN
+   opacity:0.7 AND wrap #dyad-qualifier, which carries its own opacity:0.6 —
+   CSS opacity compounds across ancestor/descendant (unlike a color alpha,
+   which only inherits and can be cancelled by an explicit color on the
+   descendant), so the qualifier's REAL rendered alpha was 0.7 x 0.6 = 0.42
+   (~3.95:1 on black) regardless of its own "non-compounded" color/opacity
+   pair — B8's original fix cancelled INHERITED color alpha but never
+   addressed a PARENT's own opacity. Layout-only here now; each text node
+   inside carries its own single, uncompounded alpha instead (the bare
+   scope-line span below, and #dyad-qualifier's existing rule, both above
+   the same floor tests/monochrome_surface.test.js pins). */
 #dyad-screen .dyad-relation-scope {
   display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: space-between;
-  font-size: 0.72rem; opacity: 0.7; margin-bottom: 0.75rem; }
+  font-size: 0.72rem; margin-bottom: 0.75rem; }
+#dyad-screen .dyad-relation-scope > span:first-child { color: var(--text); opacity: 0.7; }
 #dyad-screen .dyad-relation-failure { margin: 0.75rem 0; }
 #dyad-screen .dyad-relation-failure p { font-size: 0.86rem; opacity: 0.85; margin: 0 0 0.5rem; }
 #dyad-screen .dyad-relation-failure[hidden] { display: none; }
@@ -515,7 +550,14 @@ const SCREEN_HTML =
   // The relation SCOPE/provenance line — where "recorded, not certified."
   // now sits, instead of as the final line under the evidence.
   '<div class="dyad-relation-scope"><span>relation layer · structural citations only</span>' +
-  '<span id="dyad-qualifier"></span></div>' +
+  // Third remediation gate, item 5: this span carried ONLY the id, never
+  // the `dyad-qualifier` CLASS the CSS selector (line ~395) actually
+  // targets — so B8's original contrast fix (explicit color+opacity)
+  // never applied to the real rendered element at all; the live browser
+  // pass caught it (getComputedStyle reported the UA default opacity:1,
+  // not the rule's 0.6), which no prior mock-DOM unit test could, since
+  // those never apply a real CSS cascade against a class/id mismatch.
+  '<span class="dyad-qualifier" id="dyad-qualifier"></span></div>' +
   '<details class="dyad-axis" id="dyad-axis-element">' +
   '<summary><span class="dyad-axis-label">element cycle</span><span id="dyad-spine-element"></span></summary>' +
   '<div class="dyad-axis-detail">' +
@@ -619,6 +661,24 @@ function applyDyadLabels(revealed) {
   }
 }
 
+// Third remediation gate, item 3: each paired sheet's <article> landmark
+// gets a stable accessible name — side letter always, plus the owner's
+// first name once one exists (`_names[prefix]`, the SAME source
+// updateCellAccessibleNames() and openPairedPanel() read, so the three
+// surfaces cannot name the same person differently). No id is duplicated:
+// the landmark's name lives in `aria-label`, never a second `id` collision
+// with `dyad-head-a`/`dyad-head-b` (the visible label nodes, which keep
+// their own ids untouched).
+function applySheetAccessibleNames() {
+  for (const prefix of ['a', 'b']) {
+    const face = _root && _root.querySelector ? _root.querySelector(`[data-sheet-face="${prefix}"]`) : null;
+    if (!face || !face.setAttribute) continue;
+    const sideLabel = prefix === 'b' ? 'B' : 'A';
+    const owner = _names[prefix];
+    face.setAttribute('aria-label', owner ? `${sideLabel} · ${owner}` : sideLabel);
+  }
+}
+
 // ── the paired panel (v0.76) ─────────────────────────────────────
 // Thirty compartments, one panel. Cells are marked interactive by ATTRIBUTE
 // (never id — the G2 rule ui/sheet.js states), the click and keydown are
@@ -639,10 +699,44 @@ function markPairedCells() {
       cell.setAttribute('role', 'button');
       cell.setAttribute('aria-expanded', 'false');
       cell.setAttribute('aria-controls', 'dyad-meaning-panel');
-      cell.setAttribute('aria-label', `${coordinateLabel(key)} details`);
+      // Third remediation gate, item 3: the STRUCTURAL attributes above are
+      // set once, here, and never revisited — but the accessible NAME is
+      // dynamic (side + owner + coordinate + current value), so it is
+      // computed by updateCellAccessibleNames() below, called again after
+      // every render() and clearOutput(). A bare "<coordinate> details"
+      // label was the audit-flagged defect: two sheets' worth of cells all
+      // reading identically, telling a screen-reader user nothing about
+      // WHICH sheet or WHAT value they are on.
       cell.setAttribute('data-coordinate-key', key);
       cell.setAttribute('data-sheet-side', prefix);
     }
+  }
+  applySheetAccessibleNames();
+  updateCellAccessibleNames('a');
+  updateCellAccessibleNames('b');
+}
+
+// Third remediation gate, item 3. Reads each cell's OWN current DOM state
+// (its `.coord-val` text, and its `sealed`/`unres` classes — the exact
+// state ui/sheet.js's setCell() just wrote, never a second computation of
+// the value) so the accessible name can never disagree with what a sighted
+// reader sees. `owner` comes from the same `_names[side] || side` fallback
+// openPairedPanel()'s own panel-head text already uses (line ~723) — one
+// convention, not two independently-authored ones that could drift apart.
+// Sealed and unresolved get their own honest words rather than reusing a
+// blank string, which VoiceOver/NVDA would otherwise read as no value at
+// all (indistinguishable from a coordinate that simply has no cell).
+function updateCellAccessibleNames(prefix) {
+  const sideLabel = prefix === 'b' ? 'B' : 'A';
+  const owner = _names[prefix] || prefix;
+  for (const key of CELL_KEYS) {
+    const valueNode = _root && _root.querySelector ? _root.querySelector(`[data-sheet-cell="${prefix}:${key}"]`) : null;
+    const cell = valueNode && valueNode.closest ? valueNode.closest('.coord-cell') : null;
+    if (!cell || !cell.setAttribute) continue;
+    const sealed = !!(cell.classList && cell.classList.contains('sealed'));
+    const unres = !!(cell.classList && cell.classList.contains('unres'));
+    const value = sealed ? 'sealed' : unres ? 'unresolved' : ((valueNode.textContent || '').trim() || 'unresolved');
+    cell.setAttribute('aria-label', `${sideLabel} · ${owner} · ${coordinateLabel(key)}: ${value}`);
   }
 }
 
@@ -1118,6 +1212,14 @@ export function clearOutput() {
   if (output) output.hidden = true;
   if (_sheetA) _sheetA.clear();
   if (_sheetB) _sheetB.clear();
+  // Third remediation gate, item 3: teardown resets the sheet landmarks'
+  // and every cell's accessible name too — `_names` is already blanked
+  // above, so this reads as bare "A"/"B" with no owner and "unresolved"
+  // values, never a stale name (never B's) surviving a close/compareAnother/
+  // fresh-submission clear.
+  applySheetAccessibleNames();
+  updateCellAccessibleNames('a');
+  updateCellAccessibleNames('b');
   setText('dyad-head-a', '');
   setText('dyad-head-b', '');
   for (const id of Object.keys(DYAD_RELATION_NODES)) setText(id, '');
@@ -1297,6 +1399,13 @@ export function render() {
   setText('dyad-head-b', _second.firstName || 'b');
   _names = { a: profileA.firstName || 'a', b: _second.firstName || 'b' };
   applyDyadLabels(isLabelsRevealed());
+  // Third remediation gate, item 3: the two <article> sheet landmarks and
+  // all 30 interactive cells get their real accessible names ONLY here —
+  // after `_names` is current — never at markup-injection time, when no
+  // owner exists yet.
+  applySheetAccessibleNames();
+  updateCellAccessibleNames('a');
+  updateCellAccessibleNames('b');
 
   const relation = dyadRelationFor(profileA, _second);
   _relation = relation;

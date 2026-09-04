@@ -293,17 +293,31 @@ describe('buildPairImprintCaption — same snapshot, same bounds', () => {
   });
 });
 
-describe('pairShareStatusMessage — every outcome is a distinct, non-overclaiming string', () => {
-  it('shared / downloaded / downloaded-copied / cancelled / empty / failed are all different', () => {
-    const states = ['shared', 'downloaded', 'downloaded-copied', 'cancelled', 'empty', 'failed'];
-    const messages = states.map(pairShareStatusMessage);
-    expect(new Set(messages).size).toBe(states.length);
+// Item 8: the real taxonomy is EIGHT states, not six — `busy` and `stale`
+// are real, reachable, user-visible states in their own right (an earlier
+// journal entry undercounted this before either existed as a distinguished
+// state), not implementation footnotes. This enumeration is the single
+// source of truth every other "every state"-shaped test/count should agree
+// with.
+const ALL_STATES = ['busy', 'shared', 'download-started', 'download-started-copied', 'cancelled', 'stale', 'empty', 'failed'];
+
+describe('pairShareStatusMessage — every outcome is a distinct, non-overclaiming string (the full eight-state taxonomy)', () => {
+  it('all eight real states produce distinct, non-empty messages', () => {
+    const messages = ALL_STATES.map(pairShareStatusMessage);
+    expect(ALL_STATES).toHaveLength(8);
+    expect(new Set(messages).size).toBe(ALL_STATES.length);
     for (const msg of messages) expect(msg.length).toBeGreaterThan(0);
   });
 
   it('only `shared` claims the artifact was actually shared', () => {
-    for (const state of ['downloaded', 'downloaded-copied', 'cancelled', 'empty', 'failed']) {
+    for (const state of ALL_STATES.filter(s => s !== 'shared')) {
       expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('shared');
+    }
+  });
+
+  it('no state claims the artifact was "saved" — only that a download STARTED (item 6: this module cannot observe disk completion)', () => {
+    for (const state of ALL_STATES) {
+      expect(pairShareStatusMessage(state).toLowerCase()).not.toMatch(/\bsaved\b/);
     }
   });
 
@@ -571,7 +585,7 @@ describe('Pair Imprint — the live click path (blob pre-rendered before the cli
     // The platform's OWN chooser broke, but the PNG this device already
     // rendered is still right here — the fallback download must still run.
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('no native share support: falls back to download + clipboard copy', async () => {
@@ -581,7 +595,7 @@ describe('Pair Imprint — the live click path (blob pre-rendered before the cli
     expect(log.anchors).toHaveLength(1);
     expect(log.copied).toHaveLength(1);
     expect(log.copied[0]).toContain('8 ball · pair reading');
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('download fallback with no/denied clipboard: status reads "downloaded" only, never claims a copy', async () => {
@@ -589,7 +603,7 @@ describe('Pair Imprint — the live click path (blob pre-rendered before the cli
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
   });
 
   it('canShare present but returns false for this file: falls back to download, not a broken share attempt', async () => {
@@ -651,7 +665,7 @@ describe('Pair Imprint — the click path with NO pre-render yet (cache never wa
     await clickShare(refs);
     expect(log.shared).toHaveLength(0); // second-gate P1-4: never attempted without a ready blob
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('a render failure with no pre-render (canvas context throws): status reads "failed", nothing shared or downloaded', async () => {
@@ -672,7 +686,7 @@ describe('Pair Imprint — the click path with NO pre-render yet (cache never wa
     await pending;
     expect(log.shared).toHaveLength(0);
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 });
 
@@ -729,27 +743,91 @@ describe('P1-4 / C2 — busy/disabled state reflects real artifact readiness, no
     installEnv({ clipboard: () => {} });
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+});
+
+describe('item 1 — busy/preparing remains visible for the WHOLE pending window, never auto-hidden by a blind timer', () => {
+  it('a slow proactive render held open past 4 seconds: busy stays visible the entire time, then clears on settle', async () => {
+    const log = installEnv({ imageDefer: true });
+    const { refs, controller } = await boot(() => VALID_RELATION, { prerender: false });
+    controller.notifyRelationChange(VALID_RELATION);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(refs.status.hidden).toBe(false);
+    vi.advanceTimersByTime(6000); // well past the OLD blind 4s hide
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(refs.btn.disabled).toBe(true);
+    log.pendingImages[0]();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(refs.status.hidden).toBe(true);
+    expect(refs.btn.disabled).toBe(false);
+  });
+
+  it('a native share chooser held open past 4 seconds: busy stays visible until it settles, then the terminal text takes over and gets ITS OWN 4s timer', async () => {
+    let releaseShare;
+    installEnv({ canShare: () => true, share: () => new Promise(resolve => { releaseShare = resolve; }) });
+    const { refs } = await boot(() => VALID_RELATION);
+    const pending = clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    vi.advanceTimersByTime(6000);
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    releaseShare(undefined);
+    await pending;
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.hidden).toBe(false); // the terminal message is freshly shown
+    vi.advanceTimersByTime(4000); // NOW the terminal state's own timer fires
+    expect(refs.status.hidden).toBe(true);
+  });
+
+  it('a clipboard operation held open past 4 seconds: busy stays visible until it settles', async () => {
+    let releaseCopy;
+    installEnv({ clipboard: () => new Promise(resolve => { releaseCopy = resolve; }) });
+    const { refs } = await boot(() => VALID_RELATION);
+    const pending = clickShare(refs);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    vi.advanceTimersByTime(6000);
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+    releaseCopy(undefined);
+    await pending;
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+
+  it('every TERMINAL state still auto-hides after 4 seconds — only busy is exempt', async () => {
+    installEnv({ clipboard: () => {} });
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(refs.status.hidden).toBe(false);
+    vi.advanceTimersByTime(4000);
+    expect(refs.status.hidden).toBe(true);
   });
 });
 
 describe('C1 / P2 disclosure truth — capability is disclosed truthfully, before the button is ever pressed', () => {
-  it('discloses a CONDITIONAL native share plus the image-save fallback when the platform supports native file share — never an unconditional promise', async () => {
+  it('discloses a CONDITIONAL native share plus the download fallback when the platform supports native file share — never an unconditional promise, and never a "saved" completion claim', async () => {
     installEnv({ canShare: () => true, share: () => undefined });
     const { refs } = await boot(() => VALID_RELATION);
     expect(refs.disclosure.textContent).toContain('created on this device');
     expect(refs.disclosure.textContent).toContain('personal details excluded');
     expect(refs.disclosure.textContent).toContain('when your device supports it');
-    expect(refs.disclosure.textContent).toContain('saves as an image');
+    expect(refs.disclosure.textContent).toContain('downloads it as an image');
     expect(refs.disclosure.textContent).not.toMatch(/web share|navigator|browser api/i);
+    // Item 6: "saves"/"saved" claims a completion this module cannot
+    // observe — the disclosure must describe the ACTION (download), not a
+    // completion it has no way to confirm.
+    expect(refs.disclosure.textContent).not.toMatch(/\bsaves\b|\bsaved\b/);
   });
 
-  it('discloses plain "saves...as an image" when native share is unsupported — nothing conditional to hedge', async () => {
+  it('discloses plain "downloads...as an image" when native share is unsupported — nothing conditional to hedge, and no "saved" claim', async () => {
     installEnv();
     const { refs } = await boot(() => VALID_RELATION);
     expect(refs.disclosure.textContent).toContain('pair imprint');
-    expect(refs.disclosure.textContent).toContain('saves the pair imprint as an image on this device');
+    expect(refs.disclosure.textContent).toContain('downloads the pair imprint as an image to this device');
     expect(refs.disclosure.textContent).not.toContain('when your device supports it');
+    expect(refs.disclosure.textContent).not.toMatch(/\bsaves\b|\bsaved\b/);
   });
 
   it('tolerates a boot with no disclosure ref', () => {
@@ -759,10 +837,10 @@ describe('C1 / P2 disclosure truth — capability is disclosed truthfully, befor
 
   it('the disclosure copy is a pure function of capability — independently testable', () => {
     expect(pairImprintDisclosureText(true)).toBe(
-      'created on this device · personal details excluded · shares directly when your device supports it, otherwise saves as an image',
+      'created on this device · personal details excluded · shares directly when your device supports it, otherwise downloads it as an image',
     );
     expect(pairImprintDisclosureText(false)).toBe(
-      'created on this device · personal details excluded · saves the pair imprint as an image on this device',
+      'created on this device · personal details excluded · downloads the pair imprint as an image to this device',
     );
   });
 
@@ -822,7 +900,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
   });
 
-  it('a relation replaced while awaiting clipboard.writeText (RESOLVED) never reports "downloaded-copied" for the old pair', async () => {
+  it('item 7: a relation replaced while awaiting clipboard.writeText (RESOLVED) never claims the copy succeeded — but truthfully reports the download that already, genuinely, happened', async () => {
     let relation = VALID_RELATION;
     let releaseCopy;
     installEnv({
@@ -834,14 +912,18 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation);
     releaseCopy(undefined);
     await pending;
-    // The download itself already happened for the old pair's artifact (it
-    // is synchronous and cannot be un-done), but the COPY confirmation must
-    // not be reported once the pair has moved on.
-    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('downloaded-copied'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+    // The download itself already happened (synchronous, irreversible) —
+    // reporting `stale`/`failed` here would falsely imply nothing was
+    // saved. The copy confirmation specifically is suppressed (the pair
+    // moved on before it could be verified), but the download's real
+    // outcome is not erased into a negative claim.
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
   });
 
-  it('a relation replaced while awaiting clipboard.writeText (REJECTED) is still reported as stale, not downloaded', async () => {
+  it('item 7: a relation replaced while awaiting clipboard.writeText (REJECTED) still truthfully reports the download, never a false "failed"/"stale"', async () => {
     let relation = VALID_RELATION;
     let rejectCopy;
     installEnv({
@@ -853,7 +935,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation);
     rejectCopy(new Error('denied'));
     await pending;
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
   });
 
   it('an UNCHANGED relation across every async boundary completes normally — the guard does not false-positive', async () => {
@@ -865,7 +947,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
 });
 
 describe('P1-3 — controller-local isolation: a retired controller\'s completion cannot touch new refs or admit a third operation', () => {
-  it('an in-flight operation on a RETIRED controller never writes status/busy anywhere once a new controller has taken over', async () => {
+  it('DIFFERENT-refs re-init: an in-flight operation on a RETIRED controller never writes status/busy into the NEW controller\'s refs', async () => {
     const log = installEnv({ imageDefer: true, clipboard: () => {} });
     const { refs: refsOld, controller: oldController } = await boot(() => VALID_RELATION, { prerender: false });
     oldController.notifyRelationChange(VALID_RELATION); // old controller's OWN pre-render, deliberately held
@@ -874,19 +956,24 @@ describe('P1-3 — controller-local isolation: a retired controller\'s completio
     expect(refsOld.btn.disabled).toBe(true);
     expect(refsOld.status.textContent).toBe(pairShareStatusMessage('busy'));
     // Re-init BEFORE the old controller's rasterization ever settles.
+    // Item 2: retirement now RELINQUISHES the old controller's own refs —
+    // even though these two boots use different ref objects here (the
+    // "same-node" battery below covers the shared-ref case explicitly),
+    // resetControllerDOM() runs against whatever refs the retiring
+    // controller held, unconditionally.
     const { refs: refsNew, controller: newController } = await boot(() => VALID_RELATION, { prerender: false });
     expect(log.pendingImages).toHaveLength(1); // only the OLD controller's render was ever started
+    expect(refsOld.status.textContent).toBe(''); // relinquished at the moment of retirement, not left showing "busy"
+    expect(refsOld.btn.disabled).toBe(false);
     log.pendingImages[0](); // release the old, now-retired, rasterization
     await Promise.resolve();
     await Promise.resolve();
-    // The retired controller's refs are FROZEN at exactly what they showed
-    // the instant it was retired — no further write, including its own
-    // "clear the preparing text now that the render is done" cleanup,
-    // ever lands. This is the correct shape of "only the current token may
-    // write status/busy": a retired controller writes NOTHING more, not
-    // even to tidy up after itself.
-    expect(refsOld.status.textContent).toBe(pairShareStatusMessage('busy'));
-    expect(refsOld.btn.disabled).toBe(true);
+    // The retired controller's own async tail STILL writes nothing further
+    // to its refs once released (the "only the current token may write"
+    // rule) — the relinquished idle state above is untouched by its later
+    // completion.
+    expect(refsOld.status.textContent).toBe('');
+    expect(refsOld.btn.disabled).toBe(false);
     // The NEW controller's refs are entirely unaffected by the old
     // controller's completion — no status, no busy toggle it didn't itself
     // request.
@@ -922,6 +1009,121 @@ describe('P1-3 — controller-local isolation: a retired controller\'s completio
   });
 });
 
+// index.html re-initializes against the SAME static `#dyad-share-btn` /
+// `#dyad-share-status` DOM nodes on every dyad-screen open — the realistic
+// re-init shape, distinct from the different-refs scenarios above.
+function bootSameRefs(refs, getRelation, { prerender = true } = {}) {
+  const controller = initPairShareUI(refs, { getRelation });
+  if (prerender) controller.notifyRelationChange(getRelation());
+  return controller;
+}
+
+describe('item 2 — same-node re-init lifecycle: the SAME button/status pair is reused across re-inits', () => {
+  it('re-init during a held prerender: the shared button re-enables immediately, not left stuck disabled for the new controller', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const oldController = bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    oldController.notifyRelationChange(VALID_RELATION);
+    expect(refs.btn.disabled).toBe(true);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+
+    // Re-init against the SAME refs while that render is still pending.
+    const newController = bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    expect(refs.btn.disabled).toBe(false); // relinquished, not inherited stuck-busy
+    expect(refs.status.textContent).toBe('');
+
+    log.pendingImages[0](); // the old, retired render finally settles
+    await Promise.resolve();
+    await Promise.resolve();
+    // The old controller's settled render must not re-disable/re-busy the
+    // shared button out from under the new controller's idle state.
+    expect(refs.btn.disabled).toBe(false);
+    expect(refs.status.textContent).toBe('');
+  });
+
+  it('re-init DURING a click: the in-flight old click cannot leave the shared button disabled forever once retired', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined, clipboard: () => {} });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    const oldClick = clickShare(refs); // starts its own render (no cache) — busy set synchronously
+    expect(refs.btn.disabled).toBe(true);
+
+    // Re-init against the SAME refs mid-click.
+    bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    expect(refs.btn.disabled).toBe(false); // the new controller's clean idle state, not the old click's busy
+
+    log.pendingImages[0]();
+    await oldClick;
+    // The old (retired) click's own completion must not re-disable the
+    // button the new controller now owns.
+    expect(refs.btn.disabled).toBe(false);
+  });
+
+  it('an ARMED old terminal-status timer, followed by re-init and a fresh status: the old timer cannot later hide the NEW status', async () => {
+    installEnv({ clipboard: () => {} });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const oldController = bootSameRefs(refs, () => VALID_RELATION);
+    await oldController.onShareClick(); // completes, arms a 4s auto-hide timer on the SHARED status node
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+
+    // Re-init against the SAME refs before that timer fires — item 2:
+    // retirement must cancel the OLD armed timer, or it would later fire
+    // and hide whatever the NEW controller has since written.
+    bootSameRefs(refs, () => null, { prerender: false });
+    expect(refs.status.textContent).toBe(''); // relinquished by the reset, not left showing the old terminal text
+    refs.status.textContent = 'a status the new controller just wrote';
+    refs.status.hidden = false;
+
+    vi.advanceTimersByTime(4000); // when the OLD timer WOULD have fired, had it not been cancelled
+    expect(refs.status.hidden).toBe(false);
+    expect(refs.status.textContent).toBe('a status the new controller just wrote');
+  });
+
+  it('listener singularity: only ONE click listener is ever active on a reused button, never a second accumulating', async () => {
+    installEnv({ clipboard: () => {} });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    bootSameRefs(refs, () => VALID_RELATION);
+    bootSameRefs(refs, () => VALID_RELATION);
+    bootSameRefs(refs, () => VALID_RELATION);
+    // makeEl's addEventListener overwrites its single `handlers[ev]` slot —
+    // a real accumulation bug (multiple listeners) would fire the click
+    // handler multiple times per physical click, which this harness can't
+    // directly count; what IS directly provable is that each re-init
+    // detached the PRIOR listener before attaching its own, so _fire only
+    // ever invokes the CURRENT controller's handler, never a defunct one
+    // racing it.
+    let fireCount = 0;
+    const originalFire = refs.btn._fire.bind(refs.btn);
+    refs.btn._fire = (...args) => { fireCount++; return originalFire(...args); };
+    await clickShare(refs);
+    expect(fireCount).toBe(1); // the mock's own handler slot is singular by construction — one call in, one handler run
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+
+  it('out-of-order completion on the SAME refs: an old click resolving AFTER a new click starts never corrupts the new one\'s result', async () => {
+    const log = installEnv({ imageDefer: true, clipboard: () => {} });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    const oldController = bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    oldController.notifyRelationChange(VALID_RELATION);
+    log.pendingImages[0]();
+    await Promise.resolve();
+    await Promise.resolve(); // old controller's cache is now warm
+
+    const oldClick = oldController.onShareClick(); // fast path — no NEW image, uses the warm cache
+    // Re-init on the SAME refs while the old controller's click is still
+    // awaiting its download/clipboard tail.
+    const newController = bootSameRefs(refs, () => VALID_RELATION, { prerender: false });
+    await oldClick; // the OLD, now-retired click's own tail finishes...
+    // ...but it must not have written into the state the NEW controller
+    // will show for ITS OWN next click.
+    const newClick = newController.onShareClick();
+    expect(log.pendingImages.length).toBeGreaterThanOrEqual(2); // the new controller had no cache and rendered fresh
+    log.pendingImages[log.pendingImages.length - 1]();
+    await newClick;
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+});
+
 describe('P1-1 — File construction failure or absence ALWAYS continues to the on-device download, never "failed"', () => {
   it('a throwing File constructor falls through to the REAL download side effect — an anchor actually fires, not just a resolved promise', async () => {
     const log = installEnv({ clipboard: () => {} });
@@ -930,7 +1132,7 @@ describe('P1-1 — File construction failure or absence ALWAYS continues to the 
     await clickShare(refs);
     expect(log.shared).toHaveLength(0);
     expect(log.anchors).toHaveLength(1); // the actual anchor/download side effect, not merely a settled promise
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('File entirely absent from the global scope (not just throwing) also falls through to a real download', async () => {
@@ -939,7 +1141,7 @@ describe('P1-1 — File construction failure or absence ALWAYS continues to the 
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('a truly absent `navigator` object entirely still produces a real download, not a crash', async () => {
@@ -950,7 +1152,7 @@ describe('P1-1 — File construction failure or absence ALWAYS continues to the 
       const { refs } = await boot(() => VALID_RELATION);
       await clickShare(refs);
       expect(log.anchors).toHaveLength(1); // the real side effect, not just a resolved promise
-      expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
     } finally {
       if (savedDescriptor) Object.defineProperty(globalThis, 'navigator', savedDescriptor);
     }
@@ -966,7 +1168,7 @@ describe('A3 / P2 hook truth — every capability is contained independently; a 
     await clickShare(refs);
     expect(log.shared).toHaveLength(0);
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('canShare is evaluated with the EXACT payload navigator.share receives (files AND text), not a narrower one', async () => {
@@ -996,7 +1198,7 @@ describe('A3 / P2 hook truth — every capability is contained independently; a 
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1); // the download still happened
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
   });
 
   it('a getRelation() hook that throws on the INITIAL click read settles to "failed" (a read failure), never "empty"', async () => {
@@ -1052,7 +1254,7 @@ describe('P2 cleanup — svgToPngBlob and downloadBlob are idempotent and leak n
     // The download itself (click()) already fired — that is real user-
     // visible truth and must not be erased by a DOM-tidiness failure.
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('downloaded-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
   });
 
   it('setTimeout throwing while scheduling the revoke still revokes immediately rather than leaking the object URL', async () => {

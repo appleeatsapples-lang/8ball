@@ -247,31 +247,52 @@ export function buildPairImprintCaption(snapshot) {
   ].join('\n');
 }
 
-// ── status copy (Step 2: distinguish every outcome) ─────────────────
-// Pure mapping, one entry per branch the click handler can take, so no two
-// distinct outcomes ever share a message and a claim of success never rides
-// a branch that only opened a chooser. `empty` (nothing resolved to share)
-// is deliberately its own state, distinct from `failed` (a render or share
-// exception, OR — second gate, P2 hook truth — a getRelation() hook that
-// threw on read) — the first is "nothing to share yet", the second is
-// "tried and it broke". `native-share unavailable` has no message of its
-// own: it is the CONDITION that routes to the download-fallback branch
-// below, which resolves to `downloaded` or `downloaded-copied`.
+// ── status copy — the FULL real taxonomy is eight states, not six ──────────
+// (third remediation gate, item 8: an earlier journal entry undercounted
+// this as "six distinguished outcomes" before `busy` and `stale` existed as
+// user-visible states in their own right — both are real, reachable,
+// announced states and belong in any count of "the states this module can
+// show"). Pure mapping, one entry per branch the click handler can take, so
+// no two distinct outcomes ever share a message:
+//   busy                    — preparing (pre-render OR an active click); NOT
+//                             a terminal outcome — see setStatus()'s timer
+//                             rule below, this one never auto-hides.
+//   shared                  — navigator.share() genuinely resolved.
+//   download-started        — the on-device download fallback genuinely
+//                             fired (a claim this module CAN make — the
+//                             browser call was invoked — never "saved",
+//                             which this module cannot observe: nothing
+//                             here learns whether the user's browser
+//                             actually wrote the file to disk).
+//   download-started-copied — the above, plus the caption copied to the
+//                             clipboard.
+//   cancelled                — a dismissed native chooser (AbortError) —
+//                             never "shared".
+//   stale                   — the pair changed while a NON-irreversible
+//                             step (rasterizing, waiting for a pre-render)
+//                             was in flight, so nothing was shared or saved
+//                             for the pair this operation started with. Item
+//                             7: this state is NEVER used once an
+//                             irreversible platform action (a share() call
+//                             already resolved, or a download already
+//                             fired) has genuinely happened — see
+//                             shareOrFallback()/downloadFallback() for why.
+//   empty                    — nothing resolved to share; the failure state
+//                             has no relation to export.
+//   failed                   — a render/share exception, a getRelation()
+//                             hook that threw on read (P2 hook truth), or a
+//                             download that never fired at all — always
+//                             before any irreversible action, never after.
 export function pairShareStatusMessage(state) {
   switch (state) {
     case 'busy': return 'preparing pair image…';
     case 'shared': return 'shared.';
-    case 'downloaded': return 'image saved to this device.';
-    case 'downloaded-copied': return 'image saved · caption copied.';
+    case 'download-started': return 'download started.';
+    case 'download-started-copied': return 'download started · caption copied.';
     case 'cancelled': return 'share cancelled.';
-    // A2 / second-gate P1-2: the pair changed (closed, replaced, or a new
-    // one submitted) while this export was in flight — distinct from
-    // `failed` (a genuine exception) and from `cancelled` (the reader
-    // dismissed a native chooser); nothing was shared or saved for the
-    // stale pair.
     case 'stale': return 'the pair changed. share the pair again.';
     case 'empty': return 'nothing to share yet — read a pair first.';
-    case 'failed': return 'share failed. image not saved.';
+    case 'failed': return 'share failed. try again.';
     default: return '';
   }
 }
@@ -397,10 +418,14 @@ function detectShareCapability() {
   }
 }
 
+// Item 6 (truthful download wording) applies here too — "saves" describes a
+// completion this module cannot observe (only that a download was
+// started); "downloads" describes the action itself, which this module DOES
+// know it performed.
 export function pairImprintDisclosureText(capable) {
   return capable
-    ? 'created on this device · personal details excluded · shares directly when your device supports it, otherwise saves as an image'
-    : 'created on this device · personal details excluded · saves the pair imprint as an image on this device';
+    ? 'created on this device · personal details excluded · shares directly when your device supports it, otherwise downloads it as an image'
+    : 'created on this device · personal details excluded · downloads the pair imprint as an image to this device';
 }
 
 // ── the live relation read (second-gate P2 hook truth) ─────────────────────
@@ -481,6 +506,17 @@ function applyBusyDOM(controller, busy) {
   }
 }
 
+// Third remediation gate, item 1: `busy` is NOT a terminal outcome — it is
+// the whole visible/live explanation for a disabled, aria-busy button, and
+// the pending window it describes (a slow proactive render, a native share
+// chooser sitting open, a clipboard prompt) can genuinely outlast 4 seconds.
+// Auto-hiding it on a blind timer would leave a disabled control with no
+// live-announced reason showing. Only a TERMINAL state (everything except
+// `busy`) ever arms the 4s auto-hide timer; `busy` clears only when the
+// pending window actually settles — via a later setStatus() call to a
+// terminal state (which itself arms its own timer), or via
+// syncBusyFromPrerender()'s own direct clear when a pre-render settles with
+// no click ever having started.
 function setStatus(controller, state) {
   if (controller.retired) return;
   const el = controller.refs && controller.refs.status;
@@ -492,8 +528,31 @@ function setStatus(controller, state) {
   }
   el.textContent = msg;
   el.hidden = !msg;
-  if (msg && typeof setTimeout === 'function') {
+  if (msg && state !== 'busy' && typeof setTimeout === 'function') {
     controller.statusTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  }
+}
+
+// Third remediation gate, item 2: the deterministic DOM state a controller's
+// refs should show whenever it is NOT actively busy/mid-operation — used
+// both to initialize a fresh controller's DOM (so a live, REUSED button/
+// status pair never inherits a prior controller's stuck "busy" look) and to
+// relinquish a retiring controller's hold on shared DOM before a new
+// controller takes over the same nodes. A direct, synchronous, one-time
+// write — not a guarded method a retired controller's async tail could
+// later call, so it does not weaken "a retired controller writes nothing
+// once retired" (this call itself happens BEFORE/AT the moment of
+// retirement, performed by the retiring code, not by a stale continuation).
+function resetControllerDOM(controller) {
+  const btn = controller.refs && controller.refs.btn;
+  if (btn) {
+    btn.disabled = false;
+    if (btn.setAttribute) btn.setAttribute('aria-busy', 'false');
+  }
+  const el = controller.refs && controller.refs.status;
+  if (el) {
+    el.textContent = '';
+    el.hidden = true;
   }
 }
 
@@ -593,6 +652,13 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
   }
   if (!downloaded) { setStatus(controller, 'failed'); return; }
 
+  // Item 7 (truthful stale/native-share contract, the same logic applied to
+  // the download side of the fallback): `downloadBlob()` above already
+  // invoked the browser's download — an IRREVERSIBLE action outside this
+  // controller's power to undo. From this point on, a `stale`/`failed`
+  // finding can only affect whether the CLIPBOARD copy is attempted and
+  // announced — it must never be reported as if the download itself never
+  // happened.
   let copied = false;
   if (typeof navigator !== 'undefined'
     && navigator.clipboard
@@ -604,14 +670,16 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
     } catch (_) { /* clipboard denied — the download still landed */ }
     // P1-2: re-check AFTER this await REGARDLESS of whether the write
     // resolved or rejected — a clipboard call is a real async boundary the
-    // pair can change across either way, and "the pair changed" must be
-    // reported over both "copied" and "denied" once it has.
+    // pair can change across either way. Unlike the pre-download checks
+    // elsewhere in this module, `stale`/`failed` here do NOT erase the
+    // download that already fired — they only mean "don't claim the copy
+    // succeeded" (and, for a broken hook specifically, "don't trust
+    // `clipboardOk` enough to announce it either").
     const check = recheck(controller, myToken, relationAtStart);
-    if (check.failed) { setStatus(controller, 'failed'); return; }
-    if (check.stale) { setStatus(controller, 'stale'); return; }
+    if (check.failed || check.stale) { setStatus(controller, 'download-started'); return; }
     copied = clipboardOk;
   }
-  setStatus(controller, copied ? 'downloaded-copied' : 'downloaded');
+  setStatus(controller, copied ? 'download-started-copied' : 'download-started');
 }
 
 // The fast path: a cached Blob is already ready at click time, so a native
@@ -622,11 +690,17 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
   const attempt = trySyncNativeShare(blob, snapshot);
   if (attempt.attempted) {
     try {
+      // Item 7: by the time `await` returns here, `navigator.share()` has
+      // ALREADY genuinely resolved — a real platform action this
+      // controller invoked and cannot take back. What happens next can
+      // only change what this module SAYS about it, never the fact that it
+      // happened. A hook-throw or a changed pair discovered now is
+      // reported as `stale` (not `failed` — reporting `failed` here would
+      // be an outright false claim that the share broke, when it plainly
+      // succeeded) so the announcement never contradicts reality.
       await attempt.promise;
       const check = recheck(controller, myToken, relationAtStart);
-      if (check.failed) { setStatus(controller, 'failed'); return; }
-      if (check.stale) { setStatus(controller, 'stale'); return; }
-      setStatus(controller, 'shared');
+      setStatus(controller, (check.stale || check.failed) ? 'stale' : 'shared');
       return;
     } catch (err) {
       const check = recheck(controller, myToken, relationAtStart);
@@ -714,17 +788,31 @@ function onShareClick(controller) {
  * this module can pre-render without ever importing ui/dyad.js.
  */
 export function initPairShareUI(refs, hooks) {
-  // Second-gate P1-3: retire whatever controller a prior init created BEFORE
-  // constructing the new one, so an in-flight operation from that instance
-  // can never write into the new refs and a stray leftover click listener
-  // never piles up on a re-initialized DOM node.
+  // Second-gate P1-3 / third-gate item 2: retire whatever controller a prior
+  // init created BEFORE constructing the new one, so an in-flight operation
+  // from that instance can never write into the new refs and a stray
+  // leftover click listener never piles up on a re-initialized DOM node.
+  // Retirement is now a complete handover, not just a flag flip: the prior
+  // controller's own pending auto-hide timer is cancelled (an ARMED timer
+  // closing over the shared status node would otherwise fire LATER and hide
+  // whatever the NEW controller has since written there — a real same-node
+  // race when refs are reused, as they normally are, across a re-init), and
+  // the shared DOM is reset to its quiet/idle shape before the new
+  // controller ever touches it — a live button must never be left disabled/
+  // aria-busy="true" forever just because the controller that put it there
+  // retired mid-operation.
   if (_activeController) {
     const prior = _activeController;
     prior.retired = true;
+    if (prior.statusTimer && typeof clearTimeout === 'function') {
+      clearTimeout(prior.statusTimer);
+      prior.statusTimer = null;
+    }
     const priorBtn = prior.refs && prior.refs.btn;
     if (priorBtn && typeof priorBtn.removeEventListener === 'function' && prior.listener) {
       priorBtn.removeEventListener('click', prior.listener);
     }
+    resetControllerDOM(prior);
   }
 
   const controller = {
@@ -737,6 +825,11 @@ export function initPairShareUI(refs, hooks) {
     statusTimer: null,
     listener: null,
   };
+  // Deterministic initial DOM, independent of whatever the retirement reset
+  // above did or didn't reach (e.g. the very first init, or refs that
+  // happen to differ from the prior controller's) — a fresh controller
+  // never starts from an ambiguous DOM state.
+  resetControllerDOM(controller);
   controller.listener = () => onShareClick(controller);
   if (controller.refs.btn && typeof controller.refs.btn.addEventListener === 'function') {
     controller.refs.btn.addEventListener('click', controller.listener);

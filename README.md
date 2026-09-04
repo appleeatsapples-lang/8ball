@@ -62,6 +62,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.79)
 │   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading (§1.J/§5.D v0.79)
 │   ├── sheet.js             shared sheet value mapping/render helpers
+│   ├── result.js            result-screen arrival + card-flip controller — transition state, face accessibility, arrival focus/announcement, shake-again
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
 ├── content/                 16 versioned registry modules
