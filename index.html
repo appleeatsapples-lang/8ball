@@ -403,7 +403,7 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
-initMeaningsUI({ cardFace, readingPane: $('reading-pane') });
+const meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') });
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
 // getNoteSlot's `role` split (PR #187 R2): A keeps this device's stored
@@ -413,7 +413,8 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     buildSecond: profileFromPayload,
     getNoteSlot: (p, role) => role === 'b' ? getFreshFacetSlot(p.lifePath) : getFacetSlot(p.lifePath),
     getPublicRead: publicReadFor,
-    onOpen: () => result.classList.add('hidden'), onExit: () => result.classList.remove('hidden'),
+    onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
+    onExit: () => result.classList.remove('hidden'),
     onLabelsChange: labelsUI.applyLabelsState });
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
