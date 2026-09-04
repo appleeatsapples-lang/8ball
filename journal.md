@@ -5,7 +5,201 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.78: the host panel closes when the paired screen opens — the open question, answered — STAGED on branch, PR pending
+## 2026-09-04 — DOCTRINE v0.79: the readings list closes the host panel too — and, after the audit, the reset path with it — STAGED on branch, PR #238
+
+**What happened.** "Now the readings list panel." v0.78's own audit
+(Lane A MED-4) found the consistency argument half-true: `ui/readings.js`
+is the other screen that REPLACES the sheet with a screen of its own,
+and it still restored the host panel open, so "returning lands on a
+sheet" was true of the paired screen and not of the readings list.
+(There is a third path that hides `#result` and is not a screen at all;
+the first draft of this entry and its DOCTRINE clause both rounded "both
+screens" up to "every screen", both audit lanes caught it, and on the
+controller's word — "fix and merge" — it is closed here too rather than
+queued. See the audit paragraph below.) That was narrowed rather than
+widened at the time, and named as the controller's. The word came.
+
+**The change, by the same seam.** `openPage()` calls a new `onOpen` hook
+BEFORE hiding anything — the ordering v0.78 established, so the panel's
+own focus return lands on a still-visible cell and `heading.focus()`
+takes focus from there. index.html wires it to the same
+`meaningsUI.close()` handle. Two details worth stating rather than
+leaving to be rediscovered: the hook resolves at CLICK time, not boot,
+because `initReadingsUI` runs above `initMeaningsUI` in index.html's
+boot order (a direct reference at boot would be a temporal-dead-zone
+read); and `close()` is unconditional since v0.77, so
+opening the list from onboarding needs no guard. Precisely (pr238 audit
+LOW-1): it is IDEMPOTENT, not a no-op — with nothing open it still
+clears `.open`, sets the panel hidden and inert, calls
+`setPaneEntry(false)` and schedules a blank, all of which are already
+true; what it does NOT do is move focus, because it focuses the cell it
+came from only when there was one. So `heading.focus()` takes focus off
+that cell in the open case and is uncontested in the closed one.
+`ui/readings.js` names no panel id and imports nothing from
+`ui/meanings.js` — it asks the host, which is the §6 DI shape, and the
+same shape `ui/dyad.js` uses. `closePage()` is untouched and does not
+reopen; the list's existing focus restoration to its own opener stands.
+index.html 647 → 649 → 659 lines (the last step is the reconciliation's
+comment blocks and the reset hook, below).
+
+**Tests.** +5 as built: `openPage` calls `onOpen` exactly once with
+`#result` still visible at that moment; opening from onboarding still
+calls it; back does NOT call it again and restores the sheet; a host
+that passes no hook still opens the list (the module never requires it);
+and index.html wires the handle to readings with `ui/readings.js` naming
+no panel id. Four mutants, all killed — but they are not all the same
+STRENGTH of kill, and pr238 audit LOW-3 asked for that to be said rather
+than implied. Three are BEHAVIOURAL: the hook not called, the hook
+called after the hide, and `closePage` reopening are each caught by a
+test that drives the real module and asserts what a reader would see.
+The fourth is SOURCE-SHAPE: dropping the index.html wiring is caught by
+a regex over the file's text in `tests/desk_layout.test.js`, because
+§12 forbids jsdom and no test can boot index.html. A source-shape pin
+holds the wiring in place; it does not prove the wired thing works. It
+is the same instrument this repo has used for every boot-order claim,
+and it is worth naming each time it carries a claim on its own.
+
+**Live-fire, 390 and 1440.** Compartment open → previous readings →
+host panel `open:false`, `inert:true`, body length 0, pane `has-entry`
+cleared, focus on the readings heading; back → the sheet with the panel
+still closed, focus on the readings button, and at 1440 the pane's
+"select a compartment" line back; reopening a compartment works
+normally. No console errors at either width.
+
+**Two-lane audit, and the finding this pass most deserved.** Both lanes
+returned MERGE WITH FIXES; all of it is landed in one reconciliation
+commit rather than pushed mid-audit.
+
+*HIGH-1, both lanes, and it is the same mistake twice.* The amendment's
+closing sentence claimed "every screen that hides `#result` retires the
+panel first, and the v0.78 claim is true without qualification." False.
+`resetFormDisplay` (`ui/profile.js:245`) is a THIRD path that hides
+`#result` — reached from `try another`, from `forget this device`, and
+from the corrupted-stored-payload branch of boot recovery — and it does
+not close the panel; the card-face MutationObserver retires it later,
+when the next reading renders under it. v0.78 rounded a two-screen claim
+up to a universal one and its audit caught it; v0.79 exists to correct
+that, and rounded the SAME claim up again — in a pass whose audit brief
+explicitly asked both lanes to look for exactly this class. The
+correction first narrowed the claim at every site that carried it (the
+clause, the v0.78 marker, the footer, the changelog) and sent the third
+path to the controller as open work. The controller's answer was "fix
+and merge", so it is closed here instead: `initProfileUI` gains an
+`onReset` hook, index.html wires it to the same `meaningsUI.close()`
+handle, and `resetFormDisplay` calls it BEFORE hiding `#result` — the
+same seam and the same ordering as the other two, with the reset's own
+`nameInput.focus()` taking focus afterwards as it always did. Three
+callers (try another, forget this device, boot recovery) get it from one
+hook. Live-fired at 390 and 1440 on both paths: the panel is closed and
+inert at t+60ms, blank at t+560ms, focus on the name field, no console
+errors, and re-entering re-opens compartments normally.
+
+**And the enumeration is now pinned, because the sentence could not be.**
+This chain rounded the same claim up twice — v0.78 said it of two
+screens with a third path live, v0.79's first draft repeated it, and a
+brief written specifically to catch that did not stop it. Reading a
+sentence is not a check. `tests/desk_layout.test.js` now scans
+index.html and every `ui/*.js` for any way of hiding `#result`
+(`classList.add`/`toggle`, `.hidden =`, `style.display`) and asserts the
+site set is exactly the three the doctrine names, plus that each closes
+before it hides. A fourth path fails the suite in the change that adds
+it, and its author has to decide there and then whether the doctrine
+sentence is still true. That is the real lesson: a claim about an
+enumeration needs a test over the enumeration, not a more careful
+author.
+
+*MED-1, a temporal dead zone the new wiring opened.* `let meaningsUI;`
+sat about seventy lines BELOW `initReadingsUI`, and the readings hook
+closes over it with its listener live from the moment init returns. A
+throw anywhere in that window left the binding uninitialized with the
+button still wired, so the readings list would die with a
+ReferenceError where it used to degrade cleanly. Fixed by initializing
+the binding to a no-op handle at declaration and assigning
+`initMeaningsUI(...) || meaningsUI`, so the degraded path is a real
+handle rather than a hole. Pinned in `tests/desk_layout.test.js`,
+including the declaration-before-`initReadingsUI` ordering.
+
+*A pre-existing readings bug the hook exposed.* `openPage()` derived
+`origin` from whether `#result` was hidden — AFTER the hook ran. A host
+hook that hides `#result` itself (the §1.J paired screen's does exactly
+that) would make every open capture `onboarding` and send `back` to the
+entry form; and independently of any hook, the topbar's readings button
+stays hit-testable while the list is open, so a second activation
+re-derived `origin` with the sheet already hidden and did the same
+thing. Both lanes reproduced the second one on the BASE — it predates
+this change. `origin` is now derived before the hook and only while the
+page is hidden, with the reasoning kept in the source; +2 tests cover
+both shapes.
+
+*A comment that claimed what nothing checked.* The v0.79 wiring test
+carried the boot-order rationale — readings inits above meanings — in a
+comment, above two regexes that checked only text presence and
+proximity. Lane A inverted the two init calls (M16) and the whole suite
+stayed green. The order is now asserted directly
+(`indexOf('initReadingsUI(') < indexOf('initMeaningsUI(')`), so the
+sentence the record makes is the sentence a test holds (LOW-2).
+
+*The flake, root-caused — see the paragraph below, which this audit
+rewrote.* Also LOW-1 (the "no-op" imprecision, corrected above and in
+the clause) and LOW-3 (the mutant disclosure, split above).
+
+Final state: suite 61 files / 2113 tests green; product audit PASS.
+Twelve reconciliation mutants run, all killed — behavioural: `origin`
+derived after the hook, `origin` re-derived on re-entry, `testTimeout`
+deleted, `testTimeout` lowered to 6000, the `onReset` call dropped, and
+the `onReset` call moved after the hide; source-shape: the binding back
+to `const`, the assignment without its `|| meaningsUI` fallback, the two
+init calls swapped in boot order, the index.html `onReset` wiring
+dropped, a fourth `#result` hide site added, and the reset ordering
+inverted against the enumeration pin.
+
+**Second sighting of the parallel-run flake, and it is not what the
+first one looked like.** During this pass a full `npm test` failed twice
+over in one run: `pii_scan`'s operator-name rule (13.5s, the same
+signature as the 2026-09-03 sighting) AND `cards_hosting`'s JPEG
+integrity check (7s) — the two heaviest file-reading files in the suite,
+failing together. Both passed standalone immediately after, and four
+subsequent full runs were clean, so it is still unpinned. What it DOES
+settle is the framing: the first sighting was recorded as a story about
+`pii_scan`'s walk reading `audits/automated/`, and pr236's lanes
+sharpened that. But `cards_hosting` reads `cards/*.jpg` and never
+touches that directory, so whatever it is, it is not the scanner's
+scope. Disk (20G free) and descriptors (`ulimit -n` 20000) were both far
+from any limit. The scanner-scope follow-up both pr236 lanes endorsed is
+still worth doing on its own merits — it is a correctness argument, not
+a performance one — but it should not be expected to fix this.
+
+**And the cause is now known — it was never about file reading.** This
+entry first wrote the common factor up as "heavy parallel file reading
+in this container." Both pr238 audit lanes falsified that and found the
+real mechanism, independently and by experiment. Vitest's default
+per-test budget is 5000ms. This suite's slowest test —
+`tests/public.test.js`'s voice-register sweep — idles at roughly 2s, 40%
+of that budget, and the two files that failed are the next slowest.
+Under CPU contention they cross the line and the run reports a TIMEOUT,
+which reads like a defect. Both lanes reproduced it deterministically
+under synthetic CPU load (5 of 6 runs, and 12 of 12), and both showed
+that DISK contention alone does not reproduce it at all — which is what
+kills the file-reading story, and the first sighting's framing with it.
+The fix is configuration, not code: `vitest.config.js` sets
+`testTimeout: 20000`, ten times the slowest test and free when the suite
+is green, and `tests/dependency_discipline.test.js` pins it by importing
+the real config, so deleting or lowering it fails there. Separately and
+on its own merits, `tests/public.test.js`'s 2s baseline is worth
+reducing; that is queued, not done here.
+
+**Queued.** The PII scanner's walk scope (pr236, both lanes; unchanged by the flake
+finding), plus the two-line hardening pr238 Lane A noticed alongside it:
+`walk()` does `readdirSync` → `statSync` → `readFileSync` with no
+try/catch over a tree that includes `audits/automated/`, where
+`project_audit.py` writes, so a file vanishing mid-walk fails the test
+as an fs error rather than an assertion. `tests/public.test.js`'s 2s
+sweep, worth reducing on its own merits now that the timeout class is
+closed by configuration. The friend's rising/moon reading, still waiting
+on a birth time. `next_strategic_read` (due 2026-08-13) and
+`next_analytics_read` (due 2026-08-06), both overdue.
+
+## 2026-09-04 — DOCTRINE v0.78: the host panel closes when the paired screen opens — the open question, answered — SHIPPED (#237)
 
 **What happened.** "Take the host panel close question." It had been
 named as the controller's twice — v0.76's audit as LOW-6, v0.77's

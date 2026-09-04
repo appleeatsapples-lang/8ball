@@ -242,6 +242,16 @@ export function resetFormDisplay() {
   // Caller is responsible for clearing the stored profile separately
   // when the intent is a real reset (e.g. "forget this device").
   const r = _refs;
+  // §1.E v0.79: retire the host meaning panel BEFORE hiding #result — the
+  // same seam and the same ordering the paired screen and the readings list
+  // use, so the panel's own focus return lands on a still-visible cell and
+  // the `nameInput.focus()` below takes it from there. This is the third
+  // path that hides #result; through pr238 it was the one that did not
+  // close the panel, leaving a stale reading .open in a display:none
+  // subtree until the card-face MutationObserver caught it on the next
+  // render. Both audit lanes reproduced that; the controller ordered it
+  // fixed rather than left as open work.
+  if (_hooks.onReset) _hooks.onReset();
   r.result.classList.add('hidden');
   r.onboarding.classList.remove('hidden');
   r.onboarding.classList.add('reveal');

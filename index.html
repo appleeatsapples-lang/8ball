@@ -312,6 +312,13 @@ const shakeAgainBtn = $('shake-again-btn');
 const tryAnotherBtn = $('try-another-btn');
 initStatusBanner($('status-banner'));
 let readingsUI = null;
+// Same rule as `readingsUI` above and the host-owned state below: the
+// readings hook closes over this and its listener is live from the moment
+// initReadingsUI returns, ~70 lines before initMeaningsUI runs. A throw
+// anywhere in that window would otherwise leave the binding in the temporal
+// dead zone with the button still wired, so the readings list dies with a
+// ReferenceError where it used to degrade cleanly (pr238 audit MED-1).
+let meaningsUI = { close() {} };
 // about / forget modals + escape-to-close (ui/modals.js §6 split).
 const modalsUI = initModalsUI(
   { aboutModal: $('about-modal'), aboutBtn: $('about-btn'), aboutClose: $('about-close'),
@@ -331,12 +338,17 @@ let currentProfile = null;
 let selectedCity = null;
 initProfileUI(
   { timeInput, legacyHint, polarMessage, cityInput, citySuggestions, risingFields, result, onboarding, nameInput, dobInput },
-  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; } },
+  { setSelectedCity: c => { selectedCity = c; }, setCurrentProfile: p => { currentProfile = p; },
+    // the third #result-hiding path — try another, forget this device, and
+    // boot recovery all reach resetFormDisplay (§1.E v0.79)
+    onReset: () => meaningsUI.close() },
 );
 readingsUI = initReadingsUI(
   { openBtn: $('readings-btn'), saveBtn: $('save-reading-btn'), saveStatus: $('save-reading-status'),
     onboarding, result, stage: document.querySelector('.stage') },
   { getCurrentProfile: loadSavedProfile,
+    // resolved at click time, not at boot: initMeaningsUI runs further down
+    onOpen: () => meaningsUI.close(),
     openReading: reading => {
       const payload = reading.profile;
       const prev = loadSavedProfile();
@@ -403,7 +415,7 @@ initTiersUI({
 }, {});
 initPublicUI({ root: $('public-read'), families: $('public-families'),
   antiFit: $('public-antifit'), roleLine: $('public-roleline') });
-const meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') });
+meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') }) || meaningsUI;
 // §1.J dyad surface (t5) — screen, styles and entry control injected by the
 // module; person B uses this same buildProfile path and is never persisted.
 // getNoteSlot's `role` split (PR #187 R2): A keeps this device's stored
