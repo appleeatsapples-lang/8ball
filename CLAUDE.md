@@ -179,9 +179,14 @@ architecture and locked decisions, not the latest ship. Don't treat this
 file as a state record.
 
 Repository-shape counts above (core/ui/tests) are the canonical inventory;
-`8BALL.md` / `README.md` defer here. Verified 2026-07-25 against a green
-suite (38 files / 1369 tests). These counts drifted unnoticed for ~1 month
-twice before `tests/repo_shape.test.js` began pinning them on 2026-07-05 —
-that guard is why the numbers can now be trusted on sight, so if it's ever
-weakened, go back to re-verifying with `find core ui -name '*.js' | wc -l`
-and `ls tests/*.test.js | wc -l`.
+`8BALL.md` / `README.md` defer here. The guard (`tests/repo_shape.test.js`,
+added 2026-07-05) is what keeps those counts trustworthy on sight —
+**historical note, not a current count:** the guard's FIRST verification,
+2026-07-25, checked 38 files / 1369 tests against a green suite; the counts
+have grown substantially since (each gate/remediation cycle that adds a
+module or test file updates the counts above in the same change). Read the
+counts stated earlier in this file, not this historical figure, for the
+current inventory. These counts drifted unnoticed for ~1 month twice before
+the guard existed — that history is why the guard is load-bearing, so if
+it's ever weakened, go back to re-verifying with
+`find core ui -name '*.js' | wc -l` and `ls tests/*.test.js | wc -l`.

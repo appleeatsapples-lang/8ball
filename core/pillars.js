@@ -7,9 +7,12 @@
 // surface change this cycle (the fields are inert on the free card; see
 // brief cc_brief_pillars_module_2026-05-31 §7 and DOCTRINE §1.D-future).
 //
-// SCOPE (v1): day pillar + hour pillar ONLY. Year/month rigorous stems,
-// moon sign, extra tarot, derived numbers are explicit follow-on modules
-// (brief §8). This module does NOT touch the free simplified year-element
+// SCOPE (v1): day pillar + hour pillar ONLY. Year/month rigorous stems and
+// derived numbers are explicit follow-on modules (brief §8). The moon sign
+// WAS one such follow-on candidate at the time this module shipped — it has
+// SINCE SHIPPED as its own module, `core/moon.js` (DOCTRINE §1.K v0.73);
+// this module never touched it and still doesn't. This module does NOT
+// touch the free simplified year-element
 // (getChineseElement) nor the year/month animals (getAnimal / getInnerAnimal),
 // and never enters the catalog driver (getCard / resolveBracket) — pillars
 // are data/surface-only per DOCTRINE §1.
@@ -66,8 +69,11 @@ const KB_DAY_BRANCH = 1;
 // Fliegel & Van Flandern (1968). Returns the integer that increments by
 // exactly 1 per civil day — the property the sexagenary day cycle rides on.
 // (calendar.js's Meeus gregorianToJD is a private astronomical JD at .5/midnight
-// for solar-term math; it is NOT this integer and is not reused here — calendar.js
-// is reserved for the later moon module per the brief.)
+// for solar-term math; it is NOT this integer and is not reused here.
+// core/calendar.js is a solar-term/lunar-calendar module — it was never the
+// moon-SIGN module; the moon sign shipped separately as core/moon.js
+// (DOCTRINE §1.K v0.73), which implements its own Meeus longitude series
+// and does not reuse gregorianToJD either.)
 function julianDayNumber(year, month, day) {
   const a = Math.floor((14 - month) / 12);
   const y = year + 4800 - a;

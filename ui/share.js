@@ -1,6 +1,12 @@
 // 8ball / ui/share.js
-// v0.4.0 share-surface controller (DOCTRINE §5.D v0.31 / §6; tier-aware
-// per §5.D v0.36, v0.6.0).
+// v0.4.0 share-surface controller (DOCTRINE §5.D v0.31 / §6; was tier-aware
+// per §5.D v0.36, v0.6.0 — sixth remediation gate: since the 2026-09-02
+// free amendment (doctrine §1.D v0.71) every device renders the complete
+// sheet, so the "open"/"sealed" per-cell machinery below is RETAINED
+// compatibility/rendering logic, not a live gate — ui/tiers.js's
+// getRenderTier() always resolves the free ceiling, so a real device never
+// produces a sealed cell in practice; the sealed-hatch code path stays
+// correct and tested but does not fire live).
 //
 // Owns:
 //   - the #share-btn click handler on the result surface
@@ -11,7 +17,8 @@
 //     SVG hatch + label with the VALUE absent (each row ref carries its
 //     per-cell {state, value}). The sealed value never exists in the
 //     snapshot, so it cannot reach the artifact (a mixed row shows its
-//     open value beside its sealed compartment; paid users emit more open).
+//     open value beside its sealed compartment; RETAINED compatibility
+//     logic per the note above — every current device renders fully open).
 //   - the share flow: Web Share API (navigator.share with the PNG file +
 //     a clinical caption) where available; otherwise a local PNG download
 //     + clipboard copy of the caption (catalog + open coords + bare URL),
@@ -21,10 +28,12 @@
 //   - any profile / card-content state. The image builder reads ONLY the
 //     per-row snapshot refs (each row's title + per-cell {state, value},
 //     DOM-derived in ui/tiers.js) and the catalog number. It never touches
-//     the paid card-content layer (name/type/habit/note) and never reads a
+//     the card-content layer (name/type/habit/note) and never reads a
 //     profile object — and a sealed cell carries no value — so name, DOB,
-//     and paid coordinate values cannot reach the shared artifact
-//     (DOCTRINE §5.D invariants a/b).
+//     and any would-be-sealed coordinate value cannot reach the shared
+//     artifact (DOCTRINE §5.D invariants a/b) — a privacy/structural
+//     guarantee that holds regardless of whether the sealed path ever
+//     fires live.
 //   - tier resolution. The per-cell state (open / sealed / unres) is decided
 //     by ui/tiers.js at render time; this module renders each compartment
 //     from the state it finds (sealed → hatch, value absent).
@@ -47,8 +56,11 @@ const DEFAULT_PNG_NAME = '8ball-specimen.png';
 // Specimen-card geometry, in SVG user-space units. SCALE rasters the
 // PNG at higher density so the mono type stays crisp on retina shares.
 // Row positions are computed from the row count (the stack distributes
-// evenly between STACK_TOP and STACK_BOTTOM). v0.39: all 8 rows render at
-// every tier (the full sheet); the geometry still holds 1..8 rows by count.
+// evenly between STACK_TOP and STACK_BOTTOM). v0.39: all rows render on
+// every device (the free ceiling, doctrine v0.71) — the sheet shipped 8
+// rows at v0.39; §1.K v0.73 (2026-09-02) added a ninth, the WESTERN
+// group's MOON row. The geometry is row-count-driven, not a fixed 8 — it
+// holds 1..N rows by count, currently 9.
 const CARD_W = 320;
 const CARD_H = 480;
 const SCALE = 3;
@@ -69,10 +81,13 @@ const RULE = '#737373';
 const FONT = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
 // ── DI injection (refs + hooks at boot) ───────────────────────────
-// refs:  { btn, status, catalog, symbols: [...] } — the eight row snapshot
-//        refs from ui/tiers.js shareRowRefs(), in DOM order. Each exposes
+// refs:  { btn, status, catalog, symbols: [...] } — the nine row snapshot
+//        refs from ui/tiers.js shareRowRefs(), in DOM order (eight at
+//        v0.39; §1.K v0.73 added the MOON row). Each exposes
 //        { title, cells: [{state, value}] } read from live cell state;
-//        sealed cells carry no value (§5.D v0.39). The full sheet renders.
+//        a sealed cell carries no value (§5.D v0.39 — retained
+//        compatibility path, doesn't fire live per the header note above).
+//        The full sheet renders on every device (doctrine v0.71).
 // hooks: reserved for parity with the other ui/*.js modules; unused today.
 let _refs = null;
 let _hooks = null;
@@ -177,7 +192,10 @@ export function buildCardSVGFromSnapshot(snapshot) {
 
 // §5.D v0.39: render every row's every cell. The refs (from ui/tiers.js
 // shareRowRefs) carry per-cell {state, value}; sealed cells carry no value,
-// so a paid coordinate value cannot reach the artifact. Fail-closed state
+// so a sealed coordinate's value cannot reach the artifact — a structural
+// guarantee retained as compatibility logic even though every current
+// device renders fully open (doctrine v0.71 free amendment) and never
+// actually produces a sealed cell. Fail-closed state
 // whitelist (#126 audit F2): exactly 'open' carries its value and exactly
 // 'unres' carries the — empty field; any other, missing, or malformed
 // state — whatever produced it — coerces to a sealed cell with no value.
@@ -213,7 +231,10 @@ function buildCardSVG() {
 // the PNG: catalog numeral + the open coordinate values + a `sealed
 // remainder` marker when any cell is sealed + the bare production URL. No
 // name/DOB, no profile read, no per-result parameter (invariants a/b).
-// Sealed cells contribute no value; `—` unresolved fields are skipped.
+// Sealed cells contribute no value; `—` unresolved fields are skipped. The
+// `sealed remainder` marker is retained compatibility logic — every
+// current device renders every cell open (doctrine v0.71), so no live
+// caption actually carries it, though the code path stays correct.
 export function buildCaptionFromSnapshot(snapshot) {
   const s = snapshot || {};
   const catalog = String(s.catalog == null ? '' : s.catalog).trim();
@@ -363,5 +384,11 @@ async function onShare() {
       copied = true;
     } catch (_) {}
   }
-  flashStatus(copied ? 'image saved · caption copied' : 'image saved');
+  // Sixth remediation gate, item 3: `downloadBlob()` above only INVOKES the
+  // browser's download — nothing here learns whether the bytes actually
+  // reached disk, so "saved" was never a claim this module could truthfully
+  // make (the same fact ui/pairShare.js's own item-6 fix already
+  // established for the Pair Imprint's fallback). "download started"
+  // describes the action taken, not a completion this module cannot observe.
+  flashStatus(copied ? 'download started · caption copied' : 'download started');
 }

@@ -465,10 +465,16 @@ pairShareController = initPairShareUI(
 );
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
-// ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
-// The §5.D snapshot refs in registry (grouped) order — ui/share.js walks
-// them positionally, so no per-row names are needed (and the old ones
-// went stale the moment the rows regrouped, pr230 audit).
+// ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet,
+// with any sealed cell hatched. Since the 2026-09-02 free amendment
+// (doctrine §1.D v0.71) every device renders every coordinate open, so a
+// real PNG never actually contains a sealed hatch in practice — the
+// per-cell {state,value} contract and the sealed-hatch rendering are
+// retained structurally (the privacy guarantee — a sealed cell's value
+// cannot reach the artifact — holds regardless of whether that path ever
+// fires live). The §5.D snapshot refs in registry (grouped) order —
+// ui/share.js walks them positionally, so no per-row names are needed (and
+// the old ones went stale the moment the rows regrouped, pr230 audit).
 const shareRows = shareRowRefs();
 initShareUI(
   {

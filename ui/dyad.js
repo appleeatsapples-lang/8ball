@@ -603,7 +603,7 @@ const SCREEN_HTML =
   // since render() has exactly one caller (submitSecond()).
   '<div class="dyad-relation-failure" id="dyad-relation-failure" role="status" ' +
   'aria-live="polite" aria-atomic="true" aria-labelledby="dyad-relation-failure-copy" tabindex="-1" hidden>' +
-  '<p id="dyad-relation-failure-copy">relation layer unavailable. both individual sheets remain valid.</p>' +
+  '<p id="dyad-relation-failure-copy">relation layer unavailable. both individual sheets remain available.</p>' +
   '<button type="button" class="btn btn-secondary" id="dyad-relation-retry">compare another</button>' +
   '</div>' +
   '<p class="dyad-error" id="dyad-error" role="status" hidden></p>' +
@@ -1465,7 +1465,11 @@ export function render() {
   // Pair Dossier hierarchy: the compact signature reads the same fields the
   // evidence below expands, and the two individual sheets above render
   // regardless of whether the relation resolved — a failed relation never
-  // means a failed reading (Step 4: "both individual sheets remain valid").
+  // means a failed reading (Step 4: "both individual sheets remain
+  // available"). Sixth remediation gate: the copy said "remain valid"
+  // through the fifth gate — corrected, since what a failed-relation render
+  // actually proves is that the sheets stay VISIBLE/AVAILABLE, never a
+  // semantic-validity certification this module has no way to make.
   const signature = $('dyad-signature');
   if (signature) signature.hidden = !relation;
   const failure = $('dyad-relation-failure');

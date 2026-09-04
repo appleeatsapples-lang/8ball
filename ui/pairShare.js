@@ -264,24 +264,34 @@ export function buildPairImprintCaption(snapshot) {
 // outcomes" before `busy`/`stale` existed as states in their own right, and
 // the third gate's eight-state count was itself incomplete — it had no way
 // to say "an irreversible effect completed, but for the pair you started
-// with, not the one on screen now"). Pure mapping, one entry per branch the
-// click handler can take, so no two distinct outcomes ever share a message:
+// with, not the one on screen now"). Sixth remediation gate, item 2: the
+// fourth/fifth gates named these `*-previous` and reported them whenever a
+// post-effect re-read came back `changed` OR `unknown` (the getRelation()
+// hook threw). That was a real defect: a THROW proves neither that the pair
+// changed nor that it is "the previous" one — it proves nothing about
+// identity at all. `*-selected` replaces `*-previous` because "selected" is
+// truthful in BOTH cases without needing to tell them apart: the exported
+// artifact is certainly the snapshot SELECTED at click time, whether the
+// on-screen pair is later confirmed different or simply unconfirmable.
+// Pure mapping, one entry per branch the click handler can take, so no two
+// distinct outcomes ever share a message:
 //   busy                       — preparing (pre-render OR an active click);
 //                                NOT a terminal outcome — see setStatus()'s
 //                                timer rule below, this one never auto-hides.
 //   shared                     — navigator.share() genuinely resolved FOR
-//                                THE PAIR CURRENTLY ON SCREEN.
-//   shared-previous            — navigator.share() genuinely resolved, but
-//                                identity could not be confirmed unchanged
-//                                afterward (the reader moved to a different
-//                                pair, or replaced this one, while the share
-//                                sheet was open) — the share is a REAL,
-//                                COMPLETED effect for the pair selected at
-//                                click time; it is reported as concerning
-//                                that previous/selected pair, never folded
-//                                into `stale` (which would falsely imply
-//                                nothing happened) or `failed` (which would
-//                                falsely imply the share itself broke).
+//                                THE PAIR CURRENTLY ON SCREEN (identity
+//                                re-read CONFIRMED current).
+//   shared-selected            — navigator.share() genuinely resolved, but
+//                                current identity could not be CONFIRMED
+//                                afterward — either a fresh read found a
+//                                different relation, or the read itself
+//                                threw and currency is simply unknown. The
+//                                share is a REAL, COMPLETED effect for the
+//                                pair SELECTED at click time; it is reported
+//                                as concerning that selected pair, never
+//                                folded into `stale` (which would falsely
+//                                imply nothing happened) or `failed` (which
+//                                would falsely imply the share itself broke).
 //   download-started           — the on-device download fallback genuinely
 //                                fired FOR THE PAIR CURRENTLY ON SCREEN (a
 //                                claim this module CAN make — the browser
@@ -291,50 +301,58 @@ export function buildPairImprintCaption(snapshot) {
 //                                the file to disk).
 //   download-started-copied    — the above, plus the caption copied to the
 //                                clipboard, for the pair currently on screen.
-//   download-started-previous          — the download genuinely fired, but
-//                                        for the pair selected at click
-//                                        time, which is no longer the one
-//                                        on screen (discovered during the
-//                                        clipboard step, the only await
-//                                        after the download itself).
-//   download-started-previous-copied   — the above, AND the clipboard copy
-//                                        (of the previous pair's caption)
-//                                        also succeeded before identity was
-//                                        found to have changed.
+//   download-started-selected          — the download genuinely fired, but
+//                                        for the pair SELECTED at click
+//                                        time, whose currency could not be
+//                                        confirmed at the clipboard step
+//                                        (the only await after the download
+//                                        itself) — a confirmed change or an
+//                                        unconfirmed (hook-threw) read both
+//                                        land here, identically truthful
+//                                        either way.
+//   download-started-selected-copied   — the above, AND the clipboard copy
+//                                        (of the selected pair's caption)
+//                                        also succeeded before currency
+//                                        could be confirmed.
 //   cancelled                  — a dismissed native chooser (AbortError) —
 //                                never "shared".
-//   stale                      — the pair changed while a NON-irreversible
-//                                step (rasterizing, waiting for a
-//                                pre-render, or a share attempt that has not
-//                                yet resolved/rejected) was in flight, so no
-//                                irreversible share/download effect occurred
-//                                for the pair this operation started with.
-//                                Fifth gate, item 3: "saved" is never the
-//                                right word here regardless — this module
-//                                can only observe a download STARTING, never
-//                                completing (item 6). Fourth gate,
-//                                item 1: reserved EXCLUSIVELY for changes
-//                                found BEFORE an irreversible effect starts
-//                                — never used once a share() call has
+//   stale                      — the pair CONFIRMED changed while a
+//                                NON-irreversible step (rasterizing, waiting
+//                                for a pre-render, or a share attempt that
+//                                has not yet resolved/rejected) was in
+//                                flight, so no irreversible share/download
+//                                effect occurred for the pair this operation
+//                                started with. Reserved EXCLUSIVELY for a
+//                                CONFIRMED change before any irreversible
+//                                effect starts — an unconfirmed (hook-threw)
+//                                pre-effect read is `failed`, not `stale`,
+//                                since a throw proves no change, only that
+//                                currency couldn't be read (sixth gate, item
+//                                2). Never used once a share() call has
 //                                already resolved or a download has already
-//                                fired (those use the `-previous` states
+//                                fired (those use the `-selected` states
 //                                above instead, since something real DID
-//                                happen by then).
+//                                happen by then). Fifth gate, item 3: "saved"
+//                                is never the right word here regardless —
+//                                this module can only observe a download
+//                                STARTING, never completing (item 6).
 //   empty                      — nothing resolved to share; the failure
 //                                state has no relation to export.
 //   failed                     — a render/share exception, a getRelation()
-//                                hook that threw on read (P2 hook truth), or
-//                                a download that never fired at all — always
+//                                hook that threw on read (P2 hook truth,
+//                                including an unconfirmed pre-effect
+//                                re-read — sixth gate, item 2), or a
+//                                download that never fired at all — always
 //                                before any irreversible action.
 export function pairShareStatusMessage(state) {
   switch (state) {
     case 'busy': return 'preparing pair image…';
     case 'shared': return 'shared.';
-    case 'shared-previous': return 'previous pair shared.';
+    case 'shared-selected': return 'selected pair shared.';
     case 'download-started': return 'download started.';
     case 'download-started-copied': return 'download started · caption copied.';
-    case 'download-started-previous': return 'download started for previous pair.';
-    case 'download-started-previous-copied': return 'download started for previous pair · caption copied.';
+    case 'download-started-selected': return 'download started for selected pair.';
+    case 'download-started-selected-copied': return 'download started for selected pair · caption copied.';
     case 'cancelled': return 'share cancelled.';
     case 'stale': return 'the pair changed. share the pair again.';
     case 'empty': return 'nothing to share yet — read a pair first.';
@@ -450,10 +468,12 @@ function downloadBlob(blob, filename) {
 // at call time for reasons this module cannot predict in advance (no share
 // targets configured, a policy restriction, etc.) — so the disclosure text
 // itself states the native path as CONDITIONAL ("when supported") and always
-// names the on-device save as the fallback, rather than promising a direct
-// share outright. When neither method exists at all, the wording collapses
-// to a plain, unconditional image-save statement — nothing conditional to
-// hedge.
+// names the on-device download as the fallback, rather than promising a
+// direct share outright. When neither method exists at all, the wording
+// collapses to a plain, unconditional image-download statement — nothing
+// conditional to hedge. Sixth remediation gate, item 4: "save"/"saved"
+// never appears in this disclosure — this module can only observe a
+// download STARTING (item 6), never reaching disk.
 function detectShareCapability() {
   try {
     return typeof navigator !== 'undefined'
@@ -684,15 +704,22 @@ function notifyRelationChange(controller, relation) {
 //   'changed'     — a fresh, successful read found a DIFFERENT relation (or
 //                   null) than the one this operation started with. Before
 //                   an irreversible effect this means `stale`; after one it
-//                   means the effect completed for the "previous" pair.
+//                   means the effect completed for the pair SELECTED at
+//                   click time (sixth gate, item 2: never "the previous"
+//                   pair — this module never claims to know what's
+//                   currently on screen, only what it started with).
 //   'unknown'     — the getRelation() hook threw on this re-read (second-
 //                   gate P2 hook truth) — currency cannot be confirmed
 //                   either way. Before an irreversible effect this is
-//                   `failed` (the same read failure it always was); after
-//                   one, this module still cannot claim the effect
-//                   concerned the pair NOW on screen, so it is reported the
-//                   same conservative way as 'changed' — never as an
-//                   unqualified success.
+//                   `failed` (the same read failure it always was) — NEVER
+//                   `stale`, since a throw proves no change, only that
+//                   currency couldn't be read (sixth gate, item 2). After an
+//                   irreversible effect, this module still cannot claim the
+//                   effect concerned the pair NOW on screen, so it is
+//                   reported the same conservative way as 'changed' — as
+//                   concerning the pair SELECTED at click time, never as an
+//                   unqualified success and never as "previous" (a throw
+//                   does not prove the pair changed at all).
 //   'suppressed'  — this controller was retired (a new controller has taken
 //                   over the same DOM — see initPairShareUI) or this
 //                   operation's own token no longer matches (defensive:
@@ -741,15 +768,20 @@ function renderFailureStatus(verdict) {
 
 // Maps a recheck() verdict to the correct status AFTER an irreversible
 // effect (a resolved share(), or a fired download) has already happened —
-// fourth-gate item 1. 'changed' and 'unknown' both mean "cannot confirm
-// this was for the pair now on screen", so both get the SAME truthful
-// "previous pair" wording (never a bare, ambiguous claim, and never a
-// false `stale`/`failed` that would erase a real completed effect).
-// `currentState`/`previousState` are the two status keys to choose between;
-// 'suppressed' returns null (write nothing).
-function postEffectStatus(verdict, currentState, previousState) {
+// fourth-gate item 1, corrected by the sixth gate item 2. 'changed' and
+// 'unknown' both mean "cannot confirm this was for the pair now on screen",
+// so both get the SAME truthful "selected pair" wording — never "previous
+// pair" (that would claim a change this module cannot prove when the
+// verdict is merely 'unknown'), never a bare ambiguous claim, and never a
+// false `stale`/`failed` that would erase a real completed effect.
+// "Selected" is truthful either way: the artifact IS the snapshot selected
+// at click time, regardless of whether the pair now on screen is confirmed
+// different or simply unconfirmable. `currentState`/`selectedState` are the
+// two status keys to choose between; 'suppressed' returns null (write
+// nothing).
+function postEffectStatus(verdict, currentState, selectedState) {
   if (verdict === 'suppressed') return null;
-  return verdict === 'current' ? currentState : previousState;
+  return verdict === 'current' ? currentState : selectedState;
 }
 
 async function downloadFallback(controller, myToken, relationAtStart, snapshot, blob) {
@@ -764,13 +796,14 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
   if (!downloaded) { setStatus(controller, 'failed'); return; }
 
   // Item 7 / fourth-gate item 1 (truthful stale/native-share contract, the
-  // same logic applied to the download side of the fallback):
-  // `downloadBlob()` above already invoked the browser's download — an
-  // IRREVERSIBLE action outside this controller's power to undo. From this
-  // point on, identity changing can only affect whether the CLIPBOARD copy
-  // is attempted/announced and whether the download is reported as
-  // concerning the pair now on screen or the previous/selected one — it
-  // must never be reported as if the download itself never happened.
+  // same logic applied to the download side of the fallback), corrected by
+  // the sixth gate item 2: `downloadBlob()` above already invoked the
+  // browser's download — an IRREVERSIBLE action outside this controller's
+  // power to undo. From this point on, identity changing (or becoming
+  // unconfirmable) can only affect whether the CLIPBOARD copy is
+  // attempted/announced and whether the download is reported as concerning
+  // the pair now on screen or the pair SELECTED at click time — it must
+  // never be reported as if the download itself never happened.
   let copied = false;
   if (typeof navigator !== 'undefined'
     && navigator.clipboard
@@ -782,16 +815,17 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
     } catch (_) { /* clipboard denied — the download still landed */ }
     // P1-2: re-check AFTER this await REGARDLESS of whether the write
     // resolved or rejected — a clipboard call is a real async boundary the
-    // pair can change across either way. A changed/unconfirmed identity
-    // here does NOT erase the download that already fired — it only means
-    // (a) don't claim the copy succeeded for a pair that isn't current
-    // and (b) name the download as concerning the previous/selected pair,
-    // truthfully, rather than an ambiguous unqualified claim.
+    // pair can change across either way. A changed OR unconfirmed
+    // (hook-threw) identity here does NOT erase the download that already
+    // fired — it only means (a) don't claim the copy succeeded for a pair
+    // that isn't confirmed current and (b) name the download as concerning
+    // the SELECTED pair, truthfully — never "previous" (a throw does not
+    // prove a change happened) and never an ambiguous unqualified claim.
     const check = recheck(controller, myToken, relationAtStart);
     const state = postEffectStatus(
       check.verdict,
       clipboardOk ? 'download-started-copied' : 'download-started',
-      clipboardOk ? 'download-started-previous-copied' : 'download-started-previous',
+      clipboardOk ? 'download-started-selected-copied' : 'download-started-selected',
     );
     if (state) setStatus(controller, state);
     return;
@@ -807,19 +841,21 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
   const attempt = trySyncNativeShare(blob, snapshot);
   if (attempt.attempted) {
     try {
-      // Item 7 / fourth-gate item 1: by the time `await` returns here,
-      // `navigator.share()` has ALREADY genuinely resolved — a real
-      // platform action this controller invoked and cannot take back. What
-      // happens next can only change what this module SAYS about it, never
-      // the fact that it happened. A changed pair or an unconfirmed
-      // (hook-threw) read discovered now is reported as `shared-previous`
-      // — truthfully naming the effect as real but concerning the
-      // previous/selected pair — never `stale` (which would falsely imply
-      // nothing happened) and never `failed` (which would falsely imply
-      // the share itself broke, when it plainly succeeded).
+      // Item 7 / fourth-gate item 1, corrected by the sixth gate item 2: by
+      // the time `await` returns here, `navigator.share()` has ALREADY
+      // genuinely resolved — a real platform action this controller
+      // invoked and cannot take back. What happens next can only change
+      // what this module SAYS about it, never the fact that it happened. A
+      // confirmed-changed pair OR an unconfirmed (hook-threw) read
+      // discovered now is reported as `shared-selected` — truthfully
+      // naming the effect as real but concerning the pair SELECTED at
+      // click time, never `shared-previous` (a throw proves no change,
+      // only that currency is unknown), never `stale` (which would falsely
+      // imply nothing happened), and never `failed` (which would falsely
+      // imply the share itself broke, when it plainly succeeded).
       await attempt.promise;
       const check = recheck(controller, myToken, relationAtStart);
-      const state = postEffectStatus(check.verdict, 'shared', 'shared-previous');
+      const state = postEffectStatus(check.verdict, 'shared', 'shared-selected');
       if (state) setStatus(controller, state);
       return;
     } catch (err) {

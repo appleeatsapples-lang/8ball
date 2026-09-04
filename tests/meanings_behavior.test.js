@@ -78,6 +78,7 @@ describe('ui/meanings.js behavior', () => {
     ['element', 'coord-element-symbol'],
     ['sun', 'coord-sun-symbol'],
     ['rising', 'coord-rising-symbol'],
+    ['moon', 'coord-moon-symbol'],
     ['animal', 'coord-animal-symbol'],
     ['innerAnimal', 'coord-inner-symbol'],
     ['lifePath', 'coord-lifepath-symbol'],
@@ -247,7 +248,7 @@ describe('ui/meanings.js behavior', () => {
     }
   });
 
-  it('init marks all 14 coordinate cells interactive and keyboard-reachable', () => {
+  it('init marks all 15 coordinate cells interactive and keyboard-reachable (§1.K: the moon joined the compartment sheet at v0.73)', () => {
     for (const [key] of coordinates) {
       expect(cells[key].classList.contains('has-detail')).toBe(true);
       expect(cells[key].attrs.tabindex).toBe('0');

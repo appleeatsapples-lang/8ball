@@ -2045,10 +2045,18 @@ describe('Pair Dossier — the relation scope/provenance line carries the qualif
 });
 
 describe('Pair Dossier — failure state (Step 4: visible copy, never a silent empty block)', () => {
-  // A day-pillar-incoherent profile makes core/dyad.js's dyadDayMaster guard
-  // throw, so dyadRelationFor (which catches) returns null — the same
-  // fail-closed shape the sealed-DOM tests below already exercise, reused
-  // here to drive the FAILURE presentation rather than the entitlement one.
+  // SYNTHETIC FAULT INJECTION, not a naturally-reachable submitted-pair
+  // state: no ordinary UI input can produce an incoherent day-pillar
+  // stemElement (core/dyad.js's dyadDayMaster() guard is a defensive check
+  // against a malformed coordinate, not a validation a real profile can
+  // fail). This deliberately corrupts a valid profile object to drive the
+  // REAL production error path — core/dyad.js's dyadDayMaster() throw,
+  // caught by dyadRelationFor(), which returns null exactly as it would for
+  // any other malformed-coordinate bug — so the failure PRESENTATION below
+  // (ui/dyad.js's fail-closed rendering) is exercised through its actual
+  // code path rather than a hand-built failure-shaped mock. Sixth
+  // remediation gate: this is synthetic/mock-DOM coverage of a real error
+  // path, never evidence that a relation can fail closed from ordinary use.
   function incoherentB() {
     return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
   }
@@ -2063,7 +2071,7 @@ describe('Pair Dossier — failure state (Step 4: visible copy, never a silent e
     expect(h.get('dyad-relation-retry')).toBeTruthy();
   });
 
-  it('both individual sheets remain valid when the relation fails', () => {
+  it('both individual sheets remain visible/available (not certified valid) when the relation fails', () => {
     const h = harness('t5', { buildSecond: () => incoherentB() });
     h.withDom(() => submitSecond());
     expect(h.cell('a', 'arcana').textContent).toBe(A.birthCard.label);
@@ -2738,6 +2746,11 @@ describe('fourth-gate item 2 — the ACTUAL relation-resolution failure surface 
   // ReferenceError inside `_hooks.buildSecond`, which `submitSecond()`'s
   // own try/catch swallows into a validation-error return — a real trap
   // this file's tests must not fall into again.
+  // SYNTHETIC FAULT INJECTION (sixth gate — see the fuller note on the
+  // sibling copy above): no ordinary UI input reaches this shape; it
+  // deliberately corrupts a valid profile to drive the real
+  // dyadDayMaster()-throw / dyadRelationFor()-catch production error path,
+  // never evidence of a naturally-reachable failure.
   function incoherentB() {
     return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
   }
@@ -2776,9 +2789,10 @@ describe('fourth-gate item 2 — the ACTUAL relation-resolution failure surface 
       expect(failure.hidden).toBe(false);
       h.withDom(() => vi.advanceTimersByTime(16));
       expect(failure.focusCalls.length).toBeGreaterThan(0);
-      // The two sheets remain valid and visible regardless (Step 4's own
+      // The two sheets remain visible/available regardless (Step 4's own
       // contract, unaffected by this gate) — a failed relation is never a
-      // failed reading.
+      // failed reading. "Available" is what this test can prove; it never
+      // certifies the sheets' semantic VALIDITY.
       expect(h.get('dyad-output').hidden).toBe(false);
     } finally {
       vi.useRealTimers();

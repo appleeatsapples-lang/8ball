@@ -346,7 +346,7 @@ describe('download + clipboard fallback', () => {
     expect(anchor.clickCount).toBe(1);
     expect(anchor.removeCount).toBe(1);
     expect(log.copied[0]).toContain('no. 042');
-    expect(refs.status.textContent).toBe('image saved · caption copied');
+    expect(refs.status.textContent).toBe('download started · caption copied');
   });
 
   it('revokes the download URL on the delayed timer, not immediately', async () => {
@@ -358,12 +358,12 @@ describe('download + clipboard fallback', () => {
     expect(log.revoked).toContain(downloadUrl);
   });
 
-  it('a rejected clipboard write still confirms the saved image', async () => {
+  it('a rejected clipboard write still confirms the download started', async () => {
     const log = installEnv({ clipboard: () => { throw new Error('denied'); } });
     const refs = boot();
     await clickShare(refs);
     expect(log.anchors).toHaveLength(1);
-    expect(refs.status.textContent).toBe('image saved');
+    expect(refs.status.textContent).toBe('download started');
   });
 
   it('no clipboard API at all still downloads and confirms', async () => {
@@ -371,7 +371,7 @@ describe('download + clipboard fallback', () => {
     const refs = boot();
     await clickShare(refs);
     expect(log.copied).toHaveLength(0);
-    expect(refs.status.textContent).toBe('image saved');
+    expect(refs.status.textContent).toBe('download started');
   });
 
   it('an unrecognized catalog falls back to the generic filename (no profile token can ride)', async () => {

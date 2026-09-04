@@ -295,28 +295,35 @@ describe('buildPairImprintCaption — same snapshot, same bounds', () => {
 
 // Fifth remediation gate, item 2: the real taxonomy is ELEVEN states, not
 // eight — the third gate's eight-state count (itself a correction of an
-// even earlier six-state undercount) predates the fourth gate's
-// post-effect previous-pair distinction (`shared-previous`,
-// `download-started-previous`, `download-started-previous-copied`), and
-// this file's own canonical enumeration was never updated to match, even
-// though ui/pairShare.js's `pairShareStatusMessage` switch itself already
-// carried all eleven. This enumeration is the single source of truth every
-// other "every state"-shaped test/count in this file should agree with.
+// even earlier six-state undercount) predates the fourth gate's post-effect
+// qualified-pair distinction, and this file's own canonical enumeration was
+// never updated to match, even though ui/pairShare.js's
+// `pairShareStatusMessage` switch itself already carried all eleven. Sixth
+// remediation gate, item 2: the fourth/fifth gates named the qualified
+// states `shared-previous`/`download-started-previous[-copied]` and used
+// them for BOTH a confirmed pair change AND an unconfirmed (hook-threw)
+// re-read — but a throw never proves the pair changed, only that currency
+// is unknown, so "previous" was a false claim in the unknown case. Renamed
+// to `shared-selected`/`download-started-selected[-copied]`: "selected" is
+// truthful either way, since the exported artifact is certainly the
+// snapshot selected at click time. This enumeration is the single source of
+// truth every other "every state"-shaped test/count in this file should
+// agree with.
 const ALL_STATES = [
   'busy',
   'shared',
-  'shared-previous',
+  'shared-selected',
   'download-started',
   'download-started-copied',
-  'download-started-previous',
-  'download-started-previous-copied',
+  'download-started-selected',
+  'download-started-selected-copied',
   'cancelled',
   'stale',
   'empty',
   'failed',
 ];
-const SHARED_STATES = ['shared', 'shared-previous'];
-const PREVIOUS_PAIR_STATES = ['shared-previous', 'download-started-previous', 'download-started-previous-copied'];
+const SHARED_STATES = ['shared', 'shared-selected'];
+const SELECTED_PAIR_STATES = ['shared-selected', 'download-started-selected', 'download-started-selected-copied'];
 const CURRENT_PAIR_DOWNLOAD_STATES = ['download-started', 'download-started-copied'];
 
 describe('pairShareStatusMessage — every outcome is a distinct, non-overclaiming string (the full eleven-state taxonomy)', () => {
@@ -327,14 +334,14 @@ describe('pairShareStatusMessage — every outcome is a distinct, non-overclaimi
     for (const msg of messages) expect(msg.length).toBeGreaterThan(0);
   });
 
-  // `shared` and `shared-previous` BOTH truthfully report a completed share
+  // `shared` and `shared-selected` BOTH truthfully report a completed share
   // — navigator.share() genuinely resolved either way (fourth gate, item 1:
   // a resolved share is a real, irreversible effect that must never be
   // erased just because identity couldn't be confirmed afterward). The two
   // are NOT interchangeable: `shared` is the unqualified claim ("this is
-  // the pair on screen"), `shared-previous` explicitly names the pair as
-  // the previous/selected one, never a bare ambiguous "shared."
-  it('`shared` and `shared-previous` both truthfully claim a share completed — every other state never says "shared"', () => {
+  // the pair on screen"), `shared-selected` explicitly names the pair as
+  // the one selected at click time, never a bare ambiguous "shared."
+  it('`shared` and `shared-selected` both truthfully claim a share completed — every other state never says "shared"', () => {
     for (const state of SHARED_STATES) {
       expect(pairShareStatusMessage(state).toLowerCase()).toContain('shared');
     }
@@ -343,31 +350,41 @@ describe('pairShareStatusMessage — every outcome is a distinct, non-overclaimi
     }
   });
 
-  it('`shared` is the unqualified current-pair claim; `shared-previous` is never the same bare string', () => {
+  it('`shared` is the unqualified current-pair claim; `shared-selected` is never the same bare string, and never says "previous"', () => {
     expect(pairShareStatusMessage('shared')).toBe('shared.');
-    expect(pairShareStatusMessage('shared-previous')).not.toBe(pairShareStatusMessage('shared'));
-    expect(pairShareStatusMessage('shared-previous').toLowerCase()).toContain('previous pair');
+    expect(pairShareStatusMessage('shared-selected')).not.toBe(pairShareStatusMessage('shared'));
+    expect(pairShareStatusMessage('shared-selected').toLowerCase()).toContain('selected pair');
+    expect(pairShareStatusMessage('shared-selected').toLowerCase()).not.toContain('previous');
   });
 
   // Fourth gate, item 1's other irreversible-effect pair: a fired download.
   // `download-started`/`download-started-copied` are the current-pair
-  // claims; the `-previous` variants explicitly name the previous pair
+  // claims; the `-selected` variants explicitly name the selected pair
   // rather than leaving the reader to guess which pair the download
-  // concerned.
-  it('the current-pair download states never say "previous"; the previous-pair download states always do', () => {
+  // concerned — and never say "previous", since a `-selected` state can be
+  // reached by an UNCONFIRMED read that proves no change at all.
+  it('the current-pair download states never say "selected" or "previous"; the selected-pair download states always say "selected", never "previous"', () => {
     for (const state of CURRENT_PAIR_DOWNLOAD_STATES) {
+      expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('selected');
       expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('previous');
     }
-    for (const state of PREVIOUS_PAIR_STATES.filter(s => s !== 'shared-previous')) {
-      expect(pairShareStatusMessage(state).toLowerCase()).toContain('previous pair');
+    for (const state of SELECTED_PAIR_STATES.filter(s => s !== 'shared-selected')) {
+      expect(pairShareStatusMessage(state).toLowerCase()).toContain('selected pair');
+      expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('previous');
     }
   });
 
-  it('the clipboard-copied variants (current and previous pair) say so; the non-copied variants do not', () => {
+  it('no status string anywhere in the taxonomy contains the word "previous"', () => {
+    for (const state of ALL_STATES) {
+      expect(pairShareStatusMessage(state).toLowerCase()).not.toContain('previous');
+    }
+  });
+
+  it('the clipboard-copied variants (current and selected pair) say so; the non-copied variants do not', () => {
     expect(pairShareStatusMessage('download-started-copied').toLowerCase()).toContain('caption copied');
-    expect(pairShareStatusMessage('download-started-previous-copied').toLowerCase()).toContain('caption copied');
+    expect(pairShareStatusMessage('download-started-selected-copied').toLowerCase()).toContain('caption copied');
     expect(pairShareStatusMessage('download-started').toLowerCase()).not.toContain('copied');
-    expect(pairShareStatusMessage('download-started-previous').toLowerCase()).not.toContain('copied');
+    expect(pairShareStatusMessage('download-started-selected').toLowerCase()).not.toContain('copied');
   });
 
   it('no state claims the artifact was "saved" or that a download reached disk — only that a download STARTED (item 6: this module cannot observe disk completion)', () => {
@@ -437,6 +454,39 @@ describe('static structure — self-containment and the isolation boundary', () 
     expect(html.match(/initPairShareUI\(/g)).toHaveLength(1);
     expect(html).toMatch(/getRelation:\s*dyadCurrentRelation/);
     expect(html).not.toMatch(/initPairShareUI\([^)]*profile/i);
+  });
+
+  // Sixth remediation gate, item 1: the two tests above (and every other
+  // structural check in this describe block) never strip comments before
+  // matching — a comment that happens to QUOTE the real wiring (this file's
+  // own prose does exactly that, describing the wiring in prose near the
+  // call sites) could make a vacuous assertion pass even if the executable
+  // wiring were deleted or rewired. This test strips comments first (the
+  // same stripComments idiom this describe block already uses on
+  // pairShareJs) and pins BOTH halves of the actual host contract as
+  // EXECUTABLE structure: the click-time READ (getRelation delegates to the
+  // dyad relation accessor) and the proactive WRITE (every dyad relation
+  // change is delegated to the pair-share controller's own
+  // notifyRelationChange, via the pairShareController closure index.html
+  // itself documents at the top of this wiring). Either half being removed,
+  // renamed, or rewired to a different function must fail this test.
+  it('index.html host contract, pinned as executable structure (comments stripped): getRelation delegates to the dyad accessor AND onRelationChange delegates to notifyRelationChange', () => {
+    const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
+    const stripped = stripComments(html);
+    // Half 1 — the read: ui/pairShare.js's hooks.getRelation must be wired
+    // to ui/dyad.js's real relation accessor, in executable code.
+    expect(stripped).toMatch(/getRelation:\s*dyadCurrentRelation/);
+    // Half 2 — the write: ui/dyad.js's onRelationChange hook must call the
+    // live pairShareController's notifyRelationChange with the relation it
+    // was just handed — the exact narrow proactive-pre-render seam P1-4
+    // depends on. A vacuous `onRelationChange: () => {}` or one that calls
+    // anything else must fail this.
+    expect(stripped).toMatch(
+      /onRelationChange:\s*relation\s*=>\s*\{\s*if\s*\(pairShareController\)\s*pairShareController\.notifyRelationChange\(relation\);\s*\}/
+    );
+    // The controller both hooks close over must actually be the return
+    // value of the one initPairShareUI() call — not a same-named decoy.
+    expect(stripped).toMatch(/pairShareController\s*=\s*initPairShareUI\(/);
   });
 });
 
@@ -912,7 +962,7 @@ describe('C1 / P2 disclosure truth — capability is disclosed truthfully, befor
 });
 
 describe('P1-2 — identity is re-checked after EVERY async boundary, including resolved AND rejected share/clipboard', () => {
-  it('fourth-gate item 1: a relation replaced while awaiting navigator.share (RESOLVED) reports "previous pair shared", never a bare "shared" AND never a false "stale"', async () => {
+  it('fourth-gate item 1: a relation replaced while awaiting navigator.share (RESOLVED) reports "selected pair shared", never a bare "shared" AND never a false "stale"', async () => {
     let relation = VALID_RELATION;
     let releaseShare;
     installEnv({
@@ -930,12 +980,43 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     // the pair now on screen, or not?) — but it ALSO must never be
     // reported as `stale`, which would falsely imply nothing happened. A
     // real platform share completed; it is reported as concerning the
-    // previous/selected pair.
+    // pair SELECTED at click time (a CONFIRMED change, in this test).
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-previous'));
-    expect(refs.status.textContent).toBe('previous pair shared.');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+    expect(refs.status.textContent).toBe('selected pair shared.');
+  });
+
+  // Sixth remediation gate, item 2: the SAME `shared-selected` state, but
+  // reached via an UNCONFIRMED post-effect read (getRelation() throws on
+  // the re-check) rather than a confirmed change — the defect this gate
+  // fixes is that the fourth/fifth gates named this outcome "previous pair"
+  // even when nothing proved the pair had actually changed. A throw proves
+  // only that currency is unknown, never that it changed — "selected" is
+  // truthful either way, which is exactly why both verdicts share one state.
+  it('sixth-gate item 2: a getRelation() hook that THROWS on the post-share identity re-check ALSO reports "selected pair shared" — an unknown read is never "previous", never a false "stale", never a false "failed"', async () => {
+    let calls = 0;
+    let releaseShare;
+    installEnv({
+      canShare: () => true,
+      share: () => new Promise(resolve => { releaseShare = resolve; }),
+    });
+    const getRelation = () => {
+      calls++;
+      if (calls <= 2) return VALID_RELATION; // boot's prerender read, then the click's own initial read
+      throw new Error('hook broke after the share resolved — currency is UNKNOWN, not confirmed changed');
+    };
+    const { refs } = await boot(getRelation);
+    const pending = clickShare(refs);
+    releaseShare(undefined);
+    await pending;
+    expect(calls).toBeGreaterThanOrEqual(3);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+    expect(refs.status.textContent).toBe('selected pair shared.');
   });
 
   it('a relation replaced while awaiting navigator.share (REJECTED, non-Abort) never reports "downloaded" for the old pair', async () => {
@@ -964,7 +1045,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     expect(refs.status.textContent).toBe(pairShareStatusMessage('cancelled'));
   });
 
-  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (RESOLVED) reports the download AND the copy, explicitly naming the previous pair — never a bare claim and never a false "stale"/"failed"', async () => {
+  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (RESOLVED) reports the download AND the copy, explicitly naming the selected pair — never a bare claim and never a false "stale"/"failed"', async () => {
     let relation = VALID_RELATION;
     let releaseCopy;
     installEnv({
@@ -982,16 +1063,47 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     // falsely imply no download was started, and a bare "download started ·
     // caption copied." would ambiguously imply it concerns the pair now
     // on screen. Both real effects are reported, explicitly named as
-    // concerning the previous/selected pair.
+    // concerning the pair SELECTED at click time (a CONFIRMED change here).
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-previous-copied'));
-    expect(refs.status.textContent).toBe('download started for previous pair · caption copied.');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
+    expect(refs.status.textContent).toBe('download started for selected pair · caption copied.');
   });
 
-  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (REJECTED) reports the download alone, explicitly naming the previous pair — never a false "failed"/"stale" and never a false copy claim', async () => {
+  // Sixth remediation gate, item 2: the SAME `download-started-selected-
+  // copied` state, but reached via an UNCONFIRMED post-effect read
+  // (getRelation() throws on the clipboard-step re-check) rather than a
+  // confirmed change. A throw proves only that currency is unknown; it
+  // must land on the identical truthful "selected pair" wording as a
+  // confirmed change, never "previous", never "failed" (the download and
+  // the copy both genuinely happened — a read failure afterward doesn't
+  // erase either), and never a bare unqualified claim.
+  it('sixth-gate item 2: a getRelation() hook that THROWS on the clipboard-step re-check ALSO reports "download started for selected pair · caption copied" — an unknown read is never "previous"', async () => {
+    let calls = 0;
+    let releaseCopy;
+    installEnv({
+      clipboard: () => new Promise(resolve => { releaseCopy = resolve; }),
+    });
+    const getRelation = () => {
+      calls++;
+      if (calls <= 2) return VALID_RELATION; // boot's prerender read, then the click's own initial read
+      throw new Error('hook broke after the download fired — currency is UNKNOWN, not confirmed changed');
+    };
+    const { refs } = await boot(getRelation);
+    const pending = clickShare(refs); // download fires synchronously; clipboard write is the pending await
+    releaseCopy(undefined);
+    await pending;
+    expect(calls).toBeGreaterThanOrEqual(3);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
+    expect(refs.status.textContent).toBe('download started for selected pair · caption copied.');
+  });
+
+  it('fourth-gate item 1: a relation replaced while awaiting clipboard.writeText (REJECTED) reports the download alone, explicitly naming the selected pair — never a false "failed"/"stale" and never a false copy claim', async () => {
     let relation = VALID_RELATION;
     let rejectCopy;
     installEnv({
@@ -1003,9 +1115,9 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     controller.notifyRelationChange(relation);
     rejectCopy(new Error('denied'));
     await pending;
-    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-previous-copied'));
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-previous'));
-    expect(refs.status.textContent).toBe('download started for previous pair.');
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-selected-copied'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected'));
+    expect(refs.status.textContent).toBe('download started for selected pair.');
   });
 
   it('an UNCHANGED relation across every async boundary completes normally — the guard does not false-positive', async () => {
@@ -1015,15 +1127,16 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
   });
 
-  it('an UNCHANGED relation across the clipboard await reports the ordinary current-pair copied state, not a "previous pair" qualifier', async () => {
+  it('an UNCHANGED relation across the clipboard await reports the ordinary current-pair copied state, not a "selected pair" qualifier', async () => {
     installEnv({ clipboard: () => {} });
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+    expect(refs.status.textContent).not.toContain('selected');
     expect(refs.status.textContent).not.toContain('previous');
   });
 
-  it('fourth-gate item 1: closing/retiring the controller (not just replacing the pair) while a native share resolves SUPPRESSES the announcement entirely — never a leaked "shared"/"previous pair" onto a new owner\'s refs', async () => {
+  it('fourth-gate item 1: closing/retiring the controller (not just replacing the pair) while a native share resolves SUPPRESSES the announcement entirely — never a leaked "shared"/"selected pair" onto a new owner\'s refs', async () => {
     let releaseShare;
     installEnv({
       canShare: () => true,
@@ -1038,7 +1151,7 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     releaseShare(undefined);
     await pending;
     // Nothing is written to the OLD controller's own refs once retired —
-    // not `shared`, not `shared-previous`, nothing.
+    // not `shared`, not `shared-selected`, nothing.
     expect(oldRefs.status.textContent).toBe('');
     expect(oldRefs.status.hidden).toBe(true);
     // And definitely nothing leaks onto the NEW controller's refs either.

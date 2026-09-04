@@ -178,9 +178,12 @@ function compareBirthCard(left, right) {
  * relations surface — the panel is not the compare screen, so an absent
  * section claims nothing and the §1.I no-manufactured-claim law holds by
  * omission. Sealed compartments render '' on the card, so a pair with a
- * sealed member never resolves and no paid value can leak through this
- * path. Values are display strings; anything unparseable resolves null,
- * never a throw into the render path.
+ * sealed member never resolves and no sealed value can leak through this
+ * path — retained structural machinery (sixth remediation gate): since
+ * doctrine §1.D v0.71's free amendment every device renders every
+ * compartment open, so no current sheet ever has a sealed member, though
+ * the guard stays correct if one ever existed. Values are display strings;
+ * anything unparseable resolves null, never a throw into the render path.
  *
  * Defined pairs, fixed and few by design:
  *   sun ↔ rising            (western sign-distance registry)
@@ -278,6 +281,12 @@ export function buildConcordance(left, right, options = {}) {
   // Ladder-agnostic: an exhaustive-over-three-rungs literal silently
   // downgraded t4 to free when §1.D v0.58 appended a rung, dropping an axis
   // the device owns and labelling it "sealed at this device tier" — false.
+  // Sixth remediation gate: index.html's only call site passes
+  // `getRenderTier()`, which always resolves 't5' since doctrine §1.D
+  // v0.71's free amendment — so the `tier === 'free'` branch below (and
+  // the element-axis omission it drives) is RETAINED compatibility logic
+  // for a `tier` shape this module still accepts, never a live path any
+  // current device reaches.
   const tier = isTier(options.tier) ? options.tier : 'free';
   const axes = [
     compareSun(left.sunSign, right.sunSign),
