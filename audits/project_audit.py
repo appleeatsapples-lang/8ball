@@ -327,8 +327,14 @@ def check_local_pii(product_root):
         # already has them.
         text = out + err
         patterns = sum(1 for ln in text.splitlines() if ln.startswith("--- pattern: "))
+        # A hit line is grep -n output: `<file>:<lineno>:<content>`. The first
+        # draft counted any line containing a colon, which swept in the
+        # script's own "LOCAL PII AUDIT: HITS FOUND" banner and reported one
+        # more matching line than there were (pr239 audit, Lane B MED-1 — and
+        # the assurance fixture that was supposed to pin this omitted the
+        # banner, so it pinned the wrong number as correct).
         lines = sum(1 for ln in text.splitlines()
-                    if ln and not ln.startswith("--- pattern: ") and ":" in ln)
+                    if not ln.startswith("--- pattern: ") and re.search(r":\d+:", ln))
         return "fail", (
             f"local PII audit found hits ({patterns} pattern(s), ~{lines} matching line(s)) — "
             f"output withheld; run `bash audits/run_local_audit.sh` locally to read them"

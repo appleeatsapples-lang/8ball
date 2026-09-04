@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — STAGED on branch, PR pending
+## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — and stops leaking through its own output — STAGED on branch, PR #239
 
 **What happened.** "Now the PII scanner walk scope." The follow-up both
 pr236 lanes filed and asked not to be left a third time. The public PII
@@ -16,19 +16,26 @@ untracked-but-not-ignored files.
 
 **The selection is not new, which is the whole point.**
 `audits/run_local_audit.sh` — the LOCAL layer of this same audit — has
-used exactly that command since 2026-07-01. So the two layers disagreed
-about what they were auditing, and the looser one was the layer that
-runs in CI on every push. Nobody chose that; it is what you get when one
-layer is written in bash against git and the other in JS against `fs`.
+used exactly that command since the 2026-06-12 entry recorded it. So the
+two layers disagreed about what they were selecting, and the looser one
+was the layer that runs in CI on every push. Nobody chose that; it is
+what you get when one layer is written in bash against git and the other
+in JS against `fs`. Stated exactly, because the first draft of this
+entry did not: they now agree on the SELECTION, not on the set — the
+local layer greps everything git lists, 611 catalog JPEGs included, and
+this one then narrows to text extensions.
 
-**Measured, not asserted.** In this checkout the walk read **1108 files
-where git lists 903** — the difference is generated product-audit
-reports under `audits/automated/` and Python bytecode. And the scan ran
-one full walk PER banned pattern with no caching: nine passes, 481 text
-files each, **~74 MB read and ~9,972 `statSync` calls** per suite run.
-One read per file now: **279 files, ~6.8 MB, no `statSync`**. The file
-went from ~1.35s to ~0.95s standalone. Cheaper is a side effect; the
-reason is scope.
+**Measured, not asserted.** On this change's own head the walk saw
+**1114 files where git lists 903** — 208 generated product-audit
+reports, 3 Python bytecode files, 2 stray server logs. It was 1108 when
+the first draft measured it, three audit runs earlier; the number moves
+whenever a tool writes under the repo root, which is the argument rather
+than a footnote. And the scan ran one full walk PER banned pattern with
+no caching: nine passes, 493 text files each, **~79.9 MB read and
+~10,170 `statSync` calls** per suite run — that last figure counts
+directory entries too, which the first draft's 9,972 did not. One read
+per file now: **285 files, 7,320,387 bytes, no `statSync`**. Cheaper is
+a side effect; the reason is scope.
 
 **Three sightings, and the third is a channel rather than a cost.**
 `.claude/` had to be added to `SKIP_DIRS` after a local settings file put
@@ -40,54 +47,151 @@ PRINTS the controller's own patterns and the matching lines on a hit;
 the walk then read those reports back out of a directory the repository
 does not carry. A skip list has to be extended once per new source of
 untracked bulk, by whoever notices. `.gitignore` is already the file
-that answers this question.
+that answers this question — for the `--cached` half; `--others`
+re-admits disk-dependence by design, which this journal recorded as
+scan-count variance back on 2026-06-12.
 
-**So the finding's other half closes with it.** `run_check` gains
-`redact_output`, and `check_local_pii` uses it: the report says how many
-patterns hit and how many lines matched, and names the command to re-run
-locally, but the matched text never reaches a file. Every report the
-auditor writes is a file on disk and a CI build artifact — scoping the
-reader was only half the fix. This is wider than the controller's five
-words and it is named here rather than folded in: it is the other half
-of one filed finding, and leaving it means the next pass re-derives it.
+**Two-lane audit: both MERGE WITH FIXES, and the shared HIGH is the one
+this pass most deserved.** Everything below landed in one reconciliation
+commit; no mid-audit push.
 
-**Two things stated rather than left to be discovered.** (a) The scan is
-**fail-closed**: git unable to answer THROWS and stage 3 fails, with no
-fallback to the walk — and a test drives that path, because a silent
-fallback would restore exactly what this retires while every
-all-negative assertion stayed green. The same reasoning adds a
-non-vacuity assertion: an empty file set greens the entire scan while
-auditing nothing. (b) It is a **narrowing**, and one consequence is
-deliberate: gitignored files are no longer scanned. The concrete case is
-`content/cards.v*.js` — private deck variants, read by the walk, not
-read now. They cannot be published while ignored, the local layer never
-read them either, and un-ignoring one puts it back in scope in the same
-change that tracks it.
+*HIGH (both lanes) — I closed the half that never runs in CI and left
+the half that always does.* `check_local_pii` — the check I redacted —
+reads a gitignored, controller-local pattern file, so it **SKIPs on every
+CI run**. The check that always runs is `check_tests`, which stores
+`npm test`'s full output. And when the public scan catches a real leak,
+its own output carries the token **four times over**: in the test title,
+in vitest's FAIL header, in the assertion message, and in the diff. The
+titles are the sharpest part — the patterns ARE identity tokens, so
+`no match for operator surname: /\bakif\b/i` is the title; and three
+labels WERE the sibling project's name, so two of these tests announced
+it whether they failed or not. That report is written to disk and
+uploaded from a public repository as a 14-day build artifact. Lane B
+reproduced it end to end; Lane A reproduced it independently and found
+the title layer. I reproduced it a third time before fixing: six
+occurrences of a planted token in the stored report.
 
-**Tests.** +5 in `tests/pii_scan.test.js`: the scan has a real
-repository in front of it (>100 files, `DOCTRINE.md` among them);
-gitignored output under `audits/automated/` is out of scope; an
-untracked-but-not-ignored file is still in scope; git failure throws
-rather than falls back; a listed file that has vanished or is a
-directory is skipped while real content still reads. The scope pair
-writes a probe file and asserts it is on disk before asserting anything
-about it, so neither half can pass vacuously. +4 in
-`audits/test_project_audit.py`: a hit never stores the matching lines
-(asserted against the whole check record, not just `output`), the
-summary still reports counts and the re-run command, a clean run stores
-nothing either, and the redaction is the flag rather than a size
-accident. The pre-existing truncation test was re-pointed at
-`run_check` directly — it had been riding on `check_local_pii`, which no
-longer stores output to truncate.
+Closed at the source rather than by redacting `check_tests` (which would
+have cost every legitimate test-failure diagnostic): titles carry the
+LABEL only, a failure reports `file:line` POSITIONS only, the three
+sibling-project labels are renamed off the token they guard, and a test
+asserts that **no label is matched by any banned pattern** — the general
+form, so the next label cannot reintroduce it. Re-measured after: zero
+occurrences, with the report still naming the failing check, the file
+and the line.
 
-**Mutants: eight, all killed.** Scanner — git failure returning `[]`
-instead of throwing; `--exclude-standard` dropped; `--others` dropped;
-`--cached` dropped; ENOENT rethrown instead of skipped. Auditor — the
-`redact_output` flag ignored in `run_check`; `check_local_pii` no longer
-passing it; the summary echoing the output instead of counting it.
+*HIGH (Lane A) — the scan could be neutered entirely with every test
+green.* Three mutations of the assertion loop — every file allow-listed,
+the hit branch made unreachable, asserting on a literal `[]` — each left
+17/17 passing. The non-vacuity guard I added checks the FILE SET; nothing
+checked that a pattern was ever evaluated against it, and the
+positive-fire sentinels prove the REGEXES fire, which is a different
+claim. The loop is now a pure function (`collectHits`) with positive
+controls over the real patterns and synthetic files: a leak is found at
+the right line, every line of it is reported, an allow-listed path is
+skipped exactly and by suffix while a lookalike is not, and the live
+scan is driven over the real file set with a planted entry. No new token
+literal was needed — the sentinel sample table moved to module scope and
+the controls read from it.
 
-**Suite 61 files / 2118 tests green; product audit PASS (12/0/1 warn/1
-skip); assurance suite 119 tests OK.**
+*MED — the extension list was a skip list by another name.* `.py` and
+`.mjs` were missing from `TEXT_EXTS`, so six TRACKED source files were
+read by the local layer and by neither the walk nor the new selection:
+both `audits/` Python files, both `scripts/` Python files,
+`scripts/render_cards.mjs`, `audits/hko_compare.mjs` — **including the
+auditor file this change edits.** Added, with a test naming one
+load-bearing path per scanned extension, so losing an extension fails
+there rather than silently. Both lanes found this independently.
+
+*MED — the non-vacuity guard was too loose to do its job.* `> 100`
+against a real 285: truncating the set to its first 101 entries survived,
+and so did dropping every `.md` but `DOCTRINE.md` (which sorts early).
+It is now an EXACT count derived from a fresh selection, plus the
+coverage list above, plus a pin that binaries stay out — `isText`
+returning true for everything had survived too.
+
+*MED — the narrowing enumeration named one consequence of five.* Now all
+five, in the clause: the private deck variants; `audits/local_personal_
+data.txt`, the most PII-dense file that can exist here; the §9 barrier
+trees (`**/SIRR/`, `**/PRIVATE/`, `**/_ARCHIVE/`), which were never in
+`SKIP_DIRS` — so the walk was a live second net there and that net is
+gone; a nested git repository, which `--others` lists as one directory
+entry, the single place the "catch it before it is committed" rationale
+does not reach; and `.git/info/exclude` plus the user's
+`core.excludesFile`, which set scope from outside the repository.
+
+*MED — the hit counter was off by one and its own test hid it.* The
+count swept in the script's `LOCAL PII AUDIT: HITS FOUND` banner, which
+contains a colon. The assurance fixture I wrote omitted the banner and
+the trailer, so it pinned the bug as correct. Counting is now
+`file:lineno:` shaped, and the test drives the **real**
+`audits/run_local_audit.sh` in a throwaway git repo rather than an echo
+of what I believed it printed.
+
+*LOW — the probes wrote into the audited tree*, including a NON-ignored
+file at the repo root that `git add -A` would sweep up if a run were
+killed before its `finally`; Lane A reproduced directory residue twice
+in 18 SIGKILL runs. Restructured: the claim about this repo's
+`.gitignore` is now asserted through `git check-ignore` with no write at
+all, the one file still written is itself gitignored, and everything
+needing a file git would otherwise track happens in a throwaway repo
+under the system temp directory. Also fixed there: `-z` is pinned by a
+filename containing a newline (dropping `-z` AND splitting on `\n` had
+survived), the rethrow branch of `readIfPresent` is reachable via an
+injected reader, and `repoFiles` de-duplicates — during an unresolved
+merge `--cached` emits a conflicted path once per stage, so it was read
+and reported three times.
+
+*LOW — numbers and record.* Corrected above: the walk figure, the
+`statSync` figure, the MB figure (the first draft mixed MB and MiB), the
+"205 generated reports" (it was reports, bytecode and logs), the "two
+layers agree about what they audit" (they agree on the selection), the
+"needs no maintenance" claim (true of `--cached` only), and the
+fail-closed consequence now stated: a checkout with no git — a tarball,
+or a tree git refuses on `safe.directory` grounds — cannot run stage 3
+at all, and reports that rather than passing. Lane A could not verify
+"unchanged since 2026-07-01" because this repo's history begins
+2026-07-29 and declined to file it; the claim is now anchored to the
+2026-06-12 journal entry that does record it.
+
+**Tests.** `tests/pii_scan.test.js` 12 → 30. Beyond the five the first
+draft added: an aggregate that runs every banned pattern over the real
+set (so coverage no longer depends on the per-pattern loop), four
+positive controls over `collectHits`, the label-cleanliness invariant,
+the BANNED shape pin, the exact-count and binary-exclusion pins, the
+merge-stage dedupe, the `-z` newline probe, the injected-reader rethrow,
+and the two output-discipline tests. `audits/test_project_audit.py`
+115 → 121, including the real-script count test. Suite **61 files /
+2131 tests green**; assurance suite **121 tests OK**; product audit
+**PASS** (12 pass / 0 fail / 1 warn / 1 skip).
+
+**Mutants: 21 run in reconciliation, 19 killed, 2 named.** Killed:
+the allow-list matching everything; the hit branch made unreachable;
+line numbers off by one; the allow suffix losing its `/` anchor;
+`formatHits` carrying the matched line; `scanTitle` carrying the
+pattern; the labels reverted to the sibling name; `.py`, `.mjs` and
+`.js` each dropped from `TEXT_EXTS`; `isText` always true; the set
+truncated to 101; the dedupe removed; `-z` dropped; `readIfPresent`
+swallowing every error; `repoFiles` ignoring its root argument; the
+count reverting to any-colon; `redact_output` defaulting true; the
+notice varying with the output. **The two survivors are mutations of
+the test bodies themselves** — slicing the per-pattern loop, and
+slicing the aggregate's own input — and they are named rather than
+counted as kills: an all-negative assertion can always be narrowed by
+editing it, so the defence is that the production logic now lives in
+`collectHits` behind positive controls, and that slicing the loop loses
+no coverage because the aggregate still runs all nine. Between them the
+lanes ran 41 mutants and reported 12 survivors; every one is fixed above
+or named here, except `cwd: process.cwd()` for `REPO_ROOT`, which is
+indistinguishable while the suite runs from the repo root.
+
+**One more thing worth the record.** The reconciliation artifact for
+this pass contained a banned token in its own text — quoting the failing
+test title verbatim to describe the leak — and the pre-commit grep caught
+it before the commit. The document explaining the rule broke the rule. It
+is fixed, and it is the third independent demonstration this pass that
+the guard has to be mechanical: a brief did not stop the over-claim, care
+did not stop this, and only the greps and the tests did.
 
 **Queued.** `tests/public.test.js`'s 2s sweep, worth reducing on its own
 merits now that the timeout class is closed by configuration. The
