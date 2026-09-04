@@ -6,21 +6,22 @@ import { defineConfig, configDefaults } from 'vitest/config';
 export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, '.claude/**'],
-    // Vitest's default per-test budget is 5000ms. Both pr238 audit lanes
-    // reproduced timeouts under CPU contention deterministically (5/6 and
-    // 12/12) and both showed disk contention alone does NOT reproduce them,
-    // which corrects this repo's earlier "heavy parallel file reading"
-    // reading of the same symptom.
+    // Vitest's default per-test budget is 5000ms. This raises it, and the
+    // reason is NOT the one test that used to be slow.
     //
-    // At the time, one test — `tests/public.test.js`'s voice-register sweep —
-    // idled at ~2.17s, 43% of the default budget, and was the obvious
-    // casualty. That test now idles at ~0.10s (the 2026-09-04 sweep pass: it was
-    // making 198,333 expect() calls for 136ms of real work), and the suite's
-    // slowest test is ~0.48s. So this budget is no longer headroom over ONE known-slow test;
-    // it is headroom over scheduler contention generally, which is what the
-    // lanes' evidence was actually about. Cheap either way: it costs nothing
-    // on a green run, and the class it prevents is a timeout that reads as a
-    // defect.
+    // The production sighting the pr238 audit chased was `pii_scan` and
+    // `cards_hosting` — files whose slowest individual tests idle at 111ms
+    // and 133ms — crossing 5000ms in one run: a ~40x stall neither lane could
+    // induce. That is the case this budget exists for, and it is independent
+    // of how fast any single test is. What the lanes DID reproduce on demand
+    // (5/6 and 12/12 under CPU load) was a timeout of `tests/public.test.js`'s
+    // voice-register sweep, which then idled at ~2.17s; that test now idles at
+    // ~0.10s and the suite's slowest is ~0.4s, so those two figures no longer
+    // transfer to anything and are recorded here as history rather than as
+    // the justification (pr240 audit, Lane A LOW-2).
+    //
+    // 20s is a round number, not a derived one. It costs nothing on a green
+    // run, and the class it prevents is a timeout that reads as a defect.
     testTimeout: 20000,
   },
 });

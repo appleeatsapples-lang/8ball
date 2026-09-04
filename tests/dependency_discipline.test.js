@@ -53,20 +53,23 @@ describe('dependency discipline (DOCTRINE.md §12, §6)', () => {
 
 // Toolchain configuration is part of the same discipline: the suite runs on a
 // vendored vitest and nothing else, so the only knob that decides whether a
-// green suite reports green is vitest's own per-test budget. Vitest defaults
-// that budget to 5000ms, and both pr238 audit lanes showed that CPU
-// contention pushes tests over that line deterministically (5/6 and 12/12
-// reproductions) while disk contention alone does not.
+// green suite reports green is vitest's own per-test budget, which vitest
+// defaults to 5000ms.
 //
-// The margin has since widened: when this pin was written the slowest test
-// idled at ~2.17s (43% of the default); after the 2026-09-04 sweep pass it
-// is ~0.48s (~10%). The
-// budget stays because the contention evidence, not the one slow test, is
-// what justified it — and because a suite that reports a timeout as a defect
-// costs more than an unused 15 seconds. This imports the real config rather
-// than scanning its text, so deleting or lowering the setting fails here.
+// The justification is the production sighting, not any one slow test: the
+// pr238 audit recorded `pii_scan` and `cards_hosting` — whose slowest
+// individual tests idle at 111ms and 133ms — crossing 5000ms in a single run,
+// a ~40x stall neither lane could induce. The 5/6 and 12/12 contention
+// reproductions those lanes ran were of a different test, one that idled at
+// ~2.17s then and ~0.10s now, so they no longer support a general claim
+// (pr240 audit, Lane A LOW-2). Both the 20000 budget and the 15000 floor
+// below are round numbers rather than derived ones; what they buy is that a
+// contended container reports a defect instead of a timeout.
+//
+// This imports the real config rather than scanning its text, so deleting or
+// lowering the setting fails here.
 describe('vitest per-test budget (the parallel-run timeout class)', () => {
-  it('vitest.config.js raises testTimeout well above the slowest test', async () => {
+  it('vitest.config.js raises testTimeout above vitest\'s 5000ms default', async () => {
     const config = (await import('../vitest.config.js')).default;
     const timeout = config?.test?.testTimeout;
     expect(

@@ -97,6 +97,21 @@ function* sweepDates(strideDays = 37) {
   }
 }
 
+// The register predicates, extracted so a positive control can drive the same
+// code the sweep uses. Feeding the matcher '' instead of the real text used to
+// be an undetectable mutation (pr240 audit, Lane A HIGH-2, mutant T6): the
+// sweep's own counters stayed identical and nothing else touched this path.
+function registerOffenders(tag, strings) {
+  const out = [];
+  for (const { path, text } of strings) {
+    const hits = voiceRegisterHits(text);
+    if (hits.length) out.push(`${tag} ${path}: register "${hits[0].term}" in "${text}"`);
+    if (SECOND_PERSON_RE.test(text)) out.push(`${tag} ${path}: second person in "${text}"`);
+    if (DIAGNOSTIC_FRAMING_RE.test(text)) out.push(`${tag} ${path}: diagnostic framing in "${text}"`);
+  }
+  return out;
+}
+
 // Sweep assertions COLLECT and assert once, rather than calling expect() per
 // item. The register sweep below made 198,333 expect() calls for ~136ms of
 // real work — 94% of its 2.17s was vitest's per-assertion overhead, and it was
@@ -109,8 +124,21 @@ function* sweepDates(strideDays = 37) {
 function expectNone(offenders, what) {
   const shown = offenders.slice(0, 25);
   const more = offenders.length > 25 ? `\n… and ${offenders.length - 25} more` : '';
-  expect(offenders, `${offenders.length} ${what}:\n${shown.join('\n')}${more}`).toEqual([]);
+  // Assert on the COUNT, not the array: `toEqual([])` makes vitest print its
+  // own full diff of every offender, which measured 7.7 MB / 66,169 lines on
+  // a mass failure — the 25-item cap applied only to this message and not to
+  // that (pr240 audit, Lane A LOW-1). The message carries the diagnosis; the
+  // assertion carries the verdict.
+  expect(offenders.length, `${offenders.length} ${what}:\n${shown.join('\n')}${more}`).toBe(0);
 }
+
+// `toBe` is Object.is; a hand-written `!==` is not, and they disagree on -0.
+// `posture.number` legitimately takes 0 (The Fool), on 39 of the 825 stride-89
+// sweep dates, so rewriting those comparisons as `!==` silently dropped a real
+// check: a planted -0 on one swept date failed the old file and passed the new
+// one, 42/42 green (pr240 audit, Lane A HIGH-1). Every comparison that was a
+// `toBe` goes through this instead.
+const differs = (a, b) => !Object.is(a, b);
 
 // Source with `//` comment lines dropped. The modules deliberately keep
 // history notes naming the retired `expression` vocabulary (why the rename
@@ -134,10 +162,14 @@ describe('public tier — determinism', () => {
     for (const dob of ['1900-01-01', '1966-01-21', '2000-01-01', '2024-02-10', '2100-12-31']) {
       const first = JSON.stringify(buildPublicReading(dob));
       for (let run = 0; run < 100; run++) {
-        if (JSON.stringify(buildPublicReading(dob)) !== first) bad.push(`${dob} run ${run} differs from run 0`);
+        if (differs(JSON.stringify(buildPublicReading(dob)), first)) bad.push(`${dob} run ${run} differs from run 0`);
       }
-      expectNone(bad, 'runs are not byte-identical');
     }
+    // OUTSIDE the date loop. Inside it, this threw on the first offending
+    // date and the remaining four were never reached — so the "lists every
+    // offending date instead of aborting on the first" claim was false of
+    // this one test (pr240 audit, both lanes).
+    expectNone(bad, 'runs are not byte-identical');
   });
 
   it('output is identical whether an hour is supplied or not, in any accepted shape', () => {
@@ -236,7 +268,7 @@ describe('public tier — coverage, no gaps', () => {
       count += 1;
       if (!TERMINAL.includes(r.mode.birthday)) bad.push(`${dob}: birthday ${r.mode.birthday} is not a terminal value`);
       if (!NINE.includes(r.mode.modeKey)) bad.push(`${dob}: modeKey ${r.mode.modeKey} is outside 1..9`);
-      if (r.mode.bridged !== (MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined)) bad.push(`${dob}: bridged flag disagrees with MASTER_MODE_BRIDGE`);
+      if (differs(r.mode.bridged, MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined)) bad.push(`${dob}: bridged flag disagrees with MASTER_MODE_BRIDGE`);
       if (!(r.posture.number >= 0 && r.posture.number <= 21)) bad.push(`${dob}: posture number ${r.posture.number} is outside 0..21`);
       if (r.families.length !== 3) bad.push(`${dob}: ${r.families.length} families, expected 3`);
       if (!r.antiFit.key) bad.push(`${dob}: anti-fit key is empty`);
@@ -447,8 +479,8 @@ describe('public tier — independent anchors', () => {
     for (const dob of sweepDates(23)) {
       const [, , d] = dob.split('-').map(Number);
       const { mode } = buildPublicReading(dob);
-      if (mode.birthday !== getBirthday(d)) bad.push(`${dob}: mode.birthday ${mode.birthday} ≠ shipped getBirthday ${getBirthday(d)}`);
-      if (mode.dayOfMonth !== d) bad.push(`${dob}: mode.dayOfMonth ${mode.dayOfMonth} ≠ ${d}`);
+      if (differs(mode.birthday, getBirthday(d))) bad.push(`${dob}: mode.birthday ${mode.birthday} ≠ shipped getBirthday ${getBirthday(d)}`);
+      if (differs(mode.dayOfMonth, d)) bad.push(`${dob}: mode.dayOfMonth ${mode.dayOfMonth} ≠ ${d}`);
     }
     expectNone(bad, 'dates disagree with the shipped birthday number');
   });
@@ -534,8 +566,8 @@ describe('public tier — independent anchors', () => {
     for (const dob of sweepDates(53)) {
       const [y, m, d] = dob.split('-').map(Number);
       const season = getSeason(y, m, d, getDayMaster(y, m, d).element);
-      if (season.monthAnimal !== getInnerAnimal(y, m, d)) bad.push(`${dob}: month animal ${season.monthAnimal} ≠ shipped ${getInnerAnimal(y, m, d)}`);
-      if (season.element !== BRANCH_ELEMENTS[season.monthAnimal]) bad.push(`${dob}: season element ${season.element} ≠ BRANCH_ELEMENTS[${season.monthAnimal}]`);
+      if (differs(season.monthAnimal, getInnerAnimal(y, m, d))) bad.push(`${dob}: month animal ${season.monthAnimal} ≠ shipped ${getInnerAnimal(y, m, d)}`);
+      if (differs(season.element, BRANCH_ELEMENTS[season.monthAnimal])) bad.push(`${dob}: season element ${season.element} ≠ BRANCH_ELEMENTS[${season.monthAnimal}]`);
     }
     expectNone(bad, 'dates where the season leaves the shipped solar-term table');
   });
@@ -546,10 +578,10 @@ describe('public tier — independent anchors', () => {
       const [y, m, d] = dob.split('-').map(Number);
       const card = getBirthCard(y, m, d);
       const r = buildPublicReading(dob);
-      if (r.posture.number !== card.number) bad.push(`${dob}: posture number ${r.posture.number} ≠ card ${card.number}`);
-      if (r.posture.roman !== card.roman) bad.push(`${dob}: posture roman ${r.posture.roman} ≠ card ${card.roman}`);
-      if (r.posture.arcana !== card.name) bad.push(`${dob}: posture arcana ${r.posture.arcana} ≠ card ${card.name}`);
-      if (r.roleLine !== getRoleLine(r.mode.birthday, card.number)) bad.push(`${dob}: role line does not follow the shipped card`);
+      if (differs(r.posture.number, card.number)) bad.push(`${dob}: posture number ${r.posture.number} ≠ card ${card.number}`);
+      if (differs(r.posture.roman, card.roman)) bad.push(`${dob}: posture roman ${r.posture.roman} ≠ card ${card.roman}`);
+      if (differs(r.posture.arcana, card.name)) bad.push(`${dob}: posture arcana ${r.posture.arcana} ≠ card ${card.name}`);
+      if (differs(r.roleLine, getRoleLine(r.mode.birthday, card.number))) bad.push(`${dob}: role line does not follow the shipped card`);
     }
     expectNone(bad, 'readings leave the shipped birth card');
   });
@@ -659,20 +691,56 @@ describe('public tier — voice register (§2 / §4)', () => {
 
   it('assembled output carries the same register across the sweep', () => {
     const offenders = [];
+    const dates = [];
+    const shapes = new Set();
     let scanned = 0;
+    let chars = 0;
     for (const dob of sweepDates(59)) {
       const r = buildPublicReading(dob);
-      for (const { path, text } of collectStrings(r)) {
-        scanned += 1;
-        const hits = voiceRegisterHits(text);
-        if (hits.length) offenders.push(`${dob} ${path}: register "${hits[0].term}" in "${text}"`);
-        if (SECOND_PERSON_RE.test(text)) offenders.push(`${dob} ${path}: second person in "${text}"`);
-        if (DIAGNOSTIC_FRAMING_RE.test(text)) offenders.push(`${dob} ${path}: diagnostic framing in "${text}"`);
-      }
+      dates.push(dob);
+      shapes.add(JSON.stringify(r));
+      const strings = collectStrings(r);
+      scanned += strings.length;
+      for (const { text } of strings) chars += text.length;
+      offenders.push(...registerOffenders(dob, strings));
     }
-    // non-vacuous: the sweep really assembled readings and really read them
-    expect(scanned).toBeGreaterThan(50000);
+    // Non-vacuity, in the shape tests/pii_scan.test.js settled on one PR
+    // earlier: EXACT counts, coverage, and a positive control — not a floor.
+    // `scanned > 50000` against a real 66,111 had 24% slack, and four mutants
+    // walked through it: blanking every string before the scan, feeding the
+    // matcher '' instead of the text, building the SAME reading for every
+    // date, and narrowing the stride to sweepDates(73) — which silently drops
+    // 239 of the 1,245 dates (pr240 audit, Lane A HIGH-2). Each line below
+    // kills one of those. Content changes must update these numbers, which is
+    // the point of pinning them.
+    expect(dates).toHaveLength(1245);
+    expect(new Set(dates).size).toBe(1245);
+    expect(scanned).toBe(66111);
+    expect(chars).toBe(1_414_086);              // the strings were not blanked
+    expect(shapes.size).toBeGreaterThan(1000);  // the readings really differ
     expectNone(offenders, 'assembled strings break the register');
+  });
+
+  // Guard the guards. `expectNone` is now the single assertion for seven
+  // sweeps — changing its `.toBe(0)` to something vacuous flipped SIX of them
+  // from red to green in one edit (pr240 audit, Lane A MED-1) — and
+  // `registerOffenders` is the only place the register predicates are applied
+  // to assembled output. Neither had a test of its own.
+  it('expectNone fires on offenders and is silent without them', () => {
+    expect(() => expectNone([], 'sentinel')).not.toThrow();
+    expect(() => expectNone(['one'], 'sentinel')).toThrow(/1 sentinel/);
+    expect(() => expectNone(['one', 'two'], 'sentinel')).toThrow(/2 sentinel/);
+  });
+
+  it('registerOffenders really applies all three predicates', () => {
+    // one planted string per predicate, through the same function the sweep
+    // calls — so feeding the matcher '' instead of the text fails HERE
+    expect(registerOffenders('t', [{ path: 'p', text: 'a cosmic note' }])).toHaveLength(1);
+    expect(registerOffenders('t', [{ path: 'p', text: 'your reading' }])).toHaveLength(1);
+    expect(registerOffenders('t', [{ path: 'p', text: 'a clean, filed line' }])).toEqual([]);
+    // and the message names which predicate fired, not just that one did
+    expect(registerOffenders('t', [{ path: 'p', text: 'a cosmic note' }])[0]).toMatch(/register "cosmic"/);
+    expect(registerOffenders('t', [{ path: 'p', text: 'your reading' }])[0]).toMatch(/second person/);
   });
 
   it('carries no imperative CTA vocabulary in the tables', () => {
