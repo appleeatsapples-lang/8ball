@@ -65,7 +65,11 @@ node scripts/dyad_entitlement.mjs keygen --out ~/dev/8ball-private/dyad_signing_
   `export const DYAD_PUBLIC_KEYS = Object.freeze([{ kty: 'EC', crv: 'P-256', x: '…', y: '…' }]);`
 - Rotation later = run `keygen` to a NEW file and APPEND the new public
   JWK. Never remove an old public key: tokens signed under it are
-  purchases.
+  purchases. (Before the first sale under a key there are no such tokens,
+  and replacing it is free.)
+- Step 2 may land before step 1 and did: a public key with no product url
+  is inert (no offer, no token to verify). The suite pins the other
+  direction only — a url without a key fails.
 
 ### 3. Deliver one signed access link per sale (the load-bearing step)
 
@@ -143,8 +147,14 @@ both OUTSIDE this amendment and need their own doctrine decision:
 
 - [ ] Gumroad product created, published, $3 one-time — Buy Link set in
       `DYAD_PRODUCT_URL`
-- [ ] key pair generated; public JWK set in `DYAD_PUBLIC_KEYS`; private
-      key stored outside the repo
+- [x] key pair generated; public JWK set in `DYAD_PUBLIC_KEYS`; private
+      key stored outside the repo — **done 2026-09-05 (key 1).** Generated
+      in the Claude Code session that shipped v0.81, in a scratch directory
+      outside the repository, and handed to the operator as a file; it was
+      never written under the repo root. Because it transited that session,
+      the operator may instead generate a pair locally and replace key 1
+      BEFORE the first sale at zero cost (no token exists under key 1 yet;
+      the never-remove-a-key rule begins with the first sale).
 - [ ] `npm test` green with both constants filled — every pin follows the
       build's state (`CONFIGURED` in `tests/dyad_entitlement.test.js`; the
       shape pins then run against the real values). Proven before merge:

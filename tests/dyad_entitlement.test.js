@@ -92,19 +92,22 @@ beforeAll(async () => {
 const CONFIGURED = DYAD_PRODUCT_URL !== '';
 
 describe(`shipped configuration — ${CONFIGURED ? 'configured' : 'empty'}, and fail-closed either way`, () => {
-  it('the two constants move together — a url without a key or a key without a url is a half-launch', () => {
-    expect(DYAD_PUBLIC_KEYS.length > 0).toBe(CONFIGURED);
+  it('a configured url REQUIRES a configured key — the offer must never sell a purchase that cannot be filed', () => {
+    // One direction only. Launch step 2 (the key) may land before step 1
+    // (the product): a key with no url is inert — nothing is offered and no
+    // token exists to verify. A url with no key would present an offer whose
+    // buyers could never be filed, which is the half-launch this refuses.
+    if (CONFIGURED) expect(DYAD_PUBLIC_KEYS.length).toBeGreaterThan(0);
     expect(Object.isFrozen(DYAD_PUBLIC_KEYS)).toBe(true);
   });
 
-  it('while unconfigured: no url, no key, nothing is invented here', () => {
+  it('while unconfigured: no url, and no offer is reachable whatever the key list holds', () => {
     if (CONFIGURED) return;
     expect(DYAD_PRODUCT_URL).toBe('');
-    expect(DYAD_PUBLIC_KEYS).toEqual([]);
   });
 
   it('a token signed under a key that is NOT configured is refused — unconfigured while the list is empty, unverified once it is not', async () => {
-    expect(await verifyDyadToken(token)).toEqual({ ok: false, reason: CONFIGURED ? 'unverified' : 'unconfigured' });
+    expect(await verifyDyadToken(token)).toEqual({ ok: false, reason: DYAD_PUBLIC_KEYS.length ? 'unverified' : 'unconfigured' });
   });
 
   it('a configured url must be a bare Gumroad Buy Link — no query, no tracking', () => {
@@ -488,6 +491,6 @@ describe('scripts/dyad_entitlement.mjs — keygen, sign, verify agree with the r
     try { run(['verify', '--token', token], { stdio: 'pipe' }); }
     catch (e) { code = e.status; out = String(e.stdout || ''); }
     expect(code).toBe(2);
-    expect(out).toMatch(CONFIGURED ? /unverified/ : /unconfigured/);
+    expect(out).toMatch(DYAD_PUBLIC_KEYS.length ? /unverified/ : /unconfigured/);
   });
 });

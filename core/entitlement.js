@@ -35,6 +35,10 @@
 // verifies. The values are set by the controller when the Gumroad product
 // exists — see audits/dyad_entitlement_launch_config_2026-09-05.md for the
 // exact steps and `scripts/dyad_entitlement.mjs` for keygen / sign / verify.
+// Order matters and is safe in one direction only: a public key WITHOUT a
+// product url is inert (nothing is offered, and no token exists to verify),
+// while a url without a key would present an offer whose purchases could
+// never be filed — tests/dyad_entitlement.test.js pins that asymmetry.
 
 /** The live Gumroad Buy Link for the dyad — a BARE url, no query (§5.B). */
 export const DYAD_PRODUCT_URL = '';
@@ -45,7 +49,11 @@ export const DYAD_PRODUCT_URL = '';
  * ADDING its successor: tokens signed under an earlier key keep verifying,
  * because a purchase is permanent and a rotation must never downgrade one.
  */
-export const DYAD_PUBLIC_KEYS = Object.freeze([]);
+export const DYAD_PUBLIC_KEYS = Object.freeze([
+  // key 1 — generated 2026-09-05 (launch step 2). The private half lives in
+  // the operator's private tree, never here. Rotate by APPENDING key 2.
+  { kty: 'EC', crv: 'P-256', x: 'UoLIL8uUdh9z38oo8T9OPvbGrn2j6xCUNPInqjZbyYc', y: 'nuUvaSSkfp_kU0m_mxVJakNSumb271lQe2JJdSnyzlM' },
+]);
 
 export const TOKEN_VERSION = 1;
 export const TOKEN_PRODUCT = 'dyad';

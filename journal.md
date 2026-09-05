@@ -5,6 +5,33 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-05 — dyad launch step 2: the signing key pair, public half filed — STAGED on branch
+
+**What happened.** On the controller's word ("generate the key pair and
+set the public key"), launch step 2 of doctrine v0.81 (7): an ECDSA
+P-256 pair was generated with `scripts/dyad_entitlement.mjs keygen` and
+the public JWK filed as key 1 in `core/entitlement.js DYAD_PUBLIC_KEYS`.
+The private half was written to a scratch directory outside the
+repository root, never under it, and handed to the operator as a file
+for the private tree. Step 1 (the Gumroad product and its Buy Link) and
+step 3 (per-sale link delivery) remain; `DYAD_PRODUCT_URL` is still
+empty, so the deployed product still presents no offer and grants no
+dyad — a key with no url is inert.
+
+**One pin refined, in the direction that is true.** The v0.81 test "the
+two constants move together" would have gone red on exactly this step.
+It now pins the one direction that is a real half-launch: a configured
+url REQUIRES a configured key (an offer whose buyers could never be
+filed); a key without a url is harmless and allowed. The reason-strings
+(`unconfigured` vs `unverified`) follow the key list rather than the
+url. Suite 62 files / 2192 tests green.
+
+**Stated plainly.** The pair was generated in a cloud session and the
+private key transited it to reach the operator. No token has been
+signed under key 1, so replacing it with a locally generated pair before
+the first sale costs nothing and the launch doc says so; the
+never-remove-a-key rule begins with the first sale.
+
 ## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — STAGED on branch, PR #242
 
 **What happened.** On the controller's order the product model moved
