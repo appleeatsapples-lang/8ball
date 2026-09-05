@@ -3982,3 +3982,237 @@ describe('fourteenth remediation gate — readRelation: hooks.getRelation is ext
     expect(reads).toBe(1);
   });
 });
+
+describe('fifteenth remediation gate — latest-relation-generation ownership for notifyRelationChange/syncBusyFromPrerender, and genuine prerender-failure retry', () => {
+  const secondRelation = () => adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth',
+    numerologySpine: '3 + 3 → 6',
+    cardPairHead: 'no. lxxiii × no. xxxvii',
+  });
+
+  it('nested notify(A) -> notify(B) from a hostile relation field getter: B remains the one warm cache — clicking exports B, never A, with no wasted third raster (exact live-repro shape)', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined, imageDefer: true });
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const relationB = secondRelation();
+    let nested = false;
+    let controllerRef;
+    // Object.defineProperty, not a spread-object literal override — the
+    // `{...overrides}` spread inside adversarialRelation() would EVALUATE a
+    // getter passed that way immediately, during construction, long before
+    // buildPairImprintSnapshot ever reads it.
+    const relationA = adversarialRelation();
+    Object.defineProperty(relationA, 'elementDirectionAB', {
+      configurable: true,
+      get() {
+        if (!nested) {
+          nested = true;
+          controllerRef.notifyRelationChange(relationB);
+        }
+        return 'A · water → B · wood';
+      },
+    });
+    const controller = initPairShareUI(refs, { getRelation: () => relationB });
+    controllerRef = controller;
+    controller.notifyRelationChange(relationA);
+    expect(nested).toBe(true);
+    // Only B's raster ever started — A's outer continuation stopped at the
+    // checkpoint immediately after buildPairImprintSnapshot, BEFORE ever
+    // reaching svgToPngBlob.
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    // Still just one — settling B never triggers a wasted/corrupting third
+    // render from A's stale continuation.
+    expect(log.pendingImages).toHaveLength(1);
+    expect(log.svg[log.svg.length - 1]).toContain('fire'); // B's own text
+    expect(log.svg[log.svg.length - 1]).not.toContain('A · water → B · wood'); // never A's
+
+    await controller.onShareClick();
+    expect(log.shared).toHaveLength(1); // native share invoked synchronously — the warm-cache fast path
+    expect(log.anchors).toHaveLength(0); // no download fallback needed
+  });
+
+  it('old A settle -> disabled=false setter -> notify(B): B remains disabled=true/aria-busy=true with its own visible preparing status; old A performs no post-loss DOM write; B then settles to a coherent idle state (exact live-repro shape)', async () => {
+    const log = installEnv({ imageDefer: true }); // no canShare/share configured — irrelevant to this scenario
+    const relationA = adversarialRelation();
+    const relationB = secondRelation();
+    const attrs = {};
+    let disabledValue = false;
+    let armed = false;
+    let reentered = false;
+    let controllerRef;
+    const btn = {
+      get disabled() { return disabledValue; },
+      set disabled(v) {
+        disabledValue = !!v;
+        if (armed && v === false && !reentered) {
+          reentered = true;
+          controllerRef.notifyRelationChange(relationB);
+        }
+      },
+      setAttribute(k, v) { attrs[k] = String(v); },
+      getAttribute(k) { return attrs[k]; },
+      addEventListener() {},
+    };
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const controller = initPairShareUI(refs, { getRelation: () => relationB });
+    controllerRef = controller;
+    controller.notifyRelationChange(relationA);
+    armed = true;
+
+    expect(log.pendingImages).toHaveLength(1); // A's own raster started
+    log.pendingImages[0](); // settle A — its own syncBusyFromPrerender(false) crosses applyBusyDOM's disabled=false setter, which reenters
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+    expect(reentered).toBe(true);
+    expect(log.pendingImages).toHaveLength(2); // B's own raster also genuinely started
+    // B's busy state is intact — never overwritten by A's stale continuation.
+    expect(disabledValue).toBe(true);
+    expect(attrs['aria-busy']).toBe('true');
+    expect(status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(status.hidden).toBe(false);
+
+    // Settle B for real — must reach a coherent idle state, not stuck busy.
+    log.pendingImages[1]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(disabledValue).toBe(false);
+    expect(attrs['aria-busy']).toBe('false');
+    expect(status.hidden).toBe(true);
+    expect(status.textContent).toBe('');
+    void log;
+  });
+
+  it('a hostile status.textContent SETTER reentering notifyRelationChange during the status-clearing block leaves the newer notification the sole owner of the cache — the older continuation never starts its own raster', async () => {
+    const log = installEnv({ imageDefer: true });
+    let armed = false; // construction's OWN idle-reset write (resetControllerDOM) also sets textContent='' -- skip that one
+    let reentered = false;
+    let controllerRef;
+    const relationA = adversarialRelation();
+    const relationB = secondRelation();
+    let textValue = 'stale prior status';
+    let hiddenValue = false;
+    const status = {
+      get textContent() { return textValue; },
+      set textContent(v) {
+        textValue = v;
+        if (armed && v === '' && !reentered) {
+          reentered = true;
+          controllerRef.notifyRelationChange(relationB);
+        }
+      },
+      get hidden() { return hiddenValue; },
+      set hidden(v) { hiddenValue = v; },
+    };
+    const btn = makeEl('button');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const controller = initPairShareUI(refs, { getRelation: () => relationB });
+    controllerRef = controller;
+    armed = true; // now arm for THIS test's own notifyRelationChange(relationA) call below
+    controller.notifyRelationChange(relationA);
+    expect(reentered).toBe(true);
+    // Only B's raster started — the outer (A) continuation lost the race
+    // during the status-clearing block itself and stopped at the
+    // checkpoint right after buildPairImprintSnapshot, before ever
+    // reaching svgToPngBlob for A.
+    expect(log.pendingImages).toHaveLength(1);
+    void log;
+  });
+
+  it('a one-time prerender raster failure for an UNCHANGED pair is truthful on the first prerender, then a click genuinely retries and succeeds — no permanent error cache (exact live-repro shape)', async () => {
+    const RealBlob = globalThis.Blob;
+    let canvasAttempts = 0;
+    let anchorClicks = 0;
+    globalThis.URL.createObjectURL = () => `blob:retry-test-${canvasAttempts}`;
+    globalThis.URL.revokeObjectURL = () => {};
+    globalThis.Image = class { set src(_v) { this.onload(); } };
+    globalThis.document = {
+      body: { appendChild() {} },
+      createElement(tag) {
+        if (tag === 'canvas') {
+          return {
+            set width(_v) {}, set height(_v) {},
+            getContext() {
+              canvasAttempts += 1;
+              if (canvasAttempts === 1) throw new Error('one-time canvas failure');
+              return { drawImage() {} };
+            },
+            toBlob(cb) { cb(new RealBlob(['png'], { type: 'image/png' })); },
+          };
+        }
+        return {
+          set href(_v) {}, set download(_v) {},
+          click() { anchorClicks += 1; },
+          remove() {},
+        };
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
+
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const controller = initPairShareUI({ btn, status, disclosure }, { getRelation: () => VALID_RELATION });
+    controller.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve(); await Promise.resolve();
+    expect(canvasAttempts).toBe(1); // the one-time prerender failure already happened, truthfully cached
+
+    await controller.onShareClick();
+    // The click genuinely retries — a real SECOND raster attempt, not a
+    // permanently-cached failure — and this one succeeds.
+    expect(canvasAttempts).toBe(2);
+    expect(anchorClicks).toBe(1);
+    expect(status.textContent).toBe(pairShareStatusMessage('download-started'));
+
+    await controller.onShareClick();
+    // A LATER click continues to work normally too — not a one-shot fluke.
+    expect(canvasAttempts).toBe(3);
+    expect(anchorClicks).toBe(2);
+  });
+
+  it('a superseded (non-nested, sequential) relation generation whose raster settles AFTER a newer notify() cannot publish cache or synchronize busy/status state', async () => {
+    const log = installEnv({ imageDefer: true });
+    const relationA = adversarialRelation();
+    const relationB = secondRelation();
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const controller = initPairShareUI({ btn, status, disclosure }, { getRelation: () => relationB });
+    controller.notifyRelationChange(relationA); // starts A's raster
+    controller.notifyRelationChange(relationB); // sequential, not nested — supersedes A, starts B's raster
+    expect(log.pendingImages).toHaveLength(2);
+    // Settle the OLDER (A) raster AFTER B has already taken over.
+    log.pendingImages[0]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    // A's settle must not have published anything — B's own (still
+    // unsettled) pending state is what's reflected.
+    expect(btn.disabled).toBe(true);
+    expect(status.textContent).toBe(pairShareStatusMessage('busy'));
+    // Settle B for real.
+    log.pendingImages[1]();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(btn.disabled).toBe(false);
+    expect(status.hidden).toBe(true);
+  });
+
+  it('a retired controller\'s notifyRelationChange is a hard no-op — no cache write, no DOM write, no raster started', () => {
+    const log = installEnv({ imageDefer: true });
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    // Re-init on the SAME refs retires controllerA (the module's own
+    // atomic-handoff protocol, unrelated to this gate's fix, but the
+    // precondition this test needs).
+    initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    controllerA.notifyRelationChange(secondRelation());
+    expect(log.pendingImages).toHaveLength(0); // no raster started on behalf of a retired controller
+    void log;
+  });
+});

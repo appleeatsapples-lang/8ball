@@ -885,15 +885,30 @@ let _initGen = 0;
 // the winner had already released. `safeProp` contains the read; the
 // checkpoint immediately after it, before the FIRST write, is what a bare
 // read-then-check-after pattern was missing.
-function applyBusyDOM(controller, busy) {
+// Fifteenth remediation gate: `stillCurrent`, when given, is an additional
+// ownership check (e.g. a relation-generation token) rechecked between
+// EVERY boundary here, alongside `controller.retired` — a live repro
+// confirmed that `btn.disabled = busy`'s own setter can synchronously
+// trigger a NEWER relation notification (via a hostile disabled-setter
+// side effect) that fully installs and correctly busies/labels the SAME
+// button for the newer relation, after which this call's OWN continuation
+// — still describing the OLDER, now-superseded relation — would otherwise
+// resume and overwrite the newer relation's aria-busy value. `controller.
+// retired` alone cannot catch this: no re-init happens here, just relation
+// churn on the SAME controller.
+function applyBusyDOM(controller, busy, stillCurrent) {
   if (controller.retired) return;
+  if (stillCurrent && !stillCurrent()) return;
   const btn = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
   if (controller.retired) return;
+  if (stillCurrent && !stillCurrent()) return;
   if (!btn) return;
   btn.disabled = !!busy; // host-controlled setter — may re-enter
   if (controller.retired) return;
+  if (stillCurrent && !stillCurrent()) return;
   const setAttr = safeFn(btn, 'setAttribute'); // property read — may re-enter
   if (controller.retired) return;
+  if (stillCurrent && !stillCurrent()) return;
   if (setAttr) {
     try { invoke(setAttr, btn, ['aria-busy', String(!!busy)]); } catch (_) { /* best-effort */ } // call — may re-enter
   }
@@ -1108,10 +1123,37 @@ function isPrerenderPending(controller) {
 // than fighting over the same DOM attributes. Called on every pre-render
 // state transition (start, settle) so the button is disabled for exactly the
 // window a click could not yet get a synchronous native-share attempt.
-function syncBusyFromPrerender(controller) {
+// Fifteenth remediation gate: `expectedGen`, when given, is the relation-
+// notification generation this call is speaking FOR (from
+// notifyRelationChange, or from a settled/errored raster's own `.then`
+// handler, both of which know exactly which generation they represent).
+// When omitted (the click-settle `finally` block's own reconciliation
+// call), this function always proceeds against whatever IS current — that
+// caller has no specific generation to defend, it just wants the truth.
+// A live repro confirmed: `applyBusyDOM`'s own `btn.disabled` setter can
+// synchronously trigger a NEWER notifyRelationChange that fully installs
+// and correctly busies the SAME button — after which this call's stale
+// `pending`/`el` state (captured before that boundary) would otherwise go
+// on to overwrite the newer generation's correct DOM. `stillCurrent` is
+// threaded into `applyBusyDOM` itself so its OWN internal continuation
+// (the disabled-write and the aria-busy write are two separate boundaries)
+// aborts at the exact point ownership changes, not one step later; this
+// function then rechecks and RE-READS pending state fresh (never trusting
+// a pre-boundary snapshot) before ever deciding what to write next.
+function syncBusyFromPrerender(controller, expectedGen) {
   if (controller.retired || controller.opInFlight) return;
+  if (expectedGen !== undefined && controller.relationGen !== expectedGen) return;
+  const stillCurrent = () => !controller.retired && !controller.opInFlight
+    && (expectedGen === undefined || controller.relationGen === expectedGen);
   const pending = isPrerenderPending(controller);
-  applyBusyDOM(controller, pending);
+  applyBusyDOM(controller, pending, stillCurrent);
+  if (!stillCurrent()) return;
+  // Re-read fresh — do not reuse `pending` computed before applyBusyDOM's
+  // own re-entrant boundary; even though `stillCurrent()` just confirmed
+  // this generation is still current, re-deriving from `controller.cache`
+  // directly is the same cheap, no-trust-in-locals discipline every other
+  // boundary in this file already uses.
+  const pendingNow = isPrerenderPending(controller);
   const el = controller.refs && controller.refs.status;
   const busyMsg = pairShareStatusMessage('busy');
   // Eighth remediation gate: a background prerender becoming pending for a
@@ -1127,7 +1169,7 @@ function syncBusyFromPrerender(controller) {
   // moment that message's own auto-hide timer actually fires, this stops
   // applying and a later prerender is free to show `busy` normally).
   const showingTerminal = !!(el && !el.hidden && el.textContent && el.textContent !== busyMsg);
-  if (pending) {
+  if (pendingNow) {
     if (!showingTerminal) setStatus(controller, 'busy');
   } else if (el && el.textContent === busyMsg) {
     // The pre-render just settled (or there is nothing to prepare) with no
@@ -1138,9 +1180,12 @@ function syncBusyFromPrerender(controller) {
     // Twelfth remediation gate: clearStatusTimer's own clearTimeout() call
     // can synchronously re-init/retire this controller — recheck before
     // writing DOM a new controller (same reused refs) may have taken over.
-    if (controller.retired) return;
+    // Fifteenth remediation gate: also recheck the relation generation —
+    // clearTimeout is host-controlled and could just as easily trigger a
+    // newer notification as any other boundary here.
+    if (!stillCurrent()) return;
     el.textContent = ''; // host-controlled setter — may re-enter
-    if (controller.retired) return;
+    if (!stillCurrent()) return;
     el.hidden = true; // host-controlled setter — may re-enter
   }
 }
@@ -1159,6 +1204,20 @@ function syncBusyFromPrerender(controller) {
  */
 function notifyRelationChange(controller, relation) {
   if (controller.retired) return;
+  // Fifteenth remediation gate: claim this notification's generation FIRST,
+  // before any re-entrant host boundary — `buildPairImprintSnapshot()`
+  // below reads host-controlled properties off `relation` and can
+  // synchronously call `notifyRelationChange()` again on this SAME
+  // controller (a nested, NEWER notification). A live repro confirmed the
+  // old code had no such claim: the nested call could fully install and
+  // warm its own cache, after which the OUTER (now-stale) call resumed and
+  // started its OWN rasterization, then overwrote the newer cache with its
+  // own stale entry. `stillLatest()` is rechecked after every re-entrant
+  // boundary and before every cache/status/DOM mutation from here on — only
+  // the call that still holds the latest generation may publish, settle,
+  // or synchronize anything.
+  const myGen = ++controller.relationGen;
+  const stillLatest = () => !controller.retired && controller.relationGen === myGen;
   // Eleventh remediation gate, B1: this is now the SOLE place that decides
   // whether a relation change invalidates whatever status text is showing
   // — ui/dyad.js's own clearOutput() used to blank #dyad-share-status
@@ -1183,19 +1242,27 @@ function notifyRelationChange(controller, relation) {
       // Twelfth remediation gate: clearStatusTimer's own clearTimeout()
       // call can synchronously re-init/retire this controller — recheck
       // before writing DOM a new controller (same reused refs) may have
-      // already taken over.
-      if (!controller.retired) {
+      // already taken over. Fifteenth remediation gate: also recheck the
+      // relation generation, for the SAME reason.
+      if (stillLatest()) {
         el.textContent = ''; // host-controlled setter — may re-enter
-        if (!controller.retired) {
+        if (stillLatest()) {
           el.hidden = true; // host-controlled setter — may re-enter
         }
       }
     }
   }
   const snapshot = relation ? buildPairImprintSnapshot(relation) : null;
+  // The critical checkpoint: buildPairImprintSnapshot() reads host-
+  // controlled properties off `relation` (elementDirectionAB,
+  // numerologySpine, cardPairHead) and is exactly where a hostile getter
+  // can install a newer generation. Stop here, BEFORE ever starting a
+  // rasterization or touching the cache, if a newer notification already
+  // won — closes the "wasted/corrupting third render" the repro observed.
+  if (!stillLatest()) return;
   if (!snapshot) {
     controller.cache = null;
-    syncBusyFromPrerender(controller);
+    syncBusyFromPrerender(controller, myGen);
     return;
   }
   const entry = { relation, snapshot, blob: null, error: null, promise: null };
@@ -1204,16 +1271,26 @@ function notifyRelationChange(controller, relation) {
     blob => {
       if (controller.retired || controller.cache !== entry) return;
       entry.blob = blob;
-      syncBusyFromPrerender(controller);
+      // `entry === controller.cache` already proves this generation is the
+      // one currently published — read it fresh rather than closing over
+      // `myGen`, since a settle can itself run long after this notify()
+      // call returned.
+      syncBusyFromPrerender(controller, controller.relationGen);
     },
     err => {
       if (controller.retired || controller.cache !== entry) return;
       entry.error = err;
-      syncBusyFromPrerender(controller);
+      syncBusyFromPrerender(controller, controller.relationGen);
     },
   );
+  // The final gate before publishing — a newer notification could have won
+  // since the last check above (constructing `entry`/starting the raster
+  // touches no host-controlled property, but this checkpoint costs nothing
+  // and keeps the discipline uniform: never publish without confirming
+  // ownership immediately beforehand).
+  if (!stillLatest()) return;
   controller.cache = entry;
-  syncBusyFromPrerender(controller);
+  syncBusyFromPrerender(controller, myGen);
 }
 
 // Re-read the relation and compare it against what the operation started
@@ -1596,12 +1673,26 @@ function onShareClick(controller) {
       }
 
       let blob;
-      if (cacheMatches && cacheEntry.error) {
-        setStatus(controller, 'failed');
-        return;
+      // Fifteenth remediation gate: a transient prerender failure for this
+      // SAME (unchanged) relation used to be cached forever — every later
+      // click on the still-current pair returned `failed` with no retry,
+      // even though nothing about the pair itself is broken and a fresh
+      // rasterization attempt could genuinely succeed. `usableCachedPromise`
+      // excludes an errored entry, forcing a real re-render below instead
+      // of re-awaiting the SAME already-rejected promise; the errored slot
+      // is cleared from `controller.cache` (only if it's still the current
+      // cache — never a newer relation's own entry) so a later
+      // notifyRelationChange doesn't find a stale error sitting where a
+      // fresh proactive prerender should go. If the retry succeeds,
+      // control falls through to the SAME download-only path any other
+      // click-time fresh render already takes (activation was already lost
+      // crossing this await) — never a synthesized native-share success.
+      const usableCachedPromise = cacheMatches && cacheEntry.promise && !cacheEntry.error;
+      if (cacheMatches && cacheEntry.error && controller.cache === cacheEntry) {
+        controller.cache = null;
       }
       try {
-        blob = cacheMatches && cacheEntry.promise
+        blob = usableCachedPromise
           ? await cacheEntry.promise
           : await svgToPngBlob(buildPairImprintSVG(snapshot), PNG_W, PNG_H);
       } catch (_) {
@@ -1800,6 +1891,12 @@ export function initPairShareUI(refs, hooks) {
     cache: null,
     statusTimer: null,
     statusTimerGen: 0,
+    // Fifteenth remediation gate: a monotonic per-controller counter claimed
+    // by notifyRelationChange() at entry, before any re-entrant host
+    // boundary — the "latest notification wins" ownership token for the
+    // whole notify/prerender/busy-sync lifecycle, distinct from opToken
+    // (which governs CLICK operations, not relation-change notifications).
+    relationGen: 0,
     listener: null,
   };
   // Deterministic initial DOM, independent of whatever the retirement reset
