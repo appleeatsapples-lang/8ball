@@ -501,15 +501,35 @@ describe('static structure — self-containment and the isolation boundary', () 
 // settled by the time a human reaches the button.
 
 const RealBlob = globalThis.Blob;
+// Eleventh remediation gate (addendum item 4): `document`/`Image`/`File` are
+// NOT real Node globals in this test environment the way `Blob`/`fetch`/
+// `URL` are — snapshotting them "by value" (`originals.document =
+// globalThis.document`) captures `undefined` when absent, and restoring via
+// plain assignment (`globalThis.document = originals.document`) then leaves
+// `document` as an OWN property of globalThis holding `undefined`, not the
+// TRUE absence it started as (`hasOwnProperty` flips from false to true).
+// The exact descriptor/absence is snapshotted here and restored via
+// `restoreGlobal()` below, the same discipline `navigator`'s own
+// descriptor-based restore already used.
+function snapshotGlobal(key) {
+  return {
+    had: Object.prototype.hasOwnProperty.call(globalThis, key),
+    desc: Object.getOwnPropertyDescriptor(globalThis, key),
+  };
+}
+function restoreGlobal(key, snapshot) {
+  if (snapshot.had) Object.defineProperty(globalThis, key, snapshot.desc);
+  else delete globalThis[key];
+}
 const originals = {
-  document: globalThis.document,
-  Image: globalThis.Image,
+  documentSnapshot: snapshotGlobal('document'),
+  imageSnapshot: snapshotGlobal('Image'),
+  fileSnapshot: snapshotGlobal('File'),
   Blob: globalThis.Blob,
   fetch: globalThis.fetch,
   createObjectURL: globalThis.URL.createObjectURL,
   revokeObjectURL: globalThis.URL.revokeObjectURL,
   navigatorDescriptor: Object.getOwnPropertyDescriptor(globalThis, 'navigator'),
-  File: globalThis.File,
 };
 
 function makeEl(tag = 'div') {
@@ -636,13 +656,13 @@ const clickShare = refs => refs.btn._fire('click');
 beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => {
   vi.useRealTimers();
-  globalThis.document = originals.document;
-  globalThis.Image = originals.Image;
+  restoreGlobal('document', originals.documentSnapshot);
+  restoreGlobal('Image', originals.imageSnapshot);
+  restoreGlobal('File', originals.fileSnapshot);
   globalThis.Blob = originals.Blob;
   globalThis.fetch = originals.fetch;
   globalThis.URL.createObjectURL = originals.createObjectURL;
   globalThis.URL.revokeObjectURL = originals.revokeObjectURL;
-  globalThis.File = originals.File;
   if (originals.navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', originals.navigatorDescriptor);
 });
 
@@ -1004,20 +1024,23 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     });
     const getRelation = () => {
       calls++;
-      // boot's prerender read, the click's own initial read, and (tenth
-      // remediation gate) trySyncNativeShare's own two new preparatory
-      // rechecks (after the canShare call, after reading the share
-      // getter) must all still see the valid relation so share() is
-      // genuinely invoked — the hook only breaks starting at the POST-
-      // SHARE recheck this test targets.
-      if (calls <= 4) return VALID_RELATION;
+      // boot's prerender read, the click's own initial read, and (tenth/
+      // eleventh/twelfth remediation gates) trySyncNativeShare's own SIX
+      // preparatory rechecks (after safeNavigator(); after reading the
+      // File getter AND after constructing it — two distinct boundaries;
+      // after reading the canShare getter AND after invoking it — two more
+      // distinct boundaries; after reading the share getter) must all
+      // still see the valid relation so share() is genuinely invoked — the
+      // hook only breaks starting at the POST-SHARE recheck this test
+      // targets.
+      if (calls <= 8) return VALID_RELATION;
       throw new Error('hook broke after the share resolved — currency is UNKNOWN, not confirmed changed');
     };
     const { refs } = await boot(getRelation);
     const pending = clickShare(refs);
     releaseShare(undefined);
     await pending;
-    expect(calls).toBeGreaterThanOrEqual(5);
+    expect(calls).toBeGreaterThanOrEqual(9);
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
@@ -1095,23 +1118,27 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     const getRelation = () => {
       calls++;
       // boot's prerender read, the click's own initial read,
-      // trySyncNativeShare's own post-canShare recheck (no canShare
-      // configured, so it never reaches the share-getter recheck), the
-      // precheck immediately before the anchor click, and (tenth
-      // remediation gate) the NEW pre-writeText capability-lookup recheck
-      // -- all five must still see the valid relation so the clipboard
-      // write is genuinely invoked (assigning releaseCopy); the hook only
-      // breaks starting at the POST-write recheck this test targets,
-      // exactly matching its own title ("clipboard-STEP" — the await, not
-      // the pre-invoke gate the tenth gate separately added).
-      if (calls <= 5) return VALID_RELATION;
+      // trySyncNativeShare's own SIX preparatory rechecks (after
+      // safeNavigator(); after the File getter AND after constructing it;
+      // after the canShare getter AND after invoking it -- no canShare
+      // configured, so it never reaches the share-getter recheck and
+      // returns not-attempted after those six), the precheck immediately
+      // before the anchor click, and (fourteenth remediation gate) the
+      // THREE separate post-download boundary checks -- after safeNavigator(),
+      // after the clipboard getter, and after the writeText getter -- all
+      // TWELVE must still see the valid relation so the clipboard write is
+      // genuinely invoked (assigning releaseCopy); the hook only breaks
+      // starting at the POST-write recheck this test targets, exactly
+      // matching its own title ("clipboard-STEP" — the await, not any
+      // pre-invoke gate).
+      if (calls <= 12) return VALID_RELATION;
       throw new Error('hook broke after the download fired — currency is UNKNOWN, not confirmed changed');
     };
     const { refs } = await boot(getRelation);
     const pending = clickShare(refs); // download fires synchronously; clipboard write is the pending await
     releaseCopy(undefined);
     await pending;
-    expect(calls).toBeGreaterThanOrEqual(6);
+    expect(calls).toBeGreaterThanOrEqual(13);
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
@@ -1435,12 +1462,21 @@ describe('A3 / P2 hook truth — every capability is contained independently; a 
     expect(seenPayload.text.length).toBeGreaterThan(0);
   });
 
-  it('a throwing download (anchor.click) settles to "failed", never attempts clipboard on top of it', async () => {
+  it('eleventh remediation gate, B2: a throwing anchor.click() was genuinely INVOKED (crossed the irreversible boundary) — settles to "download-started", never "failed", and never attempts clipboard on top of it', async () => {
+    // Corrected from a prior gate's expectation: `a.click()` throwing does
+    // NOT mean nothing happened -- some hostile/broken environments could
+    // throw AFTER dispatching the click event, and this module cannot
+    // prove otherwise. Reporting `failed` here would erase an
+    // already-invoked, possibly-effective download; the clipboard step is
+    // still skipped (too uncertain to layer a second host call on top of
+    // an anchor that just misbehaved), which is the part of this test's
+    // original claim that remains true.
     const log = installEnv({ clipboard: () => {}, clickThrows: true });
     const { refs } = await boot(() => VALID_RELATION);
     await clickShare(refs);
     expect(log.copied).toHaveLength(0);
-    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started'));
   });
 
   it('clipboard failure never invalidates an already-successful download', async () => {
@@ -2235,5 +2271,1714 @@ describe('tenth remediation gate — a host-controlled call\'s SIDE EFFECT (not 
     expect(log.copied).toHaveLength(1); // the write genuinely happened -- already irreversible
     expect(log.anchors).toHaveLength(1);
     expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
+  });
+});
+
+// Eleventh remediation gate: an independent capability audit found the
+// tenth gate's own reentrancy fix incomplete in five further ways — every
+// one fixed below, with an adversarial test proving it and (per the
+// governing prompt) mutation-verified.
+describe('eleventh remediation gate — the FIVE further hostile synchronous native-share/capability tails', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+  const PAIR2 = adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth', numerologySpine: '9 + 2 → 11', cardPairHead: 'no. ii × no. iii',
+  });
+
+  it('B4(a): navigator.share()\'s own CALL carries the side effect, then returns a non-thenable — never a synthesized "shared" claim for a share that plainly never resolved', async () => {
+    // Twelfth remediation gate (pre-commit race addendum, item 3): a
+    // malformed non-promise return means share() never genuinely resolved.
+    // A prior draft synthesized an already-resolved promise here, producing
+    // the false "selected pair shared." claim. Corrected: since identity
+    // changed by the time this is discovered, the honest pre-effect `stale`
+    // applies — never a stale download either.
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    let shareCalls = 0;
+    setNavigator({
+      canShare: () => true,
+      share: () => { shareCalls++; currentRelation = PAIR2; return undefined; }, // side effect + non-thenable, both inside the call
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(shareCalls).toBe(1); // the call genuinely happened
+    expect(log.anchors).toHaveLength(0); // never falls back to downloading the now-stale pair
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).not.toContain('shared');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('B4(b): navigator.share()\'s own CALL carries the side effect, then throws a non-Abort error — the identity change is caught HERE, not left for a later unrelated check to maybe notice', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv();
+    setNavigator({
+      canShare: () => true,
+      share: () => { currentRelation = PAIR2; throw new Error('platform refused, not an AbortError'); },
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0); // DOCTRINE: a native-share exception routes to download -- but never a STALE one
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('B4(c): the global File lookup/constructor carries a side effect — caught before canShare/share are ever reached', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const realFile = globalThis.File;
+    globalThis.File = class extends realFile {
+      constructor(...args) {
+        currentRelation = PAIR2; // the hostile side effect, during construction, before super() touches anything observable
+        super(...args);
+      }
+    };
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    globalThis.File = realFile;
+    expect(log.shared).toHaveLength(0); // share() must never be reached
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('B4(d): the navigator ACCESSOR itself (not canShare/share) carries a side effect — caught before this module decides anything on the strength of it', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv(); // boot's own capability probe reads THIS harmless navigator
+    const { refs } = await boot(getRelation);
+    // Swap in the hostile accessor only AFTER boot — isolates the CLICK-time
+    // safeNavigator() read as the only thing this getter can observe,
+    // rather than also firing (inertly or not) during initPairShareUI's own
+    // detectShareCapability() probe.
+    const realNav = globalThis.navigator;
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      get() { currentRelation = PAIR2; return realNav; },
+    });
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('B4(e): a hostile `.then` PROPERTY GETTER on the value navigator.share() returns changes identity while isThenable evaluates it — never a stale download, never a synthesized "shared" claim', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    const hostileResult = {};
+    Object.defineProperty(hostileResult, 'then', {
+      get() {
+        currentRelation = PAIR2; // the hostile side effect lives in the GETTER
+        return undefined; // lies about thenability -- isThenable sees this as false
+      },
+    });
+    setNavigator({ canShare: () => true, share: () => hostileResult });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0); // never downloads the now-stale pair on top of an invoked share() call
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).not.toContain('shared');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('B4(e) companion: the SAME hostile `.then` getter, but identity is confirmed CURRENT at that exact moment — ordinary local-download fallback proceeds, unchanged', async () => {
+    const getRelation = () => VALID_RELATION;
+    const log = installEnv({ clipboard: () => {} });
+    const hostileResult = {};
+    let thenReads = 0;
+    Object.defineProperty(hostileResult, 'then', {
+      get() { thenReads++; return undefined; }, // no side effect this time -- genuinely malformed, nothing more
+    });
+    setNavigator({ canShare: () => true, share: () => hostileResult });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(thenReads).toBeGreaterThanOrEqual(1);
+    expect(log.anchors).toHaveLength(1); // identity was never in question -- the ordinary download fallback proceeds
+    expect(refs.status.textContent).not.toContain('shared');
+  });
+});
+
+describe('eleventh remediation gate, B5 — remaining download preparation/accessor tails', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+  const PAIR2 = adversarialRelation({
+    elementDirectionAB: 'A · wood → B · fire', numerologySpine: '4 + 5 → 9', cardPairHead: 'no. v × no. vii',
+  });
+
+  it('a hostile anchor.click PROPERTY GETTER changes identity BEFORE the click is ever invoked — zero clicks, "stale", never an unqualified download', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv(); // no canShare/share/clipboard -- straight to the download fallback
+    const { refs } = await boot(getRelation);
+    const realCreateElement = globalThis.document.createElement;
+    globalThis.document.createElement = (tag) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        Object.defineProperty(el, 'click', {
+          configurable: true,
+          get() {
+            currentRelation = PAIR2; // the hostile side effect lives in the GETTER, not the call
+            return () => { el.clickCount = (el.clickCount || 0) + 1; };
+          },
+        });
+      }
+      return el;
+    };
+    await clickShare(refs);
+    globalThis.document.createElement = realCreateElement;
+    expect(log.anchors).toHaveLength(1); // appendChild happened (preparatory, reversible)
+    expect(log.anchors[0].clickCount || 0).toBe(0); // the returned function was extracted but NEVER invoked
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('an identity change DURING download preparation, followed by an UNRELATED preparatory throw, reports the confirmed "stale" — never masked by a blind "failed"', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ appendThrows: true });
+    const { refs } = await boot(getRelation);
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    globalThis.URL.createObjectURL = (...args) => {
+      currentRelation = PAIR2; // the side effect, BEFORE the (unrelated) appendChild throw below
+      globalThis.URL.createObjectURL = realCreateObjectURL; // one-shot
+      return realCreateObjectURL(...args);
+    };
+    await clickShare(refs); // appendChild throws (installEnv's appendThrows) -- a genuinely unrelated preparatory failure
+    globalThis.URL.createObjectURL = realCreateObjectURL;
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+});
+
+describe('eleventh remediation gate, addendum — recheck() re-verifies ownership AFTER the getRelation() hook call, not just before', () => {
+  it('a hostile hook that re-initializes the SAME refs mid-recheck retires the calling controller — it must not continue to click a stale anchor', async () => {
+    const log = installEnv(); // no canShare/share configured -- straight to the download fallback
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    let calls = 0;
+    const getRelation = () => {
+      calls++;
+      if (calls === 3) {
+        // Simulates a hostile host integration where READING the relation
+        // triggers a synchronous re-render/re-init cycle on the SAME
+        // refs — retiring the controller that is mid-recheck right now,
+        // as a side effect of the very call it's making.
+        initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+      }
+      return VALID_RELATION;
+    };
+    const controller = initPairShareUI(refs, { getRelation });
+    controller.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    await controller.onShareClick();
+    // The FIRST controller was retired mid-flight by its own hook call —
+    // without the post-hook-call ownership recheck, it would read the
+    // hook's answer (the SAME relation reference) as 'current' and
+    // proceed to click on refs it no longer owns.
+    expect(log.anchors).toHaveLength(0);
+  });
+});
+
+describe('eleventh remediation gate, B3 — setTimeout/clearTimeout are host-controlled too', () => {
+  it('twelfth remediation gate: a hostile/re-entrant setTimeout that invokes its callback SYNCHRONOUSLY (before returning) must never hide the status or store a stale handle', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const realSetTimeout = globalThis.setTimeout;
+    let refs, controller;
+    try {
+      globalThis.setTimeout = (fn, ms) => { fn(); return 77; }; // fires the callback BEFORE returning an id -- a genuine timer-semantics violation
+      ({ refs, controller } = await boot(() => VALID_RELATION));
+      await clickShare(refs);
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+    }
+    // The synchronous callback must have been a no-op (never hidden the
+    // text, never reconciled to 'busy') -- the truthful terminal text is
+    // left visible indefinitely, since no real 4-second wait ever happened.
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.hidden).toBe(false);
+    // No stale handle (77, or anything) was stored as this controller's
+    // "current" timer -- confirmed by re-initializing on the same refs and
+    // proving no throw/corruption follows from whatever bookkeeping this
+    // controller was left in.
+    const refs2 = { btn: refs.btn, status: refs.status, disclosure: refs.disclosure };
+    expect(() => initPairShareUI(refs2, { getRelation: () => VALID_RELATION })).not.toThrow();
+    void controller;
+  });
+
+  it('a throwing setTimeout GETTER must not turn a just-written truthful outcome into "failed"', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const realSetTimeout = globalThis.setTimeout;
+    let refs;
+    try {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        configurable: true,
+        get() { throw new Error('hostile setTimeout getter'); },
+      });
+      ({ refs } = await boot(() => VALID_RELATION));
+      await clickShare(refs);
+    } finally {
+      Object.defineProperty(globalThis, 'setTimeout', { configurable: true, writable: true, value: realSetTimeout });
+    }
+    // navigator.share resolved for the current pair -- 'shared' -- and the
+    // hostile setTimeout getter (arming the auto-hide timer) must not have
+    // turned that truthful outcome into an uncaught rejection the outer
+    // catch would report as 'failed'.
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.hidden).toBe(false);
+    void log;
+  });
+
+  it('a throwing setTimeout CALL must not turn a just-written truthful outcome into "failed"', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const realSetTimeout = globalThis.setTimeout;
+    let refs;
+    try {
+      globalThis.setTimeout = () => { throw new Error('hostile setTimeout call'); };
+      ({ refs } = await boot(() => VALID_RELATION));
+      await clickShare(refs);
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+    }
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+  });
+
+  it('a throwing clearTimeout CALL must not abort controller re-init or a later status write', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const realClearTimeout = globalThis.clearTimeout;
+    let refs;
+    try {
+      globalThis.clearTimeout = () => { throw new Error('hostile clearTimeout call'); };
+      ({ refs } = await boot(() => VALID_RELATION));
+      await clickShare(refs); // arms the 4s auto-hide timer, then setStatus's own re-entry tries to clear it
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+      // Re-init on the same refs -- its own retirement-time clearStatusTimer()
+      // call must not throw or abort the handover despite the hostile
+      // clearTimeout above.
+      const refs2 = { btn: refs.btn, status: refs.status, disclosure: refs.disclosure };
+      expect(() => initPairShareUI(refs2, { getRelation: () => VALID_RELATION })).not.toThrow();
+    } finally {
+      globalThis.clearTimeout = realClearTimeout;
+    }
+  });
+
+  it('a throwing clearTimeout GETTER (distinct from the call above) must not abort controller re-init or a later status write', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const realClearTimeout = globalThis.clearTimeout;
+    let refs;
+    try {
+      Object.defineProperty(globalThis, 'clearTimeout', {
+        configurable: true,
+        get() { throw new Error('hostile clearTimeout getter'); },
+      });
+      ({ refs } = await boot(() => VALID_RELATION));
+      await clickShare(refs);
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+      const refs2 = { btn: refs.btn, status: refs.status, disclosure: refs.disclosure };
+      expect(() => initPairShareUI(refs2, { getRelation: () => VALID_RELATION })).not.toThrow();
+    } finally {
+      Object.defineProperty(globalThis, 'clearTimeout', { configurable: true, writable: true, value: realClearTimeout });
+    }
+  });
+
+  it('a hostile no-op clearTimeout lets the OLD terminal-timer callback survive re-init — it must be a hard no-op, never touching the SUCCESSOR\'s VISIBLE status', async () => {
+    // Twelfth remediation gate (pre-commit race addendum, item 4 + B item
+    // 2): an already-hidden/empty successor state cannot detect the old
+    // buggy `el.hidden = true` write (that write and the correct idle state
+    // are indistinguishable). The successor here is given a genuinely
+    // VISIBLE status -- a held/pending prerender's own `busy` explanation --
+    // that the surviving old callback must never touch.
+    installEnv({ canShare: () => true, share: () => undefined }); // no imageDefer -- the FIRST boot/click must resolve normally
+    const realClearTimeout = globalThis.clearTimeout;
+    const realImage = globalThis.Image;
+    let refs;
+    try {
+      globalThis.clearTimeout = () => {}; // no-op -- "cancels" nothing, the real timer still fires later
+      ({ refs } = await boot(() => VALID_RELATION));
+      await clickShare(refs); // writes 'shared', arms a REAL 4s auto-hide timer (fake timers, so it's queued not fired)
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+      // Re-init on the SAME refs -- the retiring controller's clearStatusTimer()
+      // call is now a confirmed no-op (clearTimeout above never cancels
+      // anything), so the OLD timer is still armed and will fire later.
+      const controller2 = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+      // Hold Image construction forever from THIS point on, so ONLY the
+      // successor's own prerender never completes -- the button stays
+      // disabled/aria-busy and the status stays genuinely visible ("preparing
+      // pair image…") for the rest of this test: a real, VISIBLE state the
+      // surviving old callback could plausibly (and wrongly) hide.
+      globalThis.Image = class {
+        constructor() { this.onload = null; this.onerror = null; }
+        set src(v) { this._src = v; /* never fires onload/onerror -- held forever */ }
+        get src() { return this._src; }
+      };
+      controller2.notifyRelationChange(VALID_RELATION);
+      await Promise.resolve();
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+      expect(refs.status.hidden).toBe(false);
+      // Advance the fake clock so the OLD (never truly cancelled) timer's
+      // callback fires.
+      vi.advanceTimersByTime(4000);
+      // The old callback must have been a hard no-op: the new controller's
+      // genuinely visible busy explanation must survive completely unchanged.
+      expect(refs.status.hidden).toBe(false);
+      expect(refs.status.textContent).toBe(pairShareStatusMessage('busy'));
+      expect(refs.btn.disabled).toBe(true);
+    } finally {
+      globalThis.clearTimeout = realClearTimeout;
+      globalThis.Image = realImage;
+    }
+  });
+
+  it('a re-entrant setTimeout CALL that itself changes the relation cannot leave an unqualified terminal claim standing', async () => {
+    let currentRelation = VALID_RELATION;
+    const PAIR2 = adversarialRelation({
+      elementDirectionAB: 'A · earth → B · metal', numerologySpine: '2 + 7 → 9', cardPairHead: 'no. iv × no. vi',
+    });
+    const getRelation = () => currentRelation;
+    installEnv({ canShare: () => true, share: () => undefined });
+    const realSetTimeout = globalThis.setTimeout;
+    let refs;
+    try {
+      globalThis.setTimeout = (fn, ms) => {
+        currentRelation = PAIR2; // the hostile side effect, INSIDE the scheduling call itself
+        return realSetTimeout(fn, ms);
+      };
+      ({ refs } = await boot(getRelation));
+      await clickShare(refs);
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+    }
+    // setStatusRequalified's own post-schedule recheck must catch this and
+    // upgrade the unqualified 'shared' claim to the truthful 'shared-selected'
+    // one, rather than leaving "shared." standing for a pair that changed
+    // during the very call that scheduled its own auto-hide timer.
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+  });
+});
+
+describe('twelfth remediation gate — pre-commit race addendum: the INITIAL relation/snapshot read can itself retire the controller or re-enter the click', () => {
+  it('regression A: the INITIAL getRelation() hook re-initializes the SAME refs and still returns a valid pair — zero effects, exact new-controller idle DOM', async () => {
+    const log = installEnv();
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    let reinitDone = false;
+    const getRelation = () => {
+      if (!reinitDone) {
+        reinitDone = true;
+        initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // re-init on the SAME refs, mid-read
+      }
+      return VALID_RELATION;
+    };
+    const controller = initPairShareUI(refs, { getRelation });
+    await controller.onShareClick();
+    expect(log.anchors).toHaveLength(0);
+    expect(log.shared).toHaveLength(0);
+    expect(refs.btn.disabled).toBe(false);
+    expect(refs.btn.getAttribute('aria-busy')).toBe('false');
+    expect(refs.status.hidden).toBe(true);
+    expect(refs.status.textContent).toBe('');
+  });
+
+  it('regression B: an ALLOW-LISTED snapshot property getter re-initializes the SAME refs — the old controller performs zero busy/status/effect writes past that boundary', async () => {
+    const log = installEnv();
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    let reinitDone = false;
+    const hostileRelation = {
+      numerologySpine: 'valid spine', cardPairHead: 'valid card',
+      get elementDirectionAB() {
+        if (!reinitDone) {
+          reinitDone = true;
+          initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // re-init on the SAME refs, mid-snapshot-read
+        }
+        return 'A · fire -> B · earth';
+      },
+    };
+    const controller = initPairShareUI(refs, { getRelation: () => hostileRelation });
+    await controller.onShareClick();
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.btn.disabled).toBe(false);
+    expect(refs.btn.getAttribute('aria-busy')).toBe('false');
+    expect(refs.status.hidden).toBe(true);
+  });
+
+  it('second supplement: a re-entrant getRelation() hook that synchronously calls the SAME controller\'s onShareClick() again must never produce a second native-share call', async () => {
+    let shareCalls = 0;
+    const log = installEnv({ canShare: () => true, share: () => { shareCalls++; return undefined; } });
+    const refs = { btn: makeEl('button'), status: makeEl('p'), disclosure: makeEl('div') };
+    let nested = false;
+    let controller;
+    const getRelation = () => {
+      if (!nested) {
+        nested = true;
+        controller.onShareClick(); // re-entrant nested call, started (not awaited) before this read even returns
+      }
+      return VALID_RELATION;
+    };
+    controller = initPairShareUI(refs, { getRelation });
+    controller.notifyRelationChange(VALID_RELATION); // warm the cache -- the exact probed scenario is a WARM-cache click
+    await Promise.resolve();
+    await controller.onShareClick();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(shareCalls).toBe(1); // never two
+    expect(refs.btn.disabled).toBe(false); // settled back to idle, not stuck opInFlight
+    expect(refs.btn.getAttribute('aria-busy')).toBe('false');
+    void log;
+  });
+});
+
+// Twelfth remediation gate (final supplement, item 1): every host-supplied
+// function this file invokes used to be called via a bare `fn.call(receiver,
+// ...)` — but `.call` is ITSELF a property read on `fn`, and a hostile
+// function can define its OWN `call` own-property (a getter) that shadows
+// `Function.prototype.call`. A probe that changes relation inside such a
+// getter, then returns the REAL `Function.prototype.call`, would still have
+// the underlying share/click/writeText genuinely invoked with the identity
+// already changed, past every recheck positioned around the call site.
+// `invoke()` (backed by a module-captured `Reflect.apply`) never reads
+// `fn.call` at all — these tests prove that directly (a read counter) for
+// each of the three named sites, and that the receiver (`this`) binding is
+// still correct.
+describe('twelfth remediation gate (final supplement) — trusted invocation: extracted host functions are never invoked via their own `.call` property', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+
+  it('navigator.share: a hostile OWN `.call` getter is never read; the receiver is still the real navigator', async () => {
+    let callGetterReads = 0;
+    let receiverOk = false;
+    installEnv();
+    const nav = { canShare: () => true };
+    const realShareFn = function shareImpl() { receiverOk = (this === nav); return Promise.resolve(); };
+    Object.defineProperty(realShareFn, 'call', {
+      get() { callGetterReads++; return Function.prototype.call; },
+    });
+    nav.share = realShareFn;
+    setNavigator(nav);
+    const { refs } = await boot(() => VALID_RELATION);
+    await clickShare(refs);
+    expect(callGetterReads).toBe(0);
+    expect(receiverOk).toBe(true);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared'));
+  });
+
+  it('anchor.click: a hostile OWN `.call` getter is never read; the download still genuinely fires', async () => {
+    let callGetterReads = 0;
+    const log = installEnv(); // no canShare/share configured -- straight to the download fallback
+    const { refs } = await boot(() => VALID_RELATION);
+    const realCreateElement = globalThis.document.createElement;
+    globalThis.document.createElement = (tag) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        const realClick = () => { el.clickCount = (el.clickCount || 0) + 1; };
+        Object.defineProperty(realClick, 'call', {
+          get() { callGetterReads++; return Function.prototype.call; },
+        });
+        el.click = realClick;
+      }
+      return el;
+    };
+    await clickShare(refs);
+    globalThis.document.createElement = realCreateElement;
+    expect(callGetterReads).toBe(0);
+    expect(log.anchors[0].clickCount).toBe(1); // the click genuinely happened, via the trusted primitive
+  });
+
+  it('clipboard.writeText: a hostile OWN `.call` getter is never read; the copy still genuinely happens', async () => {
+    let callGetterReads = 0;
+    installEnv(); // no clipboard configured via the helper -- hand-wired below
+    const { refs } = await boot(() => VALID_RELATION);
+    let copied = null;
+    const realWriteText = function writeTextImpl(text) { copied = text; return Promise.resolve(); };
+    Object.defineProperty(realWriteText, 'call', {
+      get() { callGetterReads++; return Function.prototype.call; },
+    });
+    globalThis.navigator.clipboard = { writeText: realWriteText };
+    await clickShare(refs);
+    expect(callGetterReads).toBe(0);
+    expect(copied).not.toBeNull();
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-copied'));
+  });
+});
+
+// Twelfth remediation gate (final supplement, item 2): atomic init handover.
+// Uses a REAL listener-collection harness (a Set with genuine add/remove),
+// not `makeEl`'s single-handler-slot mock, so listener accumulation is
+// provable directly rather than inferred from a mock that can't represent
+// it.
+describe('twelfth remediation gate (final supplement) — atomic initPairShareUI handover under recursive re-entrant cleanup', () => {
+  function makeRealListenerButton() {
+    const listeners = new Set();
+    return {
+      disabled: false,
+      attrs: {},
+      setAttribute(k, v) { this.attrs[k] = String(v); },
+      getAttribute(k) { return this.attrs[k]; },
+      addEventListener(ev, fn) { if (ev === 'click') listeners.add(fn); },
+      removeEventListener(ev, fn) { if (ev === 'click') listeners.delete(fn); },
+      _listeners: listeners,
+    };
+  }
+  function makeStatusEl() {
+    return { textContent: '', hidden: true, setAttribute() {}, getAttribute() { return null; } };
+  }
+
+  it('an armed prior timer whose clearTimeout recursively inits the SAME refs: exactly ONE live listener survives, one controller alone owns button/status/disclosure, EXACTLY one effect from one physical dispatch', async () => {
+    const btn = makeRealListenerButton();
+    const status = makeStatusEl();
+    const disclosure = { textContent: '' };
+    const refs = { btn, status, disclosure };
+
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    await controllerA.onShareClick(); // writes a real terminal status, arms a real 4s auto-hide timer
+    expect(btn._listeners.size).toBe(1);
+
+    const realClearTimeout = globalThis.clearTimeout;
+    let controllerB, controllerC;
+    try {
+      let reinitDone = false;
+      controllerC = null;
+      globalThis.clearTimeout = (id) => {
+        if (!reinitDone) {
+          reinitDone = true;
+          // The recursive/re-entrant init: happens WHILE the outer init below
+          // is still mid-retirement of controllerA, triggered as a side
+          // effect of ITS OWN clearStatusTimer() call.
+          controllerC = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return realClearTimeout(id);
+      };
+      controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    } finally {
+      globalThis.clearTimeout = realClearTimeout;
+    }
+
+    // Exactly one listener, ever -- the WeakMap-cached wiring means the
+    // recursive init found it already installed and never called
+    // addEventListener a second time.
+    expect(btn._listeners.size).toBe(1);
+
+    // The outer init (controllerB) lost the race -- it must be an inert
+    // facade, never a second live controller silently coexisting.
+    expect(controllerB.onShareClick).not.toBe(controllerC.onShareClick);
+    await controllerB.onShareClick(); // must be a complete no-op
+    expect(log.shared).toHaveLength(0); // the loser performed no effect
+
+    // Warm the WINNING controller's cache so the physical dispatch below
+    // resolves deterministically rather than racing an unwarmed render.
+    controllerC.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+
+    // Physically dispatch ONCE -- fire whatever the single surviving
+    // listener is -- and prove EXACTLY one effect follows (never zero,
+    // never two).
+    for (const fn of btn._listeners) fn();
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1);
+  });
+
+  it('a hostile btn.disabled SETTER reenters on the very FIRST-EVER init (no prior controller exists yet) — the nested winner\'s VISIBLE status survives completely untouched, the outer initializer is inert', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    let reinitDone = false;
+    let controllerB = null;
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const btn = makeEl('button');
+    let disabledValue = false;
+    Object.defineProperty(btn, 'disabled', {
+      configurable: true,
+      get() { return disabledValue; },
+      set(v) {
+        disabledValue = v;
+        if (!reinitDone) {
+          reinitDone = true;
+          // The nested winner resolves to a null relation -- its own
+          // onShareClick() writes the truthful 'empty' status entirely
+          // synchronously (no await reached on that path), so by the time
+          // this setter returns, that write has already genuinely
+          // happened.
+          controllerB = initPairShareUI(refs, { getRelation: () => null });
+          controllerB.onShareClick();
+        }
+      },
+    });
+    const refs = { btn, status, disclosure };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick); // the outer lost the race
+    expect(status.textContent).toBe(pairShareStatusMessage('empty'));
+    expect(status.hidden).toBe(false);
+    // The winner (controllerB, via its OWN fresh-controller resetControllerDOM,
+    // reached after the outer's setter call returns) is what actually wrote
+    // this attribute -- the outer's own resumed reset never got that far
+    // (it lost the race one boundary earlier, at the `disabled` setter
+    // itself, per resetControllerDOM's per-boundary `stillCurrent()` guard).
+    expect(btn.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('a hostile status.textContent SETTER reenters during retirement of an EXISTING controller — the nested winner\'s status survives, the outer\'s own resumed clear never runs', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const btnEl = makeEl('button');
+    const disclosure = makeEl('div');
+    // `armed` stays false through controllerA's OWN construction (which
+    // ALSO writes `textContent = ''` once, via its own fresh-controller
+    // resetControllerDOM -- a DIFFERENT boundary than the one this test
+    // targets) -- only set true once controllerA is confirmed constructed
+    // and has done real work, so the reentry trap fires exactly once, on
+    // the SPECIFIC retirement-clearing write this test is named for.
+    let armed = false;
+    let reinitDone = false;
+    let controllerB = null;
+    let hidden = true;
+    let textContent = '';
+    const status = {
+      get textContent() { return textContent; },
+      set textContent(v) {
+        textContent = v;
+        if (armed && v === '' && !reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => null });
+          controllerB.onShareClick();
+        }
+      },
+      get hidden() { return hidden; },
+      set hidden(v) { hidden = v; },
+    };
+    const refs = { btn: btnEl, status, disclosure };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    await controllerA.onShareClick(); // real terminal status, so the LATER retirement below has something to clear
+    armed = true; // now arm the trap for the NEXT clearing write only
+    // Re-init on the same refs -- retirement's resetControllerDOM() tries to
+    // clear `status.textContent = ''`, which is the hostile setter above.
+    const controllerC = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerC.onShareClick).not.toBe(controllerB.onShareClick); // this outer ALSO lost the race
+    expect(status.textContent).toBe(pairShareStatusMessage('empty'));
+    expect(status.hidden).toBe(false);
+  });
+
+  it('a hostile btn.setAttribute CALL (distinct from a property-getter boundary) reenters during resetControllerDOM — the nested winner survives', async () => {
+    installEnv({ canShare: () => true, share: () => undefined });
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    let reinitDone = false;
+    let controllerB = null;
+    const btn = {
+      _attrs: {},
+      disabled: false,
+      setAttribute(k, v) {
+        this._attrs[k] = String(v);
+        if (k === 'aria-busy' && v === 'false' && !reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => null });
+          controllerB.onShareClick();
+        }
+      },
+      getAttribute(k) { return this._attrs[k]; },
+    };
+    const refs = { btn, status, disclosure };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    expect(status.textContent).toBe(pairShareStatusMessage('empty'));
+    expect(status.hidden).toBe(false);
+  });
+
+  it('the disclosure sequence: a hostile navigator CAPABILITY getter reentering leaves the nested winner\'s disclosure text intact, never overwritten by the outer\'s resumed write', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let reinitDone = false;
+    let controllerB = null;
+    const realNav = globalThis.navigator;
+    // A write-count spy, not a content check: the outer's stale write and the
+    // nested winner's write compute the IDENTICAL string from the same
+    // capability flag, so comparing final text alone cannot distinguish
+    // "outer correctly stopped before writing" from "outer overwrote with an
+    // equal value" — only counting writes catches a reintroduced missing
+    // checkpoint between the capability getter and the textContent setter.
+    let writeCount = 0;
+    let disclosureText = 'sentinel-untouched';
+    const disclosure = {
+      get textContent() { return disclosureText; },
+      set textContent(v) { writeCount += 1; disclosureText = v; },
+    };
+    const refs = { btn, status, disclosure };
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      get() {
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+          // The nested winner's OWN disclosure write must land first.
+        }
+        return realNav;
+      },
+    });
+    let controllerA;
+    try {
+      controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    } finally {
+      Object.defineProperty(globalThis, 'navigator', { configurable: true, writable: true, value: realNav });
+    }
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The nested winner's disclosure write is a real, non-sentinel string —
+    // the outer's own resumed sequence never got the chance to overwrite it
+    // with anything (correct or not), since it stopped at the capability-
+    // read boundary.
+    expect(disclosureText).not.toBe('sentinel-untouched');
+    expect(disclosureText.length).toBeGreaterThan(0);
+    // The load-bearing assertion: exactly one write ever landed (the nested
+    // winner's). A missing checkpoint between the capability getter and the
+    // textContent setter would let the outer write too, silently, since both
+    // writes compute the same string from the same capability flag.
+    expect(writeCount).toBe(1);
+    void log;
+  });
+
+  it('the disclosure sequence: a hostile disclosure.textContent SETTER reentering does not let the outer\'s own (now-stale) write follow it', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let reinitDone = false;
+    let controllerB = null;
+    let disclosureText = '';
+    const refs = { btn, status, disclosure: null };
+    const disclosure = {
+      get textContent() { return disclosureText; },
+      set textContent(v) {
+        if (!reinitDone) {
+          reinitDone = true;
+          disclosureText = v; // the OUTER's own (about-to-be-stale) write lands first, chronologically
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // nested winner overwrites it
+        } else {
+          disclosureText = v;
+        }
+      },
+    };
+    refs.disclosure = disclosure;
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // Whatever the FINAL disclosure text is, it must be the nested winner's
+    // OWN write (real disclosure copy), and the outer must never write
+    // AGAIN after losing the race -- there is only one following boundary
+    // check right after this setter, which the outer's own lostRace() must
+    // catch, so no further outer write follows this one.
+    expect(typeof disclosureText).toBe('string');
+    expect(disclosureText.length).toBeGreaterThan(0);
+    // The load-bearing assertion: a missing checkpoint right after this
+    // setter would let the outer fall through and claim _activeController/
+    // wiring.current for itself instead of returning INERT_FACADE, becoming
+    // a second LIVE controller sharing the winner's own refs. Content
+    // comparison above can't see that, and a NO-cache click can't either
+    // (a real-but-wrongly-live controller with no warmed cache takes the
+    // download-fallback path, never calling navigator.share(), which would
+    // leave log.shared unchanged either way) -- so warm the OUTER's own
+    // cache too: if it is genuinely INERT_FACADE, notifyRelationChange/
+    // onShareClick are both frozen no-ops and this produces nothing; if the
+    // checkpoint is missing and it is a real live controller instead, this
+    // gives it everything it needs to reach a real, detectable share() call.
+    controllerA.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    await controllerA.onShareClick();
+    expect(log.shared).toHaveLength(0);
+    controllerB.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    await controllerB.onShareClick();
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1);
+  });
+
+  it('notifyRelationChange: a hostile status.textContent SETTER reentering the on-relation-change clear never lets the outer\'s own stale hidden write follow it', async () => {
+    installEnv({});
+    const btn = makeEl('button');
+    const disclosure = makeEl('div');
+    let reinitDone = false;
+    let controllerB = null;
+    let textValue = '';
+    let sawNonEmpty = false;
+    let hiddenWritesAfterReinit = 0;
+    const refs = { btn, status: null, disclosure };
+    const status = {
+      get textContent() { return textValue; },
+      set textContent(v) {
+        textValue = v;
+        if (v !== '') { sawNonEmpty = true; return; }
+        if (sawNonEmpty && !reinitDone) {
+          reinitDone = true;
+          // Nested re-init on the SAME refs, mid-write of the OUTER's own
+          // on-relation-change clear (notifyRelationChange) — retires the
+          // outer controller and builds a fresh controllerB, whose OWN
+          // construction resets this same status node to idle empty/hidden.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+      },
+    };
+    // A write-count spy scoped to AFTER the reentry trigger, same rationale
+    // as the syncBusyFromPrerender test above: two writes are expected from
+    // the nested init alone (retire the outer, construct the winner) — a
+    // third would mean the outer's own stale write followed, which a plain
+    // final-value check can't distinguish since both write the same `true`.
+    Object.defineProperty(status, 'hidden', {
+      get() { return this._hiddenValue; },
+      set(v) {
+        this._hiddenValue = v;
+        if (reinitDone) hiddenWritesAfterReinit += 1;
+      },
+    });
+    refs.status = status;
+    const controllerA = initPairShareUI(refs, { getRelation: () => null });
+    await controllerA.onShareClick(); // getRelation() returns null -> setStatus('empty'), a real non-empty terminal message
+    expect(sawNonEmpty).toBe(true);
+    controllerA.notifyRelationChange(VALID_RELATION); // relation change with no click in flight -> clears the stale terminal text
+    expect(controllerB).not.toBeNull();
+    expect(textValue).toBe('');
+    expect(status._hiddenValue).toBe(true);
+    expect(hiddenWritesAfterReinit).toBe(2);
+  });
+
+  it('syncBusyFromPrerender: a hostile status.textContent SETTER reentering the pre-render-settled clear never lets the outer\'s own stale hidden write follow it', async () => {
+    installEnv({});
+    const btn = makeEl('button');
+    const disclosure = makeEl('div');
+    let reinitDone = false;
+    let controllerB = null;
+    let textValue = '';
+    let hiddenValue = false;
+    let hiddenWritesAfterReinit = 0;
+    let sawBusy = false;
+    const refs = { btn, status: null, disclosure };
+    const status = {
+      get textContent() { return textValue; },
+      set textContent(v) {
+        textValue = v;
+        if (v !== '') { sawBusy = true; return; }
+        if (sawBusy && !reinitDone) {
+          reinitDone = true;
+          // Nested re-init on the SAME refs, mid-write of the OUTER's own
+          // pre-render-settled clear (syncBusyFromPrerender) — retires the
+          // outer controller and builds a fresh controllerB, whose OWN
+          // construction resets this same status node to idle empty/hidden.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+      },
+      get hidden() { return hiddenValue; },
+      // A write-count spy scoped to AFTER the reentry trigger fires: the
+      // nested winner's own construction-time reset and the outer's stale
+      // resumed write both set `hidden` to the SAME value (true), so
+      // comparing the final value alone cannot distinguish "outer correctly
+      // stopped before writing" from "outer harmlessly-looking but
+      // incorrectly wrote again" — only counting writes from this point
+      // catches a reintroduced missing checkpoint. Exactly two are expected
+      // from the nested init alone: resetControllerDOM retiring the outer
+      // controller, then resetControllerDOM constructing the fresh winner.
+      set hidden(v) {
+        hiddenValue = v;
+        if (reinitDone) hiddenWritesAfterReinit += 1;
+      },
+    };
+    refs.status = status;
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    controllerA.notifyRelationChange(VALID_RELATION); // starts a pre-render: busy text shows, then the mock rasterization settles and this module's own settle-clear fires
+    for (let i = 0; i < 8 && !reinitDone; i++) await Promise.resolve();
+    expect(controllerB).not.toBeNull();
+    // The nested winner's fresh idle DOM (empty + hidden) must survive --
+    // the outer's own settle-clear lost the race at the textContent write
+    // and must never go on to also write el.hidden.
+    expect(textValue).toBe('');
+    expect(hiddenValue).toBe(true);
+    expect(hiddenWritesAfterReinit).toBe(2);
+  });
+
+  it('applyBusyDOM: a hostile btn.disabled SETTER reentering a click\'s own busy-start write never lets the outer\'s own stale aria-busy write follow it', async () => {
+    let reinitDone = false;
+    let controllerB = null;
+    const btnAttrs = {};
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    let disabledValue = false;
+    const refs = { btn: null, status, disclosure };
+    const btn = {
+      get disabled() { return disabledValue; },
+      set disabled(v) {
+        disabledValue = v;
+        if (!reinitDone && v === true) {
+          reinitDone = true;
+          // Nested re-init on the SAME refs, mid-write of controllerA's own
+          // applyBusyDOM(true) call — retires controllerA and builds a
+          // fresh controllerB, whose OWN construction resets this same
+          // button to its idle (not-busy) state.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+      },
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+    };
+    refs.btn = btn;
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    await controllerA.onShareClick();
+    expect(controllerB).not.toBeNull();
+    // The nested winner's fresh idle button (aria-busy="false", written by
+    // its own construction-time resetControllerDOM) must survive --
+    // controllerA's own applyBusyDOM(true) call lost the race at the
+    // disabled write and must never go on to also write aria-busy="true".
+    expect(btnAttrs['aria-busy']).toBe('false');
+  });
+
+  it('setStatus: a hostile status.textContent SETTER reentering a click\'s own busy-status write never lets the outer\'s own stale hidden write follow it', async () => {
+    const btn = makeEl('button');
+    let reinitDone = false;
+    let controllerB = null;
+    let textValue = '';
+    let hiddenValue = false;
+    const refs = { btn, status: null, disclosure: null };
+    const status = {
+      get textContent() { return textValue; },
+      set textContent(v) {
+        textValue = v;
+        if (!reinitDone && v) {
+          reinitDone = true;
+          // Nested re-init on the SAME refs, mid-write of controllerA's own
+          // setStatus('busy') call — retires controllerA and builds a fresh
+          // controllerB, whose OWN construction resets this same status
+          // node to the idle empty/hidden state.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+      },
+      get hidden() { return hiddenValue; },
+      set hidden(v) { hiddenValue = v; },
+    };
+    refs.status = status;
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    await controllerA.onShareClick();
+    expect(controllerB).not.toBeNull();
+    // The nested winner's fresh idle DOM (empty + hidden) must survive --
+    // controllerA's own setStatus('busy') call lost the race at the
+    // textContent write and must never go on to also write el.hidden
+    // (which would force the empty status region visible again).
+    expect(textValue).toBe('');
+    expect(hiddenValue).toBe(true);
+  });
+
+  it('first-ever addEventListener GETTER reentry on the SAME button: exactly ONE physical listener installs, the losing facade is inert, one physical dispatch produces EXACTLY one effect', async () => {
+    const listeners = new Set();
+    let reinitDone = false;
+    let controllerB = null;
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const btnAttrs = {};
+    const btn = {
+      disabled: false,
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+    };
+    Object.defineProperty(btn, 'addEventListener', {
+      configurable: true,
+      get() {
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // nested, re-enters buttonWiringFor(btn) too
+        }
+        return (ev, fn) => { if (ev === 'click') listeners.add(fn); };
+      },
+    });
+    const refs = { btn, status, disclosure };
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The wiring record was published to the WeakMap BEFORE this getter was
+    // ever read -- the nested call's own buttonWiringFor(btn) found it
+    // already there and never read the getter again, so it was read
+    // exactly once and exactly one listener was ever installed.
+    expect(listeners.size).toBe(1);
+
+    controllerB.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    for (const fn of listeners) fn();
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1);
+    await controllerA.onShareClick(); // the loser, invoked directly -- must add nothing further
+    expect(log.shared).toHaveLength(1);
+  });
+
+  it('first-ever addEventListener CALL reentry on the SAME button (distinct from the getter above): exactly ONE physical listener installs, one physical dispatch produces EXACTLY one effect', async () => {
+    const listeners = new Set();
+    let reinitDone = false;
+    let controllerB = null;
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const btnAttrs = {};
+    const btn = {
+      disabled: false,
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+      addEventListener(ev, fn) {
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // nested, re-enters buttonWiringFor(btn) too, DURING this same call
+        }
+        if (ev === 'click') listeners.add(fn);
+      },
+    };
+    const refs = { btn, status, disclosure };
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // Exactly one physical addEventListener call ever happened -- the
+    // nested call's own buttonWiringFor(btn) found the wiring record
+    // already published (set BEFORE this call was ever made) and returned
+    // immediately without calling addEventListener a second time.
+    expect(listeners.size).toBe(1);
+
+    controllerB.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    for (const fn of listeners) fn();
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1);
+  });
+});
+
+describe('thirteenth remediation gate — atomic-handoff follow-up: the button-reference read and the init-time capability probe each get their own checkpoint', () => {
+  it('a hostile refs.btn GETTER reentering the LATER buttonWiringFor lookup (not the earlier construction-time reset read) leaves the outer inert: zero listener registration on a GHOST button, zero DOM writes, notifyRelationChange a no-op, exactly one winning effect', async () => {
+    // The mutation this test must catch: a hostile refs.btn getter can
+    // return a DIFFERENT object after it has already reentered — if the
+    // outer resumes past that read without a checkpoint, it hands buttonWiringFor
+    // a button the WeakMap has never published wiring for, which installs a
+    // REAL, orphaned second listener on it. Reusing the SAME button object
+    // for both reads cannot catch this: buttonWiringFor's WeakMap already
+    // dedups same-object re-entry regardless of any checkpoint here, so a
+    // prior version of this test that returned the identical button both
+    // times passed even with the checkpoint deleted. A distinct "ghost"
+    // button the WeakMap has never seen is required to make the missing
+    // checkpoint observable.
+    const listeners = new Set();
+    const ghostListeners = new Set();
+    let btnReads = 0;
+    let reinitDone = false;
+    let controllerB = null;
+    const btnAttrs = {};
+    const realBtn = {
+      disabled: false,
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+      addEventListener(ev, fn) { if (ev === 'click') listeners.add(fn); },
+    };
+    const ghostAttrs = {};
+    const ghostBtn = {
+      disabled: false,
+      setAttribute(k, v) { ghostAttrs[k] = String(v); },
+      getAttribute(k) { return ghostAttrs[k]; },
+      addEventListener(ev, fn) { if (ev === 'click') ghostListeners.add(fn); },
+    };
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = {
+      status, disclosure,
+      // Read #1 happens inside resetControllerDOM's construction-time reset
+      // (already covered by an earlier gate's tests targeting THAT site) —
+      // this trigger deliberately skips it and fires on read #2, the LATER
+      // lookup this gate split out of buttonWiringFor's own call, and
+      // returns the GHOST from that point on.
+      get btn() {
+        btnReads += 1;
+        if (btnReads === 2 && !reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+          return ghostBtn;
+        }
+        return realBtn;
+      },
+    };
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The outer lost the race AT the second `refs.btn` read, before ever
+    // calling buttonWiringFor — exactly one physical listener exists on the
+    // REAL button (the nested winner's doing), and the ghost the outer's
+    // stale read returned gets ZERO — it must never reach buttonWiringFor.
+    expect(listeners.size).toBe(1);
+    expect(ghostListeners.size).toBe(0);
+
+    controllerB.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    const dispatches = [];
+    for (const fn of listeners) dispatches.push(fn());
+    await Promise.all(dispatches); // wait for the click's own async completion (final status write), not just the share() push
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1); // exactly one effect from one physical dispatch
+    expect(log.anchors).toHaveLength(0); // native share succeeded — no fallback download
+    expect(log.copied).toHaveLength(0); // no fallback clipboard copy either
+
+    // Item 4: the loser is inert on BOTH exported hooks, not just the one
+    // already dispatched above. Neither call may produce a second effect,
+    // touch the winner's cache, or write status/busy DOM.
+    const statusBefore = status.textContent;
+    const hiddenBefore = status.hidden;
+    controllerA.notifyRelationChange(VALID_RELATION);
+    expect(status.textContent).toBe(statusBefore);
+    expect(status.hidden).toBe(hiddenBefore);
+    await controllerA.onShareClick();
+    expect(log.shared).toHaveLength(1); // still exactly one — the loser added nothing
+    expect(log.anchors).toHaveLength(0);
+    expect(log.copied).toHaveLength(0);
+    expect(status.textContent).toBe(statusBefore);
+    expect(status.hidden).toBe(hiddenBefore);
+    expect(ghostListeners.size).toBe(0); // still zero — the loser's own onShareClick call never touches the ghost either
+  });
+
+  it('capability read: a hostile navigator.share GETTER reentering the init-time capability probe never lets the outer read canShare or write disclosure text after the nested winner', async () => {
+    let reinitDone = false;
+    let controllerB = null;
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let disclosureWrites = 0;
+    let disclosureText = '';
+    const disclosure = {
+      get textContent() { return disclosureText; },
+      set textContent(v) { disclosureText = v; disclosureWrites += 1; },
+    };
+    const refs = { btn, status, disclosure };
+    let canShareReads = 0;
+    const nav = {
+      get share() {
+        if (!reinitDone) {
+          reinitDone = true;
+          // Nested re-init on the SAME refs, mid-read of the OUTER's own
+          // init-time capability probe — retires the outer and builds a
+          // fresh controllerB, whose OWN capability probe runs to
+          // completion and writes the real disclosure text.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return () => {};
+      },
+      get canShare() { canShareReads += 1; return () => true; },
+    };
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The outer lost the race AT the share getter and must never go on to
+    // read canShare — exactly one read total, the nested winner's own.
+    expect(canShareReads).toBe(1);
+    // ...and must never go on to write disclosure text either.
+    expect(disclosureWrites).toBe(1);
+    expect(disclosureText.length).toBeGreaterThan(0);
+  });
+
+  it('capability read: a hostile navigator.canShare GETTER reentering the init-time capability probe never lets the outer write disclosure text after the nested winner', async () => {
+    let reinitDone = false;
+    let controllerB = null;
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let disclosureWrites = 0;
+    let disclosureText = '';
+    const disclosure = {
+      get textContent() { return disclosureText; },
+      set textContent(v) { disclosureText = v; disclosureWrites += 1; },
+    };
+    const refs = { btn, status, disclosure };
+    const nav = {
+      share: () => {},
+      get canShare() {
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return () => true;
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The outer lost the race AT the canShare getter (the third capability
+    // checkpoint) and must never go on to write disclosure text — exactly
+    // one write total, the nested winner's own.
+    expect(disclosureWrites).toBe(1);
+    expect(disclosureText.length).toBeGreaterThan(0);
+  });
+
+  it('buttonWiringFor: addEventListener with a hostile own .call property getter is never read via .call — the trusted Reflect.apply path installs exactly one listener, at the correct receiver, and produces exactly one effect with no extra download/copy', async () => {
+    // A plain Set/counter dedups identical-reference double-registrations
+    // silently — a real double-install bug where the SAME closure gets
+    // added twice would still report size 1. Track raw invocation counts
+    // independently of the Set so a real double-call cannot hide.
+    const listeners = new Set();
+    let addEventListenerGetterReads = 0;
+    let invocationCount = 0;
+    let lastReceiver = null;
+    let callGetterReads = 0;
+    const btnAttrs = {};
+    const btn = {
+      disabled: false,
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+    };
+    const addListenerFn = function (ev, fn) {
+      invocationCount += 1;
+      lastReceiver = this;
+      if (ev === 'click') listeners.add(fn);
+    };
+    Object.defineProperty(addListenerFn, 'call', {
+      configurable: true,
+      get() { callGetterReads += 1; return Function.prototype.call; },
+    });
+    // addEventListener itself is a GETTER (a second, distinct host-controlled
+    // boundary from the .call property on whatever it returns) — proves the
+    // property is read exactly once too, not just that .call is untouched.
+    Object.defineProperty(btn, 'addEventListener', {
+      configurable: true,
+      get() { addEventListenerGetterReads += 1; return addListenerFn; },
+    });
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const controller = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(callGetterReads).toBe(0); // .call itself is never read
+    expect(addEventListenerGetterReads).toBe(1); // the property is read exactly once
+    expect(invocationCount).toBe(1); // the real function is invoked exactly once
+    expect(lastReceiver).toBe(btn); // Reflect.apply preserved the correct `this`
+    expect(listeners.size).toBe(1); // exactly one physical listener registered
+
+    controller.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    for (const fn of listeners) fn();
+    for (let i = 0; i < 8 && log.shared.length === 0; i++) await Promise.resolve();
+    expect(log.shared).toHaveLength(1); // exactly one native-share effect
+    expect(log.anchors).toHaveLength(0); // native share succeeded — no fallback download
+    expect(log.copied).toHaveLength(0); // no fallback clipboard copy either
+    expect(callGetterReads).toBe(0); // never read even once, including at dispatch/registration time
+    expect(addEventListenerGetterReads).toBe(1); // still exactly one — dispatch doesn't re-read the property
+    expect(invocationCount).toBe(1); // still exactly one — one physical dispatch is not a second registration
+  });
+
+  it('buttonWiringFor: a hostile addEventListener GETTER that returns a DIFFERENT corrupting function after completing a nested winner is never invoked by the losing outer (exact live-repro reproduction)', async () => {
+    // Live-repro finding: publishing the wiring record before the read (an
+    // earlier gate's fix) stops a nested call from installing a SECOND
+    // listener, but it does not stop the OUTER from following through on
+    // its own stale read once the getter returns — the getter's return
+    // value can be a function that does ANYTHING when invoked, not merely
+    // register a listener. Reusing the same well-behaved addEventListener
+    // for both the outer and the nested winner cannot catch this, since
+    // nothing distinguishes "installed correctly" from "installed by the
+    // wrong caller." A getter that hands back a NEW, actively corrupting
+    // function on every read is required to make a missing ownership
+    // checkpoint between the read and the invocation observable.
+    let nested = null;
+    let getterReads = 0;
+    let staleReturnedCalls = 0;
+    let reentered = false;
+    const disclosure = makeEl('div');
+    const status = makeEl('p');
+    const btn = { disabled: false, setAttribute() {}, getAttribute() { return null; } };
+    const refs = { btn, status, disclosure };
+    Object.defineProperty(btn, 'addEventListener', {
+      configurable: true,
+      get() {
+        getterReads += 1;
+        if (!reentered) {
+          reentered = true;
+          nested = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return function () {
+          staleReturnedCalls += 1;
+          disclosure.textContent = 'CORRUPTED_BY_STALE_OUTER_REGISTRATION';
+        };
+      },
+    });
+    installEnv({ canShare: () => true, share: () => undefined });
+    const outer = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(nested).not.toBeNull();
+    expect(outer.onShareClick).not.toBe(nested.onShareClick);
+    // The nested winner's own correct disclosure text must survive
+    // completely untouched — the losing outer's stale registration
+    // function is never invoked, no matter what it would have done.
+    expect(disclosure.textContent).not.toBe('CORRUPTED_BY_STALE_OUTER_REGISTRATION');
+    expect(disclosure.textContent.length).toBeGreaterThan(0);
+    // The getter is read twice (the outer's own read, then the nested
+    // winner's own separate read once it reaches buttonWiringFor itself),
+    // but the corrupting function it returns is only ever INVOKED once —
+    // by the nested winner, which legitimately claimed the install. If the
+    // outer also invoked its own stale copy, this would be 2 and/or the
+    // disclosure assertion above would have already failed.
+    expect(getterReads).toBe(2);
+    expect(staleReturnedCalls).toBe(1);
+    void status;
+  });
+});
+
+describe('thirteenth remediation gate (further follow-up) — throw-contained refs access and single-read safeNavigator()', () => {
+  it('a throwing refs.btn GETTER degrades safely — initPairShareUI never crashes, the button is simply absent from this controller', () => {
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = {
+      status, disclosure,
+      get btn() { throw new Error('hostile btn getter'); },
+    };
+    expect(() => initPairShareUI(refs, { getRelation: () => VALID_RELATION })).not.toThrow();
+    expect(disclosure.textContent.length).toBeGreaterThan(0); // the rest of construction still completes truthfully
+  });
+
+  it('a throwing refs.disclosure GETTER degrades safely — no crash, disclosure is simply skipped', () => {
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const refs = {
+      btn, status,
+      get disclosure() { throw new Error('hostile disclosure getter'); },
+    };
+    let controller;
+    expect(() => { controller = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); }).not.toThrow();
+    expect(typeof controller.onShareClick).toBe('function'); // construction still completed
+  });
+
+  it('resetControllerDOM: a refs.btn GETTER that starts throwing before a re-init does not crash retirement — the new controller still constructs cleanly', () => {
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    let btnThrows = false;
+    const refs = {
+      status, disclosure,
+      get btn() {
+        if (btnThrows) throw new Error('hostile btn getter, now throwing');
+        return makeEl('button');
+      },
+    };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    btnThrows = true;
+    let controllerB;
+    expect(() => { controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); }).not.toThrow();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    expect(typeof controllerB.onShareClick).toBe('function');
+  });
+
+  it('resetControllerDOM: a refs.status GETTER that starts throwing before a re-init does not crash retirement or construction', () => {
+    const btn = makeEl('button');
+    const disclosure = makeEl('div');
+    let statusThrows = false;
+    const refs = {
+      btn, disclosure,
+      get status() {
+        if (statusThrows) throw new Error('hostile status getter, now throwing');
+        return makeEl('p');
+      },
+    };
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    statusThrows = true;
+    let controllerB;
+    expect(() => { controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); }).not.toThrow();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+  });
+
+  it('a hostile refs.disclosure GETTER reentering leaves the outer inert before ever reading capability or writing disclosure text', async () => {
+    let reinitDone = false;
+    let controllerB = null;
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let disclosureWrites = 0;
+    let disclosureText = '';
+    const realDisclosure = {
+      get textContent() { return disclosureText; },
+      set textContent(v) { disclosureText = v; disclosureWrites += 1; },
+    };
+    const refs = {
+      btn, status,
+      get disclosure() {
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return realDisclosure;
+      },
+    };
+    installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The nested winner's own disclosure write is the ONLY one — the outer
+    // lost the race at this exact read and never reaches capability
+    // detection or the textContent write at all. A content check alone
+    // can't prove this (both would compute the same string); the write
+    // count can.
+    expect(disclosureWrites).toBe(1);
+    expect(disclosureText.length).toBeGreaterThan(0);
+  });
+
+  it('safeNavigator(): the global navigator accessor is read EXACTLY ONCE per call, even when it throws', () => {
+    let reads = 0;
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      get() { reads += 1; throw new Error('hostile navigator'); },
+    });
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    expect(() => initPairShareUI(refs, { getRelation: () => VALID_RELATION })).not.toThrow();
+    expect(reads).toBe(1);
+    expect(disclosure.textContent.length).toBeGreaterThan(0); // still gets a truthful (download-only) disclosure, no crash
+  });
+
+  it('safeNavigator(): a hostile navigator GETTER reentering init on the SAME refs is read exactly once by the OUTER before it loses the race — the nested winner performs its own separate read', () => {
+    let reads = 0;
+    let reinitDone = false;
+    let controllerB = null;
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    const realNav = { share: () => {}, canShare: () => true };
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      get() {
+        reads += 1;
+        if (!reinitDone) {
+          reinitDone = true;
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return realNav;
+      },
+    });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // Exactly TWO reads total: the outer's own (which reenters), and the
+    // nested winner's own separate, later read — never a third from the
+    // outer resuming past its own read after losing the race (that would
+    // mean safeNavigator() itself read the accessor twice for one logical
+    // checkpoint, the exact defect this fix closed).
+    expect(reads).toBe(2);
+  });
+});
+
+describe('fourteenth remediation gate — post-download clipboard chain: safeNavigator(), the clipboard getter, and the writeText getter are three separate checkpoints', () => {
+  it('a hostile navigator GETTER that reenters init, followed by a clipboard getter that corrupts DOM directly, is never reached once ownership is lost (exact live-repro reproduction)', async () => {
+    const log = installEnv(); // no canShare/share configured -- forces the download fallback path
+    const { refs } = await boot(() => VALID_RELATION);
+    let navigatorReads = 0;
+    let clipboardReads = 0;
+    let writeTextReads = 0;
+    let reentered = false;
+    let nested = null;
+    const nav = {};
+    Object.defineProperty(nav, 'clipboard', {
+      configurable: true,
+      get() {
+        clipboardReads += 1;
+        // The hostile side effect lives directly in the getter, exactly
+        // like the exact external repro — no reentrant init needed here,
+        // since the navigator getter below already supplied that.
+        refs.status.textContent = 'CORRUPTED_BY_STALE_CLIPBOARD_GETTER';
+        refs.status.hidden = false;
+        const clipboard = {};
+        Object.defineProperty(clipboard, 'writeText', {
+          configurable: true,
+          get() { writeTextReads += 1; return () => Promise.resolve(); },
+        });
+        return clipboard;
+      },
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      get() {
+        navigatorReads += 1;
+        if (navigatorReads === 2 && !reentered) {
+          reentered = true;
+          nested = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return nav;
+      },
+    });
+    await clickShare(refs);
+    expect(nested).not.toBeNull();
+    // The outer lost the race AT the second navigator read (the one that
+    // reentered) and must never go on to read clipboard or writeText at
+    // all — this is the exact checkpoint the missing recheck skipped.
+    expect(clipboardReads).toBe(0);
+    expect(writeTextReads).toBe(0);
+    // The download itself already fired — irreversible, unaffected by a
+    // LATER boundary losing the race.
+    expect(log.anchors).toHaveLength(1);
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).not.toBe('CORRUPTED_BY_STALE_CLIPBOARD_GETTER');
+  });
+
+  it('a hostile clipboard GETTER reentering (navigator itself well-behaved) is never reached once ownership is lost at THAT boundary — writeText is never read', async () => {
+    const log = installEnv();
+    const { refs } = await boot(() => VALID_RELATION);
+    let clipboardReads = 0;
+    let writeTextReads = 0;
+    let reentered = false;
+    let nested = null;
+    const nav = {};
+    Object.defineProperty(nav, 'clipboard', {
+      configurable: true,
+      get() {
+        clipboardReads += 1;
+        if (!reentered) {
+          reentered = true;
+          nested = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        const clipboard = {};
+        Object.defineProperty(clipboard, 'writeText', {
+          configurable: true,
+          get() { writeTextReads += 1; return () => Promise.resolve(); },
+        });
+        return clipboard;
+      },
+    });
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+    await clickShare(refs);
+    expect(nested).not.toBeNull();
+    // Exactly ONE clipboard read — the outer's own, which reentered
+    // (construction alone, not a click) — the outer must stop AT this
+    // checkpoint and never read it again.
+    expect(clipboardReads).toBe(1);
+    // writeText is never read at all — the outer stopped at the
+    // clipboard-read checkpoint, before ever reaching writeText.
+    expect(writeTextReads).toBe(0);
+    expect(log.anchors).toHaveLength(1);
+  });
+
+  it('a hostile writeText GETTER reentering is never invoked by the losing outer — the nested winner\'s own write is the only one that ever happens', async () => {
+    const log = installEnv();
+    const { refs } = await boot(() => VALID_RELATION);
+    let writeTextReads = 0;
+    let writeCalls = 0;
+    let reentered = false;
+    let nested = null;
+    const clipboardObj = {};
+    Object.defineProperty(clipboardObj, 'writeText', {
+      configurable: true,
+      get() {
+        writeTextReads += 1;
+        if (!reentered) {
+          reentered = true;
+          nested = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return () => { writeCalls += 1; return Promise.resolve(); };
+      },
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { clipboard: clipboardObj }, configurable: true, writable: true,
+    });
+    await clickShare(refs);
+    expect(nested).not.toBeNull();
+    // The outer lost the race AT the writeText read and must never invoke
+    // the (distinct, freshly-returned) function it got back.
+    expect(writeCalls).toBe(0);
+    expect(log.anchors).toHaveLength(1);
+    expect(log.copied).toHaveLength(0);
+  });
+});
+
+describe('fourteenth remediation gate — applyBusyDOM: contained refs read + checkpoint before the first write, busy setup inside the guarded try/finally', () => {
+  it('a hostile refs.btn GETTER reentering DURING a click\'s own applyBusyDOM(true) read leaves the nested winner\'s idle reset intact — the outer never re-disables it (exact live-repro shape: nested:true, disabled stays false, aria-busy stays "false")', async () => {
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const btnAttrs = {};
+    let disabledValue = false;
+    const realBtn = {
+      get disabled() { return disabledValue; },
+      set disabled(v) { disabledValue = v; },
+      setAttribute(k, v) { btnAttrs[k] = String(v); },
+      getAttribute(k) { return btnAttrs[k]; },
+      addEventListener() {},
+    };
+    let armed = false;
+    let reinitDone = false;
+    let controllerB = null;
+    const refs = {
+      status, disclosure,
+      get btn() {
+        if (armed && !reinitDone) {
+          reinitDone = true;
+          // Reentry during THIS click's own applyBusyDOM(true) read (not
+          // the earlier construction-time read, already separately
+          // protected) — the nested winner's construction resets this SAME
+          // button to idle (disabled=false, aria-busy="false") before the
+          // outer's read even returns.
+          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+        }
+        return realBtn;
+      },
+    };
+    installEnv({ canShare: () => true, share: () => undefined });
+    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // construction's own read — armed=false, no reentry
+    armed = true; // now arm the trap for the UPCOMING click's own applyBusyDOM read
+    await controllerA.onShareClick();
+    expect(controllerB).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
+    // The nested winner's fresh idle button (disabled=false, aria-busy=
+    // "false", from its own construction-time resetControllerDOM) must
+    // survive — controllerA's own applyBusyDOM(true) call lost the race at
+    // the refs.btn read and must never go on to also write disabled=true.
+    expect(disabledValue).toBe(false);
+    expect(btnAttrs['aria-busy']).toBe('false');
+  });
+
+  it('a throwing btn.disabled SETTER (not internally contained the way a getter is) during applyBusyDOM never leaves opInFlight stuck — busy setup runs inside the guarded try/finally, so its own finally still releases the reservation', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    let disabledThrows = false; // false during construction, so resetControllerDOM's own reset succeeds
+    let disabledValue = false;
+    const btn = {
+      get disabled() { return disabledValue; },
+      set disabled(v) {
+        if (disabledThrows) throw new Error('hostile disabled setter');
+        disabledValue = v;
+      },
+      setAttribute() {},
+      getAttribute() { return null; },
+      addEventListener() {},
+    };
+    const refs = { btn, status, disclosure };
+    const controller = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    disabledThrows = true; // arm the trap for the UPCOMING click's own applyBusyDOM(true) write
+    await expect(controller.onShareClick()).resolves.not.toThrow();
+    // The throw must not have wedged opInFlight — a later click, once the
+    // setter stops throwing, must still genuinely proceed (not silently
+    // no-op forever because opInFlight was never released).
+    disabledThrows = false;
+    controller.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    await controller.onShareClick();
+    expect(log.shared).toHaveLength(1);
+  });
+});
+
+describe('fourteenth remediation gate — readRelation: hooks.getRelation is extracted exactly once, with an ownership checkpoint between the read and the call', () => {
+  it('a hostile getRelation GETTER that reenters, then returns a DIFFERENT corrupting function, is never invoked by the losing outer (exact live-repro shape)', async () => {
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const refs = { btn, status, disclosure };
+    let reads = 0;
+    let staleCalls = 0;
+    let reentered = false;
+    let nested = null;
+    const hooks = {
+      get getRelation() {
+        reads += 1;
+        if (!reentered) {
+          reentered = true;
+          nested = initPairShareUI(refs, hooks);
+        }
+        return () => {
+          staleCalls += 1;
+          status.textContent = 'CORRUPTED_BY_STALE_GETRELATION_CALL';
+          status.hidden = false;
+          return null;
+        };
+      },
+    };
+    const controllerA = initPairShareUI(refs, hooks); // construction never reads hooks.getRelation -- no reentry here
+    await controllerA.onShareClick(); // THIS is what first reads hooks.getRelation, triggering the hostile getter
+    expect(nested).not.toBeNull();
+    expect(controllerA.onShareClick).not.toBe(nested.onShareClick);
+    // The outer lost the race AT the getRelation read and must never
+    // invoke the (distinct, freshly-returned) function it got back.
+    expect(staleCalls).toBe(0);
+    expect(status.textContent).not.toBe('CORRUPTED_BY_STALE_GETRELATION_CALL');
+    expect(reads).toBe(1);
   });
 });

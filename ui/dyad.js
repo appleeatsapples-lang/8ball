@@ -1317,8 +1317,19 @@ export function clearOutput() {
   if (sideB && sideB.setAttribute) {
     sideB.setAttribute('aria-pressed', 'false'); sideB.textContent = 'B'; sideB.removeAttribute('title');
   }
-  const shareStatus = $('dyad-share-status');
-  if (shareStatus) { shareStatus.hidden = true; shareStatus.textContent = ''; }
+  // Eleventh remediation gate, B1: this function used to blank
+  // #dyad-share-status directly here, unconditionally — bypassing
+  // ui/pairShare.js's own opInFlight ownership entirely. When a native
+  // share was genuinely still in flight (a held promise) at the moment
+  // Compare Another/Back/Previous Readings cleared the pair, this write
+  // erased the truthful "preparing pair image…" text a moment before
+  // syncBusyFromPrerender() would otherwise HAVE deferred to it (opInFlight
+  // guards it there) — leaving a disabled/aria-busy button with an empty,
+  // hidden status for the remainder of that operation. ui/pairShare.js is
+  // now the sole owner of its own status node: the onRelationChange(null)
+  // call two lines above already reaches it, and it decides for itself
+  // whether clearing is safe (never while a click-triggered operation owns
+  // that text) — this module reaches into that DOM node no longer.
   hideEntryErrors();
 }
 

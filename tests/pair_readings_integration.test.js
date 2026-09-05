@@ -24,7 +24,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { makeClassList } from './helpers/dom.js';
-import { initPairShareUI } from '../ui/pairShare.js';
+import { initPairShareUI, pairShareStatusMessage } from '../ui/pairShare.js';
 import {
   DYAD_RELATION_NODES, DYAD_AXIS_IDS,
   initDyadUI, open as openDyad, close as closeDyad, submitSecond,
@@ -768,5 +768,113 @@ describe('tenth remediation gate — buildIntegrationHarness() restores globalTh
     expect(Object.prototype.hasOwnProperty.call(globalThis, 'document')).toBe(realHadDocument);
     expect(globalThis.document).toBe(realDocument);
     expect(ACTIVE_DOCUMENT).toBe(null);
+  });
+});
+
+// Fourteenth remediation gate, B1: a real held native-share promise for pair
+// A, surviving a genuine Compare Another and a second pair's submission —
+// the eleventh gate's B1 fix (ui/dyad.js no longer blanks #dyad-share-status
+// directly; ui/pairShare.js's own opInFlight guard is the sole owner) proven
+// against the REAL module lifecycle (initDyadUI + initPairShareUI wired
+// exactly like index.html), not a hand-built controller. Distinct from the
+// eighth-gate describe block above, which holds a PRE-RENDER, not a native
+// share attempt already past the click boundary.
+describe('fourteenth remediation gate, B1 — a held native-share promise for A survives Compare Another and a second pair\'s submission, with no cross-generation corruption', () => {
+  it('A\'s share stays held through Compare Another and a second pair\'s submission; the second pair renders and works; A settles truthfully afterward with no download/copy fallback', async () => {
+    const rasterLog = installRasterEnv(); // immediate raster resolution — the pre-render this scenario needs is already warmed BEFORE the click (P1-4)
+    const h = buildIntegrationHarness({ rasterLog });
+
+    let releaseShare;
+    const sharedPayloads = [];
+    const nav = {
+      canShare: () => true,
+      share: payload => { sharedPayloads.push(payload); return new Promise(resolve => { releaseShare = resolve; }); },
+    };
+    const savedNav = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+
+    try {
+      // ── land Pair A (self + specimen b) ──
+      h.withDom(() => openDyad());
+      h.withDom(() => {
+        h.get('dyad-name-input').value = 'specimen b';
+        h.get('dyad-dob-input').value = '1988-06-15';
+        return submitSecond();
+      });
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); // flush A's own proactive prerender
+
+      expect(h.get('dyad-share-btn').disabled).toBe(false); // pre-click sanity: nothing pending
+
+      // ── click share: reaches navigator.share() SYNCHRONOUSLY (cache
+      // already warmed by the proactive prerender, P1-4) and holds there ──
+      h.withDom(() => h.get('dyad-share-btn').listeners.click());
+      expect(sharedPayloads).toHaveLength(1); // A's native share genuinely attempted
+      expect(h.get('dyad-share-btn').disabled).toBe(true);
+      expect(h.get('dyad-share-status').textContent).toBe(pairShareStatusMessage('busy'));
+
+      // ── real Compare Another while A's share is still held ──
+      h.withDom(() => dyadCompareAnother());
+      // The click-owned status must survive Compare Another untouched — this
+      // module's own opInFlight guard, not ui/dyad.js reaching into the
+      // status node directly (eleventh gate, B1).
+      expect(h.get('dyad-share-btn').disabled).toBe(true);
+      expect(h.get('dyad-share-status').textContent).toBe(pairShareStatusMessage('busy'));
+
+      // ── submit a visibly DISTINCT second pair (self + specimen c) while
+      //    A's share is STILL held ──
+      h.withDom(() => {
+        h.get('dyad-name-input').value = 'specimen c';
+        h.get('dyad-dob-input').value = '1975-03-22';
+        return submitSecond();
+      });
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); // flush the second pair's own proactive prerender
+
+      // The second pair's OWN output/signature must be genuinely visible —
+      // the real screen-ownership proof, not a status-only check.
+      expect(h.withDom(() => isDyadOpen())).toBe(true);
+      const relationSecond = h.withDom(() => dyadCurrentRelation());
+      expect(relationSecond).not.toBeNull();
+      expect(h.get('dyad-head-b').textContent.length).toBeGreaterThan(0); // the second pair's own name is genuinely rendered
+
+      // A's own click is STILL in flight (opInFlight) — the second pair's
+      // own notifyRelationChange must not have touched A's busy status
+      // either, by the SAME guard.
+      expect(h.get('dyad-share-btn').disabled).toBe(true);
+      expect(h.get('dyad-share-status').textContent).toBe(pairShareStatusMessage('busy'));
+      expect(sharedPayloads).toHaveLength(1); // still only A's attempt — the second pair's prerender never triggers its own share
+
+      // ── release A's held native share now that the second pair is on screen ──
+      releaseShare(undefined);
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+      // A's click resolves against a CHANGED relation (the second pair is now
+      // current) — truthful qualified state, never an unqualified "shared."
+      // claim.
+      expect(h.get('dyad-share-status').textContent).toBe(pairShareStatusMessage('shared-selected'));
+      expect(h.get('dyad-share-status').textContent).toBe('selected pair shared.');
+      // No cross-generation corruption: the second pair's own relation is
+      // still exactly what was on screen before A's late resolution ran.
+      expect(h.withDom(() => dyadCurrentRelation())).toBe(relationSecond);
+      // The button returns to a live, enabled state describing the SECOND
+      // pair, not stuck disabled/busy from A's now-settled operation.
+      expect(h.get('dyad-share-btn').disabled).toBe(false);
+
+      // ── the second pair's OWN share must still genuinely work afterward,
+      //    and it must share the SECOND pair, never A ──
+      h.withDom(() => h.get('dyad-share-btn').listeners.click());
+      expect(sharedPayloads).toHaveLength(2); // a distinct, second native-share attempt
+      expect(h.get('dyad-share-btn').disabled).toBe(true);
+      releaseShare(undefined);
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+      expect(h.get('dyad-share-status').textContent).toBe(pairShareStatusMessage('shared'));
+      expect(h.get('dyad-share-btn').disabled).toBe(false);
+
+      // Zero download/copy fallbacks anywhere in this scenario — every
+      // outcome was a genuine native share.
+      expect(rasterLog.anchors).toHaveLength(0);
+    } finally {
+      if (savedNav) Object.defineProperty(globalThis, 'navigator', savedNav);
+      else delete globalThis.navigator;
+    }
   });
 });

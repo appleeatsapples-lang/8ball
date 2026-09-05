@@ -456,14 +456,29 @@ function svgToPngBlob(svg, width, height) {
 // 1000ms grace timer, or immediately if scheduling that timer itself throws).
 //
 // Tenth remediation gate: `precheck`, when given, is called IMMEDIATELY
-// BEFORE `a.click()` — the actual irreversible boundary. Every step before
-// it (URL.createObjectURL, createElement, href/download assignment,
-// appendChild) is fully reversible: if precheck() returns false, the
-// anchor is discarded and the URL revoked, exactly as the throw path
-// already does, and the function returns `false` (not clicked) rather
-// than throwing — this is a deliberate skip, not an error. The caller
-// distinguishes "not clicked because precheck declined" from "clicked" by
-// this return value.
+// BEFORE the anchor's `click` is invoked — the actual irreversible
+// boundary. Every step before it (URL.createObjectURL, createElement,
+// href/download assignment, appendChild) is fully reversible: if
+// precheck() returns false, the anchor is discarded and the URL revoked,
+// exactly as a preparatory throw already does.
+//
+// Eleventh remediation gate, B2/B5: two further corrections. (1) The
+// anchor's `click` PROPERTY is itself a host-controlled read — a hostile
+// getter could carry a side effect the same way navigator.share's getter
+// does — so it is extracted via safeFn and rechecked ONE more time
+// (addendum item 2) immediately before invocation, not read-and-called in
+// one bare `a.click()` statement. (2) Once that invocation genuinely
+// happens, a throw FROM the click call itself must never be reported as
+// "nothing happened" — some hostile/broken environments could throw AFTER
+// dispatching the event, and this module cannot prove otherwise. The
+// return shape reflects this: `{clicked, clickThrew}` on success (clicked
+// may still be accompanied by a clickThrew the caller must handle
+// conservatively — never as a failure), or a genuine throw ONLY for a
+// PREPARATORY failure that never reached invocation at all (createElement,
+// appendChild, or the click property itself being non-invocable) — the
+// caller recheck()s at that point to classify the failure precisely
+// (`stale` if identity had already changed, never a blind `failed` that
+// would mask a confirmed pre-effect change discovered earlier).
 function downloadBlob(blob, filename, precheck) {
   const url = URL.createObjectURL(blob);
   let a = null;
@@ -472,16 +487,30 @@ function downloadBlob(blob, filename, precheck) {
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
-    if (precheck && !precheck()) {
-      try { a.remove(); } catch (_) { /* best-effort */ }
-      try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
-      return false;
-    }
-    a.click();
   } catch (e) {
     try { if (a && typeof a.remove === 'function') a.remove(); } catch (_) { /* best-effort */ }
     try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
     throw e;
+  }
+  // Extract `click` safely (a hostile getter is itself a boundary), THEN
+  // recheck ONE more time before invoking — this is the single check this
+  // boundary needs; the reversible steps above do not each need their own.
+  const clickFn = safeFn(a, 'click');
+  if (precheck && !precheck()) {
+    try { a.remove(); } catch (_) { /* best-effort */ }
+    try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
+    return { clicked: false };
+  }
+  if (!clickFn) {
+    try { a.remove(); } catch (_) { /* best-effort */ }
+    try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
+    throw new Error('anchor click is not invocable');
+  }
+  let clickThrew = null;
+  try {
+    invoke(clickFn, a, []);
+  } catch (e) {
+    clickThrew = e;
   }
   try {
     a.remove();
@@ -492,12 +521,9 @@ function downloadBlob(blob, filename, precheck) {
     revoked = true;
     try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
   };
-  try {
-    setTimeout(revoke, 1000);
-  } catch (_) {
-    revoke();
-  }
-  return true;
+  const timerId = safeSetTimeout(revoke, 1000);
+  if (timerId == null) revoke();
+  return { clicked: true, clickThrew };
 }
 
 // ── capability disclosure (audit C1, reworded for second-gate P2) ──────────
@@ -514,16 +540,6 @@ function downloadBlob(blob, filename, precheck) {
 // conditional to hedge. Sixth remediation gate, item 4: "save"/"saved"
 // never appears in this disclosure — this module can only observe a
 // download STARTING (item 6), never reaching disk.
-function detectShareCapability() {
-  try {
-    return typeof navigator !== 'undefined'
-      && typeof navigator.share === 'function'
-      && typeof navigator.canShare === 'function';
-  } catch (_) {
-    return false;
-  }
-}
-
 // Item 6 (truthful download wording) applies here too — "saves" describes a
 // completion this module cannot observe (only that a download was
 // started); "downloads" describes the action itself, which this module DOES
@@ -541,9 +557,25 @@ export function pairImprintDisclosureText(capable) {
 // reference on a later read). `{ ok:false }` lets every caller tell those
 // three apart instead of collapsing a broken hook into `empty` or into a
 // false "the pair changed".
-function readRelation(hooks) {
+// Fourteenth remediation gate: `typeof hooks.getRelation === 'function' ?
+// hooks.getRelation() : null` read the `getRelation` property TWICE — once
+// for the `typeof` check, once (a SEPARATE, later read) to actually call
+// it. An exact live probe: a hostile `getRelation` GETTER reenters init on
+// its first (`typeof`) read, and the SECOND read — used for the real call —
+// then invokes whatever it returns, entirely unchecked, attributed to a
+// controller that already lost the race. `safeFn` extracts the function
+// ONCE; `stillCurrent` (when given) is rechecked after the GET and again
+// after the CALL, so a losing caller's own stale invocation is caught at
+// both of those exact boundaries, not only by whatever the caller happens
+// to check after this function returns.
+function readRelation(hooks, stillCurrent) {
   try {
-    return { ok: true, value: typeof hooks.getRelation === 'function' ? hooks.getRelation() : null };
+    const getRelation = safeFn(hooks, 'getRelation'); // property read — may re-enter
+    if (stillCurrent && !stillCurrent()) return { ok: false, value: null, suppressed: true };
+    if (!getRelation) return { ok: true, value: null };
+    const value = invoke(getRelation, hooks, []); // call — may re-enter
+    if (stillCurrent && !stillCurrent()) return { ok: false, value: null, suppressed: true };
+    return { ok: true, value };
   } catch (_) {
     return { ok: false, value: null };
   }
@@ -581,14 +613,43 @@ function safeFn(obj, key) {
   const fn = safeProp(obj, key);
   return typeof fn === 'function' ? fn : null;
 }
+// Twelfth remediation gate (final supplement, item 1): every host-supplied
+// function this file invokes used to be called via a bare `fn.call(receiver,
+// ...)` — but `.call` is ITSELF a property read on `fn`, and a hostile
+// function can define its OWN `call` own-property (a getter, or a plain
+// override) that shadows `Function.prototype.call` entirely. Reading
+// `fn.call` at the call site is therefore a host-controlled boundary this
+// file had not contained: a probe that changes relation inside a hostile
+// `.call` getter, then returns the REAL `Function.prototype.call`, would
+// still have the underlying share/click/writeText genuinely invoked with
+// the identity already changed, past every recheck positioned around the
+// call site. `reflectApply` is captured ONCE, at module load, from the
+// intrinsic `Reflect.apply` — before any hostile code has had a chance to
+// run — and used to invoke every extracted host function from here on,
+// never touching `fn.call`/`fn.apply` at all.
+const reflectApply = Reflect.apply;
+function invoke(fn, receiver, args) {
+  return reflectApply(fn, receiver, args || []);
+}
 // `typeof navigator` itself throws if `navigator` is redefined as a global
 // accessor property with a throwing getter — `typeof` only shields an
 // UNRESOLVABLE (undeclared) reference, not a hostile one (confirmed
 // directly: Object.defineProperty(globalThis,'navigator',{get(){throw}})
 // makes even `typeof navigator` throw). `safeNavigator()` is the one place
-// that reference is ever evaluated in this file.
+// that reference is ever evaluated in this file — exactly ONCE per call,
+// into a local, before `typeof` ever inspects it: the previous shape
+// (`typeof navigator === 'undefined' ? null : navigator`) read the global
+// accessor TWICE for one logical boundary (once for the `typeof` check,
+// again to actually return it), so a hostile getter with a call-counted or
+// call-ordered side effect fired twice for what call sites treat as a
+// single checkpoint.
 function safeNavigator() {
-  try { return typeof navigator === 'undefined' ? null : navigator; } catch (_) { return null; }
+  try {
+    const nav = globalThis.navigator; // exactly one contained read
+    return typeof nav === 'undefined' ? null : nav;
+  } catch (_) {
+    return null;
+  }
 }
 // A caught error's OWN `.name` can itself be a throwing getter — reading it
 // to classify AbortError vs. everything else must not let that escape.
@@ -603,6 +664,37 @@ function safeErrorName(err) {
 function isThenable(v) {
   try { return !!v && (typeof v === 'object' || typeof v === 'function') && typeof v.then === 'function'; }
   catch (_) { return false; }
+}
+
+// Eleventh remediation gate, B3: setTimeout/clearTimeout are themselves
+// host-controlled globals — both the property LOOKUP (a hostile getter on
+// globalThis) and the CALL (a throwing/no-op/re-entrant implementation) can
+// misbehave, exactly like navigator.share/canShare above. Read through
+// safeFn so a hostile getter degrades to "unavailable" rather than
+// throwing straight through; invoke through a try/catch so a throwing call
+// can never escape and turn an already-truthful outcome into an uncaught
+// rejection (which onShareClick's own outer catch would otherwise turn
+// into a false "failed", erasing whatever real status was just written).
+// Ownership of an armed callback is deliberately NEVER inferred from
+// clearTimeout() having actually cancelled anything — see armStatusTimer/
+// clearStatusTimer below, which use an explicit identity token instead, so
+// a hostile no-op clearTimeout can never let a stale callback resurrect
+// its ability to touch a shared DOM node.
+function safeSetTimeout(fn, ms) {
+  try {
+    const st = safeFn(globalThis, 'setTimeout');
+    if (!st) return null;
+    return invoke(st, globalThis, [fn, ms]);
+  } catch (_) {
+    return null;
+  }
+}
+function safeClearTimeout(id) {
+  if (id == null) return;
+  try {
+    const ct = safeFn(globalThis, 'clearTimeout');
+    if (ct) invoke(ct, globalThis, [id]);
+  } catch (_) { /* best-effort — the statusTimerGen identity check is the real guard */ }
 }
 
 // Tenth remediation gate: EVERY host-controlled step here — the canShare
@@ -620,33 +712,64 @@ function isThenable(v) {
 // download), `attempted` (share() was genuinely invoked — the irreversible
 // boundary — caller awaits and maps via postEffectStatus as before).
 function trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot) {
+  // Eleventh remediation gate, B4(d): safeNavigator()'s own read is a
+  // host-controlled boundary too (a `navigator` accessor with a
+  // side-effecting getter) — recheck immediately after it, before this
+  // function proceeds on the strength of whatever it returned.
   const nav = safeNavigator();
+  let check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   if (!nav) return { kind: 'not-attempted' };
+
+  // B4(c) + twelfth remediation gate (final supplement, item 1): the global
+  // `File` GETTER and the returned CONSTRUCTOR are two distinct
+  // host-controlled boundaries — reading the property can itself carry a
+  // side effect (e.g. a `get File() {...}` accessor on globalThis) that is
+  // genuinely separate from whatever the returned constructor's OWN
+  // invocation does. Recheck between the getter read and the constructor
+  // call, and again after it, so a side effect at either boundary is caught
+  // before this function decides anything on the strength of the result.
+  const FileCtor = safeProp(globalThis, 'File');
+  check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   let file = null;
-  try {
-    if (typeof File === 'function') {
-      file = new File([blob], IMPRINT_FILENAME, { type: 'image/png' });
+  if (typeof FileCtor === 'function') {
+    try {
+      file = new FileCtor([blob], IMPRINT_FILENAME, { type: 'image/png' });
+    } catch (_) {
+      file = null;
     }
-  } catch (_) {
-    file = null;
   }
+  check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   if (!file) return { kind: 'not-attempted' };
+
   const caption = buildPairImprintCaption(snapshot);
+  // Twelfth remediation gate, addendum item 2: `canShare`'s GETTER and its
+  // returned CALLABLE are two distinct boundaries, exactly like `File`
+  // above — a getter can change relation or retire the controller and
+  // still hand back a perfectly callable function. Required order: read/
+  // extract the getter, recheck, THEN (only if still current) invoke it,
+  // then recheck again.
   const canShareFn = safeFn(nav, 'canShare');
+  check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   let canShareFiles = false;
-  try {
-    // Evaluated with the EXACT payload navigator.share() below will
-    // receive (files AND text) — canShare({files}) alone can answer yes
-    // for a payload navigator.share() then refuses once `text` is
-    // present.
-    canShareFiles = !!(canShareFn && canShareFn.call(nav, { files: [file], text: caption }));
-  } catch (_) {
-    canShareFiles = false;
+  if (canShareFn) {
+    try {
+      // Evaluated with the EXACT payload navigator.share() below will
+      // receive (files AND text) — canShare({files}) alone can answer yes
+      // for a payload navigator.share() then refuses once `text` is
+      // present.
+      canShareFiles = !!invoke(canShareFn, nav, [{ files: [file], text: caption }]);
+    } catch (_) {
+      canShareFiles = false;
+    }
   }
   // Recheck immediately after the canShare CALL — a side effect carried
   // through it (even on a call that returns true, or throws nothing at
   // all) must be caught here, before ever reading the `share` getter.
-  let check = recheck(controller, myToken, relationAtStart);
+  check = recheck(controller, myToken, relationAtStart);
   if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   if (!canShareFiles) return { kind: 'not-attempted' };
 
@@ -658,45 +781,121 @@ function trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot
   if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
   if (!shareFn) return { kind: 'not-attempted' };
 
+  // THE irreversible boundary: once shareFn is invoked below, this
+  // function can never again claim "no attempt was made" — eleventh
+  // remediation gate, B4(a)/(b): a non-thenable return and a synchronous
+  // non-Abort throw both still mean the call genuinely happened. What
+  // changes is only whether a side effect can be detected IMMEDIATELY
+  // (rechecked right here, rather than trusted to a later, unrelated
+  // preparatory check in the download fallback to eventually notice).
+  // Invoked via `invoke()` (Reflect.apply), never `shareFn.call(...)` —
+  // `.call` is itself a property read on `shareFn` a hostile function could
+  // shadow with its own getter.
+  let result;
   try {
-    const result = shareFn.call(nav, { files: [file], text: caption });
-    // A callable-but-non-promise return (undefined, a plain value) is not a
-    // genuine share attempt this module can await for a truthful outcome —
-    // falls back to download exactly like an absent/uncallable share would.
-    if (!isThenable(result)) return { kind: 'not-attempted' };
-    return { kind: 'attempted', promise: result };
+    result = invoke(shareFn, nav, [{ files: [file], text: caption }]);
   } catch (err) {
+    // The call itself already crossed the boundary before throwing.
     // Eighth remediation gate: a DIRECT SYNCHRONOUS AbortError (some
     // platforms throw rather than reject the promise) is a genuine,
-    // already-settled cancellation, not an unattempted call — it must
-    // resolve to `cancelled` with zero download/clipboard fallback, the
-    // same as an async-rejected AbortError already does. Wrapping it as a
-    // rejected promise lets shareOrFallback's existing async catch (which
-    // already reads the error name safely, see below) handle both shapes
-    // through one path. Any OTHER synchronous throw (not AbortError) is
-    // genuinely unattempted and still falls straight through to the
-    // on-device download, exactly as before.
+    // already-settled cancellation — resolve to `cancelled` regardless of
+    // any identity concern, since cancelled exports nothing either way.
     if (safeErrorName(err) === 'AbortError') return { kind: 'attempted', promise: Promise.reject(err) };
+    // Non-Abort: DOCTRINE (§1.J v0.83) — a native-share exception routes to
+    // the download fallback, it is never a direct `failed`. But recheck
+    // HERE, immediately, so a genuine identity change carried through THIS
+    // call is reported precisely (`preempted`/changed-or-unknown) instead
+    // of silently falling through to download a pair that already moved on
+    // — the exact gap an unrelated LATER preparatory throw could otherwise
+    // mask by collapsing everything to a generic `failed`.
+    const postCallCheck = recheck(controller, myToken, relationAtStart);
+    if (postCallCheck.verdict !== 'current') return { kind: 'preempted', verdict: postCallCheck.verdict };
     return { kind: 'not-attempted' };
   }
+  // Once shareFn.call has genuinely run, this function is committed to
+  // `attempted` — it must never revert to `preempted`/`not-attempted` on
+  // the strength of a side effect discovered AFTER the call, since that
+  // would wrongly claim "nothing happened" for a call that already
+  // happened. B4(e): `.then` is itself a property GETTER on the returned
+  // value — reading it (inside isThenable) can carry the same class of
+  // side effect as any other host-controlled property read; isThenable's
+  // own try/catch only protects isThenable from throwing, not this caller
+  // from a side-effecting getter that answers truthfully OR lies.
+  const thenable = isThenable(result);
+  if (thenable) {
+    // Committed either way — the caller's own post-await recheck (in
+    // shareOrFallback) applies the truthful current/selected split,
+    // whether the side effect happened during the call itself or during
+    // this very thenability check.
+    return { kind: 'attempted', promise: result };
+  }
+  // Twelfth remediation gate (pre-commit race addendum, item 3): a
+  // callable-but-non-promise return means `navigator.share()` never
+  // genuinely RESOLVED — the eleven-state contract reserves `shared`/
+  // `shared-selected` for a confirmed resolution, and a prior draft of this
+  // fix synthesized a resolved `Promise.resolve()` here, producing the
+  // false claim "selected pair shared." for a share that plainly did not
+  // complete. Never synthesize that. If identity is still confirmed
+  // current at this exact moment, this is an ordinary "no attempt this
+  // module can vouch for" — the ordinary local-download fallback proceeds,
+  // unchanged. If identity changed, became unconfirmable, or the
+  // controller was retired/superseded, report through the SAME `preempted`
+  // path every other preparatory-boundary side effect in this file uses —
+  // never a stale download, and never a false `shared` claim.
+  const postThenableCheck = recheck(controller, myToken, relationAtStart);
+  if (postThenableCheck.verdict !== 'current') {
+    return { kind: 'preempted', verdict: postThenableCheck.verdict };
+  }
+  return { kind: 'not-attempted' };
 }
 
 // ── controller (second-gate P1-3) ───────────────────────────────────────
-// One object per initPairShareUI() call. Nothing below this point reads or
-// writes a module-level mutable field except `_activeController` itself
-// (which only exists to retire the PRIOR controller on re-init) — every
-// other piece of state (refs, hooks, cache, timers, in-flight flag, the
-// operation token) lives on the controller instance a given click closed
-// over, so two live controllers cannot interfere with each other and a
-// retired controller's async tail cannot write anywhere.
+// One object per initPairShareUI() call. Every piece of per-operation state
+// (refs, hooks, cache, timers, in-flight flag, the operation token) lives on
+// the controller instance a given click closed over, so two live
+// controllers cannot interfere with each other and a retired controller's
+// async tail cannot write anywhere. Three module-level mutables coordinate
+// handover ACROSS controllers (updated below, in initPairShareUI, and in
+// buttonWiringFor — twelfth remediation gate, final supplement, item 2):
+// `_activeController` (which controller currently owns app-level identity,
+// so a re-init knows what to retire), `_initGen` (an atomic generation
+// token so a re-entrant/recursive init can detect it lost a race mid-
+// handover and stop touching anything further), and `_buttonWiring` (a
+// WeakMap ensuring at most one real DOM listener per physical button,
+// ever, regardless of how many controllers take turns owning it).
 
 let _activeController = null;
+// Twelfth remediation gate (final supplement, item 2): bumped once per
+// initPairShareUI() CALL (not per successful completion) — see that
+// function's own comment for the atomic-handover protocol this backs.
+let _initGen = 0;
 
+// Twelfth remediation gate (further sweep): same shape as resetControllerDOM
+// — btn.disabled, the setAttribute property read, and its invocation are
+// three separate host-controlled boundaries. A hostile btn.disabled setter
+// (or setAttribute getter) can synchronously re-enter initPairShareUI on
+// these same refs; this function must stop at the exact boundary that
+// re-entered rather than continuing to write over whatever the winner did.
+// Fourteenth remediation gate: `controller.refs.btn` was read bare (no
+// throw containment) and WRITTEN TO (`btn.disabled = ...`) with no
+// checkpoint between the read and that first write — a hostile `refs`
+// getter that reenters `initPairShareUI` on this same refs (retiring this
+// controller, letting a nested winner reset the button to idle) let this
+// function's own STALE write land right afterward, re-disabling a button
+// the winner had already released. `safeProp` contains the read; the
+// checkpoint immediately after it, before the FIRST write, is what a bare
+// read-then-check-after pattern was missing.
 function applyBusyDOM(controller, busy) {
-  const btn = controller.refs && controller.refs.btn;
-  if (btn) {
-    btn.disabled = !!busy;
-    if (btn.setAttribute) btn.setAttribute('aria-busy', String(!!busy));
+  if (controller.retired) return;
+  const btn = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
+  if (controller.retired) return;
+  if (!btn) return;
+  btn.disabled = !!busy; // host-controlled setter — may re-enter
+  if (controller.retired) return;
+  const setAttr = safeFn(btn, 'setAttribute'); // property read — may re-enter
+  if (controller.retired) return;
+  if (setAttr) {
+    try { invoke(setAttr, btn, ['aria-busy', String(!!busy)]); } catch (_) { /* best-effort */ } // call — may re-enter
   }
 }
 
@@ -711,41 +910,134 @@ function applyBusyDOM(controller, busy) {
 // terminal state (which itself arms its own timer), or via
 // syncBusyFromPrerender()'s own direct clear when a pre-render settles with
 // no click ever having started.
-function setStatus(controller, state) {
-  if (controller.retired) return;
-  const el = controller.refs && controller.refs.status;
-  if (!el) return;
-  const msg = pairShareStatusMessage(state);
-  if (controller.statusTimer && typeof clearTimeout === 'function') {
-    clearTimeout(controller.statusTimer);
+// Eleventh remediation gate, B3: cancel the controller's own armed timer
+// (if any) and — regardless of whether the underlying host clearTimeout()
+// call actually succeeds — bump `statusTimerGen` so any callback already
+// in-flight (a hostile/no-op clearTimeout let it survive) fails its own
+// identity check the instant it runs. The bump is the real ownership
+// guard; the clearTimeout() call underneath is purely an optimization to
+// avoid firing at all when the host behaves.
+function clearStatusTimer(controller) {
+  controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
+  const id = controller.statusTimer;
+  controller.statusTimer = null;
+  safeClearTimeout(id);
+}
+
+// Arms the 4s auto-hide/reconcile timer under the SAME identity-token
+// discipline. The callback checks `controller.retired` and its own token
+// FIRST, before touching anything — a hard no-op, not merely a "skip the
+// busy branch" — so a stale timer that a hostile clearTimeout failed to
+// cancel can never write to a DOM node a NEWER controller (same reused
+// refs) has since taken over. This is the exact shape of the bug a prior
+// gate shipped: the old callback's retired-check lived INSIDE the
+// busy-vs-hide branch, so "retired" fell through to the hide branch and
+// still wrote `el.hidden = true` to what might by then be someone else's
+// status node.
+function armStatusTimer(controller, el) {
+  controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
+  const myStatusTimerGen = controller.statusTimerGen;
+  // Twelfth remediation gate (pre-commit race addendum, item 4): `armed`
+  // flips true only AFTER safeSetTimeout() has RETURNED — a hostile/
+  // re-entrant setTimeout(fn, ms) that invokes `fn` SYNCHRONOUSLY (before
+  // returning an id) must never hide/reconcile the status, since no real
+  // 4-second wait has happened; the truthful terminal text is left visible
+  // indefinitely instead, which is the honest behavior when the host
+  // cannot be trusted to run real timers.
+  let armed = false;
+  const fire = () => {
+    // Ownership check FIRST, by identity — never rely on clearTimeout()
+    // having actually cancelled this callback.
+    if (controller.retired || controller.statusTimerGen !== myStatusTimerGen) return;
+    if (!armed) {
+      // Invoked synchronously, during scheduling itself — a genuine timer-
+      // semantics violation. Invalidate this generation so neither THIS
+      // callback (if the host calls back more than once) nor the
+      // caller's own post-return bookkeeping below can act on it.
+      controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
+      return;
+    }
     controller.statusTimer = null;
-  }
-  el.textContent = msg;
-  el.hidden = !msg;
-  if (msg && state !== 'busy' && typeof setTimeout === 'function') {
     // Ninth remediation gate: this callback used to hide the status text
     // unconditionally — but syncBusyFromPrerender (eighth gate) can leave
     // the BUTTON disabled/aria-busy="true" for a genuinely still-pending
     // newer-pair prerender independent of this timer, and blindly hiding
     // the text at the 4s mark then left that disabled button with no
-    // visible/live explanation at all — a real accessibility defect, not
-    // just a wording one. On expiry: clear this timer's own ownership
-    // first (so a stale id is never compared against later), then
-    // reconcile with the CURRENT state rather than assuming nothing
-    // changed in the last 4 seconds — if the controller is still live, no
-    // click operation owns busy right now, and a prerender is genuinely
+    // visible/live explanation at all. Reconcile with the CURRENT state
+    // rather than assuming nothing changed in the last 4 seconds: if no
+    // click operation owns busy right now and a prerender is genuinely
     // still pending, transition to the truthful `busy` explanation
     // (setStatus('busy') arms no further timer, matching how a real
     // click-triggered busy state never auto-hides either); otherwise hide
-    // normally, exactly as before.
-    controller.statusTimer = setTimeout(() => {
-      controller.statusTimer = null;
-      if (!controller.retired && !controller.opInFlight && isPrerenderPending(controller)) {
-        setStatus(controller, 'busy');
-      } else {
-        el.hidden = true;
-      }
-    }, 4000);
+    // normally.
+    if (!controller.opInFlight && isPrerenderPending(controller)) {
+      setStatus(controller, 'busy');
+    } else {
+      el.hidden = true;
+    }
+  };
+  const id = safeSetTimeout(fire, 4000);
+  // If `fire` already ran synchronously above, `statusTimerGen` has already
+  // been bumped past `myStatusTimerGen` by the branch inside it — this
+  // assignment would then be a stale/no-op write; guard it so a stale id
+  // (or a real one, orphaned) is never stored as this controller's
+  // "current" timer, and never assigned after retirement either.
+  if (!controller.retired && controller.statusTimerGen === myStatusTimerGen) {
+    armed = true;
+    controller.statusTimer = id;
+  } else {
+    safeClearTimeout(id); // best-effort — some hostile implementations still schedule something real despite firing synchronously too
+  }
+}
+
+function setStatus(controller, state) {
+  if (controller.retired) return;
+  const el = controller.refs && controller.refs.status;
+  if (!el) return;
+  const msg = pairShareStatusMessage(state);
+  clearStatusTimer(controller);
+  // Twelfth remediation gate (pre-commit race addendum, item 4): clearStatusTimer's
+  // own clearTimeout() call is host-controlled and can synchronously
+  // re-init/retire this controller as a side effect — recheck immediately
+  // before writing DOM so a just-retired controller (refs now owned by a
+  // NEW controller, since refs are normally reused across a re-init) can
+  // never corrupt what that new controller has already written.
+  if (controller.retired) return;
+  el.textContent = msg; // host-controlled setter — may re-enter
+  // Twelfth remediation gate (further sweep): el.textContent and el.hidden
+  // are TWO separate host-controlled boundaries — a hostile textContent
+  // setter reentering here must stop this call before el.hidden, the same
+  // discipline resetControllerDOM uses, not one shared check before both.
+  if (controller.retired) return;
+  el.hidden = !msg; // host-controlled setter — may re-enter
+  if (controller.retired) return;
+  if (msg && state !== 'busy') {
+    armStatusTimer(controller, el);
+  }
+}
+
+// Eleventh remediation gate, B3 (re-entrant scheduler): arming the
+// auto-hide timer above is itself a host-controlled CALL (safeSetTimeout)
+// that could, in principle, carry a synchronous side effect the same way
+// canShare/share/click do elsewhere in this file. The three UNQUALIFIED
+// terminal states below (`shared`, `download-started`,
+// `download-started-copied`) each claim to concern "the pair currently on
+// screen" — call sites that write one of them requalify immediately
+// afterward so a side effect carried through that scheduling call cannot
+// leave an unqualified claim standing for a pair that, by the time anyone
+// reads it, is no longer current.
+const REQUALIFY_TO_SELECTED = Object.freeze({
+  shared: 'shared-selected',
+  'download-started': 'download-started-selected',
+  'download-started-copied': 'download-started-selected-copied',
+});
+function setStatusRequalified(controller, myToken, relationAtStart, state) {
+  setStatus(controller, state);
+  const qualified = REQUALIFY_TO_SELECTED[state];
+  if (!qualified) return;
+  const after = recheck(controller, myToken, relationAtStart);
+  if (after.verdict !== 'current' && after.verdict !== 'suppressed') {
+    setStatus(controller, qualified);
   }
 }
 
@@ -759,16 +1051,48 @@ function setStatus(controller, state) {
 // later call, so it does not weaken "a retired controller writes nothing
 // once retired" (this call itself happens BEFORE/AT the moment of
 // retirement, performed by the retiring code, not by a stale continuation).
-function resetControllerDOM(controller) {
-  const btn = controller.refs && controller.refs.btn;
+// Twelfth remediation gate (final supplement, follow-up): every write below
+// is itself a host-controlled boundary (a DOM property setter or method
+// call) that can synchronously re-enter `initPairShareUI` on these SAME
+// refs — an adversarial probe confirmed this with `btn.disabled = false`
+// specifically. Checking `lostRace()` only once, after this whole function
+// returns, is not enough: a nested winner completing INSIDE one of these
+// writes can already have written its own truthful DOM (or even a click's
+// own terminal status), and this function would then blindly continue past
+// that point, overwriting it. `stillCurrent()` is checked after EVERY
+// individual host-controlled boundary — the property read, the setter
+// write, the method lookup, and the method call are each their own
+// checkpoint — so a losing caller's own remaining writes here stop at the
+// EXACT boundary that lost the race, never one step later.
+function resetControllerDOM(controller, lostRace) {
+  const stillCurrent = () => !lostRace || !lostRace();
+  // Thirteenth remediation gate: a bare `controller.refs.btn`/`.status`
+  // property read is itself a host-controlled boundary if `refs` is a
+  // hostile object with its own throwing getter for either key — an
+  // uncontained throw here would escape straight out of `initPairShareUI`
+  // (both of resetControllerDOM's call sites), crashing the whole handover
+  // instead of degrading like every other host accessor in this file.
+  // `safeProp` is the same contained-read primitive already used for every
+  // other property this module reads off a host-controlled object.
+  const btn = safeProp(controller.refs, 'btn'); // contained refs/property read — may re-enter
+  if (!stillCurrent()) return;
   if (btn) {
-    btn.disabled = false;
-    if (btn.setAttribute) btn.setAttribute('aria-busy', 'false');
+    btn.disabled = false; // host-controlled setter — may re-enter
+    if (!stillCurrent()) return;
+    const setAttr = safeFn(btn, 'setAttribute'); // property read — may re-enter
+    if (!stillCurrent()) return;
+    if (setAttr) {
+      try { invoke(setAttr, btn, ['aria-busy', 'false']); } catch (_) { /* best-effort */ } // call — may re-enter
+      if (!stillCurrent()) return;
+    }
   }
-  const el = controller.refs && controller.refs.status;
+  const el = safeProp(controller.refs, 'status'); // contained refs/property read — may re-enter
+  if (!stillCurrent()) return;
   if (el) {
-    el.textContent = '';
-    el.hidden = true;
+    el.textContent = ''; // host-controlled setter — may re-enter
+    if (!stillCurrent()) return;
+    el.hidden = true; // host-controlled setter — may re-enter
+    if (!stillCurrent()) return;
   }
 }
 
@@ -810,12 +1134,14 @@ function syncBusyFromPrerender(controller) {
     // click in flight — no download was started and no share was attempted,
     // so there is no terminal outcome to announce. Only ever clears OUR OWN
     // "preparing…" text, never a real terminal status a click already wrote.
-    if (controller.statusTimer && typeof clearTimeout === 'function') {
-      clearTimeout(controller.statusTimer);
-      controller.statusTimer = null;
-    }
-    el.textContent = '';
-    el.hidden = true;
+    clearStatusTimer(controller);
+    // Twelfth remediation gate: clearStatusTimer's own clearTimeout() call
+    // can synchronously re-init/retire this controller — recheck before
+    // writing DOM a new controller (same reused refs) may have taken over.
+    if (controller.retired) return;
+    el.textContent = ''; // host-controlled setter — may re-enter
+    if (controller.retired) return;
+    el.hidden = true; // host-controlled setter — may re-enter
   }
 }
 
@@ -833,6 +1159,39 @@ function syncBusyFromPrerender(controller) {
  */
 function notifyRelationChange(controller, relation) {
   if (controller.retired) return;
+  // Eleventh remediation gate, B1: this is now the SOLE place that decides
+  // whether a relation change invalidates whatever status text is showing
+  // — ui/dyad.js's own clearOutput() used to blank #dyad-share-status
+  // directly and unconditionally, which raced a genuinely in-flight click:
+  // if a native-share promise for the OLD pair was still pending when the
+  // pair was cleared/replaced, that direct write erased the truthful
+  // "preparing pair image…" text a moment before this module's own
+  // opInFlight guard would otherwise have protected it, leaving a
+  // disabled/aria-busy button with an empty, unannounced status for the
+  // rest of that operation. The guard here is the same one
+  // syncBusyFromPrerender already trusts: while a click-triggered
+  // operation owns the status (`opInFlight`), NOTHING about a relation
+  // change may touch it — that operation's own `finally` is what
+  // eventually reconciles, once it knows the truthful outcome. Only when
+  // no click currently owns it does a pair change clear whatever was
+  // showing (a stale terminal result from the pair that just left, or a
+  // stale "preparing…" for a prerender that's about to be replaced).
+  if (!controller.opInFlight) {
+    const el = controller.refs && controller.refs.status;
+    if (el) {
+      clearStatusTimer(controller);
+      // Twelfth remediation gate: clearStatusTimer's own clearTimeout()
+      // call can synchronously re-init/retire this controller — recheck
+      // before writing DOM a new controller (same reused refs) may have
+      // already taken over.
+      if (!controller.retired) {
+        el.textContent = ''; // host-controlled setter — may re-enter
+        if (!controller.retired) {
+          el.hidden = true; // host-controlled setter — may re-enter
+        }
+      }
+    }
+  }
   const snapshot = relation ? buildPairImprintSnapshot(relation) : null;
   if (!snapshot) {
     controller.cache = null;
@@ -894,7 +1253,18 @@ function notifyRelationChange(controller, relation) {
 //                   owner's refs, or on refs no one is looking at anymore.
 function recheck(controller, myToken, relationAtStart) {
   if (controller.retired || controller.opToken !== myToken) return { verdict: 'suppressed' };
-  const read = readRelation(controller.hooks);
+  const read = readRelation(controller.hooks, () => !controller.retired && controller.opToken === myToken);
+  // Eleventh remediation gate: ownership is re-verified AFTER the hook
+  // call, not just before it. `hooks.getRelation()` is host-provided code
+  // this module does not control — a hostile hook can synchronously call
+  // `initPairShareUI()` again on the SAME refs as a side effect of being
+  // read, which retires THIS controller (sets `controller.retired = true`)
+  // mid-call. Without this second check, a retired controller whose hook
+  // happens to return the value it started with would read as 'current'
+  // and its caller would proceed to click/copy/share on a DOM it no longer
+  // owns. Checking again here — after the read, before interpreting it —
+  // closes that reentrancy window completely.
+  if (controller.retired || controller.opToken !== myToken) return { verdict: 'suppressed' };
   if (!read.ok) return { verdict: 'unknown' };
   if (read.value !== relationAtStart) return { verdict: 'changed' };
   return { verdict: 'current' };
@@ -962,15 +1332,29 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
     lastCheck = recheck(controller, myToken, relationAtStart);
     return lastCheck.verdict === 'current';
   };
-  let clicked = false;
-  let downloadThrew = false;
+  let result = null;
+  let prepError = null;
   try {
-    clicked = downloadBlob(blob, IMPRINT_FILENAME, precheck);
-  } catch (_) {
-    downloadThrew = true;
+    result = downloadBlob(blob, IMPRINT_FILENAME, precheck);
+  } catch (e) {
+    prepError = e;
   }
-  if (downloadThrew) { setStatus(controller, 'failed'); return; }
-  if (!clicked) {
+  if (prepError) {
+    // Eleventh remediation gate, B5: a PREPARATORY throw (before the click
+    // boundary was ever reached) does not erase an identity change that
+    // already happened before it — e.g. a hostile URL.createObjectURL side
+    // effect, followed by an unrelated createElement throw. A fresh recheck
+    // here reports the more specific/accurate outcome (`stale` if identity
+    // already changed) rather than a blind `failed` that would mask it.
+    // renderFailureStatus (not preEffectStatus) applies: the step ITSELF
+    // failed, so even a CONFIRMED-current identity still means `failed`
+    // here, not "proceed".
+    const finalCheck = recheck(controller, myToken, relationAtStart);
+    const status = renderFailureStatus(finalCheck.verdict);
+    if (status) setStatus(controller, status);
+    return;
+  }
+  if (!result.clicked) {
     // precheck ran and declined — identity had already changed/became
     // unconfirmable/the controller retired, all BEFORE the click, so
     // nothing irreversible happened here: ordinary pre-effect mapping,
@@ -992,43 +1376,69 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
   // whether the download is reported as concerning the pair now on screen
   // or the pair SELECTED at click time — it must never be reported as if
   // the download itself never happened.
+  //
+  // Eleventh remediation gate, B2: `result.clickThrew` means the click was
+  // genuinely INVOKED (crossed the boundary) but the call itself threw
+  // afterward — this can NEVER be reported as `failed` (that would erase an
+  // already-invoked, possibly-effective action). Skip the clipboard step
+  // entirely in that case (too uncertain to layer a second host call on top
+  // of an anchor that just misbehaved) and report the download truthfully
+  // via the same current/selected split every other completed effect uses.
+  if (result.clickThrew) {
+    const check = recheck(controller, myToken, relationAtStart);
+    const state = postEffectStatus(check.verdict, 'download-started', 'download-started-selected');
+    if (state) setStatusRequalified(controller, myToken, relationAtStart, state);
+    return;
+  }
+
   // Eighth remediation gate: `navigator.clipboard` and its `.writeText`
   // property are read through `safeProp`/`safeFn` (defined above,
   // trySyncNativeShare) rather than as bare property accesses — a hostile
-  // `navigator.clipboard` getter must degrade to "no clipboard available"
-  // the same way an absent one already does, never throw straight through
-  // this function and skip the `setStatus` calls below. That containment is
-  // what keeps the ALREADY-TRUE download outcome above from being erased:
-  // a throw here can only affect the clipboard branch that follows, never
-  // unwind past the point the download was already reported.
-  const clipboardObj = safeProp(safeNavigator(), 'clipboard');
-  const writeTextFn = safeFn(clipboardObj, 'writeText');
+  // getter must degrade to "no clipboard available" the same way an absent
+  // one already does, never throw straight through this function and skip
+  // the `setStatus` calls below.
+  // Fourteenth remediation gate: `safeNavigator()`, the `clipboard` getter,
+  // and the `writeText` getter are THREE separate host-controlled
+  // boundaries, each individually re-entrant — an exact live repro
+  // confirmed a hostile `clipboard` getter can write DIRECTLY to DOM this
+  // controller no longer owns (having already lost ownership to a nested
+  // re-init the `navigator` read itself triggered), entirely BEFORE the
+  // single compound recheck that used to follow all three reads together
+  // ever ran. Each read now gets its own immediate ownership recheck,
+  // exactly like every other host accessor sequence in this file — the
+  // already-started download is never undone by any of them; only the
+  // CLIPBOARD copy that follows is ever suppressed.
+  const postDownloadCheckpoint = () => {
+    const check = recheck(controller, myToken, relationAtStart);
+    if (check.verdict === 'current') return false;
+    const state = postEffectStatus(check.verdict, 'download-started', 'download-started-selected');
+    if (state) setStatus(controller, state);
+    return true; // caller must return
+  };
+  const nav = safeNavigator(); // host-controlled — may re-enter
+  if (postDownloadCheckpoint()) return;
+  const clipboardObj = safeProp(nav, 'clipboard'); // host-controlled getter — may re-enter
+  if (postDownloadCheckpoint()) return;
+  const writeTextFn = safeFn(clipboardObj, 'writeText'); // host-controlled getter — may re-enter
+  if (postDownloadCheckpoint()) return;
   if (writeTextFn) {
-    // Tenth remediation gate: recheck AFTER these capability lookups
-    // (themselves host-controlled property reads that could carry a side
-    // effect) and BEFORE invoking writeText — if identity already changed
-    // by this point, the copy must be suppressed entirely (the caption
-    // describes the pair SELECTED at click time, not whatever relation is
-    // now current), while the download — already fired, already
-    // irreversible — is still correctly reported as concerning the
-    // selected pair.
-    const preWrite = recheck(controller, myToken, relationAtStart);
-    if (preWrite.verdict !== 'current') {
-      const state = postEffectStatus(preWrite.verdict, 'download-started', 'download-started-selected');
-      if (state) setStatus(controller, state);
-      return;
-    }
     let clipboardOk = false;
     try {
-      const result = writeTextFn.call(clipboardObj, caption);
+      // Once invoked, the write is COMMITTED — exactly like navigator.share()
+      // in trySyncNativeShare, a side effect discovered AFTER this call must
+      // never suppress `clipboardOk`/erase that the write genuinely
+      // happened; only the final recheck below (after the await) decides
+      // how the outcome is REPORTED (selected vs. unqualified), never
+      // whether it occurred.
+      const result2 = invoke(writeTextFn, clipboardObj, [caption]); // host call — may re-enter
       // Eighth remediation gate: a callable-but-non-promise return is not a
       // genuine copy this module can vouch for — `await result` on a
       // non-thenable resolves immediately rather than throwing, which would
       // otherwise read as the clipboard write having actually succeeded.
       // Retains the download-started status without the falsely-earned
       // "-copied" suffix, exactly like a thrown/rejected write does.
-      if (isThenable(result)) {
-        await result;
+      if (isThenable(result2)) {
+        await result2;
         clipboardOk = true;
       }
     } catch (_) { /* clipboard denied — the download was still started */ }
@@ -1046,7 +1456,7 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
       clipboardOk ? 'download-started-copied' : 'download-started',
       clipboardOk ? 'download-started-selected-copied' : 'download-started-selected',
     );
-    if (state) setStatus(controller, state);
+    if (state) setStatusRequalified(controller, myToken, relationAtStart, state);
     return;
   }
   // "No clipboard at all" tail — recheck once more (the identity could
@@ -1056,7 +1466,7 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
   // checkpoint above.
   const check = recheck(controller, myToken, relationAtStart);
   const state = postEffectStatus(check.verdict, 'download-started', 'download-started-selected');
-  if (state) setStatus(controller, state);
+  if (state) setStatusRequalified(controller, myToken, relationAtStart, state);
 }
 
 // The fast path: a cached Blob is already ready at click time, so a native
@@ -1095,7 +1505,7 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
       await attempt.promise;
       const check = recheck(controller, myToken, relationAtStart);
       const state = postEffectStatus(check.verdict, 'shared', 'shared-selected');
-      if (state) setStatus(controller, state);
+      if (state) setStatusRequalified(controller, myToken, relationAtStart, state);
       return;
     } catch (err) {
       // Nothing irreversible has happened yet on THIS path — the share
@@ -1139,17 +1549,44 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
 function onShareClick(controller) {
   return (async () => {
     if (controller.retired || controller.opInFlight) return;
-    const read = readRelation(controller.hooks);
-    if (!read.ok) { setStatus(controller, 'failed'); return; } // P2 hook truth: a throw is a read failure, not "empty"
-    const relationAtStart = read.value;
-    const snapshot = buildPairImprintSnapshot(relationAtStart);
-    if (!snapshot) { setStatus(controller, 'empty'); return; }
-
+    // Twelfth remediation gate (pre-commit race addendum, item 1 + second
+    // supplement): ownership of this operation is claimed HERE, before any
+    // host-controlled read — not after. `readRelation()` below calls
+    // host-provided `getRelation()`, and `buildPairImprintSnapshot()` reads
+    // three more host-controlled properties off whatever it returns; either
+    // can synchronously (a) re-invoke this exact controller's
+    // `onShareClick()` again (a re-entrant hook — the second-supplement's
+    // exact probed scenario produced two native-share calls), or (b) call
+    // `initPairShareUI()` on the same refs, retiring this controller mid-
+    // read. Claiming `opInFlight`/`opToken` FIRST closes both windows: a
+    // nested call sees `opInFlight` already true and returns immediately
+    // (never a second share attempt), and a re-init sets `controller.
+    // retired = true`, which every check below re-verifies before writing
+    // anything further. The whole body now runs inside the SAME try/
+    // finally that already existed — its own `!controller.retired &&
+    // controller.opToken === myToken` guard is what correctly releases
+    // (or declines to release, when superseded) the reservation on every
+    // path, including these two new early returns.
     const myToken = ++controller.opToken;
     controller.opInFlight = true;
-    applyBusyDOM(controller, true);
-    setStatus(controller, 'busy');
+    // Fourteenth remediation gate: `applyBusyDOM`/`setStatus('busy')` used
+    // to run BEFORE this try/finally even began — a throw from either (a
+    // hostile `refs` getter, a throwing setter) would then escape as an
+    // unhandled rejection with `opInFlight` never reset, silently wedging
+    // every future click on this controller. Both now run INSIDE the same
+    // guarded block whose `finally` is what always releases the
+    // reservation.
     try {
+      applyBusyDOM(controller, true);
+      setStatus(controller, 'busy');
+      const read = readRelation(controller.hooks, () => !controller.retired && controller.opToken === myToken);
+      if (controller.retired || controller.opToken !== myToken) return; // suppressed — a newer/retiring event already happened; write nothing
+      if (!read.ok) { setStatus(controller, 'failed'); return; } // P2 hook truth: a throw is a read failure, not "empty"
+      const relationAtStart = read.value;
+      const snapshot = buildPairImprintSnapshot(relationAtStart);
+      if (controller.retired || controller.opToken !== myToken) return; // suppressed — the snapshot's own property reads could have re-entered too
+      if (!snapshot) { setStatus(controller, 'empty'); return; }
+
       const cacheEntry = controller.cache;
       const cacheMatches = !!(cacheEntry && cacheEntry.relation === relationAtStart);
 
@@ -1196,7 +1633,16 @@ function onShareClick(controller) {
     } finally {
       if (!controller.retired && controller.opToken === myToken) {
         controller.opInFlight = false;
-        syncBusyFromPrerender(controller);
+        // Fourteenth remediation gate: `syncBusyFromPrerender` itself calls
+        // `applyBusyDOM`, which can throw from an unguarded host SETTER
+        // (e.g. `btn.disabled = ...`, never try/catch-contained the way a
+        // property GETTER read is) — this call sits in `finally`, outside
+        // the `try` above, so nothing catches that throw otherwise: it
+        // would escape as an unhandled rejection from onShareClick() even
+        // though `opInFlight` was already correctly released on the line
+        // above. Best-effort DOM reconciliation must never turn into a
+        // broken promise contract.
+        try { syncBusyFromPrerender(controller); } catch (_) { /* best-effort */ }
       }
     }
   })();
@@ -1214,7 +1660,115 @@ function onShareClick(controller) {
  * index.html wires into ui/dyad.js's own hooks (as `onRelationChange`) so
  * this module can pre-render without ever importing ui/dyad.js.
  */
+// Twelfth remediation gate (final supplement, item 2): a WeakMap from a
+// physical button element to its one, permanent dispatch wiring. Installed
+// EXACTLY ONCE per button (cached), so re-init on the same button can never
+// accumulate a second real listener — one physical click event reaches at
+// most one controller BY CONSTRUCTION, never two, regardless of how a
+// handover unfolds. Dispatch resolves `wiring.current` at CLICK TIME (not
+// bind time), so re-init only ever needs to update a pointer, never touch
+// `addEventListener` again.
+const _buttonWiring = new WeakMap();
+// Thirteenth remediation gate (live-repro follow-up): a hostile
+// `addEventListener` GETTER doesn't just carry a side effect through — the
+// FUNCTION IT RETURNS can do anything at all, since this file only ever
+// controls how it's invoked (Reflect.apply, correct receiver), never what
+// it does. An exact live repro confirmed: the getter reentrantly completes
+// a nested winner, and the LOSING outer then invokes the STALE function the
+// getter already returned to it, corrupting DOM the winner had already
+// claimed — publishing the wiring record before the read (the twelfth
+// gate's fix) stops a nested call from installing a SECOND listener, but it
+// never stopped the OUTER from following through on its own now-stale read.
+// `wiring.state` closes that: 'new' (published, unclaimed) -> 'installing'
+// (claimed, BEFORE the invocation, so a CALL-time reentry — the invoke()
+// below re-entering synchronously — finds this and never attempts a second
+// install) -> 'installed' | 'failed' (terminal; every later call, nested or
+// sequential, just returns the wiring). Only the call that finds 'new' AND
+// confirms its own `stillCurrent()` immediately after the read may ever
+// invoke what the read returned — a losing outer's read can complete after
+// a nested winner has already finished installing, and it must stop right
+// there, discarding whatever the getter handed it, never invoking it.
+function buttonWiringFor(btn, stillCurrent) {
+  // WeakMap keys must be objects — a missing/non-object `btn` (no refs, or
+  // refs with no button at all, both tolerated elsewhere in this module)
+  // gets its own throwaway, unshared wiring record instead of a lookup.
+  if (btn === null || (typeof btn !== 'object' && typeof btn !== 'function')) {
+    return { current: null };
+  }
+  let wiring = _buttonWiring.get(btn);
+  if (!wiring) {
+    // Twelfth remediation gate (second final-supplement correction): publish
+    // the wiring record to the WeakMap BEFORE ever reading or invoking the
+    // host-controlled `addEventListener` — not after. `btn.addEventListener`
+    // is itself a property a hostile getter can carry a side effect through
+    // (re-entering `initPairShareUI` on this SAME button, synchronously,
+    // before the getter even returns a value), and the CALL to whatever it
+    // returns can do the same (some environments invoke listener-registration
+    // callbacks synchronously). Either way, a re-entrant `buttonWiringFor(btn)`
+    // call must find this record ALREADY present and reuse it.
+    wiring = { current: null, state: 'new' };
+    _buttonWiring.set(btn, wiring);
+  }
+  if (wiring.state !== 'new') return wiring; // already claimed (installing/installed/failed) by an earlier call on this button — never touch addEventListener again
+  // Getter and invocation are separate host-controlled boundaries, exactly
+  // like every other host accessor in this file: read/extract via safeFn
+  // (contained against a throwing/hostile getter), then invoke via the
+  // trusted `invoke()` primitive (Reflect.apply) — never
+  // `addEventListener.call(...)`, which would read a `.call` property a
+  // hostile function could shadow.
+  const addListener = safeFn(btn, 'addEventListener'); // getter — may re-enter
+  // Re-check BOTH the state (a nested call reentering from inside the read
+  // above may have already run this entire function to completion) and
+  // this call's own ownership, immediately after the read and BEFORE ever
+  // invoking whatever it returned.
+  if (wiring.state !== 'new' || (stillCurrent && !stillCurrent())) return wiring;
+  if (!addListener) { wiring.state = 'failed'; return wiring; }
+  wiring.state = 'installing'; // claimed BEFORE invocation
+  try {
+    invoke(addListener, btn, ['click', () => {
+      const live = wiring.current;
+      // onShareClick() already invokes and returns the started promise
+      // (not a function to call again) -- returned here so callers
+      // dispatching a real click event and awaiting its handler's return
+      // value (this suite's own `clickShare` helper does exactly that)
+      // keep working identically to the old per-controller-listener
+      // wiring.
+      return live ? onShareClick(live) : undefined;
+    }]);
+    wiring.state = 'installed';
+  } catch (_) {
+    // A throwing addEventListener leaves this button with no real
+    // dispatch — but the wiring record itself is still safely published
+    // and singular; a later re-init on the same button reuses it rather
+    // than retrying installation (matching this file's existing
+    // discipline of degrading rather than retrying a failed host call).
+    wiring.state = 'failed';
+  }
+  return wiring;
+}
+
+// A controller that LOSES the init race (a nested/re-entrant init completed
+// during this one's own handover) returns this instead of a real
+// controller — every method is a safe no-op that touches no DOM/state a
+// winning controller now owns.
+const INERT_FACADE = Object.freeze({
+  onShareClick: () => Promise.resolve(),
+  notifyRelationChange: () => {},
+});
+
 export function initPairShareUI(refs, hooks) {
+  // Twelfth remediation gate (final supplement, item 2): a generation token
+  // claimed FIRST, before any other work. Every host-controlled step in the
+  // handover below (timer cancellation, DOM property/attribute resets,
+  // capability/disclosure getters) can re-enter this exact function (e.g. a
+  // hostile clearTimeout that synchronously calls initPairShareUI on the
+  // SAME refs) — a nested call increments this SAME module-level counter,
+  // so the OUTER (now-stale) call can detect at every later checkpoint that
+  // it lost the race and stop touching anything further: no listener, no
+  // DOM write, no `_activeController`/wiring ownership claim.
+  const myGen = ++_initGen;
+  const lostRace = () => _initGen !== myGen;
+
   // Second-gate P1-3 / third-gate item 2: retire whatever controller a prior
   // init created BEFORE constructing the new one, so an in-flight operation
   // from that instance can never write into the new refs and a stray
@@ -1231,15 +1785,10 @@ export function initPairShareUI(refs, hooks) {
   if (_activeController) {
     const prior = _activeController;
     prior.retired = true;
-    if (prior.statusTimer && typeof clearTimeout === 'function') {
-      clearTimeout(prior.statusTimer);
-      prior.statusTimer = null;
-    }
-    const priorBtn = prior.refs && prior.refs.btn;
-    if (priorBtn && typeof priorBtn.removeEventListener === 'function' && prior.listener) {
-      priorBtn.removeEventListener('click', prior.listener);
-    }
-    resetControllerDOM(prior);
+    clearStatusTimer(prior); // host-controlled call — may re-enter this function
+    if (lostRace()) return INERT_FACADE;
+    resetControllerDOM(prior, lostRace); // per-boundary guarded internally — may re-enter at any step
+    if (lostRace()) return INERT_FACADE;
   }
 
   const controller = {
@@ -1250,20 +1799,75 @@ export function initPairShareUI(refs, hooks) {
     opInFlight: false,
     cache: null,
     statusTimer: null,
+    statusTimerGen: 0,
     listener: null,
   };
   // Deterministic initial DOM, independent of whatever the retirement reset
   // above did or didn't reach (e.g. the very first init, or refs that
   // happen to differ from the prior controller's) — a fresh controller
   // never starts from an ambiguous DOM state.
-  resetControllerDOM(controller);
+  resetControllerDOM(controller, lostRace); // per-boundary guarded internally — may re-enter at any step
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   controller.listener = () => onShareClick(controller);
-  if (controller.refs.btn && typeof controller.refs.btn.addEventListener === 'function') {
-    controller.refs.btn.addEventListener('click', controller.listener);
+  // Thirteenth remediation gate (atomic-handoff follow-up): the button
+  // reference read (`controller.refs.btn`, a property a hostile `refs`
+  // object can shadow with its own getter) and the `buttonWiringFor(...)`
+  // call are two separate boundaries — reading the reference and acting on
+  // it are checked independently, exactly like every other host accessor
+  // in this handover, rather than combined into one expression with a
+  // single recheck after both. `safeProp` contains a throwing `refs.btn`
+  // getter the same way every other property this module reads off a
+  // host-controlled object already is — a bare `controller.refs.btn` would
+  // let that throw escape uncaught, straight out of `initPairShareUI`.
+  const btnRef = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+  // ONE real listener per physical button, ever (buttonWiringFor caches it)
+  // — this call may itself run addEventListener for the FIRST TIME on this
+  // button (host-controlled), but never a second time on a re-init.
+  // `lostRace` is passed through as buttonWiringFor's own `stillCurrent` —
+  // its internal state machine needs THIS call's ownership checked at the
+  // exact moment between its addEventListener read and invocation, not
+  // only before/after the whole buttonWiringFor call from out here.
+  const wiring = buttonWiringFor(btnRef, () => !lostRace());
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+  // Disclosure sequence: the refs lookup, the capability read (navigator —
+  // host-controlled), and the textContent SETTER (DOM — host-controlled)
+  // are three distinct boundaries, each individually re-entrant, checked
+  // separately so a nested winner's own disclosure write can never be
+  // displaced by this call resuming past just one of them.
+  const disclosureEl = safeProp(controller.refs, 'disclosure'); // contained property read — may re-enter
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+  if (disclosureEl) {
+    // Thirteenth remediation gate: detectShareCapability() used to combine
+    // the global `navigator` access, the `navigator.share` getter, and the
+    // `navigator.canShare` getter into one boundary with a single recheck
+    // after all three — each is its own host-controlled property read,
+    // individually re-entrant, so a hostile `share` or `canShare` getter
+    // reentering here must be caught at THAT exact read, not only after
+    // the combined helper returns. safeNavigator() is the same single-
+    // contained-read primitive every other navigator access in this file
+    // uses — one boundary, one checkpoint, not a second bespoke reader.
+    const nav = safeNavigator(); // global access — may re-enter
+    if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+    let hasShare = false;
+    if (nav) {
+      try { hasShare = typeof nav.share === 'function'; } catch (_) { hasShare = false; } // getter — may re-enter
+    }
+    if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+    let capable = false;
+    if (hasShare) {
+      try { capable = typeof nav.canShare === 'function'; } catch (_) { capable = false; } // getter — may re-enter
+    }
+    if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+    const disclosureText = pairImprintDisclosureText(capable); // pure — no host boundary
+    disclosureEl.textContent = disclosureText; // host-controlled setter — may re-enter
+    if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   }
-  const disclosureEl = controller.refs.disclosure;
-  if (disclosureEl) disclosureEl.textContent = pairImprintDisclosureText(detectShareCapability());
 
+  // This controller WON the init race — claim ownership as the LAST step,
+  // atomically from this function's own perspective (nothing further below
+  // can lose the race, since nothing further re-enters).
+  wiring.current = controller;
   _activeController = controller;
   return {
     onShareClick: controller.listener,
