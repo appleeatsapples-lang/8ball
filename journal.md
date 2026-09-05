@@ -5,6 +5,37 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-05 — dyad launch step 1: the Buy Link — the offer goes live on deploy — STAGED on branch
+
+**What happened.** On the controller's word ("the buy link is
+https://theeightball.gumroad.com/l/dyad — set it"), launch step 1 of
+doctrine v0.81 (7): `DYAD_PRODUCT_URL` carries that bare url. With key 1
+already filed (step 2, #243), this is the commit whose deploy turns the
+store on: an unentitled device sees the offer anchor (`dyad · $3 once` /
+`two complete sheets, read beside each other. permanent access.`) with
+the Buy Link as its href and the §5.B disclosure note under it, and the
+about modal swaps to the paragraph that names the price, the processor
+and the access link. Entitled devices are unchanged. The single sheet is
+unchanged. Step 3 — one signed link per sale, sent by the operator to
+the checkout email — is the routine that now has to exist.
+
+**Verified before push, in-container Chromium at 390 wide against THIS
+tree (real key, real url).** Fresh device: full sheet, offer visible with
+`href="https://theeightball.gumroad.com/l/dyad"`, `target="_self"`, the
+note under it, the open about paragraph visible and the closed one
+hidden, no entry control. A token signed with key 1's private half:
+"dyad · filed on this device.", entry control visible, offer hidden with
+the href stripped, dyad opens and renders both sheets and the relation,
+close blanks B with nothing of B in storage, reload still entitled. A
+foreign-key token: rejected. `?paid=t5`: stripped, nothing granted. Zero
+console errors. Suite 62 files / 2192 tests green in the configured
+state — the state #242's audit made the suite honest about.
+
+**Not verified from here, stated.** That the listing at that url exists,
+is published, and charges USD $3 once was the controller's statement;
+the Claude Code session's egress policy blocks the storefront. The
+launch doc asks for one browser check before announcing.
+
 ## 2026-09-05 — dyad launch step 2: the signing key pair, public half filed — STAGED on branch
 
 **What happened.** On the controller's word ("generate the key pair and

@@ -1,10 +1,17 @@
 # Dyad entitlement — launch configuration (doctrine v0.81, 2026-09-05)
 
-**Status: NOT LAUNCHED.** The code on this branch implements the model
-"free complete single sheet + paid dyad at USD $3 once" and ships with
-both configuration constants EMPTY. Until the three operator-hand steps
-below are done, the deployed product presents no offer and grants the
-dyad to no one: every device renders the complete single sheet, free and
+**Status (2026-09-05): steps 1 and 2 done; step 3 is the operator's
+routine.** Both constants are now set, so a deployed build PRESENTS the
+offer and the about modal's open paragraph to unentitled devices, and a
+signed link under key 1 files the dyad. What remains is operational:
+sending one signed link per sale (step 3). The original status text is
+kept below as the record of what this document described when written.
+
+*As written:* the code on this branch implements the model "free
+complete single sheet + paid dyad at USD $3 once" and ships with both
+configuration constants EMPTY. Until the three operator-hand steps below
+are done, the deployed product presents no offer and grants the dyad to
+no one: every device renders the complete single sheet, free and
 unlimited, and nothing else. Nothing here creates the Gumroad product,
 generates a key, or deploys.
 
@@ -145,8 +152,13 @@ both OUTSIDE this amendment and need their own doctrine decision:
 
 ## Launch checklist
 
-- [ ] Gumroad product created, published, $3 one-time — Buy Link set in
-      `DYAD_PRODUCT_URL`
+- [x] Gumroad product created, published, $3 one-time — Buy Link set in
+      `DYAD_PRODUCT_URL` — **set 2026-09-05** to the controller's
+      `https://theeightball.gumroad.com/l/dyad` (bare, no query). The
+      listing's existence, price and published state were the controller's
+      statement; they were NOT verified from the Claude Code session (its
+      egress policy blocks the storefront). Verify once from a browser
+      before announcing: the Buy Link opens a $3 one-time checkout.
 - [x] key pair generated; public JWK set in `DYAD_PUBLIC_KEYS`; private
       key stored outside the repo — **done 2026-09-05 (key 1).** Generated
       in the Claude Code session that shipped v0.81, in a scratch directory
