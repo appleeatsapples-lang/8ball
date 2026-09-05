@@ -454,7 +454,17 @@ function svgToPngBlob(svg, width, height) {
 // afterward must not flip an already-truthful "download-started" into
 // "failed" — but the object URL is still guaranteed to be revoked (on the existing
 // 1000ms grace timer, or immediately if scheduling that timer itself throws).
-function downloadBlob(blob, filename) {
+//
+// Tenth remediation gate: `precheck`, when given, is called IMMEDIATELY
+// BEFORE `a.click()` — the actual irreversible boundary. Every step before
+// it (URL.createObjectURL, createElement, href/download assignment,
+// appendChild) is fully reversible: if precheck() returns false, the
+// anchor is discarded and the URL revoked, exactly as the throw path
+// already does, and the function returns `false` (not clicked) rather
+// than throwing — this is a deliberate skip, not an error. The caller
+// distinguishes "not clicked because precheck declined" from "clicked" by
+// this return value.
+function downloadBlob(blob, filename, precheck) {
   const url = URL.createObjectURL(blob);
   let a = null;
   try {
@@ -462,6 +472,11 @@ function downloadBlob(blob, filename) {
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
+    if (precheck && !precheck()) {
+      try { a.remove(); } catch (_) { /* best-effort */ }
+      try { URL.revokeObjectURL(url); } catch (_) { /* best-effort */ }
+      return false;
+    }
     a.click();
   } catch (e) {
     try { if (a && typeof a.remove === 'function') a.remove(); } catch (_) { /* best-effort */ }
@@ -482,6 +497,7 @@ function downloadBlob(blob, filename) {
   } catch (_) {
     revoke();
   }
+  return true;
 }
 
 // ── capability disclosure (audit C1, reworded for second-gate P2) ──────────
@@ -589,9 +605,23 @@ function isThenable(v) {
   catch (_) { return false; }
 }
 
-function trySyncNativeShare(blob, snapshot) {
+// Tenth remediation gate: EVERY host-controlled step here — the canShare
+// CALL, the share GETTER read, the share CALL — is a genuine boundary a
+// well-behaved (non-throwing) adversarial implementation could carry a
+// SIDE EFFECT through, not just a throw the existing try/catch containment
+// already handled. A recheck sits after each preparatory boundary and
+// before the NEXT one, so an identity change is caught at the earliest
+// point after it happens rather than being silently carried into a later
+// step. Returns one of three discriminated shapes the caller must handle
+// distinctly: `not-attempted` (no capability at all — ordinary fallback,
+// no identity concern raised here), `preempted` (identity already changed/
+// unconfirmable/suppressed during a PREPARATORY call — nothing
+// irreversible has happened, caller must map via preEffectStatus and never
+// download), `attempted` (share() was genuinely invoked — the irreversible
+// boundary — caller awaits and maps via postEffectStatus as before).
+function trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot) {
   const nav = safeNavigator();
-  if (!nav) return { attempted: false };
+  if (!nav) return { kind: 'not-attempted' };
   let file = null;
   try {
     if (typeof File === 'function') {
@@ -600,7 +630,7 @@ function trySyncNativeShare(blob, snapshot) {
   } catch (_) {
     file = null;
   }
-  if (!file) return { attempted: false };
+  if (!file) return { kind: 'not-attempted' };
   const caption = buildPairImprintCaption(snapshot);
   const canShareFn = safeFn(nav, 'canShare');
   let canShareFiles = false;
@@ -613,15 +643,28 @@ function trySyncNativeShare(blob, snapshot) {
   } catch (_) {
     canShareFiles = false;
   }
-  const shareFn = safeFn(nav, 'share');
-  if (!canShareFiles || !shareFn) return { attempted: false };
+  // Recheck immediately after the canShare CALL — a side effect carried
+  // through it (even on a call that returns true, or throws nothing at
+  // all) must be caught here, before ever reading the `share` getter.
+  let check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
+  if (!canShareFiles) return { kind: 'not-attempted' };
+
+  const shareFn = safeFn(nav, 'share'); // the property READ itself is a second, distinct host-controlled boundary
+  // Recheck again after reading the getter and before invoking it — a
+  // side-effectful `navigator.share` ACCESSOR (not the call) is a genuinely
+  // different boundary than the call, and must be caught before that call.
+  check = recheck(controller, myToken, relationAtStart);
+  if (check.verdict !== 'current') return { kind: 'preempted', verdict: check.verdict };
+  if (!shareFn) return { kind: 'not-attempted' };
+
   try {
     const result = shareFn.call(nav, { files: [file], text: caption });
     // A callable-but-non-promise return (undefined, a plain value) is not a
     // genuine share attempt this module can await for a truthful outcome —
     // falls back to download exactly like an absent/uncallable share would.
-    if (!isThenable(result)) return { attempted: false };
-    return { attempted: true, promise: result };
+    if (!isThenable(result)) return { kind: 'not-attempted' };
+    return { kind: 'attempted', promise: result };
   } catch (err) {
     // Eighth remediation gate: a DIRECT SYNCHRONOUS AbortError (some
     // platforms throw rather than reject the promise) is a genuine,
@@ -633,8 +676,8 @@ function trySyncNativeShare(blob, snapshot) {
     // through one path. Any OTHER synchronous throw (not AbortError) is
     // genuinely unattempted and still falls straight through to the
     // on-device download, exactly as before.
-    if (safeErrorName(err) === 'AbortError') return { attempted: true, promise: Promise.reject(err) };
-    return { attempted: false };
+    if (safeErrorName(err) === 'AbortError') return { kind: 'attempted', promise: Promise.reject(err) };
+    return { kind: 'not-attempted' };
   }
 }
 
@@ -907,37 +950,74 @@ function postEffectStatus(verdict, currentState, selectedState) {
 
 async function downloadFallback(controller, myToken, relationAtStart, snapshot, blob) {
   const caption = buildPairImprintCaption(snapshot);
-  let downloaded = false;
+  // Tenth remediation gate: the actual irreversible boundary is the anchor
+  // CLICK inside downloadBlob(), not entry into this function —
+  // URL.createObjectURL/createElement/appendChild are all preparatory and
+  // fully reversible (downloadBlob discards the anchor and revokes the URL
+  // if precheck declines). `lastCheck` captures the verdict from that exact
+  // moment so the status-mapping code below doesn't need to re-call the
+  // hook a second time for the same logical check.
+  let lastCheck = null;
+  const precheck = () => {
+    lastCheck = recheck(controller, myToken, relationAtStart);
+    return lastCheck.verdict === 'current';
+  };
+  let clicked = false;
+  let downloadThrew = false;
   try {
-    downloadBlob(blob, IMPRINT_FILENAME);
-    downloaded = true;
+    clicked = downloadBlob(blob, IMPRINT_FILENAME, precheck);
   } catch (_) {
-    downloaded = false;
+    downloadThrew = true;
   }
-  if (!downloaded) { setStatus(controller, 'failed'); return; }
+  if (downloadThrew) { setStatus(controller, 'failed'); return; }
+  if (!clicked) {
+    // precheck ran and declined — identity had already changed/became
+    // unconfirmable/the controller retired, all BEFORE the click, so
+    // nothing irreversible happened here: ordinary pre-effect mapping,
+    // exactly like every other "before this pair's first irreversible
+    // action" checkpoint in this file.
+    const pre = preEffectStatus(lastCheck.verdict);
+    if (pre) { setStatus(controller, pre); return; }
+    if (lastCheck.verdict === 'suppressed') return;
+    setStatus(controller, 'failed'); // defensive: verdict read 'current' yet declined should not occur
+    return;
+  }
 
   // Item 7 / fourth-gate item 1 (truthful stale/native-share contract, the
   // same logic applied to the download side of the fallback), corrected by
-  // the sixth gate item 2: `downloadBlob()` above already invoked the
-  // browser's download — an IRREVERSIBLE action outside this controller's
-  // power to undo. From this point on, identity changing (or becoming
-  // unconfirmable) can only affect whether the CLIPBOARD copy is
-  // attempted/announced and whether the download is reported as concerning
-  // the pair now on screen or the pair SELECTED at click time — it must
-  // never be reported as if the download itself never happened.
-  let copied = false;
+  // the sixth gate item 2: the click above already invoked the browser's
+  // download — an IRREVERSIBLE action outside this controller's power to
+  // undo. From this point on, identity changing (or becoming unconfirmable)
+  // can only affect whether the CLIPBOARD copy is attempted/announced and
+  // whether the download is reported as concerning the pair now on screen
+  // or the pair SELECTED at click time — it must never be reported as if
+  // the download itself never happened.
   // Eighth remediation gate: `navigator.clipboard` and its `.writeText`
   // property are read through `safeProp`/`safeFn` (defined above,
   // trySyncNativeShare) rather than as bare property accesses — a hostile
   // `navigator.clipboard` getter must degrade to "no clipboard available"
   // the same way an absent one already does, never throw straight through
   // this function and skip the `setStatus` calls below. That containment is
-  // what keeps the ALREADY-TRUE `downloaded` outcome above from being
-  // erased: a throw here can only affect the clipboard branch that follows,
-  // never unwind past the point the download was already reported.
+  // what keeps the ALREADY-TRUE download outcome above from being erased:
+  // a throw here can only affect the clipboard branch that follows, never
+  // unwind past the point the download was already reported.
   const clipboardObj = safeProp(safeNavigator(), 'clipboard');
   const writeTextFn = safeFn(clipboardObj, 'writeText');
   if (writeTextFn) {
+    // Tenth remediation gate: recheck AFTER these capability lookups
+    // (themselves host-controlled property reads that could carry a side
+    // effect) and BEFORE invoking writeText — if identity already changed
+    // by this point, the copy must be suppressed entirely (the caption
+    // describes the pair SELECTED at click time, not whatever relation is
+    // now current), while the download — already fired, already
+    // irreversible — is still correctly reported as concerning the
+    // selected pair.
+    const preWrite = recheck(controller, myToken, relationAtStart);
+    if (preWrite.verdict !== 'current') {
+      const state = postEffectStatus(preWrite.verdict, 'download-started', 'download-started-selected');
+      if (state) setStatus(controller, state);
+      return;
+    }
     let clipboardOk = false;
     try {
       const result = writeTextFn.call(clipboardObj, caption);
@@ -969,7 +1049,14 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
     if (state) setStatus(controller, state);
     return;
   }
-  setStatus(controller, copied ? 'download-started-copied' : 'download-started');
+  // "No clipboard at all" tail — recheck once more (the identity could
+  // still have changed between the click's own precheck and this point,
+  // e.g. while reading the clipboard capability itself) and map via the
+  // same truthful selected/unqualified split as every other post-download
+  // checkpoint above.
+  const check = recheck(controller, myToken, relationAtStart);
+  const state = postEffectStatus(check.verdict, 'download-started', 'download-started-selected');
+  if (state) setStatus(controller, state);
 }
 
 // The fast path: a cached Blob is already ready at click time, so a native
@@ -977,8 +1064,21 @@ async function downloadFallback(controller, myToken, relationAtStart, snapshot, 
 // step up to and including `navigator.share(...)`'s CALL is synchronous;
 // only the returned promise is awaited.
 async function shareOrFallback(controller, myToken, relationAtStart, snapshot, blob) {
-  const attempt = trySyncNativeShare(blob, snapshot);
-  if (attempt.attempted) {
+  const attempt = trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot);
+  if (attempt.kind === 'preempted') {
+    // Identity already changed/became unconfirmable/the controller was
+    // retired during one of trySyncNativeShare's own preparatory host
+    // calls — nothing irreversible happened on this path (no share
+    // attempt, no download), so this is the ordinary pre-effect mapping,
+    // and — critically — falling all the way through here means we never
+    // reach downloadFallback for this click at all.
+    const pre = preEffectStatus(attempt.verdict);
+    if (pre) { setStatus(controller, pre); return; }
+    if (attempt.verdict === 'suppressed') return;
+    setStatus(controller, 'failed'); // defensive: verdict was 'current' yet preempted should not occur
+    return;
+  }
+  if (attempt.kind === 'attempted') {
     try {
       // Item 7 / fourth-gate item 1, corrected by the sixth gate item 2: by
       // the time `await` returns here, `navigator.share()` has ALREADY
@@ -1023,8 +1123,16 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
       return;
     }
   }
-  // No native share attempted (unsupported / File failed / canShare false)
-  // — still fully synchronous so far; fall straight through.
+  // attempt.kind === 'not-attempted': no native-share capability at all
+  // (or trySyncNativeShare's own rechecks already found the identity
+  // unchanged at every preparatory boundary it checks). Nothing
+  // irreversible has happened on this path yet — the actual irreversible
+  // boundary is the anchor CLICK inside downloadBlob(), not entry into
+  // downloadFallback() itself (URL.createObjectURL/createElement/
+  // appendChild are all preparatory and fully reversible by revoking the
+  // URL and discarding the anchor), so downloadFallback() below performs
+  // its OWN identity precheck immediately before that click — the single
+  // source of truth for this boundary, not duplicated here.
   await downloadFallback(controller, myToken, relationAtStart, snapshot, blob);
 }
 

@@ -1004,14 +1004,20 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     });
     const getRelation = () => {
       calls++;
-      if (calls <= 2) return VALID_RELATION; // boot's prerender read, then the click's own initial read
+      // boot's prerender read, the click's own initial read, and (tenth
+      // remediation gate) trySyncNativeShare's own two new preparatory
+      // rechecks (after the canShare call, after reading the share
+      // getter) must all still see the valid relation so share() is
+      // genuinely invoked — the hook only breaks starting at the POST-
+      // SHARE recheck this test targets.
+      if (calls <= 4) return VALID_RELATION;
       throw new Error('hook broke after the share resolved — currency is UNKNOWN, not confirmed changed');
     };
     const { refs } = await boot(getRelation);
     const pending = clickShare(refs);
     releaseShare(undefined);
     await pending;
-    expect(calls).toBeGreaterThanOrEqual(3);
+    expect(calls).toBeGreaterThanOrEqual(5);
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('shared'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
@@ -1088,14 +1094,24 @@ describe('P1-2 — identity is re-checked after EVERY async boundary, including 
     });
     const getRelation = () => {
       calls++;
-      if (calls <= 2) return VALID_RELATION; // boot's prerender read, then the click's own initial read
+      // boot's prerender read, the click's own initial read,
+      // trySyncNativeShare's own post-canShare recheck (no canShare
+      // configured, so it never reaches the share-getter recheck), the
+      // precheck immediately before the anchor click, and (tenth
+      // remediation gate) the NEW pre-writeText capability-lookup recheck
+      // -- all five must still see the valid relation so the clipboard
+      // write is genuinely invoked (assigning releaseCopy); the hook only
+      // breaks starting at the POST-write recheck this test targets,
+      // exactly matching its own title ("clipboard-STEP" — the await, not
+      // the pre-invoke gate the tenth gate separately added).
+      if (calls <= 5) return VALID_RELATION;
       throw new Error('hook broke after the download fired — currency is UNKNOWN, not confirmed changed');
     };
     const { refs } = await boot(getRelation);
     const pending = clickShare(refs); // download fires synchronously; clipboard write is the pending await
     releaseCopy(undefined);
     await pending;
-    expect(calls).toBeGreaterThanOrEqual(3);
+    expect(calls).toBeGreaterThanOrEqual(6);
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('download-started-copied'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
     expect(refs.status.textContent).not.toBe(pairShareStatusMessage('failed'));
@@ -2001,5 +2017,223 @@ describe('ninth remediation gate — the terminal status\'s own 4s auto-hide tim
     expect(refs.status.hidden).toBe(false);
     vi.advanceTimersByTime(4000);
     expect(refs.status.hidden).toBe(true);
+  });
+});
+
+// Tenth remediation gate: an independent exact-SHA probe against the exact
+// code shape of this module found a real host-reentrancy gap. Every host-
+// controlled capability lookup/call in this file (property getters,
+// canShare/share invocations, thenable assimilation, clipboard lookups) is
+// already contained against THROWING or returning a non-thenable — but
+// none of that containment stops a well-behaved (non-throwing) call from
+// carrying an arbitrary SIDE EFFECT that changes the relation identity
+// mid-call. The specific gap: trySyncNativeShare() returning
+// {attempted:false} after such a side effect fell straight through to
+// downloadFallback() with zero identity recheck, downloading the OLD
+// pair's blob and reporting an unqualified "download started." for a pair
+// that was no longer on screen. Fixed with the same pre-effect checkpoint
+// every other "before this pair's first irreversible action" moment in
+// this file already uses.
+describe('tenth remediation gate — a host-controlled call\'s SIDE EFFECT (not just a throw) must not let a stale pair download', () => {
+  function setNavigator(nav) {
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  }
+  const PAIR2 = adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth', numerologySpine: '9 + 2 → 11', cardPairHead: 'no. ii × no. iii',
+  });
+
+  it('the exact probed scenario: navigator.canShare() switches the relation to pair 2 mid-call, then returns false — zero download, zero clipboard, status "stale"', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    setNavigator({
+      canShare() { currentRelation = PAIR2; return false; }, // the hostile side effect, no throw
+    });
+    const { refs } = await boot(getRelation); // prerender:true — the blob is warm before the click
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0); // zero download — the pair changed before any irreversible action
+    expect(log.copied).toHaveLength(0); // zero clipboard
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('canShare returns TRUE (a genuine yes) but its side effect already changed the relation — share must never be reached, zero download, "stale"', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    let shareCalls = 0;
+    setNavigator({
+      canShare() { currentRelation = PAIR2; return true; }, // a genuine "yes" — the side effect is the danger, not the answer
+      share() { shareCalls++; return Promise.resolve(); }, // must never be reached
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(shareCalls).toBe(0); // the recheck immediately after the canShare call must catch this before ever reading the share getter
+    expect(log.anchors).toHaveLength(0);
+    expect(log.copied).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('canShare\'s side effect, with share never even reached (canShare itself declines too) — same zero-download, stale outcome', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    let shareCalls = 0;
+    setNavigator({
+      canShare() { currentRelation = PAIR2; return false; },
+      share() { shareCalls++; return Promise.resolve(); }, // must never be reached
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(shareCalls).toBe(0);
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('a DISTINCT boundary: canShare returns true with NO side effect, but reading the navigator.share PROPERTY GETTER itself changes the relation — the returned function must never be invoked', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({ clipboard: () => {} });
+    let shareCalls = 0;
+    let getterReads = 0;
+    const realShareFn = () => { shareCalls++; return Promise.resolve(); }; // must never be reached
+    const nav = { canShare: () => true }; // genuinely current, no side effect
+    Object.defineProperty(nav, 'share', {
+      configurable: true,
+      get() {
+        getterReads++;
+        // initPairShareUI's own boot-time detectShareCapability() does a
+        // harmless `typeof navigator.share` read to choose disclosure copy —
+        // that first read must stay inert so it doesn't pre-consume the
+        // side effect before the click-time boundary this test targets.
+        if (getterReads > 1) currentRelation = PAIR2; // the hostile side effect lives in the GETTER, not the call
+        return realShareFn;
+      },
+    });
+    setNavigator(nav);
+    const { refs } = await boot(getRelation);
+    expect(getterReads).toBe(1); // sanity: boot's capability probe already read it once, inertly
+    await clickShare(refs);
+    expect(shareCalls).toBe(0); // the getter fired again (that's how the side effect happened) but the function it returned never ran
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('a hostile capability lookup that makes the hook throw on the LATER recheck (unconfirmable, not confirmed-changed) reports "failed", not a false "stale" or an unqualified download', async () => {
+    let calls = 0;
+    const getRelation = () => {
+      calls++;
+      if (calls <= 2) return VALID_RELATION; // boot's prerender, the click's own initial read
+      throw new Error('hook broke during the pre-download recheck');
+    };
+    const log = installEnv({ clipboard: () => {} });
+    setNavigator({ canShare: () => false }); // no side effect this time, but the NEXT read (this fix's own recheck) throws
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(log.anchors).toHaveLength(0);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('BLOCKER 3: a hostile URL.createObjectURL side effect BEFORE the click (a preparatory step, not the irreversible boundary) must produce ZERO anchor clicks and "stale" — not a downloaded old pair', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv(); // no clipboard support at all
+    // prerender:true (default) warms the blob FIRST, through the real,
+    // unhooked URL.createObjectURL -- svgToPngBlob's OWN internal call for
+    // the SVG source is a SEPARATE host-controlled call site from
+    // downloadBlob's later PNG call, and this test targets only the
+    // latter (the actual download action's own createObjectURL), not the
+    // former (rendering).
+    const { refs } = await boot(getRelation);
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    globalThis.URL.createObjectURL = (...args) => {
+      currentRelation = PAIR2; // the hostile side effect, before the click
+      globalThis.URL.createObjectURL = realCreateObjectURL; // one-shot -- only this call is hostile
+      return realCreateObjectURL(...args);
+    };
+    await clickShare(refs); // cached-blob path: no native share configured, falls straight to download
+    globalThis.URL.createObjectURL = realCreateObjectURL;
+    // createObjectURL is PREPARATORY (fully reversible): the anchor is
+    // still momentarily APPENDED (log.anchors tracks appendChild, not
+    // click) before the precheck declines and downloadBlob removes it
+    // again — the real signal that no download happened is clickCount
+    // staying 0 and the anchor being cleaned back up, not the append log.
+    expect(log.anchors).toHaveLength(1);
+    expect(log.anchors[0].clickCount).toBe(0); // the actual irreversible action never fired
+    expect(log.anchors[0].removeCount).toBe(1); // precheck-decline cleanup ran
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('stale'));
+  });
+
+  it('BLOCKER 3 companion: a hostile side effect INSIDE anchor.click() itself is past the irreversible boundary — the download DID fire, reported as the SELECTED pair', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv();
+    const { refs } = await boot(getRelation);
+    const realCreateElement = globalThis.document.createElement;
+    globalThis.document.createElement = (tag) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        const realClick = el.click.bind(el);
+        el.click = () => {
+          currentRelation = PAIR2; // the hostile side effect, INSIDE the click itself
+          globalThis.document.createElement = realCreateElement; // one-shot
+          return realClick();
+        };
+      }
+      return el;
+    };
+    await clickShare(refs);
+    globalThis.document.createElement = realCreateElement;
+    expect(log.anchors).toHaveLength(1); // the click genuinely fired -- irreversible, already happened
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected'));
+  });
+
+  it('a hostile side effect INSIDE the navigator.share() call itself (past the irreversible call boundary, already invoked) — genuinely shared, reported as the SELECTED pair', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    let shareCalls = 0;
+    const log = installEnv({
+      canShare: () => true,
+      share: () => { shareCalls++; currentRelation = PAIR2; return undefined; }, // side effect INSIDE the call, not before it
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(shareCalls).toBe(1); // the call genuinely happened -- already irreversible
+    expect(log.anchors).toHaveLength(0); // share succeeded -- no download fallback
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+  });
+
+  it('a hostile clipboard.writeText PROPERTY GETTER side effect (after the download already fired, before the copy is ever invoked) suppresses the copy — reported download-started-selected, never "-copied"', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv(); // no clipboard wired via the helper -- hand-wired below so the GETTER itself is the hostile step
+    const { refs } = await boot(getRelation);
+    let writeTextCalls = 0;
+    const realWriteText = () => { writeTextCalls++; return Promise.resolve(); }; // must never be reached
+    const clipboardObj = {};
+    Object.defineProperty(clipboardObj, 'writeText', {
+      configurable: true,
+      get() {
+        currentRelation = PAIR2; // the hostile side effect lives in the GETTER, not the call
+        return realWriteText;
+      },
+    });
+    globalThis.navigator.clipboard = clipboardObj;
+    await clickShare(refs);
+    expect(writeTextCalls).toBe(0);
+    expect(log.anchors).toHaveLength(1); // the download already fired -- irreversible, unaffected by this later boundary
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected'));
+  });
+
+  it('a hostile side effect INSIDE the clipboard.writeText() call itself (past that boundary, already invoked) — genuinely copied, reported as the SELECTED pair', async () => {
+    let currentRelation = VALID_RELATION;
+    const getRelation = () => currentRelation;
+    const log = installEnv({
+      clipboard: () => { currentRelation = PAIR2; return undefined; }, // side effect INSIDE the write itself
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(log.copied).toHaveLength(1); // the write genuinely happened -- already irreversible
+    expect(log.anchors).toHaveLength(1);
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('download-started-selected-copied'));
   });
 });

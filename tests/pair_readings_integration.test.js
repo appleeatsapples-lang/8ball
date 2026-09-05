@@ -107,6 +107,35 @@ function selectAll(root, selector) {
 
 let ACTIVE_DOCUMENT = null; // for .focus() to record document.activeElement
 
+// Tenth remediation gate: buildIntegrationHarness() used to write
+// globalThis.document (and this file's own ACTIVE_DOCUMENT) and never
+// restore either — the exact same class of leak the ninth gate already
+// fixed for Blob/URL/Image below, just on a global this file's own
+// afterEach never touched. A test in THIS file (or, since globalThis.document
+// is a real Node global, any later file in the same worker) would silently
+// inherit a prior test's fake document. Fixed the same way: the exact
+// descriptor/absence is snapshotted before every harness build, a restore()
+// closure is registered so afterEach can always put it back byte-for-byte
+// even if a test throws mid-assertion, and a live prior install is restored
+// FIRST so repeated harness construction in one test never has its second
+// snapshot capture the first call's fake document as if it were "real".
+let _restoreDocumentEnv = null;
+
+function installHarnessDocument(document_) {
+  if (_restoreDocumentEnv) _restoreDocumentEnv();
+  const priorActiveDocument = ACTIVE_DOCUMENT;
+  const hadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const documentDesc = hadDocument ? Object.getOwnPropertyDescriptor(globalThis, 'document') : null;
+  _restoreDocumentEnv = () => {
+    ACTIVE_DOCUMENT = priorActiveDocument;
+    if (hadDocument) Object.defineProperty(globalThis, 'document', documentDesc);
+    else delete globalThis.document;
+    _restoreDocumentEnv = null;
+  };
+  ACTIVE_DOCUMENT = document_;
+  globalThis.document = document_;
+}
+
 function makeNode(tag = 'div') {
   const handlers = {};
   const node = {
@@ -239,6 +268,7 @@ function installRasterEnv({ deferRaster = false } = {}) {
 // next `it()` in this file.
 afterEach(() => {
   if (_restoreRasterEnv) _restoreRasterEnv();
+  if (_restoreDocumentEnv) _restoreDocumentEnv();
 });
 
 function buildIntegrationHarness({ rasterLog } = {}) {
@@ -324,8 +354,7 @@ function buildIntegrationHarness({ rasterLog } = {}) {
     },
     createTextNode: text => { const n = makeNode('#text'); n.textContent = String(text); return n; },
   };
-  ACTIVE_DOCUMENT = document_;
-  globalThis.document = document_;
+  installHarnessDocument(document_);
 
   // Deferred-closure wiring (index.html's own pattern, reproduced verbatim):
   // initPairShareUI needs to exist before initDyadUI's onRelationChange hook
@@ -665,5 +694,79 @@ describe('ninth remediation gate — installRasterEnv() restores exactly what it
     expect(globalThis.Blob.name).not.toBe('MockBlob');
     expect(globalThis.URL.createObjectURL).toBe(realCreateObjectURL);
     expect(typeof globalThis.Image).toBe('undefined');
+  });
+});
+
+// Tenth remediation gate, BLOCKER 2: the same restoration proof as above,
+// for globalThis.document and this file's own ACTIVE_DOCUMENT — the leak
+// buildIntegrationHarness() carried (every OTHER test file in this repo that
+// mocks globalThis.document already snapshots/restores it; this was the one
+// file that never did, and unlike Blob/URL/Image it is set on EVERY single
+// harness build, not just raster-opted-in ones).
+describe('tenth remediation gate — buildIntegrationHarness() restores globalThis.document and ACTIVE_DOCUMENT exactly', () => {
+  const realHadDocument = Object.prototype.hasOwnProperty.call(globalThis, 'document');
+  const realDocument = globalThis.document;
+
+  it('while installed, globalThis.document is genuinely the harness fake (the contrast the next test\'s restoration proof depends on)', () => {
+    const fake = { marker: 'tenth-gate-fake-document' };
+    installHarnessDocument(fake);
+    expect(globalThis.document).toBe(fake);
+    expect(ACTIVE_DOCUMENT).toBe(fake);
+  });
+
+  it('after the PRIOR test\'s afterEach ran, globalThis.document and ACTIVE_DOCUMENT are back to their exact original identity (or absence)', () => {
+    // No installHarnessDocument() call in THIS test — proving restoration
+    // already happened on its own between tests, exactly like the raster
+    // proof above.
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'document')).toBe(realHadDocument);
+    expect(globalThis.document).toBe(realDocument);
+    expect(ACTIVE_DOCUMENT).toBe(null);
+  });
+
+  it('a real buildIntegrationHarness() build also restores cleanly — the next test proves it, not this one', () => {
+    const h = buildIntegrationHarness();
+    expect(globalThis.document).toBe(h.document);
+    expect(ACTIVE_DOCUMENT).toBe(h.document);
+  });
+
+  it('after a REAL buildIntegrationHarness() build, restoration is still exact — not merely proven for the isolated helper', () => {
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'document')).toBe(realHadDocument);
+    expect(globalThis.document).toBe(realDocument);
+    expect(ACTIVE_DOCUMENT).toBe(null);
+  });
+
+  it('repeated installHarnessDocument() calls do not inherit a prior call\'s fake — each call starts from the real global', () => {
+    const first = { marker: 'first' };
+    const second = { marker: 'second' };
+    installHarnessDocument(first);
+    installHarnessDocument(second); // a second, independent call in the same test
+    expect(globalThis.document).toBe(second);
+    expect(globalThis.document).not.toBe(first);
+  });
+
+  // Same failure mode the raster proof above guards against: without
+  // restoring-before-re-snapshotting, the second call's restore() would put
+  // globalThis.document back to the FIRST fake, not the true original —
+  // invisible from inside the double-install test itself, only observable
+  // in a LATER test. This is that later test.
+  it('after a test that called installHarnessDocument() twice, the TRUE original document is back — not the first call\'s fake', () => {
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'document')).toBe(realHadDocument);
+    expect(globalThis.document).toBe(realDocument);
+    expect(ACTIVE_DOCUMENT).toBe(null);
+  });
+
+  it('even when a test throws mid-assertion after installing, the NEXT test still sees a clean restoration', () => {
+    expect(() => {
+      installHarnessDocument({ marker: 'about-to-throw' });
+      throw new Error('simulated mid-test failure');
+    }).toThrow('simulated mid-test failure');
+    // afterEach still runs on a thrown test -- the assertion that matters is
+    // in the NEXT test below, proving it actually did.
+  });
+
+  it('proves the PRIOR (throwing) test\'s afterEach still restored document/ACTIVE_DOCUMENT', () => {
+    expect(Object.prototype.hasOwnProperty.call(globalThis, 'document')).toBe(realHadDocument);
+    expect(globalThis.document).toBe(realDocument);
+    expect(ACTIVE_DOCUMENT).toBe(null);
   });
 });
