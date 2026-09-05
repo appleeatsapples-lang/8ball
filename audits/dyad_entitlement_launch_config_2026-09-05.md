@@ -164,9 +164,10 @@ both OUTSIDE this amendment and need their own doctrine decision:
       in the Claude Code session that shipped v0.81, in a scratch directory
       outside the repository, and handed to the operator as a file; it was
       never written under the repo root. Because it transited that session,
-      the operator may instead generate a pair locally and replace key 1
-      BEFORE the first sale at zero cost (no token exists under key 1 yet;
-      the never-remove-a-key rule begins with the first sale).
+      the operator could have generated a pair locally and replaced key 1
+      before the first sale at zero cost. **Decided 2026-09-05, on the
+      controller's word: key 1 is KEPT.** It is the signing key of record;
+      the never-remove-a-key rule applies to it from the first sale on.
 - [ ] `npm test` green with both constants filled — every pin follows the
       build's state (`CONFIGURED` in `tests/dyad_entitlement.test.js`; the
       shape pins then run against the real values). Proven before merge:
