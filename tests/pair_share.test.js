@@ -4215,4 +4215,278 @@ describe('fifteenth remediation gate — latest-relation-generation ownership fo
     expect(log.pendingImages).toHaveLength(0); // no raster started on behalf of a retired controller
     void log;
   });
+
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+
+  async function proveBStillOwnsCache(log, controller, A, B, btn, status) {
+    expect(log.pendingImages).toHaveLength(2); // stale A + newest B
+    expect(btn.disabled).toBe(true);
+    expect(status.textContent).toBe(pairShareStatusMessage('busy'));
+    expect(status.hidden).toBe(false);
+
+    log.pendingImages[1](); // settle B first
+    await flush();
+    expect(btn.disabled).toBe(false);
+    expect(status.textContent).toBe('');
+    expect(status.hidden).toBe(true);
+
+    await controller.onShareClick();
+    expect(log.shared).toHaveLength(1);
+    expect(log.shared[0].text).toContain(B.elementDirectionAB);
+    expect(log.shared[0].text).not.toContain(A.elementDirectionAB);
+
+    const terminal = status.textContent;
+    log.pendingImages[0](); // stale A settles late
+    await flush();
+    expect(status.textContent).toBe(terminal);
+
+    await controller.onShareClick();
+    expect(log.shared).toHaveLength(2);
+    expect(log.shared[1].text).toContain(B.elementDirectionAB);
+    expect(log.shared[1].text).not.toContain(A.elementDirectionAB);
+    expect(log.anchors).toHaveLength(0);
+  }
+
+  it('refs.status getter reentry in syncBusyFromPrerender: nested null wins exactly', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const btn = makeEl('button');
+    const status = makeEl('p');
+    let current = null;
+    let controller;
+    let armed = false;
+    let reads = 0;
+    let reentered = false;
+
+    const refs = {
+      btn,
+      disclosure: makeEl('div'),
+      get status() {
+        if (armed) {
+          reads += 1;
+          if (reads === 2 && !reentered) {
+            reentered = true;
+            controller.notifyRelationChange(null);
+          }
+        }
+        return status;
+      },
+    };
+
+    controller = initPairShareUI(refs, { getRelation: () => current });
+    armed = true;
+    controller.notifyRelationChange(A);
+
+    expect(reentered).toBe(true);
+    expect(reads).toBe(4);
+    expect(log.pendingImages).toHaveLength(1);
+    expect(btn.disabled).toBe(false);
+    expect(btn.getAttribute('aria-busy')).toBe('false');
+    expect(status.textContent).toBe('');
+    expect(status.hidden).toBe(true);
+
+    current = B;
+    controller.notifyRelationChange(B);
+    await proveBStillOwnsCache(log, controller, A, B, btn, status);
+  });
+
+  it('status.hidden getter reentry stops the stale generation at that read', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const btn = makeEl('button');
+    let text = '';
+    let hidden = true;
+    let controller;
+    let armed = false;
+    let reentered = false;
+    let hiddenGets = 0;
+    let textGets = 0;
+    let textSetsAfter = 0;
+    let hiddenSetsAfter = 0;
+
+    const status = {
+      get textContent() { if (armed) textGets += 1; return text; },
+      set textContent(v) { if (reentered) textSetsAfter += 1; text = v; },
+      get hidden() {
+        if (armed) {
+          hiddenGets += 1;
+          if (!reentered) {
+            reentered = true;
+            controller.notifyRelationChange(B);
+          }
+        }
+        return hidden;
+      },
+      set hidden(v) { if (reentered) hiddenSetsAfter += 1; hidden = v; },
+    };
+
+    controller = initPairShareUI(
+      { btn, status, disclosure: makeEl('div') },
+      { getRelation: () => B },
+    );
+    armed = true;
+    controller.notifyRelationChange(A);
+
+    expect(reentered).toBe(true);
+    expect(hiddenGets).toBe(2);       // stale A read + nested B read
+    expect(textGets).toBe(1);         // nested B only; stale A stops
+    expect(textSetsAfter).toBe(2);    // B clear + B busy
+    expect(hiddenSetsAfter).toBe(2);  // B clear + B busy
+    await proveBStillOwnsCache(log, controller, A, B, btn, status);
+  });
+
+  it('status.textContent getter reentry stops before stale setStatus writes', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const btn = makeEl('button');
+    let text = '';
+    let hidden = true;
+    let controller;
+    let armed = false;
+    let reentered = false;
+    let textSetsAfter = 0;
+    let hiddenSetsAfter = 0;
+
+    const status = {
+      get textContent() {
+        if (armed && !reentered) {
+          reentered = true;
+          controller.notifyRelationChange(B);
+        }
+        return text;
+      },
+      set textContent(v) { if (reentered) textSetsAfter += 1; text = v; },
+      // Force stale A to reach textContent despite notify's initial hidden=true
+      // clear; after reentry, expose B's real state.
+      get hidden() { return reentered ? hidden : false; },
+      set hidden(v) { if (reentered) hiddenSetsAfter += 1; hidden = v; },
+    };
+
+    controller = initPairShareUI(
+      { btn, status, disclosure: makeEl('div') },
+      { getRelation: () => B },
+    );
+    armed = true;
+    controller.notifyRelationChange(A);
+
+    expect(reentered).toBe(true);
+    expect(textSetsAfter).toBe(2);
+    expect(hiddenSetsAfter).toBe(2); // stale post-reentry hidden write makes this 3
+    await proveBStillOwnsCache(log, controller, A, B, btn, status);
+  });
+
+  it("clearTimeout reentry inside setStatus('busy', stillCurrent) cannot write after B wins", async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const btn = makeEl('button');
+    let current = null;
+    let text = '';
+    let hidden = true;
+    let controller;
+    let armEmptyClick = false;
+    let emptyClickStarted = false;
+    let armingClick;
+    let clearReentered = false;
+    let textSetsAfter = 0;
+    let hiddenSetsAfter = 0;
+
+    const status = {
+      get textContent() { return text; },
+      set textContent(v) {
+        if (clearReentered) textSetsAfter += 1;
+        text = v;
+        // Arm a real terminal timer after notify(A)'s first clear but before
+        // its eventual setStatus('busy').
+        if (armEmptyClick && v === '' && !emptyClickStarted) {
+          emptyClickStarted = true;
+          armingClick = controller.onShareClick(); // current=null: synchronous empty path
+        }
+      },
+      get hidden() { return hidden; },
+      set hidden(v) {
+        if (clearReentered) hiddenSetsAfter += 1;
+        hidden = v;
+      },
+    };
+
+    controller = initPairShareUI(
+      { btn, status, disclosure: makeEl('div') },
+      { getRelation: () => current },
+    );
+
+    const realClearTimeout = globalThis.clearTimeout;
+    try {
+      globalThis.clearTimeout = id => {
+        if (!clearReentered) {
+          clearReentered = true;
+          current = B;
+          controller.notifyRelationChange(B);
+        }
+        return realClearTimeout(id);
+      };
+
+      armEmptyClick = true;
+      controller.notifyRelationChange(A);
+      await armingClick;
+
+      expect(emptyClickStarted).toBe(true);
+      expect(clearReentered).toBe(true);
+      expect(textSetsAfter).toBe(2);
+      expect(hiddenSetsAfter).toBe(2);
+      await proveBStillOwnsCache(log, controller, A, B, btn, status);
+    } finally {
+      globalThis.clearTimeout = realClearTimeout;
+    }
+  });
+
+  it("textContent setter reentry inside setStatus('busy') stops before stale hidden write", async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const btn = makeEl('button');
+    const busy = pairShareStatusMessage('busy');
+    let current = A;
+    let text = '';
+    let hidden = true;
+    let controller;
+    let armed = false;
+    let reentered = false;
+    let textSetsAfter = 0;
+    let hiddenSetsAfter = 0;
+
+    const status = {
+      get textContent() { return text; },
+      set textContent(v) {
+        if (reentered) textSetsAfter += 1;
+        text = v;
+        if (armed && v === busy && !reentered) {
+          reentered = true;
+          current = B;
+          controller.notifyRelationChange(B);
+        }
+      },
+      get hidden() { return hidden; },
+      set hidden(v) { if (reentered) hiddenSetsAfter += 1; hidden = v; },
+    };
+
+    controller = initPairShareUI(
+      { btn, status, disclosure: makeEl('div') },
+      { getRelation: () => current },
+    );
+    armed = true;
+    controller.notifyRelationChange(A);
+
+    expect(reentered).toBe(true);
+    expect(textSetsAfter).toBe(2);
+    expect(hiddenSetsAfter).toBe(2); // old stale continuation produces a third
+    await proveBStillOwnsCache(log, controller, A, B, btn, status);
+  });
 });

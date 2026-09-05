@@ -1005,9 +1005,25 @@ function armStatusTimer(controller, el) {
   }
 }
 
-function setStatus(controller, state) {
-  if (controller.retired) return;
-  const el = controller.refs && controller.refs.status;
+// Thirteenth-post-gate remediation: `stillCurrent`, when given, is an
+// additional ownership predicate (e.g. syncBusyFromPrerender's own
+// relation-generation check) rechecked at every boundary here ALONGSIDE
+// `controller.retired` — a live repro confirmed a busy-sync caller can pass
+// its own pre-call ownership check, then have a host-controlled read
+// (`refs.status`) re-enter and install a NEWER notification's state, after
+// which this function's stale continuation (still writing on behalf of the
+// OLDER generation) would resume and overwrite what the newer notification
+// already correctly wrote. `controller.retired` alone cannot catch this: no
+// re-init happens in that scenario, just relation-generation churn on the
+// SAME controller. Omitted (`undefined`), this predicate is always
+// satisfied — existing click-operation callers (which own status purely
+// through `controller.retired` and their own opToken/opInFlight discipline)
+// keep their exact prior semantics.
+function setStatus(controller, state, stillCurrent) {
+  const ok = () => !controller.retired && (!stillCurrent || stillCurrent());
+  if (!ok()) return;
+  const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
+  if (!ok()) return;
   if (!el) return;
   const msg = pairShareStatusMessage(state);
   clearStatusTimer(controller);
@@ -1017,15 +1033,15 @@ function setStatus(controller, state) {
   // before writing DOM so a just-retired controller (refs now owned by a
   // NEW controller, since refs are normally reused across a re-init) can
   // never corrupt what that new controller has already written.
-  if (controller.retired) return;
+  if (!ok()) return;
   el.textContent = msg; // host-controlled setter — may re-enter
   // Twelfth remediation gate (further sweep): el.textContent and el.hidden
   // are TWO separate host-controlled boundaries — a hostile textContent
   // setter reentering here must stop this call before el.hidden, the same
   // discipline resetControllerDOM uses, not one shared check before both.
-  if (controller.retired) return;
+  if (!ok()) return;
   el.hidden = !msg; // host-controlled setter — may re-enter
-  if (controller.retired) return;
+  if (!ok()) return;
   if (msg && state !== 'busy') {
     armStatusTimer(controller, el);
   }
@@ -1154,8 +1170,27 @@ function syncBusyFromPrerender(controller, expectedGen) {
   // directly is the same cheap, no-trust-in-locals discipline every other
   // boundary in this file already uses.
   const pendingNow = isPrerenderPending(controller);
-  const el = controller.refs && controller.refs.status;
+  // Thirteenth-post-gate remediation: `controller.refs.status` is itself a
+  // host-controlled read (an exact live repro reentered notifyRelationChange
+  // from THIS getter) — contain it via safeProp and recheck `stillCurrent()`
+  // IMMEDIATELY afterward, before `pendingNow` (captured a moment earlier,
+  // now possibly stale) is ever used to decide anything. A reentrant call
+  // here always changes `controller.relationGen`, so `stillCurrent()` alone
+  // is sufficient to detect it — the earlier live repro let this stale
+  // `pendingNow` survive the read and go on to write "preparing…" back over
+  // a newer notification's already-correct idle/null state.
+  const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
+  if (!stillCurrent()) return;
+  if (!el) return;
   const busyMsg = pairShareStatusMessage('busy');
+  // `el.hidden`/`el.textContent` are two more individually re-entrant
+  // host-controlled getters — read each at most once, through safeProp, with
+  // its own recheck immediately after, rather than folding both into one
+  // compound expression a re-entrant getter could straddle undetected.
+  const hiddenNow = safeProp(el, 'hidden'); // contained property read — may re-enter
+  if (!stillCurrent()) return;
+  const textNow = safeProp(el, 'textContent'); // contained property read — may re-enter
+  if (!stillCurrent()) return;
   // Eighth remediation gate: a background prerender becoming pending for a
   // NEWER pair (started via notifyRelationChange while a click-triggered
   // operation was still in flight) must not stomp the truthful terminal
@@ -1165,13 +1200,18 @@ function syncBusyFromPrerender(controller, expectedGen) {
   // BUTTON's disabled/aria-busy state may still legitimately reflect the
   // pending render (a second click would have to wait for it either way);
   // only the live status TEXT is protected, and only for as long as it is
-  // genuinely still showing a real terminal result (`!el.hidden` — the
+  // genuinely still showing a real terminal result (`!hiddenNow` — the
   // moment that message's own auto-hide timer actually fires, this stops
   // applying and a later prerender is free to show `busy` normally).
-  const showingTerminal = !!(el && !el.hidden && el.textContent && el.textContent !== busyMsg);
+  const showingTerminal = !!(!hiddenNow && textNow && textNow !== busyMsg);
   if (pendingNow) {
-    if (!showingTerminal) setStatus(controller, 'busy');
-  } else if (el && el.textContent === busyMsg) {
+    // `stillCurrent` is threaded through so setStatus's OWN internal
+    // boundaries (the status ref read, clearStatusTimer, the textContent/
+    // hidden setters) each recheck ownership too — a busy-sync caller
+    // passing one check up front must not go on to write after a re-entrant
+    // boundary INSIDE setStatus itself hands ownership to a newer generation.
+    if (!showingTerminal) setStatus(controller, 'busy', stillCurrent);
+  } else if (textNow === busyMsg) {
     // The pre-render just settled (or there is nothing to prepare) with no
     // click in flight — no download was started and no share was attempted,
     // so there is no terminal outcome to announce. Only ever clears OUR OWN
@@ -1236,8 +1276,14 @@ function notifyRelationChange(controller, relation) {
   // showing (a stale terminal result from the pair that just left, or a
   // stale "preparing…" for a prerender that's about to be replaced).
   if (!controller.opInFlight) {
-    const el = controller.refs && controller.refs.status;
-    if (el) {
+    // Thirteenth-post-gate remediation: `controller.refs.status` is itself a
+    // host-controlled read — contained via safeProp, with `stillLatest()`
+    // rechecked IMMEDIATELY afterward (before even calling
+    // clearStatusTimer), not only after the writes below. A nested
+    // notification claimed during this very read must stop this
+    // continuation from touching `el` at all.
+    const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
+    if (stillLatest() && el) {
       clearStatusTimer(controller);
       // Twelfth remediation gate: clearStatusTimer's own clearTimeout()
       // call can synchronously re-init/retire this controller — recheck
@@ -1252,6 +1298,11 @@ function notifyRelationChange(controller, relation) {
       }
     }
   }
+  // Check again here, explicitly, before proceeding to snapshot/raster
+  // work — a nested notification claimed anywhere in the status-clearing
+  // block above (the refs.status read, or either setter) must stop this
+  // continuation before it ever reads a single property off `relation`.
+  if (!stillLatest()) return;
   const snapshot = relation ? buildPairImprintSnapshot(relation) : null;
   // The critical checkpoint: buildPairImprintSnapshot() reads host-
   // controlled properties off `relation` (elementDirectionAB,
