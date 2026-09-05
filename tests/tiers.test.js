@@ -26,6 +26,7 @@ import {
 import {
   TIER_COORDS,
   coordsForTier,
+  tierDensitySummary,
   formatPillar,
   initTiersUI,
   renderTierSections,
@@ -272,27 +273,34 @@ describe('tiers — resolveRenderTier single density rule (remediation R1/R2)', 
   });
 });
 
-describe('tiers — getRenderTier free ceiling (free amendment, 2026-09-02)', () => {
+describe('tiers — getRenderTier: the complete single sheet for every device, the dyad on verified entitlement (v0.71 → v0.81)', () => {
   // The storage wrapper this describe used to pin (stored tier, R2
-  // grandfather, the t4 rewrite) retired with the storefront: the single
-  // density resolver now answers the CEILING for every device and never
-  // touches storage. resolveRenderTier stays tested above as the
-  // registry's state machine (the kua-retirement precedent).
-  it('resolves t5 for every device, with or without storage', () => {
+  // grandfather, the t4 rewrite) retired with the storefront (v0.71) and
+  // stays retired under v0.81: the single density resolver answers the
+  // COMPLETE SINGLE SHEET (t3) for every device without touching storage,
+  // and t5 only once ui/payments.js resolveDyadEntitlement has verified a
+  // signed access token (tests/dyad_entitlement.test.js drives that path).
+  // resolveRenderTier stays tested above as the registry's state machine
+  // (the kua-retirement precedent).
+  it('resolves t3 — the complete single sheet — for every device, with or without storage', () => {
     delete globalThis.localStorage;
-    expect(getRenderTier()).toBe('t5');
+    expect(getRenderTier()).toBe('t3');
     globalThis.localStorage = makeStorage();
-    expect(getRenderTier()).toBe('t5');
+    expect(getRenderTier()).toBe('t3');
+    // t3 IS the complete single sheet: every cell, the written entry, domain fit.
+    expect(coordsForTier('t3').has('cardEntry')).toBe(true);
+    expect(coordsForTier('t3').has('publicRead')).toBe(true);
+    expect(tierDensitySummary('t3').sealed).toBe(0);
   });
 
-  it('legacy storage neither raises nor lowers the resolution', () => {
+  it('legacy storage neither raises nor lowers the resolution — a stored t5 from the unsigned era grants nothing', () => {
     for (const seed of [
-      { [TIER_KEY]: 't1' }, { [TIER_KEY]: 't3' }, { [TIER_KEY]: 't4' },
+      { [TIER_KEY]: 't1' }, { [TIER_KEY]: 't3' }, { [TIER_KEY]: 't4' }, { [TIER_KEY]: 't5' },
       { [TIER_KEY]: 'banana' }, { [CREDITS_KEY]: '3' },
       { [TIER_KEY]: 't1', [CREDITS_KEY]: '5' },
     ]) {
       globalThis.localStorage = makeStorage(seed);
-      expect(getRenderTier(), JSON.stringify(seed)).toBe('t5');
+      expect(getRenderTier(), JSON.stringify(seed)).toBe('t3');
     }
   });
 

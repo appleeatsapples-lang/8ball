@@ -5,6 +5,198 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — STAGED on branch, PR #242
+
+**What happened.** On the controller's order the product model moved
+from "everything free" (v0.71, three days earlier) to **free complete
+single sheet + paid dyad**: the single-person sheet stays exactly as
+v0.71 opened it — every coordinate, the meanings, the written entry,
+domain fit, sharing, saved readings, unlimited — and 8ball Dyad is the
+one paid surface, USD $3 once, permanent, unlimited. No subscription,
+no credits, no counters, no scores, no soulmate language.
+
+**What the September 2 amendment had actually done, audited first.**
+`getRenderTier()` returned `t5` unconditionally; the paywall, offers,
+checkout urls and the unsigned `?paid=` handler were deleted with an
+absence guard over every shipped source; and a read-verified boot scrub
+removed `eight_ball_tier_v1`, `eight_ball_credits_v1` and
+`eight_ball_pending_profile_v1` from every device that visited. That
+removal is **irreversible** — no migration can recover those values.
+It also costs no one anything under this model, and the doctrine
+already records why: t1/t2/t3 bought the single sheet, which is free
+for everyone now; and the dyad checkout never went live before v0.71
+(the `neysyv` listing was never published — §4.B v0.71 (6)), so **no
+device ever held a purchased dyad entitlement**. Every stored `t5` was
+an unsigned hand-entry — exactly what this change stops honouring.
+Nothing needs migrating into the new key because there is nothing to
+migrate.
+
+**The entitlement design, and its boundary.** The repository had no
+verifiable entitlement mechanism — the old `?paid=tN` return was
+trust-based by doctrine (§5.B "Trust-based return"), and §5/§12 forbid
+a `fetch` and a backend, so a purchase cannot be looked up. What CAN be
+checked offline is a signature. `core/entitlement.js` (new, pure)
+verifies a **signed access token** — `base64url(payload).base64url(sig)`,
+payload `{ v:1, p:'dyad', id:<sale id>, iat }`, ECDSA P-256 / SHA-256 —
+through Web Crypto against `DYAD_PUBLIC_KEYS`, a list so a key rotates
+by addition and never downgrades a purchase. The buyer opens
+`/?dyad=<token>`; boot verifies it BEFORE the first render
+(`resolveDyadEntitlement`), stores it verbatim under the one new §5 key
+`eight_ball_dyad_entitlement_v1`, and re-verifies it at every later
+boot — so a hand-written value grants nothing, a tampered or wrong-key
+link grants nothing, and the unsigned `?paid=t5` is stripped and grants
+nothing. A bad link never lowers an entitled device; a token that fails
+to verify is left in place (the failure may be the environment); a
+verified link whose write is blocked stays on the url and banners the
+allow-storage line. `getRenderTier()` answers `t3` — the complete single
+sheet — for every device and `t5` only from the boot-settled flag; it
+reads no storage. **The boundary is stated, not hidden:** a valid token
+is a bearer credential. With no server there is no one-time use, no
+revocation, no device binding — whoever opens a valid link is entitled
+on that device, permanently; the sale id makes a shared link
+attributable. This is honest offline verification and is not claimed to
+be a licensing server.
+
+**The offer.** One control, in the entry control's own rail slot: a
+plain `<a href>` (target `_self`, no handler, no fetch — the §5.B Call 2
+mechanism) to the dyad's Buy Link, carrying exactly `dyad · $3 once` /
+`two complete sheets, read beside each other. permanent access.` and a
+disclosure note (processor named, payment + email stay there, the
+access link files the dyad on the device that opens it, the second
+entry is never saved). `dyadOfferVisible(tier, url)` is the complement
+of the R6 entitlement-only entry predicate; the two swap on the same
+render sync, href stripped whenever the offer hides. **Both constants
+ship EMPTY** — `DYAD_PRODUCT_URL` and `DYAD_PUBLIC_KEYS` — and the
+runtime fails closed on both: no offer is presented while the url is
+empty, nothing verifies while the key list is empty. No url was
+invented.
+
+**What is NOT done, named so it cannot be mistaken for done.** Three
+operator-hand steps stand between this branch and a buyer completing
+the path, and `audits/dyad_entitlement_launch_config_2026-09-05.md`
+carries them exactly: (1) create the $3 Gumroad product and set its bare
+Buy Link; (2) `scripts/dyad_entitlement.mjs keygen` (private key outside
+the repo) and set the public JWK; (3) **deliver one signed link per
+sale** — Gumroad's post-purchase surface is static per product and
+cannot carry a per-sale token, so delivery is manual (`sign --id <sale
+id>`, sent to the checkout email through Gumroad's own buyer-contact
+surface) until a Gumroad Ping → signer automation is decided, which is
+a server holding a secret and therefore a fresh §5/§12 amendment.
+Verifying a Gumroad license key from the page would need a third-party
+`fetch` — forbidden by §5 — and was not taken. **Until all three are
+done the deployed product is the free complete single sheet with no
+offer and no dyad for anyone; this is not production-ready as a store.**
+The L48 artifact is filed with PR #242 (the reconciled two-lane response, below).
+
+**Test surface.** `tests/dyad_entitlement.test.js` (new, 35 tests after the audit)
+drives the token, the storage contract and the CLI end to end with a
+throwaway key pair generated per run: every forged / tampered /
+wrong-key / wrong-product / unconfigured / no-crypto path fails closed;
+a signed link grants t5 and is stored; five boots re-grant from storage;
+a thousand render-time resolutions read storage never; a bad link on an
+entitled device keeps t5; an environment failure deletes nothing; the
+scrub and forget-device never touch the key. `tests/payments_markup.test.js`
+became the surface suite for the one commerce seam (price strings pinned
+to exactly `$3` in exactly the three files that carry it; processor
+named only where §5.B requires; no ladder / credit / counter /
+compatibility vocabulary on the rendered page; the about disclosure
+pins). `tests/dyad_surface.test.js` pins the offer/entry swap, the copy
+through the register tables, that an entitled render writes nothing and
+that ten pairs render like the first. `tests/tiers.test.js` and
+`tests/public_surface.test.js` repoint the ceiling pins (a stored t5
+resolves t3). The privacy allow-list adds the one key. The auditor's
+blocking `product.t4_migration` probe is the entitlement contract end
+to end — legacy unsigned t5 → t3 without a write, tampered token
+refused, signed token → t5 stored, scrub retires the tier key and keeps
+the entitlement — with nine assurance mutants each failing by name.
+Suite **62 files / 2192 tests green** (2184 before the audit); assurance
+**126 OK**; product audit **PASS, 0 blocking**.
+
+**Live-fire (§8 gate 9), in-container Chromium at 390 wide.** Fresh
+device: 16 of 16 open, written entry and domain fit filled, zero sealed
+cells, no offer and no entry (constants empty — fail closed), exactly
+the profile + facet keys. Legacy device seeded `t5` + credits opening
+`?paid=t5`: parameter stripped, keys scrubbed, no dyad. `?dyad=abc.def`:
+"that access link did not verify. nothing was filed.", nothing stored.
+On a scratch copy with a throwaway key and a test url: unentitled →
+offer anchor visible with the href; tampered link → rejected, no grant;
+signed link → "dyad · filed on this device.", entry control visible,
+offer hidden with href stripped, dyad opens, both sheets and the
+relation render, close blanks B, nothing of B in storage; reload with no
+url → still entitled from the stored token; five open/close cycles
+consume nothing; a forged link on the entitled device → still t5. Zero
+console errors throughout.
+
+**Two-lane audit (§10 / L48): both MERGE WITH FIXES, all fixes landed.**
+Two independent lanes took the diff at `013a0f3`/`605d154`, each in its
+own worktree, each with live-fire and planted mutants (Lane A 34, Lane
+B 8). Neither found a way to reach `t5` or render the dyad from any
+unsigned, forged, replayed-legacy, hand-written, wrong-key, wrong-product
+or malformed input; every mutant that would have was killed. Lane A
+diffed the rendered `#result` at `t3` against a forced `t5`: the only
+byte difference in 13.8 KB is the `hidden` attribute on the entry
+control — the single sheet is provably not re-locked. What they found
+was about what the build SAYS and what the launch DOES:
+
+*HIGH (Lane A) — the unconfigured build withdrew the dyad from every
+current visitor while the about modal and README advertised a $3
+Gumroad checkout that was not on the page.* The about paragraph now
+follows the offer's own predicate: the static markup ships a closed
+line ("not on sale on this build", no price, no processor) visible and
+the open line ($3 · Gumroad · the access link) hidden, and
+`ui/dyad.js syncDyadAboutCopy` swaps them only on a configured build.
+README made tense-honest. Whether to merge before or after the launch
+steps is the controller's call and is named in the launch doc.
+
+*HIGH (Lane A) — the launch checklist said `npm test` stays green with
+the constants filled. It did not: the amendment's own steps 1–2 turned
+five tests red, one of them a wrong expectation (the CLI exit code for a
+foreign-key token).* Every state pin now states the contract of the
+build's actual state (`CONFIGURED`), the CLI pin expects exit 2
+unconditionally, and the claim was PROVEN rather than asserted: 2192
+green with the constants empty, 2192 green with a test url and a
+throwaway key filled in.
+
+*MED (Lane A) — the "person B never persisted" test never rendered B*:
+`open()` blanks the seeded entry, so three iterations exercised a
+failed submit. It re-seeds and asserts the render now. *MED (Lane A) —
+nothing constrained the sale id*, so an operator slip could sign an
+email into a permanent link; the id shape `[A-Za-z0-9_+/=-]{1,64}` is
+enforced on both sides and an email is refused by the signer and the
+verifier alike. *MED (Lane A) — forget-device leaves the token and the
+copy implied totality*; the copy now says so ("a purchase, not
+paperwork"); a release control for shared devices is open work. *MED
+(Lane A) — the never-downgrade invariant had no test that could fail*
+(two planted downgrades survived, masked by a valid stored token
+re-granting); a fresh-module test earns t5, then fails both verify
+paths with no valid token anywhere, and the flag must still read true —
+both mutants die. *MED (Lane B) — an entitled device opening a bad link
+was told its purchase failed*; it is now told the link did not verify
+and the dyad is already filed. *MED (Lane B) — the offer copy phrased a
+manual step as automatic*; "the operator sends an access link".
+
+*LOW, all landed:* the `?sent=1` handler stripped the whole query before
+boot read it, eating an access token that shared the url (the url is
+captured once, before any handler); the keep-for-retry url now carries
+exactly `?dyad=<token>`, the retired parameter stripped beside it; the
+disclosure note's contrast raised from 4.13:1 to AA; the anchor carries
+`aria-describedby` to its note and drops a no-op `rel`; the
+signature-length and token-length caps are pinned against a verifier
+that says yes to anything; `submitSecond`'s own gate is pinned as
+refusing before validation or build; the one assurance mutant that
+asserted status only now asserts the probe's message; "ten mutants" was
+nine, and "nothing in between" overstated the about copy — both
+corrected in the clause.
+
+**Constitution.** DOCTRINE v0.81 in the §4.B stack (nine-point clause:
+resolver, offer, verified entitlement, the bearer boundary, the one key,
+§1.J untouched, the three launch steps not claimed, owner impact and the
+irreversible scrub, tests), markers on the §1 composition summary, the
+v0.71 clause, the §5 inventory (one bullet added), §5.B Call 2 (restored
+narrowly, the trust-based return superseded), §7 stage 6; footer
+rotated. `8BALL.md` storefront block marked. CLAUDE.md counts: core 15,
+tests 62. `core/payments.js` untouched as the registry.
+
 ## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR #240
 
 **What happened.** "Now the public.test.js sweep." The queued item from

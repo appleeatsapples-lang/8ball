@@ -237,8 +237,14 @@
     <h2 id="about-title">the trick</h2>
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the sheet files five coordinates from your date of birth alone: tarot birth card, sun sign, public animal, life path, catalog numeral. the rest open when your name enters the math: rising sign and moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant and lunar longitude from astronomical formulas. calculator-grade work. reveal labels to name each row; open any compartment to read its system name and derivation beside its meaning.</p>
-    <p>nothing leaves your device on its own. inputs, the show-labels toggle, and readings you choose to save are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>everything is free. the complete sheet — all sixteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, and the paired read is there for any two dates. no payment, no subscription, no 8ball account, nothing to unlock. devices that bought a rung while the sheet was paid keep everything they had and gain the rest like everyone else. the deck is visible in source. this is a toy, and it is fun.</p>
+    <p>nothing leaves your device on its own. inputs, the show-labels toggle, readings you choose to save, and — once filed — the dyad access token are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
+    <p>the sheet is free. the complete sheet — all sixteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, as many readings as you like. no subscription, no 8ball account, no counter. devices that bought a rung while the sheet was paid keep everything they had; the sheet they bought is free for everyone now. the deck is visible in source. this is a toy, and it is fun.</p>
+    <!-- the dyad paragraph follows the offer's own predicate (ui/dyad.js syncDyadAboutCopy):
+         the closed line ships visible, the open line hidden, and only a build with a
+         configured product url swaps them — a price and a processor are never named
+         on a page that cannot honour them. -->
+    <p id="about-dyad-closed">the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one part of 8ball that is not free, and it is not on sale on this build. when it opens, this note will say what it costs and where. nothing about the second person is ever saved.</p>
+    <p id="about-dyad-open" hidden>the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: $3 once, permanent, unlimited. checkout is on gumroad, which keeps the payment and your email; after purchase the operator sends an access link to that email, and opening it files the dyad on whatever device opens it. nothing about the second person is ever saved.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -250,7 +256,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forget-title" aria-describedby="forget-copy forget-status">
     <h2 id="forget-title">erase the paperwork</h2>
     <div class="modal-rule"></div>
-    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere.</p>
+    <p id="forget-copy">removes the current profile and every saved reading from local storage on this device. no paperwork exists elsewhere. a filed dyad access stays on this device — it is a purchase, not paperwork.</p>
     <p class="modal-status" id="forget-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
     <div class="modal-actions">
       <button class="btn" id="forget-cancel" type="button">leave it</button>
@@ -270,9 +276,10 @@ import { getCard, MissingCardError } from './core/engine.js';
 import { CARDS } from './content/cards.v1.full.js';
 import { isNewPair, nextShakeState } from './core/payments.js';
 import {
-  getRenderTier,
+  getRenderTier, resolveDyadEntitlement, returnTokenFrom, hasLegacyPaidParam,
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
   initStatusBanner, showStatusBanner, PROFILE_SAVE_STORAGE_MESSAGE,
+  DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE, DYAD_ALREADY_FILED_MESSAGE,
   scrubRetiredCommerceKeys,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
@@ -473,8 +480,9 @@ function renderCard(profile, opts) {
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
   const density = tierDensitySummary(tier);
-  // Free amendment: every device renders the ceiling, so the census is a
-  // constant full-open line. The sealed branch left with the storefront.
+  // The single sheet is complete for every device (v0.71 density, kept by
+  // v0.81), so the census is a constant full-open line; the dyad is a block
+  // outside the census. The sealed branch left with the storefront.
   densityStrip.textContent = `${density.total} of ${density.total} coordinates open · full sheet`;
   try {
     const card = getCard(profile);
@@ -543,8 +551,8 @@ const { showResult, reset: resetResultTransitions } = initResultUI(
 // compared to the last-rendered profile via isNewPair, then
 // nextShakeState picks render (new pair) or render-idempotent (same
 // pair — β idempotence: the facet position survives). Every submit
-// renders the full free sheet; there is no counter, no cap, and no
-// purchase gate anywhere (the storefront retired with the free amendment).
+// renders the complete single sheet; there is no counter, no cap, and no
+// purchase gate on it (doctrine v0.81: only the dyad is paid).
 profileForm.addEventListener('submit', e => {
   e.preventDefault();
   // ONE validation contract, shared with the dyad's second-person form
@@ -599,11 +607,17 @@ tryAnotherBtn.addEventListener('click', () => {
   cityUI.reset();
 });
 
+// The url the page was opened with, read ONCE before any handler strips
+// it: the `?sent=1` block below rewrites the whole query, and boot() must
+// still see a `?dyad=` access token that shared the url (pr242 audit, Lane A
+// LOW-1).
+const bootSearch = window.location.search;
+
 // ── feedback sent-state (§5.B) ────────────────────────────────────
 // Netlify Forms redirects to `?sent=1`; we swap the form for a small
 // confirmation banner and strip the query. No persistent state. Exact
 // param match — a substring test also fired on e.g. `?notsent=1`.
-if (new URLSearchParams(window.location.search).get('sent') === '1') {
+if (new URLSearchParams(bootSearch).get('sent') === '1') {
   const detailsEl = document.querySelector('.feedback-details');
   if (detailsEl) {
     detailsEl.outerHTML = '<div class="feedback-sent">thanks. read.</div>';
@@ -617,15 +631,39 @@ if (new URLSearchParams(window.location.search).get('sent') === '1') {
 // (§6 split); wired via initModalsUI above.
 
 // ── boot ──────────────────────────────────────────────────────────
-function boot() {
+async function boot() {
   // Boot scrubs: the v0.64 gender pass (profile + archive) and the free
   // amendment's commerce-key retirement (pending stage — which held a
   // staged name+DOB payload — plus the tier and legacy-credits keys).
   scrubStoredGender(); scrubSavedReadingsGender(); scrubRetiredCommerceKeys();
   labelsUI.applyLabelsState(isLabelsRevealed());
-  // Unseal baseline: with the free ceiling for every device the tier can
-  // never rise mid-session, so the beat never fires — primed anyway so the
-  // resolver stays the single seam.
+  // The dyad entitlement (doctrine v0.81) settles BEFORE the first render:
+  // a signed access link on the url is verified (never trusted), a stored
+  // token is re-verified, and the single resolver answers t3 or t5 from
+  // then on. The retired unsigned `paid` parameter is stripped and grants
+  // nothing. A verified link is stripped too; a link that verified but
+  // could not be stored stays on the url so a reload can retry the write.
+  const search = bootSearch;
+  const returnToken = returnTokenFrom(search);
+  const entitlement = await resolveDyadEntitlement({ returnToken });
+  if (returnToken !== null) {
+    const filed = entitlement.granted && entitlement.source === 'return';
+    showStatusBanner(filed ? (entitlement.stored ? DYAD_FILED_MESSAGE : DYAD_STORAGE_MESSAGE)
+      : entitlement.granted ? DYAD_ALREADY_FILED_MESSAGE : DYAD_REJECTED_MESSAGE);
+  }
+  const keepUrl = returnToken !== null && entitlement.granted
+    && entitlement.source === 'return' && !entitlement.stored;
+  if ((returnToken !== null || hasLegacyPaidParam(search))
+      && window.history && window.history.replaceState) {
+    // kept for the retry: exactly the access link, never the retired
+    // parameter beside it (pr242 audit, Lane A LOW-2)
+    window.history.replaceState({}, '', keepUrl
+      ? `${window.location.pathname}?dyad=${encodeURIComponent(returnToken)}`
+      : window.location.pathname);
+  }
+  // Unseal baseline: entitlement is settled above and cannot rise
+  // mid-session, so the beat never fires — primed anyway so the resolver
+  // stays the single seam.
   primeUnsealBaseline(getRenderTier());
   const existing = loadSavedProfile();
   if (existing) {
