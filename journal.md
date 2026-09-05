@@ -5,6 +5,23 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — STAGED on branch
+
+**What happened.** "keep key 1." The launch doc and the step-2 entry had
+left one decision open: key 1 was generated in the Claude Code session
+and reached the operator through it, so a locally generated replacement
+was offered at zero cost before the first sale. The controller kept key
+1. It is the signing key of record; the never-remove-a-key rule applies
+to it from the first sale on. Recorded in the launch doc; no code, no
+test, no doctrine changes.
+
+**State after the three launch PRs (#242, #243, #244), stated once.**
+The deployed product is the free complete single sheet for every
+device; unentitled visitors see the dyad offer at $3 linking to the
+Gumroad Buy Link; a link signed under key 1 files the dyad permanently
+on the device that opens it. The per-sale signing and sending routine is
+the operator's, by hand, until a separate decision automates it.
+
 ## 2026-09-05 — dyad launch step 1: the Buy Link — the offer goes live on deploy — STAGED on branch
 
 **What happened.** On the controller's word ("the buy link is
