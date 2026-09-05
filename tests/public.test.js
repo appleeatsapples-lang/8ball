@@ -46,6 +46,7 @@ import {
   FAMILY_CHARACTERS,
   WORK_MODES,
   MASTER_MODE_BRIDGE,
+  MASTER_MODE_BRIDGE_NOTE,
   ROLE_POSTURES,
   PUBLIC_SOURCES,
 } from '../content/public.v3.js';
@@ -97,6 +98,89 @@ function* sweepDates(strideDays = 37) {
   }
 }
 
+// A sweep as an ARRAY with its date count pinned exactly. Narrowing a stride
+// silently drops dates — 59 → 73 dropped 239 of 1,245 with nothing red (pr240
+// audit, Lane A HIGH-2) — and the first reconciliation pinned only the one
+// sweep that mutant was run against; the adjacent one kept a `> 1900` floor
+// against a real 1,985, and four more had no pin at all (four-family audit,
+// Fable LOW-2). Every sweep now goes through this. A new stride needs its count
+// stated here, which is the point.
+function sweepList(strideDays, expectedCount) {
+  const dates = [...sweepDates(strideDays)];
+  expect(dates.length, `stride ${strideDays} yields ${dates.length} dates, expected ${expectedCount} — a stride change must update this pin`).toBe(expectedCount);
+  return dates;
+}
+
+// The register predicates, extracted so a positive control can drive the same
+// code the sweep uses. Feeding the matcher '' instead of the real text used to
+// be an undetectable mutation (pr240 audit, Lane A HIGH-2, mutant T6).
+//
+// The COUNTS come back from the same walk. The first reconciliation counted
+// strings and characters in the sweep and applied the predicates through a
+// separate call, so nothing tied what the predicate saw to what the counters
+// counted: blanking the texts AT THE CALL SITE — after counting, before this
+// function — kept every exact pin green with a planted violation undetected
+// (four-family audit, Fable MED-1, mutants T7/T8/T9). Now a count can only be
+// right if this loop saw the text it counted.
+function registerOffenders(tag, strings) {
+  const offenders = [];
+  let scanned = 0;
+  let chars = 0;
+  for (const { path, text } of strings) {
+    scanned += 1;
+    chars += text.length;
+    const hits = voiceRegisterHits(text);
+    if (hits.length) offenders.push(`${tag} ${path}: register "${hits[0].term}" in "${text}"`);
+    if (SECOND_PERSON_RE.test(text)) offenders.push(`${tag} ${path}: second person in "${text}"`);
+    if (DIAGNOSTIC_FRAMING_RE.test(text)) offenders.push(`${tag} ${path}: diagnostic framing in "${text}"`);
+  }
+  return { offenders, scanned, chars };
+}
+
+// Sweep assertions COLLECT and assert once, rather than calling expect() per
+// item. The register sweep below made 198,333 expect() calls for ~136ms of
+// real work — 94% of its 2.17s was vitest's per-assertion overhead, and it was
+// the slowest test in the repository by 4x. It was also the test the pr238
+// audit lanes timed out on demand under CPU load (5/6 and 12/12); those
+// figures are history now, not the reason the raised budget in
+// vitest.config.js stays — see the comment there. (DOCTRINE carries no
+// clause on the budget; an earlier draft of this comment cited one that does
+// not exist.) Collecting is also better diagnosis: a
+// failure lists every offending date instead of aborting on the first. The
+// data and the dates are unchanged; the PREDICATES are not quite — a matcher
+// carries semantics a hand-written expression can lose (`toBe` is Object.is;
+// the range matchers assert a number first), and two such drifts were found
+// by audit and restored below via `differs` and `inRange`. This is the pattern
+// the non-sweep tests in this file already use.
+function expectNone(offenders, what) {
+  const shown = offenders.slice(0, 25);
+  const more = offenders.length > 25 ? `\n… and ${offenders.length - 25} more` : '';
+  // Assert on the COUNT, not the array: `toEqual([])` makes vitest print its
+  // own full diff of every offender, which measured 7.7 MB / 66,169 lines on
+  // a mass failure — the 25-item cap applied only to this message and not to
+  // that (pr240 audit, Lane A LOW-1). The message carries the diagnosis; the
+  // assertion carries the verdict.
+  expect(offenders.length, `${offenders.length} ${what}:\n${shown.join('\n')}${more}`).toBe(0);
+}
+
+// `toBe` is Object.is; a hand-written `!==` is not, and they disagree on -0.
+// `posture.number` legitimately takes 0 (The Fool), on 39 of the 825 stride-89
+// sweep dates, so rewriting those comparisons as `!==` silently dropped a real
+// check: a planted -0 on one swept date failed the old file and passed the new
+// one, 42/42 green (pr240 audit, Lane A HIGH-1). Every comparison that was a
+// `toBe` goes through this instead.
+const differs = (a, b) => !Object.is(a, b);
+
+// The same class of drift, one matcher over. `toBeGreaterThanOrEqual` and
+// `toBeLessThanOrEqual` assert the actual is a NUMBER before comparing; a bare
+// `>=`/`<=` coerces, so `null >= 0`, `'4' >= 0`, `[4] <= 21` and `true >= 0`
+// are all true. Planted on a stride-37 date, each failed the old file with a
+// TypeError and passed the new one 44/44 — the `null` plant survived the whole
+// 2,133-test suite (four-family audit, Fable and Sonnet independently, HIGH).
+// The first reconciliation's artifact had waved this pair through as
+// "equivalent for the values in play" — the exact licence it refused for -0.
+const inRange = (n, lo, hi) => typeof n === 'number' && n >= lo && n <= hi;
+
 // Source with `//` comment lines dropped. The modules deliberately keep
 // history notes naming the retired `expression` vocabulary (why the rename
 // happened, per L17 supersede-don't-erase); the label bans below are about
@@ -115,12 +199,18 @@ function collectStrings(value, path = '', out = []) {
 
 describe('public tier — determinism', () => {
   it('the same date yields byte-identical output across 100 runs', () => {
+    const bad = [];
     for (const dob of ['1900-01-01', '1966-01-21', '2000-01-01', '2024-02-10', '2100-12-31']) {
       const first = JSON.stringify(buildPublicReading(dob));
       for (let run = 0; run < 100; run++) {
-        expect(JSON.stringify(buildPublicReading(dob)), `${dob} run ${run}`).toBe(first);
+        if (differs(JSON.stringify(buildPublicReading(dob)), first)) bad.push(`${dob} run ${run} differs from run 0`);
       }
     }
+    // OUTSIDE the date loop. Inside it, this threw on the first offending
+    // date and the remaining four were never reached — so the "lists every
+    // offending date instead of aborting on the first" claim was false of
+    // this one test (pr240 audit, both lanes).
+    expectNone(bad, 'runs are not byte-identical');
   });
 
   it('output is identical whether an hour is supplied or not, in any accepted shape', () => {
@@ -212,21 +302,19 @@ describe('public tier — coverage, no gaps', () => {
   });
 
   it('the whole 1900–2100 range resolves — no throw, no null, no empty field', () => {
-    let count = 0;
-    for (const dob of sweepDates()) {
+    const bad = [];
+    for (const dob of sweepList(37, 1985)) {
       const r = buildPublicReading(dob);
-      count += 1;
-      expect(TERMINAL, dob).toContain(r.mode.birthday);
-      expect(NINE, dob).toContain(r.mode.modeKey);
-      expect(r.mode.bridged, dob).toBe(MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined);
-      expect(r.posture.number, dob).toBeGreaterThanOrEqual(0);
-      expect(r.posture.number, dob).toBeLessThanOrEqual(21);
-      expect(r.families, dob).toHaveLength(3);
-      expect(r.antiFit.key, dob).toBeTruthy();
-      expect(r.roleLine.endsWith('.'), dob).toBe(true);
-      expect(collectStrings(r).every(({ text }) => text.length > 0), dob).toBe(true);
+      if (!TERMINAL.includes(r.mode.birthday)) bad.push(`${dob}: birthday ${r.mode.birthday} is not a terminal value`);
+      if (!NINE.includes(r.mode.modeKey)) bad.push(`${dob}: modeKey ${r.mode.modeKey} is outside 1..9`);
+      if (differs(r.mode.bridged, MASTER_MODE_BRIDGE[r.mode.birthday] !== undefined)) bad.push(`${dob}: bridged flag disagrees with MASTER_MODE_BRIDGE`);
+      if (!inRange(r.posture.number, 0, 21)) bad.push(`${dob}: posture number ${String(r.posture.number)} (${typeof r.posture.number}) is not a number in 0..21`);
+      if (r.families.length !== 3) bad.push(`${dob}: ${r.families.length} families, expected 3`);
+      if (!r.antiFit.key) bad.push(`${dob}: anti-fit key is empty`);
+      if (!r.roleLine.endsWith('.')) bad.push(`${dob}: role line does not end in a period`);
+      if (!collectStrings(r).every(({ text }) => text.length > 0)) bad.push(`${dob}: an empty string in the reading`);
     }
-    expect(count).toBeGreaterThan(1900);
+    expectNone(bad, 'readings break the range contract');
   });
 });
 
@@ -273,10 +361,12 @@ describe('public tier — date-only input', () => {
   });
 
   it('accepts the same dates buildProfile accepts across the sweep', () => {
-    for (const dob of sweepDates(101)) {
-      expect(() => parsePublicDob(dob), dob).not.toThrow();
-      expect(() => buildProfile('x', dob), dob).not.toThrow();
+    const bad = [];
+    for (const dob of sweepList(101, 727)) {
+      try { parsePublicDob(dob); } catch (err) { bad.push(`${dob}: parsePublicDob threw ${err.message}`); }
+      try { buildProfile('x', dob); } catch (err) { bad.push(`${dob}: buildProfile threw ${err.message}`); }
     }
+    expectNone(bad, 'dates one parser accepts and the other rejects');
   });
 });
 
@@ -296,13 +386,15 @@ describe('public tier — anti-fit is never a fit family', () => {
   });
 
   it('holds on every reading across the 1900–2100 sweep', () => {
-    for (const dob of sweepDates()) {
+    const bad = [];
+    for (const dob of sweepList(37, 1985)) {
       const r = buildPublicReading(dob);
-      expect(r.families.map(f => f.key), dob).not.toContain(r.antiFit.key);
-      expect(r.families.map(f => f.element), dob).not.toContain(r.antiFit.element);
-      expect(r.favorable, dob).not.toContain(r.primaryUnfavorable);
-      expect(r.unfavorable, dob).not.toContain(r.primaryFavorable);
+      if (r.families.some(f => f.key === r.antiFit.key)) bad.push(`${dob}: anti-fit key ${r.antiFit.key} is also a fit family`);
+      if (r.families.some(f => f.element === r.antiFit.element)) bad.push(`${dob}: anti-fit element ${r.antiFit.element} is also a fit element`);
+      if (r.favorable.includes(r.primaryUnfavorable)) bad.push(`${dob}: ${r.primaryUnfavorable} is both favorable and the primary unfavorable`);
+      if (r.unfavorable.includes(r.primaryFavorable)) bad.push(`${dob}: ${r.primaryFavorable} is both unfavorable and the primary favorable`);
     }
+    expectNone(bad, 'readings put the anti-fit inside the fit');
   });
 });
 
@@ -421,12 +513,14 @@ describe('public tier — independent anchors', () => {
     // its driver from core/profile.js. If these ever diverge, one of the two
     // changed alone, which is the drift this pins against.
     expect(codeOnly(publicSrc)).not.toMatch(/reduceExpression|getExpressionNumber|getExpressionSum/);
-    for (const dob of sweepDates(23)) {
+    const bad = [];
+    for (const dob of sweepList(23, 3192)) {
       const [, , d] = dob.split('-').map(Number);
       const { mode } = buildPublicReading(dob);
-      expect(mode.birthday, dob).toBe(getBirthday(d));
-      expect(mode.dayOfMonth, dob).toBe(d);
+      if (differs(mode.birthday, getBirthday(d))) bad.push(`${dob}: mode.birthday ${mode.birthday} ≠ shipped getBirthday ${getBirthday(d)}`);
+      if (differs(mode.dayOfMonth, d)) bad.push(`${dob}: mode.dayOfMonth ${mode.dayOfMonth} ≠ ${d}`);
     }
+    expectNone(bad, 'dates disagree with the shipped birthday number');
   });
 
   it('the driver is NOT a free-surface coordinate — that was the whole ruling', () => {
@@ -506,24 +600,28 @@ describe('public tier — independent anchors', () => {
   });
 
   it('the season reuses the shipped solar-term month animal, not a second table', () => {
-    for (const dob of sweepDates(53)) {
+    const bad = [];
+    for (const dob of sweepList(53, 1386)) {
       const [y, m, d] = dob.split('-').map(Number);
       const season = getSeason(y, m, d, getDayMaster(y, m, d).element);
-      expect(season.monthAnimal, dob).toBe(getInnerAnimal(y, m, d));
-      expect(season.element, dob).toBe(BRANCH_ELEMENTS[season.monthAnimal]);
+      if (differs(season.monthAnimal, getInnerAnimal(y, m, d))) bad.push(`${dob}: month animal ${season.monthAnimal} ≠ shipped ${getInnerAnimal(y, m, d)}`);
+      if (differs(season.element, BRANCH_ELEMENTS[season.monthAnimal])) bad.push(`${dob}: season element ${season.element} ≠ BRANCH_ELEMENTS[${season.monthAnimal}]`);
     }
+    expectNone(bad, 'dates where the season leaves the shipped solar-term table');
   });
 
   it('the posture and role line follow the shipped birth card', () => {
-    for (const dob of sweepDates(89)) {
+    const bad = [];
+    for (const dob of sweepList(89, 825)) {
       const [y, m, d] = dob.split('-').map(Number);
       const card = getBirthCard(y, m, d);
       const r = buildPublicReading(dob);
-      expect(r.posture.number, dob).toBe(card.number);
-      expect(r.posture.roman, dob).toBe(card.roman);
-      expect(r.posture.arcana, dob).toBe(card.name);
-      expect(r.roleLine, dob).toBe(getRoleLine(r.mode.birthday, card.number));
+      if (differs(r.posture.number, card.number)) bad.push(`${dob}: posture number ${r.posture.number} ≠ card ${card.number}`);
+      if (differs(r.posture.roman, card.roman)) bad.push(`${dob}: posture roman ${r.posture.roman} ≠ card ${card.roman}`);
+      if (differs(r.posture.arcana, card.name)) bad.push(`${dob}: posture arcana ${r.posture.arcana} ≠ card ${card.name}`);
+      if (differs(r.roleLine, getRoleLine(r.mode.birthday, card.number))) bad.push(`${dob}: role line does not follow the shipped card`);
     }
+    expectNone(bad, 'readings leave the shipped birth card');
   });
 });
 
@@ -605,6 +703,10 @@ describe('public tier — voice register (§2 / §4)', () => {
   const tables = {
     PUBLIC_SOURCES, SEASONAL_STATES, ELEMENT_FAVORABILITY,
     DOMAIN_FAMILIES, WORK_MODES, ROLE_POSTURES,
+    // Added by content/public.v3.js and never added here, so its register
+    // compliance rested on the assembled sweep alone (pr240 audit, Lane B;
+    // four-family audit, Sonnet LOW).
+    MASTER_MODE_BRIDGE_NOTE,
   };
   const strings = collectStrings(tables);
 
@@ -630,14 +732,104 @@ describe('public tier — voice register (§2 / §4)', () => {
   });
 
   it('assembled output carries the same register across the sweep', () => {
-    for (const dob of sweepDates(59)) {
+    const offenders = [];
+    const shapes = new Set();
+    let scanned = 0;
+    let chars = 0;
+    for (const dob of sweepList(59, 1245)) {
       const r = buildPublicReading(dob);
-      for (const { path, text } of collectStrings(r)) {
-        expect(voiceRegisterHits(text), `${dob} ${path}: ${text}`).toEqual([]);
-        expect(SECOND_PERSON_RE.test(text), `${dob} ${path}: ${text}`).toBe(false);
-        expect(DIAGNOSTIC_FRAMING_RE.test(text), `${dob} ${path}: ${text}`).toBe(false);
-      }
+      shapes.add(JSON.stringify(r));
+      const walk = registerOffenders(dob, collectStrings(r));
+      scanned += walk.scanned;
+      chars += walk.chars;
+      offenders.push(...walk.offenders);
     }
+    // Non-vacuity, in the shape tests/pii_scan.test.js settled on one PR
+    // earlier: EXACT counts, coverage, and a positive control — not a floor.
+    // `scanned > 50000` against a real 66,111 had 24% slack and four mutants
+    // walked through it (pr240 audit, Lane A HIGH-2); the first fix pinned the
+    // counts but computed them OUTSIDE the predicate walk, so blanking the
+    // texts between the count and the scan still passed (four-family audit,
+    // Fable MED-1), and left `shapes` as a `> 1000` floor against a real 1,245
+    // (Fable LOW-1, Sonnet MED). Every pin is exact now and every count comes
+    // from the same loop that ran the predicates. A content or wording change
+    // in core/public.js or content/public.v3.js moves `scanned`/`chars`/
+    // `shapes` and must update them here — that is the point of pinning them,
+    // and the messages say so rather than printing two bare integers.
+    //
+    // The offenders assertion runs FIRST. A register violation only ever
+    // arrives together with a content edit, and a content edit moves `chars`
+    // — so with the pins first, the realistic failure printed
+    // "expected 1415066 to be 1414086" and never named the banned term
+    // (four-family audit, Opus MED-2).
+    expectNone(offenders, 'assembled strings break the register');
+    const pinMsg = what => `${what} changed — a content or core/public.js wording change must update this pin`;
+    expect(scanned, pinMsg('assembled string count')).toBe(66111);
+    expect(chars, pinMsg('assembled character total')).toBe(1_414_086);
+    expect(shapes.size, pinMsg('distinct reading count')).toBe(1245);
+  });
+
+  // Guard the guards. `expectNone` is now the single assertion for seven
+  // sweeps — changing its `.toBe(0)` to something vacuous flipped SIX of them
+  // from red to green in one edit (pr240 audit, Lane A MED-1) — and
+  // `registerOffenders` is the only place the register predicates are applied
+  // to assembled output. Neither had a test of its own.
+  it('expectNone fires on offenders and is silent without them', () => {
+    expect(() => expectNone([], 'sentinel')).not.toThrow();
+    expect(() => expectNone(['one'], 'sentinel')).toThrow(/1 sentinel/);
+    expect(() => expectNone(['one', 'two'], 'sentinel')).toThrow(/2 sentinel/);
+  });
+
+  it('registerOffenders really applies all three predicates, and counts what it saw', () => {
+    // one planted string per predicate, through the same function the sweep
+    // calls — so feeding the matcher '' instead of the text fails HERE
+    const one = text => registerOffenders('t', [{ path: 'p', text }]);
+    expect(one('a cosmic note').offenders).toHaveLength(1);
+    expect(one('your reading').offenders).toHaveLength(1);
+    // the third predicate had no plant, so deleting it from the helper stayed
+    // green under a test titled "all three" (four-family audit, Opus MED-3)
+    expect(one('a diagnosis of the case').offenders).toHaveLength(1);
+    expect(one('a clean, filed line').offenders).toEqual([]);
+    // and the message names which predicate fired, not just that one did
+    expect(one('a cosmic note').offenders[0]).toMatch(/register "cosmic"/);
+    expect(one('your reading').offenders[0]).toMatch(/second person/);
+    expect(one('a diagnosis of the case').offenders[0]).toMatch(/diagnostic framing/);
+    // the counts are the walk's own, so they cannot be right if it saw less
+    const two = registerOffenders('t', [{ path: 'a', text: 'abc' }, { path: 'b', text: 'de' }]);
+    expect(two).toMatchObject({ scanned: 2, chars: 5 });
+    expect(registerOffenders('t', [])).toMatchObject({ scanned: 0, chars: 0, offenders: [] });
+  });
+
+  it('differs is Object.is and inRange asserts a number — the two matcher semantics the rewrite lost', () => {
+    // `differs` IS the -0 fix, and it was the one helper the first guard-the-
+    // guards block did not guard: reverting it to `!==` silently reinstated
+    // the audited regression with every test green (four-family audit, Fable
+    // MED-2). `inRange` is the same class one matcher over (Fable/Sonnet HIGH).
+    expect(differs(0, -0)).toBe(true);
+    expect(differs(NaN, NaN)).toBe(false);
+    expect(differs(1, 1)).toBe(false);
+    expect(differs(1, 2)).toBe(true);
+    expect(differs('a', 'a')).toBe(false);
+    expect(inRange(0, 0, 21)).toBe(true);
+    expect(inRange(21, 0, 21)).toBe(true);
+    expect(inRange(22, 0, 21)).toBe(false);
+    expect(inRange(-1, 0, 21)).toBe(false);
+    for (const notANumber of [null, undefined, '4', [4], true, NaN]) {
+      expect(inRange(notANumber, 0, 21), `inRange accepted ${JSON.stringify(notANumber)}`).toBe(false);
+    }
+  });
+
+  it('a bridged reading carries the bridge note, and the sweep scans it', () => {
+    // Breaking the sweep's call site was caught only because the fixture
+    // happens to hold four bridged dates — coincidence, not design (four-family
+    // audit, Sonnet LOW). This pins the wiring on one bridged date directly.
+    const r = buildPublicReading('2000-02-29');
+    expect(r.mode.bridged).toBe(true);
+    expect(r.mode.bridgeNote).toContain('11');
+    const walk = registerOffenders('2000-02-29', collectStrings(r));
+    expect(collectStrings(r).some(({ path }) => path === 'mode.bridgeNote')).toBe(true);
+    expect(walk.scanned).toBe(collectStrings(r).length);
+    expect(walk.offenders).toEqual([]);
   });
 
   it('carries no imperative CTA vocabulary in the tables', () => {

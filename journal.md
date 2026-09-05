@@ -5,7 +5,275 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — and stops leaking through its own output — STAGED on branch, PR #239
+## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR #240
+
+**What happened.** "Now the public.test.js sweep." The queued item from
+the pr238 flake work: `tests/public.test.js`'s voice-register sweep was
+the slowest test in the repository at ~2.17s, four times the next
+slowest, and 43% of vitest's default 5s budget — close enough that CPU
+contention crossed the line and the run reported a timeout that reads
+like a defect. This is the same class as #227's `cities.test.js`
+900k-assertion flake, and it takes the same fix.
+
+**Root cause, measured before touching anything.** The sweep walks 1,245
+dates, assembles a reading for each, collects ~53 strings per reading —
+66,111 strings — and made THREE `expect()` calls per string. That is
+**198,333 assertions** for **136ms of actual work**: 52ms building the
+readings, 37ms collecting strings, 47ms running the register and regex
+scans. **94% of the test's runtime was vitest's per-assertion
+overhead**, buying nothing — a register violation fails identically
+whether the assertion fires from `expect()` or from a collected message.
+The same shape ran in six other sweeps in the file.
+
+**The fix.** All seven sweeps now collect offender messages and assert
+once, through a shared `expectNone(offenders, what)` helper that names
+what failed and caps the printed list at 25. It is the pattern the
+file's own non-sweep tests already used. Results:
+
+| | before | after |
+|---|---|---|
+| the register sweep | 2,169ms | ~110ms |
+| `public.test.js` assertion time | 3,847ms | ~620ms |
+| the file's rank in the suite | slowest | third |
+| the SUITE's slowest single test | 2,169ms | ~0.4s |
+
+The first draft of that last row named `render_cards` as the new slowest
+test. Both lanes contradicted it, and re-running here three times shows
+why: `l48_gate_composition`, `render_cards` and `pii_scan` sit within
+~50ms of each other and swap places run to run, all of them
+subprocess-heavy. The magnitude is the claim; the identity was noise
+being reported as a fact.
+
+The register sweep also gained a non-vacuity assertion, because an
+all-negative collected assertion greens on an empty walk — the exact
+failure mode the pr239 audit had found in the PII scan two hours
+earlier. The first draft of that assertion was a `> 50,000` floor; what
+it is now is in the audit sections below, twice over.
+
+**Detection, measured the way #227 measured it.** Ten violations
+planted in `core/public.js`, each run against BOTH the old and the new
+test file: a banned register term in the assembled output; a role line
+losing its final period; the anti-fit forced into the fit families; the
+mode driver drifting off the shipped birthday; the parser rejecting a
+year `buildProfile` accepts; a nondeterministic field; the season
+leaving the shipped solar-term table; the posture leaving the shipped
+birth card; and a violation planted on a SINGLE swept date at 90% and
+at 100% through the range. All ten fail identically on both shapes.
+
+**That licences "no regression found in ten cases" — not "detection
+proved identical", which is what the first draft of this entry and the
+PR body both said, and which Lane A falsified in two lines.** All ten
+of my probes were WRONG-VALUE mutations of fields the sweeps already
+assert. None probed matcher SEMANTICS, and that is exactly where the
+drift was. See the audit section below.
+
+Diagnosis is better in six of the seven sweeps: a failure lists every
+offending date instead of aborting on the first. In the seventh it was
+not, until the audit — see below.
+
+**Contract.** Same data, same dates, same product code — the diff
+touches only tests, config and this file. The predicates are NOT
+identical, in two directions, both found by the audit and both now
+recorded rather than claimed away (below). The transformation itself
+added no test; the reconciliation adds two guard-the-guard tests, so
+the file goes 42 → 44 and the suite 2,131 → 2,133. No doctrine claim
+changes, so no clause moves and the version does not bump.
+
+**Two-lane audit: both MERGE WITH FIXES, and Lane A found a real
+detection regression I had introduced.** All of it landed in one
+reconciliation commit; no mid-audit push.
+
+*HIGH (Lane A) — `toBe` is `Object.is`; `!==` is not, and they disagree
+on `-0`.* Rewriting `expect(a).toBe(b)` as `if (a !== b)` looks like a
+null transformation and is not. `posture.number` legitimately takes the
+value 0 — The Fool — on **39 of the 825 stride-89 sweep dates**. Lane A
+planted `-0` on one swept non-fixture date: **the old file failed, the
+new file passed 42/42 green.** A check I had described as unchanged was
+gone. Every comparison that was a `toBe` now goes through a `differs()`
+helper built on `Object.is`, and the mutant is killed.
+
+*And the mirror, which is a strengthening — so "same predicates" was
+wrong in both directions.* Vitest's `toContain` uses `indexOf`/`===`,
+which never finds `NaN`; the rewrite's `.includes` uses SameValueZero,
+which does. Lane A planted `NaN` into `favorable` and
+`primaryUnfavorable`: base PASSES, head FAILS. The new behaviour is
+better and it is kept — but it is a predicate change, and it is named
+now instead of denied. Lane A also cleared one hypothesis I had put to
+the lanes: vitest's `toContain` does NOT do deep equality, so the
+`not.toContain` → `.some(f => f.key === …)` rewrite is equivalent.
+
+*HIGH (Lane A) — the non-vacuity guard was the weaker shape I had
+myself rejected one PR earlier.* `scanned > 50000` against a real
+66,111 is a floor with 24% slack that counts ITERATIONS. Four mutants
+walked through it with the guard green and a planted violation
+undetected: feeding the matcher `''` instead of the text; blanking every
+string before the scan; building the SAME reading for all 1,245 dates;
+and narrowing the stride to `sweepDates(73)`, **which silently drops 239
+of the 1,245 dates while nothing anywhere goes red.** The comparator
+Lane A held it against is the one I wrote in `tests/pii_scan.test.js` in
+the immediately preceding PR — exact count, coverage sentinels, positive
+control — whose own comment reads *"EXACT, not a floor."* I applied the
+weaker shape hours after arguing for the stronger one. It now has all
+three: exact date, string and character counts; a distinct-reading
+count; and a positive control over `registerOffenders`, the predicate
+path extracted so the matcher can be driven directly. All four mutants
+killed.
+
+*MED (Lane A) — one unguarded line carried six sweeps.* Making
+`expectNone` vacuous flipped SIX of the seven rewritten tests from red
+to green in a single edit, and nothing tested the helper. Two
+guard-the-guard tests added, the pattern this repo already uses for
+matchers elsewhere.
+
+*MED (both lanes) — the determinism test still aborted on the first
+offending date*, because its `expectNone` sat inside the date loop. The
+entry, the PR body and the in-file comment all claimed the opposite.
+Dedented; the claim is now true of all seven.
+
+*MED (Lane A) — the PR body stated a CI fact that was false*: it said
+the `test` job's DOCTRINE-artifact leg was red by design. That leg is
+guarded on a `DOCTRINE.md` touch, this PR has none, and `test` was
+green. `l48-gate` was the only red check. Corrected on the PR.
+
+*LOW (Lane A) — the 25-item cap was cosmetic.* It capped the custom
+message while vitest printed its own full diff of the offender array:
+117 KB for 1,245 offenders, **7.7 MB and 66,169 lines** for a worst-case
+mass failure. The assertion is now on the count, so the message carries
+the diagnosis and the output stays bounded.
+
+**Reconciliation mutants: seven run, all killed** — the `-0` posture on
+one swept date; `expectNone` made vacuous; the matcher fed `''`; a
+single-term register hit ignored; every text blanked before the scan;
+the same reading for every date; and the stride narrowed to 73. Suite
+**61 files / 2,133 tests green**; `public.test.js` ~620ms of assertion
+time.
+
+**Four-family audit, on the controller's order — and a THIRD lane found
+what two lanes had missed.** After the two-lane reconciliation the
+controller ordered an audit by every Claude family. Four fresh lanes
+(Fable, Opus, Sonnet, Haiku) took the reconciled head `9f20d52`, each
+against both base and head, each briefed to audit the reconciliation
+rather than the change. Verdicts: Fable, Opus and Sonnet MERGE WITH
+FIXES; Haiku MERGE with no findings. Everything below landed in one
+commit; no mid-audit push.
+
+*HIGH (Fable, Sonnet and Opus, independently) — a second detection
+regression of exactly the class the reconciliation had just fixed.*
+Vitest's `toBeGreaterThanOrEqual`/`toBeLessThanOrEqual` assert the actual
+is a NUMBER before comparing. The rewrite `!(n >= 0 && n <= 21)` is a
+bare JS comparison, and JS coerces: `null >= 0`, `'4' >= 0`, `[4] <= 21`
+and `true >= 0` are all true. Planted on a stride-37-only date, each
+failed the old file with a TypeError and passed the new one 44/44 — the
+`null` plant survived the **whole 2,133-test suite** (Opus). The
+two-lane artifact had waved the range checks through as "equivalent for
+the values in play": the exact hedge it refused for `-0`, one paragraph
+earlier. Three families found it; the first two lanes did not look at
+the numeric matchers' type contract at all. Restored through an
+`inRange(n, lo, hi)` helper that asserts `typeof n === 'number'`.
+
+*HIGH (Opus) / MED (Fable) — `differs()`, the helper that IS the `-0`
+fix, was the one helper the guard-the-guards block did not guard.*
+`differs = () => false` disabled ten comparisons across five sweeps and
+stayed 44/44 green; combined with the audited `-0` plant, the audited
+regression came back silently. A sentinel test now pins `differs` as
+`Object.is` and `inRange` as number-asserting.
+
+*MED (Fable and Opus) — the counts were computed outside the predicate
+walk, so the "killed" mutants were killed in one placement only.* The
+sweep counted strings and characters, then called `registerOffenders`
+separately; nothing tied what the predicate saw to what the counters
+counted. Blanking the texts AT THE CALL SITE — after counting, before
+the call — kept every exact pin green with a planted violation
+undetected, and so did `registerOffenders(dob, [])`. The two-lane
+artifact's "all four mutants killed" was true of the audit's placement
+and false of the semantically identical one a line lower. The counts now
+come back FROM the walk, so a count can only be right if the loop saw
+the text it counted.
+
+*MED (Opus) — the pins fired before `expectNone`, inverting the
+diagnosis claim.* A register violation only ever arrives with a content
+edit, and a content edit moves `chars` — so the realistic failure
+printed "expected 1415066 to be 1414086" and never named the banned
+term. The offenders assertion now runs first.
+
+*MED (Opus) — "applies all three predicates" planted two.* Deleting the
+diagnostic-framing predicate from the helper stayed green under a test
+that claimed to cover it. Third plant added.
+
+*MED (Opus) / LOW (Fable, Sonnet) — the reconciliation reproduced the
+floor it condemned.* `shapes.size > 1000` against a real 1,245: 19.7%
+slack, in a block whose comment says "EXACT, not a floor," and it was
+never the line that killed the mutant credited to it (`scanned` fired
+first). Also inert: the distinct-dates line, since the generator yields
+strictly increasing dates. Exact now; the inert line is gone. Fable and
+Opus also found the adjacent sweep's `count > 1900` floor against 1,985
+untouched, and four sweeps with no count pin at all. Every sweep now
+goes through `sweepList(stride, expectedCount)`, which pins its own
+date count.
+
+*LOW (Sonnet) — the bridge note's register compliance rested on a
+coincidence.* Breaking the sweep's call site was caught only because
+the fixture happens to hold four bridged dates. `MASTER_MODE_BRIDGE_NOTE`
+is now in the direct-scan tables (the gap Lane B queued last pass) and
+one bridged date is checked through the walk directly.
+
+*LOW (Fable, Opus) — the record, again.* Six sentences: the in-file
+comment still said "the predicates are unchanged" after the entry
+itself had said otherwise; a citation to a DOCTRINE "testTimeout note"
+that does not exist; pr238-era timings for `pii_scan`/`cards_hosting`
+stated in the present tense; this entry's heading still "PR pending";
+this entry's "fix" paragraph describing the removed `> 50,000` floor as
+current; and three comments that disagreed about what the 5/6 and 12/12
+figures support. All corrected. Haiku's read is worth one sentence too:
+it re-verified every count and every one of the seven prior kills, ran
+no mutants of its own, and found nothing — which is a statement about
+that lane's method, not about the code.
+
+**Family mutants: twenty run against the reconciled file, all killed** —
+the four non-number postures (`null`, `'4'`, `[4]`, `true`) and the
+`-0` re-verify; `differs` reverted to `!==` and to `() => false`;
+`inRange` without its type guard; texts blanked at the call site, the
+call site fed `[]`, and fed one string; the diagnostic predicate
+deleted; the same reading for every date; the range sweep's stride
+37→38 and the posture sweep's 89→97; and the seven prior kills again.
+`public.test.js` 44 → 46 tests; suite 2,133 → 2,135.
+
+**Two stale claims corrected — and then corrected again by the audit.**
+`vitest.config.js` and `tests/dependency_discipline.test.js` both
+justified the `testTimeout: 20000` pin by naming this test's ~2s idle,
+which this change falsifies. My first rewrite kept the budget and
+restated the reason as "the pr238 lanes' contention evidence" — and
+Lane A pointed out that those lanes' 5/6 and 12/12 reproductions were
+specifically of THIS test, the one that just got 20x faster.
+Transferring those figures onto a general claim is the same one-notch
+widening this repo has been caught on four times. The surviving
+justification is a different thing in the same artifact: the production
+sighting was `pii_scan` and `cards_hosting`, whose slowest tests idle at
+111ms and 133ms, crossing 5000ms in one run — a ~40x stall neither lane
+could induce, and one that has nothing to do with how fast any single
+test is. Both comments now cite that, record the 5/6 and 12/12 figures
+as history rather than justification, say plainly that 20000 and 15000
+are round numbers rather than derived ones, and the test's own title no
+longer says "well above the slowest test".
+
+**Queued.** Six blind spots BOTH shapes share, surfaced by Lane A's
+mutants and pre-existing rather than caused here: the sweeps never
+assert `dayMaster.*` values, `season.state`/`stateHan`/`stateLabel`/
+`relation`, `families[].rank`, `sources`, or that `favorable`/
+`unfavorable` are non-empty — mutations of each pass on base and head
+alike. Also Lane B's: the direct table scans' `tables` object never
+gained `MASTER_MODE_BRIDGE_NOTE` when `content/public.v3.js` added it,
+so that string's register compliance rests on the assembled sweep
+alone. `tests/l48_gate_composition.test.js` is now the slowest file
+in the suite at ~2.5s across its tests, and `tests/render_cards.test.js`
+second at ~1.0s; neither is near the budget, so neither is urgent.
+`tests/pii_scan.test.js`'s new merge-conflict probe costs ~400ms of the
+696ms this pass measured there — real work in a temp git repo, and worth
+a look if that file ever matters. The friend's rising/moon reading,
+still waiting on a birth time. `next_strategic_read` (due 2026-08-13)
+and `next_analytics_read` (due 2026-08-06), both overdue.
+
+## 2026-09-04 — DOCTRINE v0.80: the PII scan reads the repository, not the filesystem — and stops leaking through its own output — SHIPPED (#239)
 
 **What happened.** "Now the PII scanner walk scope." The follow-up both
 pr236 lanes filed and asked not to be left a third time. The public PII
