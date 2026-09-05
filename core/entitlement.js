@@ -40,8 +40,10 @@
 // while a url without a key would present an offer whose purchases could
 // never be filed — tests/dyad_entitlement.test.js pins that asymmetry.
 
-/** The live Gumroad Buy Link for the dyad — a BARE url, no query (§5.B). */
-export const DYAD_PRODUCT_URL = '';
+/** The live Gumroad Buy Link for the dyad — a BARE url, no query (§5.B).
+ *  Set 2026-09-05 (launch step 1, controller's word); non-empty ⇒ the offer
+ *  and the about modal's open paragraph render for unentitled devices. */
+export const DYAD_PRODUCT_URL = 'https://theeightball.gumroad.com/l/dyad';
 
 /**
  * Public verification keys — ECDSA P-256 as JWK objects
