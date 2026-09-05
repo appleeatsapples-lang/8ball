@@ -65,11 +65,26 @@ import { panelDetailFor, buildPanelMarkup, coordinateLabel, PANEL_TEXT_PARTS, PA
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
-// The rung's checkout is RETIRED (free amendment, 2026-09-02): the product
-// is completely free and the dyad opens for every device through the same
-// entitlement predicate as before — which now always answers yes, because
-// the render tier is the ceiling. The staged comparative listing was
-// never published; no checkout URL ships.
+// The dyad's checkout — doctrine v0.81 (2026-09-05). The v0.71 free
+// amendment retired every checkout; v0.81 brings ONE back, narrowly: the
+// single sheet stays free and complete for every device, and the dyad is
+// the one paid surface — USD $3 once, permanent, unlimited. The Buy Link is
+// a configurable constant in core/entitlement.js (EMPTY until the
+// controller creates the product; empty ⇒ no offer is presented — the
+// v0.61/v0.67 fail-closed shape). The offer is a plain `<a href>` with
+// target `_self` and no script handler (§5.B Call 2 mechanism); its copy
+// is the two registry-voice lines below and nothing else — no urgency, no
+// score, no verdict. Entitlement itself is verified, never assumed: the
+// host settles it at boot through a signed access token
+// (ui/payments.js resolveDyadEntitlement) and hands the tier in here.
+import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
+
+/** The offer's complete copy — the only price string in the shipped product. */
+export const DYAD_OFFER_COPY = Object.freeze({
+  head: 'dyad · $3 once',
+  body: 'two complete sheets, read beside each other. permanent access.',
+  note: 'checkout opens on gumroad; payment and your email stay there. the access link is sent to that email — opening it files the dyad on that device, permanently. the second entry is never saved.',
+});
 
 // ── pure ──────────────────────────────────────────────────────────
 
@@ -84,11 +99,23 @@ export function dyadEntitled(tier) {
 
 /**
  * Should the entry control exist on the result rail? One predicate,
- * entitlement-only (PR #187 R6) — under the free ceiling it is always
- * true, but the gate stays so the rule keeps a single seam.
+ * entitlement-only (PR #187 R6): true at t5 — a device whose signed dyad
+ * token verified at boot — and false on the free single sheet, where the
+ * offer stands in its place (dyadOfferVisible below).
  */
 export function dyadEntryVisible(tier) {
   return dyadEntitled(tier);
+}
+
+/**
+ * Should the OFFER exist on the result rail? Its own predicate (v0.67
+ * shape): not dyad-entitled AND a product url is configured. The url
+ * parameter defaults to the constant so the empty-url degradation is
+ * runtime-testable. Entry and offer are complementary on a configured
+ * build and both absent while the constant is empty — never both present.
+ */
+export function dyadOfferVisible(tier, url = DYAD_PRODUCT_URL) {
+  return !dyadEntitled(tier) && typeof url === 'string' && url.length > 0;
 }
 
 // The relation layer's value nodes, mapped to the formatDyadRelation field
@@ -173,6 +200,16 @@ const STYLE = `
    entry control never renders as a half-width cell wrapped to two
    lines (pr216 audit LOW 9). */
 .result-controls #dyad-open-btn { grid-column: 1 / -1; }
+/* The offer anchor wears the rail's own button skin (a .btn is an inline-
+   block, so the two copy lines are stacked explicitly); the note under it is
+   the §5.B disclosure in the hint register. Both span the grid like the
+   entry control they replace. */
+.result-controls #dyad-offer-link { grid-column: 1 / -1; text-decoration: none; text-align: center; }
+.result-controls #dyad-offer-link[hidden] { display: none; }
+#dyad-offer-link .dyad-offer-head { display: block; }
+#dyad-offer-link .dyad-offer-body { display: block; font-size: 0.72rem; opacity: 0.7; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+.result-controls #dyad-offer-note { grid-column: 1 / -1; font-size: 0.72rem; opacity: 0.6; line-height: 1.4; margin: 6px 0 0; text-align: left; }
+.result-controls #dyad-offer-note[hidden] { display: none; }
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
 #dyad-screen #dyad-output { scroll-margin-top: calc(var(--topbar-height, 56px) + 12px); }
@@ -602,16 +639,58 @@ function injectEntryButton(controls) {
     open();
   });
   controls.appendChild(btn);
+  injectOffer(controls);
+}
+
+// The offer: the §5.B Call 2 anchor — a plain link, target _self, no click
+// handler, no fetch — carrying exactly DYAD_OFFER_COPY, plus its disclosure
+// note. Injected hidden and WITHOUT an href; syncDyadEntry sets the href
+// only while the offer is visible and strips it whenever it hides, so a
+// hidden anchor is never a reachable checkout.
+function injectOffer(controls) {
+  if (!controls || document.getElementById('dyad-offer-link')) return;
+  const link = document.createElement('a');
+  link.className = 'btn btn-block btn-secondary';
+  link.id = 'dyad-offer-link';
+  link.setAttribute('target', '_self');
+  link.setAttribute('rel', 'noopener');
+  link.hidden = true;
+  const head = document.createElement('span');
+  head.className = 'dyad-offer-head';
+  head.textContent = DYAD_OFFER_COPY.head;
+  const body = document.createElement('span');
+  body.className = 'dyad-offer-body';
+  body.textContent = DYAD_OFFER_COPY.body;
+  link.appendChild(head);
+  link.appendChild(body);
+  controls.appendChild(link);
+  const note = document.createElement('p');
+  note.className = 'hint';
+  note.id = 'dyad-offer-note';
+  note.textContent = DYAD_OFFER_COPY.note;
+  note.hidden = true;
+  controls.appendChild(note);
 }
 
 /**
- * Show or hide the entry control for `tier`. Called from index.html's
- * renderCard on every render, so the control tracks the device's entitlement
- * rather than being decided once at boot.
+ * Show or hide the entry control — and, complementarily, the offer — for
+ * `tier`. Called from index.html's renderCard on every render, so both
+ * controls track the device's entitlement rather than being decided once
+ * at boot. The two swap on the same sync, with the offer's href stripped
+ * whenever it hides.
  */
-export function syncDyadEntry(tier) {
+export function syncDyadEntry(tier, url = DYAD_PRODUCT_URL) {
   const btn = $('dyad-open-btn');
   if (btn) btn.hidden = !dyadEntryVisible(tier);
+  const offer = dyadOfferVisible(tier, url);
+  const link = $('dyad-offer-link');
+  if (link) {
+    link.hidden = !offer;
+    if (offer) link.setAttribute('href', url);
+    else if (link.removeAttribute) link.removeAttribute('href');
+  }
+  const note = $('dyad-offer-note');
+  if (note) note.hidden = !offer;
   return btn ? !btn.hidden : false;
 }
 
@@ -885,8 +964,8 @@ export function render() {
   const spine = $('dyad-spine');
   if (spine && spine.classList && relation) spine.classList.add('dyad-spine-revealing');
 
-  // The gate is open for every device under the free ceiling; open()
-  // still refuses below t5 so the single predicate stays the rule.
+  // The gate is entitlement (doctrine v0.81): open() refuses below t5 and
+  // so does this render, so the single predicate stays the rule.
   const errEl = $('dyad-error');
   if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
   if (output) {

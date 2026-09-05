@@ -38,6 +38,8 @@ import {
   DYAD_AXIS_IDS,
   dyadEntitled,
   dyadEntryVisible,
+  dyadOfferVisible,
+  DYAD_OFFER_COPY,
   formatDyadRelation,
   dyadRelationFor,
   initDyadUI,
@@ -354,6 +356,12 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
 }
 
 // Every string a rendered dyad screen can be holding.
+// open() blanks the typed entry; re-seed it the way harness() does.
+const entryFor = h => {
+  h.get('dyad-name-input').value = 'specimen b';
+  h.get('dyad-dob-input').value = '1988-06-15';
+};
+
 const allText = h => [
   ...[...h.byId.values()], ...[...h.byAttr.values()],
 ].map(n => String(n.textContent || '')).join('\n');
@@ -402,12 +410,111 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     }
   });
 
-  it('the checkout surface is retired — no constant, no predicate, no commerce token in the module', () => {
-    // The free amendment's absence pin, at the module level: the offer
-    // machinery cannot quietly return to the dyad.
-    expect(dyadJs).not.toMatch(/T5_PRODUCT_URL|dyadOfferVisible|dyad-offer/);
-    expect(dyadJs).not.toMatch(/gumroad/i);
-    expect(dyadJs).not.toMatch(/\$\d/);
+  // ── the offer (doctrine v0.81: the dyad is the one paid surface) ──
+
+  it('dyadOfferVisible is the complement of the entry: unentitled AND a configured url', () => {
+    const url = 'https://example.test/l/dyad';
+    for (const tier of ['free', 't1', 't2', 't3']) {
+      expect(dyadOfferVisible(tier, url), tier).toBe(true);
+      expect(dyadOfferVisible(tier, ''), `${tier} empty url`).toBe(false);
+      expect(dyadOfferVisible(tier, null), `${tier} null url`).toBe(false);
+    }
+    expect(dyadOfferVisible('t5', url)).toBe(false);
+    // The default argument is the shipped constant — empty until the
+    // controller creates the product, so the shipped build presents no
+    // offer and no entry to a device that has not verified a token.
+    expect(dyadOfferVisible('t3')).toBe(false);
+  });
+
+  it('the offer copy is exactly the two registry-voice lines and the disclosure — no score, no verdict, no urgency', () => {
+    expect(DYAD_OFFER_COPY.head).toBe('dyad · $3 once');
+    expect(DYAD_OFFER_COPY.body).toBe('two complete sheets, read beside each other. permanent access.');
+    for (const line of Object.values(DYAD_OFFER_COPY)) {
+      expect(line).not.toMatch(/compatib|soulmate|match|score|%|percent|predict|advice|verdict|unlock|only|now|limited|hurry|credit|counter|subscri/i);
+      expect(line).not.toMatch(/\$6|\$9|\$1\b|\$2\b/);
+      expect(voiceRegisterHits(line)).toEqual([]);
+    }
+    expect(DYAD_OFFER_COPY.note).toMatch(/gumroad/);
+    expect(DYAD_OFFER_COPY.note).toMatch(/never saved/);
+  });
+
+  it('an unentitled device sees the offer anchor — a plain link carrying the url and the copy — and no entry control', () => {
+    const url = 'https://example.test/l/dyad';
+    const h = harness('t3');
+    h.withDom(() => syncDyadEntry('t3', url));
+    const link = h.get('dyad-offer-link');
+    expect(link, 'offer anchor not injected').not.toBeNull();
+    expect(link.tag).toBe('a');
+    expect(link.hidden).toBe(false);
+    expect(link.attrs.href).toBe(url);
+    expect(link.attrs.target).toBe('_self');
+    expect(link.listeners.click).toBeUndefined(); // §5.B: a navigation, never a handler
+    expect(link.children.map(c => c.textContent)).toEqual([DYAD_OFFER_COPY.head, DYAD_OFFER_COPY.body]);
+    expect(h.get('dyad-offer-note').hidden).toBe(false);
+    expect(h.get('dyad-offer-note').textContent).toBe(DYAD_OFFER_COPY.note);
+    expect(h.get('dyad-open-btn').hidden).toBe(true);
+  });
+
+  it('an entitled device sees the entry control and the offer is hidden WITH its href stripped', () => {
+    const url = 'https://example.test/l/dyad';
+    const h = harness('t5');
+    h.withDom(() => syncDyadEntry('t3', url)); // an earlier unentitled render set the href
+    expect(h.get('dyad-offer-link').attrs.href).toBe(url);
+    h.withDom(() => syncDyadEntry('t5', url));
+    const link = h.get('dyad-offer-link');
+    expect(link.hidden).toBe(true);
+    expect(link.attrs.href).toBeUndefined();
+    expect(h.get('dyad-offer-note').hidden).toBe(true);
+    expect(h.get('dyad-open-btn').hidden).toBe(false);
+  });
+
+  it('with the product url empty the shipped build presents NEITHER control to an unentitled device (fail closed)', () => {
+    const h = harness('t3');
+    h.withDom(() => syncDyadEntry('t3'));
+    expect(h.get('dyad-offer-link').hidden).toBe(true);
+    expect(h.get('dyad-offer-link').attrs.href).toBeUndefined();
+    expect(h.get('dyad-open-btn').hidden).toBe(true);
+  });
+
+  it('the module carries the one price string and no retired product slug', () => {
+    // The v0.71 absence pin, narrowed rather than dropped: `$3` appears in
+    // DYAD_OFFER_COPY.head and nowhere else in the module's code, and the
+    // retired Gumroad slugs never return.
+    expect(dyadCode.match(/\$\d/g) || []).toEqual(['$3']);
+    expect(dyadJs).not.toMatch(/xjpvp|neysyv|rzqezp|T5_PRODUCT_URL/);
+  });
+
+  it('an entitled render and close write nothing to storage — person B and the render leave no key', () => {
+    const prior = globalThis.localStorage;
+    const store = new Map([['eight_ball_labels_revealed_v1', 'false']]);
+    globalThis.localStorage = {
+      getItem: k => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => { store.set(k, String(v)); },
+      removeItem: k => { store.delete(k); },
+    };
+    try {
+      const h = harness('t5');
+      for (let i = 0; i < 3; i++) {
+        h.withDom(() => { openDyad(); submitSecond(); closeDyad(); });
+      }
+      expect([...store.entries()]).toEqual([['eight_ball_labels_revealed_v1', 'false']]);
+      expect(JSON.stringify([...store.values()])).not.toMatch(/specimen b|1988-06-15/);
+    } finally {
+      if (prior === undefined) delete globalThis.localStorage; else globalThis.localStorage = prior;
+    }
+  });
+
+  it('repeated use consumes nothing: the tenth pair renders exactly like the first', () => {
+    const h = harness('t5');
+    const results = [];
+    for (let i = 0; i < 10; i++) {
+      h.withDom(() => { openDyad(); });
+      entryFor(h);
+      results.push(h.withDom(() => submitSecond()));
+      h.withDom(() => closeDyad());
+    }
+    expect(results).toEqual(Array(10).fill(true));
+    expect(dyadEntitled('t5')).toBe(true);
   });
 
   it('the injected rail control wears the [hidden]-guarded class (pr216 audit LOW 10)', () => {
@@ -415,7 +522,8 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     // injected controls sit outside it. The entry button is safe because
     // btn-block carries the author [hidden] guard in the shell stylesheet
     // — pin the dependency at both ends so it is coverage, not luck.
-    expect(dyadJs.match(/className = 'btn btn-block btn-secondary'/g) || []).toHaveLength(1);
+    // v0.81: the entry button AND the offer anchor both wear it.
+    expect(dyadJs.match(/className = 'btn btn-block btn-secondary'/g) || []).toHaveLength(2);
     const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8');
     expect(shell).toMatch(/\.btn-block\[hidden\] \{ display: none; \}/);
   });

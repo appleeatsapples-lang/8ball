@@ -362,13 +362,21 @@ def check_index_budget(product_root):
     return make_check(check_id, title, "blocking", status, summary, duration, None, "", {"lines": n, "limit": 1500})
 
 
-# Free amendment (2026-09-02): this check was the t4 -> t3 migration probe
-# until the storefront retired. What it verifies now is the FREE CEILING:
-# the single density resolver answers 't5' for every device — including one
-# holding the legacy raw 't4' the old migration existed for — and never
-# writes storage (the retired keys are the boot scrub's job). The check id
-# keeps its slot so the fourteen-check inventory and the fail-closed wiring
-# in run_all stay stable.
+# Doctrine v0.81 (2026-09-05): this check was the t4 -> t3 migration probe,
+# then the FREE-CEILING probe (v0.71). What it verifies now is the
+# ENTITLEMENT CONTRACT of the free-sheet + paid-dyad model, end to end
+# through the real modules:
+#   1. the single density resolver answers 't3' — the complete single sheet
+#      — for a device holding the legacy UNSIGNED 't5' tier (the sharpest
+#      case: the token the unsigned era could write by hand) and writes
+#      nothing;
+#   2. a TAMPERED access token grants nothing and stores nothing;
+#   3. a SIGNED access token (a throwaway P-256 pair generated here) grants
+#      't5' and is stored verbatim under the entitlement key;
+#   4. the boot scrub removes the retired tier key and leaves the
+#      entitlement key alone (a purchase is never scrubbed).
+# The check id keeps its slot so the fourteen-check inventory and the
+# fail-closed wiring in run_all stay stable.
 T4_MIGRATION_SCRIPT = """
 const store = new Map();
 globalThis.localStorage = {
@@ -376,37 +384,54 @@ globalThis.localStorage = {
   setItem(key, value) { store.set(key, String(value)); },
   removeItem(key) { store.delete(key); },
 };
-store.set('eight_ball_tier_v1', 't4');
+store.set('eight_ball_tier_v1', 't5');
 const mod = await import('./ui/payments.js');
-const resolved = mod.getRenderTier();
-const storedAfter = globalThis.localStorage.getItem('eight_ball_tier_v1');
-if (resolved !== 't5') {
-  console.error(`FAIL: getRenderTier() resolved ${JSON.stringify(resolved)}, expected the free ceiling 't5'`);
-  process.exit(1);
-}
-if (storedAfter !== 't4') {
-  console.error(`FAIL: the resolver wrote storage — localStorage['eight_ball_tier_v1'] is ${JSON.stringify(storedAfter)}, expected the seeded 't4' untouched`);
-  process.exit(1);
-}
+const ent = await import('./core/entitlement.js');
+const DYAD_KEY = 'eight_ball_dyad_entitlement_v1';
+const fail = (msg) => { console.error(`FAIL: ${msg}`); process.exit(1); };
+
+// 1. the legacy unsigned tier grants nothing; the resolver writes nothing
+const baseline = mod.getRenderTier();
+if (baseline !== 't3') fail(`getRenderTier() resolved ${JSON.stringify(baseline)} over a legacy unsigned 't5' tier, expected the complete single sheet 't3'`);
+if (globalThis.localStorage.getItem('eight_ball_tier_v1') !== 't5') fail(`the resolver wrote storage — localStorage['eight_ball_tier_v1'] is ${JSON.stringify(globalThis.localStorage.getItem('eight_ball_tier_v1'))}, expected the seeded 't5' untouched`);
+if (globalThis.localStorage.getItem(DYAD_KEY) !== null) fail('the resolver wrote the entitlement key without a token');
+
+// 2. a tampered token grants nothing and stores nothing
+const subtle = globalThis.crypto.subtle;
+const pair = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+const pub = await subtle.exportKey('jwk', pair.publicKey);
+const priv = await subtle.exportKey('jwk', pair.privateKey);
+const keys = [{ kty: 'EC', crv: 'P-256', x: pub.x, y: pub.y }];
+const token = await ent.signDyadToken({ id: 'audit_probe' }, priv, { subtle });
+const [p, sig] = token.split('.');
+const tampered = `${p}.${sig.slice(0, -2)}${sig.slice(-2) === 'AA' ? 'BB' : 'AA'}`;
+const rejected = await mod.resolveDyadEntitlement({ returnToken: tampered, keys, subtle });
+if (rejected.granted !== false || mod.getRenderTier() !== 't3') fail('a tampered access token granted the dyad');
+if (globalThis.localStorage.getItem(DYAD_KEY) !== null) fail('a tampered access token was stored');
+
+// 3. a signed token grants t5 and is stored verbatim
+const granted = await mod.resolveDyadEntitlement({ returnToken: token, keys, subtle });
+if (granted.granted !== true || mod.getRenderTier() !== 't5') fail(`a signed access token did not grant the dyad (resolved ${JSON.stringify(mod.getRenderTier())})`);
+if (globalThis.localStorage.getItem(DYAD_KEY) !== token) fail('the verified token was not stored verbatim under the entitlement key');
+
+// 4. the scrub retires the tier key and keeps the entitlement
 const scrubbed = mod.scrubRetiredCommerceKeys();
-if (scrubbed !== true || globalThis.localStorage.getItem('eight_ball_tier_v1') !== null) {
-  console.error('FAIL: scrubRetiredCommerceKeys did not verifiably remove the retired tier key');
-  process.exit(1);
-}
-console.log('PASS: free ceiling resolves t5 over legacy storage without writing; the boot scrub retires the key');
+if (scrubbed !== true || globalThis.localStorage.getItem('eight_ball_tier_v1') !== null) fail('scrubRetiredCommerceKeys did not verifiably remove the retired tier key');
+if (globalThis.localStorage.getItem(DYAD_KEY) !== token) fail('the scrub removed the entitlement key — a purchase was erased');
+console.log('PASS: legacy unsigned tier resolves t3 without writing; tampered token refused; signed token grants t5 and is stored; the scrub retires the tier key and keeps the entitlement');
 process.exit(0);
 """
 
 
 def check_t4_migration(product_root):
     check_id = "product.t4_migration"
-    title = "free ceiling over legacy storage (ui/payments.js getRenderTier + boot scrub)"
+    title = "dyad entitlement contract (ui/payments.js getRenderTier + resolveDyadEntitlement + boot scrub)"
     cmd = ["node", "--input-type=module", "-e", T4_MIGRATION_SCRIPT]
 
     def evaluate(rc, out, err):
         if rc == 0:
-            return "pass", "free ceiling + no-write + commerce-key scrub verified", {"returncode": rc}
-        return "fail", "free-ceiling assertion failed (see output)", {"returncode": rc}
+            return "pass", "free single sheet + signed-token dyad grant + no-write + commerce-key scrub verified", {"returncode": rc}
+        return "fail", "entitlement-contract assertion failed (see output)", {"returncode": rc}
     return run_check(check_id, title, "blocking", cmd, cwd=product_root, timeout=30, evaluate=evaluate)
 
 
