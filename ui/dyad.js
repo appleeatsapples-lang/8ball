@@ -62,7 +62,7 @@
 // ENTITLEMENT and the public read are resolved by the host and handed in, the
 // same one-way wiring ui/public.js uses. This module never asks storage.
 //
-// ── PAIR DOSSIER + SCREEN OWNERSHIP (v0.79) ───────────────────────
+// ── PAIR DOSSIER + SCREEN OWNERSHIP (v0.81) ───────────────────────
 // Three additions, none touching the calculation or the register law:
 //   1. A compact pair signature (before the two sheets) and direction-
 //      explicit / split-register evidence (below them) reformat fields
@@ -145,7 +145,7 @@ export const DYAD_RELATION_NODES = Object.freeze({
   'dyad-cardpair-head': 'cardPairHead',
   'dyad-cardpair-body': 'cardPair',
   'dyad-qualifier': 'qualifier',
-  // Pair Dossier hierarchy (DOCTRINE §1.J v0.79). The fields below are NOT
+  // Pair Dossier hierarchy (DOCTRINE §1.J v0.81). The fields below are NOT
   // new claims — each is a reformatting of a field already computed above,
   // read into multiple places: the compact pair-signature row (before the
   // two sheets) and the direction-explicit accordion heads (inside the
@@ -440,7 +440,7 @@ const STYLE = `
    this module's scope and untouched) so only the paired panel's instance
    gains the fix. */
 #dyad-screen #dyad-meaning-head { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
-/* Pair Dossier hierarchy (DOCTRINE §1.J v0.79) — heading, scope line,
+/* Pair Dossier hierarchy (DOCTRINE §1.J v0.81) — heading, scope line,
    compact pair signature, direction-explicit evidence, failure state,
    completion flow. Faint text stays at or above opacity 0.55 on the
    monochrome black surface (var(--text) is opaque white), which measures
@@ -664,7 +664,7 @@ let _names = { a: '', b: '' };
 // only through currentRelation() below — the seam ui/pairShare.js's DI hook
 // uses (index.html wires `getRelation: currentRelation`), so the Pair
 // Imprint exporter never imports this module's internals and never touches a
-// profile or the sheet DOM (§1.J v0.79 privacy boundary).
+// profile or the sheet DOM (§1.J v0.81 privacy boundary).
 let _relation = null;
 let _panelScrollTimer = null;
 let _blankTimer = null;

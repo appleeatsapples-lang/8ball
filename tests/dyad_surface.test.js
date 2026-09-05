@@ -236,7 +236,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
     'dyad-meaning-context-head', 'dyad-meaning-context', 'dyad-meaning-relation-head',
     'dyad-meaning-relation', 'dyad-meaning-close',
-    // v0.79: Pair Dossier hierarchy — heading/scope, compact signature, the
+    // v0.81: Pair Dossier hierarchy — heading/scope, compact signature, the
     // narrow-screen A/B jump control, the failure state, and the completion
     // flow's own controls (dyad-back's relabel needs no new id).
     'dyad-heading', 'dyad-scope', 'dyad-signature',
@@ -1851,7 +1851,7 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
   });
 });
 
-// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.79) ─────────────────────────
+// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.81) ─────────────────────────
 
 describe('Pair Dossier — heading, scope, and the compact pair signature', () => {
   it('the pair reading heading and scope line are on screen', () => {

@@ -53,14 +53,14 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── tiers.js             compartment-card render + shareRowRefs + the provenance/atlas registries + density
 │   ├── payments.js          storage/status module (free ceiling + facet storage; the paid-surface controller retired with doctrine v0.71)
 │   ├── profile.js           profile persistence + form helpers
-│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI + closeActiveScreens screen-ownership hook (§1.J v0.79)
+│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI + closeActiveScreens screen-ownership hook (§1.J v0.81)
 │   ├── concordance.js       pure post-calculation relation lookup; no DOM/storage/network
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
 │   ├── meanings.js          all-cell value meaning + deterministic sheet context (§1.G v0.53)
 │   ├── public.js            public-reading formatter + master-mode bridge disclosure
-│   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.79)
-│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading (§1.J/§5.D v0.79)
+│   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.81)
+│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading (§1.J/§5.D v0.81/v0.85)
 │   ├── sheet.js             shared sheet value mapping/render helpers
 │   ├── result.js            result-screen arrival + card-flip controller — transition state, face accessibility, arrival focus/announcement, shake-again
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)

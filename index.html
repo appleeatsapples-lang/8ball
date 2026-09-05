@@ -366,7 +366,7 @@ readingsUI = initReadingsUI(
       profileFromPayload(left.profile), profileFromPayload(right.profile),
       { tier: getRenderTier() },
     ),
-    // Screen ownership (§1.J v0.79): Previous Readings is a sibling
+    // Screen ownership (§1.J v0.81): Previous Readings is a sibling
     // full-screen surface to the paired reading. Closing Pair here — before
     // openPage() decides its own return-to origin below — blanks B and both
     // meaning panels through the same paths their own exits use, so the two
@@ -452,7 +452,7 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     onLabelsChange: labelsUI.applyLabelsState,
     onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); } });
 
-// Pair Imprint (§5.D / §1.J v0.79) — a SEPARATE module from ui/share.js,
+// Pair Imprint (§5.D / §1.J v0.81) — a SEPARATE module from ui/share.js,
 // wired to the dyad screen's own injected button/status nodes (they exist
 // only after initDyadUI has run). Its getRelation hook reads ui/dyad.js's
 // last FORMATTED relation record — never a profile, never sheet DOM; its

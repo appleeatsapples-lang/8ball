@@ -1,4 +1,4 @@
-// 8ball / ui / pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.79)
+// 8ball / ui / pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.81)
 //
 // A DEDICATED, narrow share surface for the paired reading — deliberately a
 // separate module from ui/share.js rather than a second call into it. That
@@ -801,13 +801,15 @@ function trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot
     // already-settled cancellation — resolve to `cancelled` regardless of
     // any identity concern, since cancelled exports nothing either way.
     if (safeErrorName(err) === 'AbortError') return { kind: 'attempted', promise: Promise.reject(err) };
-    // Non-Abort: DOCTRINE (§1.J v0.83) — a native-share exception routes to
-    // the download fallback, it is never a direct `failed`. But recheck
-    // HERE, immediately, so a genuine identity change carried through THIS
-    // call is reported precisely (`preempted`/changed-or-unknown) instead
-    // of silently falling through to download a pair that already moved on
-    // — the exact gap an unrelated LATER preparatory throw could otherwise
-    // mask by collapsing everything to a generic `failed`.
+    // Non-Abort: DOCTRINE (§1.J v0.85) — a non-Abort share exception proves
+    // only that native sharing failed, not that the already-rendered local
+    // PNG is unusable, so this routes to the download fallback rather than
+    // a direct `failed`. But recheck HERE, immediately, so a genuine
+    // identity change carried through THIS call is reported precisely
+    // (`preempted`/changed-or-unknown) instead of silently falling through
+    // to download a pair that already moved on — the exact gap an unrelated
+    // LATER preparatory throw could otherwise mask by collapsing everything
+    // to a generic `failed`.
     const postCallCheck = recheck(controller, myToken, relationAtStart);
     if (postCallCheck.verdict !== 'current') return { kind: 'preempted', verdict: postCallCheck.verdict };
     return { kind: 'not-attempted' };
@@ -985,10 +987,34 @@ function armStatusTimer(controller, el) {
     // (setStatus('busy') arms no further timer, matching how a real
     // click-triggered busy state never auto-hides either); otherwise hide
     // normally.
+    // Sixteenth remediation gate: neither branch below had a relation-
+    // generation ownership check at all — a live repro confirmed the
+    // `setStatus(controller, 'busy')` call's OWN `refs.status` read (its
+    // first host-controlled boundary) can synchronously
+    // notifyRelationChange() to a NEWER (or null) relation, which correctly
+    // installs that generation's true idle/busy DOM — after which this
+    // stale continuation, holding no ownership check of its own, resumed
+    // and wrote `preparing pair image…` back over the just-corrected idle
+    // state while the button/aria-busy stayed truthfully idle. `genAtFire`
+    // is captured fresh, right here, and threaded through as `stillCurrent`
+    // into `setStatus` (whose own internal boundaries all recheck it) and
+    // around the direct `el.hidden = true` write below — the same
+    // discipline `syncBusyFromPrerender` already applies to this exact
+    // class of race.
+    const genAtFire = controller.relationGen;
+    const stillCurrent = () => !controller.retired && !controller.opInFlight
+      && controller.statusTimerGen === myStatusTimerGen
+      && controller.relationGen === genAtFire;
     if (!controller.opInFlight && isPrerenderPending(controller)) {
-      setStatus(controller, 'busy');
-    } else {
-      el.hidden = true;
+      setStatus(controller, 'busy', stillCurrent);
+    } else if (stillCurrent()) {
+      el.hidden = true; // host-controlled setter — may re-enter
+      // No further write follows in this branch — if a reentrant `hidden`
+      // setter just handed ownership to a newer generation, that
+      // generation's own call already wrote its correct state; reconcile
+      // rather than trust this stale continuation's local `el` reference
+      // to still be the right thing to leave untouched.
+      if (!stillCurrent()) reconcileCurrentStatus(controller);
     }
   };
   const id = safeSetTimeout(fire, 4000);
@@ -1039,12 +1065,66 @@ function setStatus(controller, state, stillCurrent) {
   // are TWO separate host-controlled boundaries — a hostile textContent
   // setter reentering here must stop this call before el.hidden, the same
   // discipline resetControllerDOM uses, not one shared check before both.
-  if (!ok()) return;
+  // Sixteenth remediation gate: a hostile `textContent` SETTER can commit
+  // ITS OWN backing value only AFTER synchronously calling
+  // notifyRelationChange() to a newer generation from inside this exact
+  // setter invocation — the nested call fully installs its own correct
+  // status text, and then this setter's OUTER, now-stale commit runs and
+  // clobbers it, entirely INSIDE the `el.textContent = msg` statement
+  // above. A plain `if (!ok()) return` here stops FURTHER writes, but
+  // cannot undo a clobber that already happened during the write that just
+  // returned. Only when `stillCurrent` was actually given (the
+  // relation-generation-owned busy path — a plain click-driven terminal
+  // write has no such predicate and can only lose `ok()` via retirement,
+  // for which reconciling is a harmless no-op) does a lost race here mean
+  // a newer generation's own correct DOM may need restoring.
+  if (!ok()) { if (stillCurrent) reconcileCurrentStatus(controller); return; }
   el.hidden = !msg; // host-controlled setter — may re-enter
-  if (!ok()) return;
+  // Same reasoning as the textContent checkpoint above, for the `hidden`
+  // setter.
+  if (!ok()) { if (stillCurrent) reconcileCurrentStatus(controller); return; }
   if (msg && state !== 'busy') {
     armStatusTimer(controller, el);
   }
+}
+
+// Sixteenth remediation gate: the canonical "what should the status DOM
+// show RIGHT NOW" recovery step, used exclusively after detecting (via a
+// `stillCurrent`/`stillLatest` check going false immediately after a
+// property WRITE, never after a mere read) that this continuation's own
+// commit may have landed on top of — and clobbered — a newer generation's
+// already-correct write, made during the very same setter call. This
+// stale continuation cannot know what it may have overwritten and must
+// never invent a replacement state of its own; it can only ask the
+// controller what is true NOW and re-apply that. Delegates entirely to
+// `syncBusyFromPrerender`'s own no-`expectedGen` "truth" mode: if a click
+// now owns the button (`opInFlight`), this correctly does nothing (that
+// operation's own `finally` is the sole authority per the eighth
+// remediation gate); otherwise it re-derives busy-vs-idle from
+// `controller.cache` fresh and rewrites the status node to match. No third
+// state is possible at the exact synchronous instant this is called from:
+// a TERMINAL click status is only ever written after this module's first
+// `await`, which cannot occur inside the same synchronous call stack as
+// the property setter that triggered this recovery — so the only states a
+// nested winner can have installed by then are busy-for-pending-prerender
+// or idle, exactly what `syncBusyFromPrerender` derives.
+//
+// Finite-reentry limit, stated precisely rather than assumed: each
+// genuine reentry strictly advances `controller.relationGen` (claimed
+// once, atomically, at the top of `notifyRelationChange`, before any
+// re-entrant read), and `syncBusyFromPrerender`'s own internal boundaries
+// apply this exact same recover-by-truth discipline at every write of
+// its own. A chain of N genuine nested notifications therefore converges
+// after at most N recovery passes, each one settling on the LATEST
+// generation's truth. An adversarial host whose setters reenter on EVERY
+// single write, without bound, is not claimed to be handled — that is an
+// unbounded recursive call chain, the same limit every other recursive
+// boundary in this module (`buttonWiringFor`'s state machine,
+// `initPairShareUI`'s `lostRace` handover) already has, and this function
+// introduces no new one.
+function reconcileCurrentStatus(controller) {
+  if (controller.retired) return;
+  syncBusyFromPrerender(controller);
 }
 
 // Eleventh remediation gate, B3 (re-entrant scheduler): arming the
@@ -1292,9 +1372,22 @@ function notifyRelationChange(controller, relation) {
       // relation generation, for the SAME reason.
       if (stillLatest()) {
         el.textContent = ''; // host-controlled setter — may re-enter
-        if (stillLatest()) {
-          el.hidden = true; // host-controlled setter — may re-enter
-        }
+        // Sixteenth remediation gate: a hostile `textContent` SETTER can
+        // synchronously notifyRelationChange() to a NEWER generation from
+        // inside this exact call, let that nested call fully install its
+        // own correct (busy or idle) status, and only THEN commit ITS OWN
+        // stale backing value — clobbering the nested call's write from
+        // inside the very statement above, before `stillLatest()` here
+        // ever gets a chance to run. A bare `if (stillLatest())` guard
+        // only stops FURTHER writes; it cannot undo a clobber that already
+        // happened. `reconcileCurrentStatus` re-derives and re-applies
+        // whatever the CURRENT generation's status truthfully is, rather
+        // than leaving a stale clobbered value in place or guessing.
+        if (!stillLatest()) { reconcileCurrentStatus(controller); return; }
+        el.hidden = true; // host-controlled setter — may re-enter
+        // Same reasoning as the textContent checkpoint above, for the
+        // `hidden` setter.
+        if (!stillLatest()) { reconcileCurrentStatus(controller); return; }
       }
     }
   }
@@ -1651,12 +1744,13 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
       // falls straight through to the same download-preserving path any
       // other non-Abort rejection already takes.
       if (safeErrorName(err) === 'AbortError') { setStatus(controller, 'cancelled'); return; }
-      // Second-gate P1-4: a non-Abort rejection (NotAllowedError included)
-      // preserves the local download — the platform only refused to open
-      // its OWN chooser; the PNG this device already rendered is still
-      // right here. Identity was just confirmed 'current' above (the only
-      // way execution reaches this line), so the download below correctly
-      // proceeds for the pair genuinely on screen right now.
+      // Second-gate P1-4, restated as DOCTRINE §1.J v0.85: a non-Abort
+      // rejection (NotAllowedError included) preserves the local download —
+      // the platform only refused to open its OWN chooser; the PNG this
+      // device already rendered is still right here. Identity was just
+      // confirmed 'current' above (the only way execution reaches this
+      // line), so the download below correctly proceeds for the pair
+      // genuinely on screen right now.
       await downloadFallback(controller, myToken, relationAtStart, snapshot, blob);
       return;
     }

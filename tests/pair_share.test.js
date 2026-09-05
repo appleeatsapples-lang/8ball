@@ -1,6 +1,6 @@
 // 8ball / tests / pair_share.test.js
 //
-// ui/pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.79). Two
+// ui/pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.81). Two
 // halves, mirroring the tests/share_surface.test.js / tests/share_behavior.
 // test.js split for ui/share.js:
 //
@@ -4485,8 +4485,337 @@ describe('fifteenth remediation gate — latest-relation-generation ownership fo
     controller.notifyRelationChange(A);
 
     expect(reentered).toBe(true);
-    expect(textSetsAfter).toBe(2);
-    expect(hiddenSetsAfter).toBe(2); // old stale continuation produces a third
+    // Fourteenth remediation gate: the outer's now-stale `setStatus('busy',
+    // stillCurrent)` call detects (via its OWN post-write `stillCurrent()`
+    // check) that it lost ownership during this exact write, and — rather
+    // than merely stopping, which would leave whatever B's nested call
+    // already wrote untouched anyway in THIS particular trigger shape —
+    // calls `reconcileCurrentStatus`, which re-derives B's truthful busy
+    // state fresh and re-applies it. That reconciliation genuinely re-runs
+    // `setStatus('busy', ...)` a third time (harmless: it writes the exact
+    // same already-correct values), which is what the third textContent/
+    // hidden write below counts; the two prior writes are B's own nested
+    // clear-then-busy sequence, unchanged from before this gate.
+    expect(textSetsAfter).toBe(3);
+    expect(hiddenSetsAfter).toBe(3);
     await proveBStillOwnsCache(log, controller, A, B, btn, status);
+  });
+});
+
+describe('sixteenth remediation gate — the stale armed-timer busy-reconciliation and stale post-reentrant setter commits are both relation-generation-owned', () => {
+  const secondRelation = () => adversarialRelation({
+    elementDirectionAB: 'A · fire → B · earth',
+    numerologySpine: '3 + 3 → 6',
+    cardPairHead: 'no. lxxiii × no. xxxvii',
+  });
+
+  it('a stale armed status timer\'s busy-reconciliation cannot resurrect "preparing…" over a newer notify(null)\'s correct idle state (exact live-repro shape)', async () => {
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const B = secondRelation();
+    const attrs = {};
+    const btn = {
+      disabled: false,
+      setAttribute(k, v) { attrs[k] = String(v); },
+      addEventListener() {},
+    };
+    let current = A;
+    let armed = false;
+    let reentered = false;
+    let controller;
+    const status = { textContent: '', hidden: true };
+    const refs = {
+      btn,
+      disclosure: makeEl('div'),
+      get status() {
+        if (armed && !reentered) {
+          reentered = true;
+          current = null;
+          controller.notifyRelationChange(null);
+        }
+        return status;
+      },
+    };
+
+    const timers = [];
+    const cancelled = new Set();
+    let timerSeq = 0;
+    const realSetTimeout = globalThis.setTimeout;
+    const realClearTimeout = globalThis.clearTimeout;
+    globalThis.setTimeout = (fn, ms) => { const id = ++timerSeq; timers.push({ id, fn, ms }); return id; };
+    globalThis.clearTimeout = id => { cancelled.add(id); };
+
+    try {
+      controller = initPairShareUI(refs, { getRelation: () => current });
+      controller.notifyRelationChange(A);
+      log.pendingImages[0](); // settle A's prerender
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+      // Start a click for A (cache already warm) — its native-share await
+      // is the natural microtask suspension point, so the very next two
+      // synchronous statements (current = B; notifyRelationChange(B)) land
+      // while the click is genuinely still in flight, exactly like the
+      // repro's manually-held share promise.
+      const click = controller.onShareClick();
+      current = B;
+      controller.notifyRelationChange(B); // B's own prerender starts and remains pending (opInFlight defers it)
+      await click; // share resolves; identity changed -> 'shared-selected', arms a REAL 4s timer
+
+      const timer = timers.find(t => t.ms === 4000 && !cancelled.has(t.id));
+      expect(timer).toBeTruthy();
+      expect(status.textContent).toBe(pairShareStatusMessage('shared-selected'));
+
+      armed = true;
+      timer.fn(); // simulate the 4-second elapse: fire()'s busy-reconciliation runs
+
+      expect(reentered).toBe(true);
+      // The stale timer continuation must not resurrect "preparing…" over
+      // null's correct idle state — button, aria-busy, text and hidden
+      // must all agree on idle, exactly as the nested null notification
+      // alone already established.
+      expect(btn.disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      expect(status.textContent).toBe('');
+      expect(status.hidden).toBe(true);
+      void log;
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+      globalThis.clearTimeout = realClearTimeout;
+    }
+  });
+
+  const notifySetterCase = triggerKey => async () => {
+    const pendingImages = [];
+    let seq = 0;
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    const realRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    const realImage = globalThis.Image;
+    const realDocument = globalThis.document;
+    const realNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    globalThis.URL.createObjectURL = () => `blob:notify-setter/${triggerKey}/${++seq}`;
+    globalThis.URL.revokeObjectURL = () => {};
+    globalThis.Image = class {
+      set src(v) { this._src = v; pendingImages.push(() => this.onload?.()); }
+    };
+    globalThis.document = {
+      body: { appendChild() {} },
+      createElement(tag) {
+        if (tag === 'canvas') return {
+          set width(_v) {}, set height(_v) {},
+          getContext() { return { drawImage() {} }; },
+          toBlob(cb) { cb(new Blob(['png'], { type: 'image/png' })); },
+        };
+        return { click() {}, remove() {} };
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+
+    try {
+      const A = VALID_RELATION;
+      const B = secondRelation();
+      const attrs = {};
+      const btn = {
+        disabled: false,
+        setAttribute(k, v) { attrs[k] = String(v); },
+        addEventListener() {},
+      };
+      let textValue = 'old terminal';
+      let hiddenValue = false;
+      let armed = false;
+      let reentered = false;
+      let controller;
+      const status = {
+        get textContent() { return textValue; },
+        set textContent(v) {
+          if (armed && triggerKey === 'text' && v === '' && !reentered) {
+            reentered = true;
+            controller.notifyRelationChange(B);
+          }
+          // Commit AFTER the nested winner has fully returned — the exact
+          // hostile shape: this stale outer commit must not clobber
+          // whatever the nested (newer) generation already wrote.
+          textValue = v;
+        },
+        get hidden() { return hiddenValue; },
+        set hidden(v) {
+          if (armed && triggerKey === 'hidden' && v === true && !reentered) {
+            reentered = true;
+            controller.notifyRelationChange(B);
+          }
+          hiddenValue = !!v;
+        },
+      };
+      controller = initPairShareUI({ btn, status, disclosure: makeEl('div') }, { getRelation: () => B });
+      armed = true;
+      controller.notifyRelationChange(A);
+
+      expect(reentered).toBe(true);
+      // Only B's raster ever started — A's stale continuation never reaches
+      // its own rasterization once the reconciliation restores B's truth.
+      expect(pendingImages).toHaveLength(1);
+      // B's busy state must survive A's stale post-reentrant commit: a
+      // disabled/aria-busy button always paired with a live, non-empty
+      // "preparing…" explanation — never an empty-but-visible status
+      // (the `text` clobber) and never a hidden busy text (the `hidden`
+      // clobber).
+      expect(btn.disabled).toBe(true);
+      expect(attrs['aria-busy']).toBe('true');
+      expect(textValue).toBe(pairShareStatusMessage('busy'));
+      expect(hiddenValue).toBe(false);
+    } finally {
+      globalThis.URL.createObjectURL = realCreateObjectURL;
+      globalThis.URL.revokeObjectURL = realRevokeObjectURL;
+      globalThis.Image = realImage;
+      globalThis.document = realDocument;
+      if (realNavigatorDesc) Object.defineProperty(globalThis, 'navigator', realNavigatorDesc);
+    }
+  };
+
+  it('a hostile textContent SETTER that commits its own stale clear AFTER a nested notify(B) already installed B\'s busy state cannot clobber it (exact live-repro shape)', notifySetterCase('text'));
+  it('a hostile hidden SETTER that commits its own stale clear AFTER a nested notify(B) already installed B\'s busy state cannot clobber it (exact live-repro shape)', notifySetterCase('hidden'));
+
+  it('a hostile textContent SETTER inside setStatus(\'busy\') that reenters to notify(null) cannot resurrect the old busy text over null\'s correct idle state (exact live-repro shape)', () => {
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    const realRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    const realImage = globalThis.Image;
+    const realDocument = globalThis.document;
+    const realNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    const pendingImages = [];
+    let seq = 0;
+    globalThis.URL.createObjectURL = () => `blob:status-setter/${++seq}`;
+    globalThis.URL.revokeObjectURL = () => {};
+    globalThis.Image = class {
+      set src(v) { this._src = v; pendingImages.push(() => this.onload?.()); }
+    };
+    globalThis.document = {
+      body: { appendChild() {} },
+      createElement(tag) {
+        if (tag === 'canvas') return {
+          set width(_v) {}, set height(_v) {},
+          getContext() { return { drawImage() {} }; },
+          toBlob(cb) { cb(new Blob(['png'], { type: 'image/png' })); },
+        };
+        return { click() {}, remove() {} };
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+
+    try {
+      const A = VALID_RELATION;
+      const attrs = {};
+      const btn = {
+        disabled: false,
+        setAttribute(k, v) { attrs[k] = String(v); },
+        addEventListener() {},
+      };
+      const busy = pairShareStatusMessage('busy');
+      let textValue = '';
+      let hiddenValue = true;
+      let armed = false;
+      let reentered = false;
+      let controller;
+      const status = {
+        get textContent() { return textValue; },
+        set textContent(v) {
+          // Reenter BEFORE the original setter commits its own write — the
+          // nested null notification installs idle/empty state, then this
+          // stale outer setter resumes and (absent the fix) commits the
+          // old busy text over it.
+          if (armed && v === busy && !reentered) {
+            reentered = true;
+            controller.notifyRelationChange(null);
+          }
+          textValue = v;
+        },
+        get hidden() { return hiddenValue; },
+        set hidden(v) { hiddenValue = !!v; },
+      };
+      controller = initPairShareUI({ btn, status, disclosure: { textContent: '' } }, { getRelation: () => null });
+      armed = true;
+      controller.notifyRelationChange(A);
+
+      expect(reentered).toBe(true);
+      expect(pendingImages).toHaveLength(1); // only A's own raster ever started
+      expect(btn.disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      expect(textValue).toBe('');
+      expect(hiddenValue).toBe(true);
+    } finally {
+      globalThis.URL.createObjectURL = realCreateObjectURL;
+      globalThis.URL.revokeObjectURL = realRevokeObjectURL;
+      globalThis.Image = realImage;
+      globalThis.document = realDocument;
+      if (realNavigatorDesc) Object.defineProperty(globalThis, 'navigator', realNavigatorDesc);
+    }
+  });
+});
+
+// DOCTRINE §1.J v0.85: a non-Abort native-share exception or rejection
+// proves only that native sharing failed, never that the already-rendered
+// local PNG is unusable — existing coverage already pins the fallback
+// itself (identity-unchanged: eighth-gate "a genuine share exception...
+// preserves the local download"; a direct synchronous non-Abort throw:
+// eighth-gate "a direct synchronous NON-AbortError..."; identity-CHANGED
+// during either path: eleventh-gate B4(b) for the sync throw, and the
+// P1-2 "REJECTED, non-Abort" test for the rejected promise). The one
+// boundary neither covered: a getRelation() hook that itself THROWS (a
+// read FAILURE, not a confirmed change) on the recheck immediately after
+// the exception/rejection — `failed` per the ordinary pre-effect mapping,
+// never a stale/unconfirmable download and never a false "shared".
+describe('sixteenth remediation gate — DOCTRINE v0.85: native-share exception/rejection read-failure boundaries', () => {
+  it('a synchronous non-Abort share() throw, followed by a getRelation() hook that itself THROWS on the post-throw recheck, settles to "failed" — never a stale/unconfirmable download', async () => {
+    let calls = 0;
+    const getRelation = () => {
+      calls++;
+      // boot's prerender read, the click's own initial read, and
+      // trySyncNativeShare's own six preparatory rechecks (safeNavigator,
+      // the File getter, the File construction, the canShare getter, the
+      // canShare call, the share getter) must all still see the valid
+      // relation so share() is genuinely invoked and genuinely throws —
+      // the hook only breaks on trySyncNativeShare's OWN post-call
+      // recheck, immediately after the throw.
+      if (calls <= 8) return VALID_RELATION;
+      throw new Error('hook broke right after the synchronous share throw');
+    };
+    const log = installEnv();
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { canShare: () => true, share() { throw new Error('sync boom, not abort'); } },
+      configurable: true, writable: true,
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(calls).toBeGreaterThanOrEqual(9);
+    // The anchor may still be PREPARED (downloadBlob's own appendChild is a
+    // reversible step that runs before its precheck) but must never be
+    // CLICKED — the real signal that no irreversible download fired.
+    if (log.anchors.length) expect(log.anchors[0].clickCount || 0).toBe(0);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale')); // a throw proves no change, only that currency is unknown
+    expect(refs.status.textContent).not.toContain('shared');
+    expect(refs.status.textContent).not.toContain('download');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+
+  it('a rejected (non-Abort) share promise, followed by a getRelation() hook that itself THROWS on the post-rejection recheck, settles to "failed" — never a stale/unconfirmable download', async () => {
+    let calls = 0;
+    const getRelation = () => {
+      calls++;
+      // Same eight preparatory reads as the synchronous-throw case above —
+      // the hook only breaks on shareOrFallback's own post-rejection
+      // recheck.
+      if (calls <= 8) return VALID_RELATION;
+      throw new Error('hook broke right after the share rejection');
+    };
+    const log = installEnv({
+      canShare: () => true,
+      share: () => Promise.reject(new Error('platform refused, not an AbortError')),
+    });
+    const { refs } = await boot(getRelation);
+    await clickShare(refs);
+    expect(calls).toBeGreaterThanOrEqual(9);
+    if (log.anchors.length) expect(log.anchors[0].clickCount || 0).toBe(0);
+    expect(refs.status.textContent).not.toBe(pairShareStatusMessage('stale'));
+    expect(refs.status.textContent).not.toContain('shared');
+    expect(refs.status.textContent).not.toContain('download');
+    expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
   });
 });

@@ -185,6 +185,23 @@ function makeNode(tag = 'div') {
       }
     },
   });
+  // `className = '...'` is production code's real, one-time, create-time
+  // idiom for setting a node's initial classes (`buildPage()` et al.) — a
+  // real DOM element keeps `className` and `classList` in sync natively;
+  // this mock's `classList` is a Set the plain-property `className` this
+  // object would otherwise get never touched, so any LATER `classList.
+  // contains(...)` read (e.g. ui/readings.js's own `page.classList.
+  // contains('hidden')` screen-ownership guard) would see an empty set
+  // regardless of what `className` was ever assigned. Every production
+  // call site sets `className` exactly once, right after creation, so a
+  // one-way sync into the SAME `classList` instance (never cleared/reset)
+  // is enough — never a bespoke second class-tracking mechanism.
+  Object.defineProperty(node, 'className', {
+    get() { return ''; },
+    set(value) {
+      for (const word of String(value).split(/\s+/).filter(Boolean)) node.classList.add(word);
+    },
+  });
   return node;
 }
 
