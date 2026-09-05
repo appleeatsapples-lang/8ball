@@ -5,95 +5,167 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-05 — public.test.js: the six shared blind spots pinned on every swept date — STAGED on branch, PR #241
+## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — STAGED on branch, PR #241
 
 **What happened.** "Now the six shared blind spots." The queued item
 from #240: Lane A's mutants had shown that `tests/public.test.js`'s
-sweeps checked SHAPE on every date and VALUE on almost none — the
-reading could carry a wrong day-master element, a flipped polarity, a
-wrong seasonal state, han or relation, a wrong family rank, an empty
-favourable list or a replaced sources block and pass every test, on
-the merged head as much as on the branch. This pass pins each of them.
+sweeps checked SHAPE on every date and VALUE on almost none. This pass
+pins the six — and then the pr241 audit found nine more fields with no
+value pin anywhere in the suite, and a baseline claim in the first draft
+of this entry that was not what had been measured. Both are fixed below;
+the first draft's wording is recorded here because the correction is the
+point.
 
-**Baseline, re-measured on the merged head before touching anything.**
-Eleven single-line mutations of `core/public.js` were run against the
-46 shipped tests. All eleven survived: `dayMaster.element` wrong,
-`dayMaster.polarity` flipped, `season.state` wrong, `season.relation`
-wrong, `season.stateHan` wrong, `families[0].rank` = 99 on one date,
-ranks reversed on one date, `sources` replaced by `{}`, `favorable`
-emptied, `unfavorable` emptied, `primaryFavorable` no longer
-`favorable[0]`. One correction to the queued list: the GLOBAL rank
-off-by-six was already killed by the fixture snapshot and the hand-walked
-2000-01-01 case. Only the single-date forms were open — and the two
-single-date probes were planted on 1937-03-14, which is not on the
-stride-37 lattice at all (the nearest swept date is 1937-03-07), so
-they survived for a reason no sweep can fix. A sweep pins the dates it
-walks; a value planted between them is invisible by construction, and
-the full range is 73,414 readings this file deliberately does not walk.
-Replanted on a swept date (1900-03-16) both fail, below.
+**Baseline, as first written and as it actually was.** The first draft
+said "eleven single-line mutations of `core/public.js` … all eleven
+survived" the 46 shipped tests. Lane A could not reproduce that and
+showed why four of the eleven are impossible: the register sweep pins
+`scanned` = 66,111 strings and `chars` = 1,414,086 characters exactly,
+so any UNCONDITIONED edit that changes a string count or a length
+(`sources` → `{}` drops 7,470 strings; an emptied list drops thousands;
+a yang↔yin flip moves the total by one character) is killed on base
+incidentally, by a checksum, not by a value check. Re-measured on
+`464c400` in three forms, the eleven come out:
 
-**The pins.** One new sweep test inside the coverage block walks the
-same 1,985 stride-37 dates and re-derives every field from the level
-BELOW the helper that produced it, so a mutation inside the helper and
-the reading cannot agree with each other and pass:
+| form | survive base (46 tests) |
+|---|---|
+| unconditioned (every date) | 0 of 9 tried — killed by the counters and the fixture |
+| single-date, planted on 1937-03-14 | 11 of 11 |
+| single-date, planted on 1900-03-16 | 9 of 9 tried |
 
-- `dayMaster.stem/element/polarity/branchAnimal` from `getDayPillar`
-  directly — `STEMS[stemIndex]`, `STEM_ELEMENTS[stemIndex]`,
-  `stemIndex % 2`, `pillar.animal` — not from `getDayMaster`; plus
-  membership in `ELEMENTS` and `ANIMALS`.
-- `season.monthAnimal` from `getInnerAnimal`, `season.element` from
-  `BRANCH_ELEMENTS`, `season.state` from the five-relation rule written
-  out in the test (same → 旺, sheng-into → 相, sheng-out → 休, ke-out →
-  囚, else 死) AND from `getSeasonalState`; `stateHan`/`stateLabel`/
-  `relation` and the top-level `strength` from `SEASONAL_STATES[state]`.
+What the first draft had measured was the second row — single-DATE
+mutants, on a date that is not on the stride-37 lattice — and it wrote
+them up as if they were the first. The third row is the honest
+pre-existing gap: on base, a wrong value in any of these fields on ONE
+swept date passed every test, because no sweep compared values. That
+row is what this pass closes; on the reconciled head all nine fail.
+The off-lattice row is unreachable by any sweep by construction (the
+full range is 73,414 readings; a full walk measured at 1.84s of building
+alone, Lane B, and would sit at vitest's 5s budget with the checks on —
+not a cheap fix, not proposed). Lane A's own fixture-avoiding forms
+found two length-preserving mutants that survive base unconditioned:
+`dayMaster.element` wood→fire and `season.stateHan` 旺→相.
+
+**The pins, as reconciled.** One predicate block, `readingOffenders(dob,
+r)`, re-derives every leaf of a reading and returns the offender
+messages with the number of checks it ran (58 per reading, pinned). The
+coverage sweep walks the same 1,985 stride-37 dates through it and pins
+readings = 1,985 and checks = 1,985 × 58 exactly, the standard the
+register sweep set in #240 and the one sweep in the first draft that did
+not follow it (Lane A MED-1: gutting the loop to one date was green).
+Every field re-derives from the level BELOW the helper that produced it:
+
+- `dob` from the string; `dayMaster.*` straight off `getDayPillar`
+  (`STEMS[stemIndex]`, `STEM_ELEMENTS[stemIndex]`, `stemIndex % 2`,
+  `pillar.animal`) — and that independently derived element, never the
+  reading's own, feeds everything downstream (Lane B MED-2: with the
+  element line deleted, a date-scoped element bug on a swept date was
+  caught by nothing; now four downstream checks catch it).
+- `season.*` from `getInnerAnimal`, `BRANCH_ELEMENTS`, the five-relation
+  rule written out (same → 旺, sheng-into → 相, sheng-out → 休, ke-out
+  → 囚, else 死) and, as the cross-check, `getSeasonalState`; the han,
+  label, relation and `strength` from `SEASONAL_STATES[expectedState]`.
 - `favorable`/`unfavorable` non-empty, element-wise equal to the frozen
-  `ELEMENT_FAVORABILITY` entry, every member an element, disjoint,
-  `primaryFavorable === favorable[0]`, `primaryUnfavorable ===
-  unfavorable[0]`, `favorabilityNote` the entry's body.
-- `families[].rank` exactly `[1, 2, 3]`; the characters strictly
-  increasing along the mode's frozen `priority`, not via
-  `rankDomainFamilies`; every family on the primary favourable element;
-  the key set the registry's three; and, as the cross-check, the key
-  order `rankDomainFamilies` gives.
-- `sources` is the `PUBLIC_SOURCES` object itself (`Object.is`), with
-  its keys in the frozen order — a copy fails.
+  entry for the derived element × strength, disjoint, primaries the
+  entry's first, note the entry's body.
+- `mode.*` — all eight: birthday from `getBirthday`, dayOfMonth, the
+  table key through the bridge restated (`MASTER_MODE_BRIDGE[birthday]
+  ?? birthday`), the flag, the note or null, theme/register/method from
+  `WORK_MODES`.
+- `posture.*` — all five: number and roman from `getBirthCard`, arcana/
+  register/stance from `ROLE_POSTURES`.
+- `families[]` — ranks `[1, 2, 3]`, characters strictly increasing along
+  the mode's frozen `priority`, all on the derived primary, the key set
+  the registry's three, and every row's key/label/character/body the
+  registry row's.
+- `antiFit` — the derived primary-unfavourable element's family whose
+  character sits last in the priority, restated, every field the
+  registry row's, cross-checked with `getAntiFitFamily`.
+- `roleLine` — `"<stance>, <method>."` restated and `getRoleLine`.
+- `sources` — the frozen block by identity. The first draft also
+  compared its keys after the identity check, which compares an object
+  with itself (Lane A MED-3); dropped. Keys and citations are pinned once
+  in the table-integrity block.
 
-Two registry-shape tests in the table-integrity block pin the tables
-the sweep reads from: the five seasonal states carry `key`, `han`,
-`label`, `relation`, `strength` with 旺相 strong and 休囚死 weak and
-five distinct han; `PUBLIC_SOURCES` is frozen with exactly the six keys
-and a non-empty citation each. And a sentinel for the one new helper,
-`sameList` (element-wise `Object.is`, arrays only, equal length), in
-the same guard-the-guards block that pins `differs` and `inRange` —
-that block exists because #240's audit found a helper rewrite can
-change matcher semantics while every test stays green.
+**The positive control.** A second test proves "every leaf" instead of
+stating it: on three readings (a swept non-fixture date, the bridged
+2000-02-29, a fixture date) the clean reading yields no offender and
+exactly 58 checks; then each of the reading's 65 leaf paths is corrupted
+one at a time on an otherwise-clean copy — strings reversed (the
+same-length class the register checksum cannot see), numbers +1,
+booleans flipped, null replaced — and must be flagged by a check other
+than sources-identity; the three lists emptied and reversed and a copy
+of `sources` likewise. The copy keeps `sources` by reference so the
+identity check cannot flag every corruption for the wrong reason.
 
-**Detection, measured.** Twenty-one mutants of `core/public.js` against
-the new file. The eleven baseline survivors: all killed on a swept date
-(the two single-date rank forms at 1900-03-16; on 1937-03-14 they still
-survive, as stated above). Ten more, added while writing: `stateLabel`
-wrong, `strength` flipped for one state, `favorabilityNote` altered,
-`branchAnimal` fixed to rat, `stem` shifted two, `sources` replaced by a
-shallow copy, `sources` keys reordered, families reversed, rank global
-off-by-six, and `primaryFavorable` from the wrong end — all killed. No
-mutant survives on a swept date.
+**What the block does and does not buy** (both lanes, independently).
+The registry comparisons pin the reading to the table it was read from
+— engine-to-table fidelity. A corrupted TABLE is read by both sides and
+passes the block; Lane B planted three (`wang.strength` flipped, a
+duplicated han, `wood_strong.favorable` reordered) and each was caught,
+but by the registry-shape tests, the sheng/ke re-derivation, the
+fixture snapshot or the register char total — never by the sweep. The
+first draft's "re-derives from the frozen registries" read as if the
+sweep could see a table change; it cannot, and the test's comment now
+says which mechanism owns table correctness. The stem and polarity pins
+restate the pass-through rule because there is no lower level than the
+pillar. The two registry-shape tests overlap base on frozenness and
+strong/weak membership (Lane A MED-4); what is new in them is the key
+order, `state.key === key`, non-empty han/label/relation, the 旺相
+strong / 休囚死 weak split, five distinct han, and the six source keys
+with non-empty citations. Neither pins han/label/relation CONTENT
+beyond non-emptiness; a one-character typo there is the fixture
+snapshot's to see.
 
-**Cost.** The new sweep is a second 1,985-reading walk; the file runs
-50 tests in ~800ms of test time, unchanged in rank, and the suite's
-wall clock did not move (61 files / 2,139 tests, ~8s).
+**Helper semantics.** `sameList` was `.every`-based, and `.every` skips
+holes: `new Array(3)` compared equal to anything of length 3 (Lane A
+MED-2). It is now an index loop that treats a hole on either side as a
+difference, and the sentinel pins `new Array(3)` vs `[1,2,3]`, `[,1]` vs
+`[9,1]`, `new Array(1)` vs `[undefined]`. Not reachable from product
+code today; it is the matcher-semantics class #240's audit found, in
+the block that exists to catch it. The block also never throws: a
+non-list `favorable` collects two offenders per date instead of
+aborting on the first (Lane A LOW-1) — the `TypeError` that remains in
+that probe comes from the pre-existing anti-fit sweep, which is out of
+scope here.
 
-**Contract.** Test-only: `tests/public.test.js` goes 46 → 50 tests
-(one sweep, two registry pins, one sentinel), the suite 2,135 → 2,139.
-Same data, same dates, same product code. No doctrine claim changes,
-no version bump (precedent #227, #231, #240). The `test`,
-`product-audit` (PASS, 12/1 warn for the dirty tree/1 skip for the
-absent local PII file) and `l48-gate` checks apply; the l48 artifact
-is filed with the PR number once it exists.
+**Detection, measured on the reconciled head.** Lane A's nine
+full-suite survivors (families' label and body, anti-fit label and
+body, posture stance and register, mode method, dob month/day swapped,
+dob year +1 — each gated off the 21 fixture dates): all nine fail. The
+branch's own twenty-three (the eleven unconditioned, the single-date
+rank forms on 1900-03-16, and twelve more incl. a `getSeasonalState`
+xiu↔qiu swap and a season fed the wrong master on one date): all fail.
+The nine single-date base survivors on 1900-03-16: all fail — one of
+them, `state` forced to 死 on that date, was a no-op because 死 IS that
+date's state; replanted as a real change it fails. Vacuity: the loop
+gutted to one date fails the readings pin; one check deleted from the
+block fails the count pin. Off-lattice single-date mutants survive, as
+stated. The nine text fields' only guard on base was the register
+sweep's character total — a length checksum — so a same-length
+corruption walked through every test in the suite; it now fails two.
+
+**Cost, said plainly.** The file that #240 made 3× cheaper got slower
+again: 640–654ms → 815–840ms of test time on this machine (+28%), one
+PR after the PR that existed to cut it. Rank in the suite unchanged
+(third); suite wall clock unchanged (~8s). The two new walks are the
+price of value pins on 1,985 dates × 58 checks, and this entry records
+it rather than rounding it away (Lane A LOW-2).
+
+**Contract.** Test-only: `tests/public.test.js` goes 46 → 51 tests (the
+sweep, its positive control, two registry pins, one sentinel), the
+suite 2,135 → 2,140. Same data, same dates, same product code. No
+doctrine claim changes, no version bump (precedent #227, #231, #240).
+The `test`, `product-audit` and `l48-gate` checks apply; the artifact
+`audits/claude_relay_pr241_premerge_audit_2026-09-05_response.md`
+carries both lanes' reports and the reconciliation.
 
 **Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
 tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;
-neither is near the budget. `tests/pii_scan.test.js`'s merge-conflict
-probe at ~400ms, worth a look only if that file ever matters. The
+`public.test.js` is third and now the one to watch if it grows again.
+A second coprime-stride walk of the block (Lane B: ~140ms, lattice
+coverage 2.7% → 5.4%) is cheap and was not taken — it shrinks the
+unwalked gap without closing it, and the controller can order it. The
 friend's rising/moon reading, still waiting on a birth time.
 `next_strategic_read` (due 2026-08-13) and `next_analytics_read`
 (due 2026-08-06), both overdue.
