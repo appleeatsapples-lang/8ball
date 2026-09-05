@@ -88,7 +88,7 @@ done the deployed product is the free complete single sheet with no
 offer and no dyad for anyone; this is not production-ready as a store.**
 The L48 artifact is filed with PR #242 (the reconciled two-lane response, below).
 
-**Test surface.** `tests/dyad_entitlement.test.js` (new, 31 tests)
+**Test surface.** `tests/dyad_entitlement.test.js` (new, 35 tests after the audit)
 drives the token, the storage contract and the CLI end to end with a
 throwaway key pair generated per run: every forged / tampered /
 wrong-key / wrong-product / unconfigured / no-crypto path fails closed;
@@ -108,9 +108,9 @@ resolves t3). The privacy allow-list adds the one key. The auditor's
 blocking `product.t4_migration` probe is the entitlement contract end
 to end — legacy unsigned t5 → t3 without a write, tampered token
 refused, signed token → t5 stored, scrub retires the tier key and keeps
-the entitlement — with ten assurance mutants each failing by name.
-Suite **62 files / 2184 tests green**; assurance **126 OK**; product
-audit **PASS, 0 blocking**.
+the entitlement — with nine assurance mutants each failing by name.
+Suite **62 files / 2192 tests green** (2184 before the audit); assurance
+**126 OK**; product audit **PASS, 0 blocking**.
 
 **Live-fire (§8 gate 9), in-container Chromium at 390 wide.** Fresh
 device: 16 of 16 open, written entry and domain fit filled, zero sealed
@@ -126,6 +126,67 @@ relation render, close blanks B, nothing of B in storage; reload with no
 url → still entitled from the stored token; five open/close cycles
 consume nothing; a forged link on the entitled device → still t5. Zero
 console errors throughout.
+
+**Two-lane audit (§10 / L48): both MERGE WITH FIXES, all fixes landed.**
+Two independent lanes took the diff at `013a0f3`/`605d154`, each in its
+own worktree, each with live-fire and planted mutants (Lane A 34, Lane
+B 8). Neither found a way to reach `t5` or render the dyad from any
+unsigned, forged, replayed-legacy, hand-written, wrong-key, wrong-product
+or malformed input; every mutant that would have was killed. Lane A
+diffed the rendered `#result` at `t3` against a forced `t5`: the only
+byte difference in 13.8 KB is the `hidden` attribute on the entry
+control — the single sheet is provably not re-locked. What they found
+was about what the build SAYS and what the launch DOES:
+
+*HIGH (Lane A) — the unconfigured build withdrew the dyad from every
+current visitor while the about modal and README advertised a $3
+Gumroad checkout that was not on the page.* The about paragraph now
+follows the offer's own predicate: the static markup ships a closed
+line ("not on sale on this build", no price, no processor) visible and
+the open line ($3 · Gumroad · the access link) hidden, and
+`ui/dyad.js syncDyadAboutCopy` swaps them only on a configured build.
+README made tense-honest. Whether to merge before or after the launch
+steps is the controller's call and is named in the launch doc.
+
+*HIGH (Lane A) — the launch checklist said `npm test` stays green with
+the constants filled. It did not: the amendment's own steps 1–2 turned
+five tests red, one of them a wrong expectation (the CLI exit code for a
+foreign-key token).* Every state pin now states the contract of the
+build's actual state (`CONFIGURED`), the CLI pin expects exit 2
+unconditionally, and the claim was PROVEN rather than asserted: 2192
+green with the constants empty, 2192 green with a test url and a
+throwaway key filled in.
+
+*MED (Lane A) — the "person B never persisted" test never rendered B*:
+`open()` blanks the seeded entry, so three iterations exercised a
+failed submit. It re-seeds and asserts the render now. *MED (Lane A) —
+nothing constrained the sale id*, so an operator slip could sign an
+email into a permanent link; the id shape `[A-Za-z0-9_+/=-]{1,64}` is
+enforced on both sides and an email is refused by the signer and the
+verifier alike. *MED (Lane A) — forget-device leaves the token and the
+copy implied totality*; the copy now says so ("a purchase, not
+paperwork"); a release control for shared devices is open work. *MED
+(Lane A) — the never-downgrade invariant had no test that could fail*
+(two planted downgrades survived, masked by a valid stored token
+re-granting); a fresh-module test earns t5, then fails both verify
+paths with no valid token anywhere, and the flag must still read true —
+both mutants die. *MED (Lane B) — an entitled device opening a bad link
+was told its purchase failed*; it is now told the link did not verify
+and the dyad is already filed. *MED (Lane B) — the offer copy phrased a
+manual step as automatic*; "the operator sends an access link".
+
+*LOW, all landed:* the `?sent=1` handler stripped the whole query before
+boot read it, eating an access token that shared the url (the url is
+captured once, before any handler); the keep-for-retry url now carries
+exactly `?dyad=<token>`, the retired parameter stripped beside it; the
+disclosure note's contrast raised from 4.13:1 to AA; the anchor carries
+`aria-describedby` to its note and drops a no-op `rel`; the
+signature-length and token-length caps are pinned against a verifier
+that says yes to anything; `submitSecond`'s own gate is pinned as
+refusing before validation or build; the one assurance mutant that
+asserted status only now asserts the probe's message; "ten mutants" was
+nine, and "nothing in between" overstated the about copy — both
+corrected in the clause.
 
 **Constitution.** DOCTRINE v0.81 in the §4.B stack (nine-point clause:
 resolver, offer, verified entitlement, the bearer boundary, the one key,

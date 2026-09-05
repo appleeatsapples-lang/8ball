@@ -215,6 +215,17 @@ describe('the resolver — the complete single sheet for every device; the dyad 
     // pr242 audit (Lane B M1): an entitled device opening a bad link is told
     // the link failed AND that nothing was lost — never the bare rejection.
     expect(body).toMatch(/entitlement\.granted \? DYAD_ALREADY_FILED_MESSAGE : DYAD_REJECTED_MESSAGE/);
+    // pr242 audit (Lane A LOW-1): the url is read ONCE, before the `?sent=1`
+    // handler strips the whole query — boot never reads location.search itself
+    expect(html.indexOf('const bootSearch = window.location.search;')).toBeGreaterThan(-1);
+    expect(html.indexOf('const bootSearch = window.location.search;')).toBeLessThan(html.indexOf("get('sent') === '1'"));
+    expect(body).toMatch(/const search = bootSearch;/);
+    expect(body).not.toMatch(/window\.location\.search/);
+    // pr242 audit (Lane A LOW-2 / M25): a verified link that could not be
+    // stored is KEPT for the retry — as exactly `?dyad=<token>`, the retired
+    // parameter beside it stripped
+    expect(body).toMatch(/const keepUrl = returnToken !== null && entitlement\.granted\s*&& entitlement\.source === 'return' && !entitlement\.stored;/);
+    expect(body).toMatch(/keepUrl\s*\? `\$\{window\.location\.pathname\}\?dyad=\$\{encodeURIComponent\(returnToken\)\}`\s*: window\.location\.pathname/);
   });
 });
 
@@ -354,9 +365,23 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).toMatch(/as many readings as you like/);
   });
 
-  it('names the dyad as the one paid surface with its price, permanence and what it is', () => {
-    expect(aboutSubtree).toMatch(/the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: \$3 once, permanent, unlimited\./);
+  it('names the dyad as the one paid surface with its price, permanence and what it is — in the OPEN paragraph, hidden until a build is configured', () => {
+    expect(aboutSubtree).toMatch(/<p id="about-dyad-open" hidden>the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: \$3 once, permanent, unlimited\./);
     expect(aboutSubtree).not.toMatch(/paired read is there for any two dates/);
+  });
+
+  it('while unconfigured the visible paragraph names no price and no processor — the page never advertises a checkout it cannot honour (pr242 audit, Lane A HIGH-1)', () => {
+    const closed = aboutSubtree.match(/<p id="about-dyad-closed">([\s\S]*?)<\/p>/);
+    expect(closed).not.toBeNull();
+    expect(closed[1]).not.toMatch(/\$\d|gumroad|checkout|once/);
+    expect(closed[1]).toMatch(/is the one part of 8ball that is not free, and it is not on sale on this build/);
+    expect(closed[1]).toMatch(/nothing about the second person is ever saved/);
+  });
+
+  it('the forget-device copy says what stays: a filed dyad access (pr242 audit, Lane A MED-3)', () => {
+    const forget = html.match(/<p id="forget-copy">([\s\S]*?)<\/p>/);
+    expect(forget).not.toBeNull();
+    expect(forget[1]).toMatch(/a filed dyad access stays on this device — it is a purchase, not paperwork\./);
   });
 
   it('negates the retired shapes in one breath — subscription, account, counter', () => {

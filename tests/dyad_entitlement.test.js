@@ -20,7 +20,7 @@
 //     verification never deletes a stored token (no downgrade);
 //   · every failure mode fails CLOSED (no Web Crypto, no configured key).
 
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -28,7 +28,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   DYAD_PRODUCT_URL, DYAD_PUBLIC_KEYS, TOKEN_VERSION, TOKEN_PRODUCT,
-  parseDyadToken, verifyDyadToken, signDyadToken,
+  parseDyadToken, verifyDyadToken, signDyadToken, isSaleId,
   returnTokenFrom, hasLegacyPaidParam,
   base64urlEncode, base64urlDecode,
 } from '../core/entitlement.js';
@@ -84,19 +84,31 @@ beforeAll(async () => {
 
 // ── the shipped configuration ─────────────────────────────────────
 
-describe('shipped configuration — empty, and fail-closed while empty', () => {
-  it('ships with no product url and no public key — the controller fills both, nothing is invented here', () => {
-    expect(DYAD_PRODUCT_URL).toBe('');
-    expect(DYAD_PUBLIC_KEYS).toEqual([]);
+// The two constants are either BOTH empty (the unconfigured build this PR
+// ships) or BOTH filled (the controller's launch steps 1–2 done). Every pin
+// below states the contract of the state the checkout is actually in, so
+// the suite stays green across the launch instead of teaching the operator
+// that red is expected (pr242 audit, Lane A HIGH-2).
+const CONFIGURED = DYAD_PRODUCT_URL !== '';
+
+describe(`shipped configuration — ${CONFIGURED ? 'configured' : 'empty'}, and fail-closed either way`, () => {
+  it('the two constants move together — a url without a key or a key without a url is a half-launch', () => {
+    expect(DYAD_PUBLIC_KEYS.length > 0).toBe(CONFIGURED);
     expect(Object.isFrozen(DYAD_PUBLIC_KEYS)).toBe(true);
   });
 
-  it('a token that would verify under a configured key is refused while the list is empty', async () => {
-    expect(await verifyDyadToken(token)).toEqual({ ok: false, reason: 'unconfigured' });
+  it('while unconfigured: no url, no key, nothing is invented here', () => {
+    if (CONFIGURED) return;
+    expect(DYAD_PRODUCT_URL).toBe('');
+    expect(DYAD_PUBLIC_KEYS).toEqual([]);
+  });
+
+  it('a token signed under a key that is NOT configured is refused — unconfigured while the list is empty, unverified once it is not', async () => {
+    expect(await verifyDyadToken(token)).toEqual({ ok: false, reason: CONFIGURED ? 'unverified' : 'unconfigured' });
   });
 
   it('a configured url must be a bare Gumroad Buy Link — no query, no tracking', () => {
-    if (DYAD_PRODUCT_URL === '') return;
+    if (!CONFIGURED) return;
     expect(DYAD_PRODUCT_URL).toMatch(/^https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+$/);
   });
 
@@ -205,11 +217,32 @@ describe('the token — shape, signature, and every way it fails closed', () => 
     expect((await verifyDyadToken(token, { keys: 'not-a-list' })).ok).toBe(false);
   });
 
-  it('the signer refuses a personal-looking or oversized id and the token carries only id + time', async () => {
-    await expect(signDyadToken({ id: '' }, K.privateJwk)).rejects.toThrow();
-    await expect(signDyadToken({ id: 'x'.repeat(65) }, K.privateJwk)).rejects.toThrow();
+  it('the sale id is an identifier shape on BOTH sides — an email, a name or a sentence can neither be signed nor verified (pr242 audit, Lane A MED-2)', async () => {
+    const personal = ['', 'x'.repeat(65), 'alice.smith@example.com', 'alice smith', 'Alice Smith 1990-05-15',
+      'sale 0001', 'sale#1', 'sale:1', 'sale.1', '\u00e9'];
+    for (const id of personal) {
+      expect(isSaleId(id), JSON.stringify(id)).toBe(false);
+      await expect(signDyadToken({ id }, K.privateJwk), JSON.stringify(id)).rejects.toThrow();
+      // and a token carrying one, signed by other means, is malformed before any crypto
+      const raw = await signRaw({ v: 1, p: 'dyad', id, iat: 1_757_000_000 }, K.privateJwk);
+      expect(await verifyDyadToken(raw, { keys: [K.publicJwk] }), JSON.stringify(id)).toEqual({ ok: false, reason: 'malformed' });
+    }
+    // Gumroad's own id shapes pass: hex, and url-safe base64 with padding
+    for (const id of ['sale_0004', 'FO8TXN-dvxYbBbahG97Y-Q==', 'a1b2c3d4e5f6', 'x']) {
+      expect(isSaleId(id), id).toBe(true);
+    }
     const t = await signDyadToken({ id: 'sale_0004' }, K.privateJwk);
     expect(Object.keys(parseDyadToken(t).payload).sort()).toEqual(['iat', 'id', 'p', 'v']);
+  });
+
+  it('a token over the length cap is malformed before any crypto runs — even against a verifier that says yes to anything (pr242 audit, Lane A LOW-6)', async () => {
+    const yes = { importKey: async () => ({}), verify: async () => true };
+    const [, s] = token.split('.');
+    const bigPayload = base64urlEncode(new TextEncoder().encode(JSON.stringify({ v: 1, p: 'dyad', id: 'sale_big', iat: 1, pad: 'x'.repeat(1000) })));
+    const big = `${bigPayload}.${s}`;
+    expect(big.length).toBeGreaterThan(1024);
+    expect(parseDyadToken(big)).toEqual({ ok: false, reason: 'malformed' });
+    expect(await verifyDyadToken(big, { keys: [K.publicJwk], subtle: yes })).toEqual({ ok: false, reason: 'malformed' });
   });
 });
 
@@ -365,6 +398,35 @@ describe('resolveDyadEntitlement — grants only on a verified token, stores it,
     }
   });
 
+  it('never downgrades, on a FRESH module: a failed return verify and a failed stored verify both leave an earned t5 standing (pr242 audit, Lane A MED-4)', async () => {
+    // The module holds its flag as a singleton, so the two tests above cannot
+    // see a transient downgrade masked by a valid stored token re-granting.
+    // A fresh module instance can: earn t5 once, then fail both verify paths
+    // with NO valid token anywhere, and the flag must still read true.
+    vi.resetModules();
+    const fresh = await import('../ui/payments.js');
+    const storage = mockStorage();
+    globalThis.localStorage = storage;
+    expect(fresh.getRenderTier()).toBe('t3');
+    expect((await fresh.resolveDyadEntitlement({ returnToken: token, keys: [K.publicJwk] })).granted).toBe(true);
+    expect(fresh.isDyadEntitled()).toBe(true);
+    // the stored token is now replaced by garbage (a hostile or corrupt write)
+    storage.setItem(DYAD_KEY, 'garbage.token');
+    const badReturn = await fresh.resolveDyadEntitlement({ returnToken: 'forged.link', keys: [K.publicJwk] });
+    expect(badReturn.granted).toBe(true);
+    expect(fresh.isDyadEntitled()).toBe(true);
+    expect(fresh.getRenderTier()).toBe('t5');
+    const badStored = await fresh.resolveDyadEntitlement({ keys: [K.publicJwk] });
+    expect(badStored.granted).toBe(true);
+    expect(fresh.isDyadEntitled()).toBe(true);
+    // and the environment failures, same module, same answer
+    for (const opts of [{ keys: [] }, { keys: [K.publicJwk], subtle: null }, { returnToken: token, keys: [] }]) {
+      await fresh.resolveDyadEntitlement(opts);
+      expect(fresh.isDyadEntitled(), JSON.stringify(Object.keys(opts))).toBe(true);
+    }
+    vi.resetModules();
+  });
+
   it('a verified link on a device with blocked storage is entitled for the visit and reports stored:false so the host can retry', async () => {
     globalThis.localStorage = {
       getItem: () => { throw new Error('blocked'); },
@@ -418,10 +480,14 @@ describe('scripts/dyad_entitlement.mjs — keygen, sign, verify agree with the r
     }
   });
 
-  it('verify against the SHIPPED configuration is exit 2 while no key is configured (fail closed, end to end)', () => {
+  it('verify against the SHIPPED configuration is exit 2 for a foreign-key token — unconfigured or configured alike (fail closed, end to end)', () => {
+    // The token is signed by this run's throwaway key, which is never the
+    // configured one; the CLI must refuse it in every state of the build.
     let code = 0;
+    let out = '';
     try { run(['verify', '--token', token], { stdio: 'pipe' }); }
-    catch (e) { code = e.status; }
-    expect(code).toBe(DYAD_PUBLIC_KEYS.length === 0 ? 2 : 0);
+    catch (e) { code = e.status; out = String(e.stdout || ''); }
+    expect(code).toBe(2);
+    expect(out).toMatch(CONFIGURED ? /unverified/ : /unconfigured/);
   });
 });

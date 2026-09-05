@@ -1583,6 +1583,7 @@ class FreeCeilingProbeTests(unittest.TestCase):
             "return entitled || localStorage.getItem('eight_ball_tier_v1') === 't5' ? 't5' : 't3';")
         chk = self.run_probe_with(src)
         self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("legacy unsigned", chk["output"])
 
     def test_resolver_that_writes_storage_fails(self):
         src = self.GOOD.replace(

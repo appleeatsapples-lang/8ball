@@ -208,7 +208,7 @@ const STYLE = `
 .result-controls #dyad-offer-link[hidden] { display: none; }
 #dyad-offer-link .dyad-offer-head { display: block; }
 #dyad-offer-link .dyad-offer-body { display: block; font-size: 0.72rem; opacity: 0.7; text-transform: none; letter-spacing: 0; margin-top: 2px; }
-.result-controls #dyad-offer-note { grid-column: 1 / -1; font-size: 0.72rem; opacity: 0.6; line-height: 1.4; margin: 6px 0 0; text-align: left; }
+.result-controls #dyad-offer-note { grid-column: 1 / -1; font-size: 0.72rem; opacity: 0.85; line-height: 1.4; margin: 6px 0 0; text-align: left; }
 .result-controls #dyad-offer-note[hidden] { display: none; }
 #dyad-screen .dyad-intro { margin: 0 0 1rem; }
 #dyad-screen .dyad-field { margin-bottom: 0.75rem; }
@@ -653,6 +653,9 @@ function injectOffer(controls) {
   link.className = 'btn btn-block btn-secondary';
   link.id = 'dyad-offer-link';
   link.setAttribute('target', '_self');
+  // the §5.B disclosure is the anchor's description for assistive tech
+  // (pr242 audit, Lane A LOW-4)
+  link.setAttribute('aria-describedby', 'dyad-offer-note');
   link.hidden = true;
   const head = document.createElement('span');
   head.className = 'dyad-offer-head';
@@ -664,11 +667,28 @@ function injectOffer(controls) {
   link.appendChild(body);
   controls.appendChild(link);
   const note = document.createElement('p');
-  note.className = 'hint';
+  note.className = 'dyad-offer-note';
   note.id = 'dyad-offer-note';
   note.textContent = DYAD_OFFER_COPY.note;
   note.hidden = true;
   controls.appendChild(note);
+}
+
+/**
+ * The about modal's commerce paragraph follows the SAME predicate as the
+ * offer (pr242 audit, Lane A HIGH-1): while no product url is configured
+ * the page must not name a price or a processor it cannot honour, so the
+ * static markup ships the closed paragraph visible and the open paragraph
+ * hidden, and this reveals the open one only on a configured build. The
+ * two are complementary — never both shown, never both hidden.
+ */
+export function syncDyadAboutCopy(url = DYAD_PRODUCT_URL) {
+  const configured = typeof url === 'string' && url.length > 0;
+  const open = $('about-dyad-open');
+  const closed = $('about-dyad-closed');
+  if (open) open.hidden = !configured;
+  if (closed) closed.hidden = configured;
+  return configured;
 }
 
 /**
@@ -733,6 +753,7 @@ export function initDyadUI(refs, hooks) {
   const dobEl = $('dyad-dob-input');
   if (dobEl) dobEl.max = todayIsoLocal();
   injectEntryButton(refs.controls);
+  syncDyadAboutCopy();
   _sheetA = createSheet(_root, { prefix: 'a' });
   _sheetB = createSheet(_root, { prefix: 'b' });
   markPairedCells();

@@ -39,6 +39,7 @@ import {
   dyadEntitled,
   dyadEntryVisible,
   dyadOfferVisible,
+  syncDyadAboutCopy,
   DYAD_OFFER_COPY,
   formatDyadRelation,
   dyadRelationFor,
@@ -60,6 +61,7 @@ import {
   anchorFacetIndex,
 } from '../core/payments.js';
 import { getFacetSlot, getFreshFacetSlot, FACET_KEY } from '../ui/payments.js';
+import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
 import {
   TIER_COORDS, CELL_KEYS, CELL_COORD, coordsForTier, tierDensitySummary,
   newlyEntitledCells, cellRenderState,
@@ -421,9 +423,12 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     }
     expect(dyadOfferVisible('t5', url)).toBe(false);
     // The default argument is the shipped constant — empty until the
-    // controller creates the product, so the shipped build presents no
-    // offer and no entry to a device that has not verified a token.
-    expect(dyadOfferVisible('t3')).toBe(false);
+    // controller creates the product (no offer, no entry for an unverified
+    // device), a live Buy Link after (the offer). The pin follows the
+    // build's state so the launch does not turn it red (pr242 audit, Lane
+    // A HIGH-2).
+    expect(dyadOfferVisible('t3')).toBe(DYAD_PRODUCT_URL !== '');
+    expect(dyadOfferVisible('t5')).toBe(false);
   });
 
   it('the offer copy is exactly the two registry-voice lines and the disclosure — no score, no verdict, no urgency', () => {
@@ -471,12 +476,53 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(h.get('dyad-open-btn').hidden).toBe(false);
   });
 
-  it('with the product url empty the shipped build presents NEITHER control to an unentitled device (fail closed)', () => {
+  it('the shipped constant decides: an unentitled device sees NEITHER control while the url is empty, the offer once it is filled', () => {
     const h = harness('t3');
-    h.withDom(() => syncDyadEntry('t3'));
+    // injected hidden AND without an href — never a reachable checkout
+    // before the first sync (pr242 audit, Lane A M28)
     expect(h.get('dyad-offer-link').hidden).toBe(true);
     expect(h.get('dyad-offer-link').attrs.href).toBeUndefined();
+    h.withDom(() => syncDyadEntry('t3'));
+    const configured = DYAD_PRODUCT_URL !== '';
+    expect(h.get('dyad-offer-link').hidden).toBe(!configured);
+    expect(h.get('dyad-offer-link').attrs.href).toBe(configured ? DYAD_PRODUCT_URL : undefined);
     expect(h.get('dyad-open-btn').hidden).toBe(true);
+  });
+
+  it('the about modal\'s commerce paragraph follows the offer predicate — closed line visible and open line hidden while unconfigured, swapped when configured (pr242 audit, Lane A HIGH-1)', () => {
+    const open = makeNode('p'); open.hidden = true;
+    const closed = makeNode('p');
+    const prior = globalThis.document;
+    globalThis.document = { getElementById: id => ({ 'about-dyad-open': open, 'about-dyad-closed': closed })[id] || null };
+    try {
+      expect(syncDyadAboutCopy('')).toBe(false);
+      expect(open.hidden).toBe(true); expect(closed.hidden).toBe(false);
+      expect(syncDyadAboutCopy('https://example.test/l/dyad')).toBe(true);
+      expect(open.hidden).toBe(false); expect(closed.hidden).toBe(true);
+      expect(syncDyadAboutCopy(null)).toBe(false);
+      expect(open.hidden).toBe(true); expect(closed.hidden).toBe(false);
+      // the default argument is the shipped constant
+      expect(syncDyadAboutCopy()).toBe(DYAD_PRODUCT_URL !== '');
+    } finally { globalThis.document = prior; }
+    // and the static markup ships the unconfigured state: closed visible, open hidden,
+    // the price and the processor ONLY inside the open paragraph
+    const closedP = html.match(/<p id="about-dyad-closed"([^>]*)>([\s\S]*?)<\/p>/);
+    const openP = html.match(/<p id="about-dyad-open"([^>]*)>([\s\S]*?)<\/p>/);
+    expect(closedP).not.toBeNull(); expect(openP).not.toBeNull();
+    expect(closedP[1]).not.toMatch(/hidden/);
+    expect(openP[1]).toMatch(/\bhidden\b/);
+    expect(closedP[2]).not.toMatch(/\$\d|gumroad|checkout/);
+    expect(closedP[2]).toMatch(/not on sale on this build/);
+    expect(openP[2]).toMatch(/\$3 once, permanent, unlimited/);
+    expect(openP[2]).toMatch(/gumroad/);
+    expect(dyadJs).toMatch(/syncDyadAboutCopy\(\);/); // called at init
+  });
+
+  it('below t5 submitSecond refuses BEFORE validation or build — the gate is its own, not the render gate\'s shadow (pr242 audit, Lane A LOW-6)', () => {
+    const built = [];
+    const h = harness('t3', { buildSecond: p => { built.push(p); return B; }, validate: () => { built.push('validated'); return { ok: true }; } });
+    expect(h.withDom(() => submitSecond())).toBe(false);
+    expect(built).toEqual([]);
   });
 
   it('the module carries the one price string and no retired product slug', () => {
@@ -498,7 +544,14 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     try {
       const h = harness('t5');
       for (let i = 0; i < 3; i++) {
-        h.withDom(() => { openDyad(); submitSecond(); closeDyad(); });
+        // open() blanks the typed entry, so re-seed it — otherwise this loop
+        // only ever exercises a FAILED submit (pr242 audit, Lane A MED-1)
+        h.withDom(() => openDyad());
+        entryFor(h);
+        expect(h.withDom(() => submitSecond()), `render ${i}`).toBe(true);
+        expect(h.get('dyad-head-b').textContent).toBe(B.firstName || 'b');
+        h.withDom(() => closeDyad());
+        expect(h.get('dyad-head-b').textContent).toBe('');
       }
       expect([...store.entries()]).toEqual([['eight_ball_labels_revealed_v1', 'false']]);
       expect(JSON.stringify([...store.values()])).not.toMatch(/specimen b|1988-06-15/);

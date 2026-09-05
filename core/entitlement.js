@@ -58,6 +58,15 @@ const SIGN_ALGO = Object.freeze({ name: 'ECDSA', namedCurve: 'P-256' });
 const VERIFY_ALGO = Object.freeze({ name: 'ECDSA', hash: 'SHA-256' });
 const MAX_TOKEN_LENGTH = 1024;
 const MAX_ID_LENGTH = 64;
+// The sale id is a Gumroad sale IDENTIFIER, never anything about a person.
+// The shape is enforced on both sides (sign and parse), not left to
+// convention: `@`, `.` and whitespace are excluded precisely so an email or
+// a name cannot be signed into a link that lives in a url and in storage
+// permanently (pr242 audit, Lane A MED-2).
+const SALE_ID_RE = /^[A-Za-z0-9_+/=-]{1,64}$/;
+export function isSaleId(id) {
+  return typeof id === 'string' && id.length <= MAX_ID_LENGTH && SALE_ID_RE.test(id);
+}
 
 // ── base64url, without depending on atob/btoa quirks ──────────────
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -115,9 +124,7 @@ export function parseDyadToken(token) {
   catch (_) { return { ok: false, reason: 'malformed' }; }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, reason: 'malformed' };
   if (payload.v !== TOKEN_VERSION || payload.p !== TOKEN_PRODUCT) return { ok: false, reason: 'malformed' };
-  if (typeof payload.id !== 'string' || payload.id.length === 0 || payload.id.length > MAX_ID_LENGTH) {
-    return { ok: false, reason: 'malformed' };
-  }
+  if (!isSaleId(payload.id)) return { ok: false, reason: 'malformed' };
   if (!Number.isInteger(payload.iat) || payload.iat <= 0) return { ok: false, reason: 'malformed' };
   return { ok: true, payload, payloadBytes, signature };
 }
@@ -179,7 +186,7 @@ export async function verifyDyadToken(token, { keys = DYAD_PUBLIC_KEYS, subtle }
 export async function signDyadToken({ id, iat = Math.floor(Date.now() / 1000) }, privateJwk, { subtle } = {}) {
   const s = subtleFrom(subtle);
   if (!s) throw new Error('Web Crypto unavailable');
-  if (typeof id !== 'string' || id.length === 0 || id.length > MAX_ID_LENGTH) throw new Error('bad sale id');
+  if (!isSaleId(id)) throw new Error('bad sale id: a Gumroad sale identifier only ([A-Za-z0-9_+/=-], 1-64 chars) — never a name or an email');
   const payload = { v: TOKEN_VERSION, p: TOKEN_PRODUCT, id, iat };
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
   const key = await s.importKey('jwk', privateJwk, SIGN_ALGO, false, ['sign']);

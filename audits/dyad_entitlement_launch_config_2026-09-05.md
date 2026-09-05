@@ -80,8 +80,11 @@ node scripts/dyad_entitlement.mjs sign --key ~/dev/8ball-private/dyad_signing_ke
   buyer at the email used at checkout, through Gumroad's own
   contact-buyer surface (the product never sees the email; §5.B).
 - The sale id is Gumroad's identifier from the sale record — never the
-  buyer's name or email. It is the only thing in the token besides a
-  timestamp, and it exists so a shared link is attributable to a sale.
+  buyer's name or email. The shape `[A-Za-z0-9_+/=-]{1,64}` is enforced by
+  both `sign` and the verifier, so an email or a name is refused rather
+  than signed into a link that lives in a url and in storage. It is the
+  only thing in the token besides a timestamp, and it exists so a shared
+  link is attributable to a sale.
 - Opening the link on any device files the dyad there. The buyer keeps
   the link to use a second device. There is no counter, nothing to
   consume, nothing to renew.
@@ -104,6 +107,13 @@ both OUTSIDE this amendment and need their own doctrine decision:
 - Forged, altered, truncated, unsigned or wrong-key links grant nothing.
   Hand-editing local storage grants nothing (the stored token is
   re-verified). The unsigned `?paid=t5` grants nothing.
+- **The about modal tracks the build.** While the constants are empty the
+  modal says the dyad is not on sale on this build and names no price or
+  processor; the $3 / Gumroad paragraph appears only once the url is set.
+  Merging this PR before the steps above therefore closes the dyad for
+  every current visitor (v0.71 had it open to all) and says so honestly.
+  The controller may prefer to merge AFTER steps 1–2 so the open paragraph
+  and the offer appear on the same deploy that closes the free dyad.
 - **A valid link is a bearer credential.** With no server there is no
   one-time use, no revocation and no device binding. Anyone who obtains
   a buyer's link can use it. This is honest offline verification; it is
@@ -135,8 +145,11 @@ both OUTSIDE this amendment and need their own doctrine decision:
       `DYAD_PRODUCT_URL`
 - [ ] key pair generated; public JWK set in `DYAD_PUBLIC_KEYS`; private
       key stored outside the repo
-- [ ] `npm test` green with both constants filled (the shape pins in
-      `tests/dyad_entitlement.test.js` run against the real values)
+- [ ] `npm test` green with both constants filled — every pin follows the
+      build's state (`CONFIGURED` in `tests/dyad_entitlement.test.js`; the
+      shape pins then run against the real values). Proven before merge:
+      62 files / 2192 tests green with the constants empty AND with a test
+      url + throwaway key filled in.
 - [ ] one end-to-end trial: `sign` a test id, open the link on a fresh
       browser profile, see `dyad · filed on this device.`, open the dyad,
       reload, still open; open `?paid=t5` on another fresh profile, see
