@@ -898,4 +898,39 @@ describe('readings — the host panel closes before this screen takes over (§1.
     h.refs.openBtn._fire('click');
     expect(h.page.classList.contains('hidden')).toBe(false);
   });
+
+  it('reopening from Concordance via the global button preserves origin — back lands on the sheet, not onboarding', () => {
+    // result visible -> Previous Readings -> choose two -> Compare Selected ->
+    // Concordance -> global Previous Readings (topbar button, still
+    // hit-testable while Concordance covers the stage) -> Back. Concordance
+    // hides `page` as part of ordinary navigation, so a naive
+    // `page.classList.contains('hidden')` check at the second open would
+    // read "readings was never active" and re-derive origin from
+    // `result.classList.contains('hidden')` — `result` itself is HIDDEN at
+    // this point (Previous Readings hid it on its FIRST open, back at the
+    // top of this sequence), so that re-derivation lands on `onboarding` —
+    // losing the fact that a readings surface (Concordance) was the active
+    // screen and that `origin` was already correctly captured as `result`.
+    const storage = makeStorage();
+    seed(storage, [
+      entry('reading-a', 'ada', '2026-07-01T10:00:00.000Z', '1988-03-04'),
+      entry('reading-b', 'bea', '2026-07-02T10:00:00.000Z', '1991-11-30'),
+    ]);
+    const h = boot({ storage, resultVisible: true, hooks: { compareReadings: () => ({ axes: [], omitted: [] }) } });
+    h.refs.openBtn._fire('click');
+    for (const box of checkboxes(h)) { box.checked = true; h.list._fire('change', { target: box }); }
+    h.compareBtn._fire('click');
+    expect(h.comparison.classList.contains('hidden')).toBe(false);
+    expect(h.page.classList.contains('hidden')).toBe(true);
+
+    h.refs.openBtn._fire('click'); // global Previous Readings, from Concordance
+
+    expect(h.page.classList.contains('hidden')).toBe(false);
+    expect(h.comparison.classList.contains('hidden')).toBe(true);
+
+    h.page.querySelector('#readings-back')._fire('click');
+
+    expect(h.refs.result.classList.contains('hidden')).toBe(false);
+    expect(h.refs.onboarding.classList.contains('hidden')).toBe(true);
+  });
 });

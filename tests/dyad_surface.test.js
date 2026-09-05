@@ -28,7 +28,15 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
+vi.mock('../core/cities.js', () => ({
+  searchCities: vi.fn(),
+  warmCities: vi.fn(),
+  // Real semantics reproduced (not stubbed to a constant): the module under
+  // test branches its retry copy on this predicate, so a mock that always
+  // answered the same way could never distinguish the two rejection tests
+  // below from each other.
+  isCityLoadExhausted: err => Boolean(err && err.code === 'CITY_LOAD_EXHAUSTED'),
+}));
 
 import { makeClassList } from './helpers/dom.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
@@ -74,7 +82,7 @@ import { buildProfile } from '../core/profile.js';
 import { getCard } from '../core/engine.js';
 import { CARDS } from '../content/cards.v1.full.js';
 import { publicReadFor } from '../ui/public.js';
-import { searchCities } from '../core/cities.js';
+import { searchCities, isCityLoadExhausted } from '../core/cities.js';
 import { buildPairImprintSnapshot, buildPairImprintSVG, buildPairImprintCaption, PAIR_IMPRINT_ALLOW } from '../ui/pairShare.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -196,8 +204,8 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
 // `data-sheet-*` cells are individually addressable.
 
 function makeNode(tag = 'div') {
-  return {
-    tag, textContent: '', value: '', hidden: false, innerHTML: '',
+  const node = {
+    tag, textContent: '', value: '', hidden: false,
     focusCalls: [], scrollCalls: [],
     classList: makeClassList(), attrs: {}, listeners: {}, children: [],
     style: { setProperty() {}, removeProperty() {} },
@@ -209,6 +217,16 @@ function makeNode(tag = 'div') {
     focus(opts) { this.focusCalls.push(opts); },
     scrollIntoView(opts) { this.scrollCalls.push(opts); },
   };
+  // A real innerHTML=''/appendChild pair (ui/citysearch.js's own
+  // clearSuggestions()) must actually clear `.children` — real DOM
+  // semantics, and load-bearing for any test that drives the search field
+  // through more than one result set in a single case.
+  let _innerHTML = '';
+  Object.defineProperty(node, 'innerHTML', {
+    get() { return _innerHTML; },
+    set(v) { _innerHTML = v; node.children = []; },
+  });
+  return node;
 }
 
 // Parse the ids and data-sheet-* hooks out of the injected markup so the
@@ -228,7 +246,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   const ids = [
     'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
     'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
-    'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
+    'dyad-city-input', 'dyad-city-suggestions', 'dyad-city-status', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
     // v0.76: the paired sheets' labels toggle, compartment hint and panel
@@ -962,7 +980,35 @@ describe('dyad surface — F3: one validation contract, both forms', () => {
     const markup = readFileSync(join(REPO_ROOT, 'ui', 'dyad.js'), 'utf-8');
     expect(markup).toContain('dyad-city-input');
     expect(markup).toContain('dyad-city-suggestions');
+    expect(markup).toContain('dyad-city-status');
     expect(markup).toContain('dyad-polar-message');
+  });
+
+  it('the city input is described by dyad-city-status ONLY — not unconditionally by the static hidden polar notice', () => {
+    // W3C accessible-description semantics: a hidden node named by
+    // aria-describedby is still INCLUDED in the computed description, so
+    // wiring dyad-polar-message into aria-describedby would tell every
+    // nonpolar reader "rising unavailable at this latitude" on every visit,
+    // even while the <p> itself stays visually hidden. dyad-city-status
+    // alone carries the description; the polar notice stays a live region
+    // (role=status/aria-live=polite/aria-atomic=true) that announces on its
+    // own when citysearch.js's selectCity() reveals it — announced OR
+    // programmatically associated, never both, and never while empty/hidden.
+    expect(dyadJs).toMatch(
+      /id="dyad-city-input"[^>]*aria-describedby="dyad-city-status">/,
+    );
+    // The negative pin: this exact malformed shape (both ids on one
+    // aria-describedby) must never reappear — this is the regression this
+    // correction fixes, and the mutation target a no-match-only assertion
+    // above cannot catch on its own.
+    expect(dyadJs).not.toMatch(/aria-describedby="dyad-city-status dyad-polar-message"/);
+    expect(dyadJs).not.toMatch(/aria-describedby="[^"]*dyad-polar-message/);
+    expect(dyadJs).toMatch(
+      /<p class="city-status" id="dyad-city-status" role="status" aria-live="polite" aria-atomic="true" hidden><\/p>/,
+    );
+    expect(dyadJs).toMatch(
+      /<p class="polar-message" id="dyad-polar-message" role="status" aria-live="polite" aria-atomic="true" hidden>/,
+    );
   });
 
   it('ui/citysearch.js is per-instance, so a second field cannot hijack the first (G3)', async () => {
@@ -1448,6 +1494,212 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
     } finally {
       globalThis.document = outer;
     }
+  });
+});
+
+// ── the birthplace field's real citysearch wiring: recovery copy, retry,
+//    keyboard selection, and the unselected/replaced-city privacy guard ──
+//
+// Pair Imprint remediation, Part C: dyad-city-status is a new, initially
+// hidden status node — the SOLE aria-describedby target of dyad-city-input
+// (the polar notice is deliberately left OFF that list per the correction
+// above: a hidden node is still part of the computed accessible description,
+// so unconditionally referencing it would announce "rising unavailable" to
+// every nonpolar reader) — that ui/citysearch.js already knows how to drive.
+// This exercises the REAL wiring (initCitySearchUI, searchCities mocked at
+// the module boundary only), never a stub of the value under test.
+describe('dyad surface — birthplace field: recovery, retry, and keyboard selection (real citysearch wiring)', () => {
+  const CITY = { name: 'Accra', country: 'Ghana', countryCode: 'GH', lat: 5.6, lng: -0.19, tz: 'Africa/Accra' };
+  const OTHER_CITY = { name: 'Odense', country: 'Denmark', countryCode: 'DK', lat: 55.4, lng: 10.4, tz: 'Europe/Copenhagen' };
+
+  // The document swap stays installed for the WHOLE async sequence (the
+  // proven shape the "city payload regression" describe block above already
+  // uses) — a per-call swap-then-restore helper would restore the real
+  // document before the debounced searchCities() continuation (which calls
+  // document.createElement('li') from inside a timer callback) ever runs.
+  async function typeAndSettle(inst, query) {
+    const cityInput = inst.get('dyad-city-input');
+    cityInput.value = query;
+    cityInput.listeners.input();
+    await vi.advanceTimersByTimeAsync(200); // > SEARCH_DEBOUNCE_MS
+  }
+
+  it('an empty result set shows no-match guidance on dyad-city-status, not the polar notice', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([]);
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      await typeAndSettle(inst, 'zz');
+      const status = inst.get('dyad-city-status');
+      expect(status.hidden).toBe(false);
+      expect(status.textContent).toBe('no matching birthplace found · try another spelling or nearby city.');
+      expect(inst.get('dyad-city-input').attrs['aria-expanded']).toBe('false');
+      expect(inst.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('a rejected lookup surfaces retry guidance — transient vs exhausted copy, matching isCityLoadExhausted', async () => {
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(new Error('transient network blip'));
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-status').hidden).toBe(false);
+      expect(inst.get('dyad-city-status').textContent)
+        .toBe('birthplace lookup unavailable · type again to retry.');
+
+      const exhausted = new Error('city dataset load attempts exhausted');
+      exhausted.code = 'CITY_LOAD_EXHAUSTED';
+      expect(isCityLoadExhausted(exhausted)).toBe(true);
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(exhausted);
+      await typeAndSettle(inst, 'ac2');
+      expect(inst.get('dyad-city-status').textContent)
+        .toBe('birthplace lookup unavailable · reload this page to try again.');
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('retyping after a rejection retries and can succeed — the status clears and suggestions render', async () => {
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(new Error('boom'));
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-status').hidden).toBe(false);
+
+      searchCities.mockReset();
+      searchCities.mockResolvedValue([CITY]);
+      await typeAndSettle(inst, 'acc');
+      expect(inst.get('dyad-city-status').hidden).toBe(true);
+      expect(inst.get('dyad-city-status').textContent).toBe('');
+      expect(inst.get('dyad-city-suggestions').children.length).toBe(1);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('ArrowDown then Enter selects the active suggestion — aria-expanded/activedescendant track the real selection', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([CITY, OTHER_CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      await typeAndSettle(inst, 'a place');
+      const cityInput = inst.get('dyad-city-input');
+      const suggestions = inst.get('dyad-city-suggestions');
+      expect(suggestions.children.length).toBe(2);
+      expect(cityInput.attrs['aria-expanded']).toBe('true');
+      expect(cityInput.attrs['aria-activedescendant']).toBeUndefined();
+
+      cityInput.listeners.keydown({ key: 'ArrowDown', preventDefault() {} });
+      expect(cityInput.attrs['aria-activedescendant']).toBe(suggestions.children[0].id);
+      expect(suggestions.children[0].attrs['aria-selected']).toBe('true');
+      expect(suggestions.children[1].attrs['aria-selected']).toBe('false');
+
+      cityInput.listeners.keydown({ key: 'Enter', preventDefault() {} });
+      // A real selection: the listbox collapses, the field carries the
+      // formatted label, and the SAME city reaches buildSecond's payload —
+      // never a second, independently-typed source of truth.
+      expect(cityInput.attrs['aria-expanded']).toBe('false');
+      expect(cityInput.value).toBe('Accra, Ghana');
+      expect(suggestions.children.length).toBe(0);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+      expect(captured.city).toBe(CITY.name);
+      expect(captured.cc).toBe(CITY.countryCode);
+      expect(captured.tz).toBe(CITY.tz);
+      expect(captured.lat).toBe(CITY.lat);
+      expect(captured.lng).toBe(CITY.lng);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('a typed-but-unselected location never silently reaches buildSecond — no city/cc/tz/lat/lng in the payload', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      // Typed, results rendered, but NEVER selected (no mousedown/Enter).
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-suggestions').children.length).toBe(1);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+    expect(captured).not.toBeNull();
+    expect(captured).not.toHaveProperty('city');
+    expect(captured).not.toHaveProperty('cc');
+    expect(captured).not.toHaveProperty('tz');
+    expect(captured).not.toHaveProperty('lat');
+    expect(captured).not.toHaveProperty('lng');
+  });
+
+  it('replacing a previously selected place by retyping also drops it — the stale selection cannot survive an edit', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValueOnce([CITY]).mockResolvedValueOnce([OTHER_CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      const cityInput = inst.get('dyad-city-input');
+      const suggestions = inst.get('dyad-city-suggestions');
+      await typeAndSettle(inst, 'ac');
+      suggestions.children[0].listeners.mousedown({ preventDefault() {} });
+      expect(cityInput.value).toBe('Accra, Ghana');
+
+      // Now retype over the selected label WITHOUT picking a new option —
+      // onInput() must drop the stale selection immediately, not just once
+      // a new one is chosen.
+      await typeAndSettle(inst, 'od');
+      expect(suggestions.children.length).toBe(1);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+    // Never Accra's fields, and never silently blended with the new query
+    // either — a typed-but-unselected retype carries nothing.
+    expect(captured).not.toHaveProperty('city');
+    expect(captured).not.toHaveProperty('cc');
+    expect(captured).not.toHaveProperty('tz');
+    expect(captured).not.toHaveProperty('lat');
+    expect(captured).not.toHaveProperty('lng');
   });
 });
 

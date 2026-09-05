@@ -23,7 +23,15 @@
 // `document.getElementById`, one `result`/`onboarding` pair, and one stage.
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
+
+vi.mock('../core/cities.js', () => ({
+  searchCities: vi.fn(),
+  warmCities: vi.fn(),
+  isCityLoadExhausted: err => Boolean(err && err.code === 'CITY_LOAD_EXHAUSTED'),
+}));
+
 import { makeClassList } from './helpers/dom.js';
+import { searchCities } from '../core/cities.js';
 import { initPairShareUI, pairShareStatusMessage } from '../ui/pairShare.js';
 import {
   DYAD_RELATION_NODES, DYAD_AXIS_IDS,
@@ -302,7 +310,7 @@ function buildIntegrationHarness({ rasterLog } = {}) {
   const dyadIds = [
     'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
     'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
-    'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
+    'dyad-city-input', 'dyad-city-suggestions', 'dyad-city-status', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-spine', 'dyad-spine-wrap', 'dyad-sheets',
     'dyad-labels-toggle', 'dyad-meaning-hint', 'dyad-meaning-panel',
@@ -892,6 +900,123 @@ describe('fourteenth remediation gate, B1 — a held native-share promise for A 
     } finally {
       if (savedNav) Object.defineProperty(globalThis, 'navigator', savedNav);
       else delete globalThis.navigator;
+    }
+  });
+});
+
+// Pair Imprint remediation, Part C: the birthplace field's polar carve-out,
+// driven through the REAL buildSecond -> buildProfile path (not a stubbed
+// second profile), so Rising's polar null and Moon's independent resolution
+// are the engine's own outputs, exercised through the real citysearch
+// wiring — never a hand-computed expectation asserted against a mock.
+describe('birthplace field — polar city resolves Moon but not Rising; the notice hides on reset/compare-another/open/reselect', () => {
+  const POLAR_CITY = { name: 'Ny-Alesund', country: 'Svalbard and Jan Mayen', countryCode: 'SJ', lat: 78.9, lng: 11.9, tz: 'Arctic/Longyearbyen' };
+  const NONPOLAR_CITY = { name: 'Accra', country: 'Ghana', countryCode: 'GH', lat: 5.6, lng: -0.19, tz: 'Africa/Accra' };
+
+  async function selectCity(h, city, query) {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([city]);
+    const cityInput = h.get('dyad-city-input');
+    h.withDom(() => { cityInput.value = query; cityInput.listeners.input(); });
+    await vi.advanceTimersByTimeAsync(200); // > citysearch's 150ms debounce
+    const suggestions = h.get('dyad-city-suggestions');
+    h.withDom(() => suggestions.children[0].listeners.mousedown({ preventDefault() {} }));
+  }
+
+  it('a polar birthplace with a valid time: Rising stays unresolved, Moon resolves, and the polar notice shows', async () => {
+    const h = buildIntegrationHarness();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => openDyad());
+      await selectCity(h, POLAR_CITY, 'ny');
+      expect(h.get('dyad-polar-message').hidden).toBe(false);
+
+      h.withDom(() => {
+        h.get('dyad-name-input').value = 'specimen b';
+        h.get('dyad-dob-input').value = '1988-06-15';
+        h.get('dyad-time-input').value = '10:15';
+        return submitSecond();
+      });
+
+      const risingCell = h.cell('b', 'rising');
+      const risingRoot = risingCell.closest('.coord-cell');
+      expect(risingCell.textContent).toBe('—'); // unresolved dash (F4: PLAIN_VALUE.rising -> null at polar latitudes)
+      expect(risingRoot.classList.contains('unres')).toBe(true);
+
+      const moonCell = h.cell('b', 'moon');
+      const moonRoot = moonCell.closest('.coord-cell');
+      expect(moonCell.textContent).not.toBe('');
+      expect(moonCell.textContent).not.toBe('—');
+      expect(moonRoot.classList.contains('unres')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('closing the screen ("back to my sheet") hides the polar notice', async () => {
+    const h = buildIntegrationHarness();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => openDyad());
+      await selectCity(h, POLAR_CITY, 'ny');
+      expect(h.get('dyad-polar-message').hidden).toBe(false);
+
+      h.withDom(() => closeDyad());
+      expect(h.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('compare another hides the polar notice', async () => {
+    const h = buildIntegrationHarness();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => openDyad());
+      await selectCity(h, POLAR_CITY, 'ny');
+      h.withDom(() => {
+        h.get('dyad-name-input').value = 'specimen b';
+        h.get('dyad-dob-input').value = '1988-06-15';
+        h.get('dyad-time-input').value = '10:15';
+        return submitSecond();
+      });
+      expect(h.get('dyad-polar-message').hidden).toBe(false);
+
+      h.withDom(() => dyadCompareAnother());
+      expect(h.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reopening the screen starts with the polar notice hidden', async () => {
+    const h = buildIntegrationHarness();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => openDyad());
+      await selectCity(h, POLAR_CITY, 'ny');
+      expect(h.get('dyad-polar-message').hidden).toBe(false);
+
+      h.withDom(() => closeDyad());
+      h.withDom(() => openDyad());
+      expect(h.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('selecting a non-polar city after a polar one hides the notice', async () => {
+    const h = buildIntegrationHarness();
+    vi.useFakeTimers();
+    try {
+      h.withDom(() => openDyad());
+      await selectCity(h, POLAR_CITY, 'ny');
+      expect(h.get('dyad-polar-message').hidden).toBe(false);
+
+      await selectCity(h, NONPOLAR_CITY, 'ac');
+      expect(h.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
     }
   });
 });

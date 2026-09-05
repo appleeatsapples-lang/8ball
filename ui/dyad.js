@@ -528,9 +528,11 @@ const SCREEN_HTML =
   '<div class="field dyad-field"><label for="dyad-time-input">second birth time (optional)</label>' +
   '<input id="dyad-time-input" type="time"></div>' +
   '<div class="field city-field dyad-field"><label for="dyad-city-input">second birthplace (optional)</label>' +
-  '<input id="dyad-city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false">' +
+  '<input id="dyad-city-input" type="text" placeholder="type a city" autocomplete="off" spellcheck="false" ' +
+  'aria-describedby="dyad-city-status">' +
   '<ul class="city-suggestions" id="dyad-city-suggestions" role="listbox" aria-label="city suggestions"></ul>' +
-  '<p class="polar-message" id="dyad-polar-message" hidden>rising unavailable at this latitude.</p></div>' +
+  '<p class="city-status" id="dyad-city-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>' +
+  '<p class="polar-message" id="dyad-polar-message" role="status" aria-live="polite" aria-atomic="true" hidden>rising unavailable at this latitude.</p></div>' +
   '<button type="submit" class="btn btn-block" id="dyad-submit">read the pair</button>' +
   '</form>' +
   '<div id="dyad-output" role="region" aria-label="paired reading" tabindex="-1" hidden>' +
@@ -1146,7 +1148,10 @@ export function initDyadUI(refs, hooks) {
   const cityInput = $('dyad-city-input');
   if (cityInput) {
     _cityUI = initCitySearchUI(
-      { cityInput, citySuggestions: $('dyad-city-suggestions'), polarMessage: $('dyad-polar-message') },
+      {
+        cityInput, citySuggestions: $('dyad-city-suggestions'),
+        polarMessage: $('dyad-polar-message'), cityStatus: $('dyad-city-status'),
+      },
       { setSelectedCity: c => { _city = c; } },
     );
   }

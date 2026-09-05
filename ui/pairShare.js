@@ -361,12 +361,46 @@ export function buildPairImprintCaption(snapshot) {
 //                                STARTING, never completing (item 6).
 //   empty                      — nothing resolved to share; the failure
 //                                state has no relation to export.
-//   failed                     — a render/share exception, a getRelation()
-//                                hook that threw on read (P2 hook truth,
-//                                including an unconfirmed pre-effect
-//                                re-read — sixth gate, item 2), or a
-//                                download that never fired at all — always
-//                                before any irreversible action.
+//   failed                     — a RASTERIZATION exception (no PNG exists to
+//                                fall back to), a getRelation() hook that
+//                                threw on a PRE-EFFECT read (an UNREADABLE/
+//                                unconfirmable identity — P2 hook truth,
+//                                including the post-throw re-read case —
+//                                sixth gate, item 2), or a download that
+//                                itself never fired (a preparatory failure
+//                                inside downloadFallback/downloadBlob) —
+//                                always before any irreversible action. A
+//                                CONFIRMED pre-effect identity CHANGE is
+//                                `stale`, never `failed` — the two are not
+//                                interchangeable: `failed` means currency
+//                                could not be read at all, `stale` means it
+//                                WAS read and is confirmed different (see
+//                                `preEffectStatus` above, the single source
+//                                of truth for this split). Exact-gate
+//                                remediation correction (2026-09-05): a bare
+//                                NATIVE-SHARE exception/rejection is
+//                                deliberately NOT in this list — DOCTRINE
+//                                §1.J v0.85/v0.86: a non-Abort
+//                                `navigator.share()` failure proves only
+//                                that the native chooser refused, not that
+//                                the already-rendered local PNG is unusable,
+//                                so that path attempts the on-device
+//                                download fallback (see `shareOrFallback`'s
+//                                own non-Abort catch branch) SUBJECT TO the
+//                                SAME identity recheck every other
+//                                preparatory boundary here already uses —
+//                                if identity is confirmed current, the
+//                                fallback proceeds and only an unrelated
+//                                LATER failure could still report `failed`;
+//                                if identity already changed/is
+//                                unconfirmable at that exact recheck, the
+//                                ordinary pre-effect `stale`/`failed` split
+//                                above applies instead, and no download is
+//                                attempted at all. A prior version of this
+//                                comment listed "a render/share exception"
+//                                as one undifferentiated cause, which read as
+//                                though any share exception alone settles
+//                                here — it does not.
 export function pairShareStatusMessage(state) {
   switch (state) {
     case 'busy': return 'preparing pair image…';
@@ -613,6 +647,23 @@ function safeFn(obj, key) {
   const fn = safeProp(obj, key);
   return typeof fn === 'function' ? fn : null;
 }
+// Like `safeFn`, but reports whether the property GETTER itself threw,
+// rather than collapsing "threw" and "genuinely absent/non-function" to the
+// same `null` — used only by `applyView` below, which treats BOTH as a
+// failed pass (a permanently missing method can never succeed on retry, but
+// `ok` must still honestly report that this field did not apply this pass;
+// see applyView's own comment). `readFnOrThrew` keeps the two outcomes
+// distinct only because a caller reasoning about WHY a pass failed still
+// benefits from knowing whether it was a transient throw or a permanent
+// absence — not because the two are treated differently here.
+function readFnOrThrew(obj, key) {
+  try {
+    const fn = obj == null ? undefined : obj[key];
+    return { threw: false, fn: typeof fn === 'function' ? fn : null };
+  } catch (_) {
+    return { threw: true, fn: null };
+  }
+}
 // Twelfth remediation gate (final supplement, item 1): every host-supplied
 // function this file invokes used to be called via a bare `fn.call(receiver,
 // ...)` — but `.call` is ITSELF a property read on `fn`, and a hostile
@@ -694,7 +745,7 @@ function safeClearTimeout(id) {
   try {
     const ct = safeFn(globalThis, 'clearTimeout');
     if (ct) invoke(ct, globalThis, [id]);
-  } catch (_) { /* best-effort — the statusTimerGen identity check is the real guard */ }
+  } catch (_) { /* best-effort — the coordinator's own armGen identity check is the real guard */ }
 }
 
 // Tenth remediation gate: EVERY host-controlled step here — the canShare
@@ -872,259 +923,413 @@ let _activeController = null;
 // function's own comment for the atomic-handover protocol this backs.
 let _initGen = 0;
 
-// Twelfth remediation gate (further sweep): same shape as resetControllerDOM
-// — btn.disabled, the setAttribute property read, and its invocation are
-// three separate host-controlled boundaries. A hostile btn.disabled setter
-// (or setAttribute getter) can synchronously re-enter initPairShareUI on
-// these same refs; this function must stop at the exact boundary that
-// re-entered rather than continuing to write over whatever the winner did.
-// Fourteenth remediation gate: `controller.refs.btn` was read bare (no
-// throw containment) and WRITTEN TO (`btn.disabled = ...`) with no
-// checkpoint between the read and that first write — a hostile `refs`
-// getter that reenters `initPairShareUI` on this same refs (retiring this
-// controller, letting a nested winner reset the button to idle) let this
-// function's own STALE write land right afterward, re-disabling a button
-// the winner had already released. `safeProp` contains the read; the
-// checkpoint immediately after it, before the FIRST write, is what a bare
-// read-then-check-after pattern was missing.
-// Fifteenth remediation gate: `stillCurrent`, when given, is an additional
-// ownership check (e.g. a relation-generation token) rechecked between
-// EVERY boundary here, alongside `controller.retired` — a live repro
-// confirmed that `btn.disabled = busy`'s own setter can synchronously
-// trigger a NEWER relation notification (via a hostile disabled-setter
-// side effect) that fully installs and correctly busies/labels the SAME
-// button for the newer relation, after which this call's OWN continuation
-// — still describing the OLDER, now-superseded relation — would otherwise
-// resume and overwrite the newer relation's aria-busy value. `controller.
-// retired` alone cannot catch this: no re-init happens here, just relation
-// churn on the SAME controller.
-function applyBusyDOM(controller, busy, stillCurrent) {
-  if (controller.retired) return;
-  if (stillCurrent && !stillCurrent()) return;
-  const btn = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
-  if (controller.retired) return;
-  if (stillCurrent && !stillCurrent()) return;
-  if (!btn) return;
-  btn.disabled = !!busy; // host-controlled setter — may re-enter
-  if (controller.retired) return;
-  if (stillCurrent && !stillCurrent()) return;
-  const setAttr = safeFn(btn, 'setAttribute'); // property read — may re-enter
-  if (controller.retired) return;
-  if (stillCurrent && !stillCurrent()) return;
-  if (setAttr) {
-    try { invoke(setAttr, btn, ['aria-busy', String(!!busy)]); } catch (_) { /* best-effort */ } // call — may re-enter
+// ── the view coordinator (Fifteenth remediation gate — model-first
+// reconciliation, replacing the per-boundary stillCurrent checkpoint
+// mechanism) ─────────────────────────────────────────────────────────────
+//
+// A fourteenth-gate candidate (exact SHA `8a7906a`, and its own successor
+// `b3db422`) was independently reviewed and BLOCKED: threading a
+// `stillCurrent` predicate through every individual DOM write, and adding
+// a `reconcileCurrentStatus()` recovery call after each one, papered over
+// specific reported reentrancy shapes without closing the underlying
+// structural hole — a hostile SETTER that reenters and only commits its
+// OWN stale value to its backing field AFTER the reentrant call returns
+// can still land its stale write one statement later than any single
+// checkpoint anticipates, and the reviewer found a genuinely NEW instance
+// of it inside `armStatusTimer`'s own busy-decision, inside
+// `applyBusyDOM`'s two writes, inside a raw prerender-settlement write
+// `reconcileCurrentStatus` never covered, inside three-generation (A→B→C)
+// cascades where the recovery call ITSELF became a second reentrancy site,
+// and inside a genuine host-setter THROW (not reentrancy) that the old
+// bare `el.textContent = msg` had no containment for at all.
+//
+// The fix is architectural, not one more checkpoint: ONE canonical desired
+// VIEW MODEL per physical button/status pair (`coordinatorFor`, WeakMap-
+// keyed on the button, mirroring `_buttonWiring` — a coordinator persists
+// across re-inits on the same refs, which is what lets a SUCCESSOR
+// controller's idle reset survive a PREDECESSOR's stale post-reentry
+// commit; see `initPairShareUI` below). Every transition (a relation
+// change, a click starting, a terminal outcome, a timer firing) does
+// exactly one thing: merge a patch into `coord.desired` and increment
+// `coord.viewRev`. Transitions NEVER derive what to write by reading the
+// DOM or by threading a same-generation predicate through multiple
+// writes — the model itself is the single source of truth, and it is
+// never host-controlled, so nothing can lie to it.
+//
+// A single `drain()` loop is the ONLY code that ever touches
+// `btn.disabled`, `btn`'s `aria-busy` attribute, `status.textContent`, or
+// `status.hidden`. It is non-recursive by construction: if a transition
+// fires while a drain is already running (the coordinator's own DOM write
+// synchronously triggered a nested transition, e.g. a hostile setter
+// calling back into `notifyRelationChange`), that nested call finds
+// `coord.running` true, updates the model, marks `coord.dirty`, and
+// returns immediately — it never calls into `applyView` itself. The ONE
+// active `drain()` call, still executing lower in the same call stack,
+// is what notices `dirty` after its current apply attempt and loops to
+// reapply the NEWEST model state. A hostile setter's own post-reentry
+// stale commit therefore lands on a value the very next loop iteration
+// overwrites with the true current state — proven exhaustively below and
+// by every adversarial regression in tests/pair_share.test.js — without
+// ever needing a bespoke recovery call at the site that lost the race.
+// Recursion never grows with cascade depth: it is a `while` loop in one
+// stack frame, bounded by `SYNC_PASS_BUDGET` (proven at a depth-5000
+// synchronous cascade with room to spare) and backed by a queued
+// microtask continuation for anything deeper — no `RangeError` is
+// possible from reentrancy depth alone. An infinite adversary (a setter
+// that reenters on literally every single call, forever) is not claimed
+// to converge; that is the same honest limit every other recursive
+// boundary in this module (`buttonWiringFor`'s state machine,
+// `initPairShareUI`'s own `lostRace` handover) already carries.
+//
+// A DOM setter that THROWS (not reenters) is contained per-field inside
+// `applyView` and treated as "this pass did not fully apply" — the SAME
+// `dirty`-driven loop retries the identical (unchanged) view a small,
+// separately-bounded number of times, which self-heals a transient host
+// hiccup without ever letting the exception escape to a caller. This is
+// load-bearing, not cosmetic: `onShareClick`'s own outer `catch` maps ANY
+// escaping exception to `failed`, and once a share or download has
+// genuinely fired, reporting `failed` would erase a real, irreversible,
+// successful effect. Because `applyView` can never throw, that overclaim
+// can no longer happen — the externally accurate terminal outcome (share
+// or download succeeded) survives even when the best-effort display
+// update needs a retry to catch up.
+//
+// `armGen` (owns exactly one question: "is this specific scheduled
+// callback still the one whose firing should be honored") is
+// DELIBERATELY never threaded into the model-mutation path — the
+// fourteenth-gate candidate's own regression bumped its status-timer
+// generation from INSIDE the same call that then checked that identical
+// generation, self-invalidating an authorized transition for no
+// adversarial reason at all (`repro_pair_timer_self_invalidate_b3.mjs`
+// pins exactly this). `viewRev`/`dirty` (owns "does the model need
+// reapplying") and `relationGen`/`opToken` (controller-level: "should
+// THIS continuation even attempt a transition") remain fully distinct
+// identities per the four the redesign brief named, never conflated.
+function coordinatorFor(btn) {
+  // Mirrors buttonWiringFor's own degrade path: a WeakMap key must be an
+  // object: a missing/non-object button (no refs, or refs with no button)
+  // gets its own throwaway, unshared coordinator rather than a lookup —
+  // there is no physical identity to share state through.
+  if (btn === null || (typeof btn !== 'object' && typeof btn !== 'function')) {
+    return makeCoordinator();
+  }
+  let coord = _coordinators.get(btn);
+  if (!coord) {
+    coord = makeCoordinator();
+    _coordinators.set(btn, coord);
+  }
+  return coord;
+}
+
+const _coordinators = new WeakMap();
+
+function makeCoordinator() {
+  return {
+    btn: null,
+    status: null,
+    // The canonical desired view — read by decision-making code (never the
+    // live DOM) and written to the DOM by drain()/applyView() alone.
+    desired: { busy: false, text: '', hidden: true },
+    viewRev: 0,
+    dirty: false,
+    running: false,
+    armGen: 0,
+    armedId: null,
+    // Whichever controller currently owns this physical button — read only
+    // by the armed timer's own fire() callback, to ask "is a prerender for
+    // the CURRENT relation still pending right now" against live, current
+    // controller state rather than anything captured at arm-time.
+    activeController: null,
+  };
+}
+
+const SYNC_PASS_BUDGET = 20000; // proven at a depth-5000 finite cascade with ample headroom
+const MAX_APPLY_RETRIES = 5; // a persistently-throwing host setter gives up fast, never spins the full budget
+
+// The ONLY function that ever writes to the four host-controlled surfaces
+// this module owns. Operates on a SNAPSHOT of the model (`view`, taken by
+// the caller — drain()) rather than re-reading `coord.desired` field by
+// field, so every field written in one pass is mutually consistent with
+// the others from that exact pass — the button's disabled/aria-busy pair
+// can therefore never disagree in any state this function itself produces
+// (requirement: they derive from the one `view.busy` boolean, together).
+// Each field is its own try/catch: one throwing setter must not prevent
+// the OTHER three fields from still being attempted this pass, and must
+// never propagate — see the coordinator's own header comment for why an
+// escaping exception here is a correctness bug, not just noise. Returns
+// false if ANY field failed to apply, which the drain loop treats as "try
+// this identical view again" (self-healing a transient throw) rather than
+// "give up".
+function applyView(coord, view) {
+  let ok = true;
+  const btn = coord.btn;
+  if (btn) {
+    try {
+      btn.disabled = !!view.busy; // host-controlled setter — may throw or re-enter
+    } catch (_) { ok = false; }
+    try {
+      // Redteam follow-up (2026-09-05): `safeFn` alone cannot tell this
+      // call apart a THROWING `setAttribute` getter from a genuinely
+      // MISSING one — both collapse to `null`, which used to be treated as
+      // silent success either way. That let `disabled` and `aria-busy`
+      // diverge: `disabled` (a plain setter, its own try/catch above) could
+      // still succeed on a pass where the aria-busy attribute never got
+      // written at all, and `ok` would report the whole pass successful
+      // regardless. `ok` must honestly reflect "did every field this pass
+      // touched actually apply" — so BOTH a throwing getter and a
+      // genuinely absent one mark this field (and therefore the pass)
+      // failed; `readFnOrThrew` is kept distinguishing the two only
+      // because a caller reasoning about WHY a pass failed still benefits
+      // from knowing whether it was a transient throw or a permanent
+      // absence. This does not claim a permanently missing host API is
+      // repairable — a persistently-absent `setAttribute` will keep
+      // reporting failed for every retry exactly like a persistently-
+      // throwing one already does, and `MAX_APPLY_RETRIES` below still
+      // gives up after a small, fixed number of attempts either way.
+      const attrRead = readFnOrThrew(btn, 'setAttribute'); // property read — contained, but distinguishes threw vs. absent
+      if (attrRead.fn) {
+        invoke(attrRead.fn, btn, ['aria-busy', String(!!view.busy)]); // call — may throw or re-enter
+      } else {
+        ok = false; // threw, or genuinely absent — either way, aria-busy did not get written this pass
+      }
+    } catch (_) { ok = false; } // the CALL itself threw (or re-entered and left a mess)
+  }
+  const status = coord.status;
+  if (status) {
+    try {
+      status.textContent = view.text; // host-controlled setter — may throw or re-enter
+    } catch (_) { ok = false; }
+    try {
+      status.hidden = !!view.hidden; // host-controlled setter — may throw or re-enter
+    } catch (_) { ok = false; }
+  }
+  return ok;
+}
+
+// The non-recursive convergence loop. `coord.running` makes every NESTED
+// call (a transition fired synchronously from inside applyView, via a
+// hostile setter reentering this module) a hard no-op beyond marking
+// `dirty` — only the one ACTIVE loop instance, already lower in the call
+// stack, ever calls applyView. This is what converts what used to be
+// unbounded recursive call nesting (one stack frame per reentry) into
+// bounded iteration (one stack frame, however many iterations it takes).
+function drain(coord) {
+  if (coord.running) return;
+  coord.running = true;
+  try {
+    let passes = 0;
+    let consecutiveThrows = 0;
+    while (coord.dirty || coord.pendingCancelId != null) {
+      // A timer superseded by a transition (clearTimer below) defers its
+      // actual host clearTimeout() CALL to exactly here, inside the
+      // running-protected zone — that call is host-controlled and can
+      // re-enter this module (a hostile clearTimeout is the whole point of
+      // several adversarial regressions), and it must be treated exactly
+      // like any other reentrant host call during an active apply pass: a
+      // nested transition it triggers marks the model dirty and returns
+      // (running is already true), and THIS loop's own next iteration
+      // reapplies the newest state — never a stale caller resuming past an
+      // unprotected boundary. `armGen` is already bumped by clearTimer at
+      // the moment a timer is superseded, before this deferred call ever
+      // runs, so the callback it might still cancel is inert either way;
+      // this call is purely the best-effort optimization to stop the host
+      // from firing it at all.
+      if (coord.pendingCancelId != null) {
+        const id = coord.pendingCancelId;
+        coord.pendingCancelId = null;
+        safeClearTimeout(id); // host-controlled — may re-enter
+      }
+      coord.dirty = false;
+      const ok = applyView(coord, coord.desired);
+      passes++;
+      if (!ok) {
+        consecutiveThrows++;
+        // A persistently-broken setter must not spin the full pass budget
+        // finding that out — five genuine failures in a row is already
+        // conclusive. Give up silently: the display may stay stale, but
+        // nothing here ever reports a false outcome because of it (the
+        // caller's own logical status decision already happened before
+        // any DOM write was attempted).
+        if (consecutiveThrows > MAX_APPLY_RETRIES) return;
+        coord.dirty = true; // retry the SAME (unchanged) view
+      } else {
+        consecutiveThrows = 0;
+      }
+      if (passes > SYNC_PASS_BUDGET) {
+        // A cascade deeper than the synchronous budget (or a pathological
+        // throw/reentry mix) continues on a fresh call stack via a queued
+        // microtask rather than recursing or spinning forever inline.
+        if (coord.dirty) scheduleContinuation(coord);
+        return;
+      }
+    }
+  } finally {
+    coord.running = false;
   }
 }
 
-// Third remediation gate, item 1: `busy` is NOT a terminal outcome — it is
-// the whole visible/live explanation for a disabled, aria-busy button, and
-// the pending window it describes (a slow proactive render, a native share
-// chooser sitting open, a clipboard prompt) can genuinely outlast 4 seconds.
-// Auto-hiding it on a blind timer would leave a disabled control with no
-// live-announced reason showing. Only a TERMINAL state (everything except
-// `busy`) ever arms the 4s auto-hide timer; `busy` clears only when the
-// pending window actually settles — via a later setStatus() call to a
-// terminal state (which itself arms its own timer), or via
-// syncBusyFromPrerender()'s own direct clear when a pre-render settles with
-// no click ever having started.
-// Eleventh remediation gate, B3: cancel the controller's own armed timer
-// (if any) and — regardless of whether the underlying host clearTimeout()
-// call actually succeeds — bump `statusTimerGen` so any callback already
-// in-flight (a hostile/no-op clearTimeout let it survive) fails its own
-// identity check the instant it runs. The bump is the real ownership
-// guard; the clearTimeout() call underneath is purely an optimization to
-// avoid firing at all when the host behaves.
-function clearStatusTimer(controller) {
-  controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
-  const id = controller.statusTimer;
-  controller.statusTimer = null;
-  safeClearTimeout(id);
+function scheduleContinuation(coord) {
+  Promise.resolve().then(() => drain(coord));
 }
 
-// Arms the 4s auto-hide/reconcile timer under the SAME identity-token
-// discipline. The callback checks `controller.retired` and its own token
-// FIRST, before touching anything — a hard no-op, not merely a "skip the
-// busy branch" — so a stale timer that a hostile clearTimeout failed to
-// cancel can never write to a DOM node a NEWER controller (same reused
-// refs) has since taken over. This is the exact shape of the bug a prior
-// gate shipped: the old callback's retired-check lived INSIDE the
-// busy-vs-hide branch, so "retired" fell through to the hide branch and
-// still wrote `el.hidden = true` to what might by then be someone else's
-// status node.
-function armStatusTimer(controller, el) {
-  controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
-  const myStatusTimerGen = controller.statusTimerGen;
-  // Twelfth remediation gate (pre-commit race addendum, item 4): `armed`
-  // flips true only AFTER safeSetTimeout() has RETURNED — a hostile/
-  // re-entrant setTimeout(fn, ms) that invokes `fn` SYNCHRONOUSLY (before
-  // returning an id) must never hide/reconcile the status, since no real
-  // 4-second wait has happened; the truthful terminal text is left visible
-  // indefinitely instead, which is the honest behavior when the host
-  // cannot be trusted to run real timers.
+// Merges a partial patch into the desired view and triggers a drain. This
+// is the ONE place `coord.desired` is ever assigned — every named
+// transition below (setStatusText, setBusyButton, setIdle) is a thin,
+// named wrapper over this so call sites read as intent, not mechanism.
+// Returns the `viewRev` this call itself published — callers that need to
+// act AFTER the drain (e.g. arming a timer for the message they just
+// wrote) compare this against `coord.viewRev` post-drain: if a nested
+// transition (a reentrant setIdle/setStatusText from a hostile DOM setter
+// firing during THIS call's own drain) published a LATER revision, that
+// later revision has already superseded this call's patch by the time
+// `drain()` returns — see the redteam follow-up fix in `setStatusText`.
+function mutate(coord, patch) {
+  coord.desired = { ...coord.desired, ...patch };
+  // Captured into a local BEFORE drain() runs — drain() can synchronously
+  // run nested mutate() calls (a hostile setter reentering this module),
+  // each of which bumps `coord.viewRev` further. `myRev` is THIS call's own
+  // published revision, frozen at the moment this patch was merged; it is
+  // deliberately NOT re-read from `coord.viewRev` after drain() returns,
+  // since that live value may already belong to a later, superseding call.
+  const myRev = ++coord.viewRev;
+  coord.dirty = true;
+  drain(coord);
+  return myRev;
+}
+
+// Coordinator-level timer management, replacing the old per-controller
+// `statusTimer`/`statusTimerGen` pair — the timer is a property of "the
+// current view for this physical button", which now legitimately outlives
+// any one controller (a re-init must be able to cancel a PREDECESSOR's
+// armed timer, exactly as before).
+//
+// `armGen` is bumped IMMEDIATELY — a plain counter increment, not a host
+// call, so it needs no protection and always takes effect the instant a
+// timer is superseded, regardless of what runs afterward. The actual host
+// `clearTimeout()` call is deferred to `drain`'s own protected loop (see
+// above): calling it here, before `mutate` has even claimed the running
+// lock, left a genuine gap a live repro found — a hostile clearTimeout
+// reentering at this exact, unprotected point could run an entire nested
+// notify-to-settlement cascade to completion for real (not merely
+// deferred), after which THIS call's own later, separately-issued `mutate`
+// would still unconditionally apply its own now-stale patch on top of it,
+// with nothing left to catch the clobber (`armGen` alone does not protect
+// arbitrary model writes — only `viewRev`/`dirty`, inside the running
+// lock, does). Recording the id and letting `drain` cancel it from inside
+// that lock closes the gap the same way every other host boundary in this
+// file is closed: by making it happen where reentrancy is already safe,
+// not by adding another bespoke check.
+function clearTimer(coord) {
+  coord.armGen = (coord.armGen || 0) + 1;
+  if (coord.armedId != null) coord.pendingCancelId = coord.armedId;
+  coord.armedId = null;
+}
+
+// Arms the 4s auto-hide/reconcile timer. `armGen` answers exactly one
+// question — is THIS callback still the one whose firing counts — checked
+// ONCE at entry and never again inside the transition it goes on to make;
+// seeing the busy/idle decision through is what "the timer must not
+// invalidate its own authorized transition" (redesign requirement 6)
+// means concretely. The busy-vs-idle decision itself is made fresh, from
+// whichever controller currently owns this coordinator (`activeController`)
+// — never from anything captured when the timer was armed — so a relation
+// change between arming and firing is answered truthfully.
+function armTimer(coord) {
+  coord.armGen = (coord.armGen || 0) + 1;
+  const myArmGen = coord.armGen;
+  // Twelfth remediation gate (pre-commit race addendum, item 4), preserved:
+  // `armed` flips true only AFTER safeSetTimeout() has RETURNED — a
+  // hostile/re-entrant setTimeout(fn, ms) that invokes `fn` SYNCHRONOUSLY
+  // must never fire early; the truthful terminal text is left visible
+  // indefinitely instead, the honest behavior when the host cannot be
+  // trusted to run real timers.
   let armed = false;
   const fire = () => {
-    // Ownership check FIRST, by identity — never rely on clearTimeout()
-    // having actually cancelled this callback.
-    if (controller.retired || controller.statusTimerGen !== myStatusTimerGen) return;
+    if (coord.armGen !== myArmGen) return; // stale — superseded or explicitly cleared; hard no-op
     if (!armed) {
-      // Invoked synchronously, during scheduling itself — a genuine timer-
-      // semantics violation. Invalidate this generation so neither THIS
-      // callback (if the host calls back more than once) nor the
-      // caller's own post-return bookkeeping below can act on it.
-      controller.statusTimerGen = (controller.statusTimerGen || 0) + 1;
+      // Invoked synchronously, during scheduling itself — a genuine
+      // timer-semantics violation. Invalidate this generation so neither
+      // this callback (if the host calls back twice) nor the caller's own
+      // post-return bookkeeping below can act on it.
+      coord.armGen = (coord.armGen || 0) + 1;
       return;
     }
-    controller.statusTimer = null;
-    // Ninth remediation gate: this callback used to hide the status text
-    // unconditionally — but syncBusyFromPrerender (eighth gate) can leave
-    // the BUTTON disabled/aria-busy="true" for a genuinely still-pending
-    // newer-pair prerender independent of this timer, and blindly hiding
-    // the text at the 4s mark then left that disabled button with no
-    // visible/live explanation at all. Reconcile with the CURRENT state
-    // rather than assuming nothing changed in the last 4 seconds: if no
-    // click operation owns busy right now and a prerender is genuinely
-    // still pending, transition to the truthful `busy` explanation
-    // (setStatus('busy') arms no further timer, matching how a real
-    // click-triggered busy state never auto-hides either); otherwise hide
-    // normally.
-    // Sixteenth remediation gate: neither branch below had a relation-
-    // generation ownership check at all — a live repro confirmed the
-    // `setStatus(controller, 'busy')` call's OWN `refs.status` read (its
-    // first host-controlled boundary) can synchronously
-    // notifyRelationChange() to a NEWER (or null) relation, which correctly
-    // installs that generation's true idle/busy DOM — after which this
-    // stale continuation, holding no ownership check of its own, resumed
-    // and wrote `preparing pair image…` back over the just-corrected idle
-    // state while the button/aria-busy stayed truthfully idle. `genAtFire`
-    // is captured fresh, right here, and threaded through as `stillCurrent`
-    // into `setStatus` (whose own internal boundaries all recheck it) and
-    // around the direct `el.hidden = true` write below — the same
-    // discipline `syncBusyFromPrerender` already applies to this exact
-    // class of race.
-    const genAtFire = controller.relationGen;
-    const stillCurrent = () => !controller.retired && !controller.opInFlight
-      && controller.statusTimerGen === myStatusTimerGen
-      && controller.relationGen === genAtFire;
-    if (!controller.opInFlight && isPrerenderPending(controller)) {
-      setStatus(controller, 'busy', stillCurrent);
-    } else if (stillCurrent()) {
-      el.hidden = true; // host-controlled setter — may re-enter
-      // No further write follows in this branch — if a reentrant `hidden`
-      // setter just handed ownership to a newer generation, that
-      // generation's own call already wrote its correct state; reconcile
-      // rather than trust this stale continuation's local `el` reference
-      // to still be the right thing to leave untouched.
-      if (!stillCurrent()) reconcileCurrentStatus(controller);
-    }
+    coord.armedId = null;
+    const controller = coord.activeController;
+    const pending = !!(controller && !controller.retired && !controller.opInFlight && isPrerenderPending(controller));
+    if (pending) setStatusText(coord, 'busy');
+    else setStatusText(coord, undefined);
   };
   const id = safeSetTimeout(fire, 4000);
-  // If `fire` already ran synchronously above, `statusTimerGen` has already
-  // been bumped past `myStatusTimerGen` by the branch inside it — this
-  // assignment would then be a stale/no-op write; guard it so a stale id
-  // (or a real one, orphaned) is never stored as this controller's
-  // "current" timer, and never assigned after retirement either.
-  if (!controller.retired && controller.statusTimerGen === myStatusTimerGen) {
+  if (coord.armGen === myArmGen) {
     armed = true;
-    controller.statusTimer = id;
+    coord.armedId = id;
   } else {
     safeClearTimeout(id); // best-effort — some hostile implementations still schedule something real despite firing synchronously too
   }
 }
 
-// Thirteenth-post-gate remediation: `stillCurrent`, when given, is an
-// additional ownership predicate (e.g. syncBusyFromPrerender's own
-// relation-generation check) rechecked at every boundary here ALONGSIDE
-// `controller.retired` — a live repro confirmed a busy-sync caller can pass
-// its own pre-call ownership check, then have a host-controlled read
-// (`refs.status`) re-enter and install a NEWER notification's state, after
-// which this function's stale continuation (still writing on behalf of the
-// OLDER generation) would resume and overwrite what the newer notification
-// already correctly wrote. `controller.retired` alone cannot catch this: no
-// re-init happens in that scenario, just relation-generation churn on the
-// SAME controller. Omitted (`undefined`), this predicate is always
-// satisfied — existing click-operation callers (which own status purely
-// through `controller.retired` and their own opToken/opInFlight discipline)
-// keep their exact prior semantics.
-function setStatus(controller, state, stillCurrent) {
-  const ok = () => !controller.retired && (!stillCurrent || stillCurrent());
-  if (!ok()) return;
-  const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
-  if (!ok()) return;
-  if (!el) return;
+// The two named transitions call sites use. Each touches only the fields
+// its own concept owns — `setStatusText` never touches `busy`,
+// `setBusyButton` never touches text/hidden — mirroring the exact
+// separation the old `setStatus`/`applyBusyDOM` pair already had, so
+// callers that only ever wanted one half keep meaning exactly what they
+// said.
+function setStatusText(coord, state) {
   const msg = pairShareStatusMessage(state);
-  clearStatusTimer(controller);
-  // Twelfth remediation gate (pre-commit race addendum, item 4): clearStatusTimer's
-  // own clearTimeout() call is host-controlled and can synchronously
-  // re-init/retire this controller as a side effect — recheck immediately
-  // before writing DOM so a just-retired controller (refs now owned by a
-  // NEW controller, since refs are normally reused across a re-init) can
-  // never corrupt what that new controller has already written.
-  if (!ok()) return;
-  el.textContent = msg; // host-controlled setter — may re-enter
-  // Twelfth remediation gate (further sweep): el.textContent and el.hidden
-  // are TWO separate host-controlled boundaries — a hostile textContent
-  // setter reentering here must stop this call before el.hidden, the same
-  // discipline resetControllerDOM uses, not one shared check before both.
-  // Sixteenth remediation gate: a hostile `textContent` SETTER can commit
-  // ITS OWN backing value only AFTER synchronously calling
-  // notifyRelationChange() to a newer generation from inside this exact
-  // setter invocation — the nested call fully installs its own correct
-  // status text, and then this setter's OUTER, now-stale commit runs and
-  // clobbers it, entirely INSIDE the `el.textContent = msg` statement
-  // above. A plain `if (!ok()) return` here stops FURTHER writes, but
-  // cannot undo a clobber that already happened during the write that just
-  // returned. Only when `stillCurrent` was actually given (the
-  // relation-generation-owned busy path — a plain click-driven terminal
-  // write has no such predicate and can only lose `ok()` via retirement,
-  // for which reconciling is a harmless no-op) does a lost race here mean
-  // a newer generation's own correct DOM may need restoring.
-  if (!ok()) { if (stillCurrent) reconcileCurrentStatus(controller); return; }
-  el.hidden = !msg; // host-controlled setter — may re-enter
-  // Same reasoning as the textContent checkpoint above, for the `hidden`
-  // setter.
-  if (!ok()) { if (stillCurrent) reconcileCurrentStatus(controller); return; }
-  if (msg && state !== 'busy') {
-    armStatusTimer(controller, el);
-  }
+  clearTimer(coord); // any previously-armed terminal timer is superseded by this new text
+  const myRev = mutate(coord, { text: msg, hidden: !msg });
+  // Redteam follow-up (2026-09-05): a hostile DOM setter can reenter
+  // DURING the mutate()/drain() call above (e.g. re-initializing this same
+  // physical button+status pair), which correctly reconciles the real DOM
+  // to the NEWER model — but this call's own `msg`/`state` are frozen at
+  // entry and know nothing about that. Arming a timer unconditionally here
+  // would install a fresh 4s callback keyed to a message that is already
+  // superseded, which could later fire and clear/alter whatever the
+  // SUCCESSOR has since published. `coord.viewRev === myRev` is true only
+  // when NO further mutate() call (nested or otherwise) has published a
+  // later revision since this one — i.e. this exact terminal view still
+  // owns the coordinator right now — so the timer is armed only then.
+  if (msg && state !== 'busy' && coord.viewRev === myRev) armTimer(coord);
 }
 
-// Sixteenth remediation gate: the canonical "what should the status DOM
-// show RIGHT NOW" recovery step, used exclusively after detecting (via a
-// `stillCurrent`/`stillLatest` check going false immediately after a
-// property WRITE, never after a mere read) that this continuation's own
-// commit may have landed on top of — and clobbered — a newer generation's
-// already-correct write, made during the very same setter call. This
-// stale continuation cannot know what it may have overwritten and must
-// never invent a replacement state of its own; it can only ask the
-// controller what is true NOW and re-apply that. Delegates entirely to
-// `syncBusyFromPrerender`'s own no-`expectedGen` "truth" mode: if a click
-// now owns the button (`opInFlight`), this correctly does nothing (that
-// operation's own `finally` is the sole authority per the eighth
-// remediation gate); otherwise it re-derives busy-vs-idle from
-// `controller.cache` fresh and rewrites the status node to match. No third
-// state is possible at the exact synchronous instant this is called from:
-// a TERMINAL click status is only ever written after this module's first
-// `await`, which cannot occur inside the same synchronous call stack as
-// the property setter that triggered this recovery — so the only states a
-// nested winner can have installed by then are busy-for-pending-prerender
-// or idle, exactly what `syncBusyFromPrerender` derives.
-//
-// Finite-reentry limit, stated precisely rather than assumed: each
-// genuine reentry strictly advances `controller.relationGen` (claimed
-// once, atomically, at the top of `notifyRelationChange`, before any
-// re-entrant read), and `syncBusyFromPrerender`'s own internal boundaries
-// apply this exact same recover-by-truth discipline at every write of
-// its own. A chain of N genuine nested notifications therefore converges
-// after at most N recovery passes, each one settling on the LATEST
-// generation's truth. An adversarial host whose setters reenter on EVERY
-// single write, without bound, is not claimed to be handled — that is an
-// unbounded recursive call chain, the same limit every other recursive
-// boundary in this module (`buttonWiringFor`'s state machine,
-// `initPairShareUI`'s `lostRace` handover) already has, and this function
-// introduces no new one.
-function reconcileCurrentStatus(controller) {
+function setBusyButton(coord, busy) {
+  mutate(coord, { busy: !!busy });
+}
+
+// The deterministic idle view — busy cleared AND text/hidden cleared
+// together, one model update, one drain. Used both to initialize a fresh
+// controller's coordinator (a live, REUSED button/status pair never
+// inherits a prior controller's stuck "busy" look) and to relinquish a
+// retiring controller's hold before a new one takes over (initPairShareUI
+// below) — replacing the old `resetControllerDOM`'s four individually
+// lostRace-checked writes with one reentrancy-safe transition.
+function setIdle(coord) {
+  clearTimer(coord);
+  mutate(coord, { busy: false, text: '', hidden: true });
+}
+
+// Public-facing status write — signature UNCHANGED from every existing
+// call site throughout this file (onShareClick, downloadFallback,
+// shareOrFallback, trySyncNativeShare, setStatusRequalified all call this
+// exactly as before). A retired controller's stale continuation still
+// correctly no-ops; everything else about staleness/reentrancy is now the
+// coordinator's problem, not this function's.
+function setStatus(controller, state) {
   if (controller.retired) return;
-  syncBusyFromPrerender(controller);
+  const coord = controller.coord;
+  if (!coord) return;
+  setStatusText(coord, state);
+}
+
+// Public-facing busy-button write — signature UNCHANGED from both existing
+// call sites (onShareClick's unconditional start-of-click write, and
+// syncBusyFromPrerender's prerender-driven write).
+function applyBusyDOM(controller, busy) {
+  if (controller.retired) return;
+  const coord = controller.coord;
+  if (!coord) return;
+  setBusyButton(coord, busy);
 }
 
 // Eleventh remediation gate, B3 (re-entrant scheduler): arming the
@@ -1152,61 +1357,6 @@ function setStatusRequalified(controller, myToken, relationAtStart, state) {
   }
 }
 
-// Third remediation gate, item 2: the deterministic DOM state a controller's
-// refs should show whenever it is NOT actively busy/mid-operation — used
-// both to initialize a fresh controller's DOM (so a live, REUSED button/
-// status pair never inherits a prior controller's stuck "busy" look) and to
-// relinquish a retiring controller's hold on shared DOM before a new
-// controller takes over the same nodes. A direct, synchronous, one-time
-// write — not a guarded method a retired controller's async tail could
-// later call, so it does not weaken "a retired controller writes nothing
-// once retired" (this call itself happens BEFORE/AT the moment of
-// retirement, performed by the retiring code, not by a stale continuation).
-// Twelfth remediation gate (final supplement, follow-up): every write below
-// is itself a host-controlled boundary (a DOM property setter or method
-// call) that can synchronously re-enter `initPairShareUI` on these SAME
-// refs — an adversarial probe confirmed this with `btn.disabled = false`
-// specifically. Checking `lostRace()` only once, after this whole function
-// returns, is not enough: a nested winner completing INSIDE one of these
-// writes can already have written its own truthful DOM (or even a click's
-// own terminal status), and this function would then blindly continue past
-// that point, overwriting it. `stillCurrent()` is checked after EVERY
-// individual host-controlled boundary — the property read, the setter
-// write, the method lookup, and the method call are each their own
-// checkpoint — so a losing caller's own remaining writes here stop at the
-// EXACT boundary that lost the race, never one step later.
-function resetControllerDOM(controller, lostRace) {
-  const stillCurrent = () => !lostRace || !lostRace();
-  // Thirteenth remediation gate: a bare `controller.refs.btn`/`.status`
-  // property read is itself a host-controlled boundary if `refs` is a
-  // hostile object with its own throwing getter for either key — an
-  // uncontained throw here would escape straight out of `initPairShareUI`
-  // (both of resetControllerDOM's call sites), crashing the whole handover
-  // instead of degrading like every other host accessor in this file.
-  // `safeProp` is the same contained-read primitive already used for every
-  // other property this module reads off a host-controlled object.
-  const btn = safeProp(controller.refs, 'btn'); // contained refs/property read — may re-enter
-  if (!stillCurrent()) return;
-  if (btn) {
-    btn.disabled = false; // host-controlled setter — may re-enter
-    if (!stillCurrent()) return;
-    const setAttr = safeFn(btn, 'setAttribute'); // property read — may re-enter
-    if (!stillCurrent()) return;
-    if (setAttr) {
-      try { invoke(setAttr, btn, ['aria-busy', 'false']); } catch (_) { /* best-effort */ } // call — may re-enter
-      if (!stillCurrent()) return;
-    }
-  }
-  const el = safeProp(controller.refs, 'status'); // contained refs/property read — may re-enter
-  if (!stillCurrent()) return;
-  if (el) {
-    el.textContent = ''; // host-controlled setter — may re-enter
-    if (!stillCurrent()) return;
-    el.hidden = true; // host-controlled setter — may re-enter
-    if (!stillCurrent()) return;
-  }
-}
-
 function isPrerenderPending(controller) {
   const c = controller.cache;
   return !!(c && c.promise && !c.blob && !c.error);
@@ -1219,94 +1369,61 @@ function isPrerenderPending(controller) {
 // than fighting over the same DOM attributes. Called on every pre-render
 // state transition (start, settle) so the button is disabled for exactly the
 // window a click could not yet get a synchronous native-share attempt.
-// Fifteenth remediation gate: `expectedGen`, when given, is the relation-
-// notification generation this call is speaking FOR (from
-// notifyRelationChange, or from a settled/errored raster's own `.then`
-// handler, both of which know exactly which generation they represent).
-// When omitted (the click-settle `finally` block's own reconciliation
-// call), this function always proceeds against whatever IS current — that
-// caller has no specific generation to defend, it just wants the truth.
-// A live repro confirmed: `applyBusyDOM`'s own `btn.disabled` setter can
-// synchronously trigger a NEWER notifyRelationChange that fully installs
-// and correctly busies the SAME button — after which this call's stale
-// `pending`/`el` state (captured before that boundary) would otherwise go
-// on to overwrite the newer generation's correct DOM. `stillCurrent` is
-// threaded into `applyBusyDOM` itself so its OWN internal continuation
-// (the disabled-write and the aria-busy write are two separate boundaries)
-// aborts at the exact point ownership changes, not one step later; this
-// function then rechecks and RE-READS pending state fresh (never trusting
-// a pre-boundary snapshot) before ever deciding what to write next.
+// `expectedGen`, when given, is the relation-notification generation this
+// call is speaking FOR (from notifyRelationChange, or from a settled/
+// errored raster's own `.then` handler, both of which know exactly which
+// generation they represent). When omitted (the click-settle `finally`
+// block's own reconciliation call), this function always proceeds against
+// whatever IS current — that caller has no specific generation to defend,
+// it just wants the truth.
+//
+// Fifteenth remediation gate (model-first): "what is currently shown" is
+// now read from `coord.desired` — the coordinator's own trusted model —
+// never from the live DOM. The old per-boundary `safeProp(el, 'hidden')` /
+// `safeProp(el, 'textContent')` reads existed ONLY because the prior
+// design had no other way to know what was on screen; a hostile getter on
+// either could itself carry a side effect. Reading the model instead
+// removes that entire class of boundary, since `coord.desired` is a plain
+// object this module owns outright. The one check that remains genuinely
+// necessary — re-verifying `retired`/`opInFlight`/`relationGen` after
+// `applyBusyDOM`'s own (now fully reentrancy-safe) write — guards a
+// DIFFERENT thing: not a stale DOM write (the coordinator already cannot
+// produce one), but a stale CONTROLLER-LEVEL decision. A hostile setter
+// touched during that write can synchronously run an entire nested
+// notifyRelationChange-to-settlement cascade to completion (the
+// coordinator absorbs and correctly resolves it before applyBusyDOM even
+// returns); this continuation must not then go on to make a FURTHER,
+// separately-reasoned decision using `pending`/`expectedGen` captured
+// before any of that happened.
 function syncBusyFromPrerender(controller, expectedGen) {
   if (controller.retired || controller.opInFlight) return;
   if (expectedGen !== undefined && controller.relationGen !== expectedGen) return;
-  const stillCurrent = () => !controller.retired && !controller.opInFlight
-    && (expectedGen === undefined || controller.relationGen === expectedGen);
+  const coord = controller.coord;
+  if (!coord) return;
   const pending = isPrerenderPending(controller);
-  applyBusyDOM(controller, pending, stillCurrent);
-  if (!stillCurrent()) return;
-  // Re-read fresh — do not reuse `pending` computed before applyBusyDOM's
-  // own re-entrant boundary; even though `stillCurrent()` just confirmed
-  // this generation is still current, re-deriving from `controller.cache`
-  // directly is the same cheap, no-trust-in-locals discipline every other
-  // boundary in this file already uses.
-  const pendingNow = isPrerenderPending(controller);
-  // Thirteenth-post-gate remediation: `controller.refs.status` is itself a
-  // host-controlled read (an exact live repro reentered notifyRelationChange
-  // from THIS getter) — contain it via safeProp and recheck `stillCurrent()`
-  // IMMEDIATELY afterward, before `pendingNow` (captured a moment earlier,
-  // now possibly stale) is ever used to decide anything. A reentrant call
-  // here always changes `controller.relationGen`, so `stillCurrent()` alone
-  // is sufficient to detect it — the earlier live repro let this stale
-  // `pendingNow` survive the read and go on to write "preparing…" back over
-  // a newer notification's already-correct idle/null state.
-  const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
-  if (!stillCurrent()) return;
-  if (!el) return;
+  applyBusyDOM(controller, pending);
+  if (controller.retired || controller.opInFlight) return;
+  if (expectedGen !== undefined && controller.relationGen !== expectedGen) return;
+  const view = coord.desired;
   const busyMsg = pairShareStatusMessage('busy');
-  // `el.hidden`/`el.textContent` are two more individually re-entrant
-  // host-controlled getters — read each at most once, through safeProp, with
-  // its own recheck immediately after, rather than folding both into one
-  // compound expression a re-entrant getter could straddle undetected.
-  const hiddenNow = safeProp(el, 'hidden'); // contained property read — may re-enter
-  if (!stillCurrent()) return;
-  const textNow = safeProp(el, 'textContent'); // contained property read — may re-enter
-  if (!stillCurrent()) return;
-  // Eighth remediation gate: a background prerender becoming pending for a
-  // NEWER pair (started via notifyRelationChange while a click-triggered
-  // operation was still in flight) must not stomp the truthful terminal
-  // status that operation's own `finally` just wrote (shared-selected,
-  // stale, download-started[-selected][-copied], cancelled, failed) the
-  // instant opInFlight clears and this function runs unguarded again. The
-  // BUTTON's disabled/aria-busy state may still legitimately reflect the
-  // pending render (a second click would have to wait for it either way);
-  // only the live status TEXT is protected, and only for as long as it is
-  // genuinely still showing a real terminal result (`!hiddenNow` — the
-  // moment that message's own auto-hide timer actually fires, this stops
-  // applying and a later prerender is free to show `busy` normally).
-  const showingTerminal = !!(!hiddenNow && textNow && textNow !== busyMsg);
-  if (pendingNow) {
-    // `stillCurrent` is threaded through so setStatus's OWN internal
-    // boundaries (the status ref read, clearStatusTimer, the textContent/
-    // hidden setters) each recheck ownership too — a busy-sync caller
-    // passing one check up front must not go on to write after a re-entrant
-    // boundary INSIDE setStatus itself hands ownership to a newer generation.
-    if (!showingTerminal) setStatus(controller, 'busy', stillCurrent);
-  } else if (textNow === busyMsg) {
+  // Eighth remediation gate, preserved under the new model: a background
+  // prerender becoming pending for a NEWER pair (started via
+  // notifyRelationChange while a click-triggered operation was still in
+  // flight) must not stomp the truthful terminal status that operation's
+  // own `finally` just wrote. The BUTTON's disabled/aria-busy state may
+  // still legitimately reflect the pending render; only the live status
+  // TEXT is protected, and only for as long as it is genuinely still
+  // showing a real terminal result.
+  const showingTerminal = !!(!view.hidden && view.text && view.text !== busyMsg);
+  if (pending) {
+    if (!showingTerminal) setStatus(controller, 'busy');
+  } else if (view.text === busyMsg) {
     // The pre-render just settled (or there is nothing to prepare) with no
-    // click in flight — no download was started and no share was attempted,
-    // so there is no terminal outcome to announce. Only ever clears OUR OWN
-    // "preparing…" text, never a real terminal status a click already wrote.
-    clearStatusTimer(controller);
-    // Twelfth remediation gate: clearStatusTimer's own clearTimeout() call
-    // can synchronously re-init/retire this controller — recheck before
-    // writing DOM a new controller (same reused refs) may have taken over.
-    // Fifteenth remediation gate: also recheck the relation generation —
-    // clearTimeout is host-controlled and could just as easily trigger a
-    // newer notification as any other boundary here.
-    if (!stillCurrent()) return;
-    el.textContent = ''; // host-controlled setter — may re-enter
-    if (!stillCurrent()) return;
-    el.hidden = true; // host-controlled setter — may re-enter
+    // click in flight — no download was started and no share was
+    // attempted, so there is no terminal outcome to announce. Only ever
+    // clears OUR OWN "preparing…" text, never a real terminal status a
+    // click already wrote.
+    setStatus(controller, undefined);
   }
 }
 
@@ -1324,77 +1441,38 @@ function syncBusyFromPrerender(controller, expectedGen) {
  */
 function notifyRelationChange(controller, relation) {
   if (controller.retired) return;
-  // Fifteenth remediation gate: claim this notification's generation FIRST,
-  // before any re-entrant host boundary — `buildPairImprintSnapshot()`
+  // Fifteenth remediation gate: claim this notification's generation
+  // FIRST, before any re-entrant host boundary — `buildPairImprintSnapshot()`
   // below reads host-controlled properties off `relation` and can
   // synchronously call `notifyRelationChange()` again on this SAME
-  // controller (a nested, NEWER notification). A live repro confirmed the
-  // old code had no such claim: the nested call could fully install and
-  // warm its own cache, after which the OUTER (now-stale) call resumed and
-  // started its OWN rasterization, then overwrote the newer cache with its
-  // own stale entry. `stillLatest()` is rechecked after every re-entrant
-  // boundary and before every cache/status/DOM mutation from here on — only
-  // the call that still holds the latest generation may publish, settle,
-  // or synchronize anything.
+  // controller (a nested, NEWER notification). `stillLatest()` is
+  // rechecked after every re-entrant boundary and before every cache
+  // mutation from here on — only the call that still holds the latest
+  // generation may publish or settle anything. The status-CLEARING step
+  // below is now a single coordinator transition (`setStatus(controller,
+  // undefined)`) rather than two individually-checked writes: the
+  // coordinator's own drain loop is what makes a nested winner's write
+  // survive a stale setter's post-reentry commit, so this function no
+  // longer needs a bespoke recovery call of its own for that class of
+  // race — it only needs to stop making FURTHER decisions once it has
+  // lost the generation race, which `stillLatest()` still answers.
   const myGen = ++controller.relationGen;
   const stillLatest = () => !controller.retired && controller.relationGen === myGen;
   // Eleventh remediation gate, B1: this is now the SOLE place that decides
   // whether a relation change invalidates whatever status text is showing
   // — ui/dyad.js's own clearOutput() used to blank #dyad-share-status
-  // directly and unconditionally, which raced a genuinely in-flight click:
-  // if a native-share promise for the OLD pair was still pending when the
-  // pair was cleared/replaced, that direct write erased the truthful
-  // "preparing pair image…" text a moment before this module's own
-  // opInFlight guard would otherwise have protected it, leaving a
-  // disabled/aria-busy button with an empty, unannounced status for the
-  // rest of that operation. The guard here is the same one
-  // syncBusyFromPrerender already trusts: while a click-triggered
-  // operation owns the status (`opInFlight`), NOTHING about a relation
-  // change may touch it — that operation's own `finally` is what
-  // eventually reconciles, once it knows the truthful outcome. Only when
-  // no click currently owns it does a pair change clear whatever was
-  // showing (a stale terminal result from the pair that just left, or a
-  // stale "preparing…" for a prerender that's about to be replaced).
+  // directly and unconditionally, which raced a genuinely in-flight click.
+  // While a click-triggered operation owns the status (`opInFlight`),
+  // NOTHING about a relation change may touch it — that operation's own
+  // `finally` is what eventually reconciles, once it knows the truthful
+  // outcome. Only when no click currently owns it does a pair change clear
+  // whatever was showing.
   if (!controller.opInFlight) {
-    // Thirteenth-post-gate remediation: `controller.refs.status` is itself a
-    // host-controlled read — contained via safeProp, with `stillLatest()`
-    // rechecked IMMEDIATELY afterward (before even calling
-    // clearStatusTimer), not only after the writes below. A nested
-    // notification claimed during this very read must stop this
-    // continuation from touching `el` at all.
-    const el = safeProp(controller.refs, 'status'); // contained property read — may re-enter
-    if (stillLatest() && el) {
-      clearStatusTimer(controller);
-      // Twelfth remediation gate: clearStatusTimer's own clearTimeout()
-      // call can synchronously re-init/retire this controller — recheck
-      // before writing DOM a new controller (same reused refs) may have
-      // already taken over. Fifteenth remediation gate: also recheck the
-      // relation generation, for the SAME reason.
-      if (stillLatest()) {
-        el.textContent = ''; // host-controlled setter — may re-enter
-        // Sixteenth remediation gate: a hostile `textContent` SETTER can
-        // synchronously notifyRelationChange() to a NEWER generation from
-        // inside this exact call, let that nested call fully install its
-        // own correct (busy or idle) status, and only THEN commit ITS OWN
-        // stale backing value — clobbering the nested call's write from
-        // inside the very statement above, before `stillLatest()` here
-        // ever gets a chance to run. A bare `if (stillLatest())` guard
-        // only stops FURTHER writes; it cannot undo a clobber that already
-        // happened. `reconcileCurrentStatus` re-derives and re-applies
-        // whatever the CURRENT generation's status truthfully is, rather
-        // than leaving a stale clobbered value in place or guessing.
-        if (!stillLatest()) { reconcileCurrentStatus(controller); return; }
-        el.hidden = true; // host-controlled setter — may re-enter
-        // Same reasoning as the textContent checkpoint above, for the
-        // `hidden` setter.
-        if (!stillLatest()) { reconcileCurrentStatus(controller); return; }
-      }
-    }
+    setStatus(controller, undefined);
   }
-  // Check again here, explicitly, before proceeding to snapshot/raster
-  // work — a nested notification claimed anywhere in the status-clearing
-  // block above (the refs.status read, or either setter) must stop this
-  // continuation before it ever reads a single property off `relation`.
+  // A nested notification claimed during that clear (via a hostile status
+  // setter reentering this exact function) must stop this continuation
+  // before it ever reads a single property off `relation`.
   if (!stillLatest()) return;
   const snapshot = relation ? buildPairImprintSnapshot(relation) : null;
   // The critical checkpoint: buildPairImprintSnapshot() reads host-
@@ -1402,7 +1480,8 @@ function notifyRelationChange(controller, relation) {
   // numerologySpine, cardPairHead) and is exactly where a hostile getter
   // can install a newer generation. Stop here, BEFORE ever starting a
   // rasterization or touching the cache, if a newer notification already
-  // won — closes the "wasted/corrupting third render" the repro observed.
+  // won — closes the "wasted/corrupting third render" a live repro
+  // observed.
   if (!stillLatest()) return;
   if (!snapshot) {
     controller.cache = null;
@@ -1992,6 +2071,61 @@ const INERT_FACADE = Object.freeze({
   notifyRelationChange: () => {},
 });
 
+// ── disclosure post-commit reassertion (adjacent redteam finding,
+// 2026-09-05) ────────────────────────────────────────────────────────────
+// The capability-disclosure `textContent` write below is a SEPARATE,
+// smaller surface than the four-field share-view coordinator above (button
+// disabled/aria-busy, status text/hidden) — it is written exactly once, at
+// init, never by a transition — but it is exposed to the exact same class
+// of hazard: `disclosureEl.textContent = text` is a host-controlled setter
+// a hostile implementation can reenter, and a nested `initPairShareUI()`
+// call on the SAME refs can complete an entire successor construction
+// (including that successor's OWN correct disclosure write) BEFORE the
+// outer setter call returns. The outer call's own `lostRace()` check right
+// after the write correctly detects it lost — but the write itself already
+// happened by then, and a bare property assignment cannot be "un-sent": if
+// the setter commits the OUTER's now-stale text AFTER the nested winner
+// already wrote its own correct one (exactly as a nested-during-drain
+// setter can for the coordinator's four fields), the stale text is what's
+// left on screen, and nothing afterward ever corrects it.
+// Fix, scoped to this one element and deliberately NOT folded into
+// `coordinatorFor`: a tiny model — desired text + a revision counter, plus
+// an `applying` flag mirroring the coordinator's own `running` — so a
+// nested call during an active write only updates the model and returns
+// (never writes DOM itself), and the ACTIVE write's own loop notices the
+// revision moved and reapplies the newest text before returning. This is
+// the same reapply-until-stable shape as `drain()`, intentionally
+// smaller: one field, no busy/timer semantics, no retry-on-throw (a
+// disclosure line is advisory copy, not a correctness-load-bearing state
+// the four-field contract requires — a throw here is best-effort, exactly
+// as it already was).
+const _disclosureState = new WeakMap();
+const DISCLOSURE_PASS_BUDGET = 1000; // generous for any real cascade; a bound only against a pathological infinite reentry
+
+function setDisclosureText(el, text) {
+  if (el === null || (typeof el !== 'object' && typeof el !== 'function')) return;
+  let state = _disclosureState.get(el);
+  if (!state) {
+    state = { rev: 0, desired: '', applying: false };
+    _disclosureState.set(el, state);
+  }
+  state.rev++;
+  state.desired = text;
+  if (state.applying) return; // a nested call during an active write — the active write's own loop below will catch this
+  state.applying = true;
+  try {
+    let passes = 0;
+    let appliedRev;
+    do {
+      appliedRev = state.rev;
+      try { el.textContent = state.desired; } catch (_) { /* best-effort — advisory copy, never load-bearing */ }
+      passes++;
+    } while (state.rev !== appliedRev && passes < DISCLOSURE_PASS_BUDGET);
+  } finally {
+    state.applying = false;
+  }
+}
+
 export function initPairShareUI(refs, hooks) {
   // Twelfth remediation gate (final supplement, item 2): a generation token
   // claimed FIRST, before any other work. Every host-controlled step in the
@@ -2018,13 +2152,25 @@ export function initPairShareUI(refs, hooks) {
   // controller ever touches it — a live button must never be left disabled/
   // aria-busy="true" forever just because the controller that put it there
   // retired mid-operation.
+  // Fifteenth remediation gate (model-first): retirement of whatever
+  // controller was previously active is now ONE coordinator transition
+  // (`setIdle`, which internally supersedes any armed timer too) instead
+  // of a separately-cancelled timer plus four individually lostRace-
+  // checked DOM writes — the coordinator's own drain loop absorbs any
+  // reentrancy this transition's DOM writes trigger, so a single
+  // checkpoint after it is exactly as safe as the old four, and the
+  // coordinator PERSISTS across this handover (it is keyed by the
+  // physical button, not by controller), which is what lets a SUCCESSOR
+  // constructed moments later — see below — reassert its own idle state
+  // if a stale predecessor setter tries to commit after the fact
+  // (repro_pair_reinit_setter_post_reentry_b3.mjs).
   if (_activeController) {
     const prior = _activeController;
     prior.retired = true;
-    clearStatusTimer(prior); // host-controlled call — may re-enter this function
-    if (lostRace()) return INERT_FACADE;
-    resetControllerDOM(prior, lostRace); // per-boundary guarded internally — may re-enter at any step
-    if (lostRace()) return INERT_FACADE;
+    if (prior.coord) {
+      setIdle(prior.coord); // host-controlled writes inside — may re-enter this function
+      if (lostRace()) return INERT_FACADE;
+    }
   }
 
   const controller = {
@@ -2034,8 +2180,7 @@ export function initPairShareUI(refs, hooks) {
     opToken: 0,
     opInFlight: false,
     cache: null,
-    statusTimer: null,
-    statusTimerGen: 0,
+    coord: null,
     // Fifteenth remediation gate: a monotonic per-controller counter claimed
     // by notifyRelationChange() at entry, before any re-entrant host
     // boundary — the "latest notification wins" ownership token for the
@@ -2044,25 +2189,33 @@ export function initPairShareUI(refs, hooks) {
     relationGen: 0,
     listener: null,
   };
+  // Thirteenth remediation gate (atomic-handoff follow-up), preserved: the
+  // button reference read (`controller.refs.btn`, a property a hostile
+  // `refs` object can shadow with its own getter) and everything that
+  // follows are each their own checkpoint — `safeProp` contains a
+  // throwing `refs.btn` getter the same way every other property this
+  // module reads off a host-controlled object already is.
+  const btnRef = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+  const statusRef = safeProp(controller.refs, 'status'); // contained property read — may re-enter
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
+  // One coordinator per physical button, found or created here and stored
+  // directly on the controller (a trusted internal reference from then on,
+  // never re-derived from host-controlled `refs` again) — this is the
+  // SAME coordinator a same-button predecessor already owned, which is
+  // exactly the persistence the redesign needs.
+  const coord = coordinatorFor(btnRef);
+  controller.coord = coord;
+  coord.btn = btnRef;
+  coord.status = statusRef;
+  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   // Deterministic initial DOM, independent of whatever the retirement reset
   // above did or didn't reach (e.g. the very first init, or refs that
   // happen to differ from the prior controller's) — a fresh controller
   // never starts from an ambiguous DOM state.
-  resetControllerDOM(controller, lostRace); // per-boundary guarded internally — may re-enter at any step
+  setIdle(coord); // host-controlled writes inside — may re-enter this function
   if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   controller.listener = () => onShareClick(controller);
-  // Thirteenth remediation gate (atomic-handoff follow-up): the button
-  // reference read (`controller.refs.btn`, a property a hostile `refs`
-  // object can shadow with its own getter) and the `buttonWiringFor(...)`
-  // call are two separate boundaries — reading the reference and acting on
-  // it are checked independently, exactly like every other host accessor
-  // in this handover, rather than combined into one expression with a
-  // single recheck after both. `safeProp` contains a throwing `refs.btn`
-  // getter the same way every other property this module reads off a
-  // host-controlled object already is — a bare `controller.refs.btn` would
-  // let that throw escape uncaught, straight out of `initPairShareUI`.
-  const btnRef = safeProp(controller.refs, 'btn'); // contained property read — may re-enter
-  if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   // ONE real listener per physical button, ever (buttonWiringFor caches it)
   // — this call may itself run addEventListener for the FIRST TIME on this
   // button (host-controlled), but never a second time on a re-init.
@@ -2102,7 +2255,7 @@ export function initPairShareUI(refs, hooks) {
     }
     if (lostRace()) { controller.retired = true; return INERT_FACADE; }
     const disclosureText = pairImprintDisclosureText(capable); // pure — no host boundary
-    disclosureEl.textContent = disclosureText; // host-controlled setter — may re-enter
+    setDisclosureText(disclosureEl, disclosureText); // host-controlled setter inside — may re-enter; self-reasserts the newest write (see setDisclosureText's own header comment)
     if (lostRace()) { controller.retired = true; return INERT_FACADE; }
   }
 
@@ -2111,6 +2264,7 @@ export function initPairShareUI(refs, hooks) {
   // can lose the race, since nothing further re-enters).
   wiring.current = controller;
   _activeController = controller;
+  coord.activeController = controller;
   return {
     onShareClick: controller.listener,
     notifyRelationChange: relation => notifyRelationChange(controller, relation),

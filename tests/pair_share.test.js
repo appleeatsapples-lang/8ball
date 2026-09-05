@@ -3337,21 +3337,21 @@ describe('twelfth remediation gate (final supplement) — atomic initPairShareUI
 });
 
 describe('thirteenth remediation gate — atomic-handoff follow-up: the button-reference read and the init-time capability probe each get their own checkpoint', () => {
-  it('a hostile refs.btn GETTER reentering the LATER buttonWiringFor lookup (not the earlier construction-time reset read) leaves the outer inert: zero listener registration on a GHOST button, zero DOM writes, notifyRelationChange a no-op, exactly one winning effect', async () => {
-    // The mutation this test must catch: a hostile refs.btn getter can
-    // return a DIFFERENT object after it has already reentered — if the
-    // outer resumes past that read without a checkpoint, it hands buttonWiringFor
-    // a button the WeakMap has never published wiring for, which installs a
-    // REAL, orphaned second listener on it. Reusing the SAME button object
-    // for both reads cannot catch this: buttonWiringFor's WeakMap already
-    // dedups same-object re-entry regardless of any checkpoint here, so a
-    // prior version of this test that returned the identical button both
-    // times passed even with the checkpoint deleted. A distinct "ghost"
-    // button the WeakMap has never seen is required to make the missing
-    // checkpoint observable.
+  it('a hostile refs.btn GETTER reentering initPairShareUI\'s OWN (single) read leaves the outer inert: zero listener registration on a GHOST button, zero DOM writes, notifyRelationChange a no-op, exactly one winning effect', async () => {
+    // Fifteenth remediation gate (model-first): initPairShareUI now reads
+    // `refs.btn` exactly ONCE per call (the coordinator and buttonWiringFor
+    // both reuse that single local `btnRef` — there is no later, separate
+    // lookup to distinguish from an earlier one anymore, since the whole
+    // per-boundary re-read pattern the old design needed is gone). The
+    // mutation this test must still catch: that ONE read's own hostile
+    // getter can reenter a full re-init and then hand the OUTER call a
+    // DIFFERENT ("ghost") object — if the outer proceeds past that read
+    // without checking `lostRace()` immediately, it hands buttonWiringFor
+    // (and the coordinator) a button the WeakMap has never published
+    // anything for, installing a REAL, orphaned listener on it. A distinct
+    // ghost object is required to make this observable, exactly as before.
     const listeners = new Set();
     const ghostListeners = new Set();
-    let btnReads = 0;
     let reinitDone = false;
     let controllerB = null;
     const btnAttrs = {};
@@ -3372,14 +3372,13 @@ describe('thirteenth remediation gate — atomic-handoff follow-up: the button-r
     const disclosure = makeEl('div');
     const refs = {
       status, disclosure,
-      // Read #1 happens inside resetControllerDOM's construction-time reset
-      // (already covered by an earlier gate's tests targeting THAT site) —
-      // this trigger deliberately skips it and fires on read #2, the LATER
-      // lookup this gate split out of buttonWiringFor's own call, and
-      // returns the GHOST from that point on.
+      // The controllerA call's ONE read of `refs.btn` triggers a full
+      // nested re-init (which does its OWN, separate `refs.btn` read,
+      // getting the REAL button — reinitDone is already set by then, so
+      // the nested call's read falls to the `else` branch) and then
+      // returns the GHOST to the OUTER (controllerA's own) call.
       get btn() {
-        btnReads += 1;
-        if (btnReads === 2 && !reinitDone) {
+        if (!reinitDone) {
           reinitDone = true;
           controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
           return ghostBtn;
@@ -3391,10 +3390,11 @@ describe('thirteenth remediation gate — atomic-handoff follow-up: the button-r
     const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
     expect(controllerB).not.toBeNull();
     expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
-    // The outer lost the race AT the second `refs.btn` read, before ever
-    // calling buttonWiringFor — exactly one physical listener exists on the
-    // REAL button (the nested winner's doing), and the ghost the outer's
-    // stale read returned gets ZERO — it must never reach buttonWiringFor.
+    // The outer lost the race AT its own `refs.btn` read, before ever
+    // calling buttonWiringFor/coordinatorFor — exactly one physical
+    // listener exists on the REAL button (the nested winner's doing), and
+    // the ghost the outer's stale read returned gets ZERO — it must never
+    // reach buttonWiringFor.
     expect(listeners.size).toBe(1);
     expect(ghostListeners.size).toBe(0);
 
@@ -3871,11 +3871,23 @@ describe('fourteenth remediation gate — post-download clipboard chain: safeNav
 });
 
 describe('fourteenth remediation gate — applyBusyDOM: contained refs read + checkpoint before the first write, busy setup inside the guarded try/finally', () => {
-  it('a hostile refs.btn GETTER reentering DURING a click\'s own applyBusyDOM(true) read leaves the nested winner\'s idle reset intact — the outer never re-disables it (exact live-repro shape: nested:true, disabled stays false, aria-busy stays "false")', async () => {
+  it('refs.btn/refs.status are never re-read after construction — a hostile getter that would reenter on a LATER read (e.g. from applyBusyDOM) is structurally unreachable, not merely checked', async () => {
+    // Fifteenth remediation gate (model-first): applyBusyDOM/setStatus no
+    // longer touch `controller.refs` at all — they write through
+    // `controller.coord`, resolved and cached exactly once during
+    // initPairShareUI. A hostile refs.btn getter that would misbehave on a
+    // SECOND call therefore has no later call site left to reenter through;
+    // this is a stronger guarantee than a checkpoint (there is no boundary
+    // to check because there is no read). Proven directly: instrument the
+    // getter to explode if it is ever read again after construction, then
+    // drive a full click (which exercises applyBusyDOM/setStatus/
+    // syncBusyFromPrerender repeatedly) and confirm it never fires.
     const status = makeEl('p');
     const disclosure = makeEl('div');
     const btnAttrs = {};
     let disabledValue = false;
+    let constructionDone = false;
+    let readsAfterConstruction = 0;
     const realBtn = {
       get disabled() { return disabledValue; },
       set disabled(v) { disabledValue = v; },
@@ -3883,34 +3895,22 @@ describe('fourteenth remediation gate — applyBusyDOM: contained refs read + ch
       getAttribute(k) { return btnAttrs[k]; },
       addEventListener() {},
     };
-    let armed = false;
-    let reinitDone = false;
-    let controllerB = null;
     const refs = {
       status, disclosure,
       get btn() {
-        if (armed && !reinitDone) {
-          reinitDone = true;
-          // Reentry during THIS click's own applyBusyDOM(true) read (not
-          // the earlier construction-time read, already separately
-          // protected) — the nested winner's construction resets this SAME
-          // button to idle (disabled=false, aria-busy="false") before the
-          // outer's read even returns.
-          controllerB = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
-        }
+        if (constructionDone) readsAfterConstruction += 1;
         return realBtn;
       },
     };
     installEnv({ canShare: () => true, share: () => undefined });
-    const controllerA = initPairShareUI(refs, { getRelation: () => VALID_RELATION }); // construction's own read — armed=false, no reentry
-    armed = true; // now arm the trap for the UPCOMING click's own applyBusyDOM read
-    await controllerA.onShareClick();
-    expect(controllerB).not.toBeNull();
-    expect(controllerA.onShareClick).not.toBe(controllerB.onShareClick);
-    // The nested winner's fresh idle button (disabled=false, aria-busy=
-    // "false", from its own construction-time resetControllerDOM) must
-    // survive — controllerA's own applyBusyDOM(true) call lost the race at
-    // the refs.btn read and must never go on to also write disabled=true.
+    const controller = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    constructionDone = true;
+    controller.notifyRelationChange(VALID_RELATION);
+    await Promise.resolve();
+    await controller.onShareClick();
+    expect(readsAfterConstruction).toBe(0);
+    // The click genuinely ran to completion using the cached reference —
+    // not merely "didn't crash".
     expect(disabledValue).toBe(false);
     expect(btnAttrs['aria-busy']).toBe('false');
   });
@@ -4251,176 +4251,143 @@ describe('fifteenth remediation gate — latest-relation-generation ownership fo
     expect(log.anchors).toHaveLength(0);
   }
 
-  it('refs.status getter reentry in syncBusyFromPrerender: nested null wins exactly', async () => {
+  it('a hostile btn.disabled SETTER that commits its own stale value AFTER a nested notify(null) already installed idle: nested null wins exactly', async () => {
+    // Fifteenth remediation gate (model-first): `refs.status`/`refs.btn`
+    // are no longer re-read after construction (proven directly by the
+    // "never re-read after construction" test above), so a hostile GETTER
+    // on either can no longer reenter anything — this test now targets the
+    // boundary that IS still live: the `btn.disabled` SETTER itself, called
+    // from applyBusyDOM inside syncBusyFromPrerender's busy-write, which
+    // commits its own (stale) argument AFTER a nested notify(null) has
+    // already run an entire clear→idle cascade to completion against the
+    // SAME coordinator.
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const status = makeEl('p');
+    const disclosure = makeEl('div');
+    const btnAttrs = {};
+    let disabledValue = false;
+    let controller;
+    let armed = false;
+    let reentered = false;
+    const btn = {
+      get disabled() { return disabledValue; },
+      set disabled(v) {
+        if (armed && v === true && !reentered) {
+          reentered = true;
+          controller.notifyRelationChange(null);
+        }
+        // Commit AFTER the nested winner has fully returned.
+        disabledValue = !!v;
+      },
+      setAttribute(k, val) { btnAttrs[k] = String(val); },
+      getAttribute(k) { return btnAttrs[k]; },
+      addEventListener() {},
+    };
+
+    controller = initPairShareUI({ btn, status, disclosure }, { getRelation: () => null });
+    armed = true;
+    controller.notifyRelationChange(A);
+
+    expect(reentered).toBe(true);
+    expect(log.pendingImages).toHaveLength(1); // only A's own raster ever started — null never rasters
+    expect(disabledValue).toBe(false);
+    expect(btnAttrs['aria-busy']).toBe('false');
+    expect(status.textContent).toBe('');
+    expect(status.hidden).toBe(true);
+  });
+
+  it('status.hidden/textContent GETTERS are never read during a relation-notify + prerender-settle lifecycle — decisions come from the coordinator\'s OWN model, never the live DOM', async () => {
+    // Fifteenth remediation gate (model-first): syncBusyFromPrerender's
+    // "showingTerminal" decision (protecting a real terminal message from
+    // being stomped by a newly-pending background prerender) used to read
+    // `status.hidden`/`status.textContent` LIVE — exactly the boundary a
+    // hostile getter could reenter through. It now reads `coord.desired`,
+    // a plain object this module owns outright, so those getters are never
+    // invoked at all — not merely checked-and-tolerated. Proven directly
+    // across a full notify→settle lifecycle (the two points that used to
+    // read them): if either getter ever fires, this test fails.
+    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const btn = makeEl('button');
+    let text = '';
+    let hidden = true;
+    let hiddenGets = 0;
+    let textGets = 0;
+    const status = {
+      get textContent() { textGets += 1; return text; },
+      set textContent(v) { text = v; },
+      get hidden() { hiddenGets += 1; return hidden; },
+      set hidden(v) { hidden = !!v; },
+    };
+    const controller = initPairShareUI({ btn, status, disclosure: makeEl('div') }, { getRelation: () => A });
+    controller.notifyRelationChange(A);
+    expect(log.pendingImages).toHaveLength(1);
+    log.pendingImages[0](); // settle the prerender — this is the OTHER old read site (the post-settle syncBusyFromPrerender call)
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(hiddenGets).toBe(0);
+    expect(textGets).toBe(0);
+    // And the lifecycle genuinely completed correctly, not just quietly:
+    expect(text).toBe('');
+    expect(hidden).toBe(true);
+  });
+
+  it('status.hidden/textContent GETTERS are never read across a full click lifecycle (busy start, native share success, terminal write) either', async () => {
+    const log = installEnv({ canShare: () => true, share: () => undefined });
+    const A = VALID_RELATION;
+    const btn = makeEl('button');
+    let text = '';
+    let hidden = true;
+    let hiddenGets = 0;
+    let textGets = 0;
+    const status = {
+      get textContent() { textGets += 1; return text; },
+      set textContent(v) { text = v; },
+      get hidden() { hiddenGets += 1; return hidden; },
+      set hidden(v) { hidden = !!v; },
+    };
+    const controller = initPairShareUI({ btn, status, disclosure: makeEl('div') }, { getRelation: () => A });
+    controller.notifyRelationChange(A); // prerender settles synchronously (no imageDefer)
+    await Promise.resolve(); // let the .then() handler publish the warm blob before clicking
+    await controller.onShareClick();
+    expect(hiddenGets).toBe(0);
+    expect(textGets).toBe(0);
+    expect(log.shared).toHaveLength(1);
+    expect(text).toBe(pairShareStatusMessage('shared'));
+    expect(hidden).toBe(false);
+  });
+
+  it('a hostile clearTimeout reentering while a NEWER status transition supersedes a REAL armed terminal timer cannot let the stale transition write after the newer one wins', async () => {
+    // Fifteenth remediation gate (model-first): the prior version of this
+    // test relied on an incidental clobber earlier in the OLD design (an
+    // unconditional `hidden = true` after a reentrant cascade) to reach a
+    // state where `showingTerminal` read false and `setStatus('busy', ...)`
+    // called `clearStatusTimer` on a REAL armed id. That incidental clobber
+    // is exactly the class of bug this gate closes, so the old setup no
+    // longer reaches a live clearTimeout call at all — confirming the fix,
+    // not a test gap. This version reaches a real clearTimeout call
+    // directly and honestly: complete a genuine click to a terminal
+    // "shared" outcome (which arms a real 4s timer), THEN start a new
+    // relation notification — its own clear step supersedes that timer,
+    // calling clearTimeout for real. A hostile clearTimeout reentering AT
+    // THAT EXACT CALL — now made from inside drain's own protected loop,
+    // per the fix above — must not let the stale (superseded) transition's
+    // own pending write land after the newer relation's correct one.
     const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
     const A = VALID_RELATION;
     const B = secondRelation();
     const btn = makeEl('button');
     const status = makeEl('p');
-    let current = null;
+    let current = A;
     let controller;
-    let armed = false;
-    let reads = 0;
-    let reentered = false;
-
-    const refs = {
-      btn,
-      disclosure: makeEl('div'),
-      get status() {
-        if (armed) {
-          reads += 1;
-          if (reads === 2 && !reentered) {
-            reentered = true;
-            controller.notifyRelationChange(null);
-          }
-        }
-        return status;
-      },
-    };
-
-    controller = initPairShareUI(refs, { getRelation: () => current });
-    armed = true;
-    controller.notifyRelationChange(A);
-
-    expect(reentered).toBe(true);
-    expect(reads).toBe(4);
-    expect(log.pendingImages).toHaveLength(1);
-    expect(btn.disabled).toBe(false);
-    expect(btn.getAttribute('aria-busy')).toBe('false');
-    expect(status.textContent).toBe('');
-    expect(status.hidden).toBe(true);
-
-    current = B;
-    controller.notifyRelationChange(B);
-    await proveBStillOwnsCache(log, controller, A, B, btn, status);
-  });
-
-  it('status.hidden getter reentry stops the stale generation at that read', async () => {
-    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
-    const A = VALID_RELATION;
-    const B = secondRelation();
-    const btn = makeEl('button');
-    let text = '';
-    let hidden = true;
-    let controller;
-    let armed = false;
-    let reentered = false;
-    let hiddenGets = 0;
-    let textGets = 0;
-    let textSetsAfter = 0;
-    let hiddenSetsAfter = 0;
-
-    const status = {
-      get textContent() { if (armed) textGets += 1; return text; },
-      set textContent(v) { if (reentered) textSetsAfter += 1; text = v; },
-      get hidden() {
-        if (armed) {
-          hiddenGets += 1;
-          if (!reentered) {
-            reentered = true;
-            controller.notifyRelationChange(B);
-          }
-        }
-        return hidden;
-      },
-      set hidden(v) { if (reentered) hiddenSetsAfter += 1; hidden = v; },
-    };
-
-    controller = initPairShareUI(
-      { btn, status, disclosure: makeEl('div') },
-      { getRelation: () => B },
-    );
-    armed = true;
-    controller.notifyRelationChange(A);
-
-    expect(reentered).toBe(true);
-    expect(hiddenGets).toBe(2);       // stale A read + nested B read
-    expect(textGets).toBe(1);         // nested B only; stale A stops
-    expect(textSetsAfter).toBe(2);    // B clear + B busy
-    expect(hiddenSetsAfter).toBe(2);  // B clear + B busy
-    await proveBStillOwnsCache(log, controller, A, B, btn, status);
-  });
-
-  it('status.textContent getter reentry stops before stale setStatus writes', async () => {
-    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
-    const A = VALID_RELATION;
-    const B = secondRelation();
-    const btn = makeEl('button');
-    let text = '';
-    let hidden = true;
-    let controller;
-    let armed = false;
-    let reentered = false;
-    let textSetsAfter = 0;
-    let hiddenSetsAfter = 0;
-
-    const status = {
-      get textContent() {
-        if (armed && !reentered) {
-          reentered = true;
-          controller.notifyRelationChange(B);
-        }
-        return text;
-      },
-      set textContent(v) { if (reentered) textSetsAfter += 1; text = v; },
-      // Force stale A to reach textContent despite notify's initial hidden=true
-      // clear; after reentry, expose B's real state.
-      get hidden() { return reentered ? hidden : false; },
-      set hidden(v) { if (reentered) hiddenSetsAfter += 1; hidden = v; },
-    };
-
-    controller = initPairShareUI(
-      { btn, status, disclosure: makeEl('div') },
-      { getRelation: () => B },
-    );
-    armed = true;
-    controller.notifyRelationChange(A);
-
-    expect(reentered).toBe(true);
-    expect(textSetsAfter).toBe(2);
-    expect(hiddenSetsAfter).toBe(2); // stale post-reentry hidden write makes this 3
-    await proveBStillOwnsCache(log, controller, A, B, btn, status);
-  });
-
-  it("clearTimeout reentry inside setStatus('busy', stillCurrent) cannot write after B wins", async () => {
-    const log = installEnv({ imageDefer: true, canShare: () => true, share: () => undefined });
-    const A = VALID_RELATION;
-    const B = secondRelation();
-    const btn = makeEl('button');
-    let current = null;
-    let text = '';
-    let hidden = true;
-    let controller;
-    let armEmptyClick = false;
-    let emptyClickStarted = false;
-    let armingClick;
     let clearReentered = false;
-    let textSetsAfter = 0;
-    let hiddenSetsAfter = 0;
 
-    const status = {
-      get textContent() { return text; },
-      set textContent(v) {
-        if (clearReentered) textSetsAfter += 1;
-        text = v;
-        // Arm a real terminal timer after notify(A)'s first clear but before
-        // its eventual setStatus('busy').
-        if (armEmptyClick && v === '' && !emptyClickStarted) {
-          emptyClickStarted = true;
-          armingClick = controller.onShareClick(); // current=null: synchronous empty path
-        }
-      },
-      get hidden() { return hidden; },
-      set hidden(v) {
-        if (clearReentered) hiddenSetsAfter += 1;
-        hidden = v;
-      },
-    };
-
-    controller = initPairShareUI(
-      { btn, status, disclosure: makeEl('div') },
-      { getRelation: () => current },
-    );
+    controller = initPairShareUI({ btn, status, disclosure: makeEl('div') }, { getRelation: () => current });
+    controller.notifyRelationChange(A);
+    log.pendingImages[0](); // settle A's prerender so the click below can share synchronously
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    await controller.onShareClick(); // genuine native-share success — arms a REAL 4s terminal timer
+    expect(status.textContent).toBe(pairShareStatusMessage('shared'));
 
     const realClearTimeout = globalThis.clearTimeout;
     try {
@@ -4428,20 +4395,30 @@ describe('fifteenth remediation gate — latest-relation-generation ownership fo
         if (!clearReentered) {
           clearReentered = true;
           current = B;
-          controller.notifyRelationChange(B);
+          controller.notifyRelationChange(B); // reenters DURING the outer notify(B)'s own timer-supersede call
         }
         return realClearTimeout(id);
       };
 
-      armEmptyClick = true;
-      controller.notifyRelationChange(A);
-      await armingClick;
-
-      expect(emptyClickStarted).toBe(true);
+      current = B;
+      controller.notifyRelationChange(B); // its clear step supersedes the 'shared' timer -> a REAL clearTimeout call -> hostile reentry
       expect(clearReentered).toBe(true);
-      expect(textSetsAfter).toBe(2);
-      expect(hiddenSetsAfter).toBe(2);
-      await proveBStillOwnsCache(log, controller, A, B, btn, status);
+      // B's own reentrant cascade wins outright here — it preempts A's
+      // (already-stale) continuation before A's clear step ever finishes,
+      // so A's own notifyRelationChange stops at its own stillLatest()
+      // check without ever starting a second raster; only B's fresh
+      // prerender is pending. `proveBStillOwnsCache` assumes a shape where
+      // BOTH generations reach rastering (used by the sibling tests above,
+      // where the reentrant winner is triggered from a later boundary) —
+      // this earlier-preemption shape is asserted directly instead.
+      // (log.pendingImages is a cumulative log for the whole test: A's
+      // ORIGINAL prerender from setup, already settled above, plus B's
+      // fresh one here — never a second raster for A itself.)
+      expect(log.pendingImages).toHaveLength(2);
+      expect(btn.disabled).toBe(true);
+      expect(btn.getAttribute('aria-busy')).toBe('true');
+      expect(status.textContent).toBe(pairShareStatusMessage('busy'));
+      expect(status.hidden).toBe(false);
     } finally {
       globalThis.clearTimeout = realClearTimeout;
     }
@@ -4485,24 +4462,38 @@ describe('fifteenth remediation gate — latest-relation-generation ownership fo
     controller.notifyRelationChange(A);
 
     expect(reentered).toBe(true);
-    // Fourteenth remediation gate: the outer's now-stale `setStatus('busy',
-    // stillCurrent)` call detects (via its OWN post-write `stillCurrent()`
-    // check) that it lost ownership during this exact write, and — rather
-    // than merely stopping, which would leave whatever B's nested call
-    // already wrote untouched anyway in THIS particular trigger shape —
-    // calls `reconcileCurrentStatus`, which re-derives B's truthful busy
-    // state fresh and re-applies it. That reconciliation genuinely re-runs
-    // `setStatus('busy', ...)` a third time (harmless: it writes the exact
-    // same already-correct values), which is what the third textContent/
-    // hidden write below counts; the two prior writes are B's own nested
-    // clear-then-busy sequence, unchanged from before this gate.
-    expect(textSetsAfter).toBe(3);
-    expect(hiddenSetsAfter).toBe(3);
+    // Fifteenth remediation gate (model-first): the reentrant B cascade,
+    // triggered from inside THIS textContent write, runs to full completion
+    // synchronously but touches only the coordinator's MODEL — drain() is
+    // already active (this write is itself inside an active apply pass), so
+    // every nested transition just updates `coord.desired` and marks it
+    // dirty rather than writing DOM again. Control returns to this stale
+    // setter call, which commits its own pending write (`text = v`, already
+    // done before the trigger fired) and this outer apply pass's REMAINING
+    // field (`hidden`) still using the pre-cascade snapshot — one stale
+    // write. The active drain loop then notices `dirty` and reapplies the
+    // NEWEST view (B's) in a second, clean pass — one correct write to each
+    // field. Net: one stale hidden write the second pass immediately
+    // corrects, and the text field only needed the one clean write since
+    // this setter's own stale commit happened to already hold the same
+    // busy message B also wants (a coincidence of this exact trigger shape,
+    // not a general guarantee — proveBStillOwnsCache below checks the
+    // FINAL state, not the count, for that reason).
+    expect(textSetsAfter).toBe(1);
+    expect(hiddenSetsAfter).toBe(2);
     await proveBStillOwnsCache(log, controller, A, B, btn, status);
   });
 });
 
-describe('sixteenth remediation gate — the stale armed-timer busy-reconciliation and stale post-reentrant setter commits are both relation-generation-owned', () => {
+// Gate-numbering note (fifteenth gate, D.4 reconciliation): this describe
+// block and the one further below were drafted mid-session under a
+// "sixteenth" working label before the model-first coordinator rewrite
+// above (also this same uncommitted change) had itself landed as a real
+// commit — there was never a separate, committed "fifteenth" gate for this
+// label to follow. Both are normalized to "fifteenth" here because both
+// ship in the SAME commit as that rewrite; see journal.md's current entry
+// for the full drift explanation.
+describe('fifteenth remediation gate — the stale armed-timer busy-reconciliation and stale post-reentrant setter commits are both relation-generation-owned', () => {
   const secondRelation = () => adversarialRelation({
     elementDirectionAB: 'A · fire → B · earth',
     numerologySpine: '3 + 3 → 6',
@@ -4523,19 +4514,29 @@ describe('sixteenth remediation gate — the stale armed-timer busy-reconciliati
     let armed = false;
     let reentered = false;
     let controller;
-    const status = { textContent: '', hidden: true };
-    const refs = {
-      btn,
-      disclosure: makeEl('div'),
-      get status() {
-        if (armed && !reentered) {
+    // Fifteenth remediation gate (model-first): `refs.status` is no longer
+    // re-read after construction (proven directly by the dedicated test
+    // above), so a hostile GETTER there can no longer reenter anything —
+    // this now targets the boundary that IS still live: the timer's own
+    // `setStatusText('busy')` write, via a hostile `textContent` SETTER
+    // that commits its own stale value AFTER a nested notify(null) has
+    // already run its clear-to-idle cascade against the same coordinator.
+    let textVal = '';
+    let hiddenVal = true;
+    const status = {
+      get textContent() { return textVal; },
+      set textContent(v) {
+        if (armed && !reentered && v === pairShareStatusMessage('busy')) {
           reentered = true;
           current = null;
           controller.notifyRelationChange(null);
         }
-        return status;
+        textVal = v;
       },
+      get hidden() { return hiddenVal; },
+      set hidden(v) { hiddenVal = !!v; },
     };
+    const refs = { btn, status, disclosure: makeEl('div') };
 
     const timers = [];
     const cancelled = new Set();
@@ -4577,7 +4578,18 @@ describe('sixteenth remediation gate — the stale armed-timer busy-reconciliati
       expect(attrs['aria-busy']).toBe('false');
       expect(status.textContent).toBe('');
       expect(status.hidden).toBe(true);
-      void log;
+
+      // B's own prerender (started above, deferred by imageDefer) still
+      // hasn't settled — let it settle now, well after null already won,
+      // and prove that settlement neither resurrects B's busy view over
+      // null's idle nor fires any download of its own.
+      log.pendingImages[1]();
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+      expect(btn.disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      expect(status.textContent).toBe('');
+      expect(status.hidden).toBe(true);
+      expect(log.anchors).toHaveLength(0); // a prerender settling is never a click — no anchor ever created
     } finally {
       globalThis.setTimeout = realSetTimeout;
       globalThis.clearTimeout = realClearTimeout;
@@ -4762,7 +4774,7 @@ describe('sixteenth remediation gate — the stale armed-timer busy-reconciliati
 // read FAILURE, not a confirmed change) on the recheck immediately after
 // the exception/rejection — `failed` per the ordinary pre-effect mapping,
 // never a stale/unconfirmable download and never a false "shared".
-describe('sixteenth remediation gate — DOCTRINE v0.85: native-share exception/rejection read-failure boundaries', () => {
+describe('fifteenth remediation gate — DOCTRINE v0.85: native-share exception/rejection read-failure boundaries', () => {
   it('a synchronous non-Abort share() throw, followed by a getRelation() hook that itself THROWS on the post-throw recheck, settles to "failed" — never a stale/unconfirmable download', async () => {
     let calls = 0;
     const getRelation = () => {
@@ -4817,5 +4829,475 @@ describe('sixteenth remediation gate — DOCTRINE v0.85: native-share exception/
     expect(refs.status.textContent).not.toContain('shared');
     expect(refs.status.textContent).not.toContain('download');
     expect(refs.status.textContent).toBe(pairShareStatusMessage('failed'));
+  });
+});
+// Fifteenth remediation gate — targeted redteam follow-up (2026-09-05):
+// two real gaps a fresh adversarial pass found in the coordinator above
+// (neither was pinned by the existing green suite), plus one adjacent
+// disclosure-surface finding, plus the remaining permanent regressions the
+// exact-gate remediation brief requires (a genuine A→B→null semantic
+// cascade using the FIRST busy-transition write as its trigger — the
+// earlier `repro_pair_reconcile_abc_b3.mjs` probe's SECOND-disabled-write
+// trigger no longer occurs under this coordinator and is superseded, not
+// passing; a finite depth-5000 convergence proof; a genuine post-download
+// one-time display throw; and permanent transcriptions of two inherited
+// live-repro shapes that already pass but had no in-suite pin).
+describe('fifteenth remediation gate — targeted redteam follow-up: armTimer revision ownership, setAttribute getter-throw retry, disclosure reassertion', () => {
+  it('a stale predecessor terminal write that reenters same-button+same-status init installs NO timer of its own; only the successor\'s later real timer governs, and firing every captured callback still yields the successor\'s truthful terminal outcome', async () => {
+    const realSetTimeout = globalThis.setTimeout;
+    const realClearTimeout = globalThis.clearTimeout;
+    const timers = [];
+    let timerSeq = 0;
+    globalThis.setTimeout = (fn, ms) => { const id = ++timerSeq; timers.push({ id, fn, ms }); return id; };
+    globalThis.clearTimeout = () => {};
+    try {
+      const attrs = {};
+      let disabled = false;
+      const btn = {
+        get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+        setAttribute(k, v) { attrs[k] = String(v); },
+        getAttribute(k) { return attrs[k] ?? null; },
+        addEventListener() {},
+      };
+      const empty = pairShareStatusMessage('empty');
+      let text = '';
+      let hidden = true;
+      let armed = false;
+      let reentered = false;
+      let successor = null;
+      const status = {
+        get textContent() { return text; },
+        set textContent(v) {
+          // The predecessor's OWN terminal write ('empty', since
+          // getRelation() answers null) reenters mid-drain — the exact
+          // shape the follow-up describes: a hostile setter reinitializing
+          // the SAME physical button+status while the predecessor's
+          // setStatusText('empty') is still inside its own mutate()/drain().
+          if (armed && !reentered && v === empty) {
+            reentered = true;
+            successor = initPairShareUI({ btn, status }, { getRelation: () => null });
+          }
+          text = v;
+        },
+        get hidden() { return hidden; }, set hidden(v) { hidden = !!v; },
+      };
+      const predecessor = initPairShareUI({ btn, status }, { getRelation: () => null });
+      armed = true;
+      await predecessor.onShareClick();
+
+      expect(reentered).toBe(true);
+      expect(successor).toBeTruthy();
+      // The successor reaches idle (the coordinator's own reconciliation) —
+      // this part already worked before the fix.
+      expect(text).toBe('');
+      expect(hidden).toBe(true);
+      expect(disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      // The actual regression: the stale predecessor's own step-3
+      // armTimer() call must not have installed anything, since its
+      // revision was already superseded by the nested reinit before that
+      // call ran.
+      expect(timers).toHaveLength(0);
+
+      // The successor now performs its own operation and publishes a
+      // genuine terminal result — the ONLY timer that should ever exist.
+      await successor.onShareClick();
+      expect(timers).toHaveLength(1);
+      expect(timers[0].ms).toBe(4000);
+      expect(text).toBe(empty);
+      expect(hidden).toBe(false);
+
+      // Firing every captured callback (there is exactly one — the
+      // successor's genuine one) must resolve truthfully to idle: no stale
+      // predecessor callback exists to instead resurrect "preparing…" or
+      // split disabled/aria-busy out of agreement.
+      timers.forEach(t => t.fn());
+      expect(text).toBe('');
+      expect(hidden).toBe(true);
+      expect(disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+      globalThis.clearTimeout = realClearTimeout;
+    }
+  });
+
+  it('a setAttribute getter that throws exactly once, then works, self-heals via the bounded retry — disabled and aria-busy converge together, never split', () => {
+    const attrs = { 'aria-busy': 'true' };
+    let disabled = true;
+    let getterCalls = 0;
+    const btn = {
+      get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+      get setAttribute() {
+        getterCalls++;
+        if (getterCalls === 1) throw new Error('transient hostile getter');
+        return (k, v) => { attrs[k] = String(v); };
+      },
+      getAttribute(k) { return attrs[k] ?? null; },
+      addEventListener() {},
+    };
+    initPairShareUI({ btn, status: { textContent: '', hidden: true } }, { getRelation: () => null });
+    expect(getterCalls).toBeGreaterThanOrEqual(2); // the bounded retry gave the transient getter a second chance
+    expect(disabled).toBe(false);
+    expect(attrs['aria-busy']).toBe('false'); // never left split at the old "true" while disabled already reads "false"
+  });
+
+  it('a genuinely absent setAttribute (never throws, simply not present) is not claimed repairable — disabled still converges, and the module gives up quickly rather than spinning the full retry budget', () => {
+    let disabled = true;
+    const btn = {
+      get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+      // no setAttribute at all — a permanent absence, not a transient throw
+      addEventListener() {},
+    };
+    const start = Date.now();
+    initPairShareUI({ btn, status: { textContent: '', hidden: true } }, { getRelation: () => null });
+    expect(Date.now() - start).toBeLessThan(500); // MAX_APPLY_RETRIES bounds this, never an unbounded spin
+    expect(disabled).toBe(false); // the OTHER field still converges even though aria-busy permanently cannot
+  });
+
+  it('the capability-disclosure textContent write survives a same-refs reentrant reinit: the nested winner\'s correct text is reasserted, never clobbered by the outer\'s stale post-commit', () => {
+    function makeButton() {
+      const attrs = Object.create(null);
+      let disabled = false;
+      return {
+        get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+        setAttribute(k, v) { attrs[k] = String(v); },
+        getAttribute(k) { return attrs[k] ?? null; },
+        addEventListener() {},
+      };
+    }
+    const btn = makeButton();
+    const status = { textContent: '', hidden: true };
+    const refs = { btn, status, disclosure: null };
+    let text = '';
+    let nested = null;
+    let first = true;
+    const disclosure = {
+      get textContent() { return text; },
+      set textContent(v) {
+        // The outer call is capable (share+canShare present); the nested
+        // reinit flips global `navigator` to incapable BEFORE constructing
+        // its own controller, so its own disclosure write is the "not
+        // capable" copy — the outer's `v` here is frozen at its own,
+        // now-stale "capable" text.
+        if (first) {
+          first = false;
+          Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+          nested = initPairShareUI(refs, { getRelation: () => null });
+        }
+        text = v;
+      },
+    };
+    refs.disclosure = disclosure;
+    const realNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    try {
+      Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        value: { share() {}, canShare() { return true; } },
+      });
+      initPairShareUI(refs, { getRelation: () => null });
+      expect(nested).toBeTruthy();
+      expect(text).toBe(pairImprintDisclosureText(false)); // the nested winner's own correct text, not the outer's stale capable claim
+    } finally {
+      if (realNavigatorDesc) Object.defineProperty(globalThis, 'navigator', realNavigatorDesc);
+      else delete globalThis.navigator;
+    }
+  });
+
+  it('a genuine post-download one-time display throw heals via the bounded retry: exactly one download effect, exactly one clipboard copy, never reported "failed"', async () => {
+    const log = installEnv({ clipboard: () => {} }); // no share capability at all -> straight to download+clipboard fallback
+    const { refs } = await boot(() => VALID_RELATION);
+    const finalMsg = pairShareStatusMessage('download-started-copied');
+    let raw = '';
+    let threwOnce = false;
+    Object.defineProperty(refs.status, 'textContent', {
+      configurable: true,
+      get() { return raw; },
+      set(v) {
+        if (v === finalMsg && !threwOnce) {
+          threwOnce = true;
+          throw new Error('one-time hostile display throw, well after the download already fired');
+        }
+        raw = v;
+      },
+    });
+    await clickShare(refs);
+    expect(threwOnce).toBe(true); // the throw genuinely happened, on the real terminal write
+    expect(log.anchors).toHaveLength(1); // exactly ONE anchor ever prepared — never duplicated by the retry
+    expect(log.anchors[0].clickCount).toBe(1); // exactly ONE irreversible click — the actual action, not just an appendChild
+    expect(log.copied).toHaveLength(1); // exactly ONE clipboard copy — likewise never duplicated
+    expect(raw).toBe(finalMsg); // self-healed via the bounded retry
+    expect(raw).not.toBe(pairShareStatusMessage('failed')); // an already-real effect must never be reported as broken
+  });
+
+  it('exact same-ref post-commit reinit (general 4-field case, live-repro shape): a stale predecessor busy-write reentering init cannot leave the shared button/status anywhere but the successor\'s correct idle', async () => {
+    const attrs = {};
+    let disabled = false;
+    const btn = {
+      get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+      setAttribute(k, v) { attrs[k] = String(v); },
+      addEventListener() {},
+    };
+    const busy = pairShareStatusMessage('busy');
+    let text = '';
+    let hidden = true;
+    let armed = false;
+    let reentered = false;
+    let successor = null;
+    const refs = { btn, status: null, disclosure: null };
+    const status = {
+      get textContent() { return text; },
+      set textContent(v) {
+        if (armed && !reentered && v === busy) {
+          reentered = true;
+          successor = initPairShareUI(refs, { getRelation: () => null });
+        }
+        // Commit AFTER the successor has reset these shared refs to idle.
+        text = v;
+      },
+      get hidden() { return hidden; }, set hidden(v) { hidden = !!v; },
+    };
+    refs.status = status;
+    const predecessor = initPairShareUI(refs, { getRelation: () => VALID_RELATION });
+    armed = true;
+    await predecessor.onShareClick();
+
+    expect(reentered).toBe(true);
+    expect(successor).toBeTruthy();
+    expect(disabled).toBe(false);
+    expect(attrs['aria-busy']).toBe('false');
+    expect(text).toBe('');
+    expect(hidden).toBe(true);
+  });
+
+  it('stale prerender settlement cannot resurrect a superseded busy view (live-repro shape): a deferred prerender settling for pair A, reentering to notify pair B, converges on B\'s truthful busy state', async () => {
+    const pendingImages = [];
+    let seq = 0;
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    const realRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    const realImage = globalThis.Image;
+    const realDocument = globalThis.document;
+    const realNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    globalThis.URL.createObjectURL = () => `blob:settle-postcommit/${++seq}`;
+    globalThis.URL.revokeObjectURL = () => {};
+    globalThis.Image = class {
+      set src(v) { this._src = v; pendingImages.push(() => this.onload?.()); }
+    };
+    globalThis.document = {
+      body: { appendChild() {} },
+      createElement(tag) {
+        if (tag === 'canvas') return {
+          set width(_v) {}, set height(_v) {},
+          getContext() { return { drawImage() {} }; },
+          toBlob(cb) { cb(new Blob(['png'], { type: 'image/png' })); },
+        };
+        return { click() {}, remove() {} };
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+
+    try {
+      const A = VALID_RELATION;
+      const B = adversarialRelation({
+        elementDirectionAB: 'A · earth → B · metal',
+        numerologySpine: '2 + 9 → 11',
+        cardPairHead: 'no. ix × no. xcviii',
+      });
+      const attrs = {};
+      const btn = {
+        disabled: false,
+        setAttribute(k, v) { attrs[k] = String(v); },
+        addEventListener() {},
+      };
+      let textValue = '';
+      let hiddenValue = true;
+      let armed = false;
+      let reentered = false;
+      let controller;
+      const status = {
+        get textContent() { return textValue; },
+        set textContent(v) {
+          if (armed && v === '' && !reentered) {
+            reentered = true;
+            controller.notifyRelationChange(B);
+          }
+          // Hostile setter commits A's stale clear after B's own nested
+          // busy state already won.
+          textValue = v;
+        },
+        get hidden() { return hiddenValue; },
+        set hidden(v) { hiddenValue = !!v; },
+      };
+      controller = initPairShareUI(
+        { btn, status, disclosure: { textContent: '' } },
+        { getRelation: () => B },
+      );
+      controller.notifyRelationChange(A);
+      expect(pendingImages).toHaveLength(1); // only A's own render has started so far
+      armed = true;
+      pendingImages[0](); // A's deferred prerender settles now — the reentry point
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+      expect(reentered).toBe(true);
+      expect(pendingImages).toHaveLength(2); // B's own render also started, once
+      // B's busy state must survive A's stale post-reentrant commit.
+      expect(btn.disabled).toBe(true);
+      expect(attrs['aria-busy']).toBe('true');
+      expect(textValue).toBe(pairShareStatusMessage('busy'));
+      expect(hiddenValue).toBe(false);
+    } finally {
+      globalThis.URL.createObjectURL = realCreateObjectURL;
+      globalThis.URL.revokeObjectURL = realRevokeObjectURL;
+      globalThis.Image = realImage;
+      globalThis.document = realDocument;
+      if (realNavigatorDesc) Object.defineProperty(globalThis, 'navigator', realNavigatorDesc);
+    }
+  });
+
+  it('a permanent A→B→null semantic cascade, triggered off the FIRST busy-transition write (not a second-disabled-write, which no longer occurs under this coordinator — repro_pair_reconcile_abc_b3.mjs is superseded, not passing): the final state is null\'s truthful idle, A\'s own stale continuation never starts a wasted render, and B\'s later prerender settlement (once it finally resolves) produces no anchor click and no resurrection of null\'s idle', async () => {
+    const pendingImages = [];
+    let anchorClicks = 0;
+    let seq = 0;
+    const realCreateObjectURL = globalThis.URL.createObjectURL;
+    const realRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    const realImage = globalThis.Image;
+    const realDocument = globalThis.document;
+    const realNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    globalThis.URL.createObjectURL = () => `blob:abc-firstbusy/${++seq}`;
+    globalThis.URL.revokeObjectURL = () => {};
+    globalThis.Image = class {
+      set src(v) { this._src = v; pendingImages.push(() => this.onload?.()); }
+    };
+    globalThis.document = {
+      body: { appendChild() {} },
+      createElement(tag) {
+        if (tag === 'canvas') return {
+          set width(_v) {}, set height(_v) {},
+          getContext() { return { drawImage() {} }; },
+          toBlob(cb) { cb(new Blob(['png'], { type: 'image/png' })); },
+        };
+        return { click() { anchorClicks++; }, remove() {} };
+      },
+    };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+
+    try {
+      const A = VALID_RELATION;
+      const B = adversarialRelation({
+        elementDirectionAB: 'A · water → B · fire',
+        numerologySpine: '5 + 6 → 11',
+        cardPairHead: 'no. xii × no. lxxxviii',
+      });
+      const busy = pairShareStatusMessage('busy');
+      const attrs = {};
+      const btn = {
+        disabled: false,
+        setAttribute(k, v) { attrs[k] = String(v); },
+        addEventListener() {},
+      };
+      let text = '';
+      let hidden = true;
+      let armed = false;
+      let reenteredToB = false;
+      let reenteredToNull = false;
+      let controller;
+      const status = {
+        get textContent() { return text; },
+        set textContent(v) {
+          // First busy-transition write for A (its own clear-to-idle, since
+          // no click is in flight) reenters to B.
+          if (armed && !reenteredToB && v === '') {
+            reenteredToB = true;
+            controller.notifyRelationChange(B);
+          // B's OWN first busy-transition write (its busy message,
+          // genuinely reaching a real setter call once the outer drain
+          // loop reapplies B's model) reenters to null.
+          } else if (armed && reenteredToB && !reenteredToNull && v === busy) {
+            reenteredToNull = true;
+            controller.notifyRelationChange(null);
+          }
+          text = v;
+        },
+        get hidden() { return hidden; }, set hidden(v) { hidden = !!v; },
+      };
+      controller = initPairShareUI(
+        { btn, status, disclosure: { textContent: '' } },
+        { getRelation: () => null },
+      );
+      armed = true;
+      controller.notifyRelationChange(A);
+
+      expect(reenteredToB).toBe(true);
+      expect(reenteredToNull).toBe(true);
+      // Only B's raster ever genuinely started: A's own continuation finds
+      // it lost the relation-generation race (B, then null, both claimed a
+      // later generation before A's own post-clear code could resume) and
+      // never reaches its own render; null needs no render at all.
+      expect(pendingImages).toHaveLength(1);
+      // null's truthful idle is what survives — not A's or B's stale
+      // post-commits.
+      expect(btn.disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      expect(text).toBe('');
+      expect(hidden).toBe(true);
+      expect(anchorClicks).toBe(0); // nothing irreversible has fired at all — this is a relation-change cascade, not a click
+
+      // The stale-settlement/no-effect proof: B's own render (the only one
+      // that ever genuinely started) eventually settles too, well after
+      // null already won. That settlement must not resurrect B's busy view
+      // over null's already-truthful idle, and must never itself trigger a
+      // download (a prerender settling is never a click).
+      pendingImages[0]();
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+      expect(btn.disabled).toBe(false);
+      expect(attrs['aria-busy']).toBe('false');
+      expect(text).toBe('');
+      expect(hidden).toBe(true);
+      expect(anchorClicks).toBe(0);
+    } finally {
+      globalThis.URL.createObjectURL = realCreateObjectURL;
+      globalThis.URL.revokeObjectURL = realRevokeObjectURL;
+      globalThis.Image = realImage;
+      globalThis.document = realDocument;
+      if (realNavigatorDesc) Object.defineProperty(globalThis, 'navigator', realNavigatorDesc);
+    }
+  });
+
+  it('a finite depth-5000 synchronous reentrant cascade converges without RangeError — a bounded pass budget absorbs it as loop iterations, never deep call-stack recursion', () => {
+    const DEPTH = 5000;
+    let count = 0;
+    let armed = false;
+    let text = '';
+    let hidden = true;
+    let disabled = false;
+    const attrs = {};
+    const btn = {
+      get disabled() { return disabled; }, set disabled(v) { disabled = !!v; },
+      setAttribute(k, v) { attrs[k] = String(v); },
+      addEventListener() {},
+    };
+    let controller;
+    const status = {
+      get textContent() { return text; },
+      set textContent(v) {
+        if (armed && v === '' && count < DEPTH) {
+          count++;
+          controller.notifyRelationChange(null); // each level reenters the same null-clearing path
+        }
+        text = v;
+      },
+      get hidden() { return hidden; }, set hidden(v) { hidden = !!v; },
+    };
+    controller = initPairShareUI(
+      { btn, status, disclosure: { textContent: '' } },
+      { getRelation: () => null },
+    );
+    armed = true;
+    expect(() => controller.notifyRelationChange(null)).not.toThrow();
+    expect(count).toBe(DEPTH);
+    expect(btn.disabled).toBe(false);
+    expect(attrs['aria-busy']).toBe('false');
+    expect(text).toBe('');
+    expect(hidden).toBe(true);
   });
 });

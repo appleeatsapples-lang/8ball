@@ -60,7 +60,7 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── meanings.js          all-cell value meaning + deterministic sheet context (§1.G v0.53)
 │   ├── public.js            public-reading formatter + master-mode bridge disclosure
 │   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.81)
-│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading (§1.J/§5.D v0.81/v0.85)
+│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading, via a model-first non-recursive view coordinator (§1.J/§5.D v0.81–v0.86)
 │   ├── sheet.js             shared sheet value mapping/render helpers
 │   ├── result.js            result-screen arrival + card-flip controller — transition state, face accessibility, arrival focus/announcement, shake-again
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
