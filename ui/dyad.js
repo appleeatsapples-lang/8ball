@@ -83,7 +83,7 @@ import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
 export const DYAD_OFFER_COPY = Object.freeze({
   head: 'dyad · $3 once',
   body: 'two complete sheets, read beside each other. permanent access.',
-  note: 'checkout opens on gumroad; payment and your email stay there. the access link is sent to that email — opening it files the dyad on that device, permanently. the second entry is never saved.',
+  note: 'checkout opens on gumroad; payment and your email stay there. after purchase the operator sends an access link to that email — opening it files the dyad on that device, permanently. the second entry is never saved.',
 });
 
 // ── pure ──────────────────────────────────────────────────────────
@@ -653,7 +653,6 @@ function injectOffer(controls) {
   link.className = 'btn btn-block btn-secondary';
   link.id = 'dyad-offer-link';
   link.setAttribute('target', '_self');
-  link.setAttribute('rel', 'noopener');
   link.hidden = true;
   const head = document.createElement('span');
   head.className = 'dyad-offer-head';

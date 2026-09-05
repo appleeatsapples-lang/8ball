@@ -436,6 +436,8 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     }
     expect(DYAD_OFFER_COPY.note).toMatch(/gumroad/);
     expect(DYAD_OFFER_COPY.note).toMatch(/never saved/);
+    // pr242 audit (Lane B M2): the per-sale link is sent by the operator, not by the page
+    expect(DYAD_OFFER_COPY.note).toMatch(/the operator sends an access link/);
   });
 
   it('an unentitled device sees the offer anchor — a plain link carrying the url and the copy — and no entry control', () => {
@@ -448,6 +450,7 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(link.hidden).toBe(false);
     expect(link.attrs.href).toBe(url);
     expect(link.attrs.target).toBe('_self');
+    expect(link.attrs.rel).toBeUndefined(); // noopener is a no-op on _self (pr242 audit, Lane B L2)
     expect(link.listeners.click).toBeUndefined(); // §5.B: a navigation, never a handler
     expect(link.children.map(c => c.textContent)).toEqual([DYAD_OFFER_COPY.head, DYAD_OFFER_COPY.body]);
     expect(h.get('dyad-offer-note').hidden).toBe(false);

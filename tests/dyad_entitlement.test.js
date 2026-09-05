@@ -163,6 +163,20 @@ describe('the token — shape, signature, and every way it fails closed', () => 
     }
   });
 
+  it('pins the raw-signature length at exactly 64 bytes — 63 and 65 are malformed before any crypto runs (pr242 audit, Lane B L1)', async () => {
+    const [p, s] = token.split('.');
+    const sig = base64urlDecode(s);
+    expect(sig.length).toBe(64);
+    const shorter = base64urlEncode(sig.slice(0, 63));
+    const longer = base64urlEncode(Uint8Array.from([...sig, 0]));
+    for (const bad of [shorter, longer]) {
+      expect(parseDyadToken(`${p}.${bad}`)).toEqual({ ok: false, reason: 'malformed' });
+      // and with a verifier that would say yes to anything, the shape check still refuses
+      const yes = { importKey: async () => ({}), verify: async () => true };
+      expect(await verifyDyadToken(`${p}.${bad}`, { keys: [K.publicJwk], subtle: yes })).toEqual({ ok: false, reason: 'malformed' });
+    }
+  });
+
   it('refuses a correctly SIGNED token for another product, another version, or a malformed claim set', async () => {
     const good = { v: 1, p: 'dyad', id: 'sale_0003', iat: 1_757_000_000 };
     for (const payload of [

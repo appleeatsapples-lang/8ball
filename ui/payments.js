@@ -82,6 +82,10 @@ export const PROFILE_SAVE_STORAGE_MESSAGE = 'reading not saved — allow local s
 export const DYAD_FILED_MESSAGE = 'dyad · filed on this device.';
 export const DYAD_REJECTED_MESSAGE = 'that access link did not verify. nothing was filed.';
 export const DYAD_STORAGE_MESSAGE = 'dyad · open for this visit — allow local storage, then reopen the link to keep it.';
+// A bad link on a device that ALREADY holds a verified token: the link is
+// named as unverified, and the device is told nothing was lost (pr242 audit,
+// Lane B M1 — the plain rejection read as a failed purchase).
+export const DYAD_ALREADY_FILED_MESSAGE = 'that access link did not verify. the dyad is already filed on this device.';
 
 // ── storage shims ─────────────────────────────────────────────────
 // Every read defends against a localStorage exception (private mode,

@@ -37,7 +37,7 @@ import {
   FACET_KEY,
   PENDING_KEY,
   PROFILE_SAVE_STORAGE_MESSAGE,
-  DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE,
+  DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE, DYAD_ALREADY_FILED_MESSAGE,
   TIER_KEY,
   getRenderTier,
   initStatusBanner,
@@ -212,6 +212,9 @@ describe('the resolver — the complete single sheet for every device; the dyad 
     expect(body).toMatch(/DYAD_REJECTED_MESSAGE/);
     expect(body).toMatch(/DYAD_FILED_MESSAGE/);
     expect(body).toMatch(/DYAD_STORAGE_MESSAGE/);
+    // pr242 audit (Lane B M1): an entitled device opening a bad link is told
+    // the link failed AND that nothing was lost — never the bare rejection.
+    expect(body).toMatch(/entitlement\.granted \? DYAD_ALREADY_FILED_MESSAGE : DYAD_REJECTED_MESSAGE/);
   });
 });
 
@@ -315,11 +318,12 @@ describe('status banner — the one transient status surface', () => {
   });
 
   it('the three access-link outcomes have plain filing copy — no celebration, no upsell', () => {
-    for (const msg of [DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE]) {
+    for (const msg of [DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE, DYAD_ALREADY_FILED_MESSAGE]) {
       expect(msg).toMatch(/^[a-z]/);
       expect(msg).not.toMatch(/!|buy|purchase|unlock|congrat|welcome/i);
     }
     expect(DYAD_REJECTED_MESSAGE).toMatch(/nothing was filed/);
+    expect(DYAD_ALREADY_FILED_MESSAGE).toMatch(/already filed on this device/);
   });
 
   it('the save-failure message dropped its purchase clause and both save sites use it', () => {
@@ -364,6 +368,10 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
 
   it('states the §5.B boundary: processor named, payment + email stay there, the second person is never saved', () => {
     expect(aboutSubtree).toMatch(/checkout is on gumroad, which keeps the payment and your email/);
+    // pr242 audit (Lane B M2): delivery of the link is the OPERATOR's step,
+    // said so — never phrased as something the system does.
+    expect(aboutSubtree).toMatch(/after purchase the operator sends an access link to that email/);
+    expect(aboutSubtree).not.toMatch(/link sent to that email files/);
     expect(aboutSubtree).toMatch(/nothing about the second person is ever saved/);
   });
 

@@ -238,7 +238,7 @@
     <div class="modal-rule"></div>
     <p>there is no mystery layer. the sheet files five coordinates from your date of birth alone: tarot birth card, sun sign, public animal, life path, catalog numeral. the rest open when your name enters the math: rising sign and moon sign (with birth time + place), five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar (with birth time). real lunar new year + 12 jieqi via meeus, IANA timezone + DST, pythagorean numerology, ascendant and lunar longitude from astronomical formulas. calculator-grade work. reveal labels to name each row; open any compartment to read its system name and derivation beside its meaning.</p>
     <p>nothing leaves your device on its own. inputs, the show-labels toggle, readings you choose to save, and — once filed — the dyad access token are stored locally. previous readings lets you reopen, rename, delete, or clear that browser-only archive. the feedback form below the card sends only what you type there, only when you press send.</p>
-    <p>the sheet is free. the complete sheet — all sixteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, as many readings as you like. no subscription, no 8ball account, no counter. the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: $3 once, permanent, unlimited. checkout is on gumroad, which keeps the payment and your email; the access link sent to that email files the dyad on whatever device opens it, and nothing about the second person is ever saved. devices that bought a rung while the sheet was paid keep everything they had; the sheet they bought is free for everyone now. the deck is visible in source. this is a toy, and it is fun.</p>
+    <p>the sheet is free. the complete sheet — all sixteen coordinates, their meanings, the written card entry (name, type, habit, and one of three rotating note positions, first anchored by your life path), and domain fit — opens for every reading, as many readings as you like. no subscription, no 8ball account, no counter. the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: $3 once, permanent, unlimited. checkout is on gumroad, which keeps the payment and your email; after purchase the operator sends an access link to that email, and opening it files the dyad on whatever device opens it. nothing about the second person is ever saved. devices that bought a rung while the sheet was paid keep everything they had; the sheet they bought is free for everyone now. the deck is visible in source. this is a toy, and it is fun.</p>
     <div class="modal-actions">
       <button class="btn" id="about-close" type="button">got it</button>
     </div>
@@ -273,7 +273,7 @@ import {
   getRenderTier, resolveDyadEntitlement, returnTokenFrom, hasLegacyPaidParam,
   clearFacetIndex, consumeFacetShake, ensureFacetIndex, getFacetSlot, getFreshFacetSlot,
   initStatusBanner, showStatusBanner, PROFILE_SAVE_STORAGE_MESSAGE,
-  DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE,
+  DYAD_FILED_MESSAGE, DYAD_REJECTED_MESSAGE, DYAD_STORAGE_MESSAGE, DYAD_ALREADY_FILED_MESSAGE,
   scrubRetiredCommerceKeys,
 } from './ui/payments.js';
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
@@ -636,8 +636,8 @@ async function boot() {
   const entitlement = await resolveDyadEntitlement({ returnToken });
   if (returnToken !== null) {
     const filed = entitlement.granted && entitlement.source === 'return';
-    showStatusBanner(!filed ? DYAD_REJECTED_MESSAGE
-      : entitlement.stored ? DYAD_FILED_MESSAGE : DYAD_STORAGE_MESSAGE);
+    showStatusBanner(filed ? (entitlement.stored ? DYAD_FILED_MESSAGE : DYAD_STORAGE_MESSAGE)
+      : entitlement.granted ? DYAD_ALREADY_FILED_MESSAGE : DYAD_REJECTED_MESSAGE);
   }
   const keepUrl = returnToken !== null && entitlement.granted
     && entitlement.source === 'return' && !entitlement.stored;
