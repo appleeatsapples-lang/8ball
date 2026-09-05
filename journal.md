@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — STAGED on branch, PR pending
+## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — STAGED on branch, PR #242
 
 **What happened.** On the controller's order the product model moved
 from "everything free" (v0.71, three days earlier) to **free complete
@@ -86,7 +86,7 @@ Verifying a Gumroad license key from the page would need a third-party
 `fetch` — forbidden by §5 — and was not taken. **Until all three are
 done the deployed product is the free complete single sheet with no
 offer and no dyad for anyone; this is not production-ready as a store.**
-The L48 artifact needs the PR number and is filed when the PR exists.
+The L48 artifact is filed with PR #242 (the reconciled two-lane response, below).
 
 **Test surface.** `tests/dyad_entitlement.test.js` (new, 31 tests)
 drives the token, the storage contract and the CLI end to end with a
