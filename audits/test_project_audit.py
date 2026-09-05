@@ -1527,14 +1527,25 @@ class PathRedactionRealRunTests(unittest.TestCase):
 
 
 class FreeCeilingProbeTests(unittest.TestCase):
-    """The repointed product.t4_migration probe (free amendment, doctrine
-    v0.71) must be able to FAIL. The pr229 audit proved the prior gap was
-    real: a gutted probe rode this whole suite green. Each test here builds
-    a minimal product root whose ui/payments.js violates one clause of the
-    free-ceiling contract and asserts the real check catches it."""
+    """The repointed product.t4_migration probe (doctrine v0.81: free single
+    sheet + paid dyad) must be able to FAIL. The pr229 audit proved the
+    prior gap was real: a gutted probe rode this whole suite green. Each
+    test here builds a minimal product root — the REAL core/entitlement.js
+    copied in, plus a ui/payments.js stub that violates one clause of the
+    entitlement contract — and asserts the real check catches it."""
 
     GOOD = (
-        "export function getRenderTier() { return 't5'; }\n"
+        "import { verifyDyadToken } from '../core/entitlement.js';\n"
+        "const DYAD_KEY = 'eight_ball_dyad_entitlement_v1';\n"
+        "let entitled = false;\n"
+        "export function getRenderTier() { return entitled ? 't5' : 't3'; }\n"
+        "export async function resolveDyadEntitlement({ returnToken = null, keys, subtle } = {}) {\n"
+        "  if (returnToken !== null) {\n"
+        "    const v = await verifyDyadToken(returnToken, { keys, subtle });\n"
+        "    if (v.ok) { entitled = true; localStorage.setItem(DYAD_KEY, returnToken); return { granted: true }; }\n"
+        "  }\n"
+        "  return { granted: entitled };\n"
+        "}\n"
         "export function scrubRetiredCommerceKeys() {\n"
         "  for (const k of ['eight_ball_pending_profile_v1', 'eight_ball_tier_v1', 'eight_ball_credits_v1']) {\n"
         "    try { localStorage.removeItem(k); } catch (_) {}\n"
@@ -1547,32 +1558,70 @@ class FreeCeilingProbeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             ui = Path(d) / "ui"
             ui.mkdir()
+            core = Path(d) / "core"
+            core.mkdir()
+            real = Path(__file__).resolve().parent.parent / "core" / "entitlement.js"
+            (core / "entitlement.js").write_text(real.read_text())
             (ui / "payments.js").write_text(payments_src)
             return pa.check_t4_migration(d)
 
     def test_conforming_module_passes(self):
         chk = self.run_probe_with(self.GOOD)
-        self.assertEqual(chk["status"], "pass", chk["summary"])
+        self.assertEqual(chk["status"], "pass", chk["summary"] + chk["output"])
         self.assertEqual(chk["severity"], "blocking")
 
-    def test_wrong_ceiling_fails(self):
-        chk = self.run_probe_with(self.GOOD.replace("return 't5';", "return 't3';"))
+    def test_wrong_baseline_fails(self):
+        # the v0.71 ceiling: t5 for everyone, before any token
+        chk = self.run_probe_with(self.GOOD.replace("return entitled ? 't5' : 't3';", "return 't5';"))
         self.assertEqual(chk["status"], "fail", chk["summary"])
-        self.assertIn("free ceiling", chk["output"] + chk["summary"])
+        self.assertIn("legacy unsigned", chk["output"])
+
+    def test_legacy_tier_honoured_fails(self):
+        # trusting the unsigned stored tier — the thing v0.81 forbids
+        src = self.GOOD.replace(
+            "return entitled ? 't5' : 't3';",
+            "return entitled || localStorage.getItem('eight_ball_tier_v1') === 't5' ? 't5' : 't3';")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("legacy unsigned", chk["output"])
 
     def test_resolver_that_writes_storage_fails(self):
         src = self.GOOD.replace(
-            "export function getRenderTier() { return 't5'; }",
-            "export function getRenderTier() { localStorage.setItem('eight_ball_tier_v1', 't5'); return 't5'; }")
+            "return entitled ? 't5' : 't3';",
+            "localStorage.setItem('eight_ball_tier_v1', 't3'); return entitled ? 't5' : 't3';")
         chk = self.run_probe_with(src)
         self.assertEqual(chk["status"], "fail", chk["summary"])
         self.assertIn("wrote storage", chk["output"])
+
+    def test_grant_without_verification_fails(self):
+        src = self.GOOD.replace("if (v.ok) {", "if (true) {")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("tampered", chk["output"])
+
+    def test_never_granting_fails(self):
+        src = self.GOOD.replace("if (v.ok) {", "if (false) {")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("did not grant", chk["output"])
+
+    def test_grant_that_does_not_store_fails(self):
+        src = self.GOOD.replace("localStorage.setItem(DYAD_KEY, returnToken); ", "")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("not stored", chk["output"])
 
     def test_scrub_that_does_not_remove_the_key_fails(self):
         src = self.GOOD.replace("localStorage.removeItem(k);", ";")
         chk = self.run_probe_with(src)
         self.assertEqual(chk["status"], "fail", chk["summary"])
         self.assertIn("scrub", chk["output"].lower())
+
+    def test_scrub_that_erases_the_entitlement_fails(self):
+        src = self.GOOD.replace("'eight_ball_credits_v1']", "'eight_ball_credits_v1', DYAD_KEY]")
+        chk = self.run_probe_with(src)
+        self.assertEqual(chk["status"], "fail", chk["summary"])
+        self.assertIn("purchase was erased", chk["output"])
 
     def test_scrub_reporting_false_fails(self):
         src = self.GOOD.replace("return true;", "return false;")

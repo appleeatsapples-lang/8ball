@@ -101,6 +101,10 @@ const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_facet_index_v1',
   'eight_ball_facet_index_v2',
   'eight_ball_facet_index_v3',
+  // The dyad entitlement (§4.B v0.81 / §5): the signed access token itself,
+  // verbatim — re-verified at every boot, never a flag. Written only by
+  // ui/payments.js resolveDyadEntitlement after a token verifies.
+  'eight_ball_dyad_entitlement_v1',
   // Saved Readings MVP (§5.E v0.50): array of reconstruction inputs + local metadata.
   'eight_ball_saved_readings_v1'
 ]);

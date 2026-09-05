@@ -49,7 +49,10 @@ describe('feedback surface (DOCTRINE.md §5.B)', () => {
     // Regression pin for the 07-17 audit L10 fix: `location.search.includes('sent=1')`
     // also matched crafted queries like `?notsent=1`, showing the thanks banner
     // without a submission. The exact-param form must not regress.
-    expect(HTML).toMatch(/new URLSearchParams\(window\.location\.search\)\.get\('sent'\) === '1'/);
+    // Since pr242 the url is captured once as `bootSearch` (so the dyad access
+    // link survives this handler's strip); the exact-param check is unchanged.
+    expect(HTML).toMatch(/const bootSearch = window\.location\.search;/);
+    expect(HTML).toMatch(/new URLSearchParams\(bootSearch\)\.get\('sent'\) === '1'/);
     expect(HTML).not.toMatch(/location\.search\.includes\(/);
   });
 

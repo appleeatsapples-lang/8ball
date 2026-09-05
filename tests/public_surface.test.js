@@ -21,6 +21,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
 
 import { makeClassList } from './helpers/dom.js';
 import {
@@ -338,13 +339,16 @@ describe('public read — the t4 retirement must not downgrade anyone', () => {
     expect(resolveRenderTier({ tier: null, credits: 0 })).toBe('free');
   });
 
-  it('the migration machinery retired with the storefront — the resolver is the constant ceiling', () => {
+  it('the migration machinery stays retired — the resolver reads module state, never a stored rung (v0.71 → v0.81)', () => {
     // Through the free amendment the t4→t3 rewrite lived in getRenderTier;
     // with storage out of the density path there is nothing to migrate and
-    // nothing left that could resurrect a stored rung.
+    // nothing left that could resurrect a stored rung. Doctrine v0.81 keeps
+    // that: the resolver answers t3 (the complete single sheet) or t5 from
+    // the boot-settled entitlement flag, and no stored tier — `t4`, `t5`,
+    // anything — reaches it.
     const src = readFileSync(join(__dirname, '..', 'ui', 'payments.js'), 'utf-8');
     expect(src).not.toMatch(/setTier|resolveRenderTier/);
-    expect(src).toMatch(/export function getRenderTier\(\) \{\n  return 't5';\n\}/);
+    expect(src).toMatch(/export function getRenderTier\(\) \{\n  return _dyadEntitled \? 't5' : 't3';\n\}/);
   });
 });
 
@@ -384,12 +388,20 @@ describe('public read — the withdrawn offer leaves no surface behind', () => {
     expect((html.match(/gumroad\.com/g) || []).length).toBe(0);
   });
 
-  it('the full set of reachable checkouts is declared: exactly none, page and modules alike', () => {
-    const uiDir = join(__dirname, '..', 'ui');
-    const sources = [html, ...readdirSync(uiDir).filter(f => f.endsWith('.js') || f.endsWith('.css'))
-      .map(f => readFileSync(join(uiDir, f), 'utf-8'))].join('\n');
-    const urls = [...new Set(sources.match(/https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+/g) || [])].sort();
-    expect(urls).toEqual([]);
+  it('the full set of reachable checkouts is declared: exactly the configured dyad url, page and modules alike', () => {
+    // v0.81: the one checkout is the dyad's Buy Link, held in ONE constant
+    // (core/entitlement.js DYAD_PRODUCT_URL). While the constant is empty
+    // the set is empty; once the controller fills it, it is exactly that
+    // url — nowhere else may a checkout url appear.
+    const sources = [html];
+    for (const dir of ['ui', 'core']) {
+      const abs = join(__dirname, '..', dir);
+      for (const f of readdirSync(abs).filter(f => f.endsWith('.js') || f.endsWith('.css'))) {
+        sources.push(readFileSync(join(abs, f), 'utf-8'));
+      }
+    }
+    const urls = [...new Set(sources.join('\n').match(/https:\/\/[a-z0-9-]+\.gumroad\.com\/l\/[a-z0-9]+/g) || [])].sort();
+    expect(urls).toEqual(DYAD_PRODUCT_URL ? [DYAD_PRODUCT_URL] : []);
   });
 });
 
