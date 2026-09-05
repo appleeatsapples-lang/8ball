@@ -168,3 +168,56 @@ silently-worked-around gap and not a silently-dropped requirement.
 - Not a pass on the local PII audit — that audit could not run at all in
   this container (missing gitignored input file), which is a NO-ASSURANCE
   state, not a pass.
+
+## Addendum, 2026-09-05 — post-commit doc/evidence correction over `89db9a8`
+
+Two documentation findings, both fixed in a follow-up documentation-only
+commit; runtime candidate `89db9a84823a917df937d50f2208fbbc0625039f` itself
+is unchanged and unamended by either. Full explanatory text: `journal.md`'s
+current top entry.
+
+1. `DOCTRINE.md`'s single active `**doctrine version:**` pointer still read
+   `v0.85` after the prior integration pass had added v0.86 only to §5.D and
+   the version-history footer LIST — fixed with a new current `v0.86`
+   pointer paragraph, the old paragraph relabeled `**doctrine version,
+   prior:** ... v0.85` with its wording preserved verbatim. No version bump
+   to v0.87 for this display correction.
+2. The v0.86 evidence paragraph's own test-group labeling was imprecise
+   (internally contradictory "identity-change... identity still confirmed
+   current" phrasing) — corrected to name three distinct groups precisely:
+   unchanged-identity tests prove successful fallback, confirmed-change
+   tests prove `stale`/no download, unreadable-identity tests prove
+   `failed`/no download. v0.85's own substantive ruling is unchanged.
+
+**Late-arriving supplementary PII evidence**, from the controller, after
+this note's original precommit text above was already written:
+
+- The original pricing checkout (`/Users/8ball/01_ACTIVE/dev/8ball`) DOES
+  have its own gitignored `audits/local_personal_data.txt`; this Pair
+  worktree does not. Presence was checked, not pattern contents.
+- The controller ran the SAME tracked `audits/run_local_audit.sh` scan logic
+  entirely in memory against this worktree, overriding only `REPO_ROOT` (to
+  this worktree) and `PATTERN_FILE` (to the pricing checkout's existing
+  pattern file) via `sed` piped to `bash`. No script or pattern file was
+  written or copied; the original pricing checkout stayed read-only;
+  patterns and matched content were withheld from this session's own
+  output.
+- At exact committed `89db9a8`: **12 non-comment configured patterns, 907
+  files, clean, exit 0.** This is **supplementary, configured-pattern
+  assurance only** — it does not supersede, and must not be conflated with,
+  the DEFAULT unmodified `run_local_audit.sh` invocation against this
+  worktree, which still exits 1 / "does not exist" / **NO ASSURANCE** exactly
+  as stated in the "Final test/audit counts" table above, nor with the
+  product audit's own local-PII check, which still SKIPs by default. No
+  universal PII absence and no browser clearance is claimed by either the
+  precommit record or this supplementary result.
+- The controller's own **clean-tree** product audit at exact `89db9a8` reads
+  **13 pass / 0 fail / 0 warn / 1 skip** — this supersedes ONLY the
+  precommit **dirty-tree** count of 12/0/1/1 recorded in the table above (the
+  one warn cleared once the tree was clean at commit time). The 121-test
+  auditor assurance suite, already reported passing above, was not rerun for
+  this correction and is unchanged.
+- Browser evidence is still unavailable for this candidate — the
+  browser-automation tool still fails before initialization on the
+  `/Users/8ball/Desktop/agent_lab` symlinked writable root; no alternate
+  path attempted, no environment configuration changed.
