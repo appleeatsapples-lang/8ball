@@ -159,6 +159,11 @@ doctrine claim changes, no version bump (precedent #227, #231, #240).
 The `test`, `product-audit` and `l48-gate` checks apply; the artifact
 `audits/claude_relay_pr241_premerge_audit_2026-09-05_response.md`
 carries both lanes' reports and the reconciliation.
+One CI round after the reconciliation push: `product-audit` went red on
+`git diff --check` — a trailing blank line at the end of the artifact,
+left by concatenating the two reports. The local audit had passed because
+the artifact was untracked when it ran and so outside the diff range;
+the artifact is now staged before the audit runs, and the file is fixed.
 
 **Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
 tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;

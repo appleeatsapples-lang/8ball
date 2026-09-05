@@ -26,6 +26,7 @@ Each worked in its own clone; neither touched the working tree.
 | 11 | A | LOW-2 | Cost understated | Journal states +28% on the file #240 made cheaper (640–654ms → 815–840ms, 3 runs each), rank and suite wall clock unchanged | measured |
 | 12 | A | NOTE-1 | Lanes saw different trees (Lane B's fix was in the working tree while Lane A ran) | Reconciled here at Lane B's severity; Lane A is right that it was a hardening, not a survivor fix — recorded as such | — |
 | 13 | A | NOTE-2 | l48-gate red until the artifact lands | This file | CI on the reconciliation commit |
+| 14 | CI | blocking | `product.diff_check` red on `ba89bb4`: `git diff --check origin/main...HEAD` flagged a trailing blank line at the end of THIS file, added when the two reports were concatenated | Blank line removed in the follow-up commit. The local audit had reported PASS because the artifact was still untracked when it ran, so the diff range did not include it — a sequencing gap, recorded here | `git diff --check` clean before the push |
 
 **Test-body mutants** (Lane B) that fail on every date unconditionally
 (`[1,2,3]` → `[1,2]`, `differs` → `!differs`) and the `Object.is` → `==`
@@ -623,4 +624,3 @@ undetected today. The journal's factual claims (test counts, lattice
 membership, the two single-date mutant outcomes, the product-audit
 pass/warn/skip pattern, and the test-only diff scope) all reproduced
 exactly under independent measurement in a clean clone.
-
