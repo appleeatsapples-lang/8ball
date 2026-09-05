@@ -5,7 +5,184 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — STAGED on branch
+## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — STAGED on branch, PR #241
+
+**What happened.** "Now the six shared blind spots." The queued item
+from #240: Lane A's mutants had shown that `tests/public.test.js`'s
+sweeps checked SHAPE on every date and VALUE on almost none. This pass
+pins the six — and then the pr241 audit found nine more fields with no
+value pin anywhere in the suite, and a baseline claim in the first draft
+of this entry that was not what had been measured. Both are fixed below;
+the first draft's wording is recorded here because the correction is the
+point.
+
+**Baseline, as first written and as it actually was.** The first draft
+said "eleven single-line mutations of `core/public.js` … all eleven
+survived" the 46 shipped tests. Lane A could not reproduce that and
+showed why four of the eleven are impossible: the register sweep pins
+`scanned` = 66,111 strings and `chars` = 1,414,086 characters exactly,
+so any UNCONDITIONED edit that changes a string count or a length
+(`sources` → `{}` drops 7,470 strings; an emptied list drops thousands;
+a yang↔yin flip moves the total by one character) is killed on base
+incidentally, by a checksum, not by a value check. Re-measured on
+`464c400` in three forms, the eleven come out:
+
+| form | survive base (46 tests) |
+|---|---|
+| unconditioned (every date) | 0 of 9 tried — killed by the counters and the fixture |
+| single-date, planted on 1937-03-14 | 11 of 11 |
+| single-date, planted on 1900-03-16 | 9 of 9 tried |
+
+What the first draft had measured was the second row — single-DATE
+mutants, on a date that is not on the stride-37 lattice — and it wrote
+them up as if they were the first. The third row is the honest
+pre-existing gap: on base, a wrong value in any of these fields on ONE
+swept date passed every test, because no sweep compared values. That
+row is what this pass closes; on the reconciled head all nine fail.
+The off-lattice row is unreachable by any sweep by construction (the
+full range is 73,414 readings; a full walk measured at 1.84s of building
+alone, Lane B, and would sit at vitest's 5s budget with the checks on —
+not a cheap fix, not proposed). Lane A's own fixture-avoiding forms
+found two length-preserving mutants that survive base unconditioned:
+`dayMaster.element` wood→fire and `season.stateHan` 旺→相.
+
+**The pins, as reconciled.** One predicate block, `readingOffenders(dob,
+r)`, re-derives every leaf of a reading and returns the offender
+messages with the number of checks it ran (58 per reading, pinned). The
+coverage sweep walks the same 1,985 stride-37 dates through it and pins
+readings = 1,985 and checks = 1,985 × 58 exactly, the standard the
+register sweep set in #240 and the one sweep in the first draft that did
+not follow it (Lane A MED-1: gutting the loop to one date was green).
+Every field re-derives from the level BELOW the helper that produced it:
+
+- `dob` from the string; `dayMaster.*` straight off `getDayPillar`
+  (`STEMS[stemIndex]`, `STEM_ELEMENTS[stemIndex]`, `stemIndex % 2`,
+  `pillar.animal`) — and that independently derived element, never the
+  reading's own, feeds everything downstream (Lane B MED-2: with the
+  element line deleted, a date-scoped element bug on a swept date was
+  caught by nothing; now four downstream checks catch it).
+- `season.*` from `getInnerAnimal`, `BRANCH_ELEMENTS`, the five-relation
+  rule written out (same → 旺, sheng-into → 相, sheng-out → 休, ke-out
+  → 囚, else 死) and, as the cross-check, `getSeasonalState`; the han,
+  label, relation and `strength` from `SEASONAL_STATES[expectedState]`.
+- `favorable`/`unfavorable` non-empty, element-wise equal to the frozen
+  entry for the derived element × strength, disjoint, primaries the
+  entry's first, note the entry's body.
+- `mode.*` — all eight: birthday from `getBirthday`, dayOfMonth, the
+  table key through the bridge restated (`MASTER_MODE_BRIDGE[birthday]
+  ?? birthday`), the flag, the note or null, theme/register/method from
+  `WORK_MODES`.
+- `posture.*` — all five: number and roman from `getBirthCard`, arcana/
+  register/stance from `ROLE_POSTURES`.
+- `families[]` — ranks `[1, 2, 3]`, characters strictly increasing along
+  the mode's frozen `priority`, all on the derived primary, the key set
+  the registry's three, and every row's key/label/character/body the
+  registry row's.
+- `antiFit` — the derived primary-unfavourable element's family whose
+  character sits last in the priority, restated, every field the
+  registry row's, cross-checked with `getAntiFitFamily`.
+- `roleLine` — `"<stance>, <method>."` restated and `getRoleLine`.
+- `sources` — the frozen block by identity. The first draft also
+  compared its keys after the identity check, which compares an object
+  with itself (Lane A MED-3); dropped. Keys and citations are pinned once
+  in the table-integrity block.
+
+**The positive control.** A second test proves "every leaf" instead of
+stating it: on three readings (a swept non-fixture date, the bridged
+2000-02-29, a fixture date) the clean reading yields no offender and
+exactly 58 checks; then each of the reading's 65 leaf paths is corrupted
+one at a time on an otherwise-clean copy — strings reversed (the
+same-length class the register checksum cannot see), numbers +1,
+booleans flipped, null replaced — and must be flagged by a check other
+than sources-identity; the three lists emptied and reversed and a copy
+of `sources` likewise. The copy keeps `sources` by reference so the
+identity check cannot flag every corruption for the wrong reason.
+
+**What the block does and does not buy** (both lanes, independently).
+The registry comparisons pin the reading to the table it was read from
+— engine-to-table fidelity. A corrupted TABLE is read by both sides and
+passes the block; Lane B planted three (`wang.strength` flipped, a
+duplicated han, `wood_strong.favorable` reordered) and each was caught,
+but by the registry-shape tests, the sheng/ke re-derivation, the
+fixture snapshot or the register char total — never by the sweep. The
+first draft's "re-derives from the frozen registries" read as if the
+sweep could see a table change; it cannot, and the test's comment now
+says which mechanism owns table correctness. The stem and polarity pins
+restate the pass-through rule because there is no lower level than the
+pillar. The two registry-shape tests overlap base on frozenness and
+strong/weak membership (Lane A MED-4); what is new in them is the key
+order, `state.key === key`, non-empty han/label/relation, the 旺相
+strong / 休囚死 weak split, five distinct han, and the six source keys
+with non-empty citations. Neither pins han/label/relation CONTENT
+beyond non-emptiness; a one-character typo there is the fixture
+snapshot's to see.
+
+**Helper semantics.** `sameList` was `.every`-based, and `.every` skips
+holes: `new Array(3)` compared equal to anything of length 3 (Lane A
+MED-2). It is now an index loop that treats a hole on either side as a
+difference, and the sentinel pins `new Array(3)` vs `[1,2,3]`, `[,1]` vs
+`[9,1]`, `new Array(1)` vs `[undefined]`. Not reachable from product
+code today; it is the matcher-semantics class #240's audit found, in
+the block that exists to catch it. The block also never throws: a
+non-list `favorable` collects two offenders per date instead of
+aborting on the first (Lane A LOW-1) — the `TypeError` that remains in
+that probe comes from the pre-existing anti-fit sweep, which is out of
+scope here.
+
+**Detection, measured on the reconciled head.** Lane A's nine
+full-suite survivors (families' label and body, anti-fit label and
+body, posture stance and register, mode method, dob month/day swapped,
+dob year +1 — each gated off the 21 fixture dates): all nine fail. The
+branch's own twenty-three (the eleven unconditioned, the single-date
+rank forms on 1900-03-16, and twelve more incl. a `getSeasonalState`
+xiu↔qiu swap and a season fed the wrong master on one date): all fail.
+The nine single-date base survivors on 1900-03-16: all fail — one of
+them, `state` forced to 死 on that date, was a no-op because 死 IS that
+date's state; replanted as a real change it fails. Vacuity: the loop
+gutted to one date fails the readings pin; one check deleted from the
+block fails the count pin. Off-lattice single-date mutants survive, as
+stated. The nine text fields' only guard on base was the register
+sweep's character total — a length checksum — so a same-length
+corruption walked through every test in the suite; it now fails two.
+
+**Cost, said plainly.** The file that #240 made 3× cheaper got slower
+again: 640–654ms → 815–840ms of test time on this machine (+28%), one
+PR after the PR that existed to cut it. Rank in the suite unchanged
+(third); suite wall clock unchanged (~8s). The two new walks are the
+price of value pins on 1,985 dates × 58 checks, and this entry records
+it rather than rounding it away (Lane A LOW-2).
+
+**Contract.** Test-only: `tests/public.test.js` goes 46 → 51 tests (the
+sweep, its positive control, two registry pins, one sentinel), the
+suite 2,135 → 2,140. Same data, same dates, same product code. No
+doctrine claim changes, no version bump (precedent #227, #231, #240).
+The `test`, `product-audit` and `l48-gate` checks apply; the artifact
+`audits/claude_relay_pr241_premerge_audit_2026-09-05_response.md`
+carries both lanes' reports and the reconciliation.
+One CI round after the reconciliation push: `product-audit` went red on
+`git diff --check` — a trailing blank line at the end of the artifact,
+left by concatenating the two reports. The local audit had passed because
+the artifact was untracked when it ran and so outside the diff range;
+the artifact is now staged before the audit runs, and the file is fixed.
+Then main moved under the PR — #242 (DOCTRINE v0.81), #243, #244 and
+#245 landed from the other lane while this one held for the merge word —
+and the PR went un-mergeable on `journal.md` alone. Main merged into the
+branch as a merge commit; this entry sits above the four new ones, and
+those four are flipped to SHIPPED here since their PRs are merged and no
+later entry had done it. On the merged tree the suite is 62 files /
+2,197 tests, green.
+
+**Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
+tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;
+`public.test.js` is third and now the one to watch if it grows again.
+A second coprime-stride walk of the block (Lane B: ~140ms, lattice
+coverage 2.7% → 5.4%) is cheap and was not taken — it shrinks the
+unwalked gap without closing it, and the controller can order it. The
+friend's rising/moon reading, still waiting on a birth time.
+`next_strategic_read` (due 2026-08-13) and `next_analytics_read`
+(due 2026-08-06), both overdue.
+
+## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — SHIPPED (#245)
 
 **What happened.** "keep key 1." The launch doc and the step-2 entry had
 left one decision open: key 1 was generated in the Claude Code session
@@ -22,7 +199,7 @@ Gumroad Buy Link; a link signed under key 1 files the dyad permanently
 on the device that opens it. The per-sale signing and sending routine is
 the operator's, by hand, until a separate decision automates it.
 
-## 2026-09-05 — dyad launch step 1: the Buy Link — the offer goes live on deploy — STAGED on branch
+## 2026-09-05 — dyad launch step 1: the Buy Link — the offer goes live on deploy — SHIPPED (#244)
 
 **What happened.** On the controller's word ("the buy link is
 https://theeightball.gumroad.com/l/dyad — set it"), launch step 1 of
@@ -53,7 +230,7 @@ is published, and charges USD $3 once was the controller's statement;
 the Claude Code session's egress policy blocks the storefront. The
 launch doc asks for one browser check before announcing.
 
-## 2026-09-05 — dyad launch step 2: the signing key pair, public half filed — STAGED on branch
+## 2026-09-05 — dyad launch step 2: the signing key pair, public half filed — SHIPPED (#243)
 
 **What happened.** On the controller's word ("generate the key pair and
 set the public key"), launch step 2 of doctrine v0.81 (7): an ECDSA
@@ -80,7 +257,7 @@ signed under key 1, so replacing it with a locally generated pair before
 the first sale costs nothing and the launch doc says so; the
 never-remove-a-key rule begins with the first sale.
 
-## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — STAGED on branch, PR #242
+## 2026-09-05 — DOCTRINE v0.81: free complete single sheet + paid dyad — the signed access token — SHIPPED (#242)
 
 **What happened.** On the controller's order the product model moved
 from "everything free" (v0.71, three days earlier) to **free complete
@@ -272,7 +449,7 @@ narrowly, the trust-based return superseded), §7 stage 6; footer
 rotated. `8BALL.md` storefront block marked. CLAUDE.md counts: core 15,
 tests 62. `core/payments.js` untouched as the registry.
 
-## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR #240
+## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — SHIPPED (#240)
 
 **What happened.** "Now the public.test.js sweep." The queued item from
 the pr238 flake work: `tests/public.test.js`'s voice-register sweep was
