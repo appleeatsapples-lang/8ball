@@ -5,7 +5,100 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — STAGED on branch, PR #240
+## 2026-09-05 — public.test.js: the six shared blind spots pinned on every swept date — STAGED on branch, PR #241
+
+**What happened.** "Now the six shared blind spots." The queued item
+from #240: Lane A's mutants had shown that `tests/public.test.js`'s
+sweeps checked SHAPE on every date and VALUE on almost none — the
+reading could carry a wrong day-master element, a flipped polarity, a
+wrong seasonal state, han or relation, a wrong family rank, an empty
+favourable list or a replaced sources block and pass every test, on
+the merged head as much as on the branch. This pass pins each of them.
+
+**Baseline, re-measured on the merged head before touching anything.**
+Eleven single-line mutations of `core/public.js` were run against the
+46 shipped tests. All eleven survived: `dayMaster.element` wrong,
+`dayMaster.polarity` flipped, `season.state` wrong, `season.relation`
+wrong, `season.stateHan` wrong, `families[0].rank` = 99 on one date,
+ranks reversed on one date, `sources` replaced by `{}`, `favorable`
+emptied, `unfavorable` emptied, `primaryFavorable` no longer
+`favorable[0]`. One correction to the queued list: the GLOBAL rank
+off-by-six was already killed by the fixture snapshot and the hand-walked
+2000-01-01 case. Only the single-date forms were open — and the two
+single-date probes were planted on 1937-03-14, which is not on the
+stride-37 lattice at all (the nearest swept date is 1937-03-07), so
+they survived for a reason no sweep can fix. A sweep pins the dates it
+walks; a value planted between them is invisible by construction, and
+the full range is 73,414 readings this file deliberately does not walk.
+Replanted on a swept date (1900-03-16) both fail, below.
+
+**The pins.** One new sweep test inside the coverage block walks the
+same 1,985 stride-37 dates and re-derives every field from the level
+BELOW the helper that produced it, so a mutation inside the helper and
+the reading cannot agree with each other and pass:
+
+- `dayMaster.stem/element/polarity/branchAnimal` from `getDayPillar`
+  directly — `STEMS[stemIndex]`, `STEM_ELEMENTS[stemIndex]`,
+  `stemIndex % 2`, `pillar.animal` — not from `getDayMaster`; plus
+  membership in `ELEMENTS` and `ANIMALS`.
+- `season.monthAnimal` from `getInnerAnimal`, `season.element` from
+  `BRANCH_ELEMENTS`, `season.state` from the five-relation rule written
+  out in the test (same → 旺, sheng-into → 相, sheng-out → 休, ke-out →
+  囚, else 死) AND from `getSeasonalState`; `stateHan`/`stateLabel`/
+  `relation` and the top-level `strength` from `SEASONAL_STATES[state]`.
+- `favorable`/`unfavorable` non-empty, element-wise equal to the frozen
+  `ELEMENT_FAVORABILITY` entry, every member an element, disjoint,
+  `primaryFavorable === favorable[0]`, `primaryUnfavorable ===
+  unfavorable[0]`, `favorabilityNote` the entry's body.
+- `families[].rank` exactly `[1, 2, 3]`; the characters strictly
+  increasing along the mode's frozen `priority`, not via
+  `rankDomainFamilies`; every family on the primary favourable element;
+  the key set the registry's three; and, as the cross-check, the key
+  order `rankDomainFamilies` gives.
+- `sources` is the `PUBLIC_SOURCES` object itself (`Object.is`), with
+  its keys in the frozen order — a copy fails.
+
+Two registry-shape tests in the table-integrity block pin the tables
+the sweep reads from: the five seasonal states carry `key`, `han`,
+`label`, `relation`, `strength` with 旺相 strong and 休囚死 weak and
+five distinct han; `PUBLIC_SOURCES` is frozen with exactly the six keys
+and a non-empty citation each. And a sentinel for the one new helper,
+`sameList` (element-wise `Object.is`, arrays only, equal length), in
+the same guard-the-guards block that pins `differs` and `inRange` —
+that block exists because #240's audit found a helper rewrite can
+change matcher semantics while every test stays green.
+
+**Detection, measured.** Twenty-one mutants of `core/public.js` against
+the new file. The eleven baseline survivors: all killed on a swept date
+(the two single-date rank forms at 1900-03-16; on 1937-03-14 they still
+survive, as stated above). Ten more, added while writing: `stateLabel`
+wrong, `strength` flipped for one state, `favorabilityNote` altered,
+`branchAnimal` fixed to rat, `stem` shifted two, `sources` replaced by a
+shallow copy, `sources` keys reordered, families reversed, rank global
+off-by-six, and `primaryFavorable` from the wrong end — all killed. No
+mutant survives on a swept date.
+
+**Cost.** The new sweep is a second 1,985-reading walk; the file runs
+50 tests in ~800ms of test time, unchanged in rank, and the suite's
+wall clock did not move (61 files / 2,139 tests, ~8s).
+
+**Contract.** Test-only: `tests/public.test.js` goes 46 → 50 tests
+(one sweep, two registry pins, one sentinel), the suite 2,135 → 2,139.
+Same data, same dates, same product code. No doctrine claim changes,
+no version bump (precedent #227, #231, #240). The `test`,
+`product-audit` (PASS, 12/1 warn for the dirty tree/1 skip for the
+absent local PII file) and `l48-gate` checks apply; the l48 artifact
+is filed with the PR number once it exists.
+
+**Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
+tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;
+neither is near the budget. `tests/pii_scan.test.js`'s merge-conflict
+probe at ~400ms, worth a look only if that file ever matters. The
+friend's rising/moon reading, still waiting on a birth time.
+`next_strategic_read` (due 2026-08-13) and `next_analytics_read`
+(due 2026-08-06), both overdue.
+
+## 2026-09-04 — public.test.js sweep cost retired: the last 2-second test — SHIPPED (#240)
 
 **What happened.** "Now the public.test.js sweep." The queued item from
 the pr238 flake work: `tests/public.test.js`'s voice-register sweep was

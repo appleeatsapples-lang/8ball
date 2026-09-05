@@ -54,7 +54,7 @@ import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { TIER_COORDS } from '../ui/tiers.js';
 import { ANIMALS, buildProfile, getInnerAnimal, getBirthday } from '../core/profile.js';
-import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
+import { getDayPillar, STEMS, STEM_ELEMENTS } from '../core/pillars.js';
 import { MAJOR_ARCANA, getBirthCard } from '../core/birthcard.js';
 import {
   voiceRegisterHits,
@@ -180,6 +180,11 @@ const differs = (a, b) => !Object.is(a, b);
 // The first reconciliation's artifact had waved this pair through as
 // "equivalent for the values in play" — the exact licence it refused for -0.
 const inRange = (n, lo, hi) => typeof n === 'number' && n >= lo && n <= hi;
+// Element-wise Object.is over two arrays — both must be arrays of the same
+// length. A deep-equal matcher would do the same job, but inside a collected
+// sweep the comparison has to be a plain predicate.
+const sameList = (a, b) =>
+  Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
 
 // Source with `//` comment lines dropped. The modules deliberately keep
 // history notes naming the retired `expression` vocabulary (why the rename
@@ -315,6 +320,88 @@ describe('public tier — coverage, no gaps', () => {
       if (!collectStrings(r).every(({ text }) => text.length > 0)) bad.push(`${dob}: an empty string in the reading`);
     }
     expectNone(bad, 'readings break the range contract');
+  });
+
+  // The six fields the 2026-09-04 family audit found unpinned across the
+  // sweep: every date only checked shape, so a wrong day-master element, a
+  // flipped polarity, a wrong seasonal state / han / relation, a wrong family
+  // rank on one date, an emptied favourable list or a replaced sources block
+  // all passed 46 tests. Each field is now re-derived on every swept date
+  // from the registry or the calibrated pillar the reading is supposed to be
+  // read from — not from buildPublicReading's own helpers where a lower-level
+  // anchor exists (getDayPillar, the frozen tables), so a mutation inside the
+  // helper and the reading cannot agree with each other and pass.
+  it('every field of every swept reading re-derives from the calibrated pillar and the frozen registries', () => {
+    const bad = [];
+    const stateKeys = Object.keys(SEASONAL_STATES);
+    const sourceKeys = Object.keys(PUBLIC_SOURCES);
+    const seasonRule = (dm, se) => {
+      if (se === dm) return 'wang';
+      if (ELEMENT_SHENG[se] === dm) return 'xiang';
+      if (ELEMENT_SHENG[dm] === se) return 'xiu';
+      if (ELEMENT_KE[dm] === se) return 'qiu';
+      return 'si';
+    };
+    for (const dob of sweepList(37, 1985)) {
+      const [y, m, d] = dob.split('-').map(Number);
+      const r = buildPublicReading(dob);
+
+      // Day master — straight off the calibrated day pillar, not getDayMaster.
+      const pillar = getDayPillar(y, m, d);
+      if (differs(r.dayMaster.stem, STEMS[pillar.stemIndex])) bad.push(`${dob}: day-master stem ${r.dayMaster.stem} is not pillar stem ${STEMS[pillar.stemIndex]}`);
+      if (differs(r.dayMaster.element, STEM_ELEMENTS[pillar.stemIndex])) bad.push(`${dob}: day-master element ${r.dayMaster.element} is not stem element ${STEM_ELEMENTS[pillar.stemIndex]}`);
+      if (differs(r.dayMaster.polarity, pillar.stemIndex % 2 === 0 ? 'yang' : 'yin')) bad.push(`${dob}: day-master polarity ${r.dayMaster.polarity} disagrees with stem index ${pillar.stemIndex}`);
+      if (differs(r.dayMaster.branchAnimal, pillar.animal)) bad.push(`${dob}: day-master branch ${r.dayMaster.branchAnimal} is not pillar animal ${pillar.animal}`);
+      if (!ELEMENTS.includes(r.dayMaster.element)) bad.push(`${dob}: day-master element ${r.dayMaster.element} is not one of the five`);
+      if (!ANIMALS.includes(r.dayMaster.branchAnimal)) bad.push(`${dob}: day-master branch ${r.dayMaster.branchAnimal} is not an animal`);
+
+      // Season — the month branch through the one jieqi table, its element
+      // through the frozen branch table, its state through the five-relation
+      // rule written out here rather than through getSeasonalState.
+      const monthAnimal = getInnerAnimal(y, m, d);
+      const seasonElement = BRANCH_ELEMENTS[monthAnimal];
+      const expectedState = seasonRule(r.dayMaster.element, seasonElement);
+      if (differs(r.season.monthAnimal, monthAnimal)) bad.push(`${dob}: month animal ${r.season.monthAnimal} is not ${monthAnimal}`);
+      if (differs(r.season.element, seasonElement)) bad.push(`${dob}: season element ${r.season.element} is not ${seasonElement}`);
+      if (!stateKeys.includes(r.season.state)) bad.push(`${dob}: season state ${r.season.state} is not a registry key`);
+      if (differs(r.season.state, expectedState)) bad.push(`${dob}: season state ${r.season.state}, the five-relation rule gives ${expectedState}`);
+      if (differs(r.season.state, getSeasonalState(r.dayMaster.element, seasonElement).key)) bad.push(`${dob}: season state ${r.season.state} disagrees with getSeasonalState`);
+      const state = SEASONAL_STATES[r.season.state] || {};
+      if (differs(r.season.stateHan, state.han)) bad.push(`${dob}: state han ${r.season.stateHan} is not the registry's ${state.han}`);
+      if (differs(r.season.stateLabel, state.label)) bad.push(`${dob}: state label ${r.season.stateLabel} is not the registry's ${state.label}`);
+      if (differs(r.season.relation, state.relation)) bad.push(`${dob}: state relation ${r.season.relation} is not the registry's ${state.relation}`);
+      if (differs(r.strength, state.strength)) bad.push(`${dob}: strength ${r.strength} is not the registry's ${state.strength}`);
+
+      // Favourability — the frozen entry for this element × strength, whole.
+      const entry = ELEMENT_FAVORABILITY[`${r.dayMaster.element}_${r.strength}`] || {};
+      if (!Array.isArray(r.favorable) || r.favorable.length === 0) bad.push(`${dob}: favourable list is empty`);
+      if (!Array.isArray(r.unfavorable) || r.unfavorable.length === 0) bad.push(`${dob}: unfavourable list is empty`);
+      if (!sameList(r.favorable, entry.favorable)) bad.push(`${dob}: favourable ${JSON.stringify(r.favorable)} is not the registry's ${JSON.stringify(entry.favorable)}`);
+      if (!sameList(r.unfavorable, entry.unfavorable)) bad.push(`${dob}: unfavourable ${JSON.stringify(r.unfavorable)} is not the registry's ${JSON.stringify(entry.unfavorable)}`);
+      if (!r.favorable.every(e => ELEMENTS.includes(e))) bad.push(`${dob}: a favourable entry is not an element`);
+      if (!r.unfavorable.every(e => ELEMENTS.includes(e))) bad.push(`${dob}: an unfavourable entry is not an element`);
+      if (r.favorable.some(e => r.unfavorable.includes(e))) bad.push(`${dob}: an element is both favourable and unfavourable`);
+      if (differs(r.primaryFavorable, r.favorable[0])) bad.push(`${dob}: primary favourable ${r.primaryFavorable} is not favourable[0] ${r.favorable[0]}`);
+      if (differs(r.primaryUnfavorable, r.unfavorable[0])) bad.push(`${dob}: primary unfavourable ${r.primaryUnfavorable} is not unfavourable[0] ${r.unfavorable[0]}`);
+      if (differs(r.favorabilityNote, entry.body)) bad.push(`${dob}: favourability note is not the registry's body`);
+
+      // Families — ranks 1..3 in order, keys in the mode's priority order,
+      // all on the primary favourable element. The priority walk is the
+      // frozen mode table's, not rankDomainFamilies'.
+      const { priority } = getWorkMode(r.mode.birthday);
+      const ranks = r.families.map(f => f.rank);
+      if (!sameList(ranks, [1, 2, 3])) bad.push(`${dob}: family ranks ${JSON.stringify(ranks)} are not [1, 2, 3]`);
+      const order = r.families.map(f => priority.indexOf(f.character));
+      if (order.some((o, i) => o < 0 || (i > 0 && o <= order[i - 1]))) bad.push(`${dob}: families ${r.families.map(f => f.key).join(', ')} are not in priority order ${priority.join(' > ')}`);
+      if (!r.families.every(f => f.element === r.primaryFavorable)) bad.push(`${dob}: a family is off the primary favourable element ${r.primaryFavorable}`);
+      if (!sameList(r.families.map(f => f.key), rankDomainFamilies(r.primaryFavorable, r.mode.birthday).map(f => f.key))) bad.push(`${dob}: family keys disagree with rankDomainFamilies`);
+      if (!sameList(r.families.map(f => f.key).sort(), DOMAIN_FAMILIES[r.primaryFavorable].map(f => f.key).sort())) bad.push(`${dob}: families are not the registry's three for ${r.primaryFavorable}`);
+
+      // Sources — the frozen block itself, not a copy and not a different one.
+      if (!Object.is(r.sources, PUBLIC_SOURCES)) bad.push(`${dob}: sources is not the PUBLIC_SOURCES block`);
+      if (!sameList(Object.keys(r.sources), sourceKeys)) bad.push(`${dob}: sources keys ${Object.keys(r.sources).join(',')} are not ${sourceKeys.join(',')}`);
+    }
+    expectNone(bad, 'swept readings disagree with the registries or the pillar');
   });
 });
 
@@ -626,6 +713,31 @@ describe('public tier — independent anchors', () => {
 });
 
 describe('public tier — table integrity', () => {
+  it('the five seasonal states each carry a key, han, label, relation and strength', () => {
+    expect(Object.keys(SEASONAL_STATES)).toEqual(['wang', 'xiang', 'xiu', 'qiu', 'si']);
+    for (const [key, state] of Object.entries(SEASONAL_STATES)) {
+      expect(state.key, key).toBe(key);
+      for (const field of ['han', 'label', 'relation']) {
+        expect(typeof state[field], `${key}.${field}`).toBe('string');
+        expect(state[field].length, `${key}.${field}`).toBeGreaterThan(0);
+      }
+      expect(['strong', 'weak'], `${key}.strength`).toContain(state.strength);
+    }
+    // 旺相 carry the master, 休囚死 drain it.
+    expect(['wang', 'xiang'].map(k => SEASONAL_STATES[k].strength)).toEqual(['strong', 'strong']);
+    expect(['xiu', 'qiu', 'si'].map(k => SEASONAL_STATES[k].strength)).toEqual(['weak', 'weak', 'weak']);
+    expect(new Set(Object.values(SEASONAL_STATES).map(s => s.han)).size).toBe(5);
+  });
+
+  it('the sources block names exactly the six read surfaces, each with a non-empty citation', () => {
+    expect(Object.keys(PUBLIC_SOURCES)).toEqual(['dayMaster', 'strength', 'favorability', 'mode', 'posture', 'families']);
+    expect(Object.isFrozen(PUBLIC_SOURCES)).toBe(true);
+    for (const [key, text] of Object.entries(PUBLIC_SOURCES)) {
+      expect(typeof text, key).toBe('string');
+      expect(text.trim().length, key).toBeGreaterThan(0);
+    }
+  });
+
   it('branch elements cover all twelve animals, and only those', () => {
     expect(Object.keys(BRANCH_ELEMENTS).sort()).toEqual([...ANIMALS].sort());
     expect(Object.values(BRANCH_ELEMENTS).every(e => ELEMENTS.includes(e))).toBe(true);
@@ -816,6 +928,24 @@ describe('public tier — voice register (§2 / §4)', () => {
     expect(inRange(-1, 0, 21)).toBe(false);
     for (const notANumber of [null, undefined, '4', [4], true, NaN]) {
       expect(inRange(notANumber, 0, 21), `inRange accepted ${JSON.stringify(notANumber)}`).toBe(false);
+    }
+  });
+
+  it('sameList is element-wise Object.is over two arrays of equal length', () => {
+    // The re-derivation sweep compares whole lists (favourable, ranks, keys)
+    // through this predicate, so its semantics are pinned like differs'.
+    expect(sameList([], [])).toBe(true);
+    expect(sameList(['a', 'b'], ['a', 'b'])).toBe(true);
+    expect(sameList([1, 2, 3], [1, 2, 3])).toBe(true);
+    expect(sameList([1, 2, 3], [1, 2])).toBe(false);
+    expect(sameList([1, 2], [1, 2, 3])).toBe(false);
+    expect(sameList(['a', 'b'], ['b', 'a'])).toBe(false);
+    expect(sameList([0], [-0])).toBe(false);
+    expect(sameList([NaN], [NaN])).toBe(true);
+    expect(sameList([1], ['1'])).toBe(false);
+    for (const notAList of [undefined, null, 'ab', { length: 0 }, 3]) {
+      expect(sameList(notAList, []), `sameList accepted ${JSON.stringify(notAList)}`).toBe(false);
+      expect(sameList([], notAList), `sameList accepted ${JSON.stringify(notAList)}`).toBe(false);
     }
   });
 
