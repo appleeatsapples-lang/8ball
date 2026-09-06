@@ -1,6 +1,7 @@
 {
   "_comment": "Calculation contract fixtures. Every value here was hand-verified against core/profile.js on the date this file was written. CHANGES TO THIS FILE GATE THE RELEASE — if a fixture changes, that's an algorithm change, which means a doctrine review (see DOCTRINE.md §3).",
   "_pii_rule": "Fixture DOBs MUST be synthetic — chosen for the calc path they exercise, not anchored to any real person. See DOCTRINE.md §11.",
+  "_name_number_rule": "calc v5 (DOCTRINE §3): the accented cases pin the ANSWER in stable NFC literals only. Never add an NFD byte-twin of an entry here — a formatter or filesystem that re-normalizes on write would collapse the pair into a tautology that stays green. The NFC/NFD equivalence is asserted at runtime in tests/profile.test.js, where .normalize('NFD') is computed, not stored.",
   "_rising_pii_rule": "Rising-sign fixture coordinates are major-city centroids and synthetic times — chosen for the algorithm path they exercise, not anchored to any real person's birthplace.",
   "cases": [
     {
@@ -289,6 +290,38 @@
     {
       "name": "Sam",
       "expected": 6
+    },
+    {
+      "name": "José",
+      "expected": 4
+    },
+    {
+      "name": "Zoë",
+      "expected": 1
+    },
+    {
+      "name": "Renée Dubois",
+      "expected": 9
+    },
+    {
+      "name": "Ana Sofía",
+      "expected": 3
+    },
+    {
+      "name": "Ångström",
+      "expected": 8
+    },
+    {
+      "name": "İrem",
+      "expected": 9
+    },
+    {
+      "name": "Đặng Thị",
+      "expected": 5
+    },
+    {
+      "name": "Đ",
+      "expected": null
     },
     {
       "name": "",
