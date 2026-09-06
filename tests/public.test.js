@@ -1207,7 +1207,11 @@ describe('public tier — surface isolation', () => {
       'index.html',
     ]) {
       const src = readFileSync(join(REPO_ROOT, rel), 'utf-8');
-      if (/["'`][^"'`]*core\/public\.js|from '\.\/public\.js'/.test(src)) consumers.push(rel);
+      // `from './public.js'` names the ENGINE only from inside core/; from
+      // inside ui/ it names the ui controller (ui/example.js consumes
+      // publicReadFor exactly as index.html does — v0.91).
+      const enginePath = /["'`][^"'`]*core\/public\.js/.test(src) || (rel.startsWith('core') && /from '\.\/public\.js'/.test(src));
+      if (enginePath) consumers.push(rel);
     }
     expect(consumers).toEqual([join('ui', 'public.js')]);
   });

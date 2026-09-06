@@ -1,14 +1,14 @@
 # 8BALL.md — Canonical Context
 
 **Audience:** Claude (in any chat) and any other AI working on 8ball, in any role.
-**Last refreshed:** 2026-09-06 (doctrine v0.90 — the Pair Dossier and Pair Imprint ship INSIDE the paid dyad; the candidate line renumbered v0.83–v0.89; card clarity v0.89 unchanged).
+**Last refreshed:** 2026-09-06 (doctrine v0.91 — the complete example before checkout at `/example` and immediate activation at `/activate` through one stateless signing function; v0.90 Pair-inside-paid-dyad unchanged).
 **Companion (operator-personal):** `~/MUHAB.md` — read first for cross-project preferences.
 
 This file is the source-of-truth for 8ball project context. Read it at the start of any 8ball work session, after `~/MUHAB.md` §1–§8. Memory is index-only; this file is canonical.
 
 Mirrors the shape of `~/dev/SIRR/SIRR.md` deliberately. Same discipline. Smaller scope.
 
-**Current product model (v0.90, 2026-09-06).** The single-person sheet is free, complete and unlimited for every device (`getRenderTier()` answers `t3`; v0.71 kept by v0.81). The paired reading — the Pair Dossier with its Pair Imprint — is the ONE paid surface: `t5`, USD $3 once on Gumroad, opened by a signed access link the operator sends after purchase (§4.B v0.81, `core/entitlement.js`); the unentitled device sees the offer anchor and nothing of the pair. `ui/payments.js` is the live t3/t5 resolver plus t3 facet-rotation storage; the retired tier/credit keys are boot-scrubbed. Any older line in this file that says the product is "completely free" or that "every device sees the Pair Dossier" is superseded by this paragraph.
+**Current product model (v0.90, 2026-09-06).** The single-person sheet is free, complete and unlimited for every device (`getRenderTier()` answers `t3`; v0.71 kept by v0.81). The paired reading — the Pair Dossier with its Pair Imprint — is the ONE paid surface: `t5`, USD $3 once on Gumroad, opened by a signed access link the operator sends after purchase (§4.B v0.81, `core/entitlement.js`); the unentitled device sees the offer anchor and nothing of the pair. Since v0.91 the offer links to a complete example (`/example`, one fixed synthetic pair, no form, no storage) and a buyer activates immediately by pasting the Gumroad license key on `/activate`, where the one stateless function (`netlify/functions/activate.mjs`, the named §12 exception) verifies it with Gumroad once and signs the same token; the emailed link is the fallback. `ui/payments.js` is the live t3/t5 resolver plus t3 facet-rotation storage; the retired tier/credit keys are boot-scrubbed. Any older line in this file that says the product is "completely free" or that "every device sees the Pair Dossier" is superseded by this paragraph.
 
 **Current presentation (v0.89).** Host and both Pair sheets keep row labels always visible and copied values separate. Native disclosures explain written-entry selection and symbolic associations; `counterpoint` and an explicit non-aptitude/non-career qualifier replace the old fit framing. The rail says `full sheet`, not that every optional field resolved. Calculation, authored tables, shares, payment/tier behavior, and the separate pricing checkout are unchanged. See `audits/card_clarity_2026-09-05.md` for evidence status; no browser or release acceptance is implied.
 

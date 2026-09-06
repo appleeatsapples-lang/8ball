@@ -124,7 +124,8 @@ describe('the v0.71 deletions stay deleted — the dyad offer is the only commer
     // processor and the data boundary (§5.B disclosure). core/ holds the
     // configurable Buy Link constant. No content batch, no other module.
     const naming = shippedSources().filter(([, src]) => /gumroad/i.test(src)).map(([n]) => n).sort();
-    expect(naming).toEqual(['README.md', 'core/entitlement.js', 'index.html', 'ui/dyad.js']);
+    // v0.91: the activation page's reason sentences name the processor too (§5.B call 3).
+    expect(naming).toEqual(['README.md', 'core/entitlement.js', 'index.html', 'ui/activate.js', 'ui/dyad.js']);
   });
 
   it('the commerce ids and classes of the retired storefront are gone from the host page', () => {
@@ -395,7 +396,8 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).toMatch(/checkout is on gumroad, which keeps the payment and your email/);
     // pr242 audit (Lane B M2): delivery of the link is the OPERATOR's step,
     // said so — never phrased as something the system does.
-    expect(aboutSubtree).toMatch(/after purchase the operator sends an access link to that email/);
+    // v0.91: activation by license key on the activate page; the emailed link is the fallback
+    expect(aboutSubtree).toMatch(/after purchase gumroad shows a license key, and pasting it on the <a class="text-link" href="\/activate">activate page<\/a> files the dyad on that device \(an emailed access link is the fallback\)/);
     expect(aboutSubtree).not.toMatch(/link sent to that email files/);
     expect(aboutSubtree).toMatch(/nothing about the second person is ever saved/);
   });

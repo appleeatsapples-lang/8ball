@@ -1099,6 +1099,77 @@ def diff_snapshots(before, after):
     return added, removed, changed
 
 
+def check_activation_wiring(product_root):
+    """product.activation_wiring — DOCTRINE §12/§5.B v0.91: the ONE stateless
+    signing function and its page. Blocking, fail-closed on a missing file.
+    Pins, each with a named reason so a mutant fails by name:
+      - exactly one function file, netlify/functions/activate.mjs, importing the
+        product's own signer from core/entitlement.js (no second signer);
+      - the local-dev stub guarded on BOTH NETLIFY_DEV and DYAD_VERIFY_STUB;
+      - no read of the buyer's email/name and no console output in the function;
+      - every response carries no-store;
+      - activate.html: exactly one form, POST to the function, exactly one input,
+        named license_key, no email field, no fetch;
+      - netlify.toml: /example and /activate rules above the /* catch-all.
+    """
+    check_id = "product.activation_wiring"
+    title = "activation function + page + routes (DOCTRINE §12/§5.B v0.91)"
+    start = time.monotonic()
+    reasons = []
+    evidence = {}
+    fn_dir = product_root / "netlify" / "functions"
+    fn_path = fn_dir / "activate.mjs"
+    try:
+        fn_files = sorted(p.name for p in fn_dir.iterdir() if p.is_file()) if fn_dir.is_dir() else []
+    except OSError:
+        fn_files = []
+    evidence["function_files"] = fn_files
+    if fn_files != ["activate.mjs"]:
+        reasons.append("function_files: expected exactly ['activate.mjs']")
+    fn_src = fn_path.read_text(encoding="utf-8") if fn_path.is_file() else ""
+    if not fn_src:
+        reasons.append("function_missing")
+    else:
+        if not re.search(r"import \{[^}]*\bsignDyadToken\b[^}]*\} from '\.\./\.\./core/entitlement\.js'", fn_src):
+            reasons.append("function_signer: must import signDyadToken from ../../core/entitlement.js")
+        if "env.NETLIFY_DEV === 'true' && env.DYAD_VERIFY_STUB === '1'" not in fn_src:
+            reasons.append("stub_guard: stub must require NETLIFY_DEV === 'true' AND DYAD_VERIFY_STUB === '1'")
+        if re.search(r"\.email\b|full_name|console\.(log|error|warn)", fn_src):
+            reasons.append("function_privacy: reads email/full_name or writes console output")
+        if "'cache-control': 'no-store'" not in fn_src:
+            reasons.append("no_store: every response must carry cache-control: no-store")
+    page_path = product_root / "activate.html"
+    page = page_path.read_text(encoding="utf-8") if page_path.is_file() else ""
+    if not page:
+        reasons.append("page_missing")
+    else:
+        forms = re.findall(r"<form\b[^>]*>", page)
+        evidence["form_count"] = len(forms)
+        if len(forms) != 1:
+            reasons.append("page_forms: exactly one form")
+        elif not (re.search(r'method="POST"', forms[0]) and re.search(r'action="/\.netlify/functions/activate"', forms[0])):
+            reasons.append("page_form_target: the form must POST to /.netlify/functions/activate")
+        inputs = re.findall(r"<input\b[^>]*>", page)
+        evidence["input_count"] = len(inputs)
+        if len(inputs) != 1 or 'name="license_key"' not in inputs[0]:
+            reasons.append("page_inputs: exactly one input, named license_key")
+        if re.search(r'type="email"|name="email"|fetch\(|XMLHttpRequest|sendBeacon', page):
+            reasons.append("page_privacy: no email field, no script request")
+    toml_path = product_root / "netlify.toml"
+    toml = toml_path.read_text(encoding="utf-8") if toml_path.is_file() else ""
+    if not toml:
+        reasons.append("toml_missing")
+    else:
+        ex = toml.find('from = "/example"'); act = toml.find('from = "/activate"'); catch_all = toml.find('from = "/*"')
+        evidence["routes"] = {"example": ex, "activate": act, "catch_all": catch_all}
+        if ex == -1 or act == -1 or catch_all == -1 or not (ex < catch_all and act < catch_all):
+            reasons.append("routes: /example and /activate must exist above the /* catch-all")
+    duration = time.monotonic() - start
+    if reasons:
+        return make_check(check_id, title, "blocking", "fail", "; ".join(reasons), duration, [], "", evidence)
+    return make_check(check_id, title, "blocking", "pass", "one function, one page, two routes — all pinned", duration, [], "", evidence)
+
+
 def check_snapshot_stability(before, after):
     check_id = "product.snapshot_stability"
     title = "repo file fingerprint stability across the audit run"
@@ -1246,6 +1317,7 @@ def main():
         check_local_pii, check_index_budget, check_t4_migration,
         check_hko_calendar, check_ci_doctrine_gate,
         check_ci_doctrine_regression, check_share_wiring,
+        check_activation_wiring,
     ):
         checks.append(guarded(check_fn, product_root))
 

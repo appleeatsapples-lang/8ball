@@ -5,6 +5,58 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-06 — DOCTRINE v0.91: the complete example before checkout, and immediate activation by one stateless signing function — controller word ("Route F, start it") — STAGED on branch, PR #TBD
+
+**Status: STAGED on `claude/dyad-activation-and-example` (worktree `/private/tmp/8ball-step1`), off
+`main` `76aebab` (#247). Not merged, not deployed. The L48 artifact follows once the PR number exists;
+the merge word stays with the controller per §10/L48. Three things are the controller's hand before the
+path is live: per-sale license keys ON for the `dyad` product, the two Netlify environment variables,
+and one line in the post-purchase content (launch doc, "Step 3, superseded").**
+
+**Why.** The controller's product review of the paid dyad ("the paid difference is too thin") named two
+purchase details ahead of any new content: show a complete example before checkout, and make activation
+immediate — "waiting for a manually emailed link adds considerable friction to a $3 purchase". This is
+step 1 of that sequence; the portrait, conversation cards, reveal and keepsake are steps 2–5, each its
+own brief.
+
+**The ruling.** Immediate activation had two honest routes and the brief put the §12 question first:
+Route F (one stateless signing function) touches "[PERMANENT] no-backend"; Route S (one shared link in
+Gumroad's content) touches nothing but makes every buyer share one bearer credential. Ruled F. §12 v0.91
+records the exception as named and bounded: one function, stateless, `no-store`, no log of its own, the
+buyer's email discarded inside the verify function, every failure a reason code, the private key in the
+host's environment only, the manual routine as fallback; anything more is a new §12 decision.
+
+**What lands.** `/example` (`example.html`, `ui/example.js`): one fixed synthetic pair — Mara · 1990-05-14
+and Teo · 1987-11-02, chosen for a controlling element relation and two master life paths that combine to
+a master — rendered by the real dyad modules with a page-local `t5` hook; no form, no storage, no token,
+no share controller; every steering or export control REMOVED after render; the fixed example label above
+and below; the sheet's own offer shown by `syncDyadEntry('t3', url)`. The offer note and the about
+paragraph link to it. `/activate` (`activate.html`, `ui/activate.js`): one native POST form, one field,
+to `netlify/functions/activate.mjs`, which validates the key's shape, verifies once with Gumroad
+(`increment_uses_count=false`), signs with `signDyadToken` from `core/entitlement.js` under
+`DYAD_SIGNING_KEY`, and 303-redirects to `/?dyad=<token>`; failures return `?e=<reason>` and the page
+shows the fixed sentence and strips the query. `netlify.toml` serves both bare paths above the catch-all.
+`.env.example` names the variables. The offer note's copy moves from "the operator sends an access link"
+to "gumroad shows a license key — paste it on the activate page (an emailed access link is the fallback)".
+
+**Verification.** Suite 66 files / 2600 tests. `tests/dyad_activation.test.js` pins the three boundaries:
+the example renders exactly one pair and can be steered to no other; the function rejects shape before
+any network, answers unconfigured with no key, maps every verify outcome to a reason, signs a token that
+verifies under the same key's public half and fails under another, and — with a Gumroad-shaped fixture
+carrying an email and a name — neither byte reaches the redirect or the token; the stub is dead outside
+`netlify dev`; no tracked file carries a private JWK; the routes sit above the catch-all; the scrub keeps
+the pages and the function. Live-fire under `netlify dev --offline` on a scratch copy keyed with a
+throwaway pair: `/example` renders Mara × Teo with the signature, zero forms/inputs, every listed control
+absent, the offer anchor with the real href, empty storage, zero console errors, no overflow at 390 or
+1280; the sheet shows the example link under the offer; through the REAL form, a 35-character non-hex key
+→ the shape sentence, a well-formed unknown key → the invalid sentence, the stub key → `dyad · filed on
+this device.`, the token stored, the dyad opens.
+
+**Not in this PR.** Steps 2–5. The Gumroad-side switches and the Netlify environment (controller's hand).
+The real Gumroad verify call against a real key — the controller's first activation after deploy is that
+check. CLAUDE.md's `ui/` row also lost a leftover "every device renders every ceiling" clause the v0.90
+sweep had missed.
+
 ## 2026-09-06 — DOCTRINE v0.90: the Pair Dossier and Imprint inside the paid dyad — the candidate integrated and renumbered v0.83–v0.89 — controller word — STAGED on branch, PR #247
 
 **Status: STAGED on `claude/pair-inside-paid-dyad` (worktree `/private/tmp/8ball-pair-port`), off

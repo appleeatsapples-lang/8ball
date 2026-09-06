@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>8 ball · open your dyad</title>
+<meta name="description" content="Paste the license key from your gumroad receipt to open the 8ball dyad on this device.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="stylesheet" href="/ui/shell.css">
+<link rel="stylesheet" href="/ui/experience.css">
+<style>
+  .activate { max-width: 420px; margin: 24px auto; padding: 0 16px; }
+  .activate label { display: block; font-size: 0.8rem; margin: 12px 0 6px; }
+  .activate input { width: 100%; box-sizing: border-box; font: inherit; padding: 10px; background: transparent; color: inherit; border: 1px solid var(--rule, #444); }
+  .activate .hint { font-size: 0.78rem; opacity: 0.85; line-height: 1.45; }
+  .activate .btn { margin-top: 12px; }
+  #activate-status { margin-top: 12px; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="wordmark" href="/" aria-label="8 ball — back to the sheet">8 ball</a>
+</header>
+
+<main class="stage">
+  <section class="activate" aria-labelledby="activate-title">
+    <h1 id="activate-title" class="rail-title">open your dyad</h1>
+    <p class="hint">paste the license key from your gumroad receipt. this device files the dyad; keep the key to open it on another.</p>
+    <form id="activate-form" method="POST" action="/.netlify/functions/activate" autocomplete="off">
+      <label for="license-key">license key</label>
+      <input id="license-key" name="license_key" type="text" inputmode="text" autocomplete="off" spellcheck="false" required minlength="35" maxlength="35" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" aria-describedby="activate-status">
+      <button type="submit" class="btn btn-block">open my dyad</button>
+    </form>
+    <p id="activate-status" role="status" aria-live="polite" hidden></p>
+    <p class="hint">nothing else is sent. the key is checked with gumroad once and not kept.</p>
+  </section>
+</main>
+
+<script type="module">
+import { initActivatePage } from './ui/activate.js';
+initActivatePage({
+  status: document.getElementById('activate-status'),
+  search: window.location.search,
+  replace: () => { if (window.history && window.history.replaceState) window.history.replaceState({}, '', window.location.pathname); },
+});
+</script>
+</body>
+</html>
