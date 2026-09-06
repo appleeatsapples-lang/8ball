@@ -1,6 +1,6 @@
 // 8ball / tests / labels_reveal.test.js
-// Symbol-label visibility toggle (DOCTRINE.md §5 allow-list extension).
-// Verifies the markup shape of the labels-reveal feature in index.html.
+// Permanent row labels (v0.89), with the legacy preference helpers retained.
+// Pins legible markup and the unchanged intrinsic-height layout fix.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -13,43 +13,59 @@ const shellCss = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8')
 const tiersJs = readFileSync(join(__dirname, '..', 'ui', 'tiers.js'), 'utf-8');
 const labelsJs = readFileSync(join(__dirname, '..', 'ui', 'labels.js'), 'utf-8');
 
-describe('labels-reveal — the toggle reveals the row titles (pr233 audit F5)', () => {
-  // v0.74 retired the last two positive .labels-revealed pins with the
-  // placard/atlas rules; inverting the shell rule then left a labeled
-  // view showing NOTHING while the suite passed. Pin both halves.
-  const shell = readFileSync(join(__dirname, '..', 'ui', 'shell.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
-  it('titles are hidden by default and visible under .labels-revealed', () => {
-    expect(shell).toMatch(/\.card \.coord-title \{[^}]*visibility: hidden;[^}]*\}/);
-    expect(shell).toMatch(/\.card\.labels-revealed \.coord-title \{ visibility: visible; \}/);
+describe('permanent row labels — visible and unclipped on host and Pair', () => {
+  const uncomment = source => source.replace(/\/\*[\s\S]*?\*\//g, '');
+  const shell = uncomment(shellCss);
+  const experience = uncomment(readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8'));
+  const dyad = readFileSync(join(__dirname, '..', 'ui', 'dyad.js'), 'utf-8');
+  const pairedStyle = (dyad.match(/const STYLE = `([\s\S]*?)`;/) || [])[1];
+
+  it('the shared row-title rule is visible and grows naturally when labels wrap', () => {
+    const match = shell.match(/\.card \.coord-title \{([^}]*)\}/);
+    expect(match, 'shared row-title rule missing').not.toBeNull();
+    expect(match[1]).toMatch(/visibility:\s*visible/);
+    expect(match[1]).toMatch(/line-height:\s*1\.4/);
+    expect(match[1]).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(match[1]).not.toMatch(/(?:^|;)\s*(?:height|max-height)\s*:/);
+    expect(match[1]).not.toMatch(/overflow:\s*(?:hidden|clip)|white-space:\s*nowrap/);
   });
-  it('no other rule in either stylesheet hides a title under .labels-revealed', () => {
-    const exp = readFileSync(join(__dirname, '..', 'ui', 'experience.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
-    for (const [sel, decl] of [...(shell + exp).matchAll(/([^{}]+)\{([^}]*)\}/g)].map(m => [m[1].trim(), m[2]])) {
-      if (/labels-revealed/.test(sel) && /coord-title/.test(sel)) {
-        expect(decl, sel).not.toMatch(/visibility:\s*hidden|display:\s*none|opacity:\s*0(?![.\d])/);
-      }
+
+  it('no host or paired rule can hide, clip, or preference-gate a row title', () => {
+    expect(pairedStyle, 'paired style payload missing').toBeTypeOf('string');
+    const css = shell + experience + uncomment(pairedStyle);
+    const rules = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)];
+    const titleRules = rules.filter(m => /coord-title|coord-section|data-sheet-title/.test(m[1]));
+    expect(titleRules.length).toBeGreaterThan(0);
+    for (const [, selector, declarations] of titleRules) {
+      expect(selector).not.toMatch(/labels-revealed/);
+      expect(declarations, selector).not.toMatch(/visibility:\s*hidden|display:\s*none|opacity:\s*0(?![.\d])|overflow:\s*(?:hidden|clip)|white-space:\s*nowrap|clip(?:-path)?:/);
+      expect(declarations, selector).not.toMatch(/(?:^|;)\s*(?:height|max-height)\s*:\s*(?!auto\b|none\b)/);
     }
   });
 });
 
-describe('labels-reveal toggle (v0.2.7)', () => {
-  it('toggle button element exists with id', () => {
-    expect(html).toMatch(/id="labels-toggle"/);
+describe('permanent labels — markup and compatibility (v0.89)', () => {
+  it('the host has no retired reveal-label control', () => {
+    expect(html).not.toMatch(/id="labels-toggle"/);
   });
 
-  it('default toggle copy is "→ reveal labels"', () => {
-    expect(html).toMatch(/→ reveal labels/);
+  it('no reveal or hide labels instruction remains in the interface', () => {
+    expect(html).not.toMatch(/(?:reveal|hide|show-)\s*labels/i);
   });
 
-  it('toggle has aria-pressed attribute (default false)', () => {
-    expect(html).toMatch(/id="labels-toggle"[^>]*aria-pressed="false"/);
+  it('the host does not read, write or forward the retired label preference', () => {
+    expect(html).not.toMatch(/\b(?:isLabelsRevealed|setLabelsRevealed|applyLabelsState|onLabelsChange)\b/);
   });
 
-  // v0.6.0: eight coordinate rows — arcana (lead) + element + sun + animal
-  // + numerology + numbers2 + day pillar + hour pillar. Visibility per
-  // tier is JS-gated by ui/tiers.js (tests/tiers.test.js); the markup
-  // ships all eight rows.
-  it('eight coord-section elements present', () => {
+  // v0.6.0 shipped eight coordinate rows — arcana (lead) + element + sun +
+  // animal + numerology + numbers2 + day pillar + hour pillar. §1.K v0.73
+  // (2026-09-02) added a ninth: the WESTERN group's MOON row, paired with
+  // SUN ↑ RISING. Per-row visibility runs through ui/tiers.js's retained
+  // render-registry machinery (tests/tiers.test.js) — RETAINED compatibility
+  // structure, not a live JS gate: since doctrine v0.71's free amendment
+  // every device resolves the ceiling tier, so no row is ever hidden on any
+  // current device; the markup ships all nine rows, all visible.
+  it('nine coord-section elements present (§1.K: the MOON row)', () => {
     const matches = html.match(/class="coord-section"/g) || [];
     expect(matches.length).toBe(9);
   });
@@ -114,10 +130,11 @@ describe('labels-reveal toggle (v0.2.7)', () => {
     expect(labelsJs).toMatch(/const LABELS_KEY = 'eight_ball_labels_revealed_v1'/);
   });
 
-  it('about-modal discloses the toggle', () => {
+  it('about-modal explains row identification without a reveal instruction', () => {
     const m = html.match(/id="about-modal"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
     expect(m, 'about-modal subtree not found').not.toBeNull();
-    expect(m[0]).toMatch(/toggle|symbol names|labels/i);
+    expect(m[0]).toMatch(/row|label/i);
+    expect(m[0]).not.toMatch(/reveal labels|show-labels|hide labels/i);
   });
 });
 
@@ -139,25 +156,18 @@ describe('ui/labels.js DI shape (DOCTRINE §6)', () => {
   });
 });
 
-// iOS/WebKit revealed-label overlap fix (2026-08-02): revealed labels make
-// the card taller than its compact 5/8 face, and the flip-stage box that
-// wraps it doesn't reliably grow to match on WebKit, so the excess paints
-// over the result rail stacked below it on mobile. ui/labels.js now toggles
-// a layout-state class on #flip-stage in the same function that toggles
-// #card-face, and self-injects the mobile-only CSS that consumes it (the
-// same pattern tests/dyad_surface.test.js pins for ui/dyad.js's
-// injectStyle/STYLE). These are source pins; tests/meanings_behavior.test.js
-// runs initLabelsUI for real and asserts the class actually moves together
-// on both elements through every call path (click + boot-time apply).
-describe('flip-stage revealed-label layout state (iOS/WebKit fix)', () => {
-  it('index.html wires #flip-stage into initLabelsUI', () => {
-    expect(html).toMatch(/initLabelsUI\(\{[^}]*flipStage:\s*\$\('flip-stage'\)/);
+// The iOS/WebKit intrinsic-height fix remains active without any label
+// toggle. The behavior suite drives its real style injection; the source
+// guards below preserve the original all-width, all-state layout contract.
+describe('flip-stage intrinsic-height layout (iOS/WebKit fix)', () => {
+  it('index.html still initializes the layout fix without obsolete control refs', () => {
+    expect(html).toMatch(/initLabelsUI\(\s*\{\s*\},\s*\{\s*\}\s*\)/);
   });
 
-  it('applyLabelsState toggles labels-revealed on flipStage, not just cardFace', () => {
-    expect(labelsJs).toMatch(
-      /flipStage\.classList\.toggle\(\s*['"]labels-revealed['"]\s*,\s*revealed\s*\)/
-    );
+  it('the live initializer installs styles without a visibility or storage path', () => {
+    const initializer = labelsJs.slice(labelsJs.indexOf('export function initLabelsUI'));
+    expect(initializer).toMatch(/injectStyle\(\)/);
+    expect(initializer).not.toMatch(/localStorage|isLabelsRevealed|setLabelsRevealed|classList|addEventListener|applyLabelsState|labelsToggle/);
   });
 
   // The pr223 audit proved whole-file toMatch pins vacuous in the file's

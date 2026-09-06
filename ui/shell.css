@@ -123,8 +123,7 @@
   .card { justify-content: space-evenly; }
   .card .coord-section { text-align: center; }
   /* ── system groups (§1.F v0.72): the card organized by counting system.
-     The group title is ALWAYS visible (unlike the per-row titles, which
-     stay behind the labels toggle): it is the sheet's own table of
+     Group and row titles are always visible: the sheet's own table of
      contents — a system name, never a value, never interpretation. Off
      the share PNG (ui/share.js walks rows, not groups). */
   .card .coord-group { margin-top: 10px; }
@@ -147,17 +146,16 @@
     letter-spacing: 0.1em;
     color: var(--text-muted);
     text-transform: uppercase;
-    height: 15px;
-    line-height: 15px;
+    min-height: 15px;
+    line-height: 1.4;
     margin-bottom: 4px;
-    visibility: hidden;
+    visibility: visible;
+    overflow-wrap: anywhere;
   }
-  .card.labels-revealed .coord-title { visibility: visible; }
 
-  /* v0.74 (the labeled-view simplification): the §1.E placard and the §1.F
-     atlas gloss no longer render on the card — the labels toggle reveals the
-     row titles only; a compartment's system name and derivation are one line
-     under the meaning panel's head (ui/meanings.js .meaning-derivation). */
+  /* v0.89: row titles remain readable without a reveal action, including
+     wrapping long numerology headings. The v0.74 meaning-panel derivation
+     stays under its head (ui/meanings.js .meaning-derivation). */
 
   /* ── v0.7.0 compartment cells (§1.D v0.37 constant skeleton) ─────
      Full cell structure at every tier; sealed cell = EMPTY value node +
@@ -193,16 +191,36 @@
   .public-read.unsealing .card-note { animation: valIn 340ms ease both; animation-delay: var(--unseal-delay, 0ms); }
   /* sealed public-read block (t3 ceiling, §1.D v0.60) — same seal treatment */
   .public-read { position: relative; min-height: 52px; }
-  /* block titles (§1.F v0.72): the written entry and the domain fit each
-     carry an always-visible title in the group-title register — through
-     v0.71 DOMAIN FIT hid behind the labels toggle and the entry had none,
-     so the two prose blocks read as untitled paragraphs by default. */
+  /* Block titles: written entry and symbolic associations each carry an
+     always-visible title in the group-title register. */
   .public-title, .entry-title {
     font-size: 9px; letter-spacing: 0.22em; line-height: 1.4;
     color: var(--text-muted); text-transform: uppercase;
     margin-bottom: 4px; text-align: center;
   }
   .public-read .coord-seal { inset: 16px 10% 4px; }
+  /* Fixed source attribution belongs to each sheet; native summary markers
+     and keyboard behavior stay intact, with a generous activation area. */
+  .sheet-context, .sheet-qualifier {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .sheet-context > summary {
+    min-height: 44px;
+    padding: 12px 0;
+    cursor: pointer;
+  }
+  .sheet-context > summary:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 4px;
+  }
+  .sheet-context > p { margin-bottom: 8px; }
+  .sheet-context[hidden], .sheet-qualifier[hidden] { display: none; }
   @keyframes sealOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
   @keyframes valIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
@@ -213,22 +231,11 @@
     .public-read.unsealing .card-habit,
     .public-read.unsealing .card-note { animation: none; }
   }
-  .labels-toggle {
-    display: block;
-    margin: 14px auto 0;
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .labels-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
-
-  /* density strip (CLP cut 3): aggregate paid-tier census, always-on in the
+  /* density strip (CLP cut 3): aggregate coordinate census, always-on in the
      result rail (outside #card-face → never serialized into the §5.D PNG).
+     "Tier" in the underlying registry (ui/tiers.js) is retained render-
+     registry compatibility machinery, not a live paid gate — every device
+     renders the same complete count (doctrine v0.71 free amendment).
      Clinical count only, no CTA — register-matched to #mechanism-strip. */
   .density-strip {
     font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
@@ -706,6 +713,5 @@
     #result .result-main { display: flex; align-items: flex-start; justify-content: center; gap: 40px; }
     #result .flip-stage { flex: 0 0 360px; margin: 0; }
     #result .result-rail { flex: 0 1 300px; }
-    #result .labels-toggle { margin: 0 0 16px; }
     #result .result-controls { margin-top: 0; }
   }

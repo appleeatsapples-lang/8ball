@@ -1,8 +1,12 @@
 // 8ball / tests / density.test.js
-// Paid-tier density strip (Coordinate Legibility Pack cut 3). An aggregate
-// census derived PURELY from the tier constants. Pins: the count math,
-// profile-independence (value-leak sentinel), no-FOMO copy (§2/§5.C),
-// always-on gating, and §5.D PNG exclusion.
+// Density strip (Coordinate Legibility Pack cut 3). An aggregate census
+// derived PURELY from the render-registry tier constants — since v0.71
+// (kept by §4.B v0.81) every device renders the complete sheet at t3 and
+// the strip is always-on; "sealed" here names retained registry machinery
+// no current cell hits, while the dyad (t5) is gated in ui/dyad.js (see
+// ui/tiers.js's own top-of-file note).
+// Pins: the count math, profile-independence (value-leak sentinel),
+// no-FOMO copy (§2/§5.C), always-on gating, and §5.D PNG exclusion.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -18,10 +22,11 @@ const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
 describe('tierDensitySummary count math (derived from tier constants)', () => {
-  // base = 15: the 14 sheet cells + the always-open catalog numeral (a free
-  // coordinate per §1.D), so the free count (5) matches the product-wide
-  // "five coordinates" framing. sealed counts only the sealable cells.
-  it('free: 5 of 15 open, 10 sealed', () => {
+  // base = 16: the 15 sheet cells (§1.K: fourteen at v0.7.0, plus the MOON
+  // row since v0.73) + the always-open catalog numeral (a free coordinate
+  // per §1.D), so the free count (5) matches the product-wide "five
+  // coordinates" framing. sealed counts only the sealable cells.
+  it('free: 5 of 16 open, 11 sealed', () => {
     expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
   it('t1: 11 open, 5 sealed (§1.K: the moon rides t1 beside rising)', () => {
@@ -62,19 +67,16 @@ describe('density strip — copy + placement + gating', () => {
     html.indexOf('try {', html.indexOf('CLP cut 3: aggregate density census')));
 
   it('copy is clinical — no FOMO / sales / urgency tokens (§2 / §5.C)', () => {
-    // Scan the LITERAL user-facing copy: the template strings with their
-    // ${...} interpolations stripped (those are code, not displayed text).
-    const copy = (block.match(/`[^`]*`/g) || [])
-      .map(s => s.replace(/\$\{[^}]*\}/g, '').replace(/`/g, ''))
-      .join(' ');
-    expect(copy, 'density copy not captured').toMatch(/coordinates open/);
+    const m = block.match(/densityStrip\.textContent\s*=\s*'([^']*)'/);
+    expect(m, 'density copy not captured').not.toBeNull();
+    const copy = m[1];
+    expect(copy).toMatch(/full sheet/);
     expect(copy).not.toMatch(/unlock|discover|reveal|buy|free/i);
     expect(copy).not.toMatch(/\bnow\b|only|hurry|countdown|\$|price|upgrade|limited/i);
   });
-  it('copy interpolates count fields only — no profile value (free amendment: constant full-open line)', () => {
-    // The sealed branch left with the storefront; the census is the total,
-    // interpolated from the tier constants and never a profile value.
-    expect(block).toMatch(/\$\{density\.total\} of \$\{density\.total\} coordinates open · full sheet/);
+  it('copy is fixed and never claims every birth field resolved', () => {
+    expect(block).toContain("densityStrip.textContent = 'full sheet'");
+    expect(block).toContain('tierDensitySummary(tier)');
     expect(block).not.toMatch(/density\.sealed|sealed at paid/);
     expect(block).not.toMatch(/profile\.|currentProfile/);
   });
@@ -112,6 +114,11 @@ describe('result surface — accessibility pins (evolution pass)', () => {
 });
 
 // ── desktop rail fold contract (2026-08-31 desktop layout pass) ───────────
+// Historical: dated to a layout pass that predates the 2026-09-02 free
+// amendment (doctrine §1.D v0.71), which retired the "$6 comparative
+// offer" this note names — that offer no longer ships. The layout fix
+// itself (top-aligned, sticky rail) is unrelated to commerce and remains
+// current; only the specific rail CONTENT the bug report names is retired.
 // On ≥720px viewports the result rail sat vertically CENTERED beside the
 // card. Harmless at free-tier heights, but the t3 card is ~1034px tall and
 // centering pushed the rail's last items — the $6 comparative offer and its

@@ -357,11 +357,11 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).not.toMatch(/everything is free/);
   });
 
-  it('names the whole free surface: sheet, meanings, written entry, domain fit, unlimited', () => {
+  it('names the whole free surface: sheet, meanings, written entry, symbolic associations, unlimited', () => {
     expect(aboutSubtree).toMatch(/all sixteen coordinates/);
     expect(aboutSubtree).toMatch(/their meanings/);
     expect(aboutSubtree).toMatch(/written card entry/);
-    expect(aboutSubtree).toMatch(/domain fit/);
+    expect(aboutSubtree).toMatch(/symbolic associations/);
     expect(aboutSubtree).toMatch(/as many readings as you like/);
   });
 
@@ -414,8 +414,10 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
   });
 
   it('the stored-locally list names the entitlement token and no paid rung', () => {
-    expect(aboutSubtree).toMatch(/inputs, the show-labels toggle, readings you choose to save, and — once filed — the dyad access token are stored locally/);
+    expect(aboutSubtree).toMatch(/inputs, readings you choose to save, and — once filed — the dyad access token are stored locally/);
     expect(aboutSubtree).not.toMatch(/rung.*stored locally/);
+    // card clarity: labels are permanent, so the toggle left the stored-locally list
+    expect(aboutSubtree).not.toMatch(/show-labels toggle/);
   });
 
   it('carries no compatibility, score, prediction or advice framing anywhere on the page', () => {

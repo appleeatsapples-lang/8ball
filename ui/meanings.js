@@ -2,8 +2,11 @@
 // Coordinate-meaning UI: every coordinate compartment becomes tappable and
 // keyboard-reachable. Each resolved value opens its own meaning plus a compact
 // contextual read of how that value sits beside the rest of the current sheet.
-// Catalog index is deliberately excluded — the compound reading is the paid
-// card entry.
+// Catalog index is deliberately excluded — the compound reading is the
+// separate written card entry (name/type/habit/note), rendered every
+// device since the 2026-09-02 free amendment (doctrine §1.D v0.71); "paid"
+// here is superseded lineage, not current — see that clause for the
+// current-facing statement.
 //
 // DI shape per DOCTRINE §6 v0.23: initMeaningsUI(refs). Injects its own
 // panel markup + scoped CSS at init time rather than touching index.html's
@@ -348,7 +351,11 @@ export function harmonyFor(key, entry, values, opts = {}) {
  * id-bound cells (detailFor below); the dyad's two sheets hand in their own
  * `readCells()` (v0.76), so a compartment on either paired sheet is read in
  * the context of THAT sheet, never the host's. `readSheet` is a function so
- * the sealed/unresolved branches never touch the sheet at all.
+ * the sealed/unresolved branches never touch the sheet at all. Sixth
+ * remediation gate: `sealed` is read off `cell.classList.contains('sealed')`
+ * (call site below), and since doctrine §1.D v0.71's free amendment no
+ * current cell ever carries that class — this branch is RETAINED
+ * compatibility logic, not a live path.
  */
 export function panelDetailFor(key, rawValue, readSheet, { sealed = false } = {}) {
   if (sealed || !rawValue) {

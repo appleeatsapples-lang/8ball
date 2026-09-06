@@ -3,7 +3,9 @@
 // A FREE-SURFACE COORDINATE, not interpretation content. Outputs a Major
 // Arcana numeral + lowercase name (e.g. "XXI · the world") in the same
 // labeled-coordinate register as sun sign / animal / life-path. No meaning
-// text, no per-card prose — that stays the paid card-content layer (§1).
+// text, no per-card prose — that stays the SEPARATE written card-content
+// layer (§1) — a distinct content block, not a paid rung: doctrine v0.71's
+// free amendment renders it on every device too, same as this coordinate.
 //
 // Reduction tradition: DIGIT-SUM (locked by operator, see journal 2026-05). Sum every digit of the DOB, reduce by repeated digit-sum until <= 22.
 // Distinct from the life-path reduce() in profile.js — that one preserves the

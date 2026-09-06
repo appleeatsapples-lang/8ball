@@ -82,15 +82,21 @@ const FORBIDDEN = [
 const LOCALSTORAGE_KEY_ALLOW = new Set([
   'eight_ball_profile_v1',
   'eight_ball_labels_revealed_v1',
-  // v0.3.0 paid-tier keys (DOCTRINE §5 v0.22 allow-list extension).
-  // v0.55 ownership model: `eight_ball_tries_used_v1` is RETIRED (never
-  // read or written — removed here per the v0.48 retired-key precedent);
-  // `eight_ball_credits_v1` survives as the read-only §1.D R2 legacy
-  // grandfather signal — reads only, no setItem call exists.
+  // v0.3.0/v0.55/v0.6.0 commerce keys (DOCTRINE §5 v0.22/v0.36 allow-list
+  // extensions, §1.D) — historical introduction points, preserved for
+  // lineage. Current truth since the 2026-09-02 free amendment (§1.D
+  // v0.71): all three are RETIRED. `eight_ball_credits_v1` is no longer
+  // even the read-only R2 legacy signal it once was, `eight_ball_tier_v1`
+  // is no longer written (its former writer, handlePaidReturn, no longer
+  // exists), and `eight_ball_pending_profile_v1` is no longer staged by any
+  // checkout. Nothing in tracked source reads or writes any of the three —
+  // ui/payments.js actively SCRUBS them at boot (scrubRetiredCommerceKeys)
+  // so a device that shipped before the free amendment doesn't keep a
+  // staged name+DOB payload for a checkout that no longer exists. They stay
+  // allow-listed only because the scrub itself still names them, exactly
+  // like the retired facet-index generations two entries below.
   'eight_ball_credits_v1',
   'eight_ball_pending_profile_v1',
-  // v0.6.0 tier ladder (DOCTRINE §5 v0.36 allow-list extension / §1.D):
-  // highest rung purchased, monotonic, written only by handlePaidReturn.
   'eight_ball_tier_v1',
   // v0.49 t3 written-entry rotation (§1.H): currently visible note slot.
   // v0.54/calc-v3 versioned the key to _v2; v0.62/calc-v4 versioned it again

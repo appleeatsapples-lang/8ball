@@ -1,20 +1,16 @@
-// labels-reveal toggle controller (DOCTRINE §5 allow-list / §6).
+// Sheet intrinsic-height initializer + legacy preference compatibility.
 //
 // Owns:
-//   - localStorage key for the symbol-label visibility preference
-//     (eight_ball_labels_revealed_v1)
-//   - pure persistence helpers: isLabelsRevealed / setLabelsRevealed
-//   - DOM-touching init: wires the toggle button + returns applyLabelsState
-//   - the mobile flip-stage intrinsic-height layout state (STYLE below),
+//   - the historical symbol-label preference key and pure helpers, retained
+//     for compatibility only; no live sheet reads or writes this preference
+//   - the all-width flip-stage intrinsic-height rules (STYLE below),
 //     self-injected at init — see the iOS/WebKit note there
 //
 // Does NOT own:
-//   - the result-card's `.labels-revealed` content rule (.coord-title
-//     visibility) — that lives in ui/shell.css (since v0.66); this module
-//     only flips the class + toggle copy. Since v0.74 the toggle reveals
-//     the row titles ONLY — the placard and the atlas moved into the
-//     meaning panel, and no module may write them on the card
-//     (tests/provenance.test.js scans every shipped source for that).
+//   - row-label visibility: v0.89 makes the host and Pair labels permanently
+//     visible in ui/shell.css, independent of legacy false/unavailable state
+//   - a toggle, class state or listener: the reveal controls retired in v0.89
+//   - meaning-panel content: the v0.74 derivation surface is unchanged
 //
 // Extracted from index.html during the desktop side-rail layout cycle to
 // free the line budget required by the §6 split (index.html was 1499/1500).
@@ -32,9 +28,9 @@
 const LABELS_KEY = 'eight_ball_labels_revealed_v1';
 
 // ── pure persistence ─────────────────────────────────────────────
-// Every read/write defends against a localStorage exception (private
-// mode, quota, etc.): a read returns false, a write silently no-ops, so
-// the preference survives only the current session in that case.
+// Compatibility exports only. Every read/write defends against a
+// localStorage exception (private mode, quota, etc.): a read returns false,
+// a write silently no-ops. Neither result controls current sheet legibility.
 
 export function isLabelsRevealed() {
   try { return localStorage.getItem(LABELS_KEY) === 'true'; }
@@ -67,9 +63,8 @@ export function setLabelsRevealed(revealed) {
 // a measured no-op at every width (the stage already sizes to content;
 // the ≥720 rail centers its items, so nothing stretched depended on the
 // box), and on WKWebView there is no ratio box left to under-size, in
-// any state, at any width. The `.labels-revealed` class toggle on
-// #flip-stage stays — pinned API surface, keeps the layout state
-// observable — but layout does not depend on it.
+// any state, at any width. The historical `.labels-revealed` class toggle
+// retired in v0.89; these unconditional rules stay active at boot.
 // `aspect-ratio: auto` is the load-bearing declaration — the base
 // .flip-stage rule sets no height, only the 5/8 ratio box. The back face
 // is deliberately NOT dropped to auto: it keeps index.html's
@@ -92,24 +87,8 @@ function injectStyle() {
 }
 
 // ── DOM-touching init ────────────────────────────────────────────
-// Wires the toggle's click handler and returns applyLabelsState so the
-// host can apply the stored preference at boot.
+// The existing DI-shaped entry point now only installs the layout fix.
+// No control refs or preference state are required for permanent labels.
 export function initLabelsUI(refs, hooks) {
-  const { cardFace, labelsToggle, flipStage } = refs;
   injectStyle();
-
-  function applyLabelsState(revealed) {
-    cardFace.classList.toggle('labels-revealed', revealed);
-    flipStage.classList.toggle('labels-revealed', revealed);
-    labelsToggle.textContent = revealed ? '→ hide labels' : '→ reveal labels';
-    labelsToggle.setAttribute('aria-pressed', revealed ? 'true' : 'false');
-  }
-
-  labelsToggle.addEventListener('click', () => {
-    const next = !cardFace.classList.contains('labels-revealed');
-    setLabelsRevealed(next);
-    applyLabelsState(next);
-  });
-
-  return { applyLabelsState };
 }

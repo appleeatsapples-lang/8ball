@@ -2,7 +2,7 @@
 
 > it already knows. you just have to ask.
 
-A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign and moon sign. Shake. The single-person sheet is completely free and unlimited (doctrine v0.71; v0.81 keeps that and adds the one paid surface, the dyad — below). Five coordinates derive from the date of birth alone — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**. Every one of the fifteen sheet cells is clickable and keyboard-accessible. A resolved cell opens its value-specific meaning, followed by a separate contextual reading. Numerology preserves the master numbers: life path, name number, soul urge, personality, birthday, and maturity resolve to 1–9 or to 11, 22, or 33, and each resolved number is interpreted in its own role `with the other numbers`; a name with no contributing vowel or consonant shows an honest unresolved dash rather than a tenth value `0`. Other coordinates retain the broader `in this sheet` context—for example, Earth stability as the material tempo working through Capricorn ambition and Snake discretion. Unresolved and sealed cells explain why no meaning can yet join the sheet without exposing a hidden value. The catalog numeral remains separate and is not a detail trigger. The rest open when the name enters the math: rising sign, moon sign, five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar, and the written 144-card entry. Each explicit `flip again` rotates that entry through its three shipped note positions. The paired read — **8ball Dyad**: two complete sheets, read beside each other, with the bounded relation layer between them — is the one paid surface (doctrine v0.81; `core/entitlement.js`): USD $3 once on Gumroad, permanent and unlimited access, opened by a signed access link the operator sends after purchase. Until the operator's launch steps fill the product url and the public key, a build presents no offer and the dyad is closed to everyone. The second entry is never saved. Reveal labels to name each row; open any compartment to read its system name and derivation beside its meaning (the placard and atlas left the card in doctrine v0.74); the result states the full sixteen-coordinate census. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path anchors the first visible note position (low/mid/high) within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver. Completed readings can be saved explicitly to Previous Readings in the same browser, then reopened, renamed, deleted, or cleared, or selected in pairs for a finite structural Concordance. Both entries are recalculated through the existing pipeline before relation lookup; there is no account, sync, or remote copy.
+A magic 8-ball that knows you. Enter your name and DOB once; optionally add birth time and city (autocompletes from a 53k-entry GeoNames subset; sets IANA timezone + lat + lng atomically) for rising sign and moon sign. Shake. The single-person sheet is completely free and unlimited (doctrine v0.71; v0.81 keeps that and adds the one paid surface, the dyad — below). Five coordinates derive from the date of birth alone — tarot birth card, sun sign, public animal (year-pillar), life path, and the catalog numeral — rendered on a constant compartment **specimen sheet**. Every one of the fifteen sheet cells is clickable and keyboard-accessible. A resolved cell opens its value-specific meaning, followed by a separate contextual reading. Numerology preserves the master numbers: life path, name number, soul urge, personality, birthday, and maturity resolve to 1–9 or to 11, 22, or 33, and each resolved number is interpreted in its own role `with the other numbers`; a name with no contributing vowel or consonant shows an honest unresolved dash rather than a tenth value `0`. Other coordinates retain the broader `in this sheet` context—for example, Earth stability as the material tempo working through Capricorn ambition and Snake discretion. An unresolved cell (missing optional birth time or city, for the handful of coordinates that need them) explains why no meaning can yet join the sheet without exposing a hidden value — a data-availability gap, never a sealed cell: nothing on the single sheet is tier-gated (doctrine v0.71, kept by v0.81). The catalog numeral remains separate and is not a detail trigger. The rest open when the name enters the math: rising sign, moon sign, five-element, private animal, name number, soul urge, personality, birthday, maturity, day pillar, hour pillar, and the written 144-card entry. Each explicit `flip again` rotates that entry through its three shipped note positions. The paired read — **8ball Dyad**: two complete sheets, read beside each other, with the bounded relation layer between them — is the one paid surface (doctrine v0.81; `core/entitlement.js`): USD $3 once on Gumroad, permanent and unlimited access, opened by a signed access link the operator sends after purchase. Inside it the paired read is presented as a **Pair Dossier** — a compact three-finding pair signature (element cycle, combined life path, card pair) before the two full sheets, direction-explicit evidence below them — and, from a completed pair, an optional **Pair Imprint**: a narrow, on-device share PNG carrying only those three relation summaries and fixed product copy, never a name, DOB, or either sheet. Until the operator's launch steps fill the product url and the public key, a build presents no offer and the dyad is closed to everyone. The second entry is never saved. Compact row labels are always visible on the host and both Pair sheets, and adjacent values remain separate when copied. Open any compartment to read its system name and derivation beside its meaning (the placard and atlas left the card in doctrine v0.74). Native disclosures explain how the written entry is chosen and how the symbolic associations are assembled; the associations and their counterpoint are explicitly not an assessment of aptitude or career suitability. The result rail reads `full sheet`, without implying every optional-input-dependent field has resolved. The catalog index is the card the (sun sign, public animal) pair selects from a 144-card grid (12 sun rows × 12 animals); life path anchors the first visible note position (low/mid/high) within a cell, not the index. All coordinates are surface-only — they never feed the catalog driver. Completed readings can be saved explicitly to Previous Readings in the same browser, then reopened, renamed, deleted, or cleared, or selected in pairs for a finite structural Concordance. Both entries are recalculated through the existing pipeline before relation lookup; there is no account, sync, or remote copy.
 
 **The card content ships in the public bundle.** This source tree includes the calculations, the UI, the positional catalog map, and `content/cards.v1.full.js` — 144 entries with name/type/habit/note × low/mid/high brackets. Every render shows the full card content (free per doctrine v0.71; the tier-gated locked/unlocked split is lineage). The deck bytes are inspectable via View Source. Private authoring source is preserved at `~/dev/8ball-private/cards.v1.full.js`.
 
@@ -27,14 +27,14 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
 5. Single-file rule — `index.html` ≤ 1500 lines (CI-enforced; the current count lives in the newest `journal.md` entry, not here).
-6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState` render/render-idempotent, `applyPaidReturn` monotonic tier write + pending render with no credit grant; replay-attack no-pending branch; same-profile idempotence), `tests/facet_rotation.test.js` (t3-only round-robin note rotation, owned and unfunded per §1.H v0.55, persistence), plus `tests/feedback_surface.test.js`.
+6. Payments state machine — `tests/payments_state.test.js` verifies `core/payments.js`'s retained legacy-registry compatibility machinery (`isNewPair`, `nextShakeState` render/render-idempotent, `applyPaidReturn` monotonic tier write + pending render with no credit grant; replay-attack no-pending branch; same-profile idempotence) — since doctrine v0.71 (kept by v0.81), `ui/payments.js`'s live `getRenderTier()` never calls any of it: it answers `t3` for every device and `t5` only from a verified signed dyad access token (`core/entitlement.js`); this stage keeps the legacy registry's own contract correct for any pre-amendment stored state, not a live paid path. `tests/facet_rotation.test.js` (t3-only round-robin note rotation, owned and unfunded per §1.H v0.55, persistence), plus `tests/feedback_surface.test.js`.
 
 ## Structure
 
 ```
 8ball/
 ├── index.html               UI + boot markup/script (≤1500 LOC per §6; shell styles live in ui/shell.css since 2026-08-31)
-├── core/                    12 pure-logic ES modules — no DOM
+├── core/                    14 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution
 │   ├── rising.js            Meeus ascendant — DST + historical-tz aware
@@ -46,29 +46,34 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
 │   ├── public.js            public-reading resolution + disclosed master-mode bridge
 │   ├── dyad.js              pure two-profile relation calculation
+│   ├── moon.js              moon sign + moon placement context (§1.K)
+│   ├── kua.js               eight-trigram Kua registry lookup (renderer retired, table retained)
 │   ├── payments.js          pure state machines: new-profile reads + t3 facet rotation
 │   └── entitlement.js       dyad access-token verification (ECDSA P-256, offline) + configurable product url / public keys
-├── ui/                      13 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
+├── ui/                      15 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
 │   ├── tiers.js             compartment-card render + shareRowRefs + the provenance/atlas registries + density
 │   ├── payments.js          storage/status module (density resolver t3/t5 + dyad entitlement storage + facet storage)
 │   ├── profile.js           profile persistence + form helpers
-│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI
+│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI + closeActiveScreens screen-ownership hook (§1.J v0.83)
 │   ├── concordance.js       pure post-calculation relation lookup; no DOM/storage/network
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
-│   ├── labels.js            symbol-label reveal toggle (§6 split)
+│   ├── labels.js            intrinsic-height style + legacy label helpers (no live toggle)
 │   ├── meanings.js          all-cell value meaning + deterministic sheet context (§1.G v0.53)
-│   ├── public.js            public-reading formatter + master-mode bridge disclosure
-│   ├── dyad.js              second-profile entry + paired-sheet rendering (§1.J)
+│   ├── public.js            symbolic-associations framing + master-mode bridge disclosure
+│   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.83)
+│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading, via a model-first non-recursive view coordinator (§1.J/§5.D v0.83–v0.88)
 │   ├── sheet.js             shared sheet value mapping/render helpers
+│   ├── result.js            result-screen arrival + card-flip controller — transition state, face accessibility, arrival focus/announcement, shake-again
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
-├── content/                 12 versioned registry modules
-│   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
+├── content/                 16 versioned registry modules
+│   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — HISTORICAL: JS-gated per §1 v0.22 behind a credits flag; current truth per doctrine v0.71's free amendment: every render shows the full card content, no gate
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
-│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53)
+│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53; superseded)
 │   ├── meanings.v3.js       twelve terminal values, masters reused from v1 (§1.G v0.62; superseded)
 │   ├── meanings.v4.js       + per-slot numerology lines, theme tensions (§1.G; superseded)
-│   ├── meanings.v5.js       ACTIVE registry — v4 unedited + rising/private-animal placement lines (§1.G)
+│   ├── meanings.v5.js       + rising/private-animal placement lines (§1.G; superseded)
+│   ├── meanings.v6.js       ACTIVE registry — v5 unedited + moon placement family + moon context role (§1.K)
 │   ├── concordance.v1.js    immutable historical relation registry (§1.I v0.51)
 │   ├── concordance.v2.js    superseded registry for the strict 1–9 numerology cut (§1.I v0.54)
 │   ├── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)
@@ -76,7 +81,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── dyad.v2.js           ACTIVE dyad tables + master-preserving combined-path frame (§1.J v0.62)
 │   ├── public.v1.js         immutable public-reading mode registry (§1.D)
 │   ├── public.v2.js         superseded public-reading registry
-│   └── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   ├── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   └── kua.v1.js            eight-trigram registry — table retained, renderer retired (§1.D kua-retirement amendment)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
@@ -84,7 +90,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F; placard + atlas live in the meaning panel since v0.74)
 │   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
-│   ├── share_surface / readings / concordance / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
+│   ├── share_surface / pair_share / readings / concordance / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
+│   ├── dyad_surface / dyad / dyad_content / pair_readings_integration  the paired reading + Pair Dossier hierarchy (DOCTRINE §1.J)
 │   └── privacy_scan / pii_scan / dependency_discipline / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs
 ├── assets/                  cities.json + favicons + og:image
