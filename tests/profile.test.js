@@ -22,6 +22,7 @@ import {
   getBirthday,
   getMaturity, getMaturitySum,
   getNameNumber, getNameNumberSum,
+  nameLetters,
   getPersonality, getPersonalitySum,
   getSunSign,
   getAnimal,
@@ -201,6 +202,25 @@ describe('calc v5 — name normalization contract (canonical equivalence)', () =
     }
   });
 
+  it('the fold yields the exact letter sequence, not merely a colliding value', () => {
+    // A reduced value can collide while the letters are wrong: a fold that
+    // sent ë to n would still give "Zoë" nameNumber 1 and keep every
+    // NFC/NFD and partition assertion below green. Pin the sequence itself
+    // (pr246 codex lane, P2).
+    const EXACT = [
+      ['José', 'jose'], ['Zoë', 'zoe'], ['Renée Dubois', 'reneedubois'],
+      ['Ana Sofía', 'anasofia'], ['Ångström', 'angstrom'], ['İrem', 'irem'],
+      ['Đặng Thị', 'angthi'], ['Đỗ', 'o'], ['Alex Thomas', 'alexthomas'],
+      ['Đ', ''], ['Ł', ''], ['Ø', ''], ['ß', ''], ['', ''],
+    ];
+    for (const [name, letters] of EXACT) {
+      expect(nameLetters(name), name).toBe(letters);
+      expect(nameLetters(name.normalize('NFD')), `${name} (NFD)`).toBe(letters);
+    }
+    expect(nameLetters(null)).toBe('');
+    expect(nameLetters(undefined)).toBe('');
+  });
+
   it('a diacritic contributes its base letter — it is not silently dropped', () => {
     // Agreement is not enough: dropping é in both spellings would also make
     // them agree, at the price of reducing a different name.
@@ -241,7 +261,10 @@ describe('calc v5 — name normalization contract (canonical equivalence)', () =
     // reduce at all, so nothing is fabricated from the code points — and the
     // date side is untouched, since an unreadable name costs the name
     // coordinates and nothing else.
-    for (const name of ['محمد', '山田', '123', '   ', 'Đ']) {
+    // Đ, Ł, Ø, ß carry their mark inside the glyph — no canonical
+    // decomposition — and are the named limit; a compatibility mapping
+    // (ß → ss, Ł → l, Ø → o) would be a calc change, not a fold.
+    for (const name of ['محمد', '山田', '123', '   ', 'Đ', 'Ł', 'Ø', 'ß']) {
       const p = buildProfile(name, '1988-08-15');
       expect(p.nameNumber, name).toBeNull();
       expect(p.soulUrge, name).toBeNull();
@@ -279,6 +302,18 @@ describe('calculation contract', () => {
       expect(getNameNumber(c.name)).toBe(c.expected);
     });
   }
+
+  it('every non-ASCII name fixture is stored as an NFC literal (the byte-twin rule is enforced, not just stated)', () => {
+    // calc v5 — tests/fixtures.json `_name_number_rule`. A stored NFD
+    // literal would still pass the runtime-equivalence block above (it
+    // computes both forms from whatever it is handed), so the rule needs
+    // its own pin (pr246 codex lane, P3).
+    const accented = fixtures.name_number.filter(c => /[^\x00-\x7F]/.test(c.name));
+    expect(accented.length).toBeGreaterThanOrEqual(8);
+    for (const c of accented) {
+      expect(c.name, `${c.name} is NFC`).toBe(c.name.normalize('NFC'));
+    }
+  });
 
   it('rejects malformed DOB (message-pinned)', () => {
     expect(() => buildProfile('x', 'bad-date')).toThrow(/DOB must be YYYY-MM-DD/);

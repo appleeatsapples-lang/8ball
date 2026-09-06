@@ -36,10 +36,21 @@ with a `_name_number_rule` naming the trap the packet named: an NFD byte-twin in
 re-normalizing write away from a green tautology, so the equivalence lives in the test file where
 `.normalize('NFD')` is computed at runtime. No existing fixture value moves. (2) The algorithm, above.
 (3) `npx vitest run` — 62 files / 2207 tests green. Verified by breaking: the new assertions run against
-main's `core/profile.js` fail nine times (three fixtures, six in the contract block), then pass with
-the fold restored. (4) The calc-version line reads v5; §3 carries the calc v5 bullet; footer rotated
+main's `core/profile.js` fail ten times (five fixtures — José, Zoë, Renée Dubois, Ångström, Đặng Thị;
+Ana Sofía, İrem and Đ happen to coincide under the raw reducers — and five in the contract block), then
+pass with the fold restored. The first version of this sentence said "nine (three fixtures, six in the
+block)": the codex lane flagged the split as unsupported and the recount above is the corrected record. (4) The calc-version line reads v5; §3 carries the calc v5 bullet; footer rotated
 to v0.82. The auditor's assurance suite is OK, the product audit PASS 13/0/0 with one advisory WARN
 that was the not-yet-committed working tree, and the local PII audit clean over 910 files.
+
+**Codex lane (pr246, MERGE WITH FIXES) — absorbed before the artifact.** P2: the contract block let a
+fold that sends a wrong letter with a COLLIDING value pass (ë → n keeps "Zoë" at nameNumber 1 and every
+NFC/NFD and partition assertion green) — confirmed by planting exactly that mutant, which survived the
+block and was killed only by the new exact-sequence pin on `nameLetters()` for fourteen inputs in both
+compositions. P3: `Ł`, `Ø`, `ß` joined `Đ` in the unsupported loop (a `ß → ss` compatibility mapping is
+now killed twice). P3: the fixture file's "NFC literals only" rule was stated, not enforced — a test now
+proves every non-ASCII `name_number` literal equals its own NFC form. P3: the break-count above.
+Suite after absorbs: 62 files / 2209 tests.
 
 **Not ported from #205, on purpose.** The moon-sign wiring (main shipped its own, #232), the inert
 gender field (main retired it, v0.64), and the hexagon, four-line grid, measurement events and seam
