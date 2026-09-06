@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-06 — DOCTRINE v0.91: the complete example before checkout, and immediate activation by one stateless signing function — controller word ("Route F, start it") — STAGED on branch, PR #TBD
+## 2026-09-06 — DOCTRINE v0.91: the complete example before checkout, and immediate activation by one stateless signing function — controller word ("Route F, start it") — STAGED on branch, PR #248
 
 **Status: STAGED on `claude/dyad-activation-and-example` (worktree `/private/tmp/8ball-step1`), off
 `main` `76aebab` (#247). Not merged, not deployed. The L48 artifact follows once the PR number exists;
