@@ -1250,6 +1250,12 @@ export function isOpen() {
 /** The last rendered pair's formatted relation record, or null. Pure query,
  *  never a profile or DOM — see `_relation`'s comment above. */
 export function currentRelation() {
+  // v0.90: the relation record is t5 data. Below t5 nothing can have
+  // rendered on THIS device, and a stale record (module state survives a
+  // re-init) must never reach the share controller or any other reader —
+  // both pr247 audit lanes asked for the unentitled boot to be pinned
+  // Pair-dark, and this is the getter's half of that.
+  if (!dyadEntitled(currentTier())) return null;
   return _relation;
 }
 
