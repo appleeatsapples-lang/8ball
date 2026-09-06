@@ -59,3 +59,13 @@
 The real Gumroad verify call against a real key (the stub stands in; the controller's first activation after deploy is that check). Netlify's production bundling of `../../core/entitlement.js` (loaded under `netlify dev`; confirm on the first deploy preview). The platform rate limit's enforcement is Netlify's, not tested here. A DOM boot of the example page in the unit suite (no DOM is vendored).
 
 **This artifact claims no merge authority — the merge word stays with the controller per §10/L48.**
+
+## Addendum — verified on Netlify's own runtime (deploy preview of head `b7e9206`, 2026-09-06)
+
+The two items the section above listed as unverifiable from the repo are now verified against `https://deploy-preview-248--the-eight-ball.netlify.app`, which carries no signing key:
+
+- **Bundling and runtime:** `GET /.netlify/functions/activate` → `303`, `location: /activate`, `cache-control: no-store` — the function loaded with its `../../core/entitlement.js` import intact. `POST` of a well-shaped key → `303 /activate?e=unconfigured` (the no-key branch, reached before any Gumroad call); `license_key=nope` → `303 /activate?e=shape`. A request with a foreign `Host` is refused by Netlify's edge (`404`) before the function runs.
+- **Routes:** `/example` and `/activate` serve their pages (200) through the real redirect engine; the publish scrub kept the function and both pages.
+- **Browser, 390 wide:** `/example` renders Mara × Teo with the signature, zero forms/inputs, no retry control, the real offer href, empty storage, zero console errors; the sheet shows both new lines under the offer with the entry control hidden; the activation page round-trips a well-shaped key to the fixed sentence `activation is not switched on for this build yet. the emailed access link still works.` and strips the query.
+
+Still not verified, and only the controller can: the real Gumroad verify call with a real key once the switch and the environment are set.
