@@ -227,8 +227,11 @@
   }
   .labels-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
 
-  /* density strip (CLP cut 3): aggregate paid-tier census, always-on in the
+  /* density strip (CLP cut 3): aggregate coordinate census, always-on in the
      result rail (outside #card-face → never serialized into the §5.D PNG).
+     "Tier" in the underlying registry (ui/tiers.js) is retained render-
+     registry compatibility machinery, not a live paid gate — every device
+     renders the same complete count (doctrine v0.71 free amendment).
      Clinical count only, no CTA — register-matched to #mechanism-strip. */
   .density-strip {
     font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;

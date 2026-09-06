@@ -28,7 +28,15 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-vi.mock('../core/cities.js', () => ({ searchCities: vi.fn() }));
+vi.mock('../core/cities.js', () => ({
+  searchCities: vi.fn(),
+  warmCities: vi.fn(),
+  // Real semantics reproduced (not stubbed to a constant): the module under
+  // test branches its retry copy on this predicate, so a mock that always
+  // answered the same way could never distinguish the two rejection tests
+  // below from each other.
+  isCityLoadExhausted: err => Boolean(err && err.code === 'CITY_LOAD_EXHAUSTED'),
+}));
 
 import { makeClassList } from './helpers/dom.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
@@ -49,7 +57,12 @@ import {
   close as closeDyad,
   submitSecond,
   render as renderDyad,
+  clearOutput,
   closePairedPanel,
+  compareAnother,
+  isOpen as isDyadOpen,
+  currentRelation,
+  elementCycleFacts,
 } from '../ui/dyad.js';
 import { panelDetailFor, coordinateLabel } from '../ui/meanings.js';
 import { derivationText } from '../ui/tiers.js';
@@ -67,12 +80,14 @@ import {
   newlyEntitledCells, cellRenderState,
   initTiersUI, renderTierSections,
 } from '../ui/tiers.js';
-import { buildDyadReading } from '../core/dyad.js';
+import { buildDyadReading, elementDirection } from '../core/dyad.js';
+import { DYAD_QUALIFIER } from '../content/dyad.v2.js';
 import { buildProfile } from '../core/profile.js';
 import { getCard } from '../core/engine.js';
 import { CARDS } from '../content/cards.v1.full.js';
 import { publicReadFor } from '../ui/public.js';
-import { searchCities } from '../core/cities.js';
+import { searchCities, isCityLoadExhausted } from '../core/cities.js';
+import { buildPairImprintSnapshot, buildPairImprintSVG, buildPairImprintCaption, PAIR_IMPRINT_ALLOW } from '../ui/pairShare.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -94,6 +109,18 @@ const dyadCode = stripComments(dyadJs);
 const A = buildProfile('specimen a', '2000-01-01');
 const B = buildProfile('specimen b', '1988-06-15');
 
+// Fifth remediation gate, item 4: this block tests `core/payments.js`'s
+// tier-ladder registry directly — TIER_ORDER, resolveRenderTier,
+// applyPaidReturn, maxTier, normalizeTier. That module is the kua-retirement
+// precedent's "engine stands" half: it is a tested, pure state-machine
+// registry, but since the 2026-09-02 free amendment (§1.D v0.71) the LIVE
+// render path never calls it — ui/payments.js's own getRenderTier() (the
+// single render-density resolver every real render path uses) unconditionally
+// returns the free ceiling 't5' with no reference to stored tier/credits at
+// all. The "buying"/"paid for"/monotonic-ladder language below describes
+// what these retained functions still correctly compute given historical
+// input SHAPES (so a pre-amendment device's stored state migrates/resolves
+// sanely if ever read again), not anything a current device experiences.
 describe('dyad surface — the ladder append (§1.D v0.61)', () => {
   it('t5 is the fourth rung and outranks t3', () => {
     expect(TIER_ORDER).toEqual(['t1', 't2', 't3', 't5']);
@@ -181,8 +208,8 @@ describe('dyad surface — the single sheet is untouched by the append', () => {
 // `data-sheet-*` cells are individually addressable.
 
 function makeNode(tag = 'div') {
-  return {
-    tag, textContent: '', value: '', hidden: false, innerHTML: '',
+  const node = {
+    tag, textContent: '', value: '', hidden: false,
     focusCalls: [], scrollCalls: [],
     classList: makeClassList(), attrs: {}, listeners: {}, children: [],
     style: { setProperty() {}, removeProperty() {} },
@@ -194,6 +221,16 @@ function makeNode(tag = 'div') {
     focus(opts) { this.focusCalls.push(opts); },
     scrollIntoView(opts) { this.scrollCalls.push(opts); },
   };
+  // A real innerHTML=''/appendChild pair (ui/citysearch.js's own
+  // clearSuggestions()) must actually clear `.children` — real DOM
+  // semantics, and load-bearing for any test that drives the search field
+  // through more than one result set in a single case.
+  let _innerHTML = '';
+  Object.defineProperty(node, 'innerHTML', {
+    get() { return _innerHTML; },
+    set(v) { _innerHTML = v; node.children = []; },
+  });
+  return node;
 }
 
 // Parse the ids and data-sheet-* hooks out of the injected markup so the
@@ -213,7 +250,7 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
   const ids = [
     'dyad-output', 'dyad-error', 'dyad-head-a', 'dyad-head-b', 'dyad-relation',
     'dyad-name-input', 'dyad-dob-input', 'dyad-time-input',
-    'dyad-city-input', 'dyad-city-suggestions', 'dyad-polar-message',
+    'dyad-city-input', 'dyad-city-suggestions', 'dyad-city-status', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
     // v0.76: the paired sheets' labels toggle, compartment hint and panel
@@ -221,6 +258,13 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
     'dyad-meaning-context-head', 'dyad-meaning-context', 'dyad-meaning-relation-head',
     'dyad-meaning-relation', 'dyad-meaning-close',
+    // v0.81: Pair Dossier hierarchy — heading/scope, compact signature, the
+    // narrow-screen A/B jump control, the failure state, and the completion
+    // flow's own controls (dyad-back's relabel needs no new id).
+    'dyad-heading', 'dyad-scope', 'dyad-signature',
+    'dyad-side-select', 'dyad-side-a', 'dyad-side-b', 'dyad-spine-wrap',
+    'dyad-relation-failure', 'dyad-relation-retry',
+    'dyad-share-disclosure', 'dyad-share-btn', 'dyad-share-status', 'dyad-compare-btn',
     ...DYAD_AXIS_IDS,
     ...Object.keys(DYAD_RELATION_NODES),
   ];
@@ -594,12 +638,18 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(h.root.classList.contains('hidden')).toBe(false);
   });
 
-  it('the entry control focuses the paired screen root — the hand-off v0.78 depends on (pr237 audit MED-2)', () => {
+  it('the entry control focuses the paired screen — the hand-off v0.78 depends on, now landing on the NAMED heading (audit B4)', () => {
     // close() parks focus on a cell index.html hides on the very next
-    // statement, so this focus call is the only thing repairing it.
+    // statement, so this focus call is the only thing repairing it. The
+    // v0.78 hand-off only required SOME focus call into the now-visible
+    // screen; audit B4 moved the target from the unnamed section root to
+    // its own top-level heading (matching every sibling screen), which is
+    // a strict improvement — an AT user now hears "pair reading, heading
+    // level 1" instead of silence — not a regression of the hand-off.
     const h = harness('t5');
     h.withDom(() => h.get('dyad-open-btn').listeners.click());
-    expect(h.root.focusCalls).toEqual([{ preventScroll: true }]);
+    expect(h.get('dyad-heading').focusCalls).toEqual([{ preventScroll: true }]);
+    expect(h.root.focusCalls).toEqual([]);
   });
 
   it('onOpen fires only when the dyad will actually open — never below t5 (pr237 audit LOW-3)', () => {
@@ -683,17 +733,18 @@ describe('dyad surface — presentation: spine heads + reveal beat', () => {
     expect(h.get('dyad-output').focusCalls).toEqual([{ preventScroll: true }]);
   });
 
-  it('the spine carries the terse symbolic heads, distinct from the fuller collapsed-detail heads', () => {
+  it('the spine reuses the corrected direction fact — no separate ⇄ glyph to disagree with it (audit A1)', () => {
     const reading = buildDyadReading(A, B);
     const relation = formatDyadRelation(reading);
-    // Terse: no label suffix, no register suffix.
-    expect(relation.elementSpine)
-      .toBe(`${reading.relation.element.a.element} ⇄ ${reading.relation.element.b.element}`);
-    expect(relation.elementSpine).not.toContain('·');
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    // The accordion summary's compact head is bound to elementDirectionAB
+    // directly — DYAD_RELATION_NODES maps 'dyad-spine-element' to that
+    // field, not to a separate terse/undirected glyph field, so it is
+    // mechanically impossible for the summary and the evidence beneath it
+    // to name different directions.
+    expect(h.get('dyad-spine-element').textContent).toBe(relation.elementDirectionAB);
     expect(relation.numerologySpine).toMatch(/^\d+ \+ \d+ → \d+$/);
-    // The fuller heads still carry what the spine strips out.
-    expect(relation.elementHead).toContain('·');
-    expect(relation.elementHead.startsWith(relation.elementSpine.split(' ⇄ ')[0])).toBe(true);
     expect(relation.numerologyHead.startsWith(relation.numerologySpine)).toBe(true);
     // cardPairHead is reused verbatim as the card-pair spine text — no
     // separate field, since the existing head was already the terse form.
@@ -1093,7 +1144,35 @@ describe('dyad surface — F3: one validation contract, both forms', () => {
     const markup = readFileSync(join(REPO_ROOT, 'ui', 'dyad.js'), 'utf-8');
     expect(markup).toContain('dyad-city-input');
     expect(markup).toContain('dyad-city-suggestions');
+    expect(markup).toContain('dyad-city-status');
     expect(markup).toContain('dyad-polar-message');
+  });
+
+  it('the city input is described by dyad-city-status ONLY — not unconditionally by the static hidden polar notice', () => {
+    // W3C accessible-description semantics: a hidden node named by
+    // aria-describedby is still INCLUDED in the computed description, so
+    // wiring dyad-polar-message into aria-describedby would tell every
+    // nonpolar reader "rising unavailable at this latitude" on every visit,
+    // even while the <p> itself stays visually hidden. dyad-city-status
+    // alone carries the description; the polar notice stays a live region
+    // (role=status/aria-live=polite/aria-atomic=true) that announces on its
+    // own when citysearch.js's selectCity() reveals it — announced OR
+    // programmatically associated, never both, and never while empty/hidden.
+    expect(dyadJs).toMatch(
+      /id="dyad-city-input"[^>]*aria-describedby="dyad-city-status">/,
+    );
+    // The negative pin: this exact malformed shape (both ids on one
+    // aria-describedby) must never reappear — this is the regression this
+    // correction fixes, and the mutation target a no-match-only assertion
+    // above cannot catch on its own.
+    expect(dyadJs).not.toMatch(/aria-describedby="dyad-city-status dyad-polar-message"/);
+    expect(dyadJs).not.toMatch(/aria-describedby="[^"]*dyad-polar-message/);
+    expect(dyadJs).toMatch(
+      /<p class="city-status" id="dyad-city-status" role="status" aria-live="polite" aria-atomic="true" hidden><\/p>/,
+    );
+    expect(dyadJs).toMatch(
+      /<p class="polar-message" id="dyad-polar-message" role="status" aria-live="polite" aria-atomic="true" hidden>/,
+    );
   });
 
   it('ui/citysearch.js is per-instance, so a second field cannot hijack the first (G3)', async () => {
@@ -1582,6 +1661,212 @@ describe('dyad surface — city payload regression: cc must be countryCode, not 
   });
 });
 
+// ── the birthplace field's real citysearch wiring: recovery copy, retry,
+//    keyboard selection, and the unselected/replaced-city privacy guard ──
+//
+// Pair Imprint remediation, Part C: dyad-city-status is a new, initially
+// hidden status node — the SOLE aria-describedby target of dyad-city-input
+// (the polar notice is deliberately left OFF that list per the correction
+// above: a hidden node is still part of the computed accessible description,
+// so unconditionally referencing it would announce "rising unavailable" to
+// every nonpolar reader) — that ui/citysearch.js already knows how to drive.
+// This exercises the REAL wiring (initCitySearchUI, searchCities mocked at
+// the module boundary only), never a stub of the value under test.
+describe('dyad surface — birthplace field: recovery, retry, and keyboard selection (real citysearch wiring)', () => {
+  const CITY = { name: 'Accra', country: 'Ghana', countryCode: 'GH', lat: 5.6, lng: -0.19, tz: 'Africa/Accra' };
+  const OTHER_CITY = { name: 'Odense', country: 'Denmark', countryCode: 'DK', lat: 55.4, lng: 10.4, tz: 'Europe/Copenhagen' };
+
+  // The document swap stays installed for the WHOLE async sequence (the
+  // proven shape the "city payload regression" describe block above already
+  // uses) — a per-call swap-then-restore helper would restore the real
+  // document before the debounced searchCities() continuation (which calls
+  // document.createElement('li') from inside a timer callback) ever runs.
+  async function typeAndSettle(inst, query) {
+    const cityInput = inst.get('dyad-city-input');
+    cityInput.value = query;
+    cityInput.listeners.input();
+    await vi.advanceTimersByTimeAsync(200); // > SEARCH_DEBOUNCE_MS
+  }
+
+  it('an empty result set shows no-match guidance on dyad-city-status, not the polar notice', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([]);
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      await typeAndSettle(inst, 'zz');
+      const status = inst.get('dyad-city-status');
+      expect(status.hidden).toBe(false);
+      expect(status.textContent).toBe('no matching birthplace found · try another spelling or nearby city.');
+      expect(inst.get('dyad-city-input').attrs['aria-expanded']).toBe('false');
+      expect(inst.get('dyad-polar-message').hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('a rejected lookup surfaces retry guidance — transient vs exhausted copy, matching isCityLoadExhausted', async () => {
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(new Error('transient network blip'));
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-status').hidden).toBe(false);
+      expect(inst.get('dyad-city-status').textContent)
+        .toBe('birthplace lookup unavailable · type again to retry.');
+
+      const exhausted = new Error('city dataset load attempts exhausted');
+      exhausted.code = 'CITY_LOAD_EXHAUSTED';
+      expect(isCityLoadExhausted(exhausted)).toBe(true);
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(exhausted);
+      await typeAndSettle(inst, 'ac2');
+      expect(inst.get('dyad-city-status').textContent)
+        .toBe('birthplace lookup unavailable · reload this page to try again.');
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('retyping after a rejection retries and can succeed — the status clears and suggestions render', async () => {
+    const inst = harness('t5');
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      searchCities.mockReset();
+      searchCities.mockRejectedValue(new Error('boom'));
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-status').hidden).toBe(false);
+
+      searchCities.mockReset();
+      searchCities.mockResolvedValue([CITY]);
+      await typeAndSettle(inst, 'acc');
+      expect(inst.get('dyad-city-status').hidden).toBe(true);
+      expect(inst.get('dyad-city-status').textContent).toBe('');
+      expect(inst.get('dyad-city-suggestions').children.length).toBe(1);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('ArrowDown then Enter selects the active suggestion — aria-expanded/activedescendant track the real selection', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([CITY, OTHER_CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      await typeAndSettle(inst, 'a place');
+      const cityInput = inst.get('dyad-city-input');
+      const suggestions = inst.get('dyad-city-suggestions');
+      expect(suggestions.children.length).toBe(2);
+      expect(cityInput.attrs['aria-expanded']).toBe('true');
+      expect(cityInput.attrs['aria-activedescendant']).toBeUndefined();
+
+      cityInput.listeners.keydown({ key: 'ArrowDown', preventDefault() {} });
+      expect(cityInput.attrs['aria-activedescendant']).toBe(suggestions.children[0].id);
+      expect(suggestions.children[0].attrs['aria-selected']).toBe('true');
+      expect(suggestions.children[1].attrs['aria-selected']).toBe('false');
+
+      cityInput.listeners.keydown({ key: 'Enter', preventDefault() {} });
+      // A real selection: the listbox collapses, the field carries the
+      // formatted label, and the SAME city reaches buildSecond's payload —
+      // never a second, independently-typed source of truth.
+      expect(cityInput.attrs['aria-expanded']).toBe('false');
+      expect(cityInput.value).toBe('Accra, Ghana');
+      expect(suggestions.children.length).toBe(0);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+      expect(captured.city).toBe(CITY.name);
+      expect(captured.cc).toBe(CITY.countryCode);
+      expect(captured.tz).toBe(CITY.tz);
+      expect(captured.lat).toBe(CITY.lat);
+      expect(captured.lng).toBe(CITY.lng);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+  });
+
+  it('a typed-but-unselected location never silently reaches buildSecond — no city/cc/tz/lat/lng in the payload', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      // Typed, results rendered, but NEVER selected (no mousedown/Enter).
+      await typeAndSettle(inst, 'ac');
+      expect(inst.get('dyad-city-suggestions').children.length).toBe(1);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+    expect(captured).not.toBeNull();
+    expect(captured).not.toHaveProperty('city');
+    expect(captured).not.toHaveProperty('cc');
+    expect(captured).not.toHaveProperty('tz');
+    expect(captured).not.toHaveProperty('lat');
+    expect(captured).not.toHaveProperty('lng');
+  });
+
+  it('replacing a previously selected place by retyping also drops it — the stale selection cannot survive an edit', async () => {
+    searchCities.mockReset();
+    searchCities.mockResolvedValueOnce([CITY]).mockResolvedValueOnce([OTHER_CITY]);
+    let captured = null;
+    const inst = harness('t5', { buildSecond: payload => { captured = payload; return B; } });
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => inst.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      const cityInput = inst.get('dyad-city-input');
+      const suggestions = inst.get('dyad-city-suggestions');
+      await typeAndSettle(inst, 'ac');
+      suggestions.children[0].listeners.mousedown({ preventDefault() {} });
+      expect(cityInput.value).toBe('Accra, Ghana');
+
+      // Now retype over the selected label WITHOUT picking a new option —
+      // onInput() must drop the stale selection immediately, not just once
+      // a new one is chosen.
+      await typeAndSettle(inst, 'od');
+      expect(suggestions.children.length).toBe(1);
+
+      inst.get('dyad-name-input').value = 'specimen b';
+      inst.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+    // Never Accra's fields, and never silently blended with the new query
+    // either — a typed-but-unselected retype carries nothing.
+    expect(captured).not.toHaveProperty('city');
+    expect(captured).not.toHaveProperty('cc');
+    expect(captured).not.toHaveProperty('tz');
+    expect(captured).not.toHaveProperty('lat');
+    expect(captured).not.toHaveProperty('lng');
+  });
+});
+
 describe('dyad surface — doctrine wording pins (PR #187 corrections, source-contract)', () => {
   const doctrine = readFileSync(join(REPO_ROOT, 'DOCTRINE.md'), 'utf-8');
   const sheetSrc = readFileSync(join(REPO_ROOT, 'ui', 'sheet.js'), 'utf-8');
@@ -1737,7 +2022,7 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     return h.get('dyad-meaning-panel').classList.contains('open');
   };
 
-  it('marks all thirty cells interactive by attribute — role, label, controls, key, side — and never by id', () => {
+  it('marks all thirty cells interactive by attribute — role, controls, key, side — and never by id', () => {
     const h = harness('t5');
     for (const prefix of ['a', 'b']) {
       for (const key of CELL_KEYS) {
@@ -1747,7 +2032,12 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
         expect(root.attrs.tabindex).toBe('0');
         expect(root.attrs['aria-expanded']).toBe('false');
         expect(root.attrs['aria-controls']).toBe('dyad-meaning-panel');
-        expect(root.attrs['aria-label']).toBe(`${coordinateLabel(key)} details`);
+        // item 3: a real, side/owner/coordinate/value-bearing name, never
+        // the old generic "<coordinate> details" repeated across all 30
+        // cells — see the dedicated describe block below for the full
+        // dynamic-update proof (fill, value, sealed/unresolved, teardown).
+        expect(root.attrs['aria-label']).toContain(coordinateLabel(key));
+        expect(root.attrs['aria-label']).not.toBe(`${coordinateLabel(key)} details`);
         expect(root.attrs['data-coordinate-key']).toBe(key);
         expect(root.attrs['data-sheet-side']).toBe(prefix);
         expect(root.attrs.id).toBeUndefined();
@@ -1974,5 +2264,1217 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     // the host hands its applyLabelsState through the hook
     const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
     expect(html).toMatch(/onLabelsChange: labelsUI\.applyLabelsState/);
+  });
+});
+
+// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.81) ─────────────────────────
+
+describe('Pair Dossier — heading, scope, and the compact pair signature', () => {
+  it('the pair reading heading and scope line are on screen', () => {
+    expect(dyadJs).toMatch(/pair reading/);
+    expect(dyadJs).toMatch(/three structural relations\. no compatibility score or prediction\./);
+  });
+
+  it('the signature reads the same three fields the evidence below expands, before the two sheets', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-signature-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-signature-numerology').textContent).toBe(relation.numerologySpine);
+    expect(h.get('dyad-signature-cardpair').textContent).toBe(relation.cardPairHead);
+    expect(h.get('dyad-signature').hidden).toBe(false);
+  });
+
+  it('the signature starts hidden in the static markup (pre-JS default)', () => {
+    expect(dyadJs).toMatch(/id="dyad-signature"[^>]*\bhidden\b/);
+  });
+
+  it('the signature is explicitly hidden by the same clear path everything else in the F1 enumeration uses', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-signature').hidden).toBe(false);
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-signature').hidden).toBe(true);
+  });
+});
+
+describe('Pair Dossier — direction-explicit element cycle (audit A1: correct for every kind)', () => {
+  // A(specimen a)=earth, B(specimen b)=metal for the shipped fixture pair —
+  // SHENG[earth]==='metal', so aToB.kind is already 'sheng' (active) and the
+  // arrow direction happens to be unchanged by the fix; the label suffix is
+  // the new, previously-missing part.
+  it('the fixture pair (an active/sheng case): forward carries the register label, backward mirrors it', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const { a, b } = reading.relation.element;
+    expect(relation.elementDirectionAB).toBe(`A · ${a.element} → B · ${b.element} · generating`);
+    expect(relation.elementDirectionBA).toBe(`B · ${b.element} ← A · ${a.element} · generating`);
+  });
+
+  it('both direction heads land in the DOM, each immediately before its own authored body', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-element-direction-ab').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-element-ab').textContent).toBe(relation.elementAB);
+    expect(h.get('dyad-element-direction-ba').textContent).toBe(relation.elementDirectionBA);
+    expect(h.get('dyad-element-ba').textContent).toBe(relation.elementBA);
+  });
+
+  // elementCycleFacts() is a pure function of the SAME `element` shape
+  // core/dyad.js's buildDyadReading() produces (`{a,b,aToB,bToA}`), built
+  // here from core/dyad.js's own real elementDirection() over hand-chosen
+  // elements — never a fabricated shape — so every one of the five kinds
+  // elementRelationKind() can return is exercised directly, plus the
+  // "swapped ordered pair" case the audit names (the same two elements,
+  // A/B reversed, must describe the SAME physical generator/controller).
+  const relationOf = (aEl, bEl) => ({
+    a: { element: aEl }, b: { element: bEl },
+    aToB: elementDirection(aEl, bEl), bToA: elementDirection(bEl, aEl),
+  });
+
+  it('same (identical elements): nondirectional, no arrow, no register label', () => {
+    const facts = elementCycleFacts(relationOf('wood', 'wood'));
+    expect(facts.directional).toBe(false);
+    expect(facts.forward).toBe('A · wood = B · wood');
+    expect(facts.backward).toBe('B · wood = A · wood');
+    expect(facts.forward).not.toMatch(/[→←⇄]/);
+  });
+
+  it('sheng (A active — A generates B): arrow A→B, "generating"', () => {
+    // wood generates fire (the sheng cycle).
+    const facts = elementCycleFacts(relationOf('wood', 'fire'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('A · wood → B · fire · generating');
+    expect(facts.backward).toBe('B · fire ← A · wood · generating');
+  });
+
+  it('sheng_by (A passive — A generated by B): arrow reverses to B→A, still "generating" (never the passive label) — the exact audited defect', () => {
+    // Same physical fact as above with A/B swapped: wood (now B) generates
+    // fire (now A). The audited bug rendered this as `wood → water ·
+    // generated by` for an analogous pair — an arrow pointing the WRONG
+    // way paired with a passive label. The fix must draw B→A here, not
+    // A→B, and must never surface the "generated by" passive label.
+    const facts = elementCycleFacts(relationOf('fire', 'wood'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('B · wood → A · fire · generating');
+    expect(facts.forward).not.toContain('generated by');
+    expect(facts.forward).not.toMatch(/^A · fire →/); // the audited-wrong direction
+  });
+
+  it('ke (A active — A controls B): arrow A→B, "controlling"', () => {
+    // wood controls earth (the ke cycle).
+    const facts = elementCycleFacts(relationOf('wood', 'earth'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('A · wood → B · earth · controlling');
+    expect(facts.backward).toBe('B · earth ← A · wood · controlling');
+  });
+
+  it('ke_by (A passive — A controlled by B): arrow reverses to B→A, still "controlling" (never the passive label)', () => {
+    // Same physical fact as above with A/B swapped: wood (now B) controls
+    // earth (now A).
+    const facts = elementCycleFacts(relationOf('earth', 'wood'));
+    expect(facts.directional).toBe(true);
+    expect(facts.forward).toBe('B · wood → A · earth · controlling');
+    expect(facts.forward).not.toContain('controlled by');
+    expect(facts.forward).not.toMatch(/^A · earth →/); // the audited-wrong direction
+  });
+
+  it('swapped ordered pairs describe the SAME physical relation, not two different ones', () => {
+    // wood/fire (A=wood) and fire/wood (A=fire) are the same two elements,
+    // A/B reversed. Both must agree that WOOD is the generator.
+    const woodFirst = elementCycleFacts(relationOf('wood', 'fire'));
+    const fireFirst = elementCycleFacts(relationOf('fire', 'wood'));
+    expect(woodFirst.label).toBe('generating');
+    expect(fireFirst.label).toBe('generating');
+    expect(woodFirst.forward).toContain('A · wood →');
+    expect(fireFirst.forward).toContain('B · wood →');
+  });
+
+  it('mutual consistency: the compact signature, the summary head, and the exported Pair Imprint all read the identical corrected string', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(h.get('dyad-signature-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-spine-element').textContent).toBe(relation.elementDirectionAB);
+    expect(h.get('dyad-element-direction-ab').textContent).toBe(relation.elementDirectionAB);
+    expect(snapshot.elementCycle).toBe(relation.elementDirectionAB);
+  });
+});
+
+describe('Pair Dossier — card pair split into its structural registers', () => {
+  it('the branch and bracket registers render as separate labeled sub-sections, not one flattened paragraph', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    expect(h.get('dyad-cardpair-branch-head').textContent).toBe(relation.cardBranchHead);
+    expect(h.get('dyad-cardpair-branch-body').textContent).toBe(relation.cardBranchBody);
+    expect(h.get('dyad-cardpair-bracket-head').textContent).toBe(relation.cardBracketHead);
+    expect(h.get('dyad-cardpair-bracket-body').textContent).toBe(relation.cardBracketBody);
+    // The full flattened citation survives too — nothing is lost, just no
+    // longer the PRIMARY presentation.
+    expect(h.get('dyad-cardpair-body').textContent).toBe(relation.cardPair);
+  });
+
+  it('the branch head names the filed relation key, or says unfiled — never invents a fourth verdict', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const branch = reading.relation.cardPair.branch;
+    expect(relation.cardBranchHead).toBe(
+      branch.status === 'registered' ? `year branch · ${branch.key}` : 'year branch · unfiled',
+    );
+  });
+
+  it('the bracket head uses a NEUTRAL separator, never an arrow (audit A5: bracket.body makes no directional claim)', () => {
+    const reading = buildDyadReading(A, B);
+    const relation = formatDyadRelation(reading);
+    const { bracket } = reading.relation.cardPair;
+    expect(relation.cardBracketHead).toBe(`A · ${bracket.arcA} · B · ${bracket.arcB}`);
+    expect(relation.cardBracketHead).not.toMatch(/[→←⇄]/);
+  });
+});
+
+describe('Pair Dossier — the relation scope/provenance line carries the qualifier', () => {
+  it('"recorded, not certified." is not the final line under the evidence — it sits with the scope framing', () => {
+    // Structural: the qualifier node is the FIRST child inside #dyad-relation
+    // (immediately after the opening tag), not the last — i.e. it precedes
+    // every <details> axis rather than trailing them.
+    const relationOpen = dyadJs.indexOf('id="dyad-relation">');
+    const scopeIdx = dyadJs.indexOf('dyad-relation-scope', relationOpen);
+    const firstAxisIdx = dyadJs.indexOf('dyad-axis-element', relationOpen);
+    expect(scopeIdx).toBeGreaterThan(relationOpen);
+    expect(scopeIdx).toBeLessThan(firstAxisIdx);
+  });
+
+  it('the qualifier value is still exactly DYAD_QUALIFIER and still clears on close', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-qualifier').textContent).toBe(DYAD_QUALIFIER);
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-qualifier').textContent).toBe('');
+  });
+});
+
+describe('Pair Dossier — failure state (Step 4: visible copy, never a silent empty block)', () => {
+  // SYNTHETIC FAULT INJECTION, not a naturally-reachable submitted-pair
+  // state: no ordinary UI input can produce an incoherent day-pillar
+  // stemElement (core/dyad.js's dyadDayMaster() guard is a defensive check
+  // against a malformed coordinate, not a validation a real profile can
+  // fail). This deliberately corrupts a valid profile object to drive the
+  // REAL production error path — core/dyad.js's dyadDayMaster() throw,
+  // caught by dyadRelationFor(), which returns null exactly as it would for
+  // any other malformed-coordinate bug — so the failure PRESENTATION below
+  // (ui/dyad.js's fail-closed rendering) is exercised through its actual
+  // code path rather than a hand-built failure-shaped mock. Sixth
+  // remediation gate: this is synthetic/mock-DOM coverage of a real error
+  // path, never evidence that a relation can fail closed from ordinary use.
+  function incoherentB() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('an unresolved relation shows explicit visible copy and a recoverable action, never a bare aria-label', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-output').hidden).toBe(false); // the two sheets still render
+    expect(h.get('dyad-relation').classList.contains('sealed')).toBe(true);
+    expect(h.get('dyad-signature').hidden).toBe(true);
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    expect(h.get('dyad-relation-retry')).toBeTruthy();
+  });
+
+  it('both individual sheets remain visible/available (not certified valid) when the relation fails', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.cell('a', 'arcana').textContent).toBe(A.birthCard.label);
+    // B's own sheet still renders from the (otherwise valid) incoherent
+    // profile — only the CROSS-profile relation lookup failed.
+    expect(h.cell('b', 'sun').textContent).toBe(B.sunSign);
+  });
+
+  it('the retry action re-enters the second-entry form (same as "compare another")', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'stale';
+      h.get('dyad-relation-retry').listeners.click();
+    });
+    expect(h.get('dyad-name-input').value).toBe('');
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('a resolved pair after a failed one clears the failure copy and shows the signature', () => {
+    let calls = 0;
+    const h = harness('t5', { buildSecond: () => (calls++ === 0 ? incoherentB() : B) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => {
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      return submitSecond();
+    });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-signature').hidden).toBe(false);
+  });
+});
+
+describe('Pair Dossier — completion flow (Step 3: share / compare another / back to my sheet)', () => {
+  it('three actions exist: share the pair (primary), compare another (secondary), back to my sheet (tertiary)', () => {
+    expect(dyadJs).toMatch(/share the pair/);
+    expect(dyadJs).toMatch(/compare another/);
+    expect(dyadJs).toMatch(/back to my sheet/);
+  });
+
+  it('"back to my sheet" is the SAME control as before (id dyad-back), just relabeled — behavior unchanged', () => {
+    let exitCalls = 0;
+    const h = harness('t5', { onExit: () => { exitCalls += 1; } });
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-back').listeners.click());
+    expect(h.get('dyad-screen').classList.contains('hidden')).toBe(true);
+    expect(exitCalls).toBe(1);
+  });
+
+  it('"compare another" clears every B-derived node, keeps A, and returns focus to the name field', () => {
+    const h = harness('t5');
+    h.withDom(() => {
+      // open() clears the entry fields the harness pre-seeds — re-enter
+      // them, exactly as a real second visit to the form would.
+      openDyad();
+      h.get('dyad-name-input').value = 'specimen b';
+      h.get('dyad-dob-input').value = '1988-06-15';
+      submitSecond();
+    });
+    expect(h.cell('b', 'arcana').textContent).toBe(B.birthCard.label);
+    h.withDom(() => h.get('dyad-compare-btn').listeners.click());
+    // B is gone, everywhere.
+    expect(h.get('dyad-output').hidden).toBe(true);
+    expect(h.get('dyad-head-b').textContent).toBe('');
+    for (const key of CELL_KEYS) expect(h.cell('b', key).textContent).toBe('');
+    expect(allText(h)).not.toContain(B.sunSign);
+    // A is retained (compareAnother() never touches getProfile()'s
+    // host-owned A binding) and the SCREEN stays open — unlike "back to my
+    // sheet", it never hides #dyad-screen.
+    expect(h.get('dyad-screen').classList.contains('hidden')).toBe(false);
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('"compare another" is exported directly and refuses below t5', () => {
+    const h = harness('free');
+    expect(h.withDom(() => compareAnother())).toBe(false);
+  });
+
+  it('the pair signature, side-select and share status all reset on "compare another"', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-compare-btn').listeners.click());
+    expect(h.get('dyad-signature').hidden).toBe(true);
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+  });
+});
+
+describe('Pair Dossier — screen ownership (isOpen/close, the Previous-Readings seam)', () => {
+  it('isOpen() tracks the screen\'s own hidden class', () => {
+    const h = harness('t5');
+    expect(h.withDom(() => isDyadOpen())).toBe(false);
+    h.withDom(() => openDyad());
+    expect(isDyadOpen()).toBe(true);
+    h.withDom(() => closeDyad());
+    expect(isDyadOpen()).toBe(false);
+  });
+
+  it('currentRelation() exposes the last rendered relation and clears with everything else', () => {
+    const h = harness('t5');
+    expect(currentRelation()).toBe(null);
+    h.withDom(() => submitSecond());
+    expect(currentRelation()).not.toBe(null);
+    expect(currentRelation().cardPairHead).toMatch(/^no\. .+ × no\. .+$/);
+    h.withDom(() => closeDyad());
+    expect(currentRelation()).toBe(null);
+  });
+
+  it('currentRelation() is null (not the previous pair\'s) after a failure', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(currentRelation()).not.toBe(null);
+    const h2 = harness('t5', { buildSecond: () => ({ ...B, dayPillar: { ...B.dayPillar, stemElement: 'bogus' } }) });
+    h2.withDom(() => submitSecond());
+    expect(currentRelation()).toBe(null);
+  });
+});
+
+describe('Pair Dossier — second-form accessibility parity (Step 4)', () => {
+  it('both inputs carry aria-describedby + aria-invalid, both errors carry role=alert + aria-live=assertive', () => {
+    expect(dyadJs).toMatch(/dyad-name-input[^>]*aria-describedby="dyad-name-error"[^>]*aria-invalid="false"/);
+    expect(dyadJs).toMatch(/dyad-dob-input[^>]*aria-describedby="dyad-dob-error"[^>]*aria-invalid="false"/);
+    expect(dyadJs).toMatch(/dyad-name-error[^>]*role="alert"[^>]*aria-live="assertive"/);
+    expect(dyadJs).toMatch(/dyad-dob-error[^>]*role="alert"[^>]*aria-live="assertive"/);
+  });
+
+  it('a rejected submit sets aria-invalid on the offending field and focuses it', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'name' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-name-error').hidden).toBe(false);
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('true');
+    expect(h.get('dyad-name-input').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('a rejected dob submit sets aria-invalid on the dob field, not the name field', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'dob' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-dob-error').hidden).toBe(false);
+    expect(h.get('dyad-dob-input').attrs['aria-invalid']).toBe('true');
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+  });
+
+  it('reset-on-input: editing the invalid field after a rejected submit clears its own error immediately', () => {
+    const h = harness('t5', { validate: () => ({ ok: false, field: 'name' }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-name-error').hidden).toBe(false);
+    h.withDom(() => h.get('dyad-name-input').listeners.input());
+    expect(h.get('dyad-name-error').hidden).toBe(true);
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+  });
+
+  it('a successful submit clears aria-invalid on both fields', () => {
+    const h = harness('t5');
+    h.withDom(() => { h.get('dyad-name-input').attrs['aria-invalid'] = 'true'; return submitSecond(); });
+    expect(h.get('dyad-name-input').attrs['aria-invalid']).toBe('false');
+    expect(h.get('dyad-dob-input').attrs['aria-invalid']).toBe('false');
+  });
+});
+
+describe('Pair Dossier — narrow-screen A/B jump control', () => {
+  it('both jump buttons exist and default to A pressed in the static markup', () => {
+    expect(dyadJs).toMatch(/id="dyad-side-a" aria-pressed="true"/);
+    expect(dyadJs).toMatch(/id="dyad-side-b" aria-pressed="false"/);
+  });
+
+  it('the clear path resets both buttons to A pressed (the same JS-driven baseline the harness can observe)', () => {
+    const h = harness('t5');
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+  });
+
+  it('clicking B presses B and releases A; labels carry each side\'s first name after a render', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-side-a').textContent).toBe(`A · ${A.firstName}`);
+    expect(h.get('dyad-side-b').textContent).toBe(`B · ${B.firstName}`);
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('true');
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('false');
+  });
+
+  it('a fresh open() resets both buttons to plain A/B text and A pressed', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-a').textContent).toBe('A');
+    expect(h.get('dyad-side-b').textContent).toBe('B');
+    expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+  });
+});
+
+// ── Remediation gate (audit_pair_dossier_imprint_2026-09-04.md) ─────────
+
+describe('B1 — novalidate: native constraints no longer bypass the custom error contract', () => {
+  it('the second-entry form carries novalidate, so a real click always reaches validateEntry', () => {
+    expect(dyadJs).toMatch(/id="dyad-form" autocomplete="off" novalidate/);
+  });
+
+  it('required stays on the inputs (a non-JS fallback signal) but novalidate stops it gating submission', () => {
+    expect(dyadJs).toMatch(/id="dyad-name-input" type="text" required/);
+    expect(dyadJs).toMatch(/id="dyad-dob-input" type="date" required/);
+  });
+});
+
+describe('B2 — a null relation exposes only the two sheets plus ONE recovery action', () => {
+  function incoherentBLocal() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('hides the evidence block, the spine, and every completion control tied to a resolved relation', () => {
+    const h = harness('t5', { buildSecond: () => incoherentBLocal() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation').hidden).toBe(true);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(true);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(true);
+    expect(h.get('dyad-share-btn').hidden).toBe(true);
+    expect(h.get('dyad-compare-btn').hidden).toBe(true);
+    // The ONE recovery action — no duplicate.
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+  });
+
+  it('a resolved relation restores every one of those surfaces', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation').hidden).toBe(false);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(false);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(false);
+    expect(h.get('dyad-share-btn').hidden).toBe(false);
+    expect(h.get('dyad-compare-btn').hidden).toBe(false);
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+  });
+
+  it('clearOutput() defaults every one of those surfaces to hidden — the same F1 shape as signature/failure', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-relation').hidden).toBe(true);
+    expect(h.get('dyad-spine-wrap').hidden).toBe(true);
+    expect(h.get('dyad-share-disclosure').hidden).toBe(true);
+    expect(h.get('dyad-share-btn').hidden).toBe(true);
+    expect(h.get('dyad-compare-btn').hidden).toBe(true);
+  });
+});
+
+describe('B3 — Back restores focus to a stable, visible control', () => {
+  it('"back to my sheet" focuses #dyad-open-btn, never leaving focus stranded on the now-hidden #dyad-back', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    h.withDom(() => h.get('dyad-back').listeners.click());
+    expect(h.get('dyad-open-btn').focusCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('B4 — a named top-level landmark for the Pair screen', () => {
+  it('the screen root is labelled by its own h1, matching every sibling screen', () => {
+    expect(dyadJs).toMatch(/root\.setAttribute\('aria-labelledby', 'dyad-heading'\)/);
+    expect(dyadJs).toMatch(/<h1 class="dyad-heading" id="dyad-heading" tabindex="-1">pair reading<\/h1>/);
+  });
+
+  it('open() focuses the named heading, not an unnamed section', () => {
+    const h = harness('t5');
+    h.withDom(() => openDyad());
+    expect(h.get('dyad-heading').focusCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('B5 — the A/B cue reflects real scroll position, not only button clicks', () => {
+  it('a scroll listener is attached to the pannable strip', () => {
+    expect(dyadJs).toMatch(/sheetsScrollWrap\.addEventListener\('scroll'/);
+  });
+
+  it('firing the scroll listener with B closer to center presses B and releases A, even though setSide() was never called', () => {
+    // The listener is throttled to one check per animation frame (rAF is
+    // undefined in this node-env harness, so it falls back to a 16ms
+    // setTimeout) — fake timers make that scheduling deterministic rather
+    // than asserting a race against a real 16ms wait.
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5');
+      h.withDom(() => submitSecond());
+      const wrap = h.get('dyad-sheets');
+      const childA = { offsetLeft: 0, offsetWidth: 300 };
+      const childB = { offsetLeft: 320, offsetWidth: 300 };
+      wrap.children = [childA, childB];
+      wrap.clientWidth = 300;
+      wrap.scrollLeft = 320; // panned so B's center is now under the viewport center
+      h.withDom(() => { wrap.listeners.scroll(); vi.advanceTimersByTime(20); });
+      expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('true');
+      expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('scrolling back toward A releases B and presses A again', () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5');
+      h.withDom(() => submitSecond());
+      const wrap = h.get('dyad-sheets');
+      const childA = { offsetLeft: 0, offsetWidth: 300 };
+      const childB = { offsetLeft: 320, offsetWidth: 300 };
+      wrap.children = [childA, childB];
+      wrap.clientWidth = 300;
+      wrap.scrollLeft = 0;
+      h.withDom(() => { wrap.listeners.scroll(); vi.advanceTimersByTime(20); });
+      expect(h.get('dyad-side-a').attrs['aria-pressed']).toBe('true');
+      expect(h.get('dyad-side-b').attrs['aria-pressed']).toBe('false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('B6 — long names never overflow the mobile A/B selector', () => {
+  it('the button bounds itself (min-width:0, flex:1 1 0) and truncates paint only, never the accessible text', () => {
+    expect(dyadJs).toMatch(/\.dyad-side-btn \{[\s\S]{0,40}min-height: 44px; min-width: 0; max-width: 100%; flex: 1 1 0;/);
+    expect(dyadJs).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/);
+  });
+
+  it('a 60-character unbroken name is still the button\'s FULL textContent and title — CSS clips paint, not the DOM', () => {
+    const longName = 'x'.repeat(60);
+    const h = harness('t5', { buildSecond: () => ({ ...B, firstName: longName }) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-side-b').textContent).toBe(`B · ${longName}`);
+    expect(h.get('dyad-side-b').attrs.title).toBe(`B · ${longName}`);
+  });
+
+  it('the title attribute clears on close, alongside the rest of the F1 enumeration', () => {
+    const longName = 'y'.repeat(60);
+    const h = harness('t5', { buildSecond: () => ({ ...B, firstName: longName }) });
+    h.withDom(() => submitSecond());
+    h.withDom(() => closeDyad());
+    expect(h.get('dyad-side-b').attrs.title).toBeUndefined();
+  });
+});
+
+describe('B7 — the narrow-screen jump respects prefers-reduced-motion', () => {
+  const originalMM = globalThis.matchMedia;
+  afterEach(() => {
+    if (originalMM === undefined) delete globalThis.matchMedia; else globalThis.matchMedia = originalMM;
+  });
+
+  it('requests smooth scrolling by default', () => {
+    globalThis.matchMedia = () => ({ matches: false });
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const wrap = h.get('dyad-sheets');
+    wrap.children = [{ offsetLeft: 0 }, { offsetLeft: 320 }];
+    let requested = null;
+    wrap.scrollTo = opts => { requested = opts; };
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(requested.behavior).toBe('smooth');
+  });
+
+  it('requests instant (auto) scrolling under prefers-reduced-motion: reduce', () => {
+    globalThis.matchMedia = q => ({ matches: q === '(prefers-reduced-motion: reduce)' });
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const wrap = h.get('dyad-sheets');
+    wrap.children = [{ offsetLeft: 0 }, { offsetLeft: 320 }];
+    let requested = null;
+    wrap.scrollTo = opts => { requested = opts; };
+    h.withDom(() => h.get('dyad-side-b').listeners.click());
+    expect(requested.behavior).toBe('auto');
+  });
+});
+
+describe('B8 — citation-label contrast meets AA, non-compounded', () => {
+  // The same composited-luminance formula tests/monochrome_surface.test.js
+  // uses for the rest of the product: white at `alpha` over a pure black
+  // surface, WCAG relative-luminance contrast ratio against black (L=0).
+  function contrastOfWhiteAlphaOnBlack(alpha) {
+    const c = alpha <= 0.03928 ? alpha / 12.92 : Math.pow((alpha + 0.055) / 1.055, 2.4);
+    return (c + 0.05) / 0.05;
+  }
+
+  it('.dyad-cite-label sets an explicit, non-compounded color — 0.55 alone clears 4.5:1', () => {
+    expect(dyadJs).toMatch(/\.dyad-cite-label \{[\s\S]{0,120}color: var\(--text\); opacity: 0\.55;/);
+    expect(contrastOfWhiteAlphaOnBlack(0.55)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('.dyad-qualifier sets an explicit, non-compounded color — 0.6 alone clears 4.5:1', () => {
+    expect(dyadJs).toMatch(/\.dyad-qualifier \{[\s\S]{0,80}color: var\(--text\); opacity: 0\.6;/);
+    expect(contrastOfWhiteAlphaOnBlack(0.6)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the PRE-FIX compounded values (inherited 0.72 alpha × the rule\'s own opacity) fail 4.5:1 — proving the fix was necessary, not cosmetic', () => {
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.55)).toBeLessThan(4.5);
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.6)).toBeLessThan(4.5);
+  });
+});
+
+describe('item 5 — effective contrast is checked through the REAL ancestor chain, not one selector in isolation', () => {
+  // Same composited-luminance formula as the B8 block above.
+  function contrastOfWhiteAlphaOnBlack(alpha) {
+    const c = alpha <= 0.03928 ? alpha / 12.92 : Math.pow((alpha + 0.055) / 1.055, 2.4);
+    return (c + 0.05) / 0.05;
+  }
+
+  // A FOURTH defect, found only by the corrected live-fire pass (item 10):
+  // `#dyad-qualifier` carried ONLY the id in markup, never the
+  // `dyad-qualifier` CLASS the CSS rule actually selects on — so B8's
+  // contrast fix (explicit color+opacity) had NEVER applied to the real
+  // rendered element, in any prior gate. `getComputedStyle` in a real
+  // browser reported the UA default opacity:1 where the source READ 0.6 —
+  // a class/id selector mismatch no mock-DOM unit test can catch, since
+  // those never run a real CSS cascade. Pinned here so it cannot silently
+  // regress.
+  it('#dyad-qualifier carries BOTH the class the CSS rule selects on AND the id ui/dyad.js\'s $() helper looks up — a selector/lookup mismatch here means the rule silently never applies', () => {
+    expect(dyadJs).toMatch(/<span class="dyad-qualifier" id="dyad-qualifier">/);
+  });
+
+  // A THIRD compounding source, distinct from both B8 fixes: unlike a
+  // `color: rgba(...)` alpha (which only INHERITS, and can be cancelled by
+  // an explicit `color` on the descendant, per B8), CSS `opacity` compounds
+  // across a real ancestor/descendant DOM relationship regardless of the
+  // descendant's own `color` — unaffected by B8's fix, which only ever
+  // addressed inherited color, never a PARENT's own opacity. This is what
+  // #dyad-qualifier actually hit: `.dyad-relation-scope` (its real DOM
+  // parent, per SCREEN_HTML) carried its own opacity:0.7, so the qualifier's
+  // TRUE rendered alpha was 0.7 × 0.6 = 0.42 (~3.95:1) even though its own
+  // rule read "non-compounded" in isolation. The old B8 test above measured
+  // the CHILD selector alone and never walked up to the parent.
+  it('.dyad-relation-scope no longer carries its own opacity — nothing left for a real child to compound against', () => {
+    const rule = dyadJs.match(/#dyad-screen \.dyad-relation-scope \{([^}]*)\}/);
+    expect(rule).toBeTruthy();
+    expect(rule[1]).not.toMatch(/opacity/);
+  });
+
+  it('#dyad-qualifier\'s effective alpha, walked through its REAL ancestor chain (.dyad-relation-scope > #dyad-relation > #dyad-output > #dyad-screen, none of which carry opacity), clears 4.5:1', () => {
+    // Structural precondition: every ancestor up to the screen root is
+    // opacity-free (checked directly against source, not assumed) — so the
+    // qualifier's OWN 0.6 is the entire product.
+    for (const ancestorSelector of ['#dyad-relation', '#dyad-output']) {
+      const m = dyadJs.match(new RegExp(`#dyad-screen ${ancestorSelector.replace('#', '\\#')} \\{([^}]*)\\}`));
+      if (m) expect(m[1], ancestorSelector).not.toMatch(/opacity/);
+    }
+    expect(contrastOfWhiteAlphaOnBlack(0.6)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the bare "relation layer · structural citations only" scope-line span gets its OWN single alpha (0.7), not the removed ancestor opacity, and clears 4.5:1', () => {
+    expect(dyadJs).toMatch(/\.dyad-relation-scope > span:first-child \{ color: var\(--text\); opacity: 0\.7; \}/);
+    expect(contrastOfWhiteAlphaOnBlack(0.7)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the PRE-FIX compounded value (0.7 ancestor × 0.6 own = 0.42) fails 4.5:1 — proving THIS fix was structurally necessary, distinct from B8\'s inherited-color fix', () => {
+    expect(contrastOfWhiteAlphaOnBlack(0.7 * 0.6)).toBeLessThan(4.5);
+    expect(contrastOfWhiteAlphaOnBlack(0.7 * 0.6)).toBeCloseTo(3.95, 1);
+  });
+
+  it('no OTHER opacity-bearing selector in this stylesheet nests inside another opacity-bearing selector\'s element, except the one accounted-for non-text mark below (a full re-scan, not just the one fixed pair)', () => {
+    // Every `opacity:` declaration in the module, with its selector.
+    const rules = [...dyadJs.matchAll(/#dyad-screen ([^{]+)\{([^}]*)\}/g)]
+      .filter(m => /opacity:\s*[\d.]/.test(m[2]))
+      .map(m => m[1].trim());
+    // Real DOM parent/child pairs among THOSE selectors' elements, per
+    // SCREEN_HTML (read directly above in this file, not restated from
+    // memory) — .dyad-axis > summary::after is a pseudo-element of an
+    // ALREADY-opacity'd summary, but it renders a decorative +/- glyph
+    // (redundant with aria-expanded), not a text node subject to the 4.5:1
+    // text floor — WCAG 1.4.11's 3:1 non-text floor applies instead. This
+    // nesting is accounted for separately below (eighth remediation gate),
+    // not silently ignored: the compounding ALSO includes the inherited
+    // body color-muted alpha this exemption originally missed, which is
+    // exactly why it needed its own fix rather than a bare carve-out.
+    const knownAcceptableNesting = ['#dyad-screen .dyad-axis > summary::after'];
+    for (const selector of rules) {
+      const full = `#dyad-screen ${selector}`;
+      if (knownAcceptableNesting.includes(full)) continue;
+      // None of the remaining opacity selectors should be `.dyad-relation-scope`
+      // (the one real defect, now fixed) or any selector whose element
+      // SCREEN_HTML nests inside another opacity-bearing element's subtree.
+      expect(selector, full).not.toBe('.dyad-relation-scope');
+    }
+  });
+
+  // Eighth remediation gate: the exemption above originally computed the
+  // summary::after mark's contrast as its own opacity (0.6) times its
+  // ancestor summary's opacity (0.7) = 0.42, ~3.95:1, and called that
+  // "clears 3:1" — but neither rule set an explicit `color`, so the mark
+  // ALSO inherited the body color-muted rule's own alpha (rgba(255,255,
+  // 255,0.72), ui/shell.css), the same class of miss B8 above exists to
+  // catch for TEXT. True pre-fix alpha: 0.72 × 0.7 × 0.6 = 0.3024, ~2.48:1
+  // — below WCAG 1.4.11's 3:1 non-text-UI-mark floor. Fixed the same way as
+  // B8: an explicit `color: var(--text)` on the mark itself cancels the
+  // inherited alpha, leaving the two already-declared opacities (0.7 × 0.6
+  // = 0.42) as the sole multiplier.
+  function contrastOfWhiteAlphaOnBlack(alpha) {
+    const c = alpha <= 0.03928 ? alpha / 12.92 : Math.pow((alpha + 0.055) / 1.055, 2.4);
+    return (c + 0.05) / 0.05;
+  }
+
+  it('.dyad-axis > summary::after sets an explicit, non-compounded color — ancestor(0.7) × own(0.6) = 0.42 alone clears the 3:1 non-text-mark floor', () => {
+    const rule = dyadJs.match(/#dyad-screen \.dyad-axis > summary::after \{([^}]*)\}/);
+    expect(rule).toBeTruthy();
+    expect(rule[1]).toMatch(/color:\s*var\(--text\)/);
+    expect(rule[1]).toMatch(/opacity:\s*0\.6/);
+    const ancestorSummary = dyadJs.match(/#dyad-screen \.dyad-axis > summary \{([^}]*)\}/);
+    expect(ancestorSummary).toBeTruthy();
+    expect(ancestorSummary[1]).toMatch(/opacity:\s*0\.7/);
+    expect(contrastOfWhiteAlphaOnBlack(0.7 * 0.6)).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it('the PRE-FIX compounded value (inherited 0.72 alpha × ancestor 0.7 × own 0.6 = 0.3024) fails the 3:1 non-text floor — proving this fix was structurally necessary, not the same fix as B8', () => {
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.7 * 0.6)).toBeLessThan(3.0);
+    expect(contrastOfWhiteAlphaOnBlack(0.72 * 0.7 * 0.6)).toBeCloseTo(2.48, 1);
+  });
+});
+
+describe('D1 — the Pair Imprint privacy boundary, proven over the REAL production path (audit D1, strengthened per second remediation gate P2)', () => {
+  // tests/pair_share.test.js's own sentinel tests build a hand-shaped
+  // "formattedRelation" object — a fiction, however realistic. This test
+  // drives the SAME sentinel strings through the actual pipeline the
+  // product runs: real DOM input (including a REAL citysearch selection,
+  // not a hand-built `_city`) -> submitSecond() -> buildProfile() ->
+  // core/dyad.js buildDyadReading() -> formatDyadRelation() ->
+  // currentRelation() -> ui/pairShare.js's real builders. If any layer of
+  // that real chain ever starts leaking, THIS is the test that catches it;
+  // the hand-built version cannot, by construction.
+  //
+  // Second gate strengthening: every sentinel is first asserted POSITIVELY
+  // PRESENT upstream — on the real `buildSecond` payload citysearch/DOM
+  // produced, or as a value that measurably changed what buildProfile
+  // computed for A — before the downstream absence check runs. A field the
+  // pipeline silently dropped before this test could even plant it would
+  // make the old "not.toContain" assertions vacuously true; the positive
+  // check closes that gap.
+  const SENTINEL_A_NAME = 'sentinelnameaustria1955';
+  const SENTINEL_B_NAME = 'sentinelnamebravo1988';
+  const SENTINEL_A_DOB = '1955-02-17';
+  const SENTINEL_B_DOB = '1988-06-15';
+  const SENTINEL_A_TIME = '09:41';
+  const SENTINEL_B_TIME = '21:13';
+  const SENTINEL_A_TZ = 'America/New_York';
+  const SENTINEL_A_LAT = 11.11;
+  const SENTINEL_A_LNG = 22.22;
+  // A real (if obscure) IANA zone — a fictional tz string like
+  // 'Pacific/Sentinel' would make Intl reject it and moonSign/risingSign
+  // resolve to undefined regardless of any leak, defeating the positive-
+  // presence proof below (a false pass, not a real absence).
+  const SENTINEL_CITY = { name: 'sentinelcityzz', country: 'Zeta', countryCode: 'ZZ', lat: 33.33, lng: 44.44, tz: 'Pacific/Kiritimati' };
+
+  it('no name, DOB, birth time, timezone, latitude, longitude, city, individual coordinate, or written-card string reaches the snapshot/SVG/caption — each first proven present upstream', async () => {
+    // ── person A: sentinel time/tz/lat/lng fed directly to buildProfile ──
+    const sentinelA = buildProfile(SENTINEL_A_NAME, SENTINEL_A_DOB, {
+      time: SENTINEL_A_TIME, tz: SENTINEL_A_TZ, lat: SENTINEL_A_LAT, lng: SENTINEL_A_LNG,
+    });
+    // Positive-presence proof for A: the sentinel time/tz/lat/lng were not
+    // silently ignored — they are exactly what let risingSign AND moonSign
+    // resolve at all (both require a valid time + tz; rising additionally
+    // needs lat/lng — core/profile.js's own gating, read here rather than
+    // restated).
+    expect(sentinelA.risingSign, 'sentinel tz/lat/lng were consumed for rising').not.toBeUndefined();
+    expect(sentinelA.moonSign, 'sentinel time/tz were consumed for moon').not.toBeUndefined();
+
+    // ── person B: the REAL citysearch + form flow, not a hand-built _city ──
+    searchCities.mockReset();
+    searchCities.mockResolvedValue([SENTINEL_CITY]);
+    let captured = null;
+    const h = harness('t5', {
+      profileA: sentinelA,
+      buildSecond: payload => { captured = payload; return buildProfile(payload.name, payload.dob, payload); },
+    });
+
+    const outer = globalThis.document;
+    globalThis.document = { getElementById: id => h.byId.get(id) || null, createElement: () => makeNode() };
+    vi.useFakeTimers();
+    try {
+      const cityInput = h.get('dyad-city-input');
+      cityInput.value = 'se';
+      cityInput.listeners.input();
+      await vi.advanceTimersByTimeAsync(200); // > ui/citysearch.js's 150ms SEARCH_DEBOUNCE_MS
+      const suggestions = h.get('dyad-city-suggestions');
+      expect(suggestions.children.length).toBe(1);
+      suggestions.children[0].listeners.mousedown({ preventDefault() {} });
+
+      h.get('dyad-name-input').value = SENTINEL_B_NAME;
+      h.get('dyad-dob-input').value = SENTINEL_B_DOB;
+      h.get('dyad-time-input').value = SENTINEL_B_TIME;
+      expect(submitSecond()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      globalThis.document = outer;
+    }
+
+    // Positive-presence proof for B: the REAL payload the real DOM/citysearch
+    // flow produced carries every sentinel — proving each one genuinely
+    // reached the calculation boundary before the leak check below runs.
+    expect(captured, 'buildSecond was called at all').not.toBeNull();
+    expect(captured.name).toBe(SENTINEL_B_NAME);
+    expect(captured.dob).toBe(SENTINEL_B_DOB);
+    expect(captured.time).toBe(SENTINEL_B_TIME);
+    expect(captured.city).toBe(SENTINEL_CITY.name);
+    expect(captured.cc).toBe(SENTINEL_CITY.countryCode);
+    expect(captured.tz).toBe(SENTINEL_CITY.tz);
+    expect(captured.lat).toBe(SENTINEL_CITY.lat);
+    expect(captured.lng).toBe(SENTINEL_CITY.lng);
+
+    const relation = currentRelation();
+    expect(relation).not.toBeNull();
+    const sentinelB = buildProfile(SENTINEL_B_NAME, SENTINEL_B_DOB, captured);
+    expect(sentinelB.moonSign, 'sentinel B time/tz were consumed for moon').not.toBeUndefined();
+
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(snapshot).not.toBeNull();
+    const svg = buildPairImprintSVG(snapshot);
+    const caption = buildPairImprintCaption(snapshot);
+    const blob = `${JSON.stringify(snapshot)}\n${svg}\n${caption}`;
+
+    // Names, DOBs, birth times, timezone, lat/lng (as rendered numbers and
+    // as strings), the city name and country code — every raw sentinel this
+    // test just proved was genuinely fed into the real pipeline above.
+    for (const token of [
+      SENTINEL_A_NAME, SENTINEL_B_NAME, SENTINEL_A_DOB, SENTINEL_B_DOB,
+      SENTINEL_A_TIME, SENTINEL_B_TIME, SENTINEL_A_TZ, SENTINEL_CITY.tz,
+      String(SENTINEL_A_LAT), String(SENTINEL_A_LNG),
+      String(SENTINEL_CITY.lat), String(SENTINEL_CITY.lng),
+      SENTINEL_CITY.name, SENTINEL_CITY.countryCode,
+    ]) {
+      expect(blob, token).not.toContain(token);
+    }
+    // Individual coordinate values — real computed values from the real
+    // profiles, not stand-ins. A false pass here (the value coincidentally
+    // matching something legitimately in the imprint, e.g. a life-path
+    // digit that's ALSO part of the combined-life-path finding) is exactly
+    // why this checks the CATALOG/ARCANA/SUN fields specifically — none of
+    // those ever legitimately appear in a Pair Imprint.
+    for (const [label, value] of [
+      ['A birth card', sentinelA.birthCard.label],
+      ['B birth card', sentinelB.birthCard.label],
+      ['A sun sign', sentinelA.sunSign],
+      ['B sun sign', sentinelB.sunSign],
+      ['A public animal', sentinelA.animal],
+      ['B public animal', sentinelB.animal],
+      ['A rising sign', sentinelA.risingSign],
+      ['A moon sign', sentinelA.moonSign],
+      ['B moon sign', sentinelB.moonSign],
+    ]) {
+      if (value == null) continue;
+      expect(blob, label).not.toContain(value);
+    }
+    // The written 144-card entry (name/type/habit/note) for either side —
+    // real deck content looked up the same way the sheet renders it.
+    const cellA = CARDS[sentinelA.sunSign] && CARDS[sentinelA.sunSign][sentinelA.animal];
+    const cellB = CARDS[sentinelB.sunSign] && CARDS[sentinelB.sunSign][sentinelB.animal];
+    for (const cell of [cellA, cellB]) {
+      if (!cell) continue;
+      expect(blob, `${cell.name} (card name)`).not.toContain(cell.name);
+      expect(blob, `${cell.type} (card type)`).not.toContain(cell.type);
+      for (const slot of ['low', 'mid', 'high']) {
+        expect(blob, `${cell.note[slot]} (card note.${slot})`).not.toContain(cell.note[slot]);
+      }
+    }
+    // Unrelated DOM: neither sheet's rendered cell text anywhere in the
+    // blob (spot-checked via a handful of live cell reads).
+    for (const key of ['dayPillar', 'hourPillar']) {
+      const cellText = h.cell('a', key).textContent;
+      if (cellText) expect(blob, `sheet A ${key} cell text`).not.toContain(cellText);
+    }
+  });
+
+  it('the snapshot carries exactly the allow-listed keys even when built from the real pipeline (no incidental extra field)', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    const relation = currentRelation();
+    const snapshot = buildPairImprintSnapshot(relation);
+    expect(Object.keys(snapshot).sort()).toEqual([...PAIR_IMPRINT_ALLOW].sort());
+  });
+});
+
+describe('item 8 — the Pair Imprint\'s OWN #dyad-share-status is visible, live-announced, and positioned after the two sheets', () => {
+  // Third-gate item 8 named this describe block "a render/share failure"
+  // but every assertion in it targets `#dyad-share-status` — the Pair
+  // Imprint EXPORT status, a real and correctly-implemented live region,
+  // but NOT the relation-RESOLUTION failure surface a submitted pair can
+  // fail into. Fourth remediation gate, item 2: the title is corrected to
+  // say what this block actually tests; the ACTUAL failure surface
+  // (`#dyad-relation-failure`) gets its own dedicated coverage below,
+  // against the real node, not this one.
+  it('#dyad-share-status is a polite, atomic live region, not a silent DOM write', () => {
+    expect(dyadJs).toMatch(/id="dyad-share-status"[^>]*role="status"/);
+    expect(dyadJs).toMatch(/id="dyad-share-status"[^>]*aria-live="polite"/);
+    expect(dyadJs).toMatch(/id="dyad-share-status"[^>]*aria-atomic="true"/);
+  });
+
+  it('#dyad-share-status sits AFTER #dyad-output (the two long sheets), not buried above them', () => {
+    const outputIdx = dyadJs.indexOf('id="dyad-output"');
+    const statusIdx = dyadJs.indexOf('id="dyad-share-status"');
+    expect(outputIdx).toBeGreaterThan(-1);
+    expect(statusIdx).toBeGreaterThan(outputIdx);
+  });
+});
+
+describe('fourth-gate item 2 — the ACTUAL relation-resolution failure surface (#dyad-relation-failure) is accessible and recoverable', () => {
+  // A local copy, matching this file's own established convention
+  // (`incoherentBLocal()` near B2's describe block is the same pattern) —
+  // the fail-closed fixture near "Pair Dossier — failure state" above is
+  // scoped to THAT describe callback and is not reachable here. Using it
+  // by name from a sibling describe would silently resolve to a
+  // ReferenceError inside `_hooks.buildSecond`, which `submitSecond()`'s
+  // own try/catch swallows into a validation-error return — a real trap
+  // this file's tests must not fall into again.
+  // SYNTHETIC FAULT INJECTION (sixth gate — see the fuller note on the
+  // sibling copy above): no ordinary UI input reaches this shape; it
+  // deliberately corrupts a valid profile to drive the real
+  // dyadDayMaster()-throw / dyadRelationFor()-catch production error path,
+  // never evidence of a naturally-reachable failure.
+  function incoherentB() {
+    return { ...B, dayPillar: { ...B.dayPillar, stemElement: 'not-a-real-element' } };
+  }
+
+  it('#dyad-relation-failure carries real status semantics: role=status, polite, atomic, a labelled description, and programmatic focusability', () => {
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*role="status"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-live="polite"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-atomic="true"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*aria-labelledby="dyad-relation-failure-copy"/);
+    expect(dyadJs).toMatch(/id="dyad-relation-failure"[^>]*tabindex="-1"/);
+    expect(dyadJs).toContain('id="dyad-relation-failure-copy"');
+  });
+
+  it('#dyad-relation-failure sits AFTER #dyad-output, alongside the Pair Imprint status, not buried above the sheets', () => {
+    const outputIdx = dyadJs.indexOf('id="dyad-output"');
+    const failureIdx = dyadJs.indexOf('id="dyad-relation-failure"');
+    expect(outputIdx).toBeGreaterThan(-1);
+    expect(failureIdx).toBeGreaterThan(outputIdx);
+  });
+
+  it('a submitted pair whose relation fails closed reveals AND focuses the real failure node — never #dyad-share-status', () => {
+    // A live-fire pass against a real browser (fourth remediation gate)
+    // caught a real-browser-only defect: calling .focus() in the SAME
+    // synchronous tick as clearing `hidden` silently no-oped in real
+    // Chrome, even though this mock-DOM harness (no real layout/focus
+    // semantics) could never have shown that. The fix defers the focus call
+    // one frame via requestAnimationFrame, falling back to setTimeout(16)
+    // where rAF doesn't exist (this Node test environment) — advance fake
+    // timers past that here, exactly as this file's other setTimeout-driven
+    // assertions already do.
+    vi.useFakeTimers();
+    try {
+      const h = harness('t5', { buildSecond: () => incoherentB() });
+      h.withDom(() => submitSecond());
+      const failure = h.get('dyad-relation-failure');
+      expect(failure.hidden).toBe(false);
+      h.withDom(() => vi.advanceTimersByTime(16));
+      expect(failure.focusCalls.length).toBeGreaterThan(0);
+      // The two sheets remain visible/available regardless (Step 4's own
+      // contract, unaffected by this gate) — a failed relation is never a
+      // failed reading. "Available" is what this test can prove; it never
+      // certifies the sheets' semantic VALIDITY.
+      expect(h.get('dyad-output').hidden).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a SUCCESSFUL resolution focuses #dyad-output as before, never the (hidden) failure surface', () => {
+    const h = harness('t5');
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-output').focusCalls.length).toBeGreaterThan(0);
+  });
+
+  it('the visible "compare another" recovery action is keyboard-operable and clears the failure surface on use', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => { h.get('dyad-relation-retry').listeners.click(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    // Recovery lands back on the second-entry form, ready to type again —
+    // compareAnother()'s own established contract, unchanged by this gate.
+    expect(h.get('dyad-name-input')).toBeTruthy();
+  });
+
+  it('teardown (Back) hides/resets the failure surface — it never survives a close', () => {
+    const h = harness('t5', { buildSecond: () => incoherentB() });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    h.withDom(() => { h.get('dyad-back').listeners.click(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+  });
+
+  it('a fresh SUCCESSFUL submission after a failure hides the failure surface again — recovery via a real re-submit, not just Compare Another', () => {
+    let shouldFail = true;
+    const h = harness('t5', { buildSecond: () => (shouldFail ? incoherentB() : B) });
+    h.withDom(() => submitSecond());
+    expect(h.get('dyad-relation-failure').hidden).toBe(false);
+    shouldFail = false;
+    h.withDom(() => { entry(h); submitSecond(); });
+    expect(h.get('dyad-relation-failure').hidden).toBe(true);
+    expect(h.get('dyad-output').focusCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('item 3 — accessible names: the two sheet landmarks and all 30 cells name side/owner/value, updated on fill and cleared on teardown', () => {
+  // A's and B's default fixtures ('specimen a' / 'specimen b') share the
+  // same FIRST WORD ("specimen") — buildProfile's firstName is the first
+  // word only, so both resolve to the identical owner token. That is a
+  // pre-existing fixture-naming coincidence (the file's own B2 = buildProfile
+  // ('zelda b', ...) at module scope exists for exactly this reason), not a
+  // defect in the accessible-name logic under test — the SIDE token (A/B)
+  // still disambiguates. Tests that need two visibly-DIFFERENT owner names
+  // use B2 explicitly.
+
+  it('each sheet <article> landmark carries a bare side letter before any pair, is real once one resolves, and never duplicates an id', () => {
+    const h = harness('t5');
+    // open()'s own clearOutput() call is what a real user path always runs
+    // before any pair can land — establishing the same clean baseline here
+    // (module state persists across this suite's back-to-back harness()
+    // calls within one file, same as it would across real screen re-opens).
+    h.withDom(() => clearOutput());
+    const faceA = h.byAttr.get('[data-sheet-face="a"]');
+    const faceB = h.byAttr.get('[data-sheet-face="b"]');
+    // No id lives on either landmark (G2: cells/faces are addressed by
+    // attribute, never id) — the accessible name is carried entirely by
+    // aria-label.
+    expect(faceA.attrs.id).toBeUndefined();
+    expect(faceB.attrs.id).toBeUndefined();
+    expect(faceA.attrs['aria-label']).toBe('A');
+    expect(faceB.attrs['aria-label']).toBe('B');
+
+    h.withDom(() => submitSecond());
+    expect(faceA.attrs['aria-label']).toBe('A · specimen');
+    expect(faceB.attrs['aria-label']).toBe('B · specimen');
+  });
+
+  it('with visibly DIFFERENT owners (B2), the two landmarks are never equal', () => {
+    const h = harness('t5', { second: B2, buildSecond: () => B2 });
+    h.withDom(() => submitSecond());
+    const faceA = h.byAttr.get('[data-sheet-face="a"]').attrs['aria-label'];
+    const faceB = h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label'];
+    expect(faceA).toBe('A · specimen');
+    expect(faceB).toBe('B · zelda');
+    expect(faceA).not.toBe(faceB);
+  });
+
+  it('a RESOLVED coordinate cell (arcana: every profile in this suite has a birth card) names side + owner + coordinate + its real displayed value', () => {
+    const h = harness('t5', { second: B2, buildSecond: () => B2 });
+    h.withDom(() => submitSecond());
+    const cellA = h.cellRoot('a', 'arcana');
+    const cellB = h.cellRoot('b', 'arcana');
+    const valueA = h.cell('a', 'arcana').textContent;
+    const valueB = h.cell('b', 'arcana').textContent;
+    expect(valueA.length).toBeGreaterThan(0);
+    expect(valueB.length).toBeGreaterThan(0);
+    expect(cellA.attrs['aria-label']).toBe(`A · specimen · ${coordinateLabel('arcana')}: ${valueA}`);
+    expect(cellB.attrs['aria-label']).toBe(`B · zelda · ${coordinateLabel('arcana')}: ${valueB}`);
+  });
+
+  it('an UNRESOLVED coordinate cell (rising: the default fixtures carry no birth time) gets the honest "unresolved" token, never a blank name', () => {
+    const h = harness('t5'); // A/B are built with no time/lat/lng — rising cannot resolve
+    h.withDom(() => submitSecond());
+    const cellA = h.cellRoot('a', 'rising');
+    expect(cellA.classList.contains('unres')).toBe(true); // the 'unres' state — the DOM shows an em-dash, "—"
+    expect(cellA.attrs['aria-label']).toBe(`A · specimen · ${coordinateLabel('rising')}: unresolved`);
+    expect(cellA.attrs['aria-label']).not.toMatch(/: $/); // never a dangling empty value
+  });
+
+  it('every one of the 30 cells carries a UNIQUE, non-generic accessible name — no two repeat "coordinate details"', () => {
+    const h = harness('t5', { second: B2, buildSecond: () => B2 });
+    h.withDom(() => submitSecond());
+    const names = [];
+    for (const prefix of ['a', 'b']) {
+      for (const key of CELL_KEYS) {
+        const label = h.cellRoot(prefix, key).attrs['aria-label'];
+        expect(label, `${prefix}:${key}`).toContain(prefix === 'b' ? 'B ·' : 'A ·');
+        expect(label, `${prefix}:${key}`).not.toBe(`${coordinateLabel(key)} details`);
+        names.push(label);
+      }
+    }
+    expect(new Set(names).size).toBe(names.length); // every one of the 30 is distinct
+  });
+
+  it('a NEW pair (via Compare Another + a real re-submit) updates every cell\'s name to the new owner and new value — never stuck on the prior pair', () => {
+    let current = B2;
+    const h = harness('t5', { second: current, buildSecond: () => current });
+    h.withDom(() => { openDyad(); entry(h); submitSecond(); });
+    const before = h.cellRoot('b', 'arcana').attrs['aria-label'];
+    expect(before).toContain('zelda');
+
+    const thirdPerson = buildProfile('third specimen', '1975-11-02');
+    current = thirdPerson;
+    h.withDom(() => { compareAnother(); h.get('dyad-name-input').value = 'third specimen';
+      h.get('dyad-dob-input').value = '1975-11-02'; submitSecond(); });
+    const after = h.cellRoot('b', 'arcana').attrs['aria-label'];
+    expect(after).toContain('third');
+    expect(after).not.toContain('zelda');
+    expect(after).not.toBe(before);
+  });
+
+  it('teardown (Back) resets both landmarks and all 30 cells to bare side letters and "unresolved" — B\'s name never survives', () => {
+    const h = harness('t5', { second: B2, buildSecond: () => B2 });
+    h.withDom(() => { openDyad(); entry(h); submitSecond(); });
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toContain('zelda');
+    h.withDom(() => { h.get('dyad-back').listeners.click(); });
+    expect(h.byAttr.get('[data-sheet-face="a"]').attrs['aria-label']).toBe('A');
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toBe('B');
+    for (const prefix of ['a', 'b']) {
+      for (const key of CELL_KEYS) {
+        const label = h.cellRoot(prefix, key).attrs['aria-label'];
+        expect(label, `${prefix}:${key}`).not.toContain('zelda');
+        expect(label, `${prefix}:${key}`).not.toContain('specimen');
+        expect(label, `${prefix}:${key}`).toContain('unresolved');
+      }
+    }
+  });
+
+  it('compareAnother() clears BOTH landmarks/cells to bare side letters — B\'s prior owner never survives into the fresh entry state', () => {
+    const h = harness('t5', { second: B2, buildSecond: () => B2 });
+    h.withDom(() => { openDyad(); entry(h); submitSecond(); });
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toContain('zelda');
+    h.withDom(() => { compareAnother(); });
+    // compareAnother() routes through the same clearOutput() close() uses —
+    // both sides blank to bare side letters, since a fresh submission is
+    // about to re-render A from the (unchanged) host profile anyway. The
+    // load-bearing proof is that B's PRIOR owner ("zelda") is gone.
+    expect(h.byAttr.get('[data-sheet-face="a"]').attrs['aria-label']).toBe('A');
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toBe('B');
+    expect(h.cellRoot('b', 'arcana').attrs['aria-label']).not.toContain('zelda');
+
+    // A re-submission (the flow compareAnother() exists to enable)
+    // immediately repopulates BOTH sides again — A from the SAME host
+    // profile (never asking the reader to re-enter person A), B fresh from
+    // whatever the next entry produces.
+    h.withDom(() => { entry(h); submitSecond(); });
+    expect(h.byAttr.get('[data-sheet-face="a"]').attrs['aria-label']).toBe('A · specimen');
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toContain('zelda');
+  });
+});
+
+describe('item 4 — an unbroken 60-character name never overflows .dyad-sheet-label or #dyad-meaning-head', () => {
+  // The exact ceiling `maxlength="60"` on #dyad-name-input permits, chosen
+  // as ONE unbroken token (no spaces) — the specific shape that has no
+  // natural CSS break opportunity and is what actually overflowed before
+  // this fix. A shorter/spaced name was never at risk; this is the
+  // adversarial case.
+  const UNBROKEN_60 = 'x'.repeat(60);
+
+  it('.dyad-sheet-label declares overflow-wrap:anywhere and is bounded to its column, not left to overflow', () => {
+    const rule = dyadJs.match(/#dyad-screen \.dyad-sheet-label \{([^}]*)\}/);
+    expect(rule).toBeTruthy();
+    expect(rule[1]).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(rule[1]).toMatch(/max-width:\s*100%/);
+  });
+
+  it('#dyad-meaning-head (the paired panel instance, NOT the shared .meaning-head class) declares the same containment', () => {
+    const rule = dyadJs.match(/#dyad-screen #dyad-meaning-head \{([^}]*)\}/);
+    expect(rule).toBeTruthy();
+    expect(rule[1]).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(rule[1]).toMatch(/max-width:\s*100%/);
+    // The shared class ui/meanings.js defines (and the host's own
+    // single-sheet panel also uses) is untouched — this fix is scoped to
+    // the id, never a global edit to a module outside this remediation.
+    const sharedClassRule = readFileSync(join(REPO_ROOT, 'ui', 'meanings.js'), 'utf-8')
+      .match(/\.meaning-head \{([^}]*)\}/);
+    expect(sharedClassRule).toBeTruthy();
+    expect(sharedClassRule[1]).not.toMatch(/overflow-wrap/);
+  });
+
+  it('an unbroken 60-char name is rendered WHOLE — wrapped, never truncated — in both the sheet label and the panel head text', () => {
+    const longProfile = buildProfile(UNBROKEN_60, '1988-06-15');
+    const h = harness('t5', { second: longProfile, buildSecond: () => longProfile });
+    h.withDom(() => submitSecond());
+    // The visible text nodes carry the COMPLETE string — CSS wrapping is a
+    // rendering concern, never a content concern; nothing here truncates
+    // the DOM text itself (unlike B6's mobile A/B buttons, which legitimately
+    // ellipsis-truncate a fixed-height 44px tap target and rely on `title`
+    // for the full string — these two nodes are NOT height-constrained, so
+    // they wrap instead of hiding anything).
+    expect(h.get('dyad-head-b').textContent).toBe(UNBROKEN_60);
+    expect(h.byAttr.get('[data-sheet-face="b"]').attrs['aria-label']).toBe(`B · ${UNBROKEN_60}`);
+
+    h.withDom(() => { h.get('dyad-sheets').listeners.click({ target: h.cellRoot('b', 'arcana') }); });
+    expect(h.get('dyad-meaning-head').textContent).toBe(`${coordinateLabel('arcana')} · ${UNBROKEN_60}`);
+  });
+
+  it('the accessible name (aria-label) never truncates the owner even where the visible text wraps', () => {
+    const longProfile = buildProfile(UNBROKEN_60, '1988-06-15');
+    const h = harness('t5', { second: longProfile, buildSecond: () => longProfile });
+    h.withDom(() => submitSecond());
+    for (const key of CELL_KEYS) {
+      const label = h.cellRoot('b', key).attrs['aria-label'];
+      expect(label, key).toContain(UNBROKEN_60);
+    }
   });
 });

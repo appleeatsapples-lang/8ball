@@ -128,10 +128,17 @@ describe('desk — host markup', () => {
     expect(html).toMatch(/initReadingsUI\([\s\S]{0,400}?onOpen: \(\) => meaningsUI\.close\(\),/);
     // and the readings module asks for it rather than reaching into the panel
     const readingsJs = readFileSync(join(__dirname, '..', 'ui', 'readings.js'), 'utf-8');
-    // origin is derived BEFORE the hook and only while the page is hidden —
-    // the inverse of the first draft's pin, which forbade the safe order
-    // (pr238 audit MED-2/MED-3)
-    expect(readingsJs).toMatch(/if \(page\.classList\.contains\('hidden'\)\) \{\s*\n\s*origin = result\.classList[^\n]*\n\s*\}\s*\n\s*if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);/);
+    // origin is derived BEFORE the hook fires, and only when NEITHER readings
+    // surface (the list or Concordance) was already active — the exact-gate
+    // remediation's fix superseded the pr238 draft's single-`page`-hidden
+    // check (MED-2/MED-3), which mis-derived `origin` as `onboarding` when
+    // reopening Previous Readings from Concordance (Concordance hides `page`
+    // as ordinary navigation, and `result` itself already reads hidden by
+    // then too). `readingsSurfaceActive` is snapshotted BEFORE
+    // closeActiveScreens so it still reflects reality at the moment of this
+    // open, not after the hook has already hidden things.
+    expect(readingsJs).toMatch(/const readingsSurfaceActive =\s*\n\s*!page\.classList\.contains\('hidden'\) \|\| !comparisonPage\.classList\.contains\('hidden'\);\s*\n\s*if \(typeof hooks\.closeActiveScreens === 'function'\) hooks\.closeActiveScreens\(\);/);
+    expect(readingsJs).toMatch(/if \(!readingsSurfaceActive\) \{\s*\n\s*origin = result\.classList[^\n]*\n\s*\}\s*\n\s*if \(typeof hooks\.onOpen === 'function'\) hooks\.onOpen\(\);/);
     expect(readingsJs).not.toMatch(/meaning-panel|initMeaningsUI/);
   });
 

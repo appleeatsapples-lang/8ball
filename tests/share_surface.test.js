@@ -199,9 +199,16 @@ describe('share PNG SVG structure', () => {
 });
 
 describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
-  // The FREE card: 8 rows, 14 cells, 4 open (arcana, sun, public animal,
-  // life path), 10 sealed. Sealed cells are handed a real value on purpose
-  // to prove the builder never emits it (per-cell, not per-row — the P1 fix).
+  // A REPRESENTATIVE synthetic fixture (8 rows, 14 cells, 4 open — arcana,
+  // sun, public animal, life path — 10 sealed), NOT a live claim about the
+  // current registry's real row/cell count (the sheet carries nine rows /
+  // fifteen cells since §1.K's MOON row, v0.73; that registry shape is
+  // pinned elsewhere, e.g. tests/tiers.test.js). buildCardSVGFromSnapshot
+  // is generic over row/cell count, so this fixture's fixed size is a
+  // convenient, deterministic sample for testing the RENDERING MECHANISM
+  // (per-cell open/sealed handling), not a row-count assertion. Sealed
+  // cells are handed a real value on purpose to prove the builder never
+  // emits it (per-cell, not per-row — the P1 fix).
   const freeSheet = buildCardSVGFromSnapshot({
     catalog: 'no. 042',
     sections: [
@@ -216,7 +223,7 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     ],
   });
 
-  it('renders all eight rows at free tier (full sheet, not open-only)', () => {
+  it('renders all rows from the fixture (full sheet, not open-only)', () => {
     expect([...freeSheet.matchAll(/<g transform="translate\(0 /g)]).toHaveLength(8);
   });
 
@@ -227,11 +234,11 @@ describe('share full-sheet (DOCTRINE §5.D v0.39)', () => {
     expect(freeSheet).toContain('<pattern id="seal-hatch"');
   });
 
-  it('every sealed CELL renders a hatch — 10 on the free card (14 cells − 4 free)', () => {
+  it('every sealed CELL renders a hatch — 10 in this fixture (14 cells − 4 open)', () => {
     expect(freeSheet.match(/url\(#seal-hatch\)/g) || []).toHaveLength(10);
   });
 
-  it('all eight row labels render (constant skeleton)', () => {
+  it('all row labels from the fixture render (constant skeleton)', () => {
     for (const label of ['ARCANA', 'FIVE-ELEMENT', 'SUN · RISING', 'PUBLIC · PRIVATE',
       'LIFE · NAME · SOUL', 'PERSONALITY · BIRTHDAY · MATURITY', 'DAY PILLAR', 'HOUR PILLAR']) {
       expect(freeSheet).toContain(`>${label}</text>`);

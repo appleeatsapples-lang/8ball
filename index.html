@@ -285,7 +285,8 @@ import {
 import { initTiersUI, renderTierSections, primeUnsealBaseline, shareRowRefs, tierDensitySummary, coordsForTier } from './ui/tiers.js';
 import { initPublicUI, renderPublicRead, publicReadFor } from './ui/public.js';
 import { initMeaningsUI } from './ui/meanings.js';
-import { initDyadUI, syncDyadEntry } from './ui/dyad.js';
+import { initDyadUI, syncDyadEntry, close as closeDyad, isOpen as isDyadOpen, currentRelation as dyadCurrentRelation } from './ui/dyad.js';
+import { initPairShareUI } from './ui/pairShare.js';
 import {
   initProfileUI,
   loadSavedProfile, saveProfile, clearProfile, scrubStoredGender,
@@ -371,7 +372,19 @@ readingsUI = initReadingsUI(
     compareReadings: (left, right) => buildConcordance(
       profileFromPayload(left.profile), profileFromPayload(right.profile),
       { tier: getRenderTier() },
-    ) },
+    ),
+    // Screen ownership (§1.J v0.81): Previous Readings is a sibling
+    // full-screen surface to the paired reading. Closing Pair here — before
+    // openPage() decides its own return-to origin below — blanks B and both
+    // meaning panels through the same paths their own exits use, so the two
+    // screens can never stack and returning here always lands on the
+    // single sheet rather than a dead onboarding fallback. `meaningsUI` and
+    // the dyad imports are declared later in this module but this closure
+    // only ever RUNS on a click, well after boot() assigns them.
+    closeActiveScreens: () => {
+      meaningsUI.close();
+      if (isDyadOpen()) { closeDyad(); result.classList.remove('hidden'); }
+    } },
 );
 // v0.3.0 fix B + step-12 absorb (codex hook 4 P2): clamp the native
 // date picker to today using local-date math, not UTC. toISOString()
@@ -427,6 +440,15 @@ meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') }) || mea
 // module; person B uses this same buildProfile path and is never persisted.
 // getNoteSlot's `role` split (PR #187 R2): A keeps this device's stored
 // position; B resolves as a fresh standalone build of B would, never A's.
+//
+// `pairShareController` is declared before initDyadUI so its hooks object
+// can close over it: initDyadUI needs an onRelationChange hook at construction
+// time, but that hook's real target (ui/pairShare.js's controller) can only
+// be created AFTER initDyadUI has injected the DOM nodes initPairShareUI
+// wires to below. The closure defers the read to CALL time, not init time,
+// so the ordering is safe either way and neither module ever imports the
+// other (second remediation gate, P1-4).
+let pairShareController = null;
 initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') },
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
     buildSecond: profileFromPayload,
@@ -434,13 +456,32 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     getPublicRead: publicReadFor,
     onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
     onExit: () => result.classList.remove('hidden'),
-    onLabelsChange: labelsUI.applyLabelsState });
+    onLabelsChange: labelsUI.applyLabelsState,
+    onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); } });
+
+// Pair Imprint (§5.D / §1.J v0.81) — a SEPARATE module from ui/share.js,
+// wired to the dyad screen's own injected button/status nodes (they exist
+// only after initDyadUI has run). Its getRelation hook reads ui/dyad.js's
+// last FORMATTED relation record — never a profile, never sheet DOM; its
+// returned notifyRelationChange is what onRelationChange above calls, so
+// the module can pre-render for transient-activation-safe native share
+// (second remediation gate, P1-4) without ui/dyad.js ever importing it.
+pairShareController = initPairShareUI(
+  { btn: $('dyad-share-btn'), status: $('dyad-share-status'), disclosure: $('dyad-share-disclosure') },
+  { getRelation: dyadCurrentRelation },
+);
 
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
-// ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet (sealed cells hatched).
-// The §5.D snapshot refs in registry (grouped) order — ui/share.js walks
-// them positionally, so no per-row names are needed (and the old ones
-// went stale the moment the rows regrouped, pr230 audit).
+// ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet,
+// with any sealed cell hatched. Since the 2026-09-02 free amendment
+// (doctrine §1.D v0.71) every device renders every coordinate open, so a
+// real PNG never actually contains a sealed hatch in practice — the
+// per-cell {state,value} contract and the sealed-hatch rendering are
+// retained structurally (the privacy guarantee — a sealed cell's value
+// cannot reach the artifact — holds regardless of whether that path ever
+// fires live). The §5.D snapshot refs in registry (grouped) order —
+// ui/share.js walks them positionally, so no per-row names are needed (and
+// the old ones went stale the moment the rows regrouped, pr230 audit).
 const shareRows = shareRowRefs();
 initShareUI(
   {

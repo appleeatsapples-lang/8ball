@@ -2,6 +2,18 @@
 // Ownership-model payments state-machine contract (DOCTRINE §1.D / §2 /
 // §4.B / §5.B v0.55; lineage: credit/cap machine v0.22–v0.54).
 //
+// Sixth remediation gate: the entire "ownership model" this file verifies
+// — isNewPair, nextShakeState, applyPaidReturn, tier/credit persistence —
+// was ITSELF retired by the 2026-09-02 free amendment (doctrine §1.D
+// v0.71), on top of the earlier credit/cap machine it superseded. This
+// file now verifies core/payments.js's RETAINED legacy-registry
+// compatibility contract (see that file's own header) — every describe
+// block below, not only the one explicitly titled "retired credit/cap
+// machinery", tests functions `ui/payments.js`'s live render path
+// (`getRenderTier()`) never calls. The tests stay meaningful because the
+// registry itself must still compute correctly for any pre-amendment
+// stored state, but none of it describes current device behavior.
+//
 // Pure unit tests against core/payments.js. No DOM, no jsdom, no localStorage.
 // Covers: isNewPair, nextShakeState (render / render-idempotent — nothing
 // else), applyPaidReturn (monotonic tier write + pending render, NO credit

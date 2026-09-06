@@ -27,14 +27,14 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 3. PII scan — `tests/pii_scan.test.js`. Operator-name leakage, SIRR cross-reference leakage, labeled-DOB leakage.
 4. Dependency discipline — `tests/dependency_discipline.test.js`. No card-content imports in the public engine; no runtime deps; devDependencies ≤ 5.
 5. Single-file rule — `index.html` ≤ 1500 lines (CI-enforced; the current count lives in the newest `journal.md` entry, not here).
-6. Payments state machine — `tests/payments_state.test.js` (`isNewPair`, `nextShakeState` render/render-idempotent, `applyPaidReturn` monotonic tier write + pending render with no credit grant; replay-attack no-pending branch; same-profile idempotence), `tests/facet_rotation.test.js` (t3-only round-robin note rotation, owned and unfunded per §1.H v0.55, persistence), plus `tests/feedback_surface.test.js`.
+6. Payments state machine — `tests/payments_state.test.js` verifies `core/payments.js`'s retained legacy-registry compatibility machinery (`isNewPair`, `nextShakeState` render/render-idempotent, `applyPaidReturn` monotonic tier write + pending render with no credit grant; replay-attack no-pending branch; same-profile idempotence) — since doctrine v0.71's free amendment, `ui/payments.js`'s live `getRenderTier()` never calls any of it and always resolves the free ceiling; this stage keeps the registry's own contract correct for any pre-amendment stored state, not a live paid path. `tests/facet_rotation.test.js` (t3-only round-robin note rotation, owned and unfunded per §1.H v0.55, persistence), plus `tests/feedback_surface.test.js`.
 
 ## Structure
 
 ```
 8ball/
 ├── index.html               UI + boot markup/script (≤1500 LOC per §6; shell styles live in ui/shell.css since 2026-08-31)
-├── core/                    12 pure-logic ES modules — no DOM
+├── core/                    14 pure-logic ES modules — no DOM
 │   ├── profile.js           sun, animals, numbers; aggregates birth card + day/hour pillars
 │   ├── engine.js            positional 144-card catalog + bracket resolution
 │   ├── rising.js            Meeus ascendant — DST + historical-tz aware
@@ -46,29 +46,34 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── math.js              shared primitives: euclidean mod, sumDigits, normalizeDeg
 │   ├── public.js            public-reading resolution + disclosed master-mode bridge
 │   ├── dyad.js              pure two-profile relation calculation
+│   ├── moon.js              moon sign + moon placement context (§1.K)
+│   ├── kua.js               eight-trigram Kua registry lookup (renderer retired, table retained)
 │   ├── payments.js          pure state machines: new-profile reads + t3 facet rotation
 │   └── entitlement.js       dyad access-token verification (ECDSA P-256, offline) + configurable product url / public keys
-├── ui/                      13 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
+├── ui/                      15 ES modules — init*UI({refs}, {hooks}) DI shape for DOM controllers; pure concordance lookup
 │   ├── tiers.js             compartment-card render + shareRowRefs + the provenance/atlas registries + density
 │   ├── payments.js          storage/status module (density resolver t3/t5 + dyad entitlement storage + facet storage)
 │   ├── profile.js           profile persistence + form helpers
-│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI
+│   ├── readings.js          Saved Readings storage + previous/read/rename/delete/clear UI + closeActiveScreens screen-ownership hook (§1.J v0.81)
 │   ├── concordance.js       pure post-calculation relation lookup; no DOM/storage/network
 │   ├── share.js             free card → on-device PNG → Web Share / clipboard fallback
 │   ├── labels.js            symbol-label reveal toggle (§6 split)
 │   ├── meanings.js          all-cell value meaning + deterministic sheet context (§1.G v0.53)
 │   ├── public.js            public-reading formatter + master-mode bridge disclosure
-│   ├── dyad.js              second-profile entry + paired-sheet rendering (§1.J)
+│   ├── dyad.js              second-profile entry + the Pair Dossier (heading/signature/direction-explicit evidence/failure state/completion flow, §1.J v0.81)
+│   ├── pairShare.js         the Pair Imprint — narrow allow-listed share PNG for the paired reading, via a model-first non-recursive view coordinator (§1.J/§5.D v0.81–v0.86)
 │   ├── sheet.js             shared sheet value mapping/render helpers
+│   ├── result.js            result-screen arrival + card-flip controller — transition state, face accessibility, arrival focus/announcement, shake-again
 │   ├── modals.js            about / forget controllers + escape-to-close + focus trap (§6 split)
 │   └── citysearch.js        city-autocomplete controller — debounce, race guard, polar mirror (§6 split)
-├── content/                 12 versioned registry modules
-│   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — JS-gated per §1 v0.22
+├── content/                 16 versioned registry modules
+│   ├── cards.v1.full.js     144-card deck (name/type/habit/note × low/mid/high) — HISTORICAL: JS-gated per §1 v0.22 behind a credits flag; current truth per doctrine v0.71's free amendment: every render shows the full card content, no gate
 │   ├── meanings.v1.js       58 tradition-cited coordinate meanings (§1.G v0.44) — static, no network call
-│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53)
+│   ├── meanings.v2.js       element meanings + all-coordinate context roles (§1.G v0.53; superseded)
 │   ├── meanings.v3.js       twelve terminal values, masters reused from v1 (§1.G v0.62; superseded)
 │   ├── meanings.v4.js       + per-slot numerology lines, theme tensions (§1.G; superseded)
-│   ├── meanings.v5.js       ACTIVE registry — v4 unedited + rising/private-animal placement lines (§1.G)
+│   ├── meanings.v5.js       + rising/private-animal placement lines (§1.G; superseded)
+│   ├── meanings.v6.js       ACTIVE registry — v5 unedited + moon placement family + moon context role (§1.K)
 │   ├── concordance.v1.js    immutable historical relation registry (§1.I v0.51)
 │   ├── concordance.v2.js    superseded registry for the strict 1–9 numerology cut (§1.I v0.54)
 │   ├── concordance.v3.js    ACTIVE registry — twelve-value domain + the three master links (§1.I v0.62)
@@ -76,7 +81,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── dyad.v2.js           ACTIVE dyad tables + master-preserving combined-path frame (§1.J v0.62)
 │   ├── public.v1.js         immutable public-reading mode registry (§1.D)
 │   ├── public.v2.js         superseded public-reading registry
-│   └── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   ├── public.v3.js         ACTIVE registry + declared master-to-base mode bridge (§1.D v0.62)
+│   └── kua.v1.js            eight-trigram registry — table retained, renderer retired (§1.D kua-retirement amendment)
 ├── agents/                  agent role docs + platform constraints (per DOCTRINE §10 v0.24)
 ├── tests/                   vitest files + fixtures.json — counts: CLAUDE.md + newest journal entry
 │   ├── fixtures.json        calculation contract — locked, hand-verified
@@ -84,7 +90,8 @@ Six CI stages per [`DOCTRINE.md §7`](./DOCTRINE.md):
 │   ├── tiers / labels_reveal / numerology_display / prose_coordinate_count  surface + tier render
 │   ├── provenance / atlas / density   CLP legibility surfaces (DOCTRINE §1.E / §1.F; placard + atlas live in the meaning panel since v0.74)
 │   ├── meanings_content / meanings_ui   coordinate meanings content policy + DI shape (DOCTRINE §1.G)
-│   ├── share_surface / readings / concordance / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
+│   ├── share_surface / pair_share / readings / concordance / payments_markup / payments_state / facet_rotation / feedback_surface / modals  UI surfaces + state
+│   ├── dyad_surface / dyad / dyad_content / pair_readings_integration  the paired reading + Pair Dossier hierarchy (DOCTRINE §1.J)
 │   └── privacy_scan / pii_scan / dependency_discipline / dob_validation / rising_disclosure  guards
 ├── audits/                  release checklist + local PII audit + cross-model briefs
 ├── assets/                  cities.json + favicons + og:image

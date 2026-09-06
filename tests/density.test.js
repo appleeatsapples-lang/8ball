@@ -1,8 +1,11 @@
 // 8ball / tests / density.test.js
-// Paid-tier density strip (Coordinate Legibility Pack cut 3). An aggregate
-// census derived PURELY from the tier constants. Pins: the count math,
-// profile-independence (value-leak sentinel), no-FOMO copy (§2/§5.C),
-// always-on gating, and §5.D PNG exclusion.
+// Density strip (Coordinate Legibility Pack cut 3). An aggregate census
+// derived PURELY from the render-registry tier constants — since doctrine
+// v0.71's free amendment every device renders the free ceiling and the
+// strip is always-on; "tier"/"sealed" here name retained compatibility
+// machinery, not a live paywall (see ui/tiers.js's own top-of-file note).
+// Pins: the count math, profile-independence (value-leak sentinel),
+// no-FOMO copy (§2/§5.C), always-on gating, and §5.D PNG exclusion.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -18,10 +21,11 @@ const tiersJs = read('ui', 'tiers.js');
 const shareJs = read('ui', 'share.js');
 
 describe('tierDensitySummary count math (derived from tier constants)', () => {
-  // base = 15: the 14 sheet cells + the always-open catalog numeral (a free
-  // coordinate per §1.D), so the free count (5) matches the product-wide
-  // "five coordinates" framing. sealed counts only the sealable cells.
-  it('free: 5 of 15 open, 10 sealed', () => {
+  // base = 16: the 15 sheet cells (§1.K: fourteen at v0.7.0, plus the MOON
+  // row since v0.73) + the always-open catalog numeral (a free coordinate
+  // per §1.D), so the free count (5) matches the product-wide "five
+  // coordinates" framing. sealed counts only the sealable cells.
+  it('free: 5 of 16 open, 11 sealed', () => {
     expect(tierDensitySummary('free')).toEqual({ open: 5, sealed: 11, total: 16 });
   });
   it('t1: 11 open, 5 sealed (§1.K: the moon rides t1 beside rising)', () => {
@@ -112,6 +116,11 @@ describe('result surface — accessibility pins (evolution pass)', () => {
 });
 
 // ── desktop rail fold contract (2026-08-31 desktop layout pass) ───────────
+// Historical: dated to a layout pass that predates the 2026-09-02 free
+// amendment (doctrine §1.D v0.71), which retired the "$6 comparative
+// offer" this note names — that offer no longer ships. The layout fix
+// itself (top-aligned, sticky rail) is unrelated to commerce and remains
+// current; only the specific rail CONTENT the bug report names is retired.
 // On ≥720px viewports the result rail sat vertically CENTERED beside the
 // card. Harmless at free-tier heights, but the t3 card is ~1034px tall and
 // centering pushed the rail's last items — the $6 comparative offer and its
