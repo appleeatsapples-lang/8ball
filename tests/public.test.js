@@ -54,7 +54,7 @@ import { NUMEROLOGY_MEANINGS } from '../content/meanings.v3.js';
 import { LIFE_PATH_VALUES } from '../content/concordance.v3.js';
 import { TIER_COORDS } from '../ui/tiers.js';
 import { ANIMALS, buildProfile, getInnerAnimal, getBirthday } from '../core/profile.js';
-import { getDayPillar, STEM_ELEMENTS } from '../core/pillars.js';
+import { getDayPillar, STEMS, STEM_ELEMENTS } from '../core/pillars.js';
 import { MAJOR_ARCANA, getBirthCard } from '../core/birthcard.js';
 import {
   voiceRegisterHits,
@@ -171,6 +171,212 @@ function expectNone(offenders, what) {
 // `toBe` goes through this instead.
 const differs = (a, b) => !Object.is(a, b);
 
+// ── The re-derivation block ──────────────────────────────────────────────
+//
+// Every value check the coverage sweep makes on one reading, as a pure
+// predicate block that never throws: it returns the offender messages and
+// the number of checks it ran, so the sweep pins its work exactly and the
+// positive control can push a corrupted reading through the same code.
+// READING_CHECKS is the number of `check` calls one reading makes — a
+// constant by construction (no early return, every branch guarded), pinned
+// so a check added or dropped here must be acknowledged there.
+const READING_CHECKS = 58;
+// Leaf paths of one reading (see leafPaths): the shape pin for the control.
+const READING_LEAVES = 65;
+
+function readingOffenders(dob, r) {
+  const offenders = [];
+  let checks = 0;
+  const check = (ok, message) => {
+    checks += 1;
+    if (!ok) offenders.push(`${dob}: ${message}`);
+  };
+  const list = v => (Array.isArray(v) ? v : []);
+  const obj = v => (v && typeof v === 'object' ? v : {});
+  const [y, m, d] = dob.split('-').map(Number);
+
+  // Input echo — the parsed date, from the string itself.
+  const dobField = obj(r.dob);
+  check(dobField.year === y && dobField.month === m && dobField.day === d,
+    `dob ${JSON.stringify(r.dob)} is not ${y}-${m}-${d}`);
+
+  // Day master — straight off the calibrated day pillar, not getDayMaster.
+  // `element` is the independently derived value, and it — never the
+  // reading's own dayMaster.element — feeds every check below, so a wrong
+  // element in the reading cannot carry a matching wrong season, strength
+  // or favourability with it (pr241 audit, Lane B MED-2).
+  const pillar = getDayPillar(y, m, d);
+  const element = STEM_ELEMENTS[pillar.stemIndex];
+  const dm = obj(r.dayMaster);
+  check(!differs(dm.stem, STEMS[pillar.stemIndex]), `day-master stem ${dm.stem} is not pillar stem ${STEMS[pillar.stemIndex]}`);
+  check(!differs(dm.element, element), `day-master element ${dm.element} is not stem element ${element}`);
+  check(!differs(dm.polarity, pillar.stemIndex % 2 === 0 ? 'yang' : 'yin'), `day-master polarity ${dm.polarity} disagrees with stem index ${pillar.stemIndex}`);
+  check(!differs(dm.branchAnimal, pillar.animal), `day-master branch ${dm.branchAnimal} is not pillar animal ${pillar.animal}`);
+  check(ELEMENTS.includes(dm.element), `day-master element ${dm.element} is not one of the five`);
+  check(ANIMALS.includes(dm.branchAnimal), `day-master branch ${dm.branchAnimal} is not an animal`);
+
+  // Season — the month branch through the one jieqi table, its element
+  // through the frozen branch table, its state through the five-relation
+  // rule written out here (the one restatement that is independent of
+  // getSeasonalState) and, as the cross-check, through getSeasonalState.
+  const seasonRule = (master, se) => {
+    if (se === master) return 'wang';
+    if (ELEMENT_SHENG[se] === master) return 'xiang';
+    if (ELEMENT_SHENG[master] === se) return 'xiu';
+    if (ELEMENT_KE[master] === se) return 'qiu';
+    return 'si';
+  };
+  const monthAnimal = getInnerAnimal(y, m, d);
+  const seasonElement = BRANCH_ELEMENTS[monthAnimal];
+  const expectedState = seasonRule(element, seasonElement);
+  const expectedStrength = SEASONAL_STATES[expectedState].strength;
+  const season = obj(r.season);
+  check(!differs(season.monthAnimal, monthAnimal), `month animal ${season.monthAnimal} is not ${monthAnimal}`);
+  check(!differs(season.element, seasonElement), `season element ${season.element} is not ${seasonElement}`);
+  check(Object.keys(SEASONAL_STATES).includes(season.state), `season state ${season.state} is not a registry key`);
+  check(!differs(season.state, expectedState), `season state ${season.state}, the five-relation rule gives ${expectedState}`);
+  check(!differs(season.state, getSeasonalState(element, seasonElement).key), `season state ${season.state} disagrees with getSeasonalState`);
+  const state = SEASONAL_STATES[expectedState];
+  check(!differs(season.stateHan, state.han), `state han ${season.stateHan} is not the registry's ${state.han}`);
+  check(!differs(season.stateLabel, state.label), `state label ${season.stateLabel} is not the registry's ${state.label}`);
+  check(!differs(season.relation, state.relation), `state relation ${season.relation} is not the registry's ${state.relation}`);
+  check(!differs(r.strength, expectedStrength), `strength ${r.strength} is not the ${expectedState} state's ${expectedStrength}`);
+
+  // Favourability — the frozen entry for the INDEPENDENTLY derived
+  // element × strength, whole; the primaries at index 0 of each list.
+  const entry = ELEMENT_FAVORABILITY[`${element}_${expectedStrength}`];
+  const fav = list(r.favorable);
+  const unfav = list(r.unfavorable);
+  check(fav.length > 0, 'favourable list is empty or not a list');
+  check(unfav.length > 0, 'unfavourable list is empty or not a list');
+  check(sameList(r.favorable, entry.favorable), `favourable ${JSON.stringify(r.favorable)} is not the registry's ${JSON.stringify(entry.favorable)}`);
+  check(sameList(r.unfavorable, entry.unfavorable), `unfavourable ${JSON.stringify(r.unfavorable)} is not the registry's ${JSON.stringify(entry.unfavorable)}`);
+  check(fav.every(e => ELEMENTS.includes(e)), 'a favourable entry is not an element');
+  check(unfav.every(e => ELEMENTS.includes(e)), 'an unfavourable entry is not an element');
+  check(!fav.some(e => unfav.includes(e)), 'an element is both favourable and unfavourable');
+  check(!differs(r.primaryFavorable, entry.favorable[0]), `primary favourable ${r.primaryFavorable} is not the registry's first ${entry.favorable[0]}`);
+  check(!differs(r.primaryUnfavorable, entry.unfavorable[0]), `primary unfavourable ${r.primaryUnfavorable} is not the registry's first ${entry.unfavorable[0]}`);
+  check(!differs(r.favorabilityNote, entry.body), 'favourability note is not the registry\'s body');
+
+  // Mode — the birthday from the shipped reduction, the table key through
+  // the declared bridge restated here (not resolveModeKey), the three text
+  // fields from the frozen mode table.
+  const birthday = getBirthday(d);
+  const modeKey = MASTER_MODE_BRIDGE[birthday] === undefined ? birthday : MASTER_MODE_BRIDGE[birthday];
+  const bridged = MASTER_MODE_BRIDGE[birthday] !== undefined;
+  const modeTable = WORK_MODES[modeKey];
+  const mode = obj(r.mode);
+  check(!differs(mode.birthday, birthday), `mode birthday ${mode.birthday} is not getBirthday(${d}) = ${birthday}`);
+  check(!differs(mode.dayOfMonth, d), `mode dayOfMonth ${mode.dayOfMonth} is not ${d}`);
+  check(!differs(mode.modeKey, modeKey), `mode key ${mode.modeKey} is not ${modeKey}`);
+  check(!differs(mode.bridged, bridged), `bridged ${mode.bridged} disagrees with MASTER_MODE_BRIDGE`);
+  check(bridged
+    ? mode.bridgeNote === MASTER_MODE_BRIDGE_NOTE.replace('{birthday}', String(birthday)).replace('{mode}', String(modeKey))
+    : mode.bridgeNote === null,
+  `bridge note ${JSON.stringify(mode.bridgeNote)} is not the declared note for birthday ${birthday}`);
+  check(!differs(mode.theme, modeTable.theme), `mode theme ${mode.theme} is not the table's ${modeTable.theme}`);
+  check(!differs(mode.register, modeTable.register), `mode register ${mode.register} is not the table's ${modeTable.register}`);
+  check(!differs(mode.method, modeTable.method), `mode method ${mode.method} is not the table's ${modeTable.method}`);
+
+  // Posture — the arcana number from the shipped birth card, the roman
+  // numeral with it, the three text fields from the frozen posture table.
+  const card = getBirthCard(y, m, d);
+  const postureTable = ROLE_POSTURES[card.number];
+  const posture = obj(r.posture);
+  check(!differs(posture.number, card.number), `posture number ${posture.number} is not the birth card's ${card.number}`);
+  check(!differs(posture.roman, card.roman), `posture roman ${posture.roman} is not the birth card's ${card.roman}`);
+  check(!differs(posture.arcana, postureTable.arcana), `posture arcana ${posture.arcana} is not the table's ${postureTable.arcana}`);
+  check(!differs(posture.register, postureTable.register), `posture register ${posture.register} is not the table's ${postureTable.register}`);
+  check(!differs(posture.stance, postureTable.stance), `posture stance ${posture.stance} is not the table's ${postureTable.stance}`);
+
+  // Families — the primary favourable element's three, ranked 1..3 along
+  // the mode's frozen priority (not via rankDomainFamilies, which is only
+  // the cross-check), each family the registry's own row, whole.
+  const expectedPrimary = entry.favorable[0];
+  const registryFamilies = DOMAIN_FAMILIES[expectedPrimary];
+  const { priority } = modeTable;
+  const families = list(r.families).map(obj);
+  check(families.length === 3, `${families.length} families, expected 3`);
+  check(sameList(families.map(f => f.rank), [1, 2, 3]), `family ranks ${JSON.stringify(families.map(f => f.rank))} are not [1, 2, 3]`);
+  const order = families.map(f => priority.indexOf(f.character));
+  check(!order.some((o, i) => o < 0 || (i > 0 && o <= order[i - 1])), `families ${families.map(f => f.key).join(', ')} are not in priority order ${priority.join(' > ')}`);
+  check(families.every(f => f.element === expectedPrimary), `a family is off the primary favourable element ${expectedPrimary}`);
+  check(sameList(families.map(f => f.key), rankDomainFamilies(expectedPrimary, birthday).map(f => f.key)), 'family keys disagree with rankDomainFamilies');
+  check(sameList(families.map(f => f.key).sort(), registryFamilies.map(f => f.key).sort()), `families are not the registry's three for ${expectedPrimary}`);
+  for (const field of ['key', 'label', 'character', 'body']) {
+    check(families.every(f => {
+      const row = registryFamilies.find(g => g.key === f.key);
+      return row !== undefined && !differs(f[field], row[field]);
+    }), `a family's ${field} is not the registry row's`);
+  }
+
+  // Anti-fit — the primary unfavourable element's family whose character
+  // sits LAST in the priority, restated here rather than via
+  // getAntiFitFamily, and the registry row whole.
+  const antiElement = entry.unfavorable[0];
+  const antiRow = DOMAIN_FAMILIES[antiElement].find(f => f.character === priority[priority.length - 1]);
+  const antiFit = obj(r.antiFit);
+  for (const field of ['key', 'element', 'label', 'character', 'body']) {
+    check(!differs(antiFit[field], antiRow[field]), `anti-fit ${field} ${antiFit[field]} is not the registry row's ${antiRow[field]}`);
+  }
+  check(!differs(antiFit.key, getAntiFitFamily(antiElement, birthday).key), 'anti-fit key disagrees with getAntiFitFamily');
+
+  // Role line — the join of exactly two table fields, restated.
+  check(r.roleLine === `${postureTable.stance}, ${modeTable.method}.`, `role line ${JSON.stringify(r.roleLine)} is not "<stance>, <method>."`);
+  check(r.roleLine === getRoleLine(birthday, card.number), 'role line disagrees with getRoleLine');
+
+  // Sources — the frozen block itself, not a copy and not a different one.
+  // (Its keys and citations are pinned once, in the table-integrity block;
+  // comparing them here after an identity check would compare an object
+  // with itself — pr241 audit, Lane A MED-3.)
+  check(Object.is(r.sources, PUBLIC_SOURCES), 'sources is not the PUBLIC_SOURCES block');
+
+  return { offenders, checks };
+}
+
+// Positive-control helpers. `cloneReading` copies every level EXCEPT the
+// sources block, which stays the shared frozen object so the identity
+// check cannot flag every corruption for the wrong reason.
+function cloneReading(r) {
+  const out = {};
+  for (const [k, v] of Object.entries(r)) {
+    if (k === 'sources') out[k] = v;
+    else if (Array.isArray(v)) out[k] = v.map(x => (x && typeof x === 'object' ? { ...x } : x));
+    else if (v && typeof v === 'object') out[k] = { ...v };
+    else out[k] = v;
+  }
+  return out;
+}
+function leafPaths(value, prefix = []) {
+  if (Array.isArray(value)) return value.flatMap((v, i) => leafPaths(v, [...prefix, i]));
+  if (value && typeof value === 'object') return Object.entries(value).flatMap(([k, v]) => leafPaths(v, [...prefix, k]));
+  return [prefix];
+}
+const getPath = (o, path) => path.reduce((cur, k) => cur[k], o);
+function setPath(o, path, v) {
+  // Sources is frozen and shared: replace it with a corrupted copy instead.
+  if (path[0] === 'sources') {
+    o.sources = { ...o.sources };
+    o.sources[path[1]] = v;
+    return;
+  }
+  const parent = getPath(o, path.slice(0, -1));
+  parent[path[path.length - 1]] = v;
+}
+// A same-type, same-length corruption where one exists — the class the
+// register sweep's character total cannot see (pr241 audit, Lane A HIGH-2).
+function corruptLeaf(v) {
+  if (typeof v === 'string') {
+    const reversed = [...v].reverse().join('');
+    return reversed === v ? `${v.slice(0, -1)}·` : reversed;
+  }
+  if (typeof v === 'number') return v + 1;
+  if (typeof v === 'boolean') return !v;
+  if (v === null) return 'not null';
+  return undefined;
+}
+
+
 // The same class of drift, one matcher over. `toBeGreaterThanOrEqual` and
 // `toBeLessThanOrEqual` assert the actual is a NUMBER before comparing; a bare
 // `>=`/`<=` coerces, so `null >= 0`, `'4' >= 0`, `[4] <= 21` and `true >= 0`
@@ -180,6 +386,19 @@ const differs = (a, b) => !Object.is(a, b);
 // The first reconciliation's artifact had waved this pair through as
 // "equivalent for the values in play" — the exact licence it refused for -0.
 const inRange = (n, lo, hi) => typeof n === 'number' && n >= lo && n <= hi;
+// Element-wise Object.is over two arrays — both must be arrays of the same
+// length. A deep-equal matcher would do the same job, but inside a collected
+// sweep the comparison has to be a plain predicate.
+// An explicit index loop, not `.every`, which skips holes — `new Array(3)`
+// compared equal to anything of length 3 under the first draft (pr241
+// audit, Lane A MED-2). A hole on either side is a difference.
+const sameList = (a, b) => {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (!(i in a) || !(i in b) || !Object.is(a[i], b[i])) return false;
+  }
+  return true;
+};
 
 // Source with `//` comment lines dropped. The modules deliberately keep
 // history notes naming the retired `expression` vocabulary (why the rename
@@ -315,6 +534,89 @@ describe('public tier — coverage, no gaps', () => {
       if (!collectStrings(r).every(({ text }) => text.length > 0)) bad.push(`${dob}: an empty string in the reading`);
     }
     expectNone(bad, 'readings break the range contract');
+  });
+
+  // The six fields the 2026-09-04 family audit found unpinned across the
+  // sweep: every date only checked shape, so a wrong day-master element, a
+  // flipped polarity, a wrong seasonal state / han / relation, a wrong family
+  // rank on one date, an emptied favourable list or a replaced sources block
+  // all passed 46 tests. The pr241 audit then found nine more fields with no
+  // value pin anywhere in the suite (dob, the posture's stance and register,
+  // the mode's method, the anti-fit, the families' label and body), so the
+  // block below re-derives EVERY leaf of the reading, and the positive
+  // control beneath it corrupts every leaf in turn to prove that claim
+  // rather than state it. Each field is re-derived from the level below the
+  // helper that produced it — the calibrated pillar, the birth card, the
+  // jieqi table and the frozen registries — so a mutation inside a helper
+  // and the reading cannot agree with each other and pass.
+  //
+  // What that does and does not buy: the registry comparisons pin the
+  // reading to the table it was read from (engine-to-table fidelity). A
+  // corrupted TABLE is read by both sides and passes here; table
+  // correctness rests on the registry-shape tests, the sheng/ke
+  // re-derivation, the independent anchors and the fixture snapshot (both
+  // lanes, pr241 audit). The stem and polarity pins restate the pass-through
+  // rule, not an independent one — there is no lower level than the pillar.
+  it('every leaf of every swept reading re-derives from the pillar, the birth card, the jieqi table and the frozen registries', () => {
+    const bad = [];
+    let checks = 0;
+    let readings = 0;
+    for (const dob of sweepList(37, 1985)) {
+      const walk = readingOffenders(dob, buildPublicReading(dob));
+      readings += 1;
+      checks += walk.checks;
+      bad.push(...walk.offenders);
+    }
+    expectNone(bad, 'swept readings disagree with the registries or the pillar');
+    // Exact work pins from the same loop that ran the predicates — the
+    // standard the register sweep sets below (pr241 audit, Lane A MED-1):
+    // gutting the loop to one date must fail here, not pass green.
+    expect(readings).toBe(1985);
+    expect(checks).toBe(1985 * READING_CHECKS);
+  });
+
+  it('the re-derivation block flags every leaf of a reading when that leaf alone is corrupted', () => {
+    // Positive control for the sweep above: a clean reading yields no
+    // offender and exactly READING_CHECKS checks; then every leaf path of
+    // the reading, corrupted one at a time on an otherwise-clean copy, is
+    // flagged — and by a check other than the sources-identity one unless
+    // the corrupted leaf is inside sources. This is the test that makes
+    // "every leaf" a measured claim: a field the block does not re-derive
+    // shows up here as an uncorrupted-looking pass.
+    for (const dob of ['1900-03-16', '2000-02-29', '2077-11-07']) {
+      const r = buildPublicReading(dob);
+      const clean = readingOffenders(dob, r);
+      expect(clean.offenders, dob).toEqual([]);
+      expect(clean.checks, dob).toBe(READING_CHECKS);
+
+      const paths = leafPaths(r);
+      expect(paths.length, `${dob}: leaf count`).toBe(READING_LEAVES);
+      const unflagged = [];
+      for (const path of paths) {
+        const corrupted = cloneReading(r);
+        setPath(corrupted, path, corruptLeaf(getPath(r, path)));
+        const { offenders, checks } = readingOffenders(dob, corrupted);
+        const own = path[0] === 'sources'
+          ? offenders
+          : offenders.filter(msg => !msg.includes('PUBLIC_SOURCES block'));
+        if (own.length === 0) unflagged.push(`${dob}: ${path.join('.')} corrupted to ${JSON.stringify(getPath(corrupted, path))} was not flagged`);
+        if (checks !== READING_CHECKS) unflagged.push(`${dob}: ${path.join('.')} corrupted ran ${checks} checks, not ${READING_CHECKS}`);
+      }
+      expectNone(unflagged, 'corrupted leaves passed the re-derivation block');
+      // And the list forms the block compares whole: emptied, reordered.
+      const listy = [];
+      for (const key of ['favorable', 'unfavorable', 'families']) {
+        for (const [how, make] of [['emptied', () => []], ['reversed', v => [...v].reverse()]]) {
+          const corrupted = cloneReading(r);
+          corrupted[key] = make(r[key]);
+          if (readingOffenders(dob, corrupted).offenders.length === 0) listy.push(`${dob}: ${key} ${how} was not flagged`);
+        }
+      }
+      const copied = cloneReading(r);
+      copied.sources = { ...r.sources };
+      if (readingOffenders(dob, copied).offenders.length === 0) listy.push(`${dob}: a copy of sources was not flagged`);
+      expectNone(listy, 'corrupted lists passed the re-derivation block');
+    }
   });
 });
 
@@ -626,6 +928,31 @@ describe('public tier — independent anchors', () => {
 });
 
 describe('public tier — table integrity', () => {
+  it('the five seasonal states each carry a key, han, label, relation and strength', () => {
+    expect(Object.keys(SEASONAL_STATES)).toEqual(['wang', 'xiang', 'xiu', 'qiu', 'si']);
+    for (const [key, state] of Object.entries(SEASONAL_STATES)) {
+      expect(state.key, key).toBe(key);
+      for (const field of ['han', 'label', 'relation']) {
+        expect(typeof state[field], `${key}.${field}`).toBe('string');
+        expect(state[field].length, `${key}.${field}`).toBeGreaterThan(0);
+      }
+      expect(['strong', 'weak'], `${key}.strength`).toContain(state.strength);
+    }
+    // 旺相 carry the master, 休囚死 drain it.
+    expect(['wang', 'xiang'].map(k => SEASONAL_STATES[k].strength)).toEqual(['strong', 'strong']);
+    expect(['xiu', 'qiu', 'si'].map(k => SEASONAL_STATES[k].strength)).toEqual(['weak', 'weak', 'weak']);
+    expect(new Set(Object.values(SEASONAL_STATES).map(s => s.han)).size).toBe(5);
+  });
+
+  it('the sources block names exactly the six read surfaces, each with a non-empty citation', () => {
+    expect(Object.keys(PUBLIC_SOURCES)).toEqual(['dayMaster', 'strength', 'favorability', 'mode', 'posture', 'families']);
+    expect(Object.isFrozen(PUBLIC_SOURCES)).toBe(true);
+    for (const [key, text] of Object.entries(PUBLIC_SOURCES)) {
+      expect(typeof text, key).toBe('string');
+      expect(text.trim().length, key).toBeGreaterThan(0);
+    }
+  });
+
   it('branch elements cover all twelve animals, and only those', () => {
     expect(Object.keys(BRANCH_ELEMENTS).sort()).toEqual([...ANIMALS].sort());
     expect(Object.values(BRANCH_ELEMENTS).every(e => ELEMENTS.includes(e))).toBe(true);
@@ -817,6 +1144,31 @@ describe('public tier — voice register (§2 / §4)', () => {
     for (const notANumber of [null, undefined, '4', [4], true, NaN]) {
       expect(inRange(notANumber, 0, 21), `inRange accepted ${JSON.stringify(notANumber)}`).toBe(false);
     }
+  });
+
+  it('sameList is element-wise Object.is over two arrays of equal length', () => {
+    // The re-derivation sweep compares whole lists (favourable, ranks, keys)
+    // through this predicate, so its semantics are pinned like differs'.
+    expect(sameList([], [])).toBe(true);
+    expect(sameList(['a', 'b'], ['a', 'b'])).toBe(true);
+    expect(sameList([1, 2, 3], [1, 2, 3])).toBe(true);
+    expect(sameList([1, 2, 3], [1, 2])).toBe(false);
+    expect(sameList([1, 2], [1, 2, 3])).toBe(false);
+    expect(sameList(['a', 'b'], ['b', 'a'])).toBe(false);
+    expect(sameList([0], [-0])).toBe(false);
+    expect(sameList([NaN], [NaN])).toBe(true);
+    expect(sameList([1], ['1'])).toBe(false);
+    for (const notAList of [undefined, null, 'ab', { length: 0 }, 3]) {
+      expect(sameList(notAList, []), `sameList accepted ${JSON.stringify(notAList)}`).toBe(false);
+      expect(sameList([], notAList), `sameList accepted ${JSON.stringify(notAList)}`).toBe(false);
+    }
+    // Holes are differences, both ways — `.every` would skip them.
+    expect(sameList(new Array(3), [1, 2, 3])).toBe(false);
+    expect(sameList([1, 2, 3], new Array(3))).toBe(false);
+    // eslint-disable-next-line no-sparse-arrays
+    expect(sameList([, 1], [9, 1])).toBe(false);
+    expect(sameList(new Array(1), [undefined])).toBe(false);
+    expect(sameList([undefined], [undefined])).toBe(true);
   });
 
   it('a bridged reading carries the bridge note, and the sweep scans it', () => {
