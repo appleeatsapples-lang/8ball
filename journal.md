@@ -5,7 +5,7 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-06 — DOCTRINE v0.90: the Pair Dossier and Imprint inside the paid dyad — the candidate integrated and renumbered v0.83–v0.89 — controller word — STAGED on branch, PR #TBD
+## 2026-09-06 — DOCTRINE v0.90: the Pair Dossier and Imprint inside the paid dyad — the candidate integrated and renumbered v0.83–v0.89 — controller word — STAGED on branch, PR #247
 
 **Status: STAGED on `claude/pair-inside-paid-dyad` (worktree `/private/tmp/8ball-pair-port`), off
 post-#246 `main` `3cfc0e5`. Not merged, not deployed. The L48 cross-model artifact follows as its own
