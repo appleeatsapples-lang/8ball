@@ -73,7 +73,7 @@ describe('public read — render', () => {
     expect(read).not.toBeNull();
     // 2000-01-01: birthday 1 (day of month) → mode 1, origination first.
     expect(refs.families.textContent).toBe('1 tech · 2 media · 3 energy');
-    expect(refs.antiFit.textContent).toBe('anti-fit · health');
+    expect(refs.antiFit.textContent).toBe('counterpoint · health');
     expect(refs.roleLine.textContent)
       .toBe('a role held as the setting of order, worked from a standing start, one line at a time.');
     expect(refs.root.classList.contains('sealed')).toBe(false);
@@ -125,7 +125,7 @@ describe('public read — render', () => {
       expect(read).not.toBeNull();
       // The reading is complete — the bridge is a disclosure, not a fallback.
       expect(refs.families.textContent.length).toBeGreaterThan(0);
-      expect(refs.antiFit.textContent).toMatch(/^anti-fit · /);
+      expect(refs.antiFit.textContent).toMatch(/^counterpoint · /);
       expect(refs.roleLine.textContent.endsWith('.')).toBe(true);
       // ...and the substitution is VISIBLE, naming both numbers.
       const note = refs.bridge.textContent;
@@ -201,6 +201,9 @@ describe('public read — render', () => {
     const makeElement = tag => ({
       tagName: String(tag).toUpperCase(),
       id: '', className: '', textContent: '', classList: makeClassList(),
+      attrs: {}, children: [],
+      setAttribute(key, value) { this.attrs[key] = value; },
+      appendChild(child) { this.children.push(child); return child; },
     });
     globalThis.document = {
       getElementById: id => styles.find(node => node.id === id) || null,
@@ -216,20 +219,32 @@ describe('public read — render', () => {
         roleLine: makeNode(),
       };
       initPublicUI(refs); // deliberately no refs.bridge — production shape
-      expect(children).toHaveLength(1);
-      const bridge = children[0];
+      expect(children).toHaveLength(3);
+      const bridge = children.find(node => node.className === 'card-note public-bridge');
+      const qualifier = children.find(node => node.className === 'sheet-qualifier');
+      const details = children.find(node => node.tagName === 'DETAILS');
+      expect(qualifier.hidden).toBe(true);
+      expect(details.hidden).toBe(true);
+      expect(details.children[0].tagName).toBe('SUMMARY');
       expect(bridge.className).toContain('public-bridge');
 
       renderPublicRead(MASTER_PROFILES[0][1], { entitled: true });
       expect(bridge.textContent).toContain('11');
       expect(bridge.textContent).toContain('2');
+      expect(qualifier.hidden).toBe(false);
+      expect(details.hidden).toBe(false);
+      details.open = true;
 
       renderPublicRead(PROFILE, { entitled: true });
       expect(bridge.textContent).toBe('');
+      expect(details.open).toBe(false);
       renderPublicRead(MASTER_PROFILES[1][1], { entitled: true });
       expect(bridge.textContent).toContain('22');
       renderPublicRead(MASTER_PROFILES[1][1], { entitled: false });
       expect(bridge.textContent).toBe('');
+      expect(qualifier.hidden).toBe(true);
+      expect(details.hidden).toBe(true);
+      expect(details.open).toBe(false);
     } finally {
       initPublicUI(null);
       globalThis.document = priorDocument;
@@ -519,7 +534,7 @@ describe('public-read wiring seams the first pass left unpinned', () => {
   it('the density strip claims the full sheet and nothing is sealed to contradict it', () => {
     // The sealed-tail guard inverted with the free amendment: the strip
     // says full sheet for everyone, and no sealed vocabulary may ride it.
-    expect(html).toMatch(/coordinates open · full sheet/);
+    expect(html).toContain("densityStrip.textContent = 'full sheet'");
     expect(html).not.toMatch(/domain fit sealed|sealed at paid/);
   });
 

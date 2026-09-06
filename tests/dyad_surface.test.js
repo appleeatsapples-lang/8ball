@@ -253,8 +253,8 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-city-input', 'dyad-city-suggestions', 'dyad-city-status', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
-    // v0.76: the paired sheets' labels toggle, compartment hint and panel
-    'dyad-labels-toggle', 'dyad-meaning-hint', 'dyad-meaning-panel',
+    // The compartment hint and panel remain after the v0.87 toggle retirement.
+    'dyad-meaning-hint', 'dyad-meaning-panel',
     'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
     'dyad-meaning-context-head', 'dyad-meaning-context', 'dyad-meaning-relation-head',
     'dyad-meaning-relation', 'dyad-meaning-close',
@@ -1440,12 +1440,14 @@ describe('dyad surface — class-parity differential: host markup vs buildSheetM
     globalThis.document = {
       getElementById: () => null,
       head: { appendChild() {} },
-      createElement: () => ({ className: '', appendChild() {} }),
+      createElement: tag => makeNode(tag),
     };
     try {
       const appended = [];
       initPublicUI({ root: { appendChild: n => appended.push(n), querySelector: () => null } });
-      return appended[0];
+      // Source attribution adds other native nodes; bridge identity, not
+      // append position, is the class-parity contract this capture tests.
+      return appended.find(node => node.className.split(/\s+/).includes('public-bridge'));
     } finally {
       initPublicUI(null);
       globalThis.document = prior;
@@ -1892,15 +1894,10 @@ describe('dyad surface — doctrine wording pins (PR #187 corrections, source-co
   });
 });
 
-// ── v0.76: the paired sheets' labels and derivation surface ────────────────
-//
-// Through v0.75 the two dyad sheets' row titles were never revealed (the
-// labels class was host-scoped) and their thirty compartments opened no
-// panel (§1.J's recorded limit). Both close here: the sheets follow the ONE
-// labels preference and the screen carries its own toggle for it; every
-// compartment opens a paired panel that reads through ui/meanings.js's pure
-// panelDetailFor over the tapped sheet's own values and carries the v0.74
-// derivation line.
+// ── paired sheet identification and derivation surface ───────────────────
+// v0.87 retires the label preference bridge and makes row titles permanent.
+// The existing thirty interactive compartments still use the shared meaning
+// registry, each with the context and accessible name of its own sheet.
 // open() blanks the typed entry (clearEntryFields), so a pair landed after an
 // open() needs the entry typed again — the same values harness() seeds.
 const entry = h => {
@@ -1914,98 +1911,71 @@ const B2 = buildProfile('zelda b', '1988-06-15');
 const nameA = A.firstName || 'a';
 const nameB = B2.firstName || 'b';
 
-describe('dyad surface — v0.76: the paired sheets reveal titles under the one labels preference', () => {
-  function withStorage(initial, fn) {
-    const store = new Map(initial ? [['eight_ball_labels_revealed_v1', initial]] : []);
-    const prior = globalThis.localStorage;
-    globalThis.localStorage = {
-      getItem: k => (store.has(k) ? store.get(k) : null),
-      setItem: (k, v) => { store.set(k, String(v)); },
-    };
-    try { return fn(store); } finally { globalThis.localStorage = prior; }
-  }
-
-  it('open() applies the stored preference to BOTH sheets and the screen toggle', () => {
-    withStorage('true', () => {
-      const h = harness('t5');
-      h.withDom(() => openDyad());
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(true);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(true);
-      expect(h.get('dyad-labels-toggle').textContent).toBe('→ hide labels');
-      expect(h.get('dyad-labels-toggle').attrs['aria-pressed']).toBe('true');
-    });
-    withStorage(null, () => {
-      const h = harness('t5');
-      h.withDom(() => openDyad());
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(false);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(false);
-      expect(h.get('dyad-labels-toggle').textContent).toBe('→ reveal labels');
-      expect(h.get('dyad-labels-toggle').attrs['aria-pressed']).toBe('false');
-    });
+describe('dyad surface — permanent labels without a live preference (v0.87)', () => {
+  it('both generated sheets contain all nine named rows and no reveal control', () => {
+    for (const prefix of ['a', 'b']) {
+      const markup = buildSheetMarkup(prefix);
+      const titles = [...markup.matchAll(/<div class="coord-title" data-sheet-title="([^"]+)">([^<]+)<\/div>/g)];
+      expect(titles).toHaveLength(9);
+      const actual = Object.fromEntries(titles.map(match => [match[1].split(':')[1], match[2]]));
+      expect(actual).toEqual(ROW_TITLES);
+      expect(markup).not.toMatch(/labels-toggle|labels-revealed|reveal labels|hide labels/);
+      for (const match of titles) expect(match[1].startsWith(prefix + ':')).toBe(true);
+    }
+    expect(dyadCode).not.toMatch(/dyad-labels-toggle|onLabelsChange|applyDyadLabels/);
   });
 
-  it('the screen toggle flips both sheets, writes the ONE key, and tells the host', () => {
-    withStorage(null, store => {
-      const seen = [];
-      const h = harness('t5');
-      // the hook is handed at init; re-init through the same harness shape
-      h.withDom(() => {
-        initDyadUI({ stage: makeNode(), controls: makeNode() }, {
-          getProfile: () => A, getTier: () => 't5', buildSecond: () => B,
-          onLabelsChange: v => seen.push(v),
-        });
-        openDyad();
-        h.get('dyad-labels-toggle').listeners.click();
-      });
-      expect(store.get('eight_ball_labels_revealed_v1')).toBe('true');
-      expect(seen).toEqual([true]);
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(true);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(true);
-      expect(h.get('dyad-labels-toggle').textContent).toBe('→ hide labels');
-      h.withDom(() => h.get('dyad-labels-toggle').listeners.click());
-      expect(store.get('eight_ball_labels_revealed_v1')).toBe('false');
-      expect(seen).toEqual([true, false]);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(false);
-    });
-  });
-
-  it('the toggle derives its next state from the sheet, not storage — no one-way latch when setItem is denied (pr235 audit MED-4)', () => {
+  it.each([
+    ['absent', null, false],
+    ['stored false', 'false', false],
+    ['stored true', 'true', false],
+    ['denied', null, true],
+  ])('open, render, compare and close ignore %s storage while both panels remain interactive', (_label, stored, denied) => {
     const prior = globalThis.localStorage;
-    globalThis.localStorage = { getItem: () => null, setItem: () => { throw new Error('denied'); } };
+    const getItem = vi.fn(() => {
+      if (denied) throw new Error('denied');
+      return stored;
+    });
+    const setItem = vi.fn(() => { if (denied) throw new Error('denied'); });
+    globalThis.localStorage = { getItem, setItem };
     try {
-      const seen = [];
-      const h = harness('t5');
-      h.withDom(() => {
-        initDyadUI({ stage: makeNode(), controls: makeNode() }, {
-          getProfile: () => A, getTier: () => 't5', buildSecond: () => B, onLabelsChange: v => seen.push(v),
-        });
-        openDyad();
-        h.get('dyad-labels-toggle').listeners.click();
-      });
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(true);
-      h.withDom(() => h.get('dyad-labels-toggle').listeners.click());
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(false);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(false);
-      expect(h.get('dyad-labels-toggle').textContent).toBe('→ reveal labels');
-      expect(seen).toEqual([true, false]);
-    } finally { globalThis.localStorage = prior; }
-  });
-
-  it('render() re-applies the preference (a pair landed after a flip elsewhere agrees)', () => {
-    withStorage('true', () => {
-      const h = harness('t5');
-      h.withDom(() => { openDyad(); });
-      h.face('a').classList.remove('labels-revealed');
+      const h = harness('t5', { second: B2 });
+      expect(h.withDom(() => openDyad())).toBe(true);
       entry(h);
       expect(h.withDom(() => submitSecond())).toBe(true);
-      expect(h.face('a').classList.contains('labels-revealed')).toBe(true);
-      expect(h.face('b').classList.contains('labels-revealed')).toBe(true);
-    });
+      expect(h.get('dyad-labels-toggle')).toBeNull();
+      for (const prefix of ['a', 'b']) {
+        expect(h.face(prefix).classList.contains('labels-revealed')).toBe(false);
+        for (const key of CELL_KEYS) {
+          expect(h.cellRoot(prefix, key).attrs.role, prefix + ':' + key).toBe('button');
+          expect(h.cellRoot(prefix, key).attrs['aria-label']).toContain(coordinateLabel(key));
+        }
+        const preventDefault = vi.fn();
+        h.withDom(() => h.get('dyad-sheets').listeners.keydown({
+          key: 'Enter', target: h.cellRoot(prefix, 'moon'), preventDefault,
+        }));
+        expect(preventDefault).toHaveBeenCalledOnce();
+        expect(h.get('dyad-meaning-panel').classList.contains('open')).toBe(true);
+        expect(h.get('dyad-meaning-head').textContent).toBe('moon · ' + (prefix === 'a' ? nameA : nameB));
+        expect(h.get('dyad-meaning-title').textContent).toBe('not resolved');
+        expect(h.cellRoot(prefix, 'moon').attrs['aria-expanded']).toBe('true');
+      }
+      expect(h.withDom(() => compareAnother())).toBe(true);
+      expect(h.get('dyad-meaning-panel').classList.contains('open')).toBe(false);
+      entry(h);
+      expect(h.withDom(() => submitSecond())).toBe(true);
+      h.withDom(() => closeDyad());
+      expect(h.root.classList.contains('hidden')).toBe(true);
+      expect(getItem).not.toHaveBeenCalled();
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      if (prior === undefined) delete globalThis.localStorage;
+      else globalThis.localStorage = prior;
+    }
   });
 
-  it('the module never touches the key itself — the pure ui/labels.js helpers own it', () => {
-    expect(dyadJs).toMatch(/import \{ isLabelsRevealed, setLabelsRevealed \} from '\.\/labels\.js'/);
-    expect(stripComments(dyadJs)).not.toMatch(/localStorage|eight_ball_/);
+  it('the paired controller no longer imports preference helpers or touches storage', () => {
+    expect(dyadCode).not.toMatch(/from ['"]\.\/labels\.js['"]|isLabelsRevealed|setLabelsRevealed|localStorage|eight_ball_/);
   });
 });
 
@@ -2261,9 +2231,9 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     expect(dyadJs).toMatch(/buildPanelMarkup\('dyad-meaning'\)/);
     expect(dyadJs).not.toMatch(/meanings\.v\d|ARCANA_MEANINGS|entryFor|harmonyFor/);
     expect(dyadJs).toMatch(/derivationText\(key\)/);
-    // the host hands its applyLabelsState through the hook
+    // Permanent row labels need no host-to-Pair preference bridge.
     const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
-    expect(html).toMatch(/onLabelsChange: labelsUI\.applyLabelsState/);
+    expect(html).not.toMatch(/onLabelsChange|applyLabelsState/);
   });
 });
 

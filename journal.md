@@ -335,6 +335,19 @@ v0.71 clause, the §5 inventory (one bullet added), §5.B Call 2 (restored
 narrowly, the trust-based return superseded), §7 stage 6; footer
 rotated. `8BALL.md` storefront block marked. CLAUDE.md counts: core 15,
 tests 62. `core/payments.js` untouched as the registry.
+## 2026-09-05 — Card clarity: bounded local presentation pass over `e161ab9` (uncommitted; tests and bounded review passed)
+
+The operator authorized fixing the reviewed card or directing Claude Code to fix it. Scope is always-visible row labels on the host and both Pair sheets, real separation between copied values, native written-entry attribution, qualified `SYMBOLIC ASSOCIATIONS` / `counterpoint` with source explanation, and the `full sheet` result rail. Shared fixed copy stays in an existing UI module; calculations, authored writing, selected values, share behavior, and pricing are not changed.
+
+**Implementation route.** Claude Code started the pass and left partial edits; repeated denials of its Bash patch commands prevented completion. That session was stopped. Under the operator's explicit fix-or-direct authorization, Codex took over the bounded patching route, with independent agents reviewing separate pieces. This is disclosed as a task-specific route change, not a claim that Claude completed the build or a permanent revision of the repository's lane system.
+
+Doctrine v0.87 records the presentation supersession additively and advances the current footer. The minor v0.86 chronology correction now says `regressions v0.85 referred to`; historical journal evidence is not rewritten. README and canonical context follow the current surface.
+
+**Verification, uncommitted candidate.** Full suite: **64 files / 2497 tests passed**, including 23 new text-node/native-disclosure/lifecycle tests. Retired label-toggle and old-copy assertions were replaced with permanent-label/no-preference-read, current wording, and clearing/isolation contracts; no skips or exclusive tests were added. Independent bounded runtime review passed after literal inter-cell whitespace replaced the initially proposed separator flex items. `git diff --check` passed. Protected calculation/content/fixture/package, tier, payment, and sharing sources remain byte-identical to `e161ab9`; the audit scripts are unchanged. `index.html` is 699 lines; local preview returned HTTP 200. Product audit passed: **12 pass / 0 fail / 1 dirty-tree warning / 1 local-private-configuration skip**. The unchanged default local PII scan exits 1 because its private configuration is absent: no assurance from that invocation. A separately configured read-only scan using the existing operator-local pattern file was clean across **909 files**; patterns were neither copied nor exposed.
+
+**Evidence boundary.** These results describe the uncommitted candidate, not a verified new commit or production release. Browser/layout/actual clipboard/native-device acceptance remains blocked by the known browser-runtime workspace setup issue. No push, PR, merge, deploy, pricing integration, or global setup repair was performed. See `audits/card_clarity_2026-09-05.md`.
+
+
 ## 2026-09-05 — Pair exact-gate remediation: post-commit doc/evidence correction over `89db9a8` (documentation-only, no runtime change) — root independently verified the runtime candidate clean at exact SHA `89db9a84823a917df937d50f2208fbbc0625039f` (full suite 63/2469, product audit 13 pass/0 fail/0 warn/1 skip, all five mutation proofs PASS) before this correction; this entry does not amend or rewrite that commit
 
 **What this entry corrects.** Two concrete documentation findings surfaced against the committed candidate, neither requiring any runtime, test, package, or content change:

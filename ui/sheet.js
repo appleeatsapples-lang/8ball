@@ -58,6 +58,86 @@ import {
 import { CARDS } from '../content/cards.v1.full.js';
 import { getCard, MissingCardError } from '../core/engine.js';
 
+// Fixed interface attribution, shared by the host and both Pair sheets.
+// No profile values enter these strings or the markup they produce.
+export const READING_CONTEXT = Object.freeze({
+  entry: Object.freeze({
+    summary: 'how this entry is chosen',
+    paragraphs: Object.freeze([
+      'The catalog entry is selected by sun sign and year animal. Life path anchors the first of three authored note positions.',
+      'On the individual sheet, flip again cycles those notes; it does not change the birth calculations. This entry does not combine every coordinate.',
+    ]),
+  }),
+  associations: Object.freeze({
+    summary: 'how this is assembled',
+    qualifier: 'symbolic correspondences, not an assessment of aptitude or career suitability.',
+    paragraphs: Object.freeze([
+      'These date-based tables relate the day element to its season. The resulting element lookup selects three domain families; the birthday work mode orders them.',
+      'The counterpoint comes from the contrasting element in those tables. The closing sentence combines a tarot posture with a birthday work method: two separate symbolic axes.',
+    ]),
+  }),
+});
+
+function contextCopy(kind) {
+  return kind === 'entry' || kind === 'associations' ? READING_CONTEXT[kind] : null;
+}
+
+export function readingContextMarkup(kind) {
+  const copy = contextCopy(kind);
+  if (!copy) return '';
+  const qualifier = copy.qualifier
+    ? '<p class="sheet-qualifier" data-reading-qualifier="' + kind + '" hidden>' + copy.qualifier + '</p>'
+    : '';
+  return qualifier + '<details class="sheet-context" data-reading-context="' + kind + '" hidden>' +
+    '<summary>' + copy.summary + '</summary>' +
+    copy.paragraphs.map(text => '<p>' + text + '</p>').join('') + '</details>';
+}
+
+/** Mount fixed-copy native disclosure on the host, or bind existing Pair
+ * markup. Each controller owns only its own root and never stores inputs. */
+export function initReadingContext(root, kind) {
+  const copy = contextCopy(kind);
+  const query = selector => root && typeof root.querySelector === 'function'
+    ? root.querySelector(selector) : null;
+  let details = copy ? query('[data-reading-context="' + kind + '"]') : null;
+  let qualifier = copy ? query('[data-reading-qualifier="' + kind + '"]') : null;
+  const canMount = copy && root && typeof root.appendChild === 'function' &&
+    typeof document !== 'undefined' && typeof document.createElement === 'function';
+  if (canMount && copy.qualifier && !qualifier) {
+    qualifier = document.createElement('p');
+    qualifier.className = 'sheet-qualifier';
+    qualifier.setAttribute('data-reading-qualifier', kind);
+    qualifier.textContent = copy.qualifier;
+    qualifier.hidden = true;
+    root.appendChild(qualifier);
+  }
+  if (canMount && !details) {
+    details = document.createElement('details');
+    details.className = 'sheet-context';
+    details.setAttribute('data-reading-context', kind);
+    details.hidden = true;
+    const summary = document.createElement('summary');
+    summary.textContent = copy.summary;
+    details.appendChild(summary);
+    for (const text of copy.paragraphs) {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = text;
+      details.appendChild(paragraph);
+    }
+    root.appendChild(details);
+  }
+  return {
+    setAvailable(available) {
+      if (qualifier) qualifier.hidden = !available;
+      if (details) {
+        details.hidden = !available;
+        // A new render never inherits another reading's expanded state.
+        details.open = false;
+      }
+    },
+  };
+}
+
 // ── markup ────────────────────────────────────────────────────────
 //
 // Row titles are markup, so they live here rather than in ui/tiers.js. The
@@ -105,7 +185,7 @@ export function buildSheetMarkup(prefix) {
     // for the host's meaning panel (ui/tiers.js derivationText).
     return '<div class="coord-section">' +
       `<div class="coord-title" data-sheet-title="${prefix}:${lead}">${ROW_TITLES[lead]}</div>` +
-      `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join('')}</div>` +
+      `<div class="coord-cells">${keys.map(k => cellHtml(prefix, k)).join(' ')}</div>` +
       '</div>';
   };
   // System groups (§1.F v0.72): the same registry the host sheet is built
@@ -127,14 +207,16 @@ export function buildSheetMarkup(prefix) {
     '<div class="entry-title">WRITTEN ENTRY</div>' +
     `<div class="card-habit" data-sheet-habit="${prefix}"></div>` +
     `<div class="card-note" data-sheet-note="${prefix}"></div>` +
+    readingContextMarkup('entry') +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +
     '<div class="public-read" data-sheet-public="' + prefix + '">' +
     '<div class="card-prose-rule"></div>' +
-    '<div class="public-title">DOMAIN FIT</div>' +
+    '<div class="public-title">SYMBOLIC ASSOCIATIONS</div>' +
     `<div class="card-habit" data-sheet-families="${prefix}"></div>` +
     `<div class="card-note" data-sheet-antifit="${prefix}"></div>` +
     `<div class="card-note" data-sheet-roleline="${prefix}"></div>` +
     `<div class="card-note public-bridge" data-sheet-public-bridge="${prefix}"></div>` +
+    readingContextMarkup('associations') +
     '<span class="coord-seal" aria-hidden="true"></span></div>' +
     '</article>';
 }
@@ -180,7 +262,7 @@ export function createSheet(host, { prefix } = {}) {
     }
   }
 
-  return {
+  const sheet = {
     prefix,
 
     /**
@@ -203,7 +285,7 @@ export function createSheet(host, { prefix } = {}) {
      *        ui/dyad.js, which is the §6 DI shape anyway.
      */
     render(profile, tier, { noteSlot = 'mid', publicRead = null } = {}) {
-      if (!profile) return null;
+      if (!profile) { sheet.clear(); return null; }
       const coords = coordsForTier(tier);
 
       // Paired-row titles, same grammar as the host sheet.
@@ -244,6 +326,7 @@ export function createSheet(host, { prefix } = {}) {
       setText(`[data-sheet-type="${prefix}"]`, cell ? cell.type : '');
       setText(`[data-sheet-habit="${prefix}"]`, cell ? cell.habit : '');
       setText(`[data-sheet-note="${prefix}"]`, cell ? cell.note[noteSlot] : '');
+      initReadingContext(entry, 'entry').setAvailable(!!cell);
 
       // Public read — the other t3 ceiling block.
       const publicOpen = coords.has('publicRead');
@@ -259,6 +342,7 @@ export function createSheet(host, { prefix } = {}) {
       // an unbridged reading, and cleared on the sealed branch like every
       // other value node.
       setText(`[data-sheet-public-bridge="${prefix}"]`, read ? (read.bridge || '') : '');
+      initReadingContext(publicRoot, 'associations').setAvailable(!!read);
 
       return { cardEntry: entryOpen, publicRead: !!read };
     },
@@ -269,6 +353,8 @@ export function createSheet(host, { prefix } = {}) {
      * the fill path is cleared without a second edit.
      */
     clear() {
+      initReadingContext(q(`[data-sheet-entry="${prefix}"]`), 'entry').setAvailable(false);
+      initReadingContext(q(`[data-sheet-public="${prefix}"]`), 'associations').setAvailable(false);
       for (const node of valueNodes()) {
         if (node) node.textContent = '';
       }
@@ -307,6 +393,8 @@ export function createSheet(host, { prefix } = {}) {
       return out;
     },
   };
+
+  return sheet;
 
   function setText(sel, text) {
     const node = q(sel);

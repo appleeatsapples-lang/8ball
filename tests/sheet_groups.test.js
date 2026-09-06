@@ -112,7 +112,7 @@ describe('sheet groups — host markup and the sheet builder follow the registry
     for (const [name, src] of [['index.html', cardFace], ['sheet', buildSheetMarkup('x')]]) {
       // Exactly one of each title on the card…
       expect((src.match(/<div class="entry-title">WRITTEN ENTRY<\/div>/g) || []).length, name).toBe(1);
-      expect((src.match(/<div class="public-title">DOMAIN FIT<\/div>/g) || []).length, name).toBe(1);
+      expect((src.match(/<div class="public-title">SYMBOLIC ASSOCIATIONS<\/div>/g) || []).length, name).toBe(1);
       // …and each sits inside its block's own element: the block opens at
       // its class attribute and closes at its seal span, so a title moved
       // to a SIBLING of the block (pr230 audit F3) falls outside the slice.
@@ -124,7 +124,7 @@ describe('sheet groups — host markup and the sheet builder follow the registry
         return src.slice(open, close);
       };
       expect(block('card-entry'), name).toMatch(/card-prose-rule[\s\S]*<div class="entry-title">WRITTEN ENTRY<\/div>/);
-      expect(block('public-read'), name).toMatch(/card-prose-rule[\s\S]*<div class="public-title">DOMAIN FIT<\/div>/);
+      expect(block('public-read'), name).toMatch(/card-prose-rule[\s\S]*<div class="public-title">SYMBOLIC ASSOCIATIONS<\/div>/);
       expect(block('card-entry'), name).not.toMatch(/public-title/);
       expect(block('public-read'), name).not.toMatch(/entry-title/);
     }

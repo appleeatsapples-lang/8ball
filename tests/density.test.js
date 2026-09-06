@@ -66,19 +66,16 @@ describe('density strip — copy + placement + gating', () => {
     html.indexOf('try {', html.indexOf('CLP cut 3: aggregate density census')));
 
   it('copy is clinical — no FOMO / sales / urgency tokens (§2 / §5.C)', () => {
-    // Scan the LITERAL user-facing copy: the template strings with their
-    // ${...} interpolations stripped (those are code, not displayed text).
-    const copy = (block.match(/`[^`]*`/g) || [])
-      .map(s => s.replace(/\$\{[^}]*\}/g, '').replace(/`/g, ''))
-      .join(' ');
-    expect(copy, 'density copy not captured').toMatch(/coordinates open/);
+    const m = block.match(/densityStrip\.textContent\s*=\s*'([^']*)'/);
+    expect(m, 'density copy not captured').not.toBeNull();
+    const copy = m[1];
+    expect(copy).toMatch(/full sheet/);
     expect(copy).not.toMatch(/unlock|discover|reveal|buy|free/i);
     expect(copy).not.toMatch(/\bnow\b|only|hurry|countdown|\$|price|upgrade|limited/i);
   });
-  it('copy interpolates count fields only — no profile value (free amendment: constant full-open line)', () => {
-    // The sealed branch left with the storefront; the census is the total,
-    // interpolated from the tier constants and never a profile value.
-    expect(block).toMatch(/\$\{density\.total\} of \$\{density\.total\} coordinates open · full sheet/);
+  it('copy is fixed and never claims every birth field resolved', () => {
+    expect(block).toContain("densityStrip.textContent = 'full sheet'");
+    expect(block).toContain('tierDensitySummary(tier)');
     expect(block).not.toMatch(/density\.sealed|sealed at paid/);
     expect(block).not.toMatch(/profile\.|currentProfile/);
   });

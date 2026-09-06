@@ -156,8 +156,7 @@ body {
   border-color: rgba(255, 255, 255, 0.78);
 }
 
-.text-link,
-.labels-toggle {
+.text-link {
   min-height: var(--tap-target);
   display: inline-flex;
   align-items: center;
@@ -168,10 +167,6 @@ body {
   padding-inline: 8px;
 }
 
-.labels-toggle {
-  padding: 0 4px;
-}
-
 .flip-inner {
   transition-duration: 260ms;
   transition-timing-function: cubic-bezier(0.22, 0.72, 0.24, 1);
@@ -180,15 +175,6 @@ body {
 .card,
 .card-back {
   border-color: rgba(255, 255, 255, 0.62);
-}
-
-/* Labels are opt-in. Before reveal, collapse their reserved line boxes so the
-   coordinate sheet reads as one compact object instead of a tall blank form. */
-.card:not(.labels-revealed) .coord-title {
-  height: 4px;
-  margin-bottom: 2px;
-  line-height: 4px;
-  overflow: hidden;
 }
 
 .card-back .glyph {
@@ -360,10 +346,6 @@ body {
     align-self: flex-start;
     position: sticky;
     top: 24px;
-  }
-
-  #result .labels-toggle {
-    margin-bottom: 8px;
   }
 }
 
