@@ -5,6 +5,70 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-06 — calc v5: canonical name fold — controller word — STAGED on branch, PR #246
+
+**Status: STAGED on `claude/calc-v5-name-fold` (worktree `/private/tmp/8ball-namefold`), PR #246
+open against `main` `d554616`. Not merged, not deployed. The L48 cross-model artifact follows as its
+own commit on this branch; the merge word stays with the controller per §10/L48.**
+
+**The controller decision.** Two words on 2026-09-06 — "close 205 and 203, open the name-fold PR" —
+after the day's triage found that PR #205 (the August specimen dev line) had been overtaken by main
+on every count but one, and that PR #203 was 39 behind with an unused helper. The one count was this:
+calc v5's canonical name fold, ruled on 2026-08-08 (the calc-version packet's §11, controller word
+"v5") and applied there as docs only, with §3 step 1 — the fixtures — left OUTSTANDING for the
+implementer seat. #205 and #203 are closed as superseded; this PR re-lands the fold alone.
+
+**What was wrong under calc v4.** The three name reducers read raw code points, so a name with a
+diacritic scored by whichever Unicode composition the keyboard, IME or OS emitted: `getNameNumber('José')`
+was 8 under NFC (é = U+00E9) and 4 under NFD (e + U+0301). Same person, same name, two coordinates.
+
+**What lands.** `core/profile.js` gains one exported `nameLetters()` — NFD-decompose, strip
+combining marks U+0300–U+036F, lowercase, keep `a-z` — and all three `*Sum` reducers read it; vowel
+versus consonant is decided on the folded letter (U+0130 `İ` lowercases to two code points and used
+to file as a consonant); `buildProfile` retains the name in NFC. Named limit kept and pinned: only
+canonical decompositions fold, so `Đ`, `Ł`, `Ø`, `ß` and non-Latin scripts stay unsupported, and a
+name with no supported letter is UNRESOLVED (`null`, `—`), never zero, with the date side untouched.
+
+**§3's four steps, this time all four.** (1) `tests/fixtures.json` `name_number` gains eight accented
+cases — `José` 4 · `Zoë` 1 · `Renée Dubois` 9 · `Ana Sofía` 3 · `Ångström` 8 · `İrem` 9 ·
+`Đặng Thị` 5 · `Đ` null — values produced by executing the fixed module, pinned as NFC literals only,
+with a `_name_number_rule` naming the trap the packet named: an NFD byte-twin in a JSON file is one
+re-normalizing write away from a green tautology, so the equivalence lives in the test file where
+`.normalize('NFD')` is computed at runtime. No existing fixture value moves. (2) The algorithm, above.
+(3) `npx vitest run` — 62 files / 2207 tests green. Verified by breaking: the new assertions run against
+main's `core/profile.js` fail ten times (five fixtures — José, Zoë, Renée Dubois, Ångström, Đặng Thị;
+Ana Sofía, İrem and Đ happen to coincide under the raw reducers — and five in the contract block), then
+pass with the fold restored. The first version of this sentence said "nine (three fixtures, six in the
+block)": the codex lane flagged the split as unsupported and the recount above is the corrected record. (4) The calc-version line reads v5; §3 carries the calc v5 bullet; footer rotated
+to v0.82. The auditor's assurance suite is OK, the product audit PASS 13/0/0 with one advisory WARN
+that was the not-yet-committed working tree, and the local PII audit clean over 910 files.
+
+**Codex lane (pr246, MERGE WITH FIXES) — absorbed before the artifact.** P2: the contract block let a
+fold that sends a wrong letter with a COLLIDING value pass (ë → n keeps "Zoë" at nameNumber 1 and every
+NFC/NFD and partition assertion green) — confirmed by planting exactly that mutant, which survived the
+block and was killed only by the new exact-sequence pin on `nameLetters()` for fourteen inputs in both
+compositions. P3: `Ł`, `Ø`, `ß` joined `Đ` in the unsupported loop (a `ß → ss` compatibility mapping is
+now killed twice). P3: the fixture file's "NFC literals only" rule was stated, not enforced — a test now
+proves every non-ASCII `name_number` literal equals its own NFC form. P3: the break-count above.
+**Grok lane (pr246, MERGE WITH FIXES) — absorbed before the artifact.** P1: the same break-count.
+P2: two of the eight fixtures coincided with the raw calc v4 reducer on the reduced value (Ana Sofía
+21→3 vs 30→3; İrem 27→9 both ways) — every accented fixture now also pins its three unreduced sums, and
+the consumer reads them. P2: Ł/Ø/ß — same absorb as codex, plus three mixed names (Łukasz → ukasz,
+Øystein → ystein, Straße → strae) locking that the limit is per letter, not per name. P3: the display
+readers, above. Both lanes' mutants were then planted and killed (artifact).
+Suite after absorbs: 62 files / 2209 tests.
+
+**Not ported from #205, on purpose.** The moon-sign wiring (main shipped its own, #232), the inert
+gender field (main retired it, v0.64), and the hexagon, four-line grid, measurement events and seam
+suites — product and privacy decisions that stay open. `index.html` is untouched at 697 lines.
+
+**Behaviour boundary.** The stored payload keeps the typed bytes; `isNewPair` compares typed against
+stored raw strings and the readings archive stores inputs, so neither moves; reopen and reload recompute
+under calc v5 with no migration. The profile's retained `name` and `firstName` ARE NFC, so the display
+readers of them — sheet title, dyad heads — render the canonical string for an NFD entry. The grok lane
+called the first version of this paragraph over-narrow for saying "unaffected" without naming that; it
+is a display change, and this is the record of it.
+
 ## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — STAGED on branch
 
 **What happened.** "keep key 1." The launch doc and the step-2 entry had

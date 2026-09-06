@@ -22,6 +22,7 @@ import {
   getBirthday,
   getMaturity, getMaturitySum,
   getNameNumber, getNameNumberSum,
+  nameLetters,
   getPersonality, getPersonalitySum,
   getSunSign,
   getAnimal,
@@ -51,7 +52,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-8'));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// calc v4 — the terminal domain (DOCTRINE §1.B v0.62)
+// calc v4 — the terminal domain (DOCTRINE §1.B v0.62), preserved entire in calc v5
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // The single place the active numerology domain is DECLARED, and the pins that
@@ -60,7 +61,7 @@ const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures.json'), 'utf-
 // symptom would be a coordinate that renders and then opens "meaning not
 // filed" — which is the shape of the defect this cycle repairs.
 
-describe('calc v4 — the terminal numerology domain', () => {
+describe('calc v4 — the terminal numerology domain (preserved in calc v5)', () => {
   it('is exactly 1..9 plus the three master stops, in ascending order', () => {
     expect([...MASTER_NUMBERS]).toEqual([11, 22, 33]);
     expect([...TERMINAL_NUMBERS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33]);
@@ -159,6 +160,142 @@ describe('calc v4 — the terminal numerology domain', () => {
   });
 });
 
+// ── calc v5 — the name-normalization contract (DOCTRINE §3) ─────────────
+//
+// The name reducers are the only calculation that reads typed text rather
+// than a date, so they are the only place canonical equivalence can reach a
+// coordinate. NFC "José" (é = U+00E9) and NFD "José" (e + U+0301) are the
+// same name to Unicode, to the keyboard that produced them and to the person
+// who owns it; the calculator must agree.
+//
+// Two failures are separated deliberately below, because the cheap fix for
+// the first quietly commits the second: making both spellings agree by
+// ignoring the accented letter in both reduces "José" exactly as "Jos".
+describe('calc v5 — name normalization contract (canonical equivalence)', () => {
+  // Every entry is precomposed, so its NFC and NFD forms are genuinely
+  // different code-point sequences. The in-loop guard keeps the property
+  // from going vacuous if an entry is ever edited to a plain-ASCII name.
+  const PRECOMPOSED_NAMES = [
+    'José', 'Zoë', 'Renée Dubois', 'Ana Sofía',
+    'Ångström', 'Đặng Thị', 'İrem'
+  ];
+  // Every name-derived output on the profile: the four coordinates and the
+  // four calculation trails behind them.
+  const NAME_OUTPUTS = [
+    'nameNumber', 'nameNumberSum', 'soulUrge', 'soulUrgeSum',
+    'personality', 'personalitySum', 'maturity', 'maturitySum'
+  ];
+
+  it('NFC and NFD spellings of one name produce one set of coordinates', () => {
+    for (const name of PRECOMPOSED_NAMES) {
+      const nfc = name.normalize('NFC');
+      const nfd = name.normalize('NFD');
+      expect(nfd, `${name}: not precomposed, so this pair proves nothing`).not.toBe(nfc);
+      const a = buildProfile(nfc, '1988-08-15');
+      const b = buildProfile(nfd, '1988-08-15');
+      for (const key of NAME_OUTPUTS) {
+        expect(b[key], `${name}: ${key}`).toBe(a[key]);
+      }
+      // The retained name is one string too, not two spellings of one.
+      expect(b.name, `${name}: name`).toBe(a.name);
+      expect(a.name.normalize('NFC'), `${name}: name is canonical`).toBe(a.name);
+    }
+  });
+
+  it('the fold yields the exact letter sequence, not merely a colliding value', () => {
+    // A reduced value can collide while the letters are wrong: a fold that
+    // sent ë to n would still give "Zoë" nameNumber 1 and keep every
+    // NFC/NFD and partition assertion below green. Pin the sequence itself
+    // (pr246 codex lane, P2).
+    const EXACT = [
+      ['José', 'jose'], ['Zoë', 'zoe'], ['Renée Dubois', 'reneedubois'],
+      ['Ana Sofía', 'anasofia'], ['Ångström', 'angstrom'], ['İrem', 'irem'],
+      ['Đặng Thị', 'angthi'], ['Đỗ', 'o'], ['Alex Thomas', 'alexthomas'],
+      ['Đ', ''], ['Ł', ''], ['Ø', ''], ['ß', ''], ['', ''],
+      // the limit is per LETTER, not per name: the unsupported glyph is
+      // skipped and the remainder reduces (pr246 grok lane)
+      ['Łukasz', 'ukasz'], ['Øystein', 'ystein'], ['Straße', 'strae'],
+    ];
+    for (const [name, letters] of EXACT) {
+      expect(nameLetters(name), name).toBe(letters);
+      expect(nameLetters(name.normalize('NFD')), `${name} (NFD)`).toBe(letters);
+    }
+    // the retained name and firstName follow the fold's NFC contract, so a
+    // dyad head or a sheet title built from an NFD entry renders the NFC
+    // string (pr246 grok lane, P3 — a display change, stated)
+    const nfd = buildProfile('Jose\u0301 Marti\u0301', '1988-08-15');
+    expect(nfd.name).toBe('José Martí');
+    expect(nfd.firstName).toBe('José');
+    expect(nameLetters(null)).toBe('');
+    expect(nameLetters(undefined)).toBe('');
+  });
+
+  it('a diacritic contributes its base letter — it is not silently dropped', () => {
+    // Agreement is not enough: dropping é in both spellings would also make
+    // them agree, at the price of reducing a different name.
+    expect(getNameNumberSum('José')).toBe(getNameNumberSum('Jose'));
+    expect(getSoulUrgeSum('José')).toBe(getSoulUrgeSum('Jose'));
+    expect(getPersonalitySum('José')).toBe(getPersonalitySum('Jose'));
+    expect(getNameNumberSum('José')).not.toBe(getNameNumberSum('Jos'));
+  });
+
+  it('a letter is classified as vowel or consonant AFTER it is folded', () => {
+    // U+0130 (İ) lowercases to a TWO code-point string, "i" + U+0307, so a
+    // raw vowel lookup misses it and the letter files as a consonant.
+    expect(getSoulUrgeSum('İrem')).toBe(getSoulUrgeSum('Irem'));
+    expect(getPersonalitySum('İrem')).toBe(getPersonalitySum('Irem'));
+  });
+
+  it('the vowel and consonant sums partition the letters the name number reads', () => {
+    for (const name of [...PRECOMPOSED_NAMES, 'Alex Thomas', 'Rhythm', 'Aei', '123']) {
+      for (const form of [name.normalize('NFC'), name.normalize('NFD')]) {
+        expect(getSoulUrgeSum(form) + getPersonalitySum(form), form)
+          .toBe(getNameNumberSum(form));
+      }
+    }
+  });
+
+  it('a name whose letters only appear after folding is RESOLVED', () => {
+    // The boundary case. "Đỗ" reads as no letters at all before folding and
+    // as an o after it, so treating it as unsupported would refuse a real
+    // name a coordinate it has. (Đ carries its bar inside the glyph and has
+    // no canonical decomposition — the named limit in core/profile.js.)
+    const p = buildProfile('Đỗ'.normalize('NFC'), '1988-08-15');
+    expect(p.nameNumber).toBe(getNameNumber('o'));
+    expect(p.nameNumber).not.toBeNull();
+  });
+
+  it('a name with NO supported letter is unresolved, never an invented number', () => {
+    // Distinct from Rhythm's absent vowel class: here there is no letter to
+    // reduce at all, so nothing is fabricated from the code points — and the
+    // date side is untouched, since an unreadable name costs the name
+    // coordinates and nothing else.
+    // Đ, Ł, Ø, ß carry their mark inside the glyph — no canonical
+    // decomposition — and are the named limit; a compatibility mapping
+    // (ß → ss, Ł → l, Ø → o) would be a calc change, not a fold.
+    for (const name of ['محمد', '山田', '123', '   ', 'Đ', 'Ł', 'Ø', 'ß']) {
+      const p = buildProfile(name, '1988-08-15');
+      expect(p.nameNumber, name).toBeNull();
+      expect(p.soulUrge, name).toBeNull();
+      expect(p.personality, name).toBeNull();
+      expect(p.maturity, name).toBeNull();
+      expect(p.lifePath, name).toBe(4);
+      expect(p.birthday, name).toBe(6);
+      expect(p.sunSign, name).toBe('leo');
+    }
+  });
+
+  it('plain-ASCII names are untouched by the fold (calc v4 values preserved)', () => {
+    // The v4 pins elsewhere in this file hold; this one states the property
+    // directly so a fold that started touching ASCII would fail HERE by name.
+    for (const name of ['Alex Thomas', 'Generic', 'Ada', 'Sam', 'Ann Lee']) {
+      let raw = 0;
+      for (const c of name) { const k = c.toLowerCase().charCodeAt(0); if (k >= 97 && k <= 122) raw += ((k - 97) % 9) + 1; }
+      expect(getNameNumberSum(name), name).toBe(raw);
+    }
+  });
+});
+
 describe('calculation contract', () => {
   for (const c of fixtures.cases) {
     it(c.label, () => {
@@ -172,8 +309,25 @@ describe('calculation contract', () => {
   for (const c of fixtures.name_number) {
     it(`name number: ${JSON.stringify(c.name)} → ${c.expected}`, () => {
       expect(getNameNumber(c.name)).toBe(c.expected);
+      // calc v5 fixtures also pin the unreduced trails (pr246 grok lane, P2):
+      // a reduced value can coincide with the raw calc v4 reducer.
+      if ('nameNumberSum' in c) expect(getNameNumberSum(c.name), 'nameNumberSum').toBe(c.nameNumberSum);
+      if ('soulUrgeSum' in c) expect(getSoulUrgeSum(c.name), 'soulUrgeSum').toBe(c.soulUrgeSum);
+      if ('personalitySum' in c) expect(getPersonalitySum(c.name), 'personalitySum').toBe(c.personalitySum);
     });
   }
+
+  it('every non-ASCII name fixture is stored as an NFC literal (the byte-twin rule is enforced, not just stated)', () => {
+    // calc v5 — tests/fixtures.json `_name_number_rule`. A stored NFD
+    // literal would still pass the runtime-equivalence block above (it
+    // computes both forms from whatever it is handed), so the rule needs
+    // its own pin (pr246 codex lane, P3).
+    const accented = fixtures.name_number.filter(c => /[^\x00-\x7F]/.test(c.name));
+    expect(accented.length).toBeGreaterThanOrEqual(8);
+    for (const c of accented) {
+      expect(c.name, `${c.name} is NFC`).toBe(c.name.normalize('NFC'));
+    }
+  });
 
   it('rejects malformed DOB (message-pinned)', () => {
     expect(() => buildProfile('x', 'bad-date')).toThrow(/DOB must be YYYY-MM-DD/);
