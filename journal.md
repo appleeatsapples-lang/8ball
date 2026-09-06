@@ -50,15 +50,24 @@ block and was killed only by the new exact-sequence pin on `nameLetters()` for f
 compositions. P3: `Ł`, `Ø`, `ß` joined `Đ` in the unsupported loop (a `ß → ss` compatibility mapping is
 now killed twice). P3: the fixture file's "NFC literals only" rule was stated, not enforced — a test now
 proves every non-ASCII `name_number` literal equals its own NFC form. P3: the break-count above.
+**Grok lane (pr246, MERGE WITH FIXES) — absorbed before the artifact.** P1: the same break-count.
+P2: two of the eight fixtures coincided with the raw calc v4 reducer on the reduced value (Ana Sofía
+21→3 vs 30→3; İrem 27→9 both ways) — every accented fixture now also pins its three unreduced sums, and
+the consumer reads them. P2: Ł/Ø/ß — same absorb as codex, plus three mixed names (Łukasz → ukasz,
+Øystein → ystein, Straße → strae) locking that the limit is per letter, not per name. P3: the display
+readers, above. Both lanes' mutants were then planted and killed (artifact).
 Suite after absorbs: 62 files / 2209 tests.
 
 **Not ported from #205, on purpose.** The moon-sign wiring (main shipped its own, #232), the inert
 gender field (main retired it, v0.64), and the hexagon, four-line grid, measurement events and seam
 suites — product and privacy decisions that stay open. `index.html` is untouched at 697 lines.
 
-**Behaviour boundary.** The stored payload keeps the typed bytes; only the profile's retained `name`
-is NFC. `isNewPair` compares typed against stored raw strings and the readings archive stores inputs,
-so neither moves; reopen and reload recompute under calc v5 with no migration.
+**Behaviour boundary.** The stored payload keeps the typed bytes; `isNewPair` compares typed against
+stored raw strings and the readings archive stores inputs, so neither moves; reopen and reload recompute
+under calc v5 with no migration. The profile's retained `name` and `firstName` ARE NFC, so the display
+readers of them — sheet title, dyad heads — render the canonical string for an NFD entry. The grok lane
+called the first version of this paragraph over-narrow for saying "unaffected" without naming that; it
+is a display change, and this is the record of it.
 
 ## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — STAGED on branch
 

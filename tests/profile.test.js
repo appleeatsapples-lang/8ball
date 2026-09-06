@@ -212,11 +212,20 @@ describe('calc v5 — name normalization contract (canonical equivalence)', () =
       ['Ana Sofía', 'anasofia'], ['Ångström', 'angstrom'], ['İrem', 'irem'],
       ['Đặng Thị', 'angthi'], ['Đỗ', 'o'], ['Alex Thomas', 'alexthomas'],
       ['Đ', ''], ['Ł', ''], ['Ø', ''], ['ß', ''], ['', ''],
+      // the limit is per LETTER, not per name: the unsupported glyph is
+      // skipped and the remainder reduces (pr246 grok lane)
+      ['Łukasz', 'ukasz'], ['Øystein', 'ystein'], ['Straße', 'strae'],
     ];
     for (const [name, letters] of EXACT) {
       expect(nameLetters(name), name).toBe(letters);
       expect(nameLetters(name.normalize('NFD')), `${name} (NFD)`).toBe(letters);
     }
+    // the retained name and firstName follow the fold's NFC contract, so a
+    // dyad head or a sheet title built from an NFD entry renders the NFC
+    // string (pr246 grok lane, P3 — a display change, stated)
+    const nfd = buildProfile('Jose\u0301 Marti\u0301', '1988-08-15');
+    expect(nfd.name).toBe('José Martí');
+    expect(nfd.firstName).toBe('José');
     expect(nameLetters(null)).toBe('');
     expect(nameLetters(undefined)).toBe('');
   });
@@ -300,6 +309,11 @@ describe('calculation contract', () => {
   for (const c of fixtures.name_number) {
     it(`name number: ${JSON.stringify(c.name)} → ${c.expected}`, () => {
       expect(getNameNumber(c.name)).toBe(c.expected);
+      // calc v5 fixtures also pin the unreduced trails (pr246 grok lane, P2):
+      // a reduced value can coincide with the raw calc v4 reducer.
+      if ('nameNumberSum' in c) expect(getNameNumberSum(c.name), 'nameNumberSum').toBe(c.nameNumberSum);
+      if ('soulUrgeSum' in c) expect(getSoulUrgeSum(c.name), 'soulUrgeSum').toBe(c.soulUrgeSum);
+      if ('personalitySum' in c) expect(getPersonalitySum(c.name), 'personalitySum').toBe(c.personalitySum);
     });
   }
 
