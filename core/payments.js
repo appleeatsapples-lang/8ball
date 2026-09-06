@@ -1,35 +1,14 @@
 // core/payments.js
-// Pure state machine, HISTORICALLY for the paid surface (DOCTRINE §2 /
-// §4.B / §5.B / §5.C; tier ladder §1.D v0.36; ownership model §1.D / §2 /
-// §4.B v0.55). Sixth remediation gate: this file is now TWO halves with
-// different current status, mirroring ui/payments.js's own split (see that
-// file's header):
-//   - Tier/credit/paid-return functions (`resolveRenderTier`,
-//     `applyPaidReturn`, `isNewPair`, `nextShakeState`, `normalizeCounter`,
-//     `maxTier`, `normalizeTier`) are RETAINED legacy-registry compatibility
-//     machinery — the kua-retirement precedent (a surface retires, its
-//     engine stands). Since the 2026-09-02 free amendment (doctrine §1.D
-//     v0.71), `ui/payments.js`'s live render path (`getRenderTier()`) never
-//     calls any of them; it unconditionally resolves the free ceiling.
-//     They remain correct and tested for what they'd compute given a
-//     stored pre-amendment tier/credit shape, not because any current
-//     device exercises them.
-//   - The t3 written-entry rotation functions below (`anchorFacetIndex`,
-//     `nextFacetState`, `normalizeFacetIndex`) are STILL LIVE — the
-//     rotation "was never commerce" (ui/payments.js's own header) and
-//     ships unfunded/unlimited on every device; `ui/payments.js` imports
-//     and calls all three today.
+// Pure state machine for the paid surface (DOCTRINE §2 / §4.B / §5.B / §5.C;
+// tier ladder §1.D v0.36; ownership model §1.D / §2 / §4.B v0.55).
 //
 // No DOM. No localStorage. No timers. No side effects. Inputs in, outputs out.
-// The tier/credit half's state machine was the contract for the (retired)
-// ownership model: renders were unlimited at every tier (free included), a
-// purchase was the permanent, monotonic tier write — no credits, no caps,
-// no counters. Pre-amendment UI wiring in index.html read from
-// localStorage, called those functions, and wrote results back; no current
-// wiring does. Unit tests at tests/payments_state.test.js,
-// tests/tiers.test.js, and tests/facet_rotation.test.js verify each half's
-// own contract — the tier/credit tests as registry-correctness-only, the
-// facet-rotation tests as live behavior.
+// The state machine is the contract for the ownership model: renders are
+// unlimited at every tier (free included), a purchase is the permanent,
+// monotonic tier write — no credits, no caps, no counters. UI wiring in
+// index.html reads from localStorage, calls these functions, and writes
+// results back. Unit tests at tests/payments_state.test.js,
+// tests/tiers.test.js, and tests/facet_rotation.test.js.
 
 // Legacy credit values persisted by pre-v0.55 code can be hand-edited or
 // corrupted. The one surviving read (the §1.D R2 grandfather inside

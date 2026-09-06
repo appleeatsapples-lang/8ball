@@ -1,16 +1,18 @@
 // 8ball / ui / dyad.js — the dyad surface (DOCTRINE §1.J, tier t5)
 //
-// CURRENT-TRUTH NOTE (seventh remediation gate): everything below that
-// describes `dyadEntitled(tier)` as a gate — "below t5 refuses", "what t5
-// buys", "unreachable below t5" — is RETAINED render-registry compatibility
-// machinery, not a live restriction. Since the 2026-09-02 free amendment
-// (doctrine §1.D v0.71), the host's `getRenderTier()` always resolves the
-// ceiling tier, so `dyadEntitled()` genuinely runs on every call but never
-// returns false for any current device — every device sees the complete
-// Pair Dossier on every load. The predicate is kept as the single seam all
-// three gates (entry control, `open()`, `render()`) still agree through,
-// exactly as F2 below required, so a future doctrine change has one place
-// to change rather than three that could drift apart again.
+// CURRENT-TRUTH NOTE (rewritten at the v0.90 integration, 2026-09-06):
+// `dyadEntitled(tier)` IS a live gate. Since doctrine §4.B v0.81 the host's
+// `getRenderTier()` (ui/payments.js) answers `t3` for every device and `t5`
+// only once a SIGNED dyad access token has verified offline — so the entry
+// control, `open()`, `render()` and `compareAnother()` all refuse below t5
+// on an unentitled device, and that device sees the v0.81 offer anchor and
+// nothing of the pair. The single sheet is complete at t3 (v0.71, kept by
+// v0.81); the dyad — the Pair Dossier and its Imprint — is the one t5
+// surface. The earlier "free ceiling / never returns false" note this
+// paragraph replaces described the 2026-09-02 free amendment and the Pair
+// candidate's brief, both superseded by §1.J v0.90. The predicate stays the
+// single seam all gates agree through (PR #187 F2), so a doctrine change
+// has one place to change rather than four that could drift apart.
 //
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initDyadUI({refs}, {hooks}) injection point below, no module-level DOM
@@ -112,9 +114,9 @@ export const DYAD_OFFER_COPY = Object.freeze({
 /**
  * Does this device own the dyad? ONE predicate, consulted by every gate, so
  * the entry control, the submit path and the render cannot disagree about
- * what t5 sells (PR #187 F2 — they did). Retained render-registry
- * compatibility machinery, not a live restriction — see the CURRENT-TRUTH
- * NOTE at the top of this file; the render tier is always the ceiling now.
+ * what t5 sells (PR #187 F2 — they did). A LIVE gate since §4.B v0.81:
+ * `tier` is `t3` for every device and `t5` only from a verified signed
+ * access token — see the CURRENT-TRUTH NOTE at the top of this file.
  */
 export function dyadEntitled(tier) {
   return coordsForTier(tier).has('dyadRelation');
@@ -1214,8 +1216,8 @@ export function initDyadUI(refs, hooks) {
   return _root;
 }
 
-/** Open the dyad screen. Refuses below t5 (retained compatibility gate,
- *  never live — see the CURRENT-TRUTH NOTE at the top of this file) — the
+/** Open the dyad screen. Refuses below t5 — a live gate (§4.B v0.81 /
+ *  §1.J v0.90; see the CURRENT-TRUTH NOTE at the top of this file) — the
  *  screen is the product. */
 export function open() {
   if (!dyadEntitled(currentTier())) return false;
@@ -1486,9 +1488,8 @@ export function submitSecond() {
  *
  * Below t5 this produces nothing at all — not a sealed preview, nothing. The
  * screen is unreachable there by three independent gates, and this is the
- * last of them. Retained compatibility structure only — no current device
- * ever resolves below t5 (see the CURRENT-TRUTH NOTE at the top of this
- * file).
+ * last of them. Live: an unentitled device resolves `t3` (§4.B v0.81; see
+ * the CURRENT-TRUTH NOTE at the top of this file).
  */
 export function render() {
   const tier = currentTier();

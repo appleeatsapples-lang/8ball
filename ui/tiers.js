@@ -1,17 +1,18 @@
 // 8ball / ui/tiers.js
 // v0.7.0 compartment-card render controller (DOCTRINE §1 / §1.D v0.37 / §6).
 //
-// Fourth Pair Imprint remediation gate, item 3: the "tier"/"entitled"/
-// "paid"/"unseal" vocabulary throughout this file and its comments dates
-// from the product's commercial era and is RETAINED, not live — the
-// product went completely free on the controller's 2026-09-02 order (no
-// storefront, no checkout, nothing to purchase; DOCTRINE §1.D v0.71). Every
-// device now renders at the free ceiling (`getRenderTier()` in
-// `ui/payments.js` always resolves it), so every predicate below that used
-// to gate a PURCHASE now always answers yes — the tier vocabulary and
-// `TIER_COORDS` survive as the RENDER-REGISTRY/ceiling compatibility
-// machinery composing which coordinates a render surfaces, not as a price
-// gate (the kua-retirement precedent: a commercial surface retires, its
+// CURRENT TRUTH (v0.90 integration, 2026-09-06; supersedes the fourth Pair
+// Imprint gate's "completely free" note that stood here): the "tier"/
+// "entitled"/"paid"/"unseal" vocabulary below is the render registry. Since
+// doctrine §4.B v0.81 `getRenderTier()` (ui/payments.js) answers `t3` — the
+// COMPLETE single sheet, every coordinate open, v0.71 kept — for every
+// device, and `t5` only once a signed dyad access token has verified. No
+// sheet CELL is ever sealed on a current device (t3 carries all of them);
+// the one t5 addition is the dyad block, which does not live on #card-face.
+// So every cell predicate below answers yes at both tiers, while the tier
+// vocabulary and `TIER_COORDS` compose which coordinates a render surfaces
+// and carry the ONE live gate, `dyadRelation` (the kua-retirement precedent
+// for the rest: a commercial surface retires, its
 // registry stands). Nothing below this note changed behavior for this
 // remediation — comments only, so a reader does not mistake retained
 // compatibility plumbing for a live paywall.
@@ -23,10 +24,9 @@
 // 5 coordinates initially open, 11 sealed behind higher rungs, 16 total
 // (15 sheet cells + the always-open catalog numeral). That reading still
 // computes correctly (the registry and its arithmetic were never edited),
-// but it describes a rung that no longer exists: since doctrine v0.71's
-// free amendment, `getRenderTier()` always resolves the ceiling, so the
-// CURRENT fully-free render shows all 16 open on every device — the "11
-// sealed" figure is retained-registry history, not a live count.
+// but it describes a rung that no longer exists: since v0.71 (kept by
+// v0.81) every device renders the complete sheet, all 16 open at t3 — the
+// "11 sealed" figure is retained-registry history, not a live count.
 //
 // Owns:
 //   - TIER_COORDS — the single exported render constant defining which
@@ -47,9 +47,10 @@
 //     same-tier re-renders flag none (β idempotence — no replay on
 //     shake-again / rehydrate). index.html primes the baseline at boot —
 //     retained compatibility shape from when this preceded a paid-return
-//     handler so that boot could unseal exactly once; `getRenderTier()`
-//     always resolves the same free ceiling now (doctrine v0.71), so this
-//     condition never fires live, but the math stays intact.
+//     handler so that boot could unseal exactly once; since v0.81 the
+//     entitlement settles BEFORE the first render and cannot rise
+//     mid-session, so this condition never fires live — the math stays
+//     intact.
 //   - shareRowRefs — per-row snapshot refs for ui/share.js (§5.D v0.39).
 //     The PNG renders the FULL sheet per compartment: each row ref carries
 //     its title + per-cell {state, value}. Open cells → value; sealed cells
@@ -267,10 +268,11 @@ export function initTiersUI(refs, hooks) {
  * first render. Retained compatibility shape from the commercial era: this
  * ran BEFORE the (now-retired) paid-return handler applied a purchase, so
  * the first render could unseal exactly the delta a purchase just granted,
- * and nothing on a plain rehydrate. `getRenderTier()` always resolves the
- * free ceiling now (doctrine v0.71), so there is no delta to unseal in
- * practice — the priming call and the unseal-diff math still run, unchanged,
- * as part of keeping this module's render-registry composition intact.
+ * and nothing on a plain rehydrate. Since v0.81 the entitlement settles
+ * before the first render and cannot rise mid-session, so there is no delta
+ * to unseal in practice — the priming call and the unseal-diff math still
+ * run, unchanged, as part of keeping this module's render-registry
+ * composition intact.
  */
 export function primeUnsealBaseline(tier) {
   _lastRenderedTier = tier || 'free';
@@ -278,8 +280,8 @@ export function primeUnsealBaseline(tier) {
 
 // setCell(key, state, text) with state ∈ value | sealed | unres.
 // Sealed → value node textContent = '' (DOM purity: no withheld-tier value
-// string exists anywhere in the DOM — a compatibility state `entitled`
-// never actually returns false at the free ceiling, doctrine v0.71) and the
+// string exists anywhere in the DOM — no sheet cell is sealed on a current
+// device, since t3 carries every coordinate (v0.71, kept by v0.81)) and the
 // seal layer active.
 // Unres → `—`, no seal. The 'unsealing' beat class is always cleared
 // here and re-applied only by an upgrade render.
@@ -404,8 +406,8 @@ export function renderTierSections(profile, tier) {
 
   // Unseal beat: fires only when this render's tier exceeds the last
   // rendered (or primed) tier — retained compatibility trigger for what
-  // used to be a paid-return boot or upgrade. Since `getRenderTier()`
-  // always resolves the same free ceiling now (doctrine v0.71), this
+  // used to be a paid-return boot or upgrade. Since v0.81 the entitlement
+  // settles before the first render and cannot rise mid-session, so this
   // condition is never true in production and the beat never fires live —
   // the math stays correct and testable regardless. ~100ms DOM-order
   // stagger via --unseal-delay; the CSS keyframes own the settle.

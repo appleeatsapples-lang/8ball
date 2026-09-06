@@ -443,11 +443,13 @@ meaningsUI = initMeaningsUI({ cardFace, readingPane: $('reading-pane') }) || mea
 //
 // `pairShareController` is declared before initDyadUI so its hooks object
 // can close over it: initDyadUI needs an onRelationChange hook at construction
-// time, but that hook's real target (ui/pairShare.js's controller) can only
-// be created AFTER initDyadUI has injected the DOM nodes initPairShareUI
-// wires to below. The closure defers the read to CALL time, not init time,
-// so the ordering is safe either way and neither module ever imports the
-// other (second remediation gate, P1-4).
+// time, but that hook's real target (ui/pairShare.js's controller) is only
+// created in boot() — after initDyadUI has injected the DOM nodes it wires
+// to, AND only once the entitlement has settled at t5 (v0.90: an unentitled
+// device never initialises the Pair share controller at all; both pr247
+// audit lanes). The closure defers the read to CALL time, not init time, so
+// the ordering is safe and neither module ever imports the other (second
+// remediation gate, P1-4).
 let pairShareController = null;
 initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') },
   { getProfile: () => currentProfile, getTier: getRenderTier, validateEntry: validateBirthInput,
@@ -465,11 +467,6 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
 // returned notifyRelationChange is what onRelationChange above calls, so
 // the module can pre-render for transient-activation-safe native share
 // (second remediation gate, P1-4) without ui/dyad.js ever importing it.
-pairShareController = initPairShareUI(
-  { btn: $('dyad-share-btn'), status: $('dyad-share-status'), disclosure: $('dyad-share-disclosure') },
-  { getRelation: dyadCurrentRelation },
-);
-
 // share-surface (§5.D v0.39): no profile, no card layer. Per-row refs from
 // ui/tiers.js carry per-cell {state,value}; the PNG renders the full sheet,
 // with any sealed cell hatched. Since the 2026-09-02 free amendment
@@ -708,6 +705,16 @@ async function boot() {
   // mid-session, so the beat never fires — primed anyway so the resolver
   // stays the single seam.
   primeUnsealBaseline(getRenderTier());
+  // v0.90: the Pair Imprint controller exists only on an entitled device.
+  // Entitlement cannot rise mid-session, so one settled check is the whole
+  // gate; below t5 the share button stays inert markup inside a hidden
+  // screen that open() refuses to show.
+  if (getRenderTier() === 't5') {
+    pairShareController = initPairShareUI(
+      { btn: $('dyad-share-btn'), status: $('dyad-share-status'), disclosure: $('dyad-share-disclosure') },
+      { getRelation: dyadCurrentRelation },
+    );
+  }
   const existing = loadSavedProfile();
   if (existing) {
     try {

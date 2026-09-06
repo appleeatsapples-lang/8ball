@@ -398,7 +398,6 @@ function buildIntegrationHarness({ rasterLog } = {}) {
     getPublicRead: () => null,
     onOpen: () => { meaningsUI.close(); result.classList.add('hidden'); },
     onExit: () => result.classList.remove('hidden'),
-    onLabelsChange: () => {},
     onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); },
   });
 

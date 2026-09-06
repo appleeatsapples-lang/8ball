@@ -95,11 +95,9 @@ Per-profile checks: form acceptance, shake-completes, card renders, coordinates 
 
 Cross-profile checks: no network calls beyond expected (cities.json lazy-load, feedback POST when explicitly submitted), localStorage keys are allow-listed only, mobile viewport doesn't break.
 
-### 2. Payment flow walkthrough (RETIRED 2026-09-02, doctrine §1.D v0.71 free amendment — historical procedure, not a current CiC run)
+### 2. Payment flow walkthrough (current — paid surface shipped in v0.3.0; Gumroad live as of v0.3.0.3 2026-05-16)
 
-**Retirement note, sixth Pair Imprint remediation gate:** the entire commerce surface this procedure exercised — the three-free-tries cap, the paywall, Gumroad hosted checkout, and the `?paid=` return path — was deleted by the 2026-09-02 free amendment. There is no paid surface left to walk through; the product renders the complete free sheet on every device. This procedure is preserved below as a historical record of what the v0.3.0.3-era live-fire covered, not as a runnable current procedure.
-
-Historical text follows, describing the paid surface as it existed from v0.3.0 (2026-05-11) through its 2026-09-02 retirement: after v0.3.0 shipped, this procedure became the standard live-fire for the paid surface. As of v0.3.0.3 (2026-05-16) the live processor was Gumroad; CiC firing #9 cleared the post-cutover live-fire smoke-test (`~/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`). LS path permanently retired 2026-05-17 per DOCTRINE v0.30. Procedure ran:
+After v0.3.0 shipped (2026-05-11), this procedure became the standard live-fire for the paid surface. As of v0.3.0.3 (2026-05-16) the live processor is Gumroad; CiC firing #9 cleared the post-cutover live-fire smoke-test (`~/8ball/audits/v0_3_0_3_live_smoke_test_2026-05-16.md`). LS path permanently retired 2026-05-17 per DOCTRINE v0.30. Procedure runs:
 - 3 free tries hitting locked render
 - 4th try hitting paywall (Path A)
 - Lock-tap on a locked card hitting paywall (Path B)

@@ -651,9 +651,10 @@ export function initReadingsUI(refs, hooks = {}) {
     // Sixth remediation gate: `comparison.omitted` can only include
     // 'element' when ui/concordance.js's buildConcordance() was called with
     // `tier === 'free'` — this file's only call site (index.html) always
-    // passes `getRenderTier()`, which always resolves 't5' since doctrine
-    // §1.D v0.71's free amendment. This branch is RETAINED compatibility
-    // text for that shape; no current comparison ever omits the element
+    // passes `getRenderTier()`, which since §4.B v0.81 answers 't3' for
+    // every device and 't5' on a verified token — never 'free' — and t3
+    // carries the element axis. This branch is RETAINED compatibility text
+    // for the 'free' shape; no current comparison ever omits the element
     // axis or shows this copy.
     comparisonOmitted.hidden = !comparison.omitted.includes('element');
     comparisonOmitted.textContent = comparisonOmitted.hidden

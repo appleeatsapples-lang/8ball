@@ -1,9 +1,10 @@
 // 8ball / tests / density.test.js
 // Density strip (Coordinate Legibility Pack cut 3). An aggregate census
-// derived PURELY from the render-registry tier constants — since doctrine
-// v0.71's free amendment every device renders the free ceiling and the
-// strip is always-on; "tier"/"sealed" here name retained compatibility
-// machinery, not a live paywall (see ui/tiers.js's own top-of-file note).
+// derived PURELY from the render-registry tier constants — since v0.71
+// (kept by §4.B v0.81) every device renders the complete sheet at t3 and
+// the strip is always-on; "sealed" here names retained registry machinery
+// no current cell hits, while the dyad (t5) is gated in ui/dyad.js (see
+// ui/tiers.js's own top-of-file note).
 // Pins: the count math, profile-independence (value-leak sentinel),
 // no-FOMO copy (§2/§5.C), always-on gating, and §5.D PNG exclusion.
 

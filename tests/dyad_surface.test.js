@@ -7,11 +7,11 @@
 //   1. SEALED-DOM PURITY. Below t5 the relation layer renders its seal with
 //      the value nodes EMPTY — absent, not hidden (§1.D v0.37). An
 //      unentitled render must carry no entitled passage anywhere in the DOM.
-//   2. THE OFFER IS RETIRED (free amendment, 2026-09-02). No checkout
-//      constant, no offer predicate, no rail anchor, no disclosure note —
-//      the entry control is the rail's one injected control and stays
-//      entitlement-only (R6), with the free ceiling answering for every
-//      device.
+//   2. THE OFFER (§4.B v0.81, restated at v0.90). One plain anchor carrying
+//      the configured Buy Link and the fixed copy, shown to the unentitled
+//      device; the entry control is entitlement-only (R6) and the two swap
+//      on the same sync. `getRenderTier()` answers `t3` for every device
+//      and `t5` only from a verified signed access token.
 //   3. NO STORAGE. The tier introduces no localStorage key, and the second
 //      person is never persisted — the §5 allow-list is unchanged by it.
 //   4. THE LADDER APPEND is safe: t5 outranks t3, monotonicity holds, the
@@ -115,9 +115,9 @@ const B = buildProfile('specimen b', '1988-06-15');
 // precedent's "engine stands" half: it is a tested, pure state-machine
 // registry, but since the 2026-09-02 free amendment (§1.D v0.71) the LIVE
 // render path never calls it — ui/payments.js's own getRenderTier() (the
-// single render-density resolver every real render path uses) unconditionally
-// returns the free ceiling 't5' with no reference to stored tier/credits at
-// all. The "buying"/"paid for"/monotonic-ladder language below describes
+// single render-density resolver every real render path uses) answers 't3'
+// for every device and 't5' only from a verified signed access token (v0.81),
+// with no reference to stored tier/credits at all. The "buying"/"paid for"/monotonic-ladder language below describes
 // what these retained functions still correctly compute given historical
 // input SHAPES (so a pre-amendment device's stored state migrates/resolves
 // sanely if ever read again), not anything a current device experiences.
@@ -2234,6 +2234,49 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
     // Permanent row labels need no host-to-Pair preference bridge.
     const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
     expect(html).not.toMatch(/onLabelsChange|applyLabelsState/);
+  });
+});
+
+// ── v0.90: the Pair is the t5 product — the unentitled boot is Pair-dark ──
+//
+// Both pr247 audit lanes: every Pair test boots `getTier: () => 't5'`, so a
+// resolver that answered t5 for everyone would pass them all. These pin the
+// other side: on a t3 device the dyad screen stays hidden, every entry
+// refuses, the relation record is null, and the host does not even
+// initialise the Pair share controller until the entitlement has settled
+// at t5.
+describe('dyad surface — v0.90: the unentitled (t3) boot is Pair-dark', () => {
+  it('open(), render() and compareAnother() all refuse at t3; the screen root stays hidden; currentRelation() is null', () => {
+    const h = harness('t3');
+    h.withDom(() => {
+      expect(openDyad()).toBe(false);
+      expect(h.root.classList.contains('hidden')).toBe(true);
+      expect(isDyadOpen()).toBe(false);
+      expect(compareAnother()).toBe(false);
+      expect(currentRelation()).toBeNull();
+      // the harness's fake nodes do not model the injected `hidden` attribute;
+      // the root's `hidden` class above is the gate's observable, and the
+      // relation node carrying no text is the render's.
+      expect(h.byId.get('dyad-relation').textContent).toBe('');
+    });
+  });
+
+  it('at t3 the entry control is hidden and the configured offer is the only dyad control on the rail', () => {
+    const h = harness('t3');
+    h.withDom(() => syncDyadEntry('t3', 'https://example.test/l/dyad'));
+    expect(h.byId.get('dyad-open-btn').hidden).toBe(true);
+    const offer = h.byId.get('dyad-offer-link');
+    expect(offer.hidden).toBe(false);
+    expect(offer.getAttribute('href')).toBe('https://example.test/l/dyad');
+  });
+
+  it('index.html initialises the Pair share controller only inside boot(), after the entitlement has settled, and only at t5', () => {
+    const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf-8');
+    // exactly one call, and it sits after resolveDyadEntitlement inside boot()
+    expect(html.match(/initPairShareUI\(/g)).toHaveLength(1);
+    const boot = html.slice(html.indexOf('async function boot()'));
+    expect(boot).toMatch(/resolveDyadEntitlement\([\s\S]*?if \(getRenderTier\(\) === 't5'\) \{[\s\S]{0,400}initPairShareUI\(/);
+    expect(html.slice(0, html.indexOf('async function boot()'))).not.toMatch(/initPairShareUI\(/);
   });
 });
 

@@ -281,9 +281,10 @@ export function buildConcordance(left, right, options = {}) {
   // Ladder-agnostic: an exhaustive-over-three-rungs literal silently
   // downgraded t4 to free when §1.D v0.58 appended a rung, dropping an axis
   // the device owns and labelling it "sealed at this device tier" — false.
-  // Sixth remediation gate: index.html's only call site passes
-  // `getRenderTier()`, which always resolves 't5' since doctrine §1.D
-  // v0.71's free amendment — so the `tier === 'free'` branch below (and
+  // Sixth remediation gate, restated at v0.90: index.html's only call site
+  // passes `getRenderTier()`, which since §4.B v0.81 answers 't3' for every
+  // device and 't5' on a verified token — never 'free', and t3 carries the
+  // element axis — so the `tier === 'free'` branch below (and
   // the element-axis omission it drives) is RETAINED compatibility logic
   // for a `tier` shape this module still accepts, never a live path any
   // current device reaches.

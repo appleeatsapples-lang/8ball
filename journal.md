@@ -40,6 +40,25 @@ the artifact once run: unentitled device sees the full free sheet, permanent lab
 the offer anchor and no entry control; a signed link files the dyad, the entry opens the Pair Dossier,
 the Imprint downloads a 1080×1350 PNG with no name or date in it, reload stays entitled, no foreign request.
 
+**Both audit lanes (pr247, MERGE WITH FIXES each) — absorbed before the artifact.** They agreed on the
+load-bearing miss: the code gates were main's, the COMMENTS were the candidate's — `ui/dyad.js`'s
+"CURRENT-TRUTH NOTE" and the JSDocs on `dyadEntitled` / `open` / `render`, `ui/tiers.js`'s header,
+`ui/public.js`, `ui/readings.js`, `ui/concordance.js`, two test preambles, and the candidate's rewrite of
+`agents/verifier.md`, `agents/auditor.md` and `core/payments.js` all still taught "`getRenderTier()` always
+resolves the ceiling — every device sees the Pair Dossier — no paid surface left". Source is a shipped
+surface ("the deck is visible in source"), and a later editor believing those notes would delete a live
+gate. Every one was rewritten to the v0.81/v0.90 truth; `core/payments.js` and both agent files are restored
+to main byte for byte (the candidate's changes there were comments only). Second agreement: no test booted
+at `t3` — every Pair test mocked `t5`, so a resolver answering t5 for everyone would have passed the whole
+suite. Three pins now boot at t3 (open/render/compareAnother refuse, root hidden, relation null; entry
+hidden and the offer the only rail control; and index.html's Pair share controller initialised only inside
+`boot()` after the entitlement has settled, guarded on `t5`) — the host was changed to match, which was
+the lanes' (a). Also landed: the v0.90 clause narrowed to what the diff is (the numbers-only shift; the boot
+path identical except the deleted dangling call and the moved share init; the comment sweep stated as done
+in-PR, not assumed), the footer chain's missing v0.83–v0.86 entries, the "v0.79" journal heading the shift
+window skipped, a dead `onLabelsChange` key in the integration harness, and 8BALL/README currency. Suite
+after absorbs: 65 files / 2574 tests; the two-build live-fire re-run green with the moved initialisation.
+
 **Not in this PR.** Nothing of the storefront (the Buy Link 404 and the not-for-sale listing are the
 controller's Gumroad-side steps); nothing of PR #241 (conflict resolved separately, green, awaiting the merge
 word); no new coordinate, registry or calculation.
@@ -671,7 +690,7 @@ Also fixed in earlier rounds of this same session (already reflected in the diff
 
 **Residuals, named rather than hidden.** (1) E1 above stands as a permanent container limitation, not a to-do — the operator's own pre-push run of `run_local_audit.sh` remains the only real check of that boundary, exactly as CLAUDE.md already documents. (2) Cross-model doctrine audit (§10/L48) still has not run — unchanged from the prior entry's residual (5); this remediation is itself the response to a different (single-model, controller-authored) audit and does not substitute for that gate. (3) No PR exists yet, so the L48 in-PR audit artifact still cannot be finalized (its filename requires a real PR number) — unchanged from the prior entry's residual (1).
 
-## 2026-09-04 — DOCTRINE v0.79: the Pair Dossier, screen ownership, and the Pair Imprint — STAGED on branch `claude/pair-dossier-imprint`, no PR opened
+## 2026-09-04 — DOCTRINE v0.79 (as first filed; v0.81 after the candidate's own rebase, v0.83 after the 2026-09-06 integration renumber): the Pair Dossier, screen ownership, and the Pair Imprint — STAGED on branch `claude/pair-dossier-imprint`, no PR opened
 
 **What happened.** The controller-authorized brief `~/8ball/sessions/brief_pair_dossier_imprint_2026-09-04.md` asked for the completed paired reading to read as a concise Pair Dossier and for a privacy-safe, on-device Pair Imprint to be shareable from it — the first release of the registry-expansion work, implemented on an isolated Claude Code worktree from `origin/main` at `0f0dc86`. Everything below preserves 8ball's clinical register, the anti-oracle boundary, and the §1.J calculation isolation: no coordinate, table, or engine change anywhere in this cycle, and no shipped content table (`content/dyad.v1.js`, `content/dyad.v2.js`) is edited.
 

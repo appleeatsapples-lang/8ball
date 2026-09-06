@@ -9,7 +9,8 @@
 // initPublicUI({refs}, {hooks}) injection point below, no module-level DOM
 // access at import time. No storage, no network, no new localStorage key —
 // entitlement is resolved by the caller and handed in (and — see
-// renderPublicRead below — always resolves `true` on a current device).
+// renderPublicRead below — is `true` for every current device, because the
+// single sheet is complete at t3; the dyad is gated elsewhere).
 //
 // This module is the FIRST consumer of core/public.js. Until this file
 // existed a test asserted that nothing imported that engine; the assertion
@@ -167,16 +168,17 @@ export function initPublicUI(refs) {
  * absent, not hidden — so no entitled string is ever present in the DOM of
  * an unentitled render. The block's structure stays visible as a sealed
  * compartment, the same treatment every higher-tier cell gets. Sixth
- * remediation gate: since the 2026-09-02 free amendment (doctrine §1.D
- * v0.71), the caller's `entitled` is always `true` in practice — every
- * device renders the free ceiling — so this sealed branch is RETAINED
- * structural/privacy machinery (an entitled string genuinely still cannot
- * leak if it were ever `false`), not a live gate any current device hits.
+ * remediation gate, restated at v0.90: since v0.71 (kept by §4.B v0.81)
+ * the single sheet is complete for every device at `t3`, so the caller's
+ * `entitled` is `true` for every current device — the sealed branch is
+ * RETAINED structural/privacy machinery (an entitled string genuinely still
+ * cannot leak if it were ever `false`), not a gate any current device hits.
+ * The dyad (`t5`) is gated in ui/dyad.js, never here.
  *
  * @param {object|null} profile
  * @param {{entitled: boolean}} state — entitlement resolved by the caller
- *        (index.html's getRenderTier, which always resolves the free
- *        ceiling per doctrine v0.71), never read from storage here.
+ *        (index.html's getRenderTier — `t3` for every device, `t5` on a
+ *        verified token, v0.81), never read from storage here.
  */
 export function renderPublicRead(profile, { entitled } = {}) {
   if (!_refs || !_refs.root) return null;
