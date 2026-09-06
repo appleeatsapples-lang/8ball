@@ -259,11 +259,11 @@ describe('free disclosure — the about modal states the free surface', () => {
     expect(aboutSubtree).toMatch(/everything is free\./);
   });
 
-  it('names the whole free surface: sheet, meanings, written entry, domain fit, paired read', () => {
+  it('names the whole free surface: sheet, meanings, written entry, symbolic associations, paired read', () => {
     expect(aboutSubtree).toMatch(/all sixteen coordinates/);
     expect(aboutSubtree).toMatch(/their meanings/);
     expect(aboutSubtree).toMatch(/written card entry/);
-    expect(aboutSubtree).toMatch(/domain fit/);
+    expect(aboutSubtree).toMatch(/symbolic associations/);
     expect(aboutSubtree).toMatch(/paired read/);
   });
 
@@ -292,7 +292,8 @@ describe('free disclosure — the about modal states the free surface', () => {
   });
 
   it('the stored-locally list no longer names a paid rung', () => {
-    expect(aboutSubtree).toMatch(/inputs, the show-labels toggle, and readings you choose to save are stored locally/);
+    expect(aboutSubtree).toMatch(/inputs and readings you choose to save are stored locally/);
+    expect(aboutSubtree).not.toMatch(/show-labels toggle/);
   });
 });
 

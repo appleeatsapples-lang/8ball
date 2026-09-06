@@ -24,6 +24,7 @@
 // MOON row since v0.73) or the density census.
 
 import { buildPublicReading } from '../core/public.js';
+import { initReadingContext } from './sheet.js';
 
 // ── pure ──────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ export function dobIsoFromProfile(profile) {
 export function formatPublicRead(reading) {
   return {
     families: reading.families.map(f => `${f.rank} ${f.label}`).join(' · '),
-    antiFit: `anti-fit · ${reading.antiFit.label}`,
+    antiFit: `counterpoint · ${reading.antiFit.label}`,
     roleLine: reading.roleLine,
     bridge: reading.mode && reading.mode.bridged ? reading.mode.bridgeNote : '',
   };
@@ -90,6 +91,7 @@ export function publicReadFor(profile) {
 
 let _refs = null;
 let _bridge = null;
+let _context = null;
 
 // Scoped CSS for the injected node, in the §6 v0.23 shape ui/meanings.js and
 // ui/dyad.js already use: the module injects its own markup and style rather
@@ -154,6 +156,8 @@ export function initPublicUI(refs) {
   // whenever a ref was supplied instead.
   injectBridgeStyle();
   _bridge = resolveBridgeNode(_refs);
+  _context = initReadingContext(_refs && _refs.root, 'associations');
+  _context.setAvailable(false);
 }
 
 /**
@@ -183,7 +187,7 @@ export function renderPublicRead(profile, { entitled } = {}) {
   // this a screen-reader user hears the label and then silence — no signal
   // that anything is withheld rather than broken.
   if (root.setAttribute) {
-    root.setAttribute('aria-label', read ? 'domain fit' : 'domain fit · sealed at this device tier');
+    root.setAttribute('aria-label', read ? 'symbolic associations' : 'symbolic associations · unavailable');
   }
   if (families) families.textContent = read ? read.families : '';
   if (antiFit) antiFit.textContent = read ? read.antiFit : '';
@@ -192,5 +196,6 @@ export function renderPublicRead(profile, { entitled } = {}) {
   // downgraded render must leave no entitled string behind (§1.D v0.37), and
   // an unbridged reading must not keep the previous profile's bridge note.
   if (_bridge) _bridge.textContent = read ? read.bridge : '';
+  if (_context) _context.setAvailable(!!read);
   return read;
 }

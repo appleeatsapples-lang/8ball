@@ -184,12 +184,11 @@ describe('desk — the rail groups (read · keep · device)', () => {
     expect(groups[2].ids).toEqual(['try-another-btn', 'forget-btn']);
   });
 
-  it('the labels toggle and the density strip stay ABOVE the groups, ungrouped', () => {
-    const iLabels = rail.indexOf('id="labels-toggle"');
+  it('the full-sheet status stays ABOVE the groups, with no retired labels control', () => {
     const iStrip = rail.indexOf('id="density-strip"');
     const iFirst = rail.indexOf('class="rail-group-title"');
-    expect(iLabels).toBeGreaterThanOrEqual(0);
-    expect(iStrip).toBeGreaterThan(iLabels);
+    expect(rail).not.toMatch(/id="labels-toggle"/);
+    expect(iStrip).toBeGreaterThanOrEqual(0);
     expect(iFirst).toBeGreaterThan(iStrip);
   });
 

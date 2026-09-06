@@ -49,10 +49,9 @@
 // was correct when written and wrong one edit later.
 //
 // ── STORAGE / NETWORK: NONE OF ITS OWN ────────────────────────────
-// No localStorage key is named, read or written HERE. Since v0.76 the
-// paired screen reads and writes the ONE existing labels preference through
-// ui/labels.js's pure helpers (that module names the key; the allow-list is
-// unchanged) — nothing else. Person B lives in one
+// No localStorage key is named, read or written HERE. The v0.76 labels
+// preference bridge retired in v0.87: every sheet now labels its rows
+// permanently, with no storage-dependent visibility. Person B lives in one
 // module-local binding for the life of the screen and is dropped on close, on
 // an invalid re-submission, and on reload — the §5.F transient shape. Notably
 // the written-entry rotation key is never touched: both sheets take their note
@@ -80,11 +79,6 @@
 import { buildDyadReading } from '../core/dyad.js';
 import { coordsForTier, derivationText, CELL_KEYS } from './tiers.js';
 import { buildSheetMarkup, createSheet } from './sheet.js';
-// The labels preference is ONE preference (§5: no new key): the pure helpers
-// here read and write the labels key ui/labels.js owns; the paired sheets
-// follow it and their toggle writes it back, and the host's applyLabelsState
-// follows through the onLabelsChange hook (v0.76).
-import { isLabelsRevealed, setLabelsRevealed } from './labels.js';
 // The paired sheets' compartments open their own panel over the SAME pure
 // content path the host panel reads through (v0.76) — one meaning registry,
 // two readers, and each reading is placed in the context of its own sheet.
@@ -424,11 +418,8 @@ const STYLE = `
    strike through it (caught in the §8 gate 9 live-fire pass, not by the
    suite). */
 #dyad-screen #dyad-back { margin-top: 1.25rem; }
-/* v0.76: the paired sheets' labels toggle (the host's .labels-toggle shape,
-   the same preference) sits above the strip; the compartment hint and the
-   paired panel (ui/meanings.js's .meaning-* classes, injected at the host's
-   boot) sit under it, before the spine. */
-#dyad-screen .labels-toggle { margin: 0 auto 8px; }
+/* The compartment hint and paired panel (ui/meanings.js's .meaning-*
+   classes, injected at the host's boot) sit below the two sheets. */
 #dyad-screen .meaning-hint { margin: 8px 0 0; }
 #dyad-screen .meaning-panel { text-align: left; }
 /* Third remediation gate, item 4: #dyad-meaning-head's text is
@@ -548,7 +539,6 @@ const SCREEN_HTML =
   '<div class="dyad-signature-item"><span class="dyad-signature-label">card pair</span>' +
   '<span class="dyad-signature-value" id="dyad-signature-cardpair"></span></div>' +
   '</div>' +
-  '<button class="labels-toggle" id="dyad-labels-toggle" type="button" aria-pressed="false">→ reveal labels</button>' +
   '<div class="dyad-side-select" id="dyad-side-select" role="group" aria-label="jump to sheet">' +
   '<button type="button" class="dyad-side-btn" id="dyad-side-a" aria-pressed="true">A</button>' +
   '<button type="button" class="dyad-side-btn" id="dyad-side-b" aria-pressed="false">B</button>' +
@@ -685,24 +675,6 @@ function setText(id, text) {
 
 function currentTier() {
   return typeof _hooks?.getTier === 'function' ? _hooks.getTier() : 'free';
-}
-
-// ── the paired sheets' labels (v0.76) ────────────────────────────
-// Both sheets wear the host's `.labels-revealed` class (ui/shell.css keys
-// the row-title visibility on `.card.labels-revealed`), applied from the
-// stored preference on every open and render, and flipped by the screen's
-// own toggle — which writes the SAME preference and tells the host through
-// onLabelsChange so the single sheet agrees when the reader goes back.
-function applyDyadLabels(revealed) {
-  for (const prefix of ['a', 'b']) {
-    const face = _root && _root.querySelector ? _root.querySelector(`[data-sheet-face="${prefix}"]`) : null;
-    if (face && face.classList) face.classList.toggle('labels-revealed', !!revealed);
-  }
-  const btn = $('dyad-labels-toggle');
-  if (btn) {
-    btn.textContent = revealed ? '→ hide labels' : '→ reveal labels';
-    if (btn.setAttribute) btn.setAttribute('aria-pressed', revealed ? 'true' : 'false');
-  }
 }
 
 // Third remediation gate, item 3: each paired sheet's <article> landmark
@@ -903,19 +875,6 @@ function bindPairedPanel() {
   }
   const closeBtn = $('dyad-meaning-close');
   if (closeBtn && closeBtn.addEventListener) closeBtn.addEventListener('click', closePairedPanel);
-  const toggle = $('dyad-labels-toggle');
-  if (toggle && toggle.addEventListener) {
-    toggle.addEventListener('click', () => {
-      // `next` comes from the sheet's own class, as the host derives it from
-      // #card-face — deriving it from storage made the toggle a one-way latch
-      // wherever setItem is denied (pr235 audit MED-4).
-      const faceA = _root && _root.querySelector ? _root.querySelector('[data-sheet-face="a"]') : null;
-      const next = faceA && faceA.classList ? !faceA.classList.contains('labels-revealed') : !isLabelsRevealed();
-      setLabelsRevealed(next);
-      applyDyadLabels(next);
-      if (typeof _hooks.onLabelsChange === 'function') _hooks.onLabelsChange(next);
-    });
-  }
   // Escape parity with the host panel; a modal overlay keeps priority. The
   // listener is CAPTURE-phase (pr235 audit, both lanes): ui/modals.js's own
   // bubble-phase Escape handler registers first at boot and strips `.open`
@@ -1015,8 +974,6 @@ export function syncDyadEntry(tier) {
  *                         whatever is stored.
  *        - getPublicRead(p) the t3 public-read block for a profile
  *        - onOpen()/onExit()  host callbacks that hide and restore the sheet
- *        - onLabelsChange(revealed) the host's applyLabelsState, so the single
- *                         sheet follows a flip made on this screen (v0.76)
  */
 export function initDyadUI(refs, hooks) {
   _hooks = hooks || {};
@@ -1165,7 +1122,6 @@ export function open() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
   clearEntryFields();
-  applyDyadLabels(isLabelsRevealed());
   if (_root && _root.classList) _root.classList.remove('hidden');
   // audit B4: focus the NAMED heading (matches ui/readings.js's
   // heading.focus() on openPage()) rather than the unnamed section root —
@@ -1208,7 +1164,6 @@ export function compareAnother() {
   if (!dyadEntitled(currentTier())) return false;
   clearOutput();
   clearEntryFields();
-  applyDyadLabels(isLabelsRevealed());
   const nameInput = $('dyad-name-input');
   if (nameInput) {
     if (typeof nameInput.scrollIntoView === 'function') nameInput.scrollIntoView({ block: 'center' });
@@ -1460,7 +1415,6 @@ export function render() {
   setText('dyad-head-a', profileA.firstName || 'a');
   setText('dyad-head-b', _second.firstName || 'b');
   _names = { a: profileA.firstName || 'a', b: _second.firstName || 'b' };
-  applyDyadLabels(isLabelsRevealed());
   // Third remediation gate, item 3: the two <article> sheet landmarks and
   // all 30 interactive cells get their real accessible names ONLY here —
   // after `_names` is current — never at markup-injection time, when no
