@@ -17,7 +17,7 @@ The operator explicitly authorized fixing the card or directing Claude Code. The
 - Shared fixed copy/native disclosure helpers use existing `ui/sheet.js`; `ui/public.js` remains the sole UI consumer of `core/public.js`. Host and Pair instances own independent disclosure state, cleared on invalid/cleared/sealed rerender; the master-mode bridge stays intact.
 - Result-rail copy is `full sheet`; underlying density logic and honest unresolved fields remain.
 
-Doctrine v0.87 is additive. The v0.86 chronology phrase is corrected to `regressions v0.85 referred to`, without rewriting the old journal entry.
+Doctrine v0.89 is additive. The v0.88 chronology phrase is corrected to `regressions v0.87 referred to`, without rewriting the old journal entry.
 
 ## Verification of the uncommitted candidate
 

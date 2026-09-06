@@ -496,7 +496,7 @@ export function initReadingsUI(refs, hooks = {}) {
   }
 
   function openPage() {
-    // Screen ownership (DOCTRINE §1.J v0.81): if the paired reading is the
+    // Screen ownership (DOCTRINE §1.J v0.83): if the paired reading is the
     // active screen, close it FIRST — before `origin` is computed below —
     // so a Pair-hidden #result reads correctly as "the sheet was open" and
     // this page cannot stack on top of it. The hook also blanks B and both

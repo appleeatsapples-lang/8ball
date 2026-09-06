@@ -7,9 +7,9 @@
 //     self-injected at init — see the iOS/WebKit note there
 //
 // Does NOT own:
-//   - row-label visibility: v0.87 makes the host and Pair labels permanently
+//   - row-label visibility: v0.89 makes the host and Pair labels permanently
 //     visible in ui/shell.css, independent of legacy false/unavailable state
-//   - a toggle, class state or listener: the reveal controls retired in v0.87
+//   - a toggle, class state or listener: the reveal controls retired in v0.89
 //   - meaning-panel content: the v0.74 derivation surface is unchanged
 //
 // Extracted from index.html during the desktop side-rail layout cycle to
@@ -64,7 +64,7 @@ export function setLabelsRevealed(revealed) {
 // the ≥720 rail centers its items, so nothing stretched depended on the
 // box), and on WKWebView there is no ratio box left to under-size, in
 // any state, at any width. The historical `.labels-revealed` class toggle
-// retired in v0.87; these unconditional rules stay active at boot.
+// retired in v0.89; these unconditional rules stay active at boot.
 // `aspect-ratio: auto` is the load-bearing declaration — the base
 // .flip-stage rule sets no height, only the 5/8 ratio box. The back face
 // is deliberately NOT dropped to auto: it keeps index.html's

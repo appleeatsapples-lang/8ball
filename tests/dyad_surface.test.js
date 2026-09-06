@@ -253,12 +253,12 @@ function harness(tier, { profileA = A, second = B, noteSlot = () => 'mid',
     'dyad-city-input', 'dyad-city-suggestions', 'dyad-city-status', 'dyad-polar-message',
     'dyad-name-error', 'dyad-dob-error', 'dyad-form', 'dyad-back',
     'dyad-open-btn', 'dyad-style', 'dyad-spine', 'dyad-sheets',
-    // The compartment hint and panel remain after the v0.87 toggle retirement.
+    // The compartment hint and panel remain after the v0.89 toggle retirement.
     'dyad-meaning-hint', 'dyad-meaning-panel',
     'dyad-meaning-head', 'dyad-meaning-derivation', 'dyad-meaning-title', 'dyad-meaning-body',
     'dyad-meaning-context-head', 'dyad-meaning-context', 'dyad-meaning-relation-head',
     'dyad-meaning-relation', 'dyad-meaning-close',
-    // v0.81: Pair Dossier hierarchy — heading/scope, compact signature, the
+    // v0.83: Pair Dossier hierarchy — heading/scope, compact signature, the
     // narrow-screen A/B jump control, the failure state, and the completion
     // flow's own controls (dyad-back's relabel needs no new id).
     'dyad-heading', 'dyad-scope', 'dyad-signature',
@@ -1895,7 +1895,7 @@ describe('dyad surface — doctrine wording pins (PR #187 corrections, source-co
 });
 
 // ── paired sheet identification and derivation surface ───────────────────
-// v0.87 retires the label preference bridge and makes row titles permanent.
+// v0.89 retires the label preference bridge and makes row titles permanent.
 // The existing thirty interactive compartments still use the shared meaning
 // registry, each with the context and accessible name of its own sheet.
 // open() blanks the typed entry (clearEntryFields), so a pair landed after an
@@ -1911,7 +1911,7 @@ const B2 = buildProfile('zelda b', '1988-06-15');
 const nameA = A.firstName || 'a';
 const nameB = B2.firstName || 'b';
 
-describe('dyad surface — permanent labels without a live preference (v0.87)', () => {
+describe('dyad surface — permanent labels without a live preference (v0.89)', () => {
   it('both generated sheets contain all nine named rows and no reveal control', () => {
     for (const prefix of ['a', 'b']) {
       const markup = buildSheetMarkup(prefix);
@@ -2237,7 +2237,7 @@ describe('dyad surface — v0.76: every paired compartment opens the paired pane
   });
 });
 
-// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.81) ─────────────────────────
+// ── Pair Dossier hierarchy (DOCTRINE §1.J v0.83) ─────────────────────────
 
 describe('Pair Dossier — heading, scope, and the compact pair signature', () => {
   it('the pair reading heading and scope line are on screen', () => {

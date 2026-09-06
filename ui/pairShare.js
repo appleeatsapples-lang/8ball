@@ -1,4 +1,4 @@
-// 8ball / ui / pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.81)
+// 8ball / ui / pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.83)
 //
 // A DEDICATED, narrow share surface for the paired reading — deliberately a
 // separate module from ui/share.js rather than a second call into it. That
@@ -380,7 +380,7 @@ export function buildPairImprintCaption(snapshot) {
 //                                remediation correction (2026-09-05): a bare
 //                                NATIVE-SHARE exception/rejection is
 //                                deliberately NOT in this list — DOCTRINE
-//                                §1.J v0.85/v0.86: a non-Abort
+//                                §1.J v0.87/v0.88: a non-Abort
 //                                `navigator.share()` failure proves only
 //                                that the native chooser refused, not that
 //                                the already-rendered local PNG is unusable,
@@ -852,7 +852,7 @@ function trySyncNativeShare(controller, myToken, relationAtStart, blob, snapshot
     // already-settled cancellation — resolve to `cancelled` regardless of
     // any identity concern, since cancelled exports nothing either way.
     if (safeErrorName(err) === 'AbortError') return { kind: 'attempted', promise: Promise.reject(err) };
-    // Non-Abort: DOCTRINE (§1.J v0.85) — a non-Abort share exception proves
+    // Non-Abort: DOCTRINE (§1.J v0.87) — a non-Abort share exception proves
     // only that native sharing failed, not that the already-rendered local
     // PNG is unusable, so this routes to the download fallback rather than
     // a direct `failed`. But recheck HERE, immediately, so a genuine
@@ -1823,7 +1823,7 @@ async function shareOrFallback(controller, myToken, relationAtStart, snapshot, b
       // falls straight through to the same download-preserving path any
       // other non-Abort rejection already takes.
       if (safeErrorName(err) === 'AbortError') { setStatus(controller, 'cancelled'); return; }
-      // Second-gate P1-4, restated as DOCTRINE §1.J v0.85: a non-Abort
+      // Second-gate P1-4, restated as DOCTRINE §1.J v0.87: a non-Abort
       // rejection (NotAllowedError included) preserves the local download —
       // the platform only refused to open its OWN chooser; the PNG this
       // device already rendered is still right here. Identity was just

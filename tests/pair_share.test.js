@@ -1,6 +1,6 @@
 // 8ball / tests / pair_share.test.js
 //
-// ui/pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.81). Two
+// ui/pairShare.js — the Pair Imprint (DOCTRINE §5.D / §1.J v0.83). Two
 // halves, mirroring the tests/share_surface.test.js / tests/share_behavior.
 // test.js split for ui/share.js:
 //
@@ -4762,7 +4762,7 @@ describe('fifteenth remediation gate — the stale armed-timer busy-reconciliati
   });
 });
 
-// DOCTRINE §1.J v0.85: a non-Abort native-share exception or rejection
+// DOCTRINE §1.J v0.87: a non-Abort native-share exception or rejection
 // proves only that native sharing failed, never that the already-rendered
 // local PNG is unusable — existing coverage already pins the fallback
 // itself (identity-unchanged: eighth-gate "a genuine share exception...
@@ -4774,7 +4774,7 @@ describe('fifteenth remediation gate — the stale armed-timer busy-reconciliati
 // read FAILURE, not a confirmed change) on the recheck immediately after
 // the exception/rejection — `failed` per the ordinary pre-effect mapping,
 // never a stale/unconfirmable download and never a false "shared".
-describe('fifteenth remediation gate — DOCTRINE v0.85: native-share exception/rejection read-failure boundaries', () => {
+describe('fifteenth remediation gate — DOCTRINE v0.87: native-share exception/rejection read-failure boundaries', () => {
   it('a synchronous non-Abort share() throw, followed by a getRelation() hook that itself THROWS on the post-throw recheck, settles to "failed" — never a stale/unconfirmable download', async () => {
     let calls = 0;
     const getRelation = () => {

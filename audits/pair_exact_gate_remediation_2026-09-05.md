@@ -177,17 +177,17 @@ is unchanged and unamended by either. Full explanatory text: `journal.md`'s
 current top entry.
 
 1. `DOCTRINE.md`'s single active `**doctrine version:**` pointer still read
-   `v0.85` after the prior integration pass had added v0.86 only to §5.D and
-   the version-history footer LIST — fixed with a new current `v0.86`
+   `v0.87` after the prior integration pass had added v0.88 only to §5.D and
+   the version-history footer LIST — fixed with a new current `v0.88`
    pointer paragraph, the old paragraph relabeled `**doctrine version,
-   prior:** ... v0.85` with its wording preserved verbatim. No version bump
-   to v0.87 for this display correction.
-2. The v0.86 evidence paragraph's own test-group labeling was imprecise
+   prior:** ... v0.87` with its wording preserved verbatim. No version bump
+   to v0.89 for this display correction.
+2. The v0.88 evidence paragraph's own test-group labeling was imprecise
    (internally contradictory "identity-change... identity still confirmed
    current" phrasing) — corrected to name three distinct groups precisely:
    unchanged-identity tests prove successful fallback, confirmed-change
    tests prove `stale`/no download, unreadable-identity tests prove
-   `failed`/no download. v0.85's own substantive ruling is unchanged.
+   `failed`/no download. v0.87's own substantive ruling is unchanged.
 
 **Late-arriving supplementary PII evidence**, from the controller, after
 this note's original precommit text above was already written:

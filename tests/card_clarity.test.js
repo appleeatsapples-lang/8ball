@@ -1,4 +1,4 @@
-// Card clarity, v0.87: output/lifecycle proofs, not browser-layout acceptance.
+// Card clarity, v0.89: output/lifecycle proofs, not browser-layout acceptance.
 // Synthetic fixtures only. This deliberately small parser preserves real text
 // nodes and native details/summary structure; it implements no CSS/layout engine.
 import { describe, it, expect, vi, afterEach } from 'vitest';

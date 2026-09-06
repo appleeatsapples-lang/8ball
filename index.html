@@ -372,7 +372,7 @@ readingsUI = initReadingsUI(
       profileFromPayload(left.profile), profileFromPayload(right.profile),
       { tier: getRenderTier() },
     ),
-    // Screen ownership (§1.J v0.81): Previous Readings is a sibling
+    // Screen ownership (§1.J v0.83): Previous Readings is a sibling
     // full-screen surface to the paired reading. Closing Pair here — before
     // openPage() decides its own return-to origin below — blanks B and both
     // meaning panels through the same paths their own exits use, so the two
@@ -458,7 +458,7 @@ initDyadUI({ stage: document.querySelector('.stage'), controls: $('rail-read') }
     onExit: () => result.classList.remove('hidden'),
     onRelationChange: relation => { if (pairShareController) pairShareController.notifyRelationChange(relation); } });
 
-// Pair Imprint (§5.D / §1.J v0.81) — a SEPARATE module from ui/share.js,
+// Pair Imprint (§5.D / §1.J v0.83) — a SEPARATE module from ui/share.js,
 // wired to the dyad screen's own injected button/status nodes (they exist
 // only after initDyadUI has run). Its getRelation hook reads ui/dyad.js's
 // last FORMATTED relation record — never a profile, never sheet DOM; its
@@ -519,7 +519,7 @@ function renderCard(profile, opts) {
   const { cardEntry } = renderTierSections(profile, tier);
   // CLP cut 3: aggregate density census from the tier constants (never a
   // profile value) — resolves through the same `tier` the seals use.
-  // v0.87: the full ceiling does not imply every optional field resolved.
+  // v0.89: the full ceiling does not imply every optional field resolved.
   const density = tierDensitySummary(tier);
   // The single sheet is complete for every device (v0.71 density, kept by
   // v0.81); the dyad is a block outside the census. The rail reads a fixed

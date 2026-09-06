@@ -779,7 +779,7 @@ describe('page navigation and focus (§5.E)', () => {
   });
 });
 
-describe('screen ownership — Previous Readings closes an active Pair before opening (DOCTRINE §1.J v0.81)', () => {
+describe('screen ownership — Previous Readings closes an active Pair before opening (DOCTRINE §1.J v0.83)', () => {
   it('calls hooks.closeActiveScreens BEFORE computing where "back" should return to', () => {
     const calls = [];
     const h = boot({

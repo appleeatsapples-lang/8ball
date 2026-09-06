@@ -1,5 +1,5 @@
 // 8ball / tests / labels_reveal.test.js
-// Permanent row labels (v0.87), with the legacy preference helpers retained.
+// Permanent row labels (v0.89), with the legacy preference helpers retained.
 // Pins legible markup and the unchanged intrinsic-height layout fix.
 
 import { describe, it, expect } from 'vitest';
@@ -44,7 +44,7 @@ describe('permanent row labels — visible and unclipped on host and Pair', () =
   });
 });
 
-describe('permanent labels — markup and compatibility (v0.87)', () => {
+describe('permanent labels — markup and compatibility (v0.89)', () => {
   it('the host has no retired reveal-label control', () => {
     expect(html).not.toMatch(/id="labels-toggle"/);
   });
