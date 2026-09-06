@@ -56,8 +56,11 @@ hidden and the offer the only rail control; and index.html's Pair share controll
 the lanes' (a). Also landed: the v0.90 clause narrowed to what the diff is (the numbers-only shift; the boot
 path identical except the deleted dangling call and the moved share init; the comment sweep stated as done
 in-PR, not assumed), the footer chain's missing v0.83–v0.86 entries, the "v0.79" journal heading the shift
-window skipped, a dead `onLabelsChange` key in the integration harness, and 8BALL/README currency. Suite
-after absorbs: 65 files / 2574 tests; the two-build live-fire re-run green with the moved initialisation.
+window skipped, a dead `onLabelsChange` key in the integration harness, and 8BALL/README currency. `currentRelation()` itself now answers null below t5, the getter's half of the same
+boundary — added after the first absorb commit (`7330a63`) was pushed with its new t3 pin still red
+against a relation record leaked from earlier t5 tests in the same file; recorded here, not hidden. Suite
+after absorbs: 65 files / 2574 tests; the two-build live-fire re-run green with the moved initialisation
+and the gated getter.
 
 **Not in this PR.** Nothing of the storefront (the Buy Link 404 and the not-for-sale listing are the
 controller's Gumroad-side steps); nothing of PR #241 (conflict resolved separately, green, awaiting the merge
