@@ -1,13 +1,21 @@
 // 8ball / tests / tiers.test.js
 // v0.7.0 compartment-card contract (DOCTRINE §1 / §1.D v0.37 / §4.B;
-// ownership model v0.55). Covers: TIER_COORDS composition per tier —
+// ownership model v0.55). Sixth remediation gate: as ui/tiers.js's own
+// top-of-file note explains, all "tier"/"entitled"/"paid"/"unseal"
+// vocabulary here — TIER_ORDER, applyPaidReturn, newlyEntitledCells, the
+// `?paid=` handler, the unseal-trigger beat — is RETAINED render-registry
+// compatibility machinery since the 2026-09-02 free amendment (doctrine
+// §1.D v0.71): every device renders the free ceiling on every load, so
+// these suites verify the registry's own contract stays correct, not a
+// live paid gate. Covers: TIER_COORDS composition per tier —
 // UNCHANGED by v0.55; these suites are the proof the density ladder
 // survived the ownership cutover — tier rank/monotonic-upgrade math,
 // the generalized ?paid=t1|t2|t3 handler (tier write only, no grant),
 // unknown-param replay safety, the R2 legacy grandfather,
 // plus the v0.7.0 compartment render: constant skeleton (rows never
-// hidden), DOM purity (sealed cells carry EMPTY value nodes — no paid
-// value string in the DOM below its tier), seal-iff-above-tier, the F4
+// hidden), DOM purity (sealed cells carry EMPTY value nodes — no sealed
+// value string in the DOM below its tier, structurally guaranteed even
+// though no current device ever seals a cell), seal-iff-above-tier, the F4
 // sealed ≠ unresolvable distinction, the paired-row title grammar, the
 // unseal-trigger decision (pure + β-idempotent), and the §5.D share-row
 // snapshot refs (v0.39: per-cell {state, value} → the PNG renders the full sheet).

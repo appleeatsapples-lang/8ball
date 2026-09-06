@@ -124,7 +124,8 @@ describe('the v0.71 deletions stay deleted — the dyad offer is the only commer
     // processor and the data boundary (§5.B disclosure). core/ holds the
     // configurable Buy Link constant. No content batch, no other module.
     const naming = shippedSources().filter(([, src]) => /gumroad/i.test(src)).map(([n]) => n).sort();
-    expect(naming).toEqual(['README.md', 'core/entitlement.js', 'index.html', 'ui/dyad.js']);
+    // v0.91: the activation page's reason sentences name the processor too (§5.B call 3).
+    expect(naming).toEqual(['README.md', 'core/entitlement.js', 'index.html', 'ui/activate.js', 'ui/dyad.js']);
   });
 
   it('the commerce ids and classes of the retired storefront are gone from the host page', () => {
@@ -357,11 +358,11 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).not.toMatch(/everything is free/);
   });
 
-  it('names the whole free surface: sheet, meanings, written entry, domain fit, unlimited', () => {
+  it('names the whole free surface: sheet, meanings, written entry, symbolic associations, unlimited', () => {
     expect(aboutSubtree).toMatch(/all sixteen coordinates/);
     expect(aboutSubtree).toMatch(/their meanings/);
     expect(aboutSubtree).toMatch(/written card entry/);
-    expect(aboutSubtree).toMatch(/domain fit/);
+    expect(aboutSubtree).toMatch(/symbolic associations/);
     expect(aboutSubtree).toMatch(/as many readings as you like/);
   });
 
@@ -395,7 +396,8 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).toMatch(/checkout is on gumroad, which keeps the payment and your email/);
     // pr242 audit (Lane B M2): delivery of the link is the OPERATOR's step,
     // said so — never phrased as something the system does.
-    expect(aboutSubtree).toMatch(/after purchase the operator sends an access link to that email/);
+    // v0.91: activation by license key on the activate page; the emailed link is the fallback
+    expect(aboutSubtree).toMatch(/after purchase, pasting the license key from your gumroad receipt on the <a class="text-link" href="\/activate">activate page<\/a> — or opening the access link the operator emails you — files the dyad on that device/);
     expect(aboutSubtree).not.toMatch(/link sent to that email files/);
     expect(aboutSubtree).toMatch(/nothing about the second person is ever saved/);
   });
@@ -414,8 +416,10 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
   });
 
   it('the stored-locally list names the entitlement token and no paid rung', () => {
-    expect(aboutSubtree).toMatch(/inputs, the show-labels toggle, readings you choose to save, and — once filed — the dyad access token are stored locally/);
+    expect(aboutSubtree).toMatch(/inputs, readings you choose to save, and — once filed — the dyad access token are stored locally/);
     expect(aboutSubtree).not.toMatch(/rung.*stored locally/);
+    // card clarity: labels are permanent, so the toggle left the stored-locally list
+    expect(aboutSubtree).not.toMatch(/show-labels toggle/);
   });
 
   it('carries no compatibility, score, prediction or advice framing anywhere on the page', () => {

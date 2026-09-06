@@ -61,6 +61,20 @@
   to = "/index.html"
   status = 200
 
+# The complete example before checkout (DOCTRINE §1.J v0.91) and the
+# activation page (§5.B call 3 / §12 v0.91): two static pages served at bare
+# paths. Exact-match, non-forced, above the SPA catch-all, same shape as the
+# channel rules. Validated by tests/dyad_activation.test.js.
+[[redirects]]
+  from = "/example"
+  to = "/example.html"
+  status = 200
+
+[[redirects]]
+  from = "/activate"
+  to = "/activate.html"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

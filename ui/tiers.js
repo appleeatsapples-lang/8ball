@@ -1,6 +1,33 @@
 // 8ball / ui/tiers.js
 // v0.7.0 compartment-card render controller (DOCTRINE §1 / §1.D v0.37 / §6).
 //
+// CURRENT TRUTH (v0.90 integration, 2026-09-06; supersedes the fourth Pair
+// Imprint gate's "completely free" note that stood here): the "tier"/
+// "entitled"/"paid"/"unseal" vocabulary below is the render registry. Since
+// doctrine §4.B v0.81 `getRenderTier()` (ui/payments.js) answers `t3` — the
+// COMPLETE single sheet, every coordinate open, v0.71 kept — for every
+// device, and `t5` only once a signed dyad access token has verified. No
+// sheet CELL is ever sealed on a current device (t3 carries all of them);
+// the one t5 addition is the dyad block, which does not live on #card-face.
+// So every cell predicate below answers yes at both tiers, while the tier
+// vocabulary and `TIER_COORDS` compose which coordinates a render surfaces
+// and carry the ONE live gate, `dyadRelation` (the kua-retirement precedent
+// for the rest: a commercial surface retires, its
+// registry stands). Nothing below this note changed behavior for this
+// remediation — comments only, so a reader does not mistake retained
+// compatibility plumbing for a live paywall.
+//
+// Eighth remediation gate: stated plainly once, since `tierDensitySummary`
+// below is the arithmetic every other density comment in this file and
+// `ui/shell.css`/`8BALL.md` points back to. The RETAINED LEGACY reading —
+// what the `free` rung's census meant when tiers gated a purchase — was
+// 5 coordinates initially open, 11 sealed behind higher rungs, 16 total
+// (15 sheet cells + the always-open catalog numeral). That reading still
+// computes correctly (the registry and its arithmetic were never edited),
+// but it describes a rung that no longer exists: since v0.71 (kept by
+// v0.81) every device renders the complete sheet, all 16 open at t3 — the
+// "11 sealed" figure is retained-registry history, not a live count.
+//
 // Owns:
 //   - TIER_COORDS — the single exported render constant defining which
 //     coordinates each tier surfaces (the §3 rollback flag: reverting the
@@ -18,8 +45,12 @@
 //     decision. An upgrade render (entitled tier > previously rendered
 //     tier) flags exactly the cells the new tier adds, in DOM order;
 //     same-tier re-renders flag none (β idempotence — no replay on
-//     shake-again / rehydrate). index.html primes the baseline with the
-//     pre-paid-return tier at boot so a paid-return boot unseals once.
+//     shake-again / rehydrate). index.html primes the baseline at boot —
+//     retained compatibility shape from when this preceded a paid-return
+//     handler so that boot could unseal exactly once; since v0.81 the
+//     entitlement settles BEFORE the first render and cannot rise
+//     mid-session, so this condition never fires live — the math stays
+//     intact.
 //   - shareRowRefs — per-row snapshot refs for ui/share.js (§5.D v0.39).
 //     The PNG renders the FULL sheet per compartment: each row ref carries
 //     its title + per-cell {state, value}. Open cells → value; sealed cells
@@ -75,7 +106,10 @@ const T1_COORDS = [...FREE_COORDS, 'rising', 'moon', 'element', 'innerAnimal', '
 const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // §1.D v0.60 — `publicRead` rides t3, the rung that completes the sheet.
 // It is a BLOCK, not a cell: like `cardEntry` it has no compartment in the
-// 14-cell sheet and is excluded from the density census, so t3's
+// 15-cell sheet (eighth remediation gate: corrected from a stale "14-cell"
+// count that predates §1.K v0.73's MOON row — see tierDensitySummary above
+// for the current arithmetic, 15 sheet cells + the catalog numeral = 16
+// total) and is excluded from the density census, so t3's
 // open/sealed/total census is unchanged by carrying it. It briefly had its
 // own rung (t4, §1.D v0.58); that rung was folded in here rather than sold,
 // so the ladder is three rungs again and the block is the t3 ceiling
@@ -86,7 +120,15 @@ const T2_COORDS = [...T1_COORDS, 'numbers2', 'dayPillar'];
 // registries per §4, and no renderer exists.
 const T3_COORDS = [...T2_COORDS, 'hourPillar', 'cardEntry', 'publicRead'];
 // §1.D v0.61 — the dyad rung. It adds NO coordinate to the sheet: t3 already
-// completes it at 15 of 15 (16 of 16 since the §1.K moon row), and what t5 buys is a SECOND complete sheet plus
+// completed it in full at the time this clause shipped — pre-Moon that was
+// 14 sheet cells plus the catalog numeral, 15 coordinates total (ninth
+// remediation gate: stated explicitly here, since the prior wording's bare
+// "15 of 15" and "16 of 16" left it ambiguous whether those counted sheet
+// cells or the total coordinate census, the same conflation elsewhere in
+// this file's header already corrects). The CURRENT census, since §1.K's
+// MOON row, is 15 sheet cells plus the catalog numeral, 16 coordinates
+// total — t3 completes that one instead, and what t5 buys is a SECOND
+// complete sheet plus
 // the relation layer between the two. `dyadRelation` is therefore a BLOCK in
 // the `cardEntry` / `publicRead` sense — no compartment, no census weight —
 // and it is the only key here that renders outside #card-face entirely (the
@@ -147,13 +189,16 @@ export function coordsForTier(tier) {
  * Aggregate coordinate census for a tier (CLP cut 3 — density strip).
  * Derived PURELY from the tier constants (CELL_KEYS + CELL_COORD via
  * coordsForTier) — NEVER from a profile, so it carries no coordinate VALUE
- * and no PII. Counts the 14 sheet cells PLUS the catalog numeral, which is
- * a free coordinate per §1.D (always open, never a sealable cell) — so the
- * base (15) matches the product-wide "five coordinates" free framing
+ * and no PII. Counts the 15 sheet cells (§1.K: fourteen at v0.7.0, plus the
+ * MOON row since v0.73) PLUS the catalog numeral, which is a free
+ * coordinate per §1.D (always open, never a sealable cell) — so the base
+ * (16) matches the product-wide "five coordinates" free framing
  * (prose_coordinate_count = TIER_COORDS.free.length + 1 = 5). Blocks are
  * excluded — cardEntry, publicRead and dyadRelation are not coordinates, so
  * t3 and t5 return the identical census.
- * open = open cells + catalog · sealed = sealable cells still hidden · total = 15.
+ * open = open cells + catalog · sealed = sealable cells still hidden · total = 16
+ * (= CELL_KEYS.length + 1, computed below — this comment states the count,
+ * never hand-duplicates it).
  * Returns { open, sealed, total }.
  */
 export function tierDensitySummary(tier) {
@@ -219,18 +264,25 @@ export function initTiersUI(refs, hooks) {
 }
 
 /**
- * Prime the unseal baseline with the tier the device was entitled to
- * BEFORE a possible paid return is applied (index.html boot, ahead of
- * the retired paid-return handler once ran). The first render then unseals exactly the delta on
- * a paid-return boot, and nothing on a plain rehydrate.
+ * Prime the unseal baseline with the render tier at boot, before the
+ * first render. Retained compatibility shape from the commercial era: this
+ * ran BEFORE the (now-retired) paid-return handler applied a purchase, so
+ * the first render could unseal exactly the delta a purchase just granted,
+ * and nothing on a plain rehydrate. Since v0.81 the entitlement settles
+ * before the first render and cannot rise mid-session, so there is no delta
+ * to unseal in practice — the priming call and the unseal-diff math still
+ * run, unchanged, as part of keeping this module's render-registry
+ * composition intact.
  */
 export function primeUnsealBaseline(tier) {
   _lastRenderedTier = tier || 'free';
 }
 
 // setCell(key, state, text) with state ∈ value | sealed | unres.
-// Sealed → value node textContent = '' (DOM purity: no paid value string
-// exists anywhere in the DOM below its tier) and the seal layer active.
+// Sealed → value node textContent = '' (DOM purity: no withheld-tier value
+// string exists anywhere in the DOM — no sheet cell is sealed on a current
+// device, since t3 carries every coordinate (v0.71, kept by v0.81)) and the
+// seal layer active.
 // Unres → `—`, no seal. The 'unsealing' beat class is always cleared
 // here and re-applied only by an upgrade render.
 function setCell(key, state, text) {
@@ -353,8 +405,12 @@ export function renderTierSections(profile, tier) {
   }
 
   // Unseal beat: fires only when this render's tier exceeds the last
-  // rendered (or primed) tier — paid-return boot / upgrade. ~100ms DOM-
-  // order stagger via --unseal-delay; the CSS keyframes own the settle.
+  // rendered (or primed) tier — retained compatibility trigger for what
+  // used to be a paid-return boot or upgrade. Since v0.81 the entitlement
+  // settles before the first render and cannot rise mid-session, so this
+  // condition is never true in production and the beat never fires live —
+  // the math stays correct and testable regardless. ~100ms DOM-order
+  // stagger via --unseal-delay; the CSS keyframes own the settle.
   const newly = _lastRenderedTier === null ? [] : newlyEntitledCells(_lastRenderedTier, tier);
   let beat = 0;
   for (const key of newly) {

@@ -5,14 +5,14 @@
 // pins — they grep the modules as text and never execute them. This file
 // closes the behavioral gap: the meanings panel open/toggle/close cycle,
 // the arcana "roman · name" key split, resolved/unresolved/sealed detail,
-// the Enter/Space/Escape keyboard path, and the labels toggle's class/copy/
-// aria-pressed round-trip all run against hand-injected DOM mocks
+// the Enter/Space/Escape keyboard path, permanent-label initialization and
+// legacy preference helpers all run against hand-injected DOM mocks
 // (node env, no jsdom — same convention as tests/modals.test.js).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initMeaningsUI, PANEL_TEXT_PARTS, PANEL_HEAD_PARTS,
 } from '../ui/meanings.js';
-import { initLabelsUI, isLabelsRevealed } from '../ui/labels.js';
+import { initLabelsUI, isLabelsRevealed, setLabelsRevealed } from '../ui/labels.js';
 import { SUN_MEANINGS, ARCANA_MEANINGS } from '../content/meanings.v1.js';
 import { SECOND_PERSON_RE, voiceRegisterHits } from './helpers/voice-register.js';
 
@@ -78,6 +78,7 @@ describe('ui/meanings.js behavior', () => {
     ['element', 'coord-element-symbol'],
     ['sun', 'coord-sun-symbol'],
     ['rising', 'coord-rising-symbol'],
+    ['moon', 'coord-moon-symbol'],
     ['animal', 'coord-animal-symbol'],
     ['innerAnimal', 'coord-inner-symbol'],
     ['lifePath', 'coord-lifepath-symbol'],
@@ -247,7 +248,7 @@ describe('ui/meanings.js behavior', () => {
     }
   });
 
-  it('init marks all 14 coordinate cells interactive and keyboard-reachable', () => {
+  it('init marks all 15 coordinate cells interactive and keyboard-reachable (§1.K: the moon joined the compartment sheet at v0.73)', () => {
     for (const [key] of coordinates) {
       expect(cells[key].classList.contains('has-detail')).toBe(true);
       expect(cells[key].attrs.tabindex).toBe('0');
@@ -669,47 +670,56 @@ describe('ui/labels.js behavior', () => {
     else globalThis.localStorage = originalLocalStorage;
   });
 
-  it('toggle click flips class, copy, aria-pressed, and persists the preference', () => {
+  it.each([
+    ['absent', null, false],
+    ['stored false', 'false', false],
+    ['stored true', 'true', false],
+    ['denied', null, true],
+  ])('initialization ignores %s storage and installs layout without control refs', (_label, stored, denied) => {
+    const getItem = vi.fn(() => {
+      if (denied) throw new Error('denied');
+      return stored;
+    });
+    const setItem = vi.fn(() => { if (denied) throw new Error('denied'); });
+    globalThis.localStorage = { getItem, setItem };
+    const byId = new Map();
+    const prior = globalThis.document;
+    globalThis.document = {
+      getElementById: id => byId.get(id) || null,
+      createElement: tag => makeNode(tag),
+      head: { appendChild: node => byId.set(node.id, node) },
+    };
+    try {
+      expect(() => initLabelsUI({}, {})).not.toThrow();
+      expect(byId.get('labels-style')?.textContent).toMatch(/aspect-ratio:\s*auto/);
+      expect(getItem).not.toHaveBeenCalled();
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      if (prior === undefined) delete globalThis.document;
+      else globalThis.document = prior;
+    }
+  });
+
+  it('the unused compatibility helpers still round-trip their one historical key', () => {
     const store = new Map();
     globalThis.localStorage = {
-      getItem: k => (store.has(k) ? store.get(k) : null),
-      setItem: (k, v) => store.set(k, String(v)),
-      removeItem: k => store.delete(k),
+      getItem: key => store.get(key) ?? null,
+      setItem: (key, value) => store.set(key, String(value)),
     };
-    const cardFace = makeNode();
-    const labelsToggle = makeNode('button');
-    const flipStage = makeNode();
-    const ui = initLabelsUI({ cardFace, labelsToggle, flipStage }, {});
-
-    labelsToggle._fire('click');
-    expect(cardFace.classList.contains('labels-revealed')).toBe(true);
-    expect(labelsToggle.textContent).toBe('→ hide labels');
-    expect(labelsToggle.attrs['aria-pressed']).toBe('true');
+    setLabelsRevealed(true);
     expect(isLabelsRevealed()).toBe(true);
-    // flip-stage (mobile intrinsic-height layout, iOS/WebKit fix) tracks
-    // cardFace's own labels-revealed class in lockstep, every path through.
-    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
-
-    labelsToggle._fire('click');
-    expect(cardFace.classList.contains('labels-revealed')).toBe(false);
-    expect(labelsToggle.textContent).toBe('→ reveal labels');
-    expect(labelsToggle.attrs['aria-pressed']).toBe('false');
+    setLabelsRevealed(false);
     expect(isLabelsRevealed()).toBe(false);
-    expect(flipStage.classList.contains('labels-revealed')).toBe(false);
-
-    // applyLabelsState is the boot path — apply without persisting; this is
-    // also how a stored preference (isLabelsRevealed() reading true from a
-    // prior session) reaches the layout state on load, so this call doubles
-    // as that initialization-path coverage.
-    ui.applyLabelsState(true);
-    expect(cardFace.classList.contains('labels-revealed')).toBe(true);
-    expect(flipStage.classList.contains('labels-revealed')).toBe(true);
-    expect(isLabelsRevealed()).toBe(false); // storage untouched by apply
+    expect([...store.entries()]).toEqual([['eight_ball_labels_revealed_v1', 'false']]);
   });
 
   it('an unreadable store reads as not-revealed instead of throwing', () => {
-    globalThis.localStorage = { getItem: () => { throw new Error('denied'); } };
+    globalThis.localStorage = {
+      getItem: () => { throw new Error('denied'); },
+      setItem: () => { throw new Error('denied'); },
+    };
     expect(isLabelsRevealed()).toBe(false);
+    expect(() => setLabelsRevealed(true)).not.toThrow();
   });
 
   // PR-196 premerge audit (2026-08-02): in this Node environment `document`
@@ -728,7 +738,7 @@ describe('ui/labels.js behavior', () => {
       head: { appendChild: n => { appended.push(n); if (n.id) byId.set(n.id, n); } },
     };
     try {
-      const refs = () => ({ cardFace: makeNode(), labelsToggle: makeNode('button'), flipStage: makeNode() });
+      const refs = () => ({}); // no retired control is required to install layout
       initLabelsUI(refs(), {});
       const style = byId.get('labels-style');
       expect(style).toBeTruthy();

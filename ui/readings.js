@@ -496,6 +496,26 @@ export function initReadingsUI(refs, hooks = {}) {
   }
 
   function openPage() {
+    // Screen ownership (DOCTRINE §1.J v0.83): if the paired reading is the
+    // active screen, close it FIRST — before `origin` is computed below —
+    // so a Pair-hidden #result reads correctly as "the sheet was open" and
+    // this page cannot stack on top of it. The hook also blanks B and both
+    // meaning panels through their own exit paths; a host with no dyad
+    // screen (or one already closed) sees this as a no-op.
+    // `readingsSurfaceActive` is snapshotted BEFORE closeActiveScreens below,
+    // not derived from `page`'s hidden state afterward: the Concordance
+    // screen (`comparisonPage`) hides `page` as part of normal navigation
+    // (compareBtn handler), so re-opening Previous Readings from Concordance
+    // previously read `page.classList.contains('hidden')` as true and
+    // re-derived `origin` from `result` — discarding the fact that a readings
+    // surface (Concordance) was already the active screen. Since `result`
+    // itself reads hidden at that point (Previous Readings hid it on its
+    // FIRST open), re-deriving `origin` from `result.classList.contains
+    // ('hidden')` sent `back` to `onboarding` instead of the original result
+    // sheet the surface was opened from.
+    const readingsSurfaceActive =
+      !page.classList.contains('hidden') || !comparisonPage.classList.contains('hidden');
+    if (typeof hooks.closeActiveScreens === 'function') hooks.closeActiveScreens();
     // The host meaning panel closes before this screen takes over, exactly as
     // the §1.J paired screen does (§1.E v0.78/v0.79): the host's own focus
     // return then lands on a still-visible cell, and `heading.focus()` below
@@ -503,15 +523,17 @@ export function initReadingsUI(refs, hooks = {}) {
     // reading opened a screen ago still expanded — the half of "returning
     // lands on a sheet" v0.78 could not claim. `close()` is unconditional, so
     // opening from onboarding (nothing open) is a no-op.
-    // `origin` is derived BEFORE the hook and only while this page is
-    // hidden. Two reasons, both from the pr238 audit: a host hook that
-    // hid `#result` itself (the §1.J paired screen's hook does exactly
-    // that) would make every open capture `onboarding`; and the topbar's
-    // readings button stays hit-testable while the list is open, so a
-    // second activation would re-derive `origin` as `onboarding` — the
-    // sheet being hidden by then — and send `back` to the entry form.
-    // Both lanes reproduced the second one; it predates this hook.
-    if (page.classList.contains('hidden')) {
+    // `origin` is derived AFTER closeActiveScreens (above) and only when
+    // NEITHER readings surface was active before this open. Two reasons,
+    // both from the pr238 audit: a host hook that hid `#result` itself (the
+    // §1.J paired screen's hook does exactly that — closed above first, so
+    // its hiding of `#result` never reaches this check) would make every
+    // open capture `onboarding`; and the topbar's readings button stays
+    // hit-testable while the list or Concordance is open, so a second
+    // activation would re-derive `origin` as `onboarding` — the sheet being
+    // hidden by then — and send `back` to the entry form. Both lanes
+    // reproduced the second one; it predates this hook.
+    if (!readingsSurfaceActive) {
       origin = result.classList.contains('hidden') ? onboarding : result;
     }
     if (typeof hooks.onOpen === 'function') hooks.onOpen();
@@ -626,6 +648,14 @@ export function initReadingsUI(refs, hooks = {}) {
       return article;
     });
     comparisonList.replaceChildren(...rows);
+    // Sixth remediation gate: `comparison.omitted` can only include
+    // 'element' when ui/concordance.js's buildConcordance() was called with
+    // `tier === 'free'` — this file's only call site (index.html) always
+    // passes `getRenderTier()`, which since §4.B v0.81 answers 't3' for
+    // every device and 't5' on a verified token — never 'free' — and t3
+    // carries the element axis. This branch is RETAINED compatibility text
+    // for the 'free' shape; no current comparison ever omits the element
+    // axis or shows this copy.
     comparisonOmitted.hidden = !comparison.omitted.includes('element');
     comparisonOmitted.textContent = comparisonOmitted.hidden
       ? ''

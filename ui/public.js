@@ -1,9 +1,16 @@
-// 8ball / ui / public.js — the t4 public-read block (§1.D v0.58)
+// 8ball / ui / public.js — the public-read block (§1.D v0.58; originally
+// filed as "t4", HISTORICAL naming — doctrine v0.60/v0.61 retired t4 as a
+// ladder rung, and this block is current-facing described as the t3-ceiling
+// public read; since doctrine v0.71's free amendment every device renders
+// it, "t3-ceiling" is itself a render-registry label, not a purchasable
+// tier)
 //
 // DOM controller in the §6 v0.23 shape: pure exports above, an
 // initPublicUI({refs}, {hooks}) injection point below, no module-level DOM
 // access at import time. No storage, no network, no new localStorage key —
-// entitlement is resolved by the caller and handed in.
+// entitlement is resolved by the caller and handed in (and — see
+// renderPublicRead below — is `true` for every current device, because the
+// single sheet is complete at t3; the dyad is gated elsewhere).
 //
 // This module is the FIRST consumer of core/public.js. Until this file
 // existed a test asserted that nothing imported that engine; the assertion
@@ -11,11 +18,14 @@
 // only importer, so a second, unreviewed wiring still fails CI.
 //
 // What it renders is a reading OF the sheet, not new coordinates: the sheet
-// is complete at t3, and t4 adds three ranked domain families, one anti-fit,
-// and one shape-of-role line. `publicRead` is a block like `cardEntry`, so
-// it never enters the 14-cell compartment grid or the density census.
+// is complete at its own ceiling (every device, per doctrine v0.71), and
+// this block adds three ranked domain families, one anti-fit, and one
+// shape-of-role line. `publicRead` is a block like `cardEntry`, so it never
+// enters the 15-cell compartment grid (§1.K: fourteen at v0.7.0, plus the
+// MOON row since v0.73) or the density census.
 
 import { buildPublicReading } from '../core/public.js';
+import { initReadingContext } from './sheet.js';
 
 // ── pure ──────────────────────────────────────────────────────────
 
@@ -57,7 +67,7 @@ export function dobIsoFromProfile(profile) {
 export function formatPublicRead(reading) {
   return {
     families: reading.families.map(f => `${f.rank} ${f.label}`).join(' · '),
-    antiFit: `anti-fit · ${reading.antiFit.label}`,
+    antiFit: `counterpoint · ${reading.antiFit.label}`,
     roleLine: reading.roleLine,
     bridge: reading.mode && reading.mode.bridged ? reading.mode.bridgeNote : '',
   };
@@ -82,6 +92,7 @@ export function publicReadFor(profile) {
 
 let _refs = null;
 let _bridge = null;
+let _context = null;
 
 // Scoped CSS for the injected node, in the §6 v0.23 shape ui/meanings.js and
 // ui/dyad.js already use: the module injects its own markup and style rather
@@ -146,6 +157,8 @@ export function initPublicUI(refs) {
   // whenever a ref was supplied instead.
   injectBridgeStyle();
   _bridge = resolveBridgeNode(_refs);
+  _context = initReadingContext(_refs && _refs.root, 'associations');
+  _context.setAvailable(false);
 }
 
 /**
@@ -154,11 +167,18 @@ export function initPublicUI(refs) {
  * Sealed-DOM purity (§1.D v0.37): below t4 the value nodes are emptied —
  * absent, not hidden — so no entitled string is ever present in the DOM of
  * an unentitled render. The block's structure stays visible as a sealed
- * compartment, the same treatment every higher-tier cell gets.
+ * compartment, the same treatment every higher-tier cell gets. Sixth
+ * remediation gate, restated at v0.90: since v0.71 (kept by §4.B v0.81)
+ * the single sheet is complete for every device at `t3`, so the caller's
+ * `entitled` is `true` for every current device — the sealed branch is
+ * RETAINED structural/privacy machinery (an entitled string genuinely still
+ * cannot leak if it were ever `false`), not a gate any current device hits.
+ * The dyad (`t5`) is gated in ui/dyad.js, never here.
  *
  * @param {object|null} profile
  * @param {{entitled: boolean}} state — entitlement resolved by the caller
- *        (index.html's getRenderTier), never read from storage here.
+ *        (index.html's getRenderTier — `t3` for every device, `t5` on a
+ *        verified token, v0.81), never read from storage here.
  */
 export function renderPublicRead(profile, { entitled } = {}) {
   if (!_refs || !_refs.root) return null;
@@ -169,7 +189,7 @@ export function renderPublicRead(profile, { entitled } = {}) {
   // this a screen-reader user hears the label and then silence — no signal
   // that anything is withheld rather than broken.
   if (root.setAttribute) {
-    root.setAttribute('aria-label', read ? 'domain fit' : 'domain fit · sealed at this device tier');
+    root.setAttribute('aria-label', read ? 'symbolic associations' : 'symbolic associations · unavailable');
   }
   if (families) families.textContent = read ? read.families : '';
   if (antiFit) antiFit.textContent = read ? read.antiFit : '';
@@ -178,5 +198,6 @@ export function renderPublicRead(profile, { entitled } = {}) {
   // downgraded render must leave no entitled string behind (§1.D v0.37), and
   // an unbridged reading must not keep the previous profile's bridge note.
   if (_bridge) _bridge.textContent = read ? read.bridge : '';
+  if (_context) _context.setAvailable(!!read);
   return read;
 }
