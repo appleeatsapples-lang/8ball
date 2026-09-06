@@ -5,6 +5,50 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
+## 2026-09-06 — calc v5: canonical name fold — controller word — STAGED on branch, PR #246
+
+**Status: STAGED on `claude/calc-v5-name-fold` (worktree `/private/tmp/8ball-namefold`), PR #246
+open against `main` `d554616`. Not merged, not deployed. The L48 cross-model artifact follows as its
+own commit on this branch; the merge word stays with the controller per §10/L48.**
+
+**The controller decision.** Two words on 2026-09-06 — "close 205 and 203, open the name-fold PR" —
+after the day's triage found that PR #205 (the August specimen dev line) had been overtaken by main
+on every count but one, and that PR #203 was 39 behind with an unused helper. The one count was this:
+calc v5's canonical name fold, ruled on 2026-08-08 (the calc-version packet's §11, controller word
+"v5") and applied there as docs only, with §3 step 1 — the fixtures — left OUTSTANDING for the
+implementer seat. #205 and #203 are closed as superseded; this PR re-lands the fold alone.
+
+**What was wrong under calc v4.** The three name reducers read raw code points, so a name with a
+diacritic scored by whichever Unicode composition the keyboard, IME or OS emitted: `getNameNumber('José')`
+was 8 under NFC (é = U+00E9) and 4 under NFD (e + U+0301). Same person, same name, two coordinates.
+
+**What lands.** `core/profile.js` gains one exported `nameLetters()` — NFD-decompose, strip
+combining marks U+0300–U+036F, lowercase, keep `a-z` — and all three `*Sum` reducers read it; vowel
+versus consonant is decided on the folded letter (U+0130 `İ` lowercases to two code points and used
+to file as a consonant); `buildProfile` retains the name in NFC. Named limit kept and pinned: only
+canonical decompositions fold, so `Đ`, `Ł`, `Ø`, `ß` and non-Latin scripts stay unsupported, and a
+name with no supported letter is UNRESOLVED (`null`, `—`), never zero, with the date side untouched.
+
+**§3's four steps, this time all four.** (1) `tests/fixtures.json` `name_number` gains eight accented
+cases — `José` 4 · `Zoë` 1 · `Renée Dubois` 9 · `Ana Sofía` 3 · `Ångström` 8 · `İrem` 9 ·
+`Đặng Thị` 5 · `Đ` null — values produced by executing the fixed module, pinned as NFC literals only,
+with a `_name_number_rule` naming the trap the packet named: an NFD byte-twin in a JSON file is one
+re-normalizing write away from a green tautology, so the equivalence lives in the test file where
+`.normalize('NFD')` is computed at runtime. No existing fixture value moves. (2) The algorithm, above.
+(3) `npx vitest run` — 62 files / 2207 tests green. Verified by breaking: the new assertions run against
+main's `core/profile.js` fail nine times (three fixtures, six in the contract block), then pass with
+the fold restored. (4) The calc-version line reads v5; §3 carries the calc v5 bullet; footer rotated
+to v0.82. The auditor's assurance suite is OK, the product audit PASS 13/0/0 with one advisory WARN
+that was the not-yet-committed working tree, and the local PII audit clean over 910 files.
+
+**Not ported from #205, on purpose.** The moon-sign wiring (main shipped its own, #232), the inert
+gender field (main retired it, v0.64), and the hexagon, four-line grid, measurement events and seam
+suites — product and privacy decisions that stay open. `index.html` is untouched at 697 lines.
+
+**Behaviour boundary.** The stored payload keeps the typed bytes; only the profile's retained `name`
+is NFC. `isNewPair` compares typed against stored raw strings and the readings archive stores inputs,
+so neither moves; reopen and reload recompute under calc v5 with no migration.
+
 ## 2026-09-05 — dyad key 1 kept — the controller's word closes the swap option — STAGED on branch
 
 **What happened.** "keep key 1." The launch doc and the step-2 entry had
