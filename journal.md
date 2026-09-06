@@ -5,7 +5,64 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-06 — calc v5: canonical name fold — controller word — STAGED on branch, PR #246
+## 2026-09-06 — public.test.js: the coprime-stride walk — the re-derivation block on a second lattice — STAGED on branch
+
+**What happened.** "Now the coprime-stride walk." The item #241 left on
+record as not taken: a sweep pins the dates it visits and nothing else,
+so a wrong value planted BETWEEN the stride-37 dates is invisible to it
+by construction — the two pr241 probes on 1937-03-14 survived exactly
+that way, and the full 73,414-date walk was measured at 1.84s of
+building alone (Lane B) and ruled out. Lane B's alternative was a second
+walk on a stride coprime with the first: cheap, and it shrinks the
+unwalked gap without pretending to close it. This pass takes it.
+
+**The walk.** The stride-37 test's body is now `rederivationWalk(stride,
+expectedDates)` — the same loop, the same `readingOffenders` block, the
+same three exact pins (dates, readings, checks = dates × 58) — and it
+runs twice: stride 37 over 1,985 dates as before, and stride 41 over
+1,791. Both strides are prime, so they are coprime with each other and
+with every other stride the file uses (23, 53, 59, 89, 101); the two
+lattices meet only every 37 × 41 = 1,517 days.
+
+**The arithmetic, pinned rather than stated.** A third test computes
+what the design claims: gcd(37, 41) = 1; the two lattices share exactly
+49 dates, the first of them 1900-01-01, every one a multiple of 1,517
+days from the start; the union is 1,985 + 1,791 − 49 = 3,727 of the
+73,414 dates in the range — 5.1%, up from 2.7%; 1937-03-14 is on
+neither lattice and stays unwalked, on record; 1900-02-11 (day 41) is
+on the second only. Lane B's estimate in the pr241 report was ~2,016
+dates for stride 41 and ~5.4% union; the measured figures are 1,791 and
+5.08%, and the entry records the measured ones.
+
+**Detection, measured.** A single-date mutant on 1900-02-11 (the second
+lattice only) — `families[0].rank` = 99, and the day-master element
+shifted — fails the stride-41 walk and nothing else, which is the point:
+before this pass it passed all 53 tests. The same mutant on 1900-03-16
+(first lattice only) still fails the first walk and the positive
+control. On 1937-03-14 (neither) it still survives, as stated. Vacuity:
+the second walk gutted to one date fails its readings pin.
+
+**Cost, said plainly.** The second walk measures ~180ms on its own in
+the verbose reporter. File test time on this machine today: 1.03–1.09s
+on the merged base (`86def6b`, itself slower than yesterday's 0.82s —
+the machine, not the file), 1.11–1.17s with the walk. The gap is smaller
+than the walk's own time because the two walks share warm caches; the
+honest figure is the file total, +8%. Third in the suite, unchanged.
+
+**Contract.** Test-only: `tests/public.test.js` goes 51 → 53 tests (the
+second walk, the lattice pin), the suite 2,214 → 2,216. Same data, same
+product code. No doctrine claim changes, no version bump (precedent
+#227, #231, #240, #241). The `test`, `product-audit` and `l48-gate`
+checks apply; the artifact is filed with the PR number once it exists.
+
+**Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
+tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;
+`public.test.js` is third and now carries two 58-check walks. The
+friend's rising/moon reading, still waiting on a birth time.
+`next_strategic_read` (due 2026-08-13) and `next_analytics_read`
+(due 2026-08-06), both overdue.
+
+## 2026-09-06 — calc v5: canonical name fold — controller word — SHIPPED (#246)
 
 **Status: STAGED on `claude/calc-v5-name-fold` (worktree `/private/tmp/8ball-namefold`), PR #246
 open against `main` `d554616`. Not merged, not deployed. The L48 cross-model artifact follows as its
@@ -69,7 +126,7 @@ readers of them — sheet title, dyad heads — render the canonical string for 
 called the first version of this paragraph over-narrow for saying "unaffected" without naming that; it
 is a display change, and this is the record of it.
 
-## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — STAGED on branch, PR #241
+## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — SHIPPED (#241)
 
 **What happened.** "Now the six shared blind spots." The queued item
 from #240: Lane A's mutants had shown that `tests/public.test.js`'s

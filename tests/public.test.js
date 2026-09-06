@@ -557,22 +557,68 @@ describe('public tier — coverage, no gaps', () => {
   // re-derivation, the independent anchors and the fixture snapshot (both
   // lanes, pr241 audit). The stem and polarity pins restate the pass-through
   // rule, not an independent one — there is no lower level than the pillar.
-  it('every leaf of every swept reading re-derives from the pillar, the birth card, the jieqi table and the frozen registries', () => {
+  // One walk of the block over a stride's lattice, with the exact work pins
+  // from the same loop that ran the predicates — the standard the register
+  // sweep sets below (pr241 audit, Lane A MED-1): gutting the loop to one
+  // date must fail the readings pin, and a check added to or dropped from
+  // the block must fail the checks pin.
+  function rederivationWalk(strideDays, expectedDates) {
     const bad = [];
     let checks = 0;
     let readings = 0;
-    for (const dob of sweepList(37, 1985)) {
+    for (const dob of sweepList(strideDays, expectedDates)) {
       const walk = readingOffenders(dob, buildPublicReading(dob));
       readings += 1;
       checks += walk.checks;
       bad.push(...walk.offenders);
     }
-    expectNone(bad, 'swept readings disagree with the registries or the pillar');
-    // Exact work pins from the same loop that ran the predicates — the
-    // standard the register sweep sets below (pr241 audit, Lane A MED-1):
-    // gutting the loop to one date must fail here, not pass green.
-    expect(readings).toBe(1985);
-    expect(checks).toBe(1985 * READING_CHECKS);
+    expectNone(bad, `stride-${strideDays} readings disagree with the registries or the pillar`);
+    expect(readings).toBe(expectedDates);
+    expect(checks).toBe(expectedDates * READING_CHECKS);
+  }
+
+  it('every leaf of every swept reading re-derives from the pillar, the birth card, the jieqi table and the frozen registries', () => {
+    rederivationWalk(37, 1985);
+  });
+
+  // A second walk on a stride coprime with the first. A sweep pins the dates
+  // it visits and nothing else: a wrong value planted BETWEEN the stride-37
+  // dates is invisible to that walk by construction (pr241: the two probes
+  // on 1937-03-14 survived exactly this way). Two coprime lattices meet only
+  // every 37 × 41 = 1,517 days — 49 dates in the range — so this walk adds
+  // 1,742 dates the first never sees, taking the pinned share of the 73,414
+  // from 2.7% to 5.1%. It shrinks the unwalked gap; it does not close it,
+  // and the lattice test below keeps the arithmetic honest.
+  it('the same block holds on a second lattice, stride 41, coprime with the first', () => {
+    rederivationWalk(41, 1791);
+  });
+
+  it('the two re-derivation strides are coprime and meet on exactly 49 of the 73,414 dates', () => {
+    const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+    expect(gcd(37, 41)).toBe(1);
+    const first = new Set(sweepList(37, 1985));
+    const second = sweepList(41, 1791);
+    const shared = second.filter(d => first.has(d));
+    expect(shared.length).toBe(49);
+    expect(shared[0]).toBe('1900-01-01');
+    // Every shared date sits on both lattices: a multiple of 1,517 days.
+    const day = 86400000;
+    const start = Date.UTC(1900, 0, 1);
+    for (const d of shared) {
+      const [y, m, dd] = d.split('-').map(Number);
+      expect((Date.UTC(y, m - 1, dd) - start) / day % (37 * 41), d).toBe(0);
+    }
+    // The union, and the share of the full range it pins.
+    const union = new Set([...first, ...second]);
+    expect(union.size).toBe(1985 + 1791 - 49);
+    expect(union.size).toBe(3727);
+    const total = (Date.UTC(2100, 11, 31) - start) / day + 1;
+    expect(total).toBe(73414);
+    // The pr241 probe date is on neither lattice — still unwalked, on record.
+    expect(union.has('1937-03-14')).toBe(false);
+    // And a date only the second lattice reaches.
+    expect(first.has('1900-02-11')).toBe(false);
+    expect(second.includes('1900-02-11')).toBe(true);
   });
 
   it('the re-derivation block flags every leaf of a reading when that leaf alone is corrupted', () => {
