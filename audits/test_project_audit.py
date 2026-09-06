@@ -185,6 +185,7 @@ class CheckShapeTests(unittest.TestCase):
             "product.local_pii", "product.index_budget", "product.t4_migration",
             "product.hko_calendar", "product.ci_doctrine_gate",
             "product.ci_doctrine_regression", "product.share_wiring",
+            "product.activation_wiring",
             "product.snapshot_stability",
         }
         actual_ids = {c["id"] for c in self.report["checks"]}
@@ -1627,6 +1628,118 @@ class FreeCeilingProbeTests(unittest.TestCase):
         src = self.GOOD.replace("return true;", "return false;")
         chk = self.run_probe_with(src)
         self.assertEqual(chk["status"], "fail", chk["summary"])
+
+
+class ActivationWiringTests(unittest.TestCase):
+    """product.activation_wiring (DOCTRINE §12/§5.B v0.91). Each test builds a
+    stub product root with the one function, the page and the routes, then
+    breaks exactly one pin and asserts the check fails by that name."""
+
+    FN = (
+        "import { signDyadToken, isSaleId } from '../../core/entitlement.js';\n"
+        "export function stubVerifyIfEnabled(env) {\n"
+        "  if (env.NETLIFY_DEV === 'true' && env.CONTEXT !== 'production' && env.DYAD_VERIFY_STUB === '1') {\n"
+        "    return async () => ({ ok: true, saleId: 'x' });\n  }\n"
+        "  return null;\n}\n"
+        "export const config = { rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } };\n"
+        "export function redirectResponse(location) {\n"
+        "  return new Response(null, { status: 303, headers: { 'cache-control': 'no-store', location } });\n}\n"
+        "export default async function handler(request) { return redirectResponse('/activate'); }\n"
+    )
+    PAGE = (
+        '<form id="activate-form" method="POST" action="/.netlify/functions/activate" autocomplete="off">\n'
+        '<input id="license-key" name="license_key" type="text">\n<button type="submit">open my dyad</button></form>\n'
+    )
+    TOML = (
+        '[[redirects]]\n  from = "/example"\n  to = "/example.html"\n  status = 200\n\n'
+        '[[redirects]]\n  from = "/activate"\n  to = "/activate.html"\n  status = 200\n\n'
+        '[[redirects]]\n  from = "/*"\n  to = "/index.html"\n  status = 200\n'
+    )
+
+    def run_with(self, fn=None, page=None, toml=None, extra_fn=None):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "netlify" / "functions").mkdir(parents=True)
+            (root / "netlify" / "functions" / "activate.mjs").write_text(self.FN if fn is None else fn)
+            if extra_fn:
+                (root / "netlify" / "functions" / extra_fn).write_text("export default () => null;\n")
+            (root / "activate.html").write_text(self.PAGE if page is None else page)
+            (root / "example.html").write_text("<p>example</p>\n")
+            (root / "netlify.toml").write_text(self.TOML if toml is None else toml)
+            return pa.check_activation_wiring(root)
+
+    def test_good_root_passes(self):
+        chk = self.run_with()
+        self.assertEqual(chk["status"], "pass", chk["summary"])
+        self.assertEqual(chk["severity"], "blocking")
+
+    def test_second_function_fails(self):
+        chk = self.run_with(extra_fn="mailer.mjs")
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function_files", chk["summary"])
+
+    def test_foreign_signer_fails(self):
+        chk = self.run_with(fn=self.FN.replace("from '../../core/entitlement.js'", "from './my-signer.js'"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function_signer", chk["summary"])
+
+    def test_stub_guard_without_netlify_dev_fails(self):
+        chk = self.run_with(fn=self.FN.replace("env.NETLIFY_DEV === 'true' && ", ""))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
+
+    def test_stub_guard_or_injection_fails(self):
+        chk = self.run_with(fn=self.FN.replace("env.DYAD_VERIFY_STUB === '1') {", "env.DYAD_VERIFY_STUB === '1' || env.DYAD_VERIFY_STUB === '1') {"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
+
+    def test_stub_guard_without_context_fails(self):
+        chk = self.run_with(fn=self.FN.replace("env.CONTEXT !== 'production' && ", ""))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
+
+    def test_reading_the_email_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return null;", "const e = data.purchase.email; return null;"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function_privacy", chk["summary"])
+
+    def test_reading_the_email_by_bracket_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return null;", "const e = data.purchase['email']; return null;"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function_privacy", chk["summary"])
+
+    def test_a_response_without_no_store_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return redirectResponse('/activate');", "if (!request) return new Response('bad', { status: 400 }); return redirectResponse('/activate');"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("no_store", chk["summary"])
+
+    def test_location_from_request_url_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return redirectResponse('/activate');", "return redirectResponse(new URL('/activate', request.url).toString());"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("location_origin", chk["summary"])
+
+    def test_missing_rate_limit_config_fails(self):
+        chk = self.run_with(fn=self.FN.replace("export const config = { rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } };\n", ""))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("rate_limit", chk["summary"])
+
+    def test_missing_example_page_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); (root / "netlify" / "functions").mkdir(parents=True)
+            (root / "netlify" / "functions" / "activate.mjs").write_text(self.FN); (root / "activate.html").write_text(self.PAGE); (root / "netlify.toml").write_text(self.TOML)
+            chk = pa.check_activation_wiring(root)
+        self.assertEqual(chk["status"], "fail"); self.assertIn("example_missing", chk["summary"])
+
+    def test_second_input_or_email_field_fails(self):
+        chk = self.run_with(page=self.PAGE.replace("<button", '<input name="email" type="email"><button'))
+        self.assertEqual(chk["status"], "fail")
+        self.assertTrue("page_inputs" in chk["summary"] or "page_privacy" in chk["summary"], chk["summary"])
+
+    def test_form_posting_elsewhere_fails(self):
+        chk = self.run_with(page=self.PAGE.replace('action="/.netlify/functions/activate"', 'action="https://example.test/collect"'))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("page_form_target", chk["summary"])
+
+    def test_route_below_catch_all_fails(self):
+        toml = self.TOML.split("[[redirects]]\n  from = \"/activate\"")
+        moved = toml[0] + '[[redirects]]\n  from = "/*"\n  to = "/index.html"\n  status = 200\n\n[[redirects]]\n  from = "/activate"' + toml[1].replace('[[redirects]]\n  from = "/*"\n  to = "/index.html"\n  status = 200\n', '')
+        chk = self.run_with(toml=moved)
+        self.assertEqual(chk["status"], "fail"); self.assertIn("routes", chk["summary"])
+
+    def test_missing_function_fails_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); (root / "activate.html").write_text(self.PAGE); (root / "netlify.toml").write_text(self.TOML)
+            chk = pa.check_activation_wiring(root)
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function", chk["summary"])
 
 
 class ShareWiringFormTests(unittest.TestCase):

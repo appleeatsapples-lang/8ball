@@ -179,3 +179,15 @@ both OUTSIDE this amendment and need their own doctrine decision:
       nothing granted
 - [ ] a per-sale delivery routine the operator can actually keep up with
 - [ ] L48 cross-model audit artifact filed against the PR
+
+
+## Step 3, superseded 2026-09-06 (doctrine v0.91): activation by license key
+
+The manual per-sale routine above stays valid as the FALLBACK. The path is now:
+
+1. Gumroad product `dyad`: **enable "Generate a unique license key per sale"** (controller's hand). The sentence above saying license keys "would be decorative" was true while nothing could verify them; the function in `netlify/functions/activate.mjs` is what makes them load-bearing. *(marker, not a rewrite)*
+2. Netlify site environment (controller's hand): `DYAD_SIGNING_KEY` = key 1's private JWK as one line of JSON; `GUMROAD_PRODUCT_PERMALINK` = `dyad`. `.env.example` names both. Never commit them.
+3. Gumroad post-purchase Content: the key is shown by Gumroad itself; add one line — `open your dyad → https://the-eight-ball.netlify.app/activate` — and nothing else.
+4. The buyer pastes the key on `/activate`; the function verifies it with Gumroad once, signs the same v0.81 token the manual routine would, and redirects to `/?dyad=<token>`. `sale_id` is the token's `id`, so a shared link stays attributable.
+
+Verified locally before merge under `netlify dev` with a throwaway key and the stub (`DYAD_VERIFY_STUB=1`, honoured only when `NETLIFY_DEV=true`): shape → reason, wrong key → reason, stub key → `dyad · filed on this device.` and the dyad opens. Not verified from the repo: the real Gumroad verify call against a real key — the controller's first activation after deploy is that check.

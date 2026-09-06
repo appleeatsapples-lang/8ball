@@ -17,7 +17,7 @@ const REPO_ROOT = join(__dirname, '..');
 // metadata, and external folders are out of scope: they are not the
 // runtime, so storing/transmitting tokens there would not violate §5.
 const SCAN_ROOTS = ['core', 'content', 'ui'];
-const SCAN_FILES = ['index.html'];
+const SCAN_FILES = ['index.html', 'example.html', 'activate.html']; // v0.91: the two static pages
 // .css joined on 2026-08-31 (pr215 audit F6): the shell styles moved to
 // ui/shell.css, and a stylesheet has §5-relevant egress shapes of its own
 // (@import url(...), background/font src url(https://...)) that the

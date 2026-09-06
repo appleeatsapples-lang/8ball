@@ -486,7 +486,8 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(DYAD_OFFER_COPY.note).toMatch(/gumroad/);
     expect(DYAD_OFFER_COPY.note).toMatch(/never saved/);
     // pr242 audit (Lane B M2): the per-sale link is sent by the operator, not by the page
-    expect(DYAD_OFFER_COPY.note).toMatch(/the operator sends an access link/);
+    expect(DYAD_OFFER_COPY.note).toMatch(/license key/); // v0.91: activation by key…
+    expect(DYAD_OFFER_COPY.note).toMatch(/access link the operator emails you/); // …with the emailed link true in both states
   });
 
   it('an unentitled device sees the offer anchor — a plain link carrying the url and the copy — and no entry control', () => {
