@@ -5,7 +5,137 @@ Append-only. Newest entry at the top. Same shape as SIRR's `journal.txt` so the 
 `next_strategic_read: 2026-08-13`
 `next_analytics_read: 2026-08-06`
 
-## 2026-09-06 — DOCTRINE v0.91: the complete example before checkout, and immediate activation by one stateless signing function — controller word ("Route F, start it") — STAGED on branch, PR #248
+## 2026-09-06 — public.test.js: the coprime-stride walk — the re-derivation block on a second lattice — STAGED on branch, PR #249
+
+**What happened.** "Now the coprime-stride walk." The item #241 left on
+record as not taken: a sweep pins the dates it visits and nothing else,
+so a wrong value planted BETWEEN the stride-37 dates is invisible to it
+by construction — the two pr241 probes on 1937-03-14 survived exactly
+that way, and the full 73,414-date walk was measured at 1.84s of
+building alone (Lane B) and ruled out. Lane B's alternative was a second
+walk on a stride coprime with the first: cheap, and it shrinks the
+unwalked gap without pretending to close it. This pass takes it.
+
+**The walk.** The stride-37 test's body is now `rederivationWalk(stride,
+expectedDates)` — the same loop, the same `readingOffenders` block, the
+same three exact pins (dates, readings, checks = dates × 58) — and it
+runs twice: stride 37 over 1,985 dates as before, and stride 41 over
+1,791. Both strides are prime, so they are coprime with each other and
+with every other stride the file uses (23, 53, 59, 89, 101); the two
+lattices meet only every 37 × 41 = 1,517 days.
+
+**The arithmetic, pinned rather than stated.** A third test computes
+what the design claims: gcd(37, 41) = 1; the two lattices share exactly
+49 dates, the first of them 1900-01-01, every one a multiple of 1,517
+days from the start; the union is 1,985 + 1,791 − 49 = 3,727 of the
+73,414 dates in the range — 5.08%, up from 2.70%; 1937-03-14 is on
+neither lattice and stays unwalked, on record; 1900-02-11 (day 41) is
+on the second only. Lane B's estimate in the pr241 report was ~2,016
+dates for stride 41 and ~5.4% union; the measured figures are 1,791 and
+5.08%, and the entry records the measured ones.
+
+**Detection, measured.** A single-date mutant on 1900-02-11 (the second
+lattice only) — `families[0].rank` = 99, and the day-master element
+shifted — fails the stride-41 walk and nothing else, which is the point:
+before this pass it passed all 51 tests in the file and all 2,214 in
+the suite (Lane A verified the same on the base). The same mutant on 1900-03-16
+(first lattice only) still fails the first walk and the positive
+control. On 1937-03-14 (neither) it still survives, as stated. Vacuity:
+the second walk gutted to one date fails its readings pin.
+
+**Cost, said plainly — and then corrected by the audit.** The first
+draft of this paragraph said "+8%" from three runs each way and
+explained the small gap by the two walks sharing warm caches. Both lanes
+re-measured and both got roughly double: Lane A +17% over five
+interleaved pairs, Lane B +17–19% over ten runs each way. Re-measured
+here at ten runs each: base (main, `e00a3d3`) 0.98–1.08s, this file
+1.12–1.34s — a median near +20%. The warm-cache story was wrong: the
+first walk costs the same with or without the second (Lane A), and the
+file delta is the second walk's own ~175–200ms plus the lattice test's
+~5ms, paid at full price. The two walks measure ~195ms and ~175ms in
+the verbose reporter. Rank: second or third in the suite, within noise
+of `render_cards.test.js` (both lanes saw the order flip run to run);
+the first draft's "third, unchanged" was one run's luck.
+
+**What two lattices do not buy** (both lanes, independently; recorded
+so "5.08%, up from 2.7%" is not over-read). The second walk adds
+detection for engine-to-table mismatches on 1,742 more dates and
+nothing else. A corrupted CONTENT table is read by both sides of both
+walks and passes both — Lane B planted one in `DOMAIN_FAMILIES` and only
+the fixture snapshot and the register character total saw it, exactly
+as at stride 37. A defect in the shared predicate block itself is
+invisible to both walks by construction — Lane B tautologised one check
+and only the positive control caught it; the lattices are correlated on
+logic and buy date coverage only. And no stride lands on a century leap
+boundary (1900-02-28/03-01, 2000-02-29, 2100-02-28/03-01 — Lane B), on
+the range tail past the strides' last steps (2100-12-26 and 2100-12-08 —
+Lane A: a mutant on 2100-12-29 survived the whole suite), or on the
+pr241 probe date. Those nine dates are now walked BY NAME through the
+same block with the same pins, each asserted off both lattices first;
+the 1937-03-14 and 2100-12-29 mutants that survived every sweep fail
+that test.
+
+**The lattice test, made to constrain something** (Lane A HIGH-1). The
+first draft's lattice test re-typed 37, 1985, 41 and 1791 as literals,
+so the second walk could be turned into a duplicate of the first — or
+moved to any other stride — with all 53 tests green: the test named
+after the 49-date meeting constrained nothing. The strides now live in
+one table, `REDERIVATION_WALKS`, read by both walks and the lattice
+test; a duplicate second walk fails on gcd = 37, a move to 43 fails on
+47 shared dates, a move of the first walk fails on 42. The
+shared-multiples loop counts its iterations (Lane A LOW-2), the range
+total comes from the generator at stride 1 rather than re-typed
+endpoints (LOW-4), and the last step of each lattice is pinned.
+
+**Design alternative, on record and not taken** (Lane A MED-3, Lane B
+item 1). A single stride-19 walk would execute 3,864 readings — 2.3%
+more than the two walks — and pin 3,864 distinct dates against 3,727,
+with one test and no lattice arithmetic to keep honest; coprimality
+does no measurable work beyond keeping the overlap to 49. Lane B's
+sweep of every coprime prime stride 3–101 found the "new dates per
+date walked" ratio flat at 0.972–0.973, so 41 is undominated among
+second strides but a denser single stride beats the pair. The
+controller ordered the coprime walk; the stride-37 walk's pins and
+probe dates are referenced across three audits and stay as they are;
+the alternative is here for the controller's call.
+
+**Contract.** Test-only: `tests/public.test.js` goes 51 → 54 tests (the
+second walk, the lattice pin, the off-lattice dates), the suite from
+2,214 → 2,217 at the pre-merge base and 66 files / 2,612 on the merged
+head. Same data, same product code. No doctrine claim changes, no
+version bump (precedent #227, #231, #240, #241). The `test`,
+`product-audit` and `l48-gate` checks apply; the artifact
+`audits/claude_relay_pr249_premerge_audit_2026-09-06_response.md`
+carries both lanes' reports and the reconciliation.
+
+**The Status blocks under the flipped headings** (Lane A MED-1). Three
+of the entries this pass flips to SHIPPED (#246, #247, #248) carry a
+bolded Status block that still reads "STAGED … Not merged, not
+deployed" — the #248 one names three controller actions gating the
+paid path. The precedent flips (#241) had no such blocks. Each now
+carries a dated superseding line above it, per L17: the heading and the
+marker are current state, the block beneath is the entry's own record
+as staged, kept verbatim.
+Main moved under the PR before its first CI run — #247 (DOCTRINE v0.90,
+the candidate renumbered v0.83–v0.89) and #248 (v0.91) landed from the
+other lane, 53 files — and the PR went un-mergeable on `journal.md`
+alone; `tests/public.test.js` auto-merged (main's change is in the
+surface-isolation test, not the sweeps). Main merged into the branch as
+a merge commit; this entry sits above the three new ones, and #246,
+#247 and #248 flip to SHIPPED here with #241, since their PRs are merged
+and no later entry had done it. On the merged tree the suite is 66
+files / 2,612 tests, green.
+
+**Queued.** `tests/l48_gate_composition.test.js` (~2.5s across its
+tests) and `tests/render_cards.test.js` (~1.0s) are the slowest files;
+`public.test.js` is third and now carries two 58-check walks. The
+friend's rising/moon reading, still waiting on a birth time.
+`next_strategic_read` (due 2026-08-13) and `next_analytics_read`
+(due 2026-08-06), both overdue.
+
+## 2026-09-06 — DOCTRINE v0.91: the complete example before checkout, and immediate activation by one stateless signing function — controller word ("Route F, start it") — SHIPPED (#248)
+
+**Status, superseded 2026-09-06 by the #249 entry: SHIPPED (#248), merged to `main`. The block below is this entry's record as staged, kept verbatim.**
 
 **Status: STAGED on `claude/dyad-activation-and-example` (worktree `/private/tmp/8ball-step1`), off
 `main` `76aebab` (#247). Not merged, not deployed. The L48 artifact follows once the PR number exists;
@@ -85,7 +215,9 @@ The real Gumroad verify call against a real key — the controller's first activ
 check. CLAUDE.md's `ui/` row also lost a leftover "every device renders every ceiling" clause the v0.90
 sweep had missed.
 
-## 2026-09-06 — DOCTRINE v0.90: the Pair Dossier and Imprint inside the paid dyad — the candidate integrated and renumbered v0.83–v0.89 — controller word — STAGED on branch, PR #247
+## 2026-09-06 — DOCTRINE v0.90: the Pair Dossier and Imprint inside the paid dyad — the candidate integrated and renumbered v0.83–v0.89 — controller word — SHIPPED (#247)
+
+**Status, superseded 2026-09-06 by the #249 entry: SHIPPED (#247), merged to `main`. The block below is this entry's record as staged, kept verbatim.**
 
 **Status: STAGED on `claude/pair-inside-paid-dyad` (worktree `/private/tmp/8ball-pair-port`), off
 post-#246 `main` `3cfc0e5`. Not merged, not deployed. The L48 cross-model artifact follows as its own
@@ -146,7 +278,9 @@ and the gated getter.
 controller's Gumroad-side steps); nothing of PR #241 (conflict resolved separately, green, awaiting the merge
 word); no new coordinate, registry or calculation.
 
-## 2026-09-06 — calc v5: canonical name fold — controller word — STAGED on branch, PR #246
+## 2026-09-06 — calc v5: canonical name fold — controller word — SHIPPED (#246)
+
+**Status, superseded 2026-09-06 by the #249 entry: SHIPPED (#246), merged to `main`. The block below is this entry's record as staged, kept verbatim.**
 
 **Status: STAGED on `claude/calc-v5-name-fold` (worktree `/private/tmp/8ball-namefold`), PR #246
 open against `main` `d554616`. Not merged, not deployed. The L48 cross-model artifact follows as its
@@ -210,7 +344,7 @@ readers of them — sheet title, dyad heads — render the canonical string for 
 called the first version of this paragraph over-narrow for saying "unaffected" without naming that; it
 is a display change, and this is the record of it.
 
-## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — STAGED on branch, PR #241
+## 2026-09-05 — public.test.js: the six shared blind spots pinned — and, after the audit, every leaf — SHIPPED (#241)
 
 **What happened.** "Now the six shared blind spots." The queued item
 from #240: Lane A's mutants had shown that `tests/public.test.js`'s

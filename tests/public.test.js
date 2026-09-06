@@ -183,6 +183,21 @@ const differs = (a, b) => !Object.is(a, b);
 const READING_CHECKS = 58;
 // Leaf paths of one reading (see leafPaths): the shape pin for the control.
 const READING_LEAVES = 65;
+// The two lattices the re-derivation block walks, as [strideDays, dates].
+// ONE table, read by both walks AND by the lattice test: the pr249 audit
+// showed that with the strides re-typed as literals in the lattice test,
+// the second walk could be turned into a duplicate of the first (or moved
+// to any other stride) with every test green — the test that exists to
+// keep the coverage claim honest constrained nothing (Lane A HIGH-1).
+const REDERIVATION_WALKS = [[37, 1985], [41, 1791]];
+// Dates no lattice reaches, walked by name: the century leap boundaries
+// (Lane B), the range tail past every stride's last step and the range
+// endpoint (Lane A NOTE-3), and the pr241 probe date. Pinned to be OFF both
+// lattices, so this list can never silently duplicate a walk.
+const OFF_LATTICE_DATES = [
+  '1900-02-28', '1900-03-01', '2000-02-29', '2100-02-28', '2100-03-01',
+  '2100-12-29', '2100-12-30', '2100-12-31', '1937-03-14',
+];
 
 function readingOffenders(dob, r) {
   const offenders = [];
@@ -557,22 +572,100 @@ describe('public tier — coverage, no gaps', () => {
   // re-derivation, the independent anchors and the fixture snapshot (both
   // lanes, pr241 audit). The stem and polarity pins restate the pass-through
   // rule, not an independent one — there is no lower level than the pillar.
-  it('every leaf of every swept reading re-derives from the pillar, the birth card, the jieqi table and the frozen registries', () => {
+  // One walk of the block over a stride's lattice, with the exact work pins
+  // from the same loop that ran the predicates — the standard the register
+  // sweep sets below (pr241 audit, Lane A MED-1): gutting the loop to one
+  // date must fail the readings pin, and a check added to or dropped from
+  // the block must fail the checks pin.
+  function rederivationWalk(strideDays, expectedDates) {
     const bad = [];
     let checks = 0;
     let readings = 0;
-    for (const dob of sweepList(37, 1985)) {
+    for (const dob of sweepList(strideDays, expectedDates)) {
       const walk = readingOffenders(dob, buildPublicReading(dob));
       readings += 1;
       checks += walk.checks;
       bad.push(...walk.offenders);
     }
-    expectNone(bad, 'swept readings disagree with the registries or the pillar');
-    // Exact work pins from the same loop that ran the predicates — the
-    // standard the register sweep sets below (pr241 audit, Lane A MED-1):
-    // gutting the loop to one date must fail here, not pass green.
-    expect(readings).toBe(1985);
-    expect(checks).toBe(1985 * READING_CHECKS);
+    expectNone(bad, `stride-${strideDays} readings disagree with the registries or the pillar`);
+    expect(readings).toBe(expectedDates);
+    expect(checks).toBe(expectedDates * READING_CHECKS);
+  }
+
+  it('every leaf of every swept reading re-derives from the pillar, the birth card, the jieqi table and the frozen registries', () => {
+    rederivationWalk(...REDERIVATION_WALKS[0]);
+  });
+
+  // A second walk on a stride coprime with the first. A sweep pins the dates
+  // it visits and nothing else: a wrong value planted BETWEEN the stride-37
+  // dates is invisible to that walk by construction (pr241: the two probes
+  // on 1937-03-14 survived exactly this way). Two coprime lattices meet only
+  // every 37 × 41 = 1,517 days — 49 dates in the range — so this walk adds
+  // 1,742 dates the first never sees, taking the pinned share of the 73,414
+  // from 2.7% to 5.1%. It shrinks the unwalked gap; it does not close it,
+  // and the lattice test below keeps the arithmetic honest.
+  it('the same block holds on a second lattice, stride 41, coprime with the first', () => {
+    rederivationWalk(...REDERIVATION_WALKS[1]);
+  });
+
+  it('the two re-derivation strides are coprime and meet on exactly 49 of the 73,414 dates', () => {
+    const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+    const [[s1, n1], [s2, n2]] = REDERIVATION_WALKS;
+    expect(gcd(s1, s2)).toBe(1);
+    const first = new Set(sweepList(s1, n1));
+    const second = sweepList(s2, n2);
+    const shared = second.filter(d => first.has(d));
+    expect(shared.length).toBe(49);
+    expect(shared[0]).toBe('1900-01-01');
+    // Every shared date sits on both lattices: a multiple of s1 × s2 days.
+    // The loop counts its own iterations so it cannot be emptied unseen.
+    const day = 86400000;
+    const start = Date.UTC(1900, 0, 1);
+    let seen = 0;
+    for (const d of shared) {
+      const [y, m, dd] = d.split('-').map(Number);
+      expect((Date.UTC(y, m - 1, dd) - start) / day % (s1 * s2), d).toBe(0);
+      seen += 1;
+    }
+    expect(seen).toBe(49);
+    // The union, and the share of the full range it pins. The range total
+    // comes from the same generator at stride 1, not from re-typed endpoints.
+    const union = new Set([...first, ...second]);
+    expect(union.size).toBe(n1 + n2 - shared.length);
+    expect(union.size).toBe(3727);
+    const total = sweepList(1, 73414).length;
+    expect(Math.round((union.size / total) * 10000) / 100).toBe(5.08);
+    // The pr241 probe date is on neither lattice — still unwalked by the
+    // strides, and walked by name in the off-lattice test instead.
+    expect(union.has('1937-03-14')).toBe(false);
+    // And a date only the second lattice reaches.
+    expect(first.has('1900-02-11')).toBe(false);
+    expect(second.includes('1900-02-11')).toBe(true);
+    // Neither stride reaches the range tail: the last steps are
+    // 2100-12-26 and 2100-12-08, so 2100-12-29..31 are walked by name below.
+    expect([...first].at(-1)).toBe('2100-12-26');
+    expect(second.at(-1)).toBe('2100-12-08');
+  });
+
+  // A stride lattice is blind to the dates between its steps, and no stride
+  // in the file lands on a century leap boundary or on the last days of the
+  // range (pr249 audit, both lanes). Those dates are walked by name through
+  // the same block, with the same pins — and each is asserted OFF both
+  // lattices first, so the list can never quietly duplicate a walk.
+  it('the dates no lattice reaches — the century leap boundaries, the range tail and the pr241 probe — hold under the same block', () => {
+    const [[s1, n1], [s2, n2]] = REDERIVATION_WALKS;
+    const walked = new Set([...sweepList(s1, n1), ...sweepList(s2, n2)]);
+    const bad = [];
+    let checks = 0;
+    for (const dob of OFF_LATTICE_DATES) {
+      expect(walked.has(dob), `${dob} is on a stride lattice already`).toBe(false);
+      const walk = readingOffenders(dob, buildPublicReading(dob));
+      checks += walk.checks;
+      bad.push(...walk.offenders);
+    }
+    expectNone(bad, 'off-lattice readings disagree with the registries or the pillar');
+    expect(OFF_LATTICE_DATES.length).toBe(9);
+    expect(checks).toBe(9 * READING_CHECKS);
   });
 
   it('the re-derivation block flags every leaf of a reading when that leaf alone is corrupted', () => {
