@@ -39,7 +39,7 @@ shows the fixed sentence and strips the query. `netlify.toml` serves both bare p
 `.env.example` names the variables. The offer note's copy moves from "the operator sends an access link"
 to "gumroad shows a license key — paste it on the activate page (an emailed access link is the fallback)".
 
-**Verification.** Suite 66 files / 2600 tests. `tests/dyad_activation.test.js` pins the three boundaries:
+**Verification.** Suite 66 files / 2609 tests (after the absorbs). `tests/dyad_activation.test.js` pins the three boundaries:
 the example renders exactly one pair and can be steered to no other; the function rejects shape before
 any network, answers unconfigured with no key, maps every verify outcome to a reason, signs a token that
 verifies under the same key's public half and fails under another, and — with a Gumroad-shaped fixture
@@ -51,6 +51,34 @@ absent, the offer anchor with the real href, empty storage, zero console errors,
 1280; the sheet shows the example link under the offer; through the REAL form, a 35-character non-hex key
 → the shape sentence, a well-formed unknown key → the invalid sentence, the stub key → `dyad · filed on
 this device.`, the token stored, the dyad opens.
+
+**Both audit lanes (pr248, MERGE WITH FIXES each) — absorbed before the artifact.** Grok P1: the
+handler built its `Location` from `request.url`, so a request with a foreign `Host` would 303 a bearer
+credential to another origin — the redirect is now a RELATIVE path through one `redirectResponse()` that
+every path uses, and the auditor fails on any `request.url` read. Grok P1: `maxlength="35"` truncated a
+pasted key with a stray space before the server's trim — the field now carries `maxlength="64"` and the
+server's shape check is the only length gate. Grok P1: the example page's `getTier → 't5'` was live before
+the controls were removed, so a render that threw would have left a working paired-reading form with no
+token — the sweep now runs in `finally`, strips by KIND (`form, input, textarea, select`) as well as by id
+(`dyad-relation-retry` and `dyad-submit` added; codex P2), is injectable so a test proves the throw path,
+and a source-level pin enumerates every control id `ui/dyad.js` injects against the removed/kept lists.
+Grok P1: the offer copy said Gumroad "shows a license key" while the per-sale switch is still the
+controller's hand — the copy now says "paste the license key from your gumroad receipt — or open the access
+link the operator emails you", true in both states, and the rail gains an `already bought? open your dyad`
+line (grok P2). Grok P2: the verify response's product identity is now checked (`product_permalink` must
+equal what was asked; `GUMROAD_PRODUCT_ID`, when set, must match), and a numeric sale id is accepted.
+Codex P1 / grok P2: abuse — a platform rate limit is declared in the function's config (30 per ip per
+minute, outside product state), the body is capped, and the residual budget is stated in §12. Codex/grok
+P2: a key that cannot sign answered a platform 500 — `isPrivateJwk` is checked before any verify is spent
+and the signing call is caught to `unconfigured`. Codex P3: "nothing else is sent" → "only the key is sent
+to 8ball; it is checked with gumroad once and not kept". Grok P3: the stub also requires `CONTEXT !==
+'production'`; 8BALL's v0.90 paragraph restored and v0.91 filed as its own dated paragraph; the example
+page gains a visible "back to the sheet" link. Auditor: the guard must be the exact conjunction with no
+`||`, bracket-access email reads and `console.info/debug` fail, every `new Response(` must carry
+`no-store` inline, `request.url` fails, the rate-limit export and `example.html` are required — six more
+assurance mutants. Handler tests drive the deployed shape end to end (GET, foreign host, stub success,
+unknown key, JSON body, oversized body, missing/unusable key) and pin a relative `Location` with
+`no-store` on every one.
 
 **Not in this PR.** Steps 2–5. The Gumroad-side switches and the Netlify environment (controller's hand).
 The real Gumroad verify call against a real key — the controller's first activation after deploy is that

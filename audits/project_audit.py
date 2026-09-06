@@ -1132,12 +1132,23 @@ def check_activation_wiring(product_root):
     else:
         if not re.search(r"import \{[^}]*\bsignDyadToken\b[^}]*\} from '\.\./\.\./core/entitlement\.js'", fn_src):
             reasons.append("function_signer: must import signDyadToken from ../../core/entitlement.js")
-        if "env.NETLIFY_DEV === 'true' && env.DYAD_VERIFY_STUB === '1'" not in fn_src:
-            reasons.append("stub_guard: stub must require NETLIFY_DEV === 'true' AND DYAD_VERIFY_STUB === '1'")
-        if re.search(r"\.email\b|full_name|console\.(log|error|warn)", fn_src):
+        guard = re.search(r"^\s*if \((.*)\) \{\s*$", "\n".join(l for l in fn_src.splitlines() if "DYAD_VERIFY_STUB" in l and l.strip().startswith("if (")), re.M)
+        guard_expr = guard.group(1) if guard else ""
+        if ("env.NETLIFY_DEV === 'true'" not in guard_expr or "env.CONTEXT !== 'production'" not in guard_expr
+                or "env.DYAD_VERIFY_STUB === '1'" not in guard_expr or "||" in guard_expr):
+            reasons.append("stub_guard: the stub's `if` must conjoin NETLIFY_DEV === 'true', CONTEXT !== 'production' and DYAD_VERIFY_STUB === '1' with no `||`")
+        if re.search(r"\.email\b|\[\s*['\"]email['\"]\s*\]|full_name|console\.(log|error|warn|info|debug)", fn_src):
             reasons.append("function_privacy: reads email/full_name or writes console output")
-        if "'cache-control': 'no-store'" not in fn_src:
-            reasons.append("no_store: every response must carry cache-control: no-store")
+        responses = re.findall(r"new Response\(([^;]*)\)", fn_src)
+        evidence["response_sites"] = len(responses)
+        if not responses or any("'cache-control': 'no-store'" not in r for r in responses):
+            reasons.append("no_store: every `new Response(` must carry cache-control: no-store inline")
+        if "request.url" in fn_src:
+            reasons.append("location_origin: the redirect must never be built from request.url (host-poisoned Location)")
+        if not re.search(r"export const config = \{ rateLimit: \{ windowLimit: \d+, windowSize: \d+, aggregateBy: \['ip'\] \} \};", fn_src):
+            reasons.append("rate_limit: the platform rate-limit config export is missing")
+    if not (product_root / "example.html").is_file():
+        reasons.append("example_missing: example.html")
     page_path = product_root / "activate.html"
     page = page_path.read_text(encoding="utf-8") if page_path.is_file() else ""
     if not page:

@@ -36,43 +36,71 @@ export const EXAMPLE_PAIR = Object.freeze({
 export const EXAMPLE_LABEL = 'example · a fixed pair, not yours · your own pair opens after purchase';
 export const EXAMPLE_TITLE = 'a complete example of the paired reading';
 
-/** Every injected control the example must NOT expose. Removed, not hidden. */
+/** Every injected control the example must NOT expose, by id. Removed, not hidden. */
 export const EXAMPLE_REMOVED_IDS = Object.freeze([
   'dyad-form', 'dyad-intro',
   'dyad-share-btn', 'dyad-share-disclosure', 'dyad-share-status',
-  'dyad-compare-btn', 'dyad-back', 'dyad-open-btn',
+  'dyad-compare-btn', 'dyad-back', 'dyad-open-btn', 'dyad-relation-retry', 'dyad-submit',
 ]);
+/** …and by kind: any form field the module injects, whatever its id (pr248 grok lane). */
+export const EXAMPLE_REMOVED_SELECTOR = 'form, input, textarea, select';
+/** The controls that STAY: navigation between the two sheets and the panel's close. */
+export const EXAMPLE_KEPT_BUTTON_IDS = Object.freeze(['dyad-side-a', 'dyad-side-b', 'dyad-meaning-close']);
 
 const $ = id => (typeof document === 'undefined' ? null : document.getElementById(id));
 
 /**
- * Boot the example page. Returns what it rendered so a test can assert on
- * it without a DOM of its own. Idempotent: a second call is a no-op.
+ * Take away every way to change or export the pair. Runs in `finally`, so a
+ * render that throws still leaves no form behind (pr248 grok lane, P1).
+ * Returns the ids it removed so a test can see the sweep.
  */
-export function initExamplePage({ stage, controls } = {}) {
-  if (typeof document === 'undefined' || !stage) return null;
-  if (document.getElementById('dyad-screen')) return null;
-  const a = profileFromPayload(EXAMPLE_PAIR.a);
-  initDyadUI({ stage, controls }, {
-    getProfile: () => a,
-    getTier: () => 't5',            // page-local: this page IS the example
-    validateEntry: validateBirthInput,
-    buildSecond: profileFromPayload,
-    getNoteSlot: () => 'mid',       // no facet storage on this page
-    getPublicRead: publicReadFor,
-    onOpen: () => {},
-    onExit: () => {},
-    onRelationChange: () => {},     // no share controller exists here
-  });
-  const opened = open();
-  const nameEl = $('dyad-name-input'); const dobEl = $('dyad-dob-input');
-  if (nameEl) nameEl.value = EXAMPLE_PAIR.b.name;
-  if (dobEl) dobEl.value = EXAMPLE_PAIR.b.dob;
-  const rendered = opened && submitSecond();
-  // The pair is on screen. Now take away every way to change or export it.
-  for (const id of EXAMPLE_REMOVED_IDS) { const el = $(id); if (el && el.remove) el.remove(); }
-  // The real offer — same copy, same href, same disclosure — for a t3 reader.
-  syncDyadEntry('t3', DYAD_PRODUCT_URL);
-  const exampleLine = $('dyad-example-line'); if (exampleLine && exampleLine.remove) exampleLine.remove();
-  return { rendered: !!rendered, a: a.firstName, b: EXAMPLE_PAIR.b.name, path: DYAD_EXAMPLE_PATH };
+export function stripExampleControls(doc = (typeof document === 'undefined' ? null : document)) {
+  if (!doc) return [];
+  const removed = [];
+  for (const id of EXAMPLE_REMOVED_IDS) { const el = doc.getElementById(id); if (el && el.remove) { el.remove(); removed.push(id); } }
+  const nodes = typeof doc.querySelectorAll === 'function' ? doc.querySelectorAll(EXAMPLE_REMOVED_SELECTOR) : [];
+  for (const el of Array.from(nodes)) { if (el && el.remove) { el.remove(); removed.push(el.id || el.tagName); } }
+  const line = doc.getElementById('dyad-example-line'); if (line && line.remove) { line.remove(); removed.push('dyad-example-line'); }
+  return removed;
+}
+
+/**
+ * Boot the example page. Returns what it rendered so a test can assert on
+ * it without a DOM of its own. Idempotent: a second call is a no-op. The
+ * dyad functions are injectable so a test can make any step throw and
+ * prove the sweep still runs.
+ */
+export function initExamplePage({ stage, controls } = {}, deps = {}) {
+  const d = { initDyadUI, open, submitSecond, syncDyadEntry, doc: (typeof document === 'undefined' ? null : document), ...deps };
+  if (!d.doc || !stage) return null;
+  if (d.doc.getElementById('dyad-screen')) return null;
+  let rendered = false; let removed = [];
+  try {
+    const a = profileFromPayload(EXAMPLE_PAIR.a);
+    d.initDyadUI({ stage, controls }, {
+      getProfile: () => a,
+      getTier: () => 't5',            // page-local: this page IS the example
+      validateEntry: validateBirthInput,
+      buildSecond: profileFromPayload,
+      getNoteSlot: () => 'mid',       // no facet storage on this page
+      getPublicRead: publicReadFor,
+      onOpen: () => {},
+      onExit: () => {},
+      onRelationChange: () => {},     // no share controller exists here
+    });
+    const opened = d.open();
+    const nameEl = d.doc.getElementById('dyad-name-input'); const dobEl = d.doc.getElementById('dyad-dob-input');
+    if (nameEl) nameEl.value = EXAMPLE_PAIR.b.name;
+    if (dobEl) dobEl.value = EXAMPLE_PAIR.b.dob;
+    rendered = !!(opened && d.submitSecond());
+  } catch (_) {
+    rendered = false;
+  } finally {
+    // The pair is on screen, or it is not. Either way: no form, no export.
+    removed = stripExampleControls(d.doc);
+    // The real offer — same copy, same href, same disclosure — for a t3 reader.
+    try { d.syncDyadEntry('t3', DYAD_PRODUCT_URL); } catch (_) { /* the offer is optional on a failed render */ }
+    const line = d.doc.getElementById('dyad-example-line'); if (line && line.remove) line.remove();
+  }
+  return { rendered, removed, a: EXAMPLE_PAIR.a.name, b: EXAMPLE_PAIR.b.name, path: DYAD_EXAMPLE_PATH };
 }

@@ -17,10 +17,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import { verifyDyadToken, parseDyadToken } from '../core/entitlement.js';
-import { activate, verifyWithGumroad, stubVerifyIfEnabled, KEY_SHAPE, REASONS, STUB_KEY, GUMROAD_VERIFY_URL } from '../netlify/functions/activate.mjs';
-import { EXAMPLE_PAIR, EXAMPLE_LABEL, EXAMPLE_REMOVED_IDS } from '../ui/example.js';
+import handler, { activate, verifyWithGumroad, stubVerifyIfEnabled, isPrivateJwk, redirectResponse, licenseKeyFrom, config as fnConfig, KEY_SHAPE, REASONS, STUB_KEY, GUMROAD_VERIFY_URL, MAX_BODY_BYTES } from '../netlify/functions/activate.mjs';
+import { EXAMPLE_PAIR, EXAMPLE_LABEL, EXAMPLE_REMOVED_IDS, EXAMPLE_KEPT_BUTTON_IDS, EXAMPLE_REMOVED_SELECTOR, stripExampleControls, initExamplePage } from '../ui/example.js';
 import { ACTIVATE_REASONS, reasonFrom, initActivatePage } from '../ui/activate.js';
-import { DYAD_OFFER_COPY, DYAD_EXAMPLE_PATH } from '../ui/dyad.js';
+import { DYAD_OFFER_COPY, DYAD_EXAMPLE_PATH, DYAD_ACTIVATE_PATH } from '../ui/dyad.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -69,7 +69,7 @@ describe('the complete example before checkout (§1.J v0.91)', () => {
     for (const id of ['dyad-form', 'dyad-share-btn', 'dyad-share-disclosure', 'dyad-compare-btn', 'dyad-back', 'dyad-open-btn']) {
       expect(EXAMPLE_REMOVED_IDS, id).toContain(id);
     }
-    expect(js).toMatch(/el\.remove\(\)/);
+    expect(js).toMatch(/finally \{/); // the sweep runs even when the render throws (pr248 grok lane, P1)
     expect(js).toMatch(/syncDyadEntry\('t3', DYAD_PRODUCT_URL\)/);
     expect(EXAMPLE_LABEL).not.toMatch(/soulmate|compatib|score|hurry|only|now\b/i);
   });
@@ -88,6 +88,8 @@ describe('the complete example before checkout (§1.J v0.91)', () => {
     expect(index).toMatch(/href="\/example"/); expect(index).toMatch(/href="\/activate"/);
     const dyad = read('ui/dyad.js');
     expect(dyad).toMatch(/id = 'dyad-example-line'/); expect(dyad).toMatch(/example\.hidden = !offer/);
+    expect(DYAD_ACTIVATE_PATH).toBe('/activate'); expect(dyad).toMatch(/id = 'dyad-activate-line'/); expect(dyad).toMatch(/activateLine\.hidden = !offer/);
+    expect(DYAD_OFFER_COPY.note).toMatch(/or open the access link the operator emails you/); // true before AND after the Gumroad switch
   });
 
   it('the publish scrub keeps the pages and the function', () => {
@@ -186,7 +188,108 @@ describe('the activation function (§12 / §5.B v0.91)', () => {
     expect(stubVerifyIfEnabled({ NETLIFY_DEV: 'true', DYAD_VERIFY_STUB: '1' })).toBeTypeOf('function');
     expect(KEY_SHAPE.test(STUB_KEY)).toBe(true);
     const fn = read('netlify/functions/activate.mjs');
-    expect(fn).toMatch(/env\.NETLIFY_DEV === 'true' && env\.DYAD_VERIFY_STUB === '1'/);
+    expect(fn).toMatch(/env\.NETLIFY_DEV === 'true' && env\.CONTEXT !== 'production' && env\.DYAD_VERIFY_STUB === '1'/);
+  });
+});
+
+describe('the example page sweep and its throw path (pr248 lanes)', () => {
+  function fakeDoc(ids, extras = []) {
+    const nodes = new Map(); const removed = [];
+    const mk = (id, tag = 'DIV') => { const n = { id, tagName: tag, value: '', hidden: false, remove() { removed.push(id || tag); nodes.delete(id); } }; nodes.set(id, n); return n; };
+    for (const id of ids) mk(id);
+    for (const [id, tag] of extras) mk(id, tag);
+    const doc = { getElementById: id => nodes.get(id) || null, querySelectorAll: sel => { const tags = sel.split(',').map(t => t.trim().toUpperCase()); return [...nodes.values()].filter(n => tags.includes(n.tagName)); } };
+    return { doc, removed, nodes };
+  }
+  it('strips by id AND by kind, so a control the module gains later still dies', () => {
+    const { doc, removed, nodes } = fakeDoc(['dyad-form', 'dyad-back', 'dyad-example-line'], [['dyad-swap', 'INPUT'], ['dyad-other', 'FORM'], ['dyad-side-a', 'BUTTON'], ['dyad-head-a', 'DIV']]);
+    const out = stripExampleControls(doc);
+    expect(out).toEqual(expect.arrayContaining(['dyad-form', 'dyad-back', 'dyad-example-line', 'dyad-swap', 'dyad-other']));
+    expect(nodes.has('dyad-swap')).toBe(false); expect(nodes.has('dyad-other')).toBe(false);
+    expect(nodes.has('dyad-side-a')).toBe(true); expect(nodes.has('dyad-head-a')).toBe(true);
+    expect(EXAMPLE_REMOVED_SELECTOR).toBe('form, input, textarea, select');
+  });
+  it('when the render throws, the sweep still runs and nothing steerable survives', () => {
+    const { doc, removed } = fakeDoc(['dyad-form', 'dyad-name-input', 'dyad-share-btn', 'dyad-relation-retry'], [['dyad-name-input', 'INPUT']]);
+    const calls = [];
+    const r = initExamplePage({ stage: {}, controls: {} }, { doc, initDyadUI: () => calls.push('init'), open: () => true, submitSecond: () => { throw new Error('render exploded'); }, syncDyadEntry: () => calls.push('sync') });
+    expect(r.rendered).toBe(false);
+    expect(removed).toEqual(expect.arrayContaining(['dyad-form', 'dyad-share-btn', 'dyad-relation-retry']));
+    expect(doc.getElementById('dyad-form')).toBeNull();
+    expect(calls).toEqual(['init', 'sync']);
+  });
+  it('every control id the dyad module injects is either removed or explicitly kept', () => {
+    const dyad = read('ui/dyad.js');
+    const controls = new Set();
+    for (const m of dyad.matchAll(/<(button|form|input)\b[^>]*\bid="([a-z0-9-]+)"/g)) controls.add(m[2]);
+    for (const m of dyad.matchAll(/const (\w+) = document\.createElement\('(button|a)'\);[\s\S]{0,120}?\1\.id = '([a-z0-9-]+)'/g)) controls.add(m[3]);
+    expect(controls.size).toBeGreaterThan(8);
+    const offer = ['dyad-offer-link', 'dyad-example-link', 'dyad-activate-link']; // the purchase rail's own anchors, kept on purpose
+    const inputsDieWithTheForm = [...controls].filter(id => /input$/.test(id));
+    for (const id of controls) {
+      if (offer.includes(id) || inputsDieWithTheForm.includes(id)) continue;
+      expect([...EXAMPLE_REMOVED_IDS, ...EXAMPLE_KEPT_BUTTON_IDS], `injected control ${id} is neither removed nor kept`).toContain(id);
+    }
+  });
+});
+
+describe('the handler as deployed (pr248 lanes)', () => {
+  const ENV = { ...process.env };
+  const setEnv = o => { for (const k of ['DYAD_SIGNING_KEY', 'GUMROAD_PRODUCT_PERMALINK', 'GUMROAD_PRODUCT_ID', 'DYAD_VERIFY_STUB', 'NETLIFY_DEV', 'CONTEXT']) delete process.env[k]; Object.assign(process.env, o); };
+  const restore = () => { for (const k of Object.keys(process.env)) if (!(k in ENV)) delete process.env[k]; Object.assign(process.env, ENV); };
+  const post = (body, { host = 'evil.test', type = 'application/x-www-form-urlencoded' } = {}) => new Request(`https://${host}/.netlify/functions/activate`, { method: 'POST', headers: { 'content-type': type }, body });
+  it('every response is a 303 with a RELATIVE Location and no-store — never the request\'s host', async () => {
+    const { priv } = await testPair();
+    setEnv({ DYAD_SIGNING_KEY: JSON.stringify(priv), NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
+    try {
+      const cases = [
+        [new Request('https://evil.test/.netlify/functions/activate'), '/activate'],
+        [post('license_key=' + STUB_KEY), /^\/\?dyad=/],
+        [post('license_key=85DB262A-C19D4B06-A5335A6B-8C079166'), '/activate?e=invalid'],
+        [post('license_key=nope'), '/activate?e=shape'],
+        [post(JSON.stringify({ license_key: STUB_KEY }), { type: 'application/json' }), '/activate?e=shape'],
+        [post('license_key=' + STUB_KEY + '&pad=' + 'x'.repeat(MAX_BODY_BYTES)), '/activate?e=shape'],
+      ];
+      for (const [req, want] of cases) {
+        const res = await handler(req);
+        expect(res.status).toBe(303);
+        expect(res.headers.get('cache-control')).toBe('no-store');
+        const loc = res.headers.get('location');
+        expect(loc.startsWith('/'), loc).toBe(true); expect(loc).not.toMatch(/evil\.test|https?:/);
+        if (want instanceof RegExp) expect(loc).toMatch(want); else expect(loc).toBe(want);
+      }
+    } finally { restore(); }
+  });
+  it('a missing or unusable signing key answers unconfigured before any verify is spent', async () => {
+    setEnv({ NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
+    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/activate?e=unconfigured'); } finally { restore(); }
+    setEnv({ DYAD_SIGNING_KEY: JSON.stringify({ kty: 'EC', crv: 'P-256', d: 'short', x: 'short', y: 'short' }), NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
+    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/activate?e=unconfigured'); } finally { restore(); }
+    expect(isPrivateJwk(null)).toBe(false); expect(isPrivateJwk({ kty: 'EC', crv: 'P-256', d: 'x'.repeat(43), x: 'x'.repeat(43), y: 'x'.repeat(43) })).toBe(true);
+  });
+  it('a well-shaped but cryptographically dead key never 500s: the signing failure is a reason code', async () => {
+    const dead = { kty: 'EC', crv: 'P-256', d: 'A'.repeat(43), x: 'A'.repeat(43), y: 'A'.repeat(43) };
+    const r = await activate({ licenseKey: GOOD_KEY, verify: async () => ({ ok: true, saleId: 'sale_1' }), signingKey: dead, subtle });
+    expect(r.redirect).toBe('/activate?e=unconfigured');
+  });
+  it('the stub is dead in the production context even with both flags, and the platform rate limit is declared', () => {
+    expect(stubVerifyIfEnabled({ NETLIFY_DEV: 'true', DYAD_VERIFY_STUB: '1', CONTEXT: 'production' })).toBeNull();
+    expect(fnConfig).toEqual({ rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } });
+    expect(redirectResponse('/x').headers.get('location')).toBe('/x');
+  });
+  it('reads only a small urlencoded body', async () => {
+    expect(await licenseKeyFrom(post('license_key=%20' + GOOD_KEY + '%20'))).toBe(' ' + GOOD_KEY + ' ');
+    expect(await licenseKeyFrom(post('a=b', { type: 'text/plain' }))).toBe('');
+    expect(await licenseKeyFrom(new Request('https://x.test/', { method: 'POST', headers: { 'content-type': 'application/x-form-urlencoded' }, body: 'x' }))).toBe('');
+  });
+  it('a sale for another product never signs, whatever its key', async () => {
+    for (const over of [{ product_permalink: 'other' }, { product_id: 'zzz' }]) {
+      const fetchImpl = async () => ({ ok: true, status: 200, json: async () => gumroadFixture({ product_id: 'prod_123', ...over }) });
+      const r = await verifyWithGumroad(GOOD_KEY, { permalink: 'dyad', productId: 'prod_123', fetchImpl });
+      expect(r, JSON.stringify(over)).toEqual({ ok: false, reason: 'invalid' });
+    }
+    const numeric = await verifyWithGumroad(GOOD_KEY, { permalink: 'dyad', fetchImpl: async () => ({ ok: true, status: 200, json: async () => gumroadFixture({ sale_id: undefined, id: 987654 }) }) });
+    expect(numeric).toEqual({ ok: true, saleId: '987654' });
   });
 });
 
@@ -199,7 +302,8 @@ describe('the activation page and the wiring (§5.B call 3 v0.91)', () => {
     expect((html.match(/<input/g) || []).length).toBe(1);
     expect(html).toMatch(/name="license_key"/);
     expect(html).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|localStorage|type="email"|name="email"/);
-    expect(html).toMatch(/nothing else is sent\. the key is checked with gumroad once and not kept\./);
+    expect(html).toMatch(/only the key is sent to 8ball; it is checked with gumroad once and not kept\./);
+    expect(html).not.toMatch(/maxlength="35"|minlength=/); // a pasted key with a stray space must reach the server's trim (pr248 grok lane)
     expect(html).toMatch(/<meta name="robots" content="noindex">/);
   });
 
@@ -233,6 +337,6 @@ describe('the activation page and the wiring (§5.B call 3 v0.91)', () => {
     const fn = read('netlify/functions/activate.mjs');
     expect(fn).toMatch(/import \{ signDyadToken, isSaleId \} from '\.\.\/\.\.\/core\/entitlement\.js'/);
     expect(fn).toMatch(/'cache-control': 'no-store'/);
-    expect(fn).not.toMatch(/console\.log|\.email|full_name/);
+    expect(fn).not.toMatch(/console\.(log|info|warn|error|debug)|\.email\b|\['email'\]|full_name|request\.url/);
   });
 });

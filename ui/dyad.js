@@ -106,9 +106,12 @@ import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
 export const DYAD_OFFER_COPY = Object.freeze({
   head: 'dyad · $3 once',
   body: 'two complete sheets, read beside each other. permanent access.',
-  note: 'checkout opens on gumroad; payment and your email stay there. after purchase gumroad shows a license key — paste it on 8ball\'s activate page to file the dyad on that device, permanently (an emailed access link is the fallback). the second entry is never saved.',
+  note: 'checkout opens on gumroad; payment and your email stay there. after purchase, paste the license key from your gumroad receipt on 8ball\'s activate page — or open the access link the operator emails you — and the dyad is filed on that device, permanently. the second entry is never saved.',
   example: 'see a complete example first',
+  activate: 'already bought? open your dyad',
 });
+/** Where a buyer activates (§5.B call 3 v0.91) — a bare path, served by netlify.toml. */
+export const DYAD_ACTIVATE_PATH = '/activate';
 /** Where the complete example lives (§1.J v0.91) — a bare path, served by netlify.toml. */
 export const DYAD_EXAMPLE_PATH = '/example';
 
@@ -1025,6 +1028,18 @@ function injectOffer(controls) {
   example.appendChild(exampleLink);
   example.hidden = true;
   controls.appendChild(example);
+  // …and the way in for someone who already bought (pr248 grok lane, P2).
+  const activate = document.createElement('p');
+  activate.className = 'dyad-offer-note';
+  activate.id = 'dyad-activate-line';
+  const activateLink = document.createElement('a');
+  activateLink.id = 'dyad-activate-link';
+  activateLink.className = 'text-link';
+  activateLink.setAttribute('href', DYAD_ACTIVATE_PATH);
+  activateLink.textContent = DYAD_OFFER_COPY.activate;
+  activate.appendChild(activateLink);
+  activate.hidden = true;
+  controls.appendChild(activate);
 }
 
 /**
@@ -1065,6 +1080,8 @@ export function syncDyadEntry(tier, url = DYAD_PRODUCT_URL) {
   if (note) note.hidden = !offer;
   const example = $('dyad-example-line');
   if (example) example.hidden = !offer;
+  const activateLine = $('dyad-activate-line');
+  if (activateLine) activateLine.hidden = !offer;
   return btn ? !btn.hidden : false;
 }
 

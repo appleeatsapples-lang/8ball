@@ -397,7 +397,7 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     // pr242 audit (Lane B M2): delivery of the link is the OPERATOR's step,
     // said so — never phrased as something the system does.
     // v0.91: activation by license key on the activate page; the emailed link is the fallback
-    expect(aboutSubtree).toMatch(/after purchase gumroad shows a license key, and pasting it on the <a class="text-link" href="\/activate">activate page<\/a> files the dyad on that device \(an emailed access link is the fallback\)/);
+    expect(aboutSubtree).toMatch(/after purchase, pasting the license key from your gumroad receipt on the <a class="text-link" href="\/activate">activate page<\/a> — or opening the access link the operator emails you — files the dyad on that device/);
     expect(aboutSubtree).not.toMatch(/link sent to that email files/);
     expect(aboutSubtree).toMatch(/nothing about the second person is ever saved/);
   });

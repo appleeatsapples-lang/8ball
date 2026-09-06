@@ -1638,11 +1638,13 @@ class ActivationWiringTests(unittest.TestCase):
     FN = (
         "import { signDyadToken, isSaleId } from '../../core/entitlement.js';\n"
         "export function stubVerifyIfEnabled(env) {\n"
-        "  if (env.NETLIFY_DEV === 'true' && env.DYAD_VERIFY_STUB === '1') { return async () => ({ ok: true, saleId: 'x' }); }\n"
+        "  if (env.NETLIFY_DEV === 'true' && env.CONTEXT !== 'production' && env.DYAD_VERIFY_STUB === '1') {\n"
+        "    return async () => ({ ok: true, saleId: 'x' });\n  }\n"
         "  return null;\n}\n"
-        "export default async function handler(request) {\n"
-        "  const headers = { 'cache-control': 'no-store' };\n"
-        "  return new Response(null, { status: 303, headers });\n}\n"
+        "export const config = { rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } };\n"
+        "export function redirectResponse(location) {\n"
+        "  return new Response(null, { status: 303, headers: { 'cache-control': 'no-store', location } });\n}\n"
+        "export default async function handler(request) { return redirectResponse('/activate'); }\n"
     )
     PAGE = (
         '<form id="activate-form" method="POST" action="/.netlify/functions/activate" autocomplete="off">\n'
@@ -1662,6 +1664,7 @@ class ActivationWiringTests(unittest.TestCase):
             if extra_fn:
                 (root / "netlify" / "functions" / extra_fn).write_text("export default () => null;\n")
             (root / "activate.html").write_text(self.PAGE if page is None else page)
+            (root / "example.html").write_text("<p>example</p>\n")
             (root / "netlify.toml").write_text(self.TOML if toml is None else toml)
             return pa.check_activation_wiring(root)
 
@@ -1682,13 +1685,40 @@ class ActivationWiringTests(unittest.TestCase):
         chk = self.run_with(fn=self.FN.replace("env.NETLIFY_DEV === 'true' && ", ""))
         self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
 
+    def test_stub_guard_or_injection_fails(self):
+        chk = self.run_with(fn=self.FN.replace("env.DYAD_VERIFY_STUB === '1') {", "env.DYAD_VERIFY_STUB === '1' || env.DYAD_VERIFY_STUB === '1') {"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
+
+    def test_stub_guard_without_context_fails(self):
+        chk = self.run_with(fn=self.FN.replace("env.CONTEXT !== 'production' && ", ""))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("stub_guard", chk["summary"])
+
     def test_reading_the_email_fails(self):
         chk = self.run_with(fn=self.FN.replace("return null;", "const e = data.purchase.email; return null;"))
         self.assertEqual(chk["status"], "fail"); self.assertIn("function_privacy", chk["summary"])
 
-    def test_missing_no_store_fails(self):
-        chk = self.run_with(fn=self.FN.replace("'cache-control': 'no-store'", "'x-y': 'z'"))
+    def test_reading_the_email_by_bracket_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return null;", "const e = data.purchase['email']; return null;"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("function_privacy", chk["summary"])
+
+    def test_a_response_without_no_store_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return redirectResponse('/activate');", "if (!request) return new Response('bad', { status: 400 }); return redirectResponse('/activate');"))
         self.assertEqual(chk["status"], "fail"); self.assertIn("no_store", chk["summary"])
+
+    def test_location_from_request_url_fails(self):
+        chk = self.run_with(fn=self.FN.replace("return redirectResponse('/activate');", "return redirectResponse(new URL('/activate', request.url).toString());"))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("location_origin", chk["summary"])
+
+    def test_missing_rate_limit_config_fails(self):
+        chk = self.run_with(fn=self.FN.replace("export const config = { rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } };\n", ""))
+        self.assertEqual(chk["status"], "fail"); self.assertIn("rate_limit", chk["summary"])
+
+    def test_missing_example_page_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); (root / "netlify" / "functions").mkdir(parents=True)
+            (root / "netlify" / "functions" / "activate.mjs").write_text(self.FN); (root / "activate.html").write_text(self.PAGE); (root / "netlify.toml").write_text(self.TOML)
+            chk = pa.check_activation_wiring(root)
+        self.assertEqual(chk["status"], "fail"); self.assertIn("example_missing", chk["summary"])
 
     def test_second_input_or_email_field_fails(self):
         chk = self.run_with(page=self.PAGE.replace("<button", '<input name="email" type="email"><button'))

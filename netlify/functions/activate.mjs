@@ -24,7 +24,7 @@ export const STUB_KEY = '00000000-00000000-00000000-00000000';
  * Returns ONLY { ok, saleId } or { ok:false, reason } — the response object
  * (which carries the buyer's email) is dropped here and nowhere else.
  */
-export async function verifyWithGumroad(licenseKey, { permalink, fetchImpl = globalThis.fetch } = {}) {
+export async function verifyWithGumroad(licenseKey, { permalink, productId = '', fetchImpl = globalThis.fetch } = {}) {
   if (!permalink) return { ok: false, reason: 'unconfigured' };
   const body = new URLSearchParams({ product_permalink: permalink, license_key: licenseKey, increment_uses_count: 'false' });
   let res;
@@ -37,8 +37,13 @@ export async function verifyWithGumroad(licenseKey, { permalink, fetchImpl = glo
     return { ok: false, reason: res.status === 404 || (data && data.success === false) ? 'invalid' : 'unavailable' };
   }
   const p = data.purchase || {};
+  // The sale must be OUR product: the permalink we asked about must come
+  // back as the permalink of the sale, and — when the controller pins the
+  // unique product id in the environment — that id too (pr248 grok lane).
+  if (typeof p.product_permalink === 'string' && p.product_permalink !== permalink) return { ok: false, reason: 'invalid' };
+  if (productId && String(p.product_id || '') !== String(productId)) return { ok: false, reason: 'invalid' };
   if (p.refunded === true || p.chargebacked === true || p.disputed === true) return { ok: false, reason: 'refunded' };
-  const saleId = typeof p.sale_id === 'string' ? p.sale_id : (typeof p.id === 'string' ? p.id : '');
+  const saleId = String(p.sale_id ?? p.id ?? '');
   if (!isSaleId(saleId)) return { ok: false, reason: 'invalid' };
   return { ok: true, saleId };
 }
@@ -51,9 +56,7 @@ export async function verifyWithGumroad(licenseKey, { permalink, fetchImpl = glo
 export async function activate({ licenseKey, verify, signingKey, subtle, now } = {}) {
   const key = String(licenseKey || '').trim();
   if (!KEY_SHAPE.test(key)) return { redirect: `${ACTIVATE_PAGE}?e=shape` };
-  if (!signingKey || typeof signingKey !== 'object' || signingKey.kty !== 'EC' || typeof signingKey.d !== 'string') {
-    return { redirect: `${ACTIVATE_PAGE}?e=unconfigured` };
-  }
+  if (!isPrivateJwk(signingKey)) return { redirect: `${ACTIVATE_PAGE}?e=unconfigured` };
   let result;
   try { result = await verify(key); } catch (_) { result = { ok: false, reason: 'unavailable' }; }
   if (!result || result.ok !== true) {
@@ -61,8 +64,16 @@ export async function activate({ licenseKey, verify, signingKey, subtle, now } =
     return { redirect: `${ACTIVATE_PAGE}?e=${reason}` };
   }
   const iat = Number.isFinite(now) ? Math.floor(now) : Math.floor(Date.now() / 1000);
-  const token = await signDyadToken({ id: result.saleId, iat }, signingKey, { subtle });
+  let token;
+  try { token = await signDyadToken({ id: result.saleId, iat }, signingKey, { subtle }); }
+  catch (_) { return { redirect: `${ACTIVATE_PAGE}?e=unconfigured` }; }   // a key that cannot sign is a configuration fault, never a 500
   return { redirect: `/?dyad=${encodeURIComponent(token)}` };
+}
+
+/** A usable P-256 private JWK: the four fields present and string-shaped, checked BEFORE any verify is spent. */
+export function isPrivateJwk(k) {
+  return !!k && typeof k === 'object' && k.kty === 'EC' && k.crv === 'P-256'
+    && ['d', 'x', 'y'].every(f => typeof k[f] === 'string' && /^[A-Za-z0-9_-]{32,}$/.test(k[f]));
 }
 
 function parseSigningKey(raw) {
@@ -70,27 +81,44 @@ function parseSigningKey(raw) {
   try { const k = JSON.parse(raw); return k && typeof k === 'object' ? k : null; } catch (_) { return null; }
 }
 
-/** Local-dev stub: honoured ONLY under `netlify dev` (NETLIFY_DEV=true) AND an explicit flag. Dead in production by construction. */
+/** Local-dev stub: honoured ONLY under `netlify dev` (NETLIFY_DEV=true), never in the production context, AND with an explicit flag. Dead in production by construction. */
 export function stubVerifyIfEnabled(env) {
-  if (env.NETLIFY_DEV === 'true' && env.DYAD_VERIFY_STUB === '1') {
+  if (env.NETLIFY_DEV === 'true' && env.CONTEXT !== 'production' && env.DYAD_VERIFY_STUB === '1') {
     return async key => (key === STUB_KEY ? { ok: true, saleId: 'stub_sale_local' } : { ok: false, reason: 'invalid' });
   }
   return null;
 }
 
-export default async function handler(request) {
-  const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' };
-  if (request.method !== 'POST') return new Response(null, { status: 303, headers: { ...headers, location: ACTIVATE_PAGE } });
-  let licenseKey = '';
+/** Netlify platform rate limit — a control outside product state (§12 v0.91): 30 posts per ip per minute. */
+export const config = { rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: ['ip'] } };
+
+/** Largest body the function will read: a key is 35 bytes; anything past this is not a form we sent. */
+export const MAX_BODY_BYTES = 4096;
+
+/** Every response goes through here, so `no-store` cannot be forgotten on a path. The Location is RELATIVE, never built from the request's host (pr248 grok lane, P1). */
+export function redirectResponse(location) {
+  return new Response(null, { status: 303, headers: { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', location } });
+}
+
+/** Read the one field from a small urlencoded body; anything else is an empty key (→ shape). */
+export async function licenseKeyFrom(request) {
   try {
-    const form = await request.formData();
-    licenseKey = String(form.get('license_key') || '');
-  } catch (_) { licenseKey = ''; }
+    const type = String(request.headers.get('content-type') || '');
+    if (!type.startsWith('application/x-www-form-urlencoded')) return '';
+    const text = await request.text();
+    if (text.length > MAX_BODY_BYTES) return '';
+    return String(new URLSearchParams(text).get('license_key') || '');
+  } catch (_) { return ''; }
+}
+
+export default async function handler(request) {
+  if (request.method !== 'POST') return redirectResponse(ACTIVATE_PAGE);
+  const licenseKey = await licenseKeyFrom(request);
   const env = process.env;
   const signingKey = parseSigningKey(env.DYAD_SIGNING_KEY);
   const permalink = env.GUMROAD_PRODUCT_PERMALINK || 'dyad';
-  const verify = stubVerifyIfEnabled(env) || (key => verifyWithGumroad(key, { permalink }));
+  const productId = env.GUMROAD_PRODUCT_ID || '';
+  const verify = stubVerifyIfEnabled(env) || (key => verifyWithGumroad(key, { permalink, productId }));
   const { redirect } = await activate({ licenseKey, verify, signingKey, subtle: globalThis.crypto && globalThis.crypto.subtle });
-  const location = new URL(redirect, request.url).toString();
-  return new Response(null, { status: 303, headers: { ...headers, location } });
+  return redirectResponse(redirect);
 }

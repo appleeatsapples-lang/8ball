@@ -31,11 +31,11 @@
     <p class="hint">paste the license key from your gumroad receipt. this device files the dyad; keep the key to open it on another.</p>
     <form id="activate-form" method="POST" action="/.netlify/functions/activate" autocomplete="off">
       <label for="license-key">license key</label>
-      <input id="license-key" name="license_key" type="text" inputmode="text" autocomplete="off" spellcheck="false" required minlength="35" maxlength="35" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" aria-describedby="activate-status">
+      <input id="license-key" name="license_key" type="text" inputmode="text" autocomplete="off" spellcheck="false" required maxlength="64" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" aria-describedby="activate-status">
       <button type="submit" class="btn btn-block">open my dyad</button>
     </form>
     <p id="activate-status" role="status" aria-live="polite" hidden></p>
-    <p class="hint">nothing else is sent. the key is checked with gumroad once and not kept.</p>
+    <p class="hint">only the key is sent to 8ball; it is checked with gumroad once and not kept.</p>
   </section>
 </main>
 
