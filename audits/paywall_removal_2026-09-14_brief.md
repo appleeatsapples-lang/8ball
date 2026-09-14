@@ -9,7 +9,7 @@ Every claim below is labeled **VERIFIED** (I read/ran it myself in this session)
 
 ## 0 — Worktree proof
 
-- **VERIFIED.** `~/dev/8ball` (== `~/01_ACTIVE/dev/8ball`, the environment's directory move) is `appleeatsapples-lang/8ball`. `~/8ball` (ops folder) was never touched.
+- **VERIFIED.** `~/dev/8ball` (== `~/01_ACTIVE/dev/8ball`, the environment's directory move) is the repo named in `git remote -v` for this project (see README.md for the canonical remote). `~/8ball` (ops folder) was never touched.
 - **VERIFIED.** The worktree was NOT on main at session start — it sat on `claude/specimen-four-line-symbolic` (PR #205, closed not merged), with month-old (2026-08-12) uncommitted changes to `tests/fixtures.json`, `tests/helpers/capability-realm.mjs`, `tests/privacy_scan.test.js`, plus an untracked `.codex/` directory. Checked for a live Codex implementer in that exact worktree first (`ps aux`, file mtimes) — all activity was over a month stale; no live process targeted this directory. Stashed the WIP (`git stash push -u -m "pre-paywall-removal: stale specimen-four-line-symbolic WIP..."`, `stash@{0}`) rather than discarding it, then branched `claude/paywall-removal` fresh off `origin/main` after `git pull` (`ca6e1d1`, #249, 2026-09-06).
 - **VERIFIED.** `git status` clean before every edit began; working tree left with only this PR's changes at hand-off.
 
