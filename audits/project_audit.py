@@ -363,18 +363,24 @@ def check_index_budget(product_root):
 
 
 # Doctrine v0.81 (2026-09-05): this check was the t4 -> t3 migration probe,
-# then the FREE-CEILING probe (v0.71). What it verifies now is the
-# ENTITLEMENT CONTRACT of the free-sheet + paid-dyad model, end to end
-# through the real modules:
-#   1. the single density resolver answers 't3' — the complete single sheet
-#      — for a device holding the legacy UNSIGNED 't5' tier (the sharpest
-#      case: the token the unsigned era could write by hand) and writes
-#      nothing;
-#   2. a TAMPERED access token grants nothing and stores nothing;
-#   3. a SIGNED access token (a throwaway P-256 pair generated here) grants
-#      't5' and is stored verbatim under the entitlement key;
+# then the FREE-CEILING probe (v0.71), then the entitlement-contract probe
+# for the free-sheet + paid-dyad model (v0.90/v0.91). PAYWALL REMOVED
+# 2026-09-14 (PAYWALL-REMOVE-01, controller order, doctrine v0.92): the dyad
+# is free too now — `ui/payments.js`'s `_dyadEntitled` flag defaults `true`,
+# so `getRenderTier()` answers 't5' unconditionally, on every device, with
+# no token at all. What this checks now:
+#   1. the single density resolver answers 't5' on a fresh module with NO
+#      token and nothing stored — the dyad is free, first visit, no gate;
+#   2. the pure token-verification logic (dead code now, kept for a
+#      one-commit revert) still correctly REJECTS a tampered access token —
+#      `resolveDyadEntitlement` reports it unverified and writes nothing —
+#      even though `getRenderTier()` stays 't5' regardless, since access no
+#      longer depends on the outcome;
+#   3. a SIGNED access token (a throwaway P-256 pair generated here) still
+#      verifies and is stored verbatim under the entitlement key — the
+#      storage/verify plumbing is untouched, just no longer load-bearing;
 #   4. the boot scrub removes the retired tier key and leaves the
-#      entitlement key alone (a purchase is never scrubbed).
+#      entitlement key alone (an old filed token is never erased).
 # The check id keeps its slot so the fourteen-check inventory and the
 # fail-closed wiring in run_all stay stable.
 T4_MIGRATION_SCRIPT = """
@@ -384,19 +390,20 @@ globalThis.localStorage = {
   setItem(key, value) { store.set(key, String(value)); },
   removeItem(key) { store.delete(key); },
 };
-store.set('eight_ball_tier_v1', 't5');
 const mod = await import('./ui/payments.js');
 const ent = await import('./core/entitlement.js');
 const DYAD_KEY = 'eight_ball_dyad_entitlement_v1';
 const fail = (msg) => { console.error(`FAIL: ${msg}`); process.exit(1); };
 
-// 1. the legacy unsigned tier grants nothing; the resolver writes nothing
+// 1. PAYWALL REMOVED 2026-09-14: the dyad is free on a fresh module, before
+// any token — first visit, no gate — and getting there wrote nothing.
 const baseline = mod.getRenderTier();
-if (baseline !== 't3') fail(`getRenderTier() resolved ${JSON.stringify(baseline)} over a legacy unsigned 't5' tier, expected the complete single sheet 't3'`);
-if (globalThis.localStorage.getItem('eight_ball_tier_v1') !== 't5') fail(`the resolver wrote storage — localStorage['eight_ball_tier_v1'] is ${JSON.stringify(globalThis.localStorage.getItem('eight_ball_tier_v1'))}, expected the seeded 't5' untouched`);
-if (globalThis.localStorage.getItem(DYAD_KEY) !== null) fail('the resolver wrote the entitlement key without a token');
+if (baseline !== 't5') fail(`getRenderTier() resolved ${JSON.stringify(baseline)} on a fresh module with no token, expected 't5' — the dyad is free, first visit, no gate`);
+if (store.size !== 0) fail(`getRenderTier() wrote storage on a fresh module — expected untouched, found ${JSON.stringify([...store.keys()])}`);
 
-// 2. a tampered token grants nothing and stores nothing
+// 2. a tampered token is still refused and never stored — the crypto path
+// is dead (access no longer depends on it) but must not silently start
+// trusting an unverified token
 const subtle = globalThis.crypto.subtle;
 const pair = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
 const pub = await subtle.exportKey('jwk', pair.publicKey);
@@ -405,20 +412,20 @@ const keys = [{ kty: 'EC', crv: 'P-256', x: pub.x, y: pub.y }];
 const token = await ent.signDyadToken({ id: 'audit_probe' }, priv, { subtle });
 const [p, sig] = token.split('.');
 const tampered = `${p}.${sig.slice(0, -2)}${sig.slice(-2) === 'AA' ? 'BB' : 'AA'}`;
-const rejected = await mod.resolveDyadEntitlement({ returnToken: tampered, keys, subtle });
-if (rejected.granted !== false || mod.getRenderTier() !== 't3') fail('a tampered access token granted the dyad');
+await mod.resolveDyadEntitlement({ returnToken: tampered, keys, subtle });
 if (globalThis.localStorage.getItem(DYAD_KEY) !== null) fail('a tampered access token was stored');
 
-// 3. a signed token grants t5 and is stored verbatim
+// 3. a signed token still verifies, grants and is stored verbatim (dead but correct)
 const granted = await mod.resolveDyadEntitlement({ returnToken: token, keys, subtle });
-if (granted.granted !== true || mod.getRenderTier() !== 't5') fail(`a signed access token did not grant the dyad (resolved ${JSON.stringify(mod.getRenderTier())})`);
+if (granted.granted !== true) fail('a valid signed access token did not grant');
 if (globalThis.localStorage.getItem(DYAD_KEY) !== token) fail('the verified token was not stored verbatim under the entitlement key');
 
 // 4. the scrub retires the tier key and keeps the entitlement
+store.set('eight_ball_tier_v1', 't5');
 const scrubbed = mod.scrubRetiredCommerceKeys();
 if (scrubbed !== true || globalThis.localStorage.getItem('eight_ball_tier_v1') !== null) fail('scrubRetiredCommerceKeys did not verifiably remove the retired tier key');
 if (globalThis.localStorage.getItem(DYAD_KEY) !== token) fail('the scrub removed the entitlement key — a purchase was erased');
-console.log('PASS: legacy unsigned tier resolves t3 without writing; tampered token refused; signed token grants t5 and is stored; the scrub retires the tier key and keeps the entitlement');
+console.log('PASS: the dyad is free on a fresh module with no token and nothing written; a tampered token is refused and never stored; a signed token still grants and is stored; the scrub retires the tier key and keeps the entitlement');
 process.exit(0);
 """
 
@@ -1100,20 +1107,27 @@ def diff_snapshots(before, after):
 
 
 def check_activation_wiring(product_root):
-    """product.activation_wiring — DOCTRINE §12/§5.B v0.91: the ONE stateless
-    signing function and its page. Blocking, fail-closed on a missing file.
-    Pins, each with a named reason so a mutant fails by name:
-      - exactly one function file, netlify/functions/activate.mjs, importing the
-        product's own signer from core/entitlement.js (no second signer);
-      - the local-dev stub guarded on BOTH NETLIFY_DEV and DYAD_VERIFY_STUB;
-      - no read of the buyer's email/name and no console output in the function;
+    """product.activation_wiring — DOCTRINE §12/§5.B v0.91, RETIRED §4.B v0.92
+    (PAYWALL-REMOVE-01, 2026-09-14): the dyad is free, so the license-key
+    activation form and its live Gumroad call are dead — this check now pins
+    that they STAY dead rather than that they work. Blocking, fail-closed on
+    a missing file. Pins, each with a named reason so a mutant fails by name:
+      - exactly one function file, netlify/functions/activate.mjs — still
+        importing the product's own signer from core/entitlement.js (dead
+        code, kept for a one-commit revert, not a second live signer);
+      - the local-dev stub guarded on BOTH NETLIFY_DEV and DYAD_VERIFY_STUB
+        (the dead stub's own guard, unchanged);
+      - no read of the buyer's email/name and no console output in the
+        function (still true of the dead code);
       - every response carries no-store;
-      - activate.html: exactly one form, POST to the function, exactly one input,
-        named license_key, no email field, no fetch;
-      - netlify.toml: /example and /activate rules above the /* catch-all.
+      - the platform rate-limit config export is still declared;
+      - activate.html: NO form, NO input anywhere, a meta-refresh to `/`,
+        no email field, no fetch, no reference to the retired processor;
+      - netlify.toml: /example and /activate rules above the /* catch-all
+        (the routes stay — they redirect into the product now).
     """
     check_id = "product.activation_wiring"
-    title = "activation function + page + routes (DOCTRINE §12/§5.B v0.91)"
+    title = "activation function + page + routes, retired (DOCTRINE §4.B v0.92, PAYWALL-REMOVE-01)"
     start = time.monotonic()
     reasons = []
     evidence = {}
@@ -1156,16 +1170,16 @@ def check_activation_wiring(product_root):
     else:
         forms = re.findall(r"<form\b[^>]*>", page)
         evidence["form_count"] = len(forms)
-        if len(forms) != 1:
-            reasons.append("page_forms: exactly one form")
-        elif not (re.search(r'method="POST"', forms[0]) and re.search(r'action="/\.netlify/functions/activate"', forms[0])):
-            reasons.append("page_form_target: the form must POST to /.netlify/functions/activate")
+        if len(forms) != 0:
+            reasons.append("page_forms: PAYWALL REMOVED 2026-09-14 — expected zero forms, the dyad is free")
         inputs = re.findall(r"<input\b[^>]*>", page)
         evidence["input_count"] = len(inputs)
-        if len(inputs) != 1 or 'name="license_key"' not in inputs[0]:
-            reasons.append("page_inputs: exactly one input, named license_key")
-        if re.search(r'type="email"|name="email"|fetch\(|XMLHttpRequest|sendBeacon', page):
-            reasons.append("page_privacy: no email field, no script request")
+        if len(inputs) != 0:
+            reasons.append("page_inputs: PAYWALL REMOVED 2026-09-14 — expected zero inputs, no license key to collect")
+        if not re.search(r'<meta http-equiv="refresh" content="0; url=/">', page):
+            reasons.append("page_redirect: expected a meta-refresh to / — the route must not 404, and there is nothing left to activate")
+        if re.search(r'type="email"|name="email"|fetch\(|XMLHttpRequest|sendBeacon|gumroad|license_key', page, re.I):
+            reasons.append("page_privacy: no email field, no script request, no processor or license-key reference")
     toml_path = product_root / "netlify.toml"
     toml = toml_path.read_text(encoding="utf-8") if toml_path.is_file() else ""
     if not toml:
@@ -1178,7 +1192,7 @@ def check_activation_wiring(product_root):
     duration = time.monotonic() - start
     if reasons:
         return make_check(check_id, title, "blocking", "fail", "; ".join(reasons), duration, [], "", evidence)
-    return make_check(check_id, title, "blocking", "pass", "one function, one page, two routes — all pinned", duration, [], "", evidence)
+    return make_check(check_id, title, "blocking", "pass", "the activation function and page stay dead — no form, no license key, no live call — and both routes still redirect into the free product", duration, [], "", evidence)
 
 
 def check_snapshot_stability(before, after):

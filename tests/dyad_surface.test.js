@@ -475,19 +475,18 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(dyadOfferVisible('t5')).toBe(false);
   });
 
-  it('the offer copy is exactly the two registry-voice lines and the disclosure — no score, no verdict, no urgency', () => {
-    expect(DYAD_OFFER_COPY.head).toBe('dyad · $3 once');
-    expect(DYAD_OFFER_COPY.body).toBe('two complete sheets, read beside each other. permanent access.');
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the (now-dead, never-rendered) offer copy names no price and no processor — no score, no verdict, no urgency', () => {
+    expect(DYAD_OFFER_COPY.head).toBe('dyad');
+    expect(DYAD_OFFER_COPY.body).toBe('two complete sheets, read beside each other. free, permanent access.');
     for (const line of Object.values(DYAD_OFFER_COPY)) {
       expect(line).not.toMatch(/compatib|soulmate|match|score|%|percent|predict|advice|verdict|unlock|only|now|limited|hurry|credit|counter|subscri/i);
-      expect(line).not.toMatch(/\$6|\$9|\$1\b|\$2\b/);
+      expect(line).not.toMatch(/\$\d/);
       expect(voiceRegisterHits(line)).toEqual([]);
     }
-    expect(DYAD_OFFER_COPY.note).toMatch(/gumroad/);
+    expect(DYAD_OFFER_COPY.note).not.toMatch(/gumroad/i);
     expect(DYAD_OFFER_COPY.note).toMatch(/never saved/);
-    // pr242 audit (Lane B M2): the per-sale link is sent by the operator, not by the page
-    expect(DYAD_OFFER_COPY.note).toMatch(/license key/); // v0.91: activation by key…
-    expect(DYAD_OFFER_COPY.note).toMatch(/access link the operator emails you/); // …with the emailed link true in both states
+    expect(DYAD_OFFER_COPY.note).toMatch(/the dyad is free — no purchase, no license key, no account/);
+    expect(DYAD_OFFER_COPY.note).not.toMatch(/activate page|access link the operator emails|paste.*license key/);
   });
 
   it('an unentitled device sees the offer anchor — a plain link carrying the url and the copy — and no entry control', () => {
@@ -534,7 +533,7 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(h.get('dyad-open-btn').hidden).toBe(true);
   });
 
-  it('the about modal\'s commerce paragraph follows the offer predicate — closed line visible and open line hidden while unconfigured, swapped when configured (pr242 audit, Lane A HIGH-1)', () => {
+  it('the about modal\'s commerce paragraph follows the offer predicate — the function still swaps correctly on any input, but the SHIPPED markup is permanently unconfigured (PAYWALL REMOVED 2026-09-14, PAYWALL-REMOVE-01)', () => {
     const open = makeNode('p'); open.hidden = true;
     const closed = makeNode('p');
     const prior = globalThis.document;
@@ -546,20 +545,21 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
       expect(open.hidden).toBe(false); expect(closed.hidden).toBe(true);
       expect(syncDyadAboutCopy(null)).toBe(false);
       expect(open.hidden).toBe(true); expect(closed.hidden).toBe(false);
-      // the default argument is the shipped constant
+      // the default argument is the shipped constant — permanently blanked now
       expect(syncDyadAboutCopy()).toBe(DYAD_PRODUCT_URL !== '');
+      expect(DYAD_PRODUCT_URL).toBe('');
     } finally { globalThis.document = prior; }
-    // and the static markup ships the unconfigured state: closed visible, open hidden,
-    // the price and the processor ONLY inside the open paragraph
+    // the static markup ships the permanently-unconfigured state: closed
+    // visible and truthful (free), open empty and hidden, no price or
+    // processor anywhere in either paragraph
     const closedP = html.match(/<p id="about-dyad-closed"([^>]*)>([\s\S]*?)<\/p>/);
     const openP = html.match(/<p id="about-dyad-open"([^>]*)>([\s\S]*?)<\/p>/);
     expect(closedP).not.toBeNull(); expect(openP).not.toBeNull();
     expect(closedP[1]).not.toMatch(/hidden/);
     expect(openP[1]).toMatch(/\bhidden\b/);
-    expect(closedP[2]).not.toMatch(/\$\d|gumroad|checkout/);
-    expect(closedP[2]).toMatch(/not on sale on this build/);
-    expect(openP[2]).toMatch(/\$3 once, permanent, unlimited/);
-    expect(openP[2]).toMatch(/gumroad/);
+    expect(closedP[2]).not.toMatch(/\$\d|gumroad|checkout/i);
+    expect(closedP[2]).toMatch(/is free too\. no purchase, no license key, no account\./);
+    expect(openP[2]).toBe('');
     expect(dyadJs).toMatch(/syncDyadAboutCopy\(\);/); // called at init
   });
 
@@ -570,11 +570,11 @@ describe('dyad surface — F2: the whole dyad is the t5 product', () => {
     expect(built).toEqual([]);
   });
 
-  it('the module carries the one price string and no retired product slug', () => {
-    // The v0.71 absence pin, narrowed rather than dropped: `$3` appears in
-    // DYAD_OFFER_COPY.head and nowhere else in the module's code, and the
-    // retired Gumroad slugs never return.
-    expect(dyadCode.match(/\$\d/g) || []).toEqual(['$3']);
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the module carries no price string anywhere and no retired product slug', () => {
+    // The v0.71 absence pin, now total: DYAD_OFFER_COPY.head dropped its
+    // `$3` in the same change that blanked DYAD_PRODUCT_URL, so no price
+    // string survives anywhere in the module's code.
+    expect(dyadCode.match(/\$\d/g) || []).toEqual([]);
     expect(dyadJs).not.toMatch(/xjpvp|neysyv|rzqezp|T5_PRODUCT_URL/);
   });
 

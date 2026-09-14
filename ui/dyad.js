@@ -88,27 +88,30 @@ import { panelDetailFor, buildPanelMarkup, coordinateLabel, PANEL_TEXT_PARTS, PA
 import { initCitySearchUI } from './citysearch.js';
 import { todayIsoLocal } from './profile.js';
 
-// The dyad's checkout — doctrine v0.81 (2026-09-05). The v0.71 free
-// amendment retired every checkout; v0.81 brings ONE back, narrowly: the
-// single sheet stays free and complete for every device, and the dyad is
-// the one paid surface — USD $3 once, permanent, unlimited. The Buy Link is
-// a configurable constant in core/entitlement.js (EMPTY until the
-// controller creates the product; empty ⇒ no offer is presented — the
-// v0.61/v0.67 fail-closed shape). The offer is a plain `<a href>` with
-// target `_self` and no script handler (§5.B Call 2 mechanism); its copy
-// is the two registry-voice lines below and nothing else — no urgency, no
-// score, no verdict. Entitlement itself is verified, never assumed: the
-// host settles it at boot through a signed access token
-// (ui/payments.js resolveDyadEntitlement) and hands the tier in here.
+// The dyad's checkout — doctrine v0.81 (2026-09-05), RETIRED again 2026-09-14
+// (PAYWALL-REMOVE-01, controller order): the single sheet stays free and
+// complete for every device, and the dyad is free too now — there is no
+// paid surface left. The Buy Link is a configurable constant in
+// core/entitlement.js, now permanently blanked (the v0.61/v0.67/v0.71
+// fail-closed shape), so `dyadOfferVisible` below answers false
+// unconditionally and the offer anchor this file still injects (hidden,
+// dead, kept for one-commit revert) never shows. Its copy is the two
+// registry-voice lines below and nothing else — no urgency, no score, no
+// verdict — and neither names a price or a processor any more, so an
+// injected-but-hidden DOM node never carries stale commerce text. Entitlement
+// itself is settled at boot (ui/payments.js resolveDyadEntitlement, still
+// running, now unconditionally granting) and handed to this module as the tier.
 import { DYAD_PRODUCT_URL } from '../core/entitlement.js';
 
-/** The offer's complete copy — the only price string in the shipped product. */
+/** The (now-dead) offer's complete copy. Never rendered: DYAD_PRODUCT_URL is
+ *  blanked, so dyadOfferVisible is always false and this text never reaches
+ *  a visible DOM node. Kept, price- and processor-free, for one-commit revert. */
 export const DYAD_OFFER_COPY = Object.freeze({
-  head: 'dyad · $3 once',
-  body: 'two complete sheets, read beside each other. permanent access.',
-  note: 'checkout opens on gumroad; payment and your email stay there. after purchase, paste the license key from your gumroad receipt on 8ball\'s activate page — or open the access link the operator emails you — and the dyad is filed on that device, permanently. the second entry is never saved.',
+  head: 'dyad',
+  body: 'two complete sheets, read beside each other. free, permanent access.',
+  note: 'the dyad is free — no purchase, no license key, no account. the second entry is never saved.',
   example: 'see a complete example first',
-  activate: 'already bought? open your dyad',
+  activate: 'open the dyad',
 });
 /** Where a buyer activates (§5.B call 3 v0.91) — a bare path, served by netlify.toml. */
 export const DYAD_ACTIVATE_PATH = '/activate';

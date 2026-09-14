@@ -32,7 +32,7 @@
 // ── CONFIGURATION (operator-hand, never invented here) ────────────
 // Both constants ship EMPTY and the runtime fails closed on both: with no
 // product URL the offer is not presented, and with no public key nothing
-// verifies. The values are set by the controller when the Gumroad product
+// verifies. The values were set by the controller when the commerce product
 // exists — see audits/dyad_entitlement_launch_config_2026-09-05.md for the
 // exact steps and `scripts/dyad_entitlement.mjs` for keygen / sign / verify.
 // Order matters and is safe in one direction only: a public key WITHOUT a
@@ -40,10 +40,17 @@
 // while a url without a key would present an offer whose purchases could
 // never be filed — tests/dyad_entitlement.test.js pins that asymmetry.
 
-/** The live Gumroad Buy Link for the dyad — a BARE url, no query (§5.B).
+/** The (now-dead) commerce Buy Link for the dyad — a BARE url, no query (§5.B).
  *  Set 2026-09-05 (launch step 1, controller's word); non-empty ⇒ the offer
- *  and the about modal's open paragraph render for unentitled devices. */
-export const DYAD_PRODUCT_URL = 'https://theeightball.gumroad.com/l/dyad';
+ *  and the about modal's open paragraph render for unentitled devices.
+ *  PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01, controller order): the
+ *  dyad is free for every device now (see ui/payments.js's `_dyadEntitled`),
+ *  so this constant is no longer reachable from any live UI path — but it
+ *  is also blanked outright, matching the pre-launch fail-closed default,
+ *  so no served source file carries a commerce-platform reference. Dead
+ *  value; the original url is recoverable from git history (the
+ *  PAYWALL-REMOVE-01 commit), kept for one-commit revert. */
+export const DYAD_PRODUCT_URL = '';
 
 /**
  * Public verification keys — ECDSA P-256 as JWK objects
@@ -68,7 +75,7 @@ const SIGN_ALGO = Object.freeze({ name: 'ECDSA', namedCurve: 'P-256' });
 const VERIFY_ALGO = Object.freeze({ name: 'ECDSA', hash: 'SHA-256' });
 const MAX_TOKEN_LENGTH = 1024;
 const MAX_ID_LENGTH = 64;
-// The sale id is a Gumroad sale IDENTIFIER, never anything about a person.
+// The sale id is a commerce-platform sale IDENTIFIER, never anything about a person.
 // The shape is enforced on both sides (sign and parse), not left to
 // convention: `@`, `.` and whitespace are excluded precisely so an email or
 // a name cannot be signed into a link that lives in a url and in storage
@@ -196,7 +203,7 @@ export async function verifyDyadToken(token, { keys = DYAD_PUBLIC_KEYS, subtle }
 export async function signDyadToken({ id, iat = Math.floor(Date.now() / 1000) }, privateJwk, { subtle } = {}) {
   const s = subtleFrom(subtle);
   if (!s) throw new Error('Web Crypto unavailable');
-  if (!isSaleId(id)) throw new Error('bad sale id: a Gumroad sale identifier only ([A-Za-z0-9_+/=-], 1-64 chars) — never a name or an email');
+  if (!isSaleId(id)) throw new Error('bad sale id: a sale identifier only ([A-Za-z0-9_+/=-], 1-64 chars) — never a name or an email');
   const payload = { v: TOKEN_VERSION, p: TOKEN_PRODUCT, id, iat };
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
   const key = await s.importKey('jwk', privateJwk, SIGN_ALGO, false, ['sign']);

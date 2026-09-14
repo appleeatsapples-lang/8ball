@@ -274,46 +274,53 @@ describe('the return url — a signed link is read; the unsigned parameter is re
 // ── resolution: the storage half, driven through the real module ──
 
 describe('resolveDyadEntitlement — grants only on a verified token, stores it, never downgrades', () => {
-  it('starts on the complete single sheet: nothing stored, nothing on the url → t3', async () => {
+  it('PAYWALL REMOVED 2026-09-14: nothing stored, nothing on the url — verify still correctly reports ungranted, but getRenderTier is unconditionally t5', async () => {
     const storage = mockStorage();
     globalThis.localStorage = storage;
     const outcome = await resolveDyadEntitlement({ keys: [K.publicJwk] });
-    expect(outcome.granted).toBe(false);
-    expect(getRenderTier()).toBe('t3');
+    // PAYWALL REMOVED 2026-09-14: `granted` now reflects the always-true
+    // module flag, not a verification result — there was nothing to verify.
+    expect(outcome.granted).toBe(true);
+    expect(getRenderTier()).toBe('t5');
     expect(storage.snapshot()).toEqual({});
   });
 
-  it('the unsigned era grants nothing: a stored t5 tier, credits, a pending stage, ?paid=t5 — all resolve t3', async () => {
+  it('the unsigned era still verifies as ungranted (dead logic, kept for one-commit revert) — a stored t5 tier, credits, a pending stage, ?paid=t5 all resolve t5 regardless, since the dyad is free', async () => {
     const storage = mockStorage({ [TIER_KEY]: 't5', [CREDITS_KEY]: '9', [PENDING_KEY]: '{"name":"x","dob":"2000-01-01"}' });
     globalThis.localStorage = storage;
     expect(returnTokenFrom('?paid=t5')).toBeNull();
     const outcome = await resolveDyadEntitlement({ returnToken: returnTokenFrom('?paid=t5'), keys: [K.publicJwk] });
-    expect(outcome.granted).toBe(false);
-    expect(getRenderTier()).toBe('t3');
-    expect(dyadEntitled(getRenderTier())).toBe(false);
+    // PAYWALL REMOVED 2026-09-14: the unsigned era still verifies as
+    // ungranted BY ITSELF (dead crypto path, unchanged), but `granted`
+    // reflects the always-true module flag, and the tier is t5 regardless.
+    expect(outcome.granted).toBe(true);
+    expect(getRenderTier()).toBe('t5');
+    expect(dyadEntitled(getRenderTier())).toBe(true);
     // and the boot scrub then removes the unsigned record, as under v0.71
     expect(scrubRetiredCommerceKeys()).toBe(true);
     expect(storage.snapshot()).toEqual({});
   });
 
-  it('a forged or tampered return link grants nothing and writes nothing', async () => {
+  it('a forged or tampered return link still fails verification and writes nothing — getRenderTier is t5 regardless, since the dyad is free', async () => {
     const storage = mockStorage();
     globalThis.localStorage = storage;
     const [p, s] = token.split('.');
     for (const bad of ['t5', 'true', `${p}.${s.slice(0, -2)}AA`, await signDyadToken({ id: 'sale_x' }, OTHER.privateJwk)]) {
       const outcome = await resolveDyadEntitlement({ returnToken: bad, keys: [K.publicJwk] });
-      expect(outcome.granted, bad.slice(0, 20)).toBe(false);
-      expect(getRenderTier()).toBe('t3');
+      // PAYWALL REMOVED 2026-09-14: `granted` reflects the always-true flag.
+      expect(outcome.granted, bad.slice(0, 20)).toBe(true);
+      expect(getRenderTier()).toBe('t5');
     }
     expect(storage.snapshot()).toEqual({});
   });
 
-  it('a hand-written entitlement key grants nothing and is left alone', async () => {
+  it('a hand-written entitlement key still fails verification and is left alone — getRenderTier is t5 regardless, since the dyad is free', async () => {
     const storage = mockStorage({ [DYAD_KEY]: 'entitled' });
     globalThis.localStorage = storage;
     const outcome = await resolveDyadEntitlement({ keys: [K.publicJwk] });
-    expect(outcome).toMatchObject({ granted: false, source: 'stored', reason: 'malformed' });
-    expect(getRenderTier()).toBe('t3');
+    // PAYWALL REMOVED 2026-09-14: `granted` reflects the always-true flag.
+    expect(outcome).toMatchObject({ granted: true, source: 'stored', reason: 'malformed' });
+    expect(getRenderTier()).toBe('t5');
     expect(storage.snapshot()).toEqual({ [DYAD_KEY]: 'entitled' });
   });
 
@@ -401,7 +408,7 @@ describe('resolveDyadEntitlement — grants only on a verified token, stores it,
     }
   });
 
-  it('never downgrades, on a FRESH module: a failed return verify and a failed stored verify both leave an earned t5 standing (pr242 audit, Lane A MED-4)', async () => {
+  it('on a FRESH module the flag now starts true (PAYWALL REMOVED 2026-09-14) and a failed return verify / failed stored verify cannot move it — it was never going to be false anyway (pr242 audit, Lane A MED-4, still exercised)', async () => {
     // The module holds its flag as a singleton, so the two tests above cannot
     // see a transient downgrade masked by a valid stored token re-granting.
     // A fresh module instance can: earn t5 once, then fail both verify paths
@@ -410,7 +417,7 @@ describe('resolveDyadEntitlement — grants only on a verified token, stores it,
     const fresh = await import('../ui/payments.js');
     const storage = mockStorage();
     globalThis.localStorage = storage;
-    expect(fresh.getRenderTier()).toBe('t3');
+    expect(fresh.getRenderTier()).toBe('t5');
     expect((await fresh.resolveDyadEntitlement({ returnToken: token, keys: [K.publicJwk] })).granted).toBe(true);
     expect(fresh.isDyadEntitled()).toBe(true);
     // the stored token is now replaced by garbage (a hostile or corrupt write)

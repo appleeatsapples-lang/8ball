@@ -101,31 +101,31 @@ describe('the v0.71 deletions stay deleted — the dyad offer is the only commer
     }
   });
 
-  it('the only price string in shipped CODE is the declared dyad offer, in exactly the files that carry it', () => {
-    // `$3` appears in DYAD_OFFER_COPY.head (ui/dyad.js) and in the about
-    // modal's disclosure sentence (index.html). README.md is served on the
-    // production origin too and may state the price in prose. Nowhere else
-    // — and no other price: $1 / $2 / $6 / $9 are the retired ladder.
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): no price string survives in shipped CODE anywhere — the dyad offer is dead and its copy was scrubbed with it', () => {
+    // Through v0.91, `$3` appeared in DYAD_OFFER_COPY.head (ui/dyad.js), the
+    // about modal's disclosure sentence (index.html) and README.md prose.
+    // All three were rewritten in the same change that blanked
+    // core/entitlement.js's DYAD_PRODUCT_URL — a comment-only mention
+    // (ui/payments.js's and core/entitlement.js's own top-of-file doctrine
+    // notes, ui/labels.js's incident note, core/public.js's retired-$9-rung
+    // note) is fine; stripComments removes exactly those before this scans.
     const priced = {};
     for (const [name, src] of shippedSources()) {
       const hits = stripComments(src).match(/\$\d+/g) || [];
       if (hits.length) priced[name] = hits;
     }
-    expect(priced).toEqual({
-      'index.html': ['$3'],
-      'README.md': ['$3'],
-      'ui/dyad.js': ['$3'],
-    });
-    expect(DYAD_OFFER_COPY.head).toBe('dyad · $3 once');
+    expect(priced).toEqual({});
+    expect(DYAD_OFFER_COPY.head).toBe('dyad');
   });
 
-  it('the payment processor is named only where the §5.B disclosure requires it', () => {
-    // The about modal, the offer note and README name Gumroad as the
-    // processor and the data boundary (§5.B disclosure). core/ holds the
-    // configurable Buy Link constant. No content batch, no other module.
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the payment processor is named nowhere in shipped sources', () => {
+    // Through v0.91 the about modal, the offer note, the activation page's
+    // reason sentences, and README named Gumroad as the processor (§5.B
+    // disclosure). All of that copy was rewritten processor-free in the
+    // same change that blanked DYAD_PRODUCT_URL — nothing is on sale, so
+    // there is no processor left to disclose.
     const naming = shippedSources().filter(([, src]) => /gumroad/i.test(src)).map(([n]) => n).sort();
-    // v0.91: the activation page's reason sentences name the processor too (§5.B call 3).
-    expect(naming).toEqual(['README.md', 'core/entitlement.js', 'index.html', 'ui/activate.js', 'ui/dyad.js']);
+    expect(naming).toEqual([]);
   });
 
   it('the commerce ids and classes of the retired storefront are gone from the host page', () => {
@@ -165,22 +165,22 @@ describe('the v0.71 deletions stay deleted — the dyad offer is the only commer
 // ── 2. the resolver ───────────────────────────────────────────────
 
 describe('the resolver — the complete single sheet for every device; the dyad only on a verified token', () => {
-  it('returns t3 with no storage at all', () => {
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): returns t5 with no storage at all — the dyad is free too', () => {
     delete globalThis.localStorage;
-    expect(getRenderTier()).toBe('t3');
+    expect(getRenderTier()).toBe('t5');
   });
 
-  it('returns t3 whatever a legacy device has stored — an unsigned-era t5 grants nothing', () => {
+  it('returns t5 whatever a legacy device has stored — an unsigned-era t5 still verifies as ungranted by itself, but the dyad is free regardless', () => {
     for (const stored of ['t1', 't2', 't3', 't4', 't5', 'free', 'garbage', '']) {
       globalThis.localStorage = mockStorage({ [TIER_KEY]: stored });
-      expect(getRenderTier(), `stored ${JSON.stringify(stored)}`).toBe('t3');
+      expect(getRenderTier(), `stored ${JSON.stringify(stored)}`).toBe('t5');
     }
   });
 
-  it('a hand-written entitlement value grants nothing either — the key holds a token that must verify', () => {
+  it('a hand-written entitlement value still fails verification by itself — the key holds a token that must verify — but the render tier is t5 regardless, since the dyad is free', () => {
     for (const forged of ['true', 't5', '1', 'dyad', '{"entitled":true}', 'x.y']) {
       globalThis.localStorage = mockStorage({ [DYAD_KEY]: forged });
-      expect(getRenderTier(), `forged ${forged}`).toBe('t3');
+      expect(getRenderTier(), `forged ${forged}`).toBe('t5');
     }
   });
 
@@ -366,23 +366,24 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).toMatch(/as many readings as you like/);
   });
 
-  it('names the dyad as the one paid surface with its price, permanence and what it is — in the OPEN paragraph, hidden until a build is configured', () => {
-    expect(aboutSubtree).toMatch(/<p id="about-dyad-open" hidden>the dyad — a second complete sheet read beside yours, with the relation layer between them — is the one paid surface: \$3 once, permanent, unlimited\./);
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the OPEN paragraph is empty and hidden — DYAD_PRODUCT_URL is permanently blanked, so syncDyadAboutCopy can never reveal it', () => {
+    expect(aboutSubtree).toMatch(/<p id="about-dyad-open" hidden><\/p>/);
     expect(aboutSubtree).not.toMatch(/paired read is there for any two dates/);
   });
 
-  it('while unconfigured the visible paragraph names no price and no processor — the page never advertises a checkout it cannot honour (pr242 audit, Lane A HIGH-1)', () => {
+  it('the always-visible paragraph names no price and no processor and states the dyad is free — the page never advertises a checkout that does not exist', () => {
     const closed = aboutSubtree.match(/<p id="about-dyad-closed">([\s\S]*?)<\/p>/);
     expect(closed).not.toBeNull();
-    expect(closed[1]).not.toMatch(/\$\d|gumroad|checkout|once/);
-    expect(closed[1]).toMatch(/is the one part of 8ball that is not free, and it is not on sale on this build/);
+    expect(closed[1]).not.toMatch(/\$\d|gumroad|checkout|once/i);
+    expect(closed[1]).toMatch(/is free too\. no purchase, no license key, no account\./);
     expect(closed[1]).toMatch(/nothing about the second person is ever saved/);
   });
 
-  it('the forget-device copy says what stays: a filed dyad access (pr242 audit, Lane A MED-3)', () => {
+  it('the forget-device copy no longer calls a filed dyad token a purchase (PAYWALL REMOVED 2026-09-14)', () => {
     const forget = html.match(/<p id="forget-copy">([\s\S]*?)<\/p>/);
     expect(forget).not.toBeNull();
-    expect(forget[1]).toMatch(/a filed dyad access stays on this device — it is a purchase, not paperwork\./);
+    expect(forget[1]).not.toMatch(/purchase/);
+    expect(forget[1]).toMatch(/an old filed dyad access token, if any, is left in place — it grants nothing extra now that the dyad is free\./);
   });
 
   it('negates the retired shapes in one breath — subscription, account, counter', () => {
@@ -392,13 +393,11 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(matches.length).toBe(negated.length);
   });
 
-  it('states the §5.B boundary: processor named, payment + email stay there, the second person is never saved', () => {
-    expect(aboutSubtree).toMatch(/checkout is on gumroad, which keeps the payment and your email/);
-    // pr242 audit (Lane B M2): delivery of the link is the OPERATOR's step,
-    // said so — never phrased as something the system does.
-    // v0.91: activation by license key on the activate page; the emailed link is the fallback
-    expect(aboutSubtree).toMatch(/after purchase, pasting the license key from your gumroad receipt on the <a class="text-link" href="\/activate">activate page<\/a> — or opening the access link the operator emails you — files the dyad on that device/);
-    expect(aboutSubtree).not.toMatch(/link sent to that email files/);
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the §5.B processor/checkout boundary no longer applies — nothing is on sale, so nothing names a processor', () => {
+    expect(aboutSubtree).not.toMatch(/checkout is on gumroad|gumroad/i);
+    expect(aboutSubtree).not.toMatch(/activate page|access link the operator emails|paste.*license key/);
+    // the closed paragraph DOES say "no license key" — a negation, not an instruction to get one
+    expect(aboutSubtree).toMatch(/no purchase, no license key, no account/);
     expect(aboutSubtree).toMatch(/nothing about the second person is ever saved/);
   });
 
@@ -415,8 +414,9 @@ describe('disclosure — the about modal states the free sheet, the paid dyad an
     expect(aboutSubtree).toMatch(/calculator-grade/);
   });
 
-  it('the stored-locally list names the entitlement token and no paid rung', () => {
-    expect(aboutSubtree).toMatch(/inputs, readings you choose to save, and — once filed — the dyad access token are stored locally/);
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the stored-locally list no longer singles out a dyad access token — nothing is being filed', () => {
+    expect(aboutSubtree).toMatch(/inputs and readings you choose to save are stored locally/);
+    expect(aboutSubtree).not.toMatch(/dyad access token are stored locally/);
     expect(aboutSubtree).not.toMatch(/rung.*stored locally/);
     // card clarity: labels are permanent, so the toggle left the stored-locally list
     expect(aboutSubtree).not.toMatch(/show-labels toggle/);

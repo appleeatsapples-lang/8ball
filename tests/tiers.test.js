@@ -290,25 +290,27 @@ describe('tiers — getRenderTier: the complete single sheet for every device, t
   // signed access token (tests/dyad_entitlement.test.js drives that path).
   // resolveRenderTier stays tested above as the registry's state machine
   // (the kua-retirement precedent).
-  it('resolves t3 — the complete single sheet — for every device, with or without storage', () => {
+  it('PAYWALL REMOVED 2026-09-14: resolves t5 — the dyad is free too — for every device, with or without storage', () => {
     delete globalThis.localStorage;
-    expect(getRenderTier()).toBe('t3');
+    expect(getRenderTier()).toBe('t5');
     globalThis.localStorage = makeStorage();
-    expect(getRenderTier()).toBe('t3');
+    expect(getRenderTier()).toBe('t5');
     // t3 IS the complete single sheet: every cell, the written entry, domain fit.
+    // The registry lookup below is unaffected by entitlement — it is a static
+    // coordinate-set fact about the t3 tier name, not a live resolution.
     expect(coordsForTier('t3').has('cardEntry')).toBe(true);
     expect(coordsForTier('t3').has('publicRead')).toBe(true);
     expect(tierDensitySummary('t3').sealed).toBe(0);
   });
 
-  it('legacy storage neither raises nor lowers the resolution — a stored t5 from the unsigned era grants nothing', () => {
+  it('legacy storage neither raises nor lowers the resolution — a stored t5 from the unsigned era still grants nothing by itself, but the render tier is t5 regardless since the dyad is free', () => {
     for (const seed of [
       { [TIER_KEY]: 't1' }, { [TIER_KEY]: 't3' }, { [TIER_KEY]: 't4' }, { [TIER_KEY]: 't5' },
       { [TIER_KEY]: 'banana' }, { [CREDITS_KEY]: '3' },
       { [TIER_KEY]: 't1', [CREDITS_KEY]: '5' },
     ]) {
       globalThis.localStorage = makeStorage(seed);
-      expect(getRenderTier(), JSON.stringify(seed)).toBe('t3');
+      expect(getRenderTier(), JSON.stringify(seed)).toBe('t5');
     }
   });
 
