@@ -111,14 +111,30 @@ export async function licenseKeyFrom(request) {
   } catch (_) { return ''; }
 }
 
-export default async function handler(request) {
-  if (request.method !== 'POST') return redirectResponse(ACTIVATE_PAGE);
-  const licenseKey = await licenseKeyFrom(request);
-  const env = process.env;
-  const signingKey = parseSigningKey(env.DYAD_SIGNING_KEY);
-  const permalink = env.GUMROAD_PRODUCT_PERMALINK || 'dyad';
-  const productId = env.GUMROAD_PRODUCT_ID || '';
-  const verify = stubVerifyIfEnabled(env) || (key => verifyWithGumroad(key, { permalink, productId }));
-  const { redirect } = await activate({ licenseKey, verify, signingKey, subtle: globalThis.crypto && globalThis.crypto.subtle });
-  return redirectResponse(redirect);
+// PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01, controller order): the
+// dyad is free for every device now (ui/payments.js `_dyadEntitled`), so
+// there is nothing left to activate. This handler no longer reads the
+// posted body, calls Gumroad, or signs anything — it answers every request
+// with the same no-op redirect to the product, which is already open.
+// Every function above (verifyWithGumroad, activate, isPrivateJwk,
+// stubVerifyIfEnabled, licenseKeyFrom, parseSigningKey) is DEAD: still
+// defined and exported so the old, working handler below is a one-commit
+// revert, but nothing calls any of them anymore. Deletion PR (removes this
+// whole file and the dead functions above it): tracked as a follow-up, not
+// filed yet.
+//
+// Dead handler, kept for that revert:
+//   export default async function handler(request) {
+//     if (request.method !== 'POST') return redirectResponse(ACTIVATE_PAGE);
+//     const licenseKey = await licenseKeyFrom(request);
+//     const env = process.env;
+//     const signingKey = parseSigningKey(env.DYAD_SIGNING_KEY);
+//     const permalink = env.GUMROAD_PRODUCT_PERMALINK || 'dyad';
+//     const productId = env.GUMROAD_PRODUCT_ID || '';
+//     const verify = stubVerifyIfEnabled(env) || (key => verifyWithGumroad(key, { permalink, productId }));
+//     const { redirect } = await activate({ licenseKey, verify, signingKey, subtle: globalThis.crypto && globalThis.crypto.subtle });
+//     return redirectResponse(redirect);
+//   }
+export default async function handler(_request) {
+  return redirectResponse('/');
 }

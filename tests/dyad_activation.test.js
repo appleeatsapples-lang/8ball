@@ -49,7 +49,7 @@ describe('the complete example before checkout (§1.J v0.91)', () => {
     expect(html).not.toMatch(/<form|<input|<textarea|<select/);
     expect((html.match(/<script/g) || []).length).toBe(1);
     expect(html).toMatch(/import \{ initExamplePage \} from '\.\/ui\/example\.js'/);
-    expect((html.match(/a fixed pair, not yours · your own pair opens after purchase/g) || []).length).toBe(2);
+    expect((html.match(/a fixed pair, not yours · your own pair opens free/g) || []).length).toBe(2);
     expect(html).toMatch(/id="rail-read"/); // the offer anchor's home
   });
 
@@ -74,7 +74,7 @@ describe('the complete example before checkout (§1.J v0.91)', () => {
     expect(EXAMPLE_LABEL).not.toMatch(/soulmate|compatib|score|hurry|only|now\b/i);
   });
 
-  it('the offer names the example and the route serves it at a bare path above the catch-all', () => {
+  it('the routes still serve at a bare path above the catch-all (PAYWALL REMOVED 2026-09-14, PAYWALL-REMOVE-01 — netlify.toml itself is out of scope for that PR and stays untouched)', () => {
     expect(DYAD_OFFER_COPY.example).toBe('see a complete example first');
     expect(DYAD_EXAMPLE_PATH).toBe('/example');
     const toml = read('netlify.toml');
@@ -84,12 +84,14 @@ describe('the complete example before checkout (§1.J v0.91)', () => {
     expect(toml.slice(ex, ex + 80)).toMatch(/to = "\/example\.html"\s+status = 200/);
     expect(toml.slice(act, act + 80)).toMatch(/to = "\/activate\.html"\s+status = 200/);
     expect(toml).not.toMatch(/from = "\/(example|activate)"[\s\S]{0,80}force = true/);
+    // index.html no longer links to either — the about modal's open paragraph
+    // that carried both hrefs is empty now (dead, never shown).
     const index = read('index.html');
-    expect(index).toMatch(/href="\/example"/); expect(index).toMatch(/href="\/activate"/);
+    expect(index).not.toMatch(/href="\/example"/); expect(index).not.toMatch(/href="\/activate"/);
     const dyad = read('ui/dyad.js');
     expect(dyad).toMatch(/id = 'dyad-example-line'/); expect(dyad).toMatch(/example\.hidden = !offer/);
     expect(DYAD_ACTIVATE_PATH).toBe('/activate'); expect(dyad).toMatch(/id = 'dyad-activate-line'/); expect(dyad).toMatch(/activateLine\.hidden = !offer/);
-    expect(DYAD_OFFER_COPY.note).toMatch(/or open the access link the operator emails you/); // true before AND after the Gumroad switch
+    expect(DYAD_OFFER_COPY.note).toMatch(/the dyad is free — no purchase, no license key, no account/);
   });
 
   it('the publish scrub keeps the pages and the function', () => {
@@ -238,33 +240,34 @@ describe('the handler as deployed (pr248 lanes)', () => {
   const setEnv = o => { for (const k of ['DYAD_SIGNING_KEY', 'GUMROAD_PRODUCT_PERMALINK', 'GUMROAD_PRODUCT_ID', 'DYAD_VERIFY_STUB', 'NETLIFY_DEV', 'CONTEXT']) delete process.env[k]; Object.assign(process.env, o); };
   const restore = () => { for (const k of Object.keys(process.env)) if (!(k in ENV)) delete process.env[k]; Object.assign(process.env, ENV); };
   const post = (body, { host = 'evil.test', type = 'application/x-www-form-urlencoded' } = {}) => new Request(`https://${host}/.netlify/functions/activate`, { method: 'POST', headers: { 'content-type': type }, body });
-  it('every response is a 303 with a RELATIVE Location and no-store — never the request\'s host', async () => {
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): every response is a 303 to "/", RELATIVE and no-store, whatever the input — the handler no longer reads the body, checks env, or calls Gumroad', async () => {
     const { priv } = await testPair();
     setEnv({ DYAD_SIGNING_KEY: JSON.stringify(priv), NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
     try {
       const cases = [
-        [new Request('https://evil.test/.netlify/functions/activate'), '/activate'],
-        [post('license_key=' + STUB_KEY), /^\/\?dyad=/],
-        [post('license_key=85DB262A-C19D4B06-A5335A6B-8C079166'), '/activate?e=invalid'],
-        [post('license_key=nope'), '/activate?e=shape'],
-        [post(JSON.stringify({ license_key: STUB_KEY }), { type: 'application/json' }), '/activate?e=shape'],
-        [post('license_key=' + STUB_KEY + '&pad=' + 'x'.repeat(MAX_BODY_BYTES)), '/activate?e=shape'],
+        new Request('https://evil.test/.netlify/functions/activate'),
+        post('license_key=' + STUB_KEY),
+        post('license_key=85DB262A-C19D4B06-A5335A6B-8C079166'),
+        post('license_key=nope'),
+        post(JSON.stringify({ license_key: STUB_KEY }), { type: 'application/json' }),
+        post('license_key=' + STUB_KEY + '&pad=' + 'x'.repeat(MAX_BODY_BYTES)),
       ];
-      for (const [req, want] of cases) {
+      for (const req of cases) {
         const res = await handler(req);
         expect(res.status).toBe(303);
         expect(res.headers.get('cache-control')).toBe('no-store');
         const loc = res.headers.get('location');
-        expect(loc.startsWith('/'), loc).toBe(true); expect(loc).not.toMatch(/evil\.test|https?:/);
-        if (want instanceof RegExp) expect(loc).toMatch(want); else expect(loc).toBe(want);
+        expect(loc).toBe('/');
+        expect(loc).not.toMatch(/evil\.test|https?:/);
       }
     } finally { restore(); }
   });
-  it('a missing or unusable signing key answers unconfigured before any verify is spent', async () => {
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): a missing or unusable signing key changes nothing — the handler never reaches signingKey/verify logic at all any more', async () => {
     setEnv({ NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
-    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/activate?e=unconfigured'); } finally { restore(); }
+    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/'); } finally { restore(); }
     setEnv({ DYAD_SIGNING_KEY: JSON.stringify({ kty: 'EC', crv: 'P-256', d: 'short', x: 'short', y: 'short' }), NETLIFY_DEV: 'true', CONTEXT: 'dev', DYAD_VERIFY_STUB: '1' });
-    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/activate?e=unconfigured'); } finally { restore(); }
+    try { expect((await handler(post('license_key=' + STUB_KEY))).headers.get('location')).toBe('/'); } finally { restore(); }
+    // isPrivateJwk itself is untouched dead code — still correct, still tested, one-commit revert.
     expect(isPrivateJwk(null)).toBe(false); expect(isPrivateJwk({ kty: 'EC', crv: 'P-256', d: 'x'.repeat(43), x: 'x'.repeat(43), y: 'x'.repeat(43) })).toBe(true);
   });
   it('a well-shaped but cryptographically dead key never 500s: the signing failure is a reason code', async () => {
@@ -296,14 +299,12 @@ describe('the handler as deployed (pr248 lanes)', () => {
 describe('the activation page and the wiring (§5.B call 3 v0.91)', () => {
   const html = read('activate.html');
 
-  it('is one native POST form to the one same-origin function, one field, no script needed to submit', () => {
-    expect((html.match(/<form/g) || []).length).toBe(1);
-    expect(html).toMatch(/<form id="activate-form" method="POST" action="\/\.netlify\/functions\/activate" autocomplete="off">/);
-    expect((html.match(/<input/g) || []).length).toBe(1);
-    expect(html).toMatch(/name="license_key"/);
-    expect(html).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|localStorage|type="email"|name="email"/);
-    expect(html).toMatch(/only the key is sent to 8ball; it is checked with gumroad once and not kept\./);
-    expect(html).not.toMatch(/maxlength="35"|minlength=/); // a pasted key with a stray space must reach the server's trim (pr248 grok lane)
+  it('PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): no form, no license-key field, no script needed — the page redirects into the free product', () => {
+    expect(html).not.toMatch(/<form|<input|<textarea|<select/);
+    expect(html).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|localStorage|type="email"|name="email"|license_key/);
+    expect(html).not.toMatch(/gumroad/i);
+    expect(html).toMatch(/<meta http-equiv="refresh" content="0; url=\/">/);
+    expect(html).toMatch(/<a class="text-link" href="\/">continue to the sheet/);
     expect(html).toMatch(/<meta name="robots" content="noindex">/);
   });
 

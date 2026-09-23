@@ -1,9 +1,19 @@
 // 8ball / ui / example.js — the complete example before checkout (DOCTRINE §1.J v0.91)
 //
+// PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01, controller order): the dyad
+// is free for every device now. `syncDyadEntry('t3', DYAD_PRODUCT_URL)` below
+// is untouched — it is the offer-anchor sync every page uses — but
+// core/entitlement.js's DYAD_PRODUCT_URL is now blanked, so `dyadOfferVisible`
+// (its own complementary predicate) answers false unconditionally and the
+// Buy Link, price note, and activate line never render here either. No
+// behaviour change was needed in this file to remove the offer; only
+// example.html's static banner/meta text (which this module does not touch)
+// carried a literal price claim, and that was corrected separately.
+//
 // One fixed synthetic pair, rendered by the REAL paired-reading modules on a
-// separate static page (/example), so a person can judge the $3 dyad before
-// buying it. This module is the whole of that page's behaviour, and it is
-// deliberately small enough to read in one sitting:
+// separate static page (/example), so a person can see the free dyad before
+// opening their own. This module is the whole of that page's behaviour, and
+// it is deliberately small enough to read in one sitting:
 //
 //   - the pair is two constants below — never a form, never a query
 //     parameter, never storage — so the page can render exactly one pair;
@@ -15,8 +25,9 @@
 //     synthetic pair must not leave the page as if it were someone's;
 //   - the second-person form is REMOVED after the pair renders, so there is
 //     nothing to type into;
-//   - the offer anchor is shown by the same syncDyadEntry('t3', url) the
-//     sheet uses, so the page carries the real price, href and disclosure.
+//   - syncDyadEntry('t3', url) still runs (the same call the sheet uses) but
+//     the offer anchor it would show stays hidden — DYAD_PRODUCT_URL is
+//     blanked, so dyadOfferVisible answers false regardless of tier.
 //
 // Synthetic per §11: two names and two dates chosen for the calculation
 // paths they show (a controlling element relation; two master life paths

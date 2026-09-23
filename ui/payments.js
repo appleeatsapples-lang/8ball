@@ -103,7 +103,21 @@ export const DYAD_ALREADY_FILED_MESSAGE = 'that access link did not verify. the 
 // writes none: entitlement is settled once at boot, held in module state,
 // and it can only ever go UP within a session (a return link verifying
 // mid-boot), never down.
-let _dyadEntitled = false;
+//
+// PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01, controller order). The
+// dyad (paired reading) is free for every device, first visit, unconditionally
+// — this is now the ONLY line this PR changes to produce that behaviour.
+// `getRenderTier()` and `isDyadEntitled()` below are untouched: they only
+// ever read this flag, so flipping its default is the single seam the R1
+// remediation comment above promises. `resolveDyadEntitlement()` and every
+// pure function in core/entitlement.js stay wired and still run at boot —
+// they just can no longer LOWER an already-granted device (they never could
+// — see the docstring below), so leaving them live costs nothing and keeps
+// this a one-line, one-commit revert. Dead default, kept for that revert:
+//   let _dyadEntitled = false;
+// Deletion PR (removes the dead default + the now-inert verify plumbing):
+// tracked as a follow-up, not filed yet.
+let _dyadEntitled = true;
 
 export function getRenderTier() {
   return _dyadEntitled ? 't5' : 't3';

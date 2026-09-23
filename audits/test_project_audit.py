@@ -1528,17 +1528,22 @@ class PathRedactionRealRunTests(unittest.TestCase):
 
 
 class FreeCeilingProbeTests(unittest.TestCase):
-    """The repointed product.t4_migration probe (doctrine v0.81: free single
-    sheet + paid dyad) must be able to FAIL. The pr229 audit proved the
-    prior gap was real: a gutted probe rode this whole suite green. Each
-    test here builds a minimal product root — the REAL core/entitlement.js
-    copied in, plus a ui/payments.js stub that violates one clause of the
-    entitlement contract — and asserts the real check catches it."""
+    """The repointed product.t4_migration probe. Through doctrine v0.81/v0.90/
+    v0.91 this proved the free-single-sheet + paid-dyad contract; PAYWALL
+    REMOVED 2026-09-14 (PAYWALL-REMOVE-01, doctrine v0.92) repoints it to the
+    free-dyad contract — the dyad grants unconditionally now, so most of what
+    this probes for is that the DEAD verify/store/scrub plumbing still works
+    correctly (the one-commit-revert promise) and that the module never
+    silently starts trusting an unverified token or losing a filed one. The
+    pr229 audit proved the prior gap was real: a gutted probe rode this whole
+    suite green. Each test here builds a minimal product root — the REAL
+    core/entitlement.js copied in, plus a ui/payments.js stub that violates
+    one clause of the contract — and asserts the real check catches it."""
 
     GOOD = (
         "import { verifyDyadToken } from '../core/entitlement.js';\n"
         "const DYAD_KEY = 'eight_ball_dyad_entitlement_v1';\n"
-        "let entitled = false;\n"
+        "let entitled = true;\n"  # PAYWALL REMOVED 2026-09-14: was `false`
         "export function getRenderTier() { return entitled ? 't5' : 't3'; }\n"
         "export async function resolveDyadEntitlement({ returnToken = null, keys, subtle } = {}) {\n"
         "  if (returnToken !== null) {\n"
@@ -1571,20 +1576,14 @@ class FreeCeilingProbeTests(unittest.TestCase):
         self.assertEqual(chk["status"], "pass", chk["summary"] + chk["output"])
         self.assertEqual(chk["severity"], "blocking")
 
-    def test_wrong_baseline_fails(self):
-        # the v0.71 ceiling: t5 for everyone, before any token
-        chk = self.run_probe_with(self.GOOD.replace("return entitled ? 't5' : 't3';", "return 't5';"))
+    def test_regression_to_locked_default_fails(self):
+        # PAYWALL REMOVED 2026-09-14: the property this probe now protects —
+        # a module that regresses to a locked-by-default flag (re-introducing
+        # a paywall by accident) must be caught on a fresh module, before any
+        # token.
+        chk = self.run_probe_with(self.GOOD.replace("let entitled = true;", "let entitled = false;"))
         self.assertEqual(chk["status"], "fail", chk["summary"])
-        self.assertIn("legacy unsigned", chk["output"])
-
-    def test_legacy_tier_honoured_fails(self):
-        # trusting the unsigned stored tier — the thing v0.81 forbids
-        src = self.GOOD.replace(
-            "return entitled ? 't5' : 't3';",
-            "return entitled || localStorage.getItem('eight_ball_tier_v1') === 't5' ? 't5' : 't3';")
-        chk = self.run_probe_with(src)
-        self.assertEqual(chk["status"], "fail", chk["summary"])
-        self.assertIn("legacy unsigned", chk["output"])
+        self.assertIn("the dyad is free", chk["output"])
 
     def test_resolver_that_writes_storage_fails(self):
         src = self.GOOD.replace(
@@ -1604,7 +1603,7 @@ class FreeCeilingProbeTests(unittest.TestCase):
         src = self.GOOD.replace("if (v.ok) {", "if (false) {")
         chk = self.run_probe_with(src)
         self.assertEqual(chk["status"], "fail", chk["summary"])
-        self.assertIn("did not grant", chk["output"])
+        self.assertIn("not stored", chk["output"])
 
     def test_grant_that_does_not_store_fails(self):
         src = self.GOOD.replace("localStorage.setItem(DYAD_KEY, returnToken); ", "")
@@ -1631,8 +1630,9 @@ class FreeCeilingProbeTests(unittest.TestCase):
 
 
 class ActivationWiringTests(unittest.TestCase):
-    """product.activation_wiring (DOCTRINE §12/§5.B v0.91). Each test builds a
-    stub product root with the one function, the page and the routes, then
+    """product.activation_wiring (DOCTRINE §12/§5.B v0.91, RETIRED §4.B v0.92
+    PAYWALL-REMOVE-01 2026-09-14). Each test builds a stub product root with
+    the one (dead) function, the (now form-less) page and the routes, then
     breaks exactly one pin and asserts the check fails by that name."""
 
     FN = (
@@ -1646,10 +1646,9 @@ class ActivationWiringTests(unittest.TestCase):
         "  return new Response(null, { status: 303, headers: { 'cache-control': 'no-store', location } });\n}\n"
         "export default async function handler(request) { return redirectResponse('/activate'); }\n"
     )
-    PAGE = (
-        '<form id="activate-form" method="POST" action="/.netlify/functions/activate" autocomplete="off">\n'
-        '<input id="license-key" name="license_key" type="text">\n<button type="submit">open my dyad</button></form>\n'
-    )
+    # PAYWALL REMOVED 2026-09-14 (PAYWALL-REMOVE-01): the page no longer
+    # collects a license key — it redirects into the free product.
+    PAGE = '<meta http-equiv="refresh" content="0; url=/">\n<p>the dyad is free now.</p>\n'
     TOML = (
         '[[redirects]]\n  from = "/example"\n  to = "/example.html"\n  status = 200\n\n'
         '[[redirects]]\n  from = "/activate"\n  to = "/activate.html"\n  status = 200\n\n'
@@ -1720,14 +1719,23 @@ class ActivationWiringTests(unittest.TestCase):
             chk = pa.check_activation_wiring(root)
         self.assertEqual(chk["status"], "fail"); self.assertIn("example_missing", chk["summary"])
 
-    def test_second_input_or_email_field_fails(self):
-        chk = self.run_with(page=self.PAGE.replace("<button", '<input name="email" type="email"><button'))
-        self.assertEqual(chk["status"], "fail")
-        self.assertTrue("page_inputs" in chk["summary"] or "page_privacy" in chk["summary"], chk["summary"])
+    def test_a_form_reappearing_fails(self):
+        # PAYWALL REMOVED 2026-09-14: any form at all is now a regression —
+        # there is nothing left to submit.
+        chk = self.run_with(page=self.PAGE + '<form><input name="license_key"></form>\n')
+        self.assertEqual(chk["status"], "fail"); self.assertIn("page_forms", chk["summary"])
 
-    def test_form_posting_elsewhere_fails(self):
-        chk = self.run_with(page=self.PAGE.replace('action="/.netlify/functions/activate"', 'action="https://example.test/collect"'))
-        self.assertEqual(chk["status"], "fail"); self.assertIn("page_form_target", chk["summary"])
+    def test_a_bare_input_reappearing_fails(self):
+        chk = self.run_with(page=self.PAGE + '<input name="license_key" type="text">\n')
+        self.assertEqual(chk["status"], "fail"); self.assertIn("page_inputs", chk["summary"])
+
+    def test_missing_redirect_fails(self):
+        chk = self.run_with(page='<p>no redirect here</p>\n')
+        self.assertEqual(chk["status"], "fail"); self.assertIn("page_redirect", chk["summary"])
+
+    def test_gumroad_reference_reappearing_fails(self):
+        chk = self.run_with(page=self.PAGE + '<p>paste your gumroad license key</p>\n')
+        self.assertEqual(chk["status"], "fail"); self.assertIn("page_privacy", chk["summary"])
 
     def test_route_below_catch_all_fails(self):
         toml = self.TOML.split("[[redirects]]\n  from = \"/activate\"")
